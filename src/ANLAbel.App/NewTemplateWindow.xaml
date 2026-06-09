@@ -1,0 +1,34 @@
+<Window x:Class="ANLAbel.App.NewTemplateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="New Template" Height="285" Width="360"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="#F8FAFC">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="Template name"/>
+            <TextBox x:Name="NameBox" Text="ANLAbel Template" Margin="0,4,0,10" Padding="6,4"/>
+            <TextBlock Text="Width (mm)"/>
+            <TextBox x:Name="WidthBox" Text="100" Margin="0,4,0,10" Padding="6,4"/>
+            <TextBlock Text="Height (mm)"/>
+            <TextBox x:Name="HeightBox" Text="50" Margin="0,4,0,10" Padding="6,4"/>
+            <TextBlock Text="DPI"/>
+            <ComboBox x:Name="DpiBox" SelectedIndex="0" Margin="0,4,0,10" Padding="6,4">
+                <ComboBoxItem Content="203"/>
+                <ComboBoxItem Content="300"/>
+                <ComboBoxItem Content="600"/>
+            </ComboBox>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel" Width="82" Margin="0,0,8,0" Padding="8,5" Click="Cancel_Click"/>
+            <Button Content="Create" Width="82" Padding="8,5" Click="Create_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

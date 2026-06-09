@@ -1,0 +1,77 @@
+<Window x:Class="ANLAbel.App.PrinterSetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Label Size and Printer Setup" Height="520" Width="660"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F4F6F9">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,12">
+            <TextBlock Text="Select label size and printer" FontSize="17" FontWeight="SemiBold"/>
+            <TextBlock Text="Choose from standard label sizes or enter a custom size. Works with any printer." Foreground="#526070" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#C6CEDA" BorderThickness="1" Margin="0,0,10,0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="#173184" Padding="8">
+                        <TextBlock Text="Standard Label Sizes" Foreground="White" FontWeight="SemiBold"/>
+                    </Border>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,8,8,6">
+                        <TextBlock Text="Category" FontSize="11"/>
+                        <ComboBox x:Name="CategoryBox" SelectionChanged="CategoryBox_SelectionChanged" Margin="0,2,0,6"/>
+                    </StackPanel>
+                    <ListBox x:Name="PaperSizesList"
+                             DisplayMemberPath="DisplayName"
+                             SelectionChanged="PaperSizesList_SelectionChanged"
+                             BorderThickness="0"/>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#C6CEDA" BorderThickness="1">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Background="#173184" Padding="8">
+                        <TextBlock Text="Size and Printer Settings" Foreground="White" FontWeight="SemiBold"/>
+                    </Border>
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Label Width (mm)"/>
+                        <TextBox x:Name="WidthBox" Text="100" Margin="0,4,0,10"/>
+                        <TextBlock Text="Label Height (mm)"/>
+                        <TextBox x:Name="HeightBox" Text="50" Margin="0,4,0,10"/>
+                        <TextBlock x:Name="SizeSummaryText" Text="100 × 50 mm" Foreground="#0F4C81" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <TextBlock Text="Orientation"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,10">
+                            <RadioButton x:Name="PortraitRadio" Content="Portrait" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="LandscapeRadio" Content="Landscape"/>
+                        </StackPanel>
+                        <TextBlock Text="DPI"/>
+                        <ComboBox x:Name="DpiBox" SelectedIndex="0" Margin="0,4,0,10">
+                            <ComboBoxItem Content="203"/>
+                            <ComboBoxItem Content="300"/>
+                            <ComboBoxItem Content="600"/>
+                        </ComboBox>
+                        <TextBlock Text="Printer"/>
+                        <ComboBox x:Name="PrinterBox" DisplayMemberPath="DisplayName" Margin="0,4,0,6"/>
+                        <TextBlock x:Name="DriverText" TextWrapping="Wrap" Foreground="#526070" FontSize="11"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Skip" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Skip_Click"/>
+            <Button Content="Apply" Width="120" Padding="8,5" Click="Apply_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

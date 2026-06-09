@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NuGetAudit>false</NuGetAudit>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+  <!-- Prevent System.Drawing/WinForms types from leaking into consuming projects -->
+  <ItemGroup>
+    <ProjectReference Include="..\ANLAbel.Barcode\ANLAbel.Barcode.csproj" PrivateAssets="compile" />
+    <ProjectReference Include="..\ANLAbel.Core\ANLAbel.Core.csproj" PrivateAssets="compile" />
+  </ItemGroup>
+
+
+</Project>

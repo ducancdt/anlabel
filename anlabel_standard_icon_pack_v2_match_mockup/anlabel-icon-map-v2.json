@@ -1,0 +1,126 @@
+{
+  "new": {
+    "currentColor": "svg/new.svg",
+    "fixedColor": "svg_color/new.svg"
+  },
+  "open": {
+    "currentColor": "svg/open.svg",
+    "fixedColor": "svg_color/open.svg"
+  },
+  "save": {
+    "currentColor": "svg/save.svg",
+    "fixedColor": "svg_color/save.svg"
+  },
+  "undo": {
+    "currentColor": "svg/undo.svg",
+    "fixedColor": "svg_color/undo.svg"
+  },
+  "redo": {
+    "currentColor": "svg/redo.svg",
+    "fixedColor": "svg_color/redo.svg"
+  },
+  "import_excel": {
+    "currentColor": "svg/import_excel.svg",
+    "fixedColor": "svg_color/import_excel.svg"
+  },
+  "printer_setup": {
+    "currentColor": "svg/printer_setup.svg",
+    "fixedColor": "svg_color/printer_setup.svg"
+  },
+  "preview": {
+    "currentColor": "svg/preview.svg",
+    "fixedColor": "svg_color/preview.svg"
+  },
+  "print_current": {
+    "currentColor": "svg/print_current.svg",
+    "fixedColor": "svg_color/print_current.svg"
+  },
+  "print_all_rows": {
+    "currentColor": "svg/print_all_rows.svg",
+    "fixedColor": "svg_color/print_all_rows.svg"
+  },
+  "test_print": {
+    "currentColor": "svg/test_print.svg",
+    "fixedColor": "svg_color/test_print.svg"
+  },
+  "panels": {
+    "currentColor": "svg/panels.svg",
+    "fixedColor": "svg_color/panels.svg"
+  },
+  "delete_selection": {
+    "currentColor": "svg/delete_selection.svg",
+    "fixedColor": "svg_color/delete_selection.svg"
+  },
+  "zoom_minus": {
+    "currentColor": "svg/zoom_minus.svg",
+    "fixedColor": "svg_color/zoom_minus.svg"
+  },
+  "zoom_plus": {
+    "currentColor": "svg/zoom_plus.svg",
+    "fixedColor": "svg_color/zoom_plus.svg"
+  },
+  "help": {
+    "currentColor": "svg/help.svg",
+    "fixedColor": "svg_color/help.svg"
+  },
+  "settings": {
+    "currentColor": "svg/settings.svg",
+    "fixedColor": "svg_color/settings.svg"
+  },
+  "static_text": {
+    "currentColor": "svg/static_text.svg",
+    "fixedColor": "svg_color/static_text.svg"
+  },
+  "text_box": {
+    "currentColor": "svg/text_box.svg",
+    "fixedColor": "svg_color/text_box.svg"
+  },
+  "barcode": {
+    "currentColor": "svg/barcode.svg",
+    "fixedColor": "svg_color/barcode.svg"
+  },
+  "qr_code": {
+    "currentColor": "svg/qr_code.svg",
+    "fixedColor": "svg_color/qr_code.svg"
+  },
+  "data_matrix": {
+    "currentColor": "svg/data_matrix.svg",
+    "fixedColor": "svg_color/data_matrix.svg"
+  },
+  "line": {
+    "currentColor": "svg/line.svg",
+    "fixedColor": "svg_color/line.svg"
+  },
+  "rectangle": {
+    "currentColor": "svg/rectangle.svg",
+    "fixedColor": "svg_color/rectangle.svg"
+  },
+  "ellipse": {
+    "currentColor": "svg/ellipse.svg",
+    "fixedColor": "svg_color/ellipse.svg"
+  },
+  "folder": {
+    "currentColor": "svg/folder.svg",
+    "fixedColor": "svg_color/folder.svg"
+  },
+  "database": {
+    "currentColor": "svg/database.svg",
+    "fixedColor": "svg_color/database.svg"
+  },
+  "table": {
+    "currentColor": "svg/table.svg",
+    "fixedColor": "svg_color/table.svg"
+  },
+  "cursor_select": {
+    "currentColor": "svg/cursor_select.svg",
+    "fixedColor": "svg_color/cursor_select.svg"
+  },
+  "collapse_chevron": {
+    "currentColor": "svg/collapse_chevron.svg",
+    "fixedColor": "svg_color/collapse_chevron.svg"
+  },
+  "expand_chevron": {
+    "currentColor": "svg/expand_chevron.svg",
+    "fixedColor": "svg_color/expand_chevron.svg"
+  }
+}
