@@ -68,8 +68,19 @@ public partial class MainWindow : Window
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= MainWindow_Loaded;
+
+        // Ensure window fits within the working area (handles high DPI / small screens)
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Min(Width, workArea.Width);
+        Height = Math.Min(Height, workArea.Height);
+        if (Left + Width > workArea.Right)
+            Left = Math.Max(workArea.Left, workArea.Right - Width);
+        if (Top + Height > workArea.Bottom)
+            Top = Math.Max(workArea.Top, workArea.Bottom - Height);
+        if (Left < workArea.Left) Left = workArea.Left;
+        if (Top < workArea.Top) Top = workArea.Top;
+
         UpdateContentSourceSelection();
-        ShowPrinterSetupDialog();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

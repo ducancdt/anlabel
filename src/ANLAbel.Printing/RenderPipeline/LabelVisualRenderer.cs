@@ -53,7 +53,16 @@ public sealed class LabelVisualRenderer
 
         dc.PushTransform(new TranslateTransform(MmConverter.MmToDip(plan.OffsetXMm), MmConverter.MmToDip(plan.OffsetYMm)));
         dc.PushTransform(new ScaleTransform(plan.ScaleX, plan.ScaleY));
-        dc.PushClip(new RectangleGeometry(labelRect));
+
+        // Clip rect must be generous enough to not cut content that is offset/scaled.
+        // Use 2x the label dimensions as the clip boundary so content near edges
+        // is not prematurely clipped by the transform pipeline.
+        var clipRect = new Rect(
+            -labelWidthDip,
+            -labelHeightDip,
+            labelWidthDip * 3,
+            labelHeightDip * 3);
+        dc.PushClip(new RectangleGeometry(clipRect));
         PushOutputTransforms(dc, labelRect, plan);
 
         foreach (var item in template.Objects.Where(item => item.IsVisible).OrderBy(item => item.ZIndex))
@@ -242,7 +251,25 @@ public sealed class LabelVisualRenderer
             var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
             if (vectorData is not null)
             {
-                DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
+                // Auto-grow: if the barcode needs more width than allocated, expand the rect
+                var requiredWidthMm = vectorData.WidthModules * 96.0 / barcodeDpi * (96.0 / 96.0) * (barcodeDpi / 96.0) / (96.0 / 25.4);
+                if (requiredWidthMm > widthMm * 1.05)
+                {
+                    rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(requiredWidthMm), rect.Height);
+                }
+
+                // Reserve space for text if ShowBarcodeText is enabled
+                if (item.ShowBarcodeText && item.Type != ObjectType.QRCode && item.Type != ObjectType.DataMatrix)
+                {
+                    var textHeightDip = MmConverter.MmToDip(item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.6);
+                    var barcodeRect = new Rect(rect.Left, rect.Top, rect.Width, Math.Max(1, rect.Height - textHeightDip));
+                    DrawVectorBarcode(dc, vectorData, barcodeRect, barcodeDpi);
+                    DrawBarcodeText(dc, data, barcodeRect, item);
+                }
+                else
+                {
+                    DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
+                }
                 return;
             }
 
@@ -255,14 +282,26 @@ public sealed class LabelVisualRenderer
             var naturalWidthDip = pixels.WidthPixels * 96.0 / barcodeDpi;
             var naturalHeightDip = pixels.HeightPixels * 96.0 / barcodeDpi;
 
-            var guidelines = new GuidelineSet(
-                new[] { rect.Left, rect.Left + naturalWidthDip },
-                new[] { rect.Top, rect.Top + naturalHeightDip });
-            dc.PushGuidelineSet(guidelines);
-
-            dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
-
-            dc.Pop(); // Pop GuidelineSet
+            // Reserve space for text if ShowBarcodeText is enabled (for 2D codes)
+            if (item.ShowBarcodeText)
+            {
+                var textHeightDip = MmConverter.MmToDip(item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.6);
+                var barcodeAreaHeight = Math.Max(1, rect.Height - textHeightDip);
+                var scaleRatio = barcodeAreaHeight / naturalHeightDip;
+                var scaledWidth = naturalWidthDip * scaleRatio;
+                var barcodeRect = new Rect(rect.Left, rect.Top, scaledWidth, barcodeAreaHeight);
+                dc.DrawImage(source, barcodeRect);
+                DrawBarcodeText(dc, data, new Rect(rect.Left, rect.Top, Math.Max(scaledWidth, rect.Width), barcodeAreaHeight), item);
+            }
+            else
+            {
+                var guidelines = new GuidelineSet(
+                    new[] { rect.Left, rect.Left + naturalWidthDip },
+                    new[] { rect.Top, rect.Top + naturalHeightDip });
+                dc.PushGuidelineSet(guidelines);
+                dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
+                dc.Pop();
+            }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -422,6 +461,29 @@ public sealed class LabelVisualRenderer
         return FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
             ? FormulaBindingEvaluator.Evaluate(item.BindingExpression, row).Value
             : BindingExpressionEvaluator.Evaluate(item.BindingExpression, row);
+    }
+
+    private static void DrawBarcodeText(DrawingContext dc, string data, Rect barcodeRect, LabelObject item)
+    {
+        if (string.IsNullOrWhiteSpace(data)) return;
+
+        var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
+        var text = new FormattedText(
+            data,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"),
+            fontSizeDip,
+            Brushes.Black,
+            1.0)
+        {
+            TextAlignment = TextAlignment.Center
+        };
+
+        // Center text horizontally under the barcode, positioned at bottom of the original rect
+        var textX = barcodeRect.Left + barcodeRect.Width / 2;
+        var textY = barcodeRect.Bottom + 2;
+        dc.DrawText(text, new Point(textX - text.Width / 2, textY));
     }
 
     private static void DrawText(DrawingContext dc, string value, double x, double y, double fontSizePt, Brush brush)

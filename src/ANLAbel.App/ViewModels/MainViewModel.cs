@@ -53,6 +53,9 @@ public sealed class MainViewModel : ObservableObject
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
     private readonly Stack<string> _redoStack = new();
+    private System.Windows.Threading.DispatcherTimer? _debounceTimer;
+    private bool _debounceActive;
+    private string _pendingSnapshot = string.Empty;
     private LabelTemplate _template = CreateDefaultTemplate();
     private LabelObject? _selectedObject;
     private DataView? _excelDataView;
@@ -1981,15 +1984,49 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        if (!string.IsNullOrEmpty(_lastTemplateSnapshot))
+        // Debounce: accumulate rapid changes into one undo step
+        if (_debounceActive)
         {
-            _undoStack.Push(_lastTemplateSnapshot);
-            TrimUndoStack();
+            // Already waiting for debounce timer, just update pending snapshot
+            _pendingSnapshot = currentSnapshot;
+            return;
         }
 
-        _redoStack.Clear();
+        // First change in a burst: save the pre-change state and start debounce
+        _debounceActive = true;
+        var preChangeSnapshot = _lastTemplateSnapshot;
+        _pendingSnapshot = currentSnapshot;
         _lastTemplateSnapshot = currentSnapshot;
-        RaiseHistoryCanExecuteChanged();
+
+        // Start timer - when it fires, commit the undo step
+        _debounceTimer?.Stop();
+        _debounceTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(300)
+        };
+        _debounceTimer.Tick += (_, _) =>
+        {
+            _debounceTimer.Stop();
+            _debounceTimer = null;
+            _debounceActive = false;
+
+            // Push the pre-change snapshot (the state before the drag started)
+            if (!string.IsNullOrEmpty(preChangeSnapshot))
+            {
+                // Only push if it's different from current
+                var finalSnapshot = CaptureTemplateSnapshot();
+                if (preChangeSnapshot != finalSnapshot)
+                {
+                    _undoStack.Push(preChangeSnapshot);
+                    TrimUndoStack();
+                    _redoStack.Clear();
+                    _lastTemplateSnapshot = finalSnapshot;
+                }
+            }
+
+            RaiseHistoryCanExecuteChanged();
+        };
+        _debounceTimer.Start();
     }
 
     private void RestoreTemplateSnapshot(string snapshot)
