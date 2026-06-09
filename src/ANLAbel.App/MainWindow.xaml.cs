@@ -81,6 +81,7 @@ public partial class MainWindow : Window
         if (Top < workArea.Top) Top = workArea.Top;
 
         UpdateContentSourceSelection();
+        ShowPrinterSetupDialog();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
