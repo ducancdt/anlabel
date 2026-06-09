@@ -312,48 +312,41 @@ public sealed class LabelVisualRenderer
 
     private static void DrawVectorBarcode(DrawingContext dc, BarcodeVectorData vectorData, Rect rect, int dpi)
     {
-        // Each module maps to exactly one DIP-width unit (printer dot / (dpi/96)).
-        // This produces pixel-perfect bars at the printer's native resolution.
-        var moduleWidthDip = 96.0 / dpi; // one pixel's width in DIPs
-        var totalModuleWidthDip = vectorData.WidthModules * moduleWidthDip;
-
-        // Scale if the natural pixel width differs from the target rect width
-        var scaleX = rect.Width / totalModuleWidthDip;
-        var scaleY = 1.0; // 1D barcode: full height always
-
-        if (Math.Abs(scaleX - 1.0) > 0.001)
-        {
-            dc.PushTransform(new ScaleTransform(scaleX, scaleY, rect.Left, rect.Top));
-        }
+        // Draw each barcode module as a pixel-snapped rectangle.
+        // Avoid ScaleTransform because fractional DIP widths cause anti-aliased
+        // bar edges that create "crease/wrinkle" artifacts when printed.
+        // Instead, compute each bar's position directly in target coordinates,
+        // snapping to whole printer-pixel boundaries.
+        var totalModules = vectorData.WidthModules;
+        if (totalModules <= 0)
+            return;
 
         var brush = Brushes.Black;
-        var x = rect.Left;
+        var targetWidth = rect.Width;
         var i = 0;
 
-        while (i < vectorData.WidthModules)
+        while (i < totalModules)
         {
             if (vectorData.RowBits[i])
             {
                 // Find the end of this contiguous dark run
-                var startX = x;
-                while (i < vectorData.WidthModules && vectorData.RowBits[i])
-                {
-                    x += moduleWidthDip;
+                var startModule = i;
+                while (i < totalModules && vectorData.RowBits[i])
                     i++;
-                }
-                // Draw one rectangle for the entire contiguous dark run
-                dc.DrawRectangle(brush, null, new Rect(startX, rect.Top, x - startX, rect.Height));
+
+                // Compute pixel-snapped positions in target rect
+                var leftPx = Math.Round(startModule * targetWidth / totalModules);
+                var rightPx = Math.Round(i * targetWidth / totalModules);
+                var barWidth = rightPx - leftPx;
+                if (barWidth < 1.0)
+                    barWidth = 1.0; // minimum one DIP to remain visible
+
+                dc.DrawRectangle(brush, null, new Rect(rect.Left + leftPx, rect.Top, barWidth, rect.Height));
             }
             else
             {
-                x += moduleWidthDip;
                 i++;
             }
-        }
-
-        if (Math.Abs(scaleX - 1.0) > 0.001)
-        {
-            dc.Pop(); // Pop ScaleTransform
         }
     }
 
