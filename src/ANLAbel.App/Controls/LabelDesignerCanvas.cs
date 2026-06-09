@@ -1677,13 +1677,13 @@ public sealed class LabelDesignerCanvas : Canvas
                 return source;
             }
 
-            // Composite: barcode image + text below it
+            // Composite: barcode image + text below — use barcode DPI to avoid blurry text
             var barcodeWidthDip = pixels.WidthPixels * 96.0 / item.QrDpi;
             var barcodeHeightDip = pixels.HeightPixels * 96.0 / item.QrDpi;
             var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
-            var textHeightDip = fontSizeDip * 1.6;
+            var textHeightDip = fontSizeDip * 1.8;
             var totalHeight = barcodeHeightDip + textHeightDip + 2;
-            var totalWidth = Math.Max(barcodeWidthDip, 100);
+            var totalWidth = barcodeWidthDip;
 
             var visual = new DrawingVisual();
             RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.NearestNeighbor);
@@ -1706,9 +1706,10 @@ public sealed class LabelDesignerCanvas : Canvas
                 dc.DrawText(text, new Point(textX - text.Width / 2, barcodeHeightDip + 2));
             }
 
-            var compositeDpi = 96.0;
-            var compositePixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth));
-            var compositePixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight));
+            // Use barcode DPI for composite to keep text sharp at print resolution
+            var compositeDpi = item.QrDpi;
+            var compositePixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth * compositeDpi / 96.0));
+            var compositePixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight * compositeDpi / 96.0));
             var composite = new RenderTargetBitmap(compositePixelWidth, compositePixelHeight, compositeDpi, compositeDpi, PixelFormats.Pbgra32);
             composite.Render(visual);
             composite.Freeze();
