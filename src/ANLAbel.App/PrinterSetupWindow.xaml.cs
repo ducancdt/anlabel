@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using ANLAbel.App.Services;
 using ANLAbel.Core.Enums;
 using ANLAbel.Printing.PrinterProfiles;
 
@@ -8,6 +9,7 @@ namespace ANLAbel.App;
 public partial class PrinterSetupWindow : Window
 {
     private readonly IReadOnlyList<PrinterInfo> _printers;
+    private readonly PrinterPreferencesService _prefsService = new();
     private bool _syncing;
 
     public PrinterSetupWindow(IReadOnlyList<PrinterInfo> printers, string? initialPrinterName = null, string? initialPaperName = null, LabelOrientation initialOrientation = LabelOrientation.Portrait, int initialDpi = 203)
@@ -15,23 +17,48 @@ public partial class PrinterSetupWindow : Window
         InitializeComponent();
         _printers = printers;
 
+        // Load saved preferences
+        var prefs = _prefsService.Load();
+
+        // Use saved prefs as defaults if caller didn't provide specific values
+        var effectivePrinterName = !string.IsNullOrWhiteSpace(initialPrinterName)
+            ? initialPrinterName
+            : prefs.PrinterName;
+        var effectivePaperName = !string.IsNullOrWhiteSpace(initialPaperName)
+            ? initialPaperName
+            : prefs.PaperName;
+        var effectiveDpi = initialDpi != 203 ? initialDpi : prefs.Dpi;
+        var effectiveOrientation = initialOrientation != LabelOrientation.Portrait
+            ? initialOrientation
+            : (prefs.Orientation == "Landscape" ? LabelOrientation.Landscape : LabelOrientation.Portrait);
+
         CategoryBox.ItemsSource = StandardLabelSizes.Categories;
-        CategoryBox.SelectedIndex = 0;
+
+        // If we have a saved category, select it; otherwise first
+        if (!string.IsNullOrWhiteSpace(prefs.PaperCategory))
+        {
+            CategoryBox.SelectedItem = StandardLabelSizes.Categories
+                .FirstOrDefault(c => string.Equals(c, prefs.PaperCategory, StringComparison.OrdinalIgnoreCase));
+        }
+        if (CategoryBox.SelectedIndex < 0)
+        {
+            CategoryBox.SelectedIndex = 0;
+        }
 
         PrinterBox.ItemsSource = printers;
-        PrinterBox.SelectedItem = printers.FirstOrDefault(p => string.Equals(p.Name, initialPrinterName, StringComparison.OrdinalIgnoreCase));
+        PrinterBox.SelectedItem = printers.FirstOrDefault(p => string.Equals(p.Name, effectivePrinterName, StringComparison.OrdinalIgnoreCase));
         if (PrinterBox.SelectedItem is null && printers.Count > 0)
         {
             PrinterBox.SelectedIndex = 0;
         }
 
-        DpiBox.SelectedIndex = GetDpiIndex(initialDpi);
-        PortraitRadio.IsChecked = initialOrientation == LabelOrientation.Portrait;
-        LandscapeRadio.IsChecked = initialOrientation == LabelOrientation.Landscape;
+        DpiBox.SelectedIndex = GetDpiIndex(effectiveDpi);
+        PortraitRadio.IsChecked = effectiveOrientation == LabelOrientation.Portrait;
+        LandscapeRadio.IsChecked = effectiveOrientation == LabelOrientation.Landscape;
 
-        if (!string.IsNullOrWhiteSpace(initialPaperName))
+        if (!string.IsNullOrWhiteSpace(effectivePaperName))
         {
-            var match = StandardLabelSizes.All.FirstOrDefault(s => string.Equals(s.Name, initialPaperName, StringComparison.OrdinalIgnoreCase));
+            var match = StandardLabelSizes.All.FirstOrDefault(s => string.Equals(s.Name, effectivePaperName, StringComparison.OrdinalIgnoreCase));
             if (match is not null)
             {
                 SetSizeFromPaper(match);
@@ -107,6 +134,17 @@ public partial class PrinterSetupWindow : Window
             ?? new PrinterPaperInfo { Name = "Custom", WidthMm = w, HeightMm = h, Source = PaperSizeSourceKind.UserCustom };
         SelectedDpi = ReadDpi();
         SelectedOrientation = LandscapeRadio.IsChecked == true ? LabelOrientation.Landscape : LabelOrientation.Portrait;
+
+        // Save preferences for next time
+        _prefsService.Save(new PrinterPreferences
+        {
+            PrinterName = SelectedPrinter?.Name ?? string.Empty,
+            PaperName = SelectedPaper?.Name ?? string.Empty,
+            PaperCategory = CategoryBox.SelectedItem as string ?? string.Empty,
+            Dpi = SelectedDpi,
+            Orientation = SelectedOrientation == LabelOrientation.Landscape ? "Landscape" : "Portrait"
+        });
+
         DialogResult = true;
     }
 

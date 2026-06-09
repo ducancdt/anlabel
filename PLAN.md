@@ -569,6 +569,36 @@
      - Calibration print cung dung chung pipeline vector, khong con raster toan bo tem thanh anh bitmap.
      - Version hien thi va assembly duoc dong bo len `0.038`.
 
+### Phien ban 0.040 - Barcode text, auto-grow, compact UI, window fixes
+- Sua loi Printer Setup dialog hien 2 lan khi mo app:
+  - Bo `ShowPrinterSetupDialog()` trong `MainWindow_Loaded`; chi hien khi user bam nut `Printer Setup` tren ribbon.
+- Sua loi window bi khuut title bar tren may man hinh nho/DPI cao:
+  - `MainWindow_Loaded` clamp window size vao `SystemParameters.WorkArea`.
+  - `Width/Height` toi da bang kich thuoc man hinh thuc te, tru taskbar.
+- Sua loi Print Preview nhay ra app rieng tren taskbar:
+  - `PrintPreviewWindow` them `ShowInTaskbar="False"`.
+  - Constructor clamp kich thuoc cua so vao work area.
+- Them tinh nang barcode noi dung text (ShowBarcodeText):
+  - `LabelObject` them `ShowBarcodeText` (mac dinh: true) va `BarcodeTextFontSizePt` (mac dinh: 7pt).
+  - `LabelVisualRenderer.DrawBarcodeText()` ve text centered duoi barcode.
+  - 1D barcodes (vector): reserve textHeight tu barcode height, ve text ben duoi.
+  - 2D codes (QR, DataMatrix): scale barcode nho hon, text ben duoi.
+  - Properties panel co checkbox `Show text` + TextBox font size cho barcode.
+- Auto-grow barcode width khi noi dung dai:
+  - Vector renderer tinh `requiredWidthDip` tu `WidthModules * moduleWidthDip`.
+  - Neu content dai hon container, tu dong mo rong `rect.Width` de barcode khong bi compress.
+  - Dam bao in ra luon doc duoc, khong bi "squished".
+- Compact Properties panel UI/UX:
+  - Giam padding: 7→5, 9→6.
+  - Giam margin: `0,0,0,6` → `0,0,0,3`.
+  - Giam fontSize header: 13→12.
+  - Giam fontSize labels: them `FontSize="11"` cho labels.
+  - Giam MinHeight TextBox: 30→26.
+  - Giam spacing giua ComboBox/TextBox (margin bottom: 8→5).
+  - Tiet kiem ~30% khong gian doc, chua cho tinh nang sau nay.
+- Version hien thi va assembly duoc dong bo len `0.040`.
+- `dotnet build ANLAbel.slnx --nologo -v q` thanh cong (0 warning, 0 error).
+
 ### Quy tac lam viec tiep theo
 - Sau moi phan hoan thanh, cap nhat outline nay voi noi dung da lam va cach verify.
 - Sau khi build/test xong, tu dong mo app de test neu thay doi lien quan UI hoac workflow nguoi dung.

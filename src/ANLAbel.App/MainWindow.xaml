@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:ANLAbel.App.Controls"
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.039"
+        Title="ANLAbel - Label Designer v0.040"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="800" Width="1440"
         MinHeight="430" MinWidth="720"
@@ -12,6 +12,7 @@
         FontFamily="Segoe UI"
         FontSize="13"
         WindowStartupLocation="CenterScreen"
+        Loaded="MainWindow_Loaded"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True">
     <Window.Resources>
@@ -254,7 +255,7 @@
                     </Border>
                     <TextBlock Text="ANLAbel - Label Designer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     <Border Margin="10,0,0,0" Padding="7,2" Background="#EAF3FF" BorderBrush="{StaticResource AppBlueBrush}" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock Text="closebeta v0.039" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                        <TextBlock Text="closebeta v0.040" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                     </Border>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -729,19 +730,19 @@
                                     </Style>
                                 </StackPanel.Style>
 
-                                <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="9" Margin="0,0,0,6">
+                                <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6" Margin="0,0,0,3">
                                     <StackPanel>
                                         <TextBlock Text="{Binding SelectedObjectTypeText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                        <TextBlock Text="{Binding SelectedObjectSummaryText}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding SelectedObjectSummaryText}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <StackPanel>
-                                        <TextBlock Text="Content" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,5"/>
-                                        <TextBlock Text="{Binding LinkedExcelSourceText}" Foreground="{StaticResource AppMutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                                        <TextBlock Text="Source" Foreground="{StaticResource AppMutedBrush}"/>
-                                        <ComboBox x:Name="ContentSourceComboBox" SelectionChanged="ContentSourceComboBox_SelectionChanged" SelectedIndex="0" Margin="0,2,0,5">
+                                        <TextBlock Text="Content" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="{Binding LinkedExcelSourceText}" Foreground="{StaticResource AppMutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                        <TextBlock Text="Source" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                        <ComboBox x:Name="ContentSourceComboBox" SelectionChanged="ContentSourceComboBox_SelectionChanged" SelectedIndex="0" Margin="0,2,0,3">
                                             <ComboBoxItem Content="Text" Tag="Static"/>
                                             <ComboBoxItem Content="Excel Field" Tag="Excel"/>
                                         </ComboBox>
@@ -764,11 +765,11 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <StackPanel>
-                                        <TextBlock Text="Transform" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,5"/>
-                                        <TextBlock Text="Rotation" Foreground="{StaticResource AppMutedBrush}"/>
-                                        <ComboBox SelectedValue="{Binding SelectedObject.Rotation, Mode=TwoWay}" SelectedValuePath="Tag" Margin="0,3,0,0">
+                                        <TextBlock Text="Transform" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="Rotation" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                        <ComboBox SelectedValue="{Binding SelectedObject.Rotation, Mode=TwoWay}" SelectedValuePath="Tag" Margin="0,2,0,0">
                                             <ComboBoxItem Content="0°" Tag="0"/>
                                             <ComboBoxItem Content="90°" Tag="90"/>
                                             <ComboBoxItem Content="180°" Tag="180"/>
@@ -777,7 +778,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -792,9 +793,9 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Text Style" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,5"/>
-                                        <TextBlock Text="Font" Foreground="{StaticResource AppMutedBrush}"/>
-                                        <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}" Margin="0,3,0,8"/>
+                                        <TextBlock Text="Text Style" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="Font" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                        <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}" Margin="0,2,0,5"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -806,14 +807,14 @@
                                                 <RowDefinition/>
                                             </Grid.RowDefinitions>
                                             <StackPanel>
-                                                <TextBlock Text="Size" Foreground="{StaticResource AppMutedBrush}"/>
-                                                <ComboBox ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}" Margin="0,3,0,8"/>
+                                                <TextBlock Text="Size" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                                <ComboBox ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}" Margin="0,2,0,5"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Align" Foreground="{StaticResource AppMutedBrush}"/>
-                                                <ComboBox ItemsSource="{Binding TextAlignments}" SelectedItem="{Binding SelectedObject.Style.Alignment, Mode=TwoWay}" Margin="0,3,0,8"/>
+                                                <TextBlock Text="Align" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                                <ComboBox ItemsSource="{Binding TextAlignments}" SelectedItem="{Binding SelectedObject.Style.Alignment, Mode=TwoWay}" Margin="0,2,0,5"/>
                                             </StackPanel>
-                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,0">
+                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,0">
                                                 <CheckBox Content="Bold" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" Margin="0,0,14,0" VerticalAlignment="Center"/>
                                                 <CheckBox Content="Italic" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" Margin="0,0,14,0" VerticalAlignment="Center"/>
                                                 <CheckBox Content="Underline" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" VerticalAlignment="Center"/>
@@ -823,35 +824,45 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.BarcodeCode128}"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.QRCode}"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.DataMatrix}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Barcode" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Barcode" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,3"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Barcode standard" Foreground="{StaticResource AppMutedBrush}"/><ComboBox ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,3,0,8"><ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle></ComboBox></StackPanel>
-                                            <StackPanel Grid.Row="1"><TextBlock Text="QR size mode" Foreground="{StaticResource AppMutedBrush}"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,3,0,0"/></StackPanel>
-                                            <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="Error correction" Foreground="{StaticResource AppMutedBrush}"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,3,0,0"/></StackPanel>
+                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Barcode standard" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/><ComboBox ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,2,0,5"><ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle></ComboBox></StackPanel>
+                                            <StackPanel Grid.Row="1"><TextBlock Text="QR size mode" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,2,0,0"/></StackPanel>
+                                            <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="Error correction" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,2,0,0"/></StackPanel>
                                         </Grid>
+                                        <Border Margin="0,8,0,0" Padding="0" BorderThickness="0">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <CheckBox Grid.Column="0" Content="Show text" IsChecked="{Binding SelectedObject.ShowBarcodeText, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="Size" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBox Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F0}" Width="36" MinHeight="24" Margin="0,0,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.QrSizingMode}" Value="{x:Static barcode:QrSizingMode.AutoSizeByData}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                     <StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5"><TextBlock Text="Fixed Size" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/><TextBlock Text="  ⓘ" Foreground="{StaticResource AppMutedBrush}" ToolTip="Fixed version keeps code size stable. If data exceeds capacity, validation should report an error."/></StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3"><TextBlock Text="Fixed Size" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/><TextBlock Text="  ⓘ" Foreground="{StaticResource AppMutedBrush}" FontSize="11" ToolTip="Fixed version keeps code size stable. If data exceeds capacity, validation should report an error."/></StackPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Fixed version" Foreground="{StaticResource AppMutedBrush}"/><ComboBox ItemsSource="{Binding QrVersionOptions}" SelectedValue="{Binding SelectedObject.QrFixedVersion, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,3,0,8" MaxDropDownHeight="320"/></StackPanel>
-                                            <StackPanel Grid.Row="1"><TextBlock Text="Module size (px)" Foreground="{StaticResource AppMutedBrush}"/><ComboBox ItemsSource="{Binding QrModuleSizePxOptions}" SelectedItem="{Binding SelectedObject.QrModuleSizePx, Mode=TwoWay}" Margin="0,3,0,0"/></StackPanel>
-                                            <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="DPI" Foreground="{StaticResource AppMutedBrush}"/><TextBox Text="{Binding SelectedObject.QrDpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" Margin="0,3,0,0"/></StackPanel>
+                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Fixed version" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/><ComboBox ItemsSource="{Binding QrVersionOptions}" SelectedValue="{Binding SelectedObject.QrFixedVersion, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,2,0,5" MaxDropDownHeight="320"/></StackPanel>
+                                            <StackPanel Grid.Row="1"><TextBlock Text="Module size (px)" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/><ComboBox ItemsSource="{Binding QrModuleSizePxOptions}" SelectedItem="{Binding SelectedObject.QrModuleSizePx, Mode=TwoWay}" Margin="0,2,0,0"/></StackPanel>
+                                            <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="DPI" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/><TextBox Text="{Binding SelectedObject.QrDpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="26" Margin="0,2,0,0"/></StackPanel>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -863,18 +874,18 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Binding Preview" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Binding Preview" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,3"/>
                                         <TextBlock Text="{Binding SelectedBindingKindText, StringFormat=Source type: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding SelectedBindingStatusText}" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="0,4,0,6"/>
-                                        <TextBlock Text="Preview value" Foreground="{StaticResource AppMutedBrush}"/>
-                                        <TextBox Text="{Binding SelectedBindingPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="30" Margin="0,3,0,6"/>
+                                        <TextBlock Text="{Binding SelectedBindingStatusText}" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="0,3,0,4"/>
+                                        <TextBlock Text="Preview value" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                        <TextBox Text="{Binding SelectedBindingPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="26" Margin="0,2,0,4"/>
                                         <TextBlock Text="{Binding SelectedBindingUsedFieldsSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding SelectedBindingMissingFieldsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                         <TextBlock Text="{Binding SelectedBindingErrorsText}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,0,0,6">
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="5" Margin="0,0,0,3">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -886,9 +897,9 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Formula Output" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,5"/>
-                                        <TextBlock Text="Output" Foreground="{StaticResource AppMutedBrush}"/>
-                                        <TextBox Text="{Binding FormulaPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="30" Margin="0,3,0,6"/>
+                                        <TextBlock Text="Formula Output" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="Output" Foreground="{StaticResource AppMutedBrush}" FontSize="11"/>
+                                        <TextBox Text="{Binding FormulaPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="26" Margin="0,2,0,4"/>
                                         <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Used fields: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>

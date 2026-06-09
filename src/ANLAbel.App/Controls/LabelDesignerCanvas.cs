@@ -75,6 +75,11 @@ public sealed class LabelDesignerCanvas : Canvas
     private string _dimensionBuffer = string.Empty;
     private int _pasteCount;
 
+    // Alignment guide system
+    private const double SnapThresholdMm = 3.0;
+    private Line? _guideVertical;
+    private Line? _guideHorizontal;
+
     public LabelDesignerCanvas()
     {
         Background = Brushes.Transparent;
@@ -164,6 +169,8 @@ public sealed class LabelDesignerCanvas : Canvas
         _groupDragStarts.Clear();
         _marqueeElement = null;
         _isMarqueeSelecting = false;
+        _guideVertical = null;
+        _guideHorizontal = null;
         RemoveSelectionAdorner();
 
         if (Template is null)
@@ -260,8 +267,25 @@ public sealed class LabelDesignerCanvas : Canvas
             }
             else
             {
-                item.XMm = Math.Max(0, _startXMm + deltaXMm);
-                item.YMm = Math.Max(0, _startYMm + deltaYMm);
+                var proposedX = _startXMm + deltaXMm;
+                var proposedY = _startYMm + deltaYMm;
+
+                // Alignment guide: compute snap position against other objects
+                var snap = ComputeAlignmentSnap(item, proposedX, proposedY);
+                if (snap.SnapX is not null)
+                {
+                    proposedX = snap.SnapX.Value;
+                }
+                if (snap.SnapY is not null)
+                {
+                    proposedY = snap.SnapY.Value;
+                }
+
+                item.XMm = Math.Max(0, proposedX);
+                item.YMm = Math.Max(0, proposedY);
+
+                // Show/hide guide lines
+                ShowAlignmentGuides(snap);
             }
 
             UpdateObjectElement(item);
@@ -269,6 +293,7 @@ public sealed class LabelDesignerCanvas : Canvas
         element.PreviewMouseLeftButtonUp += (sender, _) =>
         {
             _dragObject = null;
+            HideAlignmentGuides();
             ((FrameworkElement)sender).ReleaseMouseCapture();
         };
 
@@ -1841,6 +1866,208 @@ public sealed class LabelDesignerCanvas : Canvas
         _selectionAdorner?.InvalidateArrange();
         _selectionAdorner?.InvalidateVisual();
     }
+
+    // ==================== Alignment Guide System ====================
+
+    private readonly record struct AlignmentSnapResult(double? SnapX, double? SnapY, List<double> GuideXPositions, List<double> GuideYPositions);
+
+    private AlignmentSnapResult ComputeAlignmentSnap(LabelObject dragged, double proposedXMm, double proposedYMm)
+    {
+        if (Template is null)
+        {
+            return new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        }
+
+        var snapX = (double?)null;
+        var snapY = (double?)null;
+        var guideXPositions = new List<double>();
+        var guideYPositions = new List<double>();
+        var bestDistX = double.MaxValue;
+        var bestDistY = double.MaxValue;
+
+        // Dragged object edges and center
+        var dragLeft = proposedXMm;
+        var dragRight = proposedXMm + dragged.WidthMm;
+        var dragCenterX = proposedXMm + dragged.WidthMm / 2.0;
+        var dragTop = proposedYMm;
+        var dragBottom = proposedYMm + dragged.HeightMm;
+        var dragCenterY = proposedYMm + dragged.HeightMm / 2.0;
+
+        foreach (var other in Template.Objects)
+        {
+            if (ReferenceEquals(other, dragged) || !other.IsVisible)
+            {
+                continue;
+            }
+
+            double otherLeft, otherRight, otherTop, otherBottom;
+            if (other.Type == ObjectType.Line)
+            {
+                var endX = other.LineEndXMm == 0 && other.LineEndYMm == 0 ? other.XMm + other.WidthMm : other.LineEndXMm;
+                var endY = other.LineEndXMm == 0 && other.LineEndYMm == 0 ? other.YMm + other.HeightMm : other.LineEndYMm;
+                otherLeft = Math.Min(other.XMm, endX);
+                otherRight = Math.Max(other.XMm, endX);
+                otherTop = Math.Min(other.YMm, endY);
+                otherBottom = Math.Max(other.YMm, endY);
+            }
+            else
+            {
+                otherLeft = other.XMm;
+                otherRight = other.XMm + other.WidthMm;
+                otherTop = other.YMm;
+                otherBottom = other.YMm + other.HeightMm;
+            }
+
+            var otherCenterX = (otherLeft + otherRight) / 2.0;
+            var otherCenterY = (otherTop + otherBottom) / 2.0;
+
+            // Check X alignment: compare 9 edge/center pairs
+            CheckSnap(dragLeft, otherLeft, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherLeft);
+            CheckSnap(dragLeft, otherRight, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherRight);
+            CheckSnap(dragLeft, otherCenterX, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherCenterX);
+            CheckSnap(dragRight, otherLeft, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherLeft);
+            CheckSnap(dragRight, otherRight, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherRight);
+            CheckSnap(dragRight, otherCenterX, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherCenterX);
+            CheckSnap(dragCenterX, otherLeft, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherLeft);
+            CheckSnap(dragCenterX, otherRight, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherRight);
+            CheckSnap(dragCenterX, otherCenterX, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, otherCenterX);
+
+            // Check Y alignment
+            CheckSnap(dragTop, otherTop, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherTop);
+            CheckSnap(dragTop, otherBottom, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherBottom);
+            CheckSnap(dragTop, otherCenterY, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherCenterY);
+            CheckSnap(dragBottom, otherTop, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherTop);
+            CheckSnap(dragBottom, otherBottom, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherBottom);
+            CheckSnap(dragBottom, otherCenterY, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherCenterY);
+            CheckSnap(dragCenterY, otherTop, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherTop);
+            CheckSnap(dragCenterY, otherBottom, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherBottom);
+            CheckSnap(dragCenterY, otherCenterY, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, otherCenterY);
+        }
+
+        // Also snap to canvas center lines
+        var canvasCenterX = Template.WidthMm / 2.0;
+        var canvasCenterY = Template.HeightMm / 2.0;
+        CheckSnap(dragCenterX, canvasCenterX, SnapThresholdMm, ref bestDistX, ref snapX, guideXPositions, canvasCenterX);
+        CheckSnap(dragCenterY, canvasCenterY, SnapThresholdMm, ref bestDistY, ref snapY, guideYPositions, canvasCenterY);
+
+        // Convert snap delta to final position
+        double? finalSnapX = null;
+        if (snapX is not null)
+        {
+            finalSnapX = proposedXMm + snapX.Value;
+        }
+        double? finalSnapY = null;
+        if (snapY is not null)
+        {
+            finalSnapY = proposedYMm + snapY.Value;
+        }
+
+        return new AlignmentSnapResult(finalSnapX, finalSnapY, guideXPositions, guideYPositions);
+    }
+
+    private static void CheckSnap(double dragEdge, double otherEdge, double threshold,
+        ref double bestDist, ref double? bestDelta, List<double> guidePositions, double guidePosition)
+    {
+        var dist = Math.Abs(dragEdge - otherEdge);
+        if (dist < threshold && dist < bestDist)
+        {
+            bestDist = dist;
+            bestDelta = otherEdge - dragEdge;
+            guidePositions.Clear();
+            guidePositions.Add(guidePosition);
+        }
+        else if (dist < threshold && Math.Abs(dist - bestDist) < 0.01)
+        {
+            guidePositions.Add(guidePosition);
+        }
+    }
+
+    private void ShowAlignmentGuides(AlignmentSnapResult snap)
+    {
+        if (Template is null)
+        {
+            return;
+        }
+
+        var labelHeightDip = MmToDip(Template.HeightMm);
+        var labelWidthDip = MmToDip(Template.WidthMm);
+
+        // Vertical guide lines (for X snaps)
+        if (snap.SnapX is not null && snap.GuideXPositions.Count > 0)
+        {
+            if (_guideVertical is null)
+            {
+                _guideVertical = new Line
+                {
+                    Stroke = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                    StrokeThickness = 1.0,
+                    StrokeDashArray = new DoubleCollection { 3, 2 },
+                    IsHitTestVisible = false
+                };
+                SetZIndex(_guideVertical, int.MaxValue - 1);
+                Children.Add(_guideVertical);
+            }
+
+            var guideXDip = MmToDip(snap.GuideXPositions[0]);
+            _guideVertical.X1 = guideXDip;
+            _guideVertical.Y1 = 0;
+            _guideVertical.X2 = guideXDip;
+            _guideVertical.Y2 = labelHeightDip;
+            _guideVertical.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            if (_guideVertical is not null)
+            {
+                _guideVertical.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        // Horizontal guide lines (for Y snaps)
+        if (snap.SnapY is not null && snap.GuideYPositions.Count > 0)
+        {
+            if (_guideHorizontal is null)
+            {
+                _guideHorizontal = new Line
+                {
+                    Stroke = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                    StrokeThickness = 1.0,
+                    StrokeDashArray = new DoubleCollection { 3, 2 },
+                    IsHitTestVisible = false
+                };
+                SetZIndex(_guideHorizontal, int.MaxValue - 1);
+                Children.Add(_guideHorizontal);
+            }
+
+            var guideYDip = MmToDip(snap.GuideYPositions[0]);
+            _guideHorizontal.X1 = 0;
+            _guideHorizontal.Y1 = guideYDip;
+            _guideHorizontal.X2 = labelWidthDip;
+            _guideHorizontal.Y2 = guideYDip;
+            _guideHorizontal.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            if (_guideHorizontal is not null)
+            {
+                _guideHorizontal.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    private void HideAlignmentGuides()
+    {
+        if (_guideVertical is not null)
+        {
+            _guideVertical.Visibility = Visibility.Collapsed;
+        }
+        if (_guideHorizontal is not null)
+        {
+            _guideHorizontal.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    // ==================== End Alignment Guide System ====================
 
     private sealed class StrokeHitTestRectangleElement : Grid
     {

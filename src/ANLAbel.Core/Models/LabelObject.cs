@@ -30,6 +30,8 @@ public sealed class LabelObject : ObservableObject
     private int _qrQuietZoneModules = 4;
     private int _qrDpi = 300;
     private ObjectStyle _style = new();
+    private bool _showBarcodeText = true;
+    private double _barcodeTextFontSizePt = 7;
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
     private string _bindingStateDisplayText = string.Empty;
@@ -279,6 +281,25 @@ public sealed class LabelObject : ObservableObject
     {
         get => _style;
         set => SetProperty(ref _style, value);
+    }
+
+    /// <summary>
+    /// When true, displays human-readable text content below the barcode.
+    /// Default is true (industry standard for 1D barcodes).
+    /// </summary>
+    public bool ShowBarcodeText
+    {
+        get => _showBarcodeText;
+        set => SetProperty(ref _showBarcodeText, value);
+    }
+
+    /// <summary>
+    /// Font size (in points) for the text displayed below the barcode.
+    /// </summary>
+    public double BarcodeTextFontSizePt
+    {
+        get => _barcodeTextFontSizePt;
+        set => SetProperty(ref _barcodeTextFontSizePt, Math.Max(4, Math.Min(20, value)));
     }
 
     private static int NormalizeRotation(int value)

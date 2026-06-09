@@ -1,12 +1,15 @@
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ANLAbel.App.Services;
 using ANLAbel.App.ViewModels;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
@@ -29,27 +32,54 @@ public partial class PrintPreviewWindow : Window
     private readonly string _templateFilePath;
     private string _selectedPrinterName = string.Empty;
     private IReadOnlyDictionary<string, string>?[] _previewRows = Array.Empty<IReadOnlyDictionary<string, string>?>();
-    private bool _printAllRows = true;
     private double _previewZoom = 1.0;
     private int _currentPageIndex;
     private string _pageInput = "1";
     private PrintPreflightResult _preflightResult = new(Array.Empty<PrintPreflightIssue>());
-    private DataRowView? _selectedTrackingRow;
-    private DataTable _trackingTable = new();
-    private Dictionary<int, int> _perRowCopies = new(); // sourceRowNumber -> copies
+    private readonly List<TrackingRowViewModel> _trackingRows = new();
+    private bool _isRefreshing;
 
     public PrintPreviewWindow(LabelTemplate template, IReadOnlyDictionary<string, string>? currentRow, DataView? excelDataView, PrintService printService, PrintLogService printLogService, string templateFilePath)
     {
         InitializeComponent();
         _template = template;
+
+        // Clamp window size to screen working area
+        var workArea = SystemParameters.WorkArea;
+        Width = Math.Min(Width, workArea.Width);
+        Height = Math.Min(Height, workArea.Height);
         _currentRow = currentRow;
         _excelDataView = excelDataView;
         _printService = printService;
         _printLogService = printLogService;
         _templateFilePath = templateFilePath;
         _selectedPrinterName = template.PrinterProfile.PrinterName;
+
+        // Restore saved printer preferences if no printer configured yet
+        if (string.IsNullOrWhiteSpace(_selectedPrinterName))
+        {
+            var prefs = new PrinterPreferencesService().Load();
+            if (!string.IsNullOrWhiteSpace(prefs.PrinterName))
+            {
+                _selectedPrinterName = prefs.PrinterName;
+                template.PrinterProfile.PrinterName = prefs.PrinterName;
+            }
+            if (prefs.Dpi > 0)
+            {
+                template.PrinterProfile.Dpi = prefs.Dpi;
+            }
+        }
+
         DataContext = this;
-        RefreshPreview();
+
+        try
+        {
+            RefreshPreview();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Preview init error: {ex.Message}");
+        }
     }
 
     public string PreviewTitle => $"Print Preview - {_template.Name}";
@@ -66,9 +96,16 @@ public partial class PrintPreviewWindow : Window
     }
     public string PageStatusText => Pages.Count == 0 ? "No labels" : $"Label {_currentPageIndex + 1} of {Pages.Count}";
     public string CurrentRowSummary => CreateRowSummary(_previewRows.ElementAtOrDefault(_currentPageIndex));
-    public string PreviewDataModeText => _printAllRows
-        ? $"Tracking all Excel rows ({_excelDataView?.Count ?? 0} row(s))"
-        : "Tracking current Excel row";
+    public string SelectedRowsText
+    {
+        get
+        {
+            var selectedCount = _trackingRows.Count(r => r.IsSelected);
+            var totalCount = _trackingRows.Count;
+            var totalCopies = _trackingRows.Where(r => r.IsSelected).Sum(r => r.Copies);
+            return $"{selectedCount}/{totalCount} selected ({totalCopies} labels)";
+        }
+    }
     public bool HasPreflightIssues => !_preflightResult.IsSuccess;
     public IReadOnlyList<PrintPreflightIssue> PreflightIssues => _preflightResult.Issues.Take(8).ToArray();
     public string PreflightStatusText => _preflightResult.IsSuccess
@@ -77,26 +114,6 @@ public partial class PrintPreviewWindow : Window
     public string PreflightIssuesSummary => _preflightResult.Issues.Count <= 8
         ? $"{_preflightResult.Issues.Count} issue(s) found."
         : $"Showing first 8 of {_preflightResult.Issues.Count} issue(s).";
-    public DataView TrackingDataView => _trackingTable.DefaultView;
-    public DataRowView? SelectedTrackingRow
-    {
-        get => _selectedTrackingRow;
-        set
-        {
-            _selectedTrackingRow = value;
-            if (value is not null)
-            {
-                var pageCol = _trackingTable.Columns.IndexOf("#");
-                if (pageCol >= 0 && int.TryParse(value[pageCol]?.ToString(), out var pageNumber) && _currentPageIndex != pageNumber - 1)
-                {
-                    _currentPageIndex = Math.Max(0, Math.Min(Pages.Count - 1, pageNumber - 1));
-                    _pageInput = (_currentPageIndex + 1).ToString();
-                }
-            }
-
-            OnPropertyChanged();
-        }
-    }
     public double PreviewZoom
     {
         get => _previewZoom;
@@ -104,32 +121,6 @@ public partial class PrintPreviewWindow : Window
         {
             _previewZoom = Math.Max(0.25, Math.Min(4, Math.Round(value, 2)));
             OnPropertyChanged();
-        }
-    }
-
-    public bool PrintCurrentOnly
-    {
-        get => !_printAllRows;
-        set
-        {
-            if (value)
-            {
-                _printAllRows = false;
-                RefreshPreview();
-            }
-        }
-    }
-
-    public bool PrintAllRows
-    {
-        get => _printAllRows;
-        set
-        {
-            if (value)
-            {
-                _printAllRows = true;
-                RefreshPreview();
-            }
         }
     }
 
@@ -153,14 +144,11 @@ public partial class PrintPreviewWindow : Window
 
             if (dialog.SelectedPaper is not null)
             {
-                // OrientSize swaps dimensions for Landscape so the design canvas shows
-                // the label in landscape view (like NiceLabel).
                 var (widthMm, heightMm) = LabelGeometry.OrientSize(dialog.SelectedPaper.WidthMm, dialog.SelectedPaper.HeightMm, dialog.SelectedOrientation);
                 _template.WidthMm = widthMm;
                 _template.HeightMm = heightMm;
                 _template.PrinterProfile.LabelWidthMm = widthMm;
                 _template.PrinterProfile.LabelHeightMm = heightMm;
-                // Store original physical dimensions for printer driver PageMediaSize
                 _template.PrinterProfile.PhysicalWidthMm = dialog.SelectedPaper.WidthMm;
                 _template.PrinterProfile.PhysicalHeightMm = dialog.SelectedPaper.HeightMm;
             }
@@ -176,8 +164,13 @@ public partial class PrintPreviewWindow : Window
         try
         {
             ApplyPrintSetup();
-            // _previewRows is already expanded with per-row copies in BuildExpandedRowsWithTracking()
-            var rows = _previewRows;
+            var rows = GetSelectedRows().ToArray();
+            if (rows.Length == 0)
+            {
+                MessageBox.Show(this, "No rows selected for printing. Use checkboxes to select rows.", "Print", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             var preflight = _printService.ValidateRows(_template, rows);
             if (!preflight.IsSuccess)
             {
@@ -218,7 +211,6 @@ public partial class PrintPreviewWindow : Window
         {
             _currentPageIndex--;
             _pageInput = (_currentPageIndex + 1).ToString();
-            SyncSelectedTrackingRow();
             OnPropertyChanged();
         }
     }
@@ -229,7 +221,6 @@ public partial class PrintPreviewWindow : Window
         {
             _currentPageIndex++;
             _pageInput = (_currentPageIndex + 1).ToString();
-            SyncSelectedTrackingRow();
             OnPropertyChanged();
         }
     }
@@ -277,7 +268,6 @@ public partial class PrintPreviewWindow : Window
 
         _currentPageIndex = Math.Max(0, Math.Min(Pages.Count - 1, rowNumber - 1));
         _pageInput = (_currentPageIndex + 1).ToString();
-        SyncSelectedTrackingRow();
         OnPropertyChanged();
     }
 
@@ -292,45 +282,215 @@ public partial class PrintPreviewWindow : Window
         {
             _currentPageIndex = pageNumber - 1;
             _pageInput = pageNumber.ToString();
-            SyncSelectedTrackingRow();
             OnPropertyChanged();
         }
     }
 
-    private void RefreshPreview()
+    // ==================== Checkbox toggle & copies handlers ====================
+
+    private void ToggleRowCheck_Click(object sender, RoutedEventArgs e)
     {
-        ApplyPrintSetup();
-        Pages.Clear();
-        _trackingTable = new DataTable();
-        _previewRows = BuildExpandedRowsWithTracking();
-        BuildTrackingColumns();
-        _preflightResult = _printService.ValidateRows(_template, _previewRows);
-        var previewPages = _printService.CreatePreviewPages(_template, _previewRows);
-        foreach (var page in previewPages)
+        if (sender is not Button btn || btn.Tag is not int sourceRowNumber)
         {
-            Pages.Add(new PrintPreviewPageViewModel
-            {
-                PageNumber = page.PageNumber,
-                PreviewImage = RenderPreviewImage(page.Visual, page.WidthDip, page.HeightDip),
-                Width = page.WidthDip,
-                Height = page.HeightDip
-            });
+            return;
         }
 
-        _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
-        _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
-        SyncSelectedTrackingRow();
-        OnPropertyChanged();
+        var vm = _trackingRows.FirstOrDefault(r => r.SourceRowNumber == sourceRowNumber);
+        if (vm is null)
+        {
+            return;
+        }
+
+        vm.IsSelected = !vm.IsSelected;
+        RefreshPreviewPagesOnly();
     }
+
+    private void CopiesUp_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not int sourceRowNumber)
+        {
+            return;
+        }
+
+        var vm = _trackingRows.FirstOrDefault(r => r.SourceRowNumber == sourceRowNumber);
+        if (vm is null)
+        {
+            return;
+        }
+
+        vm.Copies = Math.Min(999, vm.Copies + 1);
+        if (vm.Copies > 0 && !vm.IsSelected)
+        {
+            vm.IsSelected = true;
+        }
+
+        RefreshPreviewPagesOnly();
+    }
+
+    private void CopiesDown_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not int sourceRowNumber)
+        {
+            return;
+        }
+
+        var vm = _trackingRows.FirstOrDefault(r => r.SourceRowNumber == sourceRowNumber);
+        if (vm is null)
+        {
+            return;
+        }
+
+        vm.Copies = Math.Max(0, vm.Copies - 1);
+        if (vm.Copies == 0)
+        {
+            vm.IsSelected = false;
+        }
+
+        RefreshPreviewPagesOnly();
+    }
+
+    private void SelectAllToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var allSelected = _trackingRows.Count > 0 && _trackingRows.All(r => r.IsSelected);
+        var newState = !allSelected;
+        foreach (var vm in _trackingRows)
+        {
+            vm.IsSelected = newState;
+        }
+        RefreshPreviewPagesOnly();
+    }
+
+    // ==================== Refresh logic ====================
+
+    private void RefreshPreview()
+    {
+        if (_isRefreshing)
+        {
+            return;
+        }
+        _isRefreshing = true;
+        try
+        {
+            ApplyPrintSetup();
+            Pages.Clear();
+
+            // Build tracking rows
+            _trackingRows.Clear();
+            var allRows = GetRows().ToArray();
+            var excelColumns = CollectExcelColumns(allRows);
+            var pageNumber = 1;
+            var sourceRowNumber = 0;
+
+            foreach (var row in allRows)
+            {
+                sourceRowNumber++;
+                var isSelected = true;
+                var copies = 1;
+                var vm = new TrackingRowViewModel
+                {
+                    SourceRowNumber = sourceRowNumber,
+                    PageNumber = pageNumber,
+                    IsSelected = isSelected,
+                    Copies = copies,
+                    Col1 = GetPreviewCol(row, excelColumns, 0),
+                    Col2 = GetPreviewCol(row, excelColumns, 1),
+                    Col3 = GetPreviewCol(row, excelColumns, 2),
+                    Col4 = GetPreviewCol(row, excelColumns, 3)
+                };
+                _trackingRows.Add(vm);
+                pageNumber += copies;
+            }
+
+            // Bind to ItemsControl
+            TrackingList.ItemsSource = _trackingRows;
+
+            // Build preview rows
+            _previewRows = BuildExpandedRowsFromTracking();
+
+            _preflightResult = _printService.ValidateRows(_template, _previewRows);
+            var previewPages = _printService.CreatePreviewPages(_template, _previewRows);
+            foreach (var page in previewPages)
+            {
+                Pages.Add(new PrintPreviewPageViewModel
+                {
+                    PageNumber = page.PageNumber,
+                    PreviewImage = RenderPreviewImage(page.Visual, page.WidthDip, page.HeightDip),
+                    Width = page.WidthDip,
+                    Height = page.HeightDip
+                });
+            }
+
+            _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
+            _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
+            OnPropertyChanged();
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+    }
+
+    /// <summary>
+    /// Lightweight refresh: rebuilds preview pages from current tracking state.
+    /// Does NOT touch _trackingRows or TrackingList.ItemsSource — safe to call from click handlers.
+    /// </summary>
+    private void RefreshPreviewPagesOnly()
+    {
+        if (_isRefreshing)
+        {
+            return;
+        }
+        _isRefreshing = true;
+        try
+        {
+            ApplyPrintSetup();
+            Pages.Clear();
+
+            _previewRows = BuildExpandedRowsFromTracking();
+
+            _preflightResult = _printService.ValidateRows(_template, _previewRows);
+            var previewPages = _printService.CreatePreviewPages(_template, _previewRows);
+            foreach (var page in previewPages)
+            {
+                Pages.Add(new PrintPreviewPageViewModel
+                {
+                    PageNumber = page.PageNumber,
+                    PreviewImage = RenderPreviewImage(page.Visual, page.WidthDip, page.HeightDip),
+                    Width = page.WidthDip,
+                    Height = page.HeightDip
+                });
+            }
+
+            _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
+            _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
+            OnPropertyChanged();
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+    }
+
+    private IReadOnlyDictionary<string, string>?[] BuildExpandedRowsFromTracking()
+    {
+        var allRows = GetRows().ToArray();
+        var expanded = new List<IReadOnlyDictionary<string, string>?>();
+        foreach (var vm in _trackingRows)
+        {
+            if (!vm.IsSelected || vm.Copies <= 0) continue;
+            var row = allRows.ElementAtOrDefault(vm.SourceRowNumber - 1);
+            for (var i = 0; i < vm.Copies; i++)
+            {
+                expanded.Add(row);
+            }
+        }
+        return expanded.ToArray();
+    }
+
+    // ==================== Data helpers ====================
 
     private IEnumerable<IReadOnlyDictionary<string, string>?> GetRows()
     {
-        if (!_printAllRows)
-        {
-            yield return _currentRow;
-            yield break;
-        }
-
         if (_excelDataView is null || _excelDataView.Count == 0)
         {
             yield return _currentRow;
@@ -345,123 +505,44 @@ public partial class PrintPreviewWindow : Window
         }
     }
 
-    private void BuildTrackingColumns()
+    private IEnumerable<IReadOnlyDictionary<string, string>?> GetSelectedRows()
     {
-        TrackingDataGrid.Columns.Clear();
-
-        // Fixed columns
-        TrackingDataGrid.Columns.Add(new DataGridTextColumn
+        var allRows = GetRows().ToArray();
+        foreach (var vm in _trackingRows)
         {
-            Header = "#",
-            Binding = new System.Windows.Data.Binding("[#]") { Mode = System.Windows.Data.BindingMode.OneWay },
-            IsReadOnly = true,
-            Width = 36
-        });
-        TrackingDataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = "Row",
-            Binding = new System.Windows.Data.Binding("[Row]") { Mode = System.Windows.Data.BindingMode.OneWay },
-            IsReadOnly = true,
-            Width = 40
-        });
-
-        // Copies column with up/down buttons
-        var copiesTemplate = new DataGridTemplateColumn
-        {
-            Header = "Copies",
-            Width = 90,
-            IsReadOnly = false
-        };
-        var cellTemplate = new DataTemplate();
-        var stackPanel = new FrameworkElementFactory(typeof(StackPanel));
-        stackPanel.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
-        stackPanel.SetValue(StackPanel.VerticalAlignmentProperty, VerticalAlignment.Center);
-
-        var textBlock = new FrameworkElementFactory(typeof(TextBlock));
-        textBlock.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("[Copies]") { Mode = System.Windows.Data.BindingMode.OneWay });
-        textBlock.SetValue(TextBlock.WidthProperty, 28.0);
-        textBlock.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Center);
-        textBlock.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
-        textBlock.SetValue(TextBlock.FontWeightProperty, FontWeights.Bold);
-        textBlock.SetValue(TextBlock.FontSizeProperty, 12.0);
-        stackPanel.AppendChild(textBlock);
-
-        var upBtn = new FrameworkElementFactory(typeof(Button));
-        upBtn.SetValue(Button.ContentProperty, "▲");
-        upBtn.SetValue(Button.WidthProperty, 22.0);
-        upBtn.SetValue(Button.HeightProperty, 18.0);
-        upBtn.SetValue(Button.FontSizeProperty, 8.0);
-        upBtn.SetValue(Button.PaddingProperty, new Thickness(0));
-        upBtn.SetValue(Button.MarginProperty, new Thickness(2, 0, 0, 0));
-        upBtn.SetValue(Button.TagProperty, "UP");
-        upBtn.AddHandler(Button.ClickEvent, new RoutedEventHandler(CopiesButton_Click));
-        stackPanel.AppendChild(upBtn);
-
-        var downBtn = new FrameworkElementFactory(typeof(Button));
-        downBtn.SetValue(Button.ContentProperty, "▼");
-        downBtn.SetValue(Button.WidthProperty, 22.0);
-        downBtn.SetValue(Button.HeightProperty, 18.0);
-        downBtn.SetValue(Button.FontSizeProperty, 8.0);
-        downBtn.SetValue(Button.PaddingProperty, new Thickness(0));
-        downBtn.SetValue(Button.MarginProperty, new Thickness(1, 0, 0, 0));
-        downBtn.SetValue(Button.TagProperty, "DOWN");
-        downBtn.AddHandler(Button.ClickEvent, new RoutedEventHandler(CopiesButton_Click));
-        stackPanel.AppendChild(downBtn);
-
-        cellTemplate.VisualTree = stackPanel;
-        copiesTemplate.CellTemplate = cellTemplate;
-        TrackingDataGrid.Columns.Add(copiesTemplate);
-
-        // Excel columns
-        foreach (DataColumn col in _trackingTable.Columns)
-        {
-            if (col.ColumnName is "#" or "Row" or "Copies")
+            if (!vm.IsSelected || vm.Copies <= 0) continue;
+            var row = allRows.ElementAtOrDefault(vm.SourceRowNumber - 1);
+            for (var i = 0; i < vm.Copies; i++)
             {
-                continue;
+                yield return row;
             }
-
-            TrackingDataGrid.Columns.Add(new DataGridTextColumn
-            {
-                Header = col.ColumnName,
-                Binding = new System.Windows.Data.Binding($"[{col.ColumnName}]") { Mode = System.Windows.Data.BindingMode.OneWay },
-                IsReadOnly = true,
-                Width = DataGridLength.Auto
-            });
         }
     }
 
-    private void CopiesButton_Click(object sender, RoutedEventArgs e)
+    private static List<string> CollectExcelColumns(IReadOnlyDictionary<string, string>?[] allRows)
     {
-        if (sender is not Button btn)
+        var columns = new List<string>();
+        foreach (var row in allRows)
         {
-            return;
+            if (row is not null)
+            {
+                foreach (var key in row.Keys)
+                {
+                    if (!columns.Contains(key, StringComparer.OrdinalIgnoreCase))
+                    {
+                        columns.Add(key);
+                    }
+                }
+            }
         }
+        return columns;
+    }
 
-        // Find the DataRowView from the visual tree
-        var cell = btn.Parent as StackPanel;
-        if (cell is null)
-        {
-            return;
-        }
-
-        // Get the row index from the DataGrid context
-        var rowView = TrackingDataGrid.CurrentItem as DataRowView;
-        if (rowView is null)
-        {
-            return;
-        }
-
-        if (!int.TryParse(rowView["Row"]?.ToString(), out var sourceRowNumber))
-        {
-            return;
-        }
-
-        var delta = btn.Tag?.ToString() == "UP" ? 1 : -1;
-        var currentCopies = _perRowCopies.ContainsKey(sourceRowNumber) ? _perRowCopies[sourceRowNumber] : 1;
-        var newCopies = Math.Max(1, Math.Min(999, currentCopies + delta));
-        _perRowCopies[sourceRowNumber] = newCopies;
-
-        RefreshPreview();
+    private static string? GetPreviewCol(IReadOnlyDictionary<string, string>? row, List<string> columns, int index)
+    {
+        if (row is null || index >= columns.Count) return null;
+        var colName = columns[index];
+        return row.TryGetValue(colName, out var val) ? val : null;
     }
 
     private void ApplyPrintSetup()
@@ -477,88 +558,7 @@ public partial class PrintPreviewWindow : Window
         DataContext = this;
     }
 
-    private IReadOnlyDictionary<string, string>?[] BuildExpandedRowsWithTracking()
-    {
-        // Build DataTable with fixed columns + all Excel columns
-        _trackingTable = new DataTable();
-        _trackingTable.Columns.Add("#", typeof(int));
-        _trackingTable.Columns.Add("Row", typeof(int));
-        _trackingTable.Columns.Add("Copies", typeof(int));
-
-        // Collect all unique Excel column names
-        var allRows = GetRows().ToArray();
-        var excelColumns = new List<string>();
-        foreach (var row in allRows)
-        {
-            if (row is not null)
-            {
-                foreach (var key in row.Keys)
-                {
-                    if (!excelColumns.Contains(key, StringComparer.OrdinalIgnoreCase))
-                    {
-                        excelColumns.Add(key);
-                    }
-                }
-            }
-        }
-
-        foreach (var col in excelColumns)
-        {
-            _trackingTable.Columns.Add(col, typeof(string));
-        }
-
-        var expandedRows = new List<IReadOnlyDictionary<string, string>?>();
-        var sourceRowNumber = 0;
-        var pageNumber = 1;
-        foreach (var row in allRows)
-        {
-            sourceRowNumber++;
-            var copies = _perRowCopies.ContainsKey(sourceRowNumber) ? _perRowCopies[sourceRowNumber] : 1;
-            copies = Math.Max(1, Math.Min(999, copies));
-
-            // Add one DataTable row per source row (not per copy) for the tracking view
-            expandedRows.Add(row);
-            var dataRow = _trackingTable.NewRow();
-            dataRow["#"] = pageNumber;
-            dataRow["Row"] = sourceRowNumber;
-            dataRow["Copies"] = copies;
-            foreach (var col in excelColumns)
-            {
-                dataRow[col] = row is not null && row.TryGetValue(col, out var val) ? val : string.Empty;
-            }
-            _trackingTable.Rows.Add(dataRow);
-
-            // Add remaining copies
-            for (var copyIndex = 2; copyIndex <= copies; copyIndex++)
-            {
-                expandedRows.Add(row);
-            }
-            pageNumber += copies;
-        }
-
-        return expandedRows.ToArray();
-    }
-
-    private void SyncSelectedTrackingRow()
-    {
-        _selectedTrackingRow = null;
-        foreach (DataRowView rowView in _trackingTable.DefaultView)
-        {
-            var pageCol = _trackingTable.Columns.IndexOf("#");
-            if (pageCol >= 0 && rowView[pageCol] is int pageNumber)
-            {
-                var copies = _trackingTable.Columns.IndexOf("Copies") is var copiesCol && copiesCol >= 0
-                    ? (int)rowView[copiesCol]
-                    : 1;
-                // This row represents page range [pageNumber .. pageNumber+copies-1]
-                if (_currentPageIndex + 1 >= pageNumber && _currentPageIndex + 1 < pageNumber + copies)
-                {
-                    _selectedTrackingRow = rowView;
-                    break;
-                }
-            }
-        }
-    }
+    // ==================== Summary & formatting ====================
 
     private static string CreateRowSummary(IReadOnlyDictionary<string, string>? row)
     {
@@ -614,7 +614,6 @@ public partial class PrintPreviewWindow : Window
         return new string(value.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
     }
 
-
     private static ImageSource RenderPreviewImage(Visual visual, double width, double height)
     {
         const double previewDpi = 300;
@@ -627,6 +626,8 @@ public partial class PrintPreviewWindow : Window
         return target;
     }
 
+    // ==================== Print history ====================
+
     private PrintLogEntry CreatePrintLogEntry(IReadOnlyDictionary<string, string>? row, int labelCount, int labelIndex)
     {
         return new PrintLogEntry
@@ -637,8 +638,8 @@ public partial class PrintPreviewWindow : Window
             LabelWidthMm = _template.WidthMm,
             LabelHeightMm = _template.HeightMm,
             Dpi = _template.PrinterProfile.Dpi,
-            PrintMode = _printAllRows ? "Preview all rows" : "Preview current row",
-            RowCount = _printAllRows ? Math.Max(1, _excelDataView?.Count ?? 0) : (_currentRow is null ? 0 : 1),
+            PrintMode = "Selected rows",
+            RowCount = _trackingRows.Count(r => r.IsSelected),
             LabelCount = labelCount,
             LabelIndex = labelIndex,
             ExcelFilePath = _template.DatabaseConfig.FilePath,
@@ -712,5 +713,18 @@ public partial class PrintPreviewWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
+    }
+}
+
+public class BoolToCheckmarkConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true ? "☑" : "☐";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
     }
 }
