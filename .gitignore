@@ -1,0 +1,39 @@
+## .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+.vs/
+*.DotSettings.user
+project.lock.json
+
+## Build output
+TestOutput/ANLABEL-build*/
+TestOutput/*.xlsx
+TestOutput/*.csv
+TestOutput/build-verify/
+
+## Releases (don't commit installers)
+releases/
+
+## User-specific
+*.rsuser
+*.sln.docstates
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## macOS
+.DS_Store
+
+## IDE
+.idea/
+*.swp
+*.swo
+
+## Logs
+*.log

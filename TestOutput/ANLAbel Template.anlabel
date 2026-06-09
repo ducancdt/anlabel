@@ -1,0 +1,128 @@
+{
+  "Id": "5fe1b4a19fe64abeb24f7eafff2d4f70",
+  "Name": "ANLAbel Template",
+  "WidthMm": 50,
+  "HeightMm": 30,
+  "Dpi": 203,
+  "GapMm": 0,
+  "MarginMm": 1,
+  "Orientation": "Portrait",
+  "Objects": [
+    {
+      "Id": "5f90c1c9247042a8959847ecf5ac344f",
+      "Type": "BarcodeCode128",
+      "Name": "BarcodeCode128: PartNo",
+      "XMm": 2.25,
+      "YMm": 11.38,
+      "WidthMm": 45,
+      "HeightMm": 6.35,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 1,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{PartNo}",
+      "Text": "PartNo",
+      "BarcodeSymbology": "Code128",
+      "Style": {
+        "FontFamily": "Arial Narrow",
+        "FontSizePt": 10,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0,
+        "OutlineStyle": "Solid",
+        "FillStyle": "Solid",
+        "CornerRadiusMm": 0,
+        "FillColor": "#FFFFFFFF",
+        "StrokeColor": "#FF1F2937"
+      }
+    },
+    {
+      "Id": "821ddf506269493e9d9fed13c15f3da6",
+      "Type": "Text",
+      "Name": "Field: PartNo",
+      "XMm": 5,
+      "YMm": 5,
+      "WidthMm": 10.16,
+      "HeightMm": 4.23,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 2,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{PartNo}",
+      "Text": "PartNo",
+      "BarcodeSymbology": "Code128",
+      "Style": {
+        "FontFamily": "Arial Narrow",
+        "FontSizePt": 11,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0,
+        "OutlineStyle": "Solid",
+        "FillStyle": "Solid",
+        "CornerRadiusMm": 0,
+        "FillColor": "#FFFFFFFF",
+        "StrokeColor": "#FF1F2937"
+      }
+    }
+  ],
+  "PrinterProfile": {
+    "PrinterName": "Datamax E-4203",
+    "Dpi": 203,
+    "LabelWidthMm": 50,
+    "LabelHeightMm": 30,
+    "GapMm": 0,
+    "OffsetXMm": 0,
+    "OffsetYMm": 0,
+    "ScaleX": 1,
+    "ScaleY": 1
+  },
+  "DatabaseConfig": {
+    "FilePath": "H:\\ANLABEL\\TestOutput\\sample.xlsx",
+    "SheetName": "Data",
+    "HeaderRowIndex": 1,
+    "KeyField": "",
+    "LastSelectedRow": 0,
+    "AvailableFields": [
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "PN-001"
+      },
+      {
+        "Name": "Qty",
+        "DisplayName": "Qty",
+        "SampleValue": "20"
+      },
+      {
+        "Name": "Lot",
+        "DisplayName": "Lot",
+        "SampleValue": "Lô tiếng Việt"
+      }
+    ],
+    "LabelFields": [
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "PN-001"
+      },
+      {
+        "Name": "Qty",
+        "DisplayName": "Qty",
+        "SampleValue": "20"
+      },
+      {
+        "Name": "Lot",
+        "DisplayName": "Lot",
+        "SampleValue": "Lô tiếng Việt"
+      }
+    ]
+  }
+}

@@ -1,0 +1,319 @@
+================================================================
+        ANLABEL - THIẾT KẾ NHÃN - HƯỚNG DẪN SỬ DỤNG
+        Tác giả: Duc An | Email: ducancdt@gmail.com
+================================================================
+
+MỤC LỤC
+--------
+1. Tổng quan
+2. Hướng dẫn nhanh (5 bước)
+3. Thanh Ribbon
+4. Bảng thiết kế (Canvas)
+5. Các loại đối tượng
+6. Mã vạch và QR Code
+7. Liên kết dữ liệu
+8. Dữ liệu Excel
+9. In ấn
+10. Hiệu chỉnh (Calibration)
+11. Phím tắt
+12. Giới thiệu
+
+================================================================
+1. TỔNG QUAN
+================================================================
+
+ANLAbel là ứng dụng thiết kế và in nhãn chuyên nghiệp.
+Cho phép bạn tạo nhãn với văn bản, mã vạch, đường kẻ và hình
+dạng, liên kết với dữ liệu Excel, và in trên bất kỳ máy in
+Windows nào.
+
+Tính năng chính:
+- Thiết kế nhãn trực quan bằng canvas kéo thả
+- Hỗ trợ mã vạch 1D (Code128, EAN-13, UPC-A, Code39, ITF-14)
+  và mã 2D (QR Code, DataMatrix)
+- Liên kết trường nhãn với cột cơ sở dữ liệu Excel
+- In dòng hiện tại hoặc tất cả các dòng từ Excel
+- Điều khiển số bản in cho từng dòng với nút lên/xuống
+- Hiệu chỉnh in với điều chỉnh offset và tỷ lệ
+- Ghi nhật ký in ấn ra Excel
+
+Giao diện chính:
+- Trên: Thanh công cụ Ribbon
+- Trái: Hộp công cụ + cây dữ liệu
+- Giữa: Bảng thiết kế với thước kẻ và zoom
+- Phải: Bảng thuộc tính cho đối tượng được chọn
+
+================================================================
+2. HƯỚNG DẪN NHANH (5 BƯỚC)
+================================================================
+
+Bước 1: Tạo hoặc Mở Template
+- Nhấn New (Ctrl+N) để tạo template trống
+- Nhấn Open (Ctrl+O) để mở file .anlabel có sẵn
+
+Bước 2: Thiết lập Máy in và Kích thước Nhãn
+- Nhấn Printer Setup trên thanh ribbon
+- Chọn máy in từ danh sách
+- Chọn kích thước nhãn (có sẵn hoặc tùy chỉnh) và DPI
+
+Bước 3: Thiết kế Nhãn
+- Thêm đối tượng từ Hộp công cụ (Văn bản, Mã vạch, Đường kẻ,
+  Hình chữ nhật, Hình elip)
+- Nhấp và kéo trên canvas để đặt đối tượng
+- Chọn đối tượng để chỉnh sửa thuộc tính ở bảng bên phải
+
+Bước 4: Nhập dữ liệu Excel
+- Nhấn Import Excel trên thanh ribbon
+- Chọn file .xlsx và chọn sheet
+- Ánh xạ trường: Trong bảng thuộc tính, đặt Nguồn thành
+  'Excel Field' và chọn cột
+
+Bước 5: Xem trước và In
+- Nhấn Preview (Ctrl+P) để xem nhãn với dữ liệu thực
+- Trong Xem trước, điều chỉnh số bản in cho từng dòng
+- Chọn chế độ 'Dòng hiện tại' hoặc 'Tất cả các dòng'
+- Nhấn Print để gửi đến máy in
+- Lưu template (Ctrl+S) để tái sử dụng
+
+================================================================
+3. THANH RIBBON
+================================================================
+
+Nhóm File:
+- New (Ctrl+N) — Tạo template trống mới
+- Open (Ctrl+O) — Mở file template .anlabel
+- Save (Ctrl+S) — Lưu template hiện tại
+
+Nhóm Edit:
+- Undo (Ctrl+Z) — Hoàn tác hành động trước
+- Redo (Ctrl+Y) — Làm lại hành động đã hoàn tác
+
+Nhóm Data:
+- Import Excel — Liên kết file Excel (.xlsx) làm nguồn dữ liệu
+- Update Excel — Tải lại dữ liệu từ file Excel đã liên kết
+
+Nhóm Printer:
+- Printer Setup — Chọn máy in, kích thước nhãn, DPI và hướng in
+- Preview (Ctrl+P) — Mở cửa sổ Xem trước khi in
+- Print Current — In nhãn cho dòng Excel đang chọn
+- Print All Rows — In nhãn cho tất cả các dòng Excel
+- Print History — Mở file lịch sử in ấn
+- Test Print — In mẫu kiểm tra/hiệu chỉnh
+
+Nhóm View:
+- Panels restore — Hiển thị tất cả bảng đã ẩn
+
+Nhóm Edit Object:
+- Delete Selection — Xóa đối tượng đang chọn trên canvas
+
+Nhóm Zoom:
+- Nút Minus / Plus — Phóng to/thu nhỏ bảng thiết kế
+
+Nhóm Help:
+- Help (F1) — Mở cửa sổ hướng dẫn sử dụng
+
+================================================================
+4. BẢNG THIẾT KẾ (CANVAS)
+================================================================
+
+- Thước ngang (trên) và thước dọc (trái) hiển thị kích thước
+  bằng milimet, tỷ lệ theo mức zoom hiện tại
+- Thanh cuộn để di chuyển canvas
+- Ctrl+Cuộn chuột để phóng to/thu nhỏ
+- Nhấp vào đối tượng để chọn (hiển thị tay cầm thay đổi kích
+  thước)
+- Nhấn Delete hoặc dùng Delete Selection trong ribbon để xóa
+- Nhấp nút công cụ trong Hộp công cụ, con trỏ chuyển thành
+  chữ thập — nhấp và kéo trên canvas để vẽ
+- Công cụ tự tắt sau khi đặt một đối tượng
+
+================================================================
+5. CÁC LOẠI ĐỐI TƯỢNG
+================================================================
+
+Văn bản tĩnh (Static Text):
+- Phần tử văn bản với nội dung cố định
+- Dùng cho tiêu đề, nhãn hoặc thông tin không đổi
+- Thuộc tính: Nội dung, Font, Cỡ chữ, In/Nghiêng/Gạch chân,
+  Căn chỉnh, Xoay
+
+Hộp văn bản (Text Box):
+- Phần tử văn bản có thể liên kết với dữ liệu Excel
+- Nội dung thay đổi theo từng nhãn in
+- Thuộc tính: Giống Văn bản tĩnh + liên kết Excel
+
+Mã vạch (Barcode):
+- Hỗ trợ nhiều loại ký hiệu (xem phần 6)
+- Nội dung có thể liên kết với dữ liệu Excel
+- Thuộc tính: Loại ký hiệu, Nguồn dữ liệu, Xoay
+
+Đường kẻ / Hình chữ nhật / Hình elip:
+- Hình dạng hình học để phân tách khu vực, viền và trang trí
+
+================================================================
+6. MÃ VẠCH VÀ QR CODE
+================================================================
+
+Mã vạch 1D được hỗ trợ:
+- Code 128 — Mật độ cao, dùng phổ biến trong vận chuyển
+- EAN-13 — 13 chữ số, dùng cho sản phẩm bán lẻ quốc tế
+- EAN-8 — 8 chữ số, cho bao bì nhỏ
+- UPC-A — 12 chữ số, dùng ở Bắc Mỹ
+- UPC-E — 6 chữ số, cho bao bì nhỏ
+- Code 39 — Chữ và số, dùng trong sản xuất/quân sự
+- ITF-14 — 14 chữ số, dùng cho thùng carton ngoài
+- Codabar — Số và ký tự đặc biệt, dùng trong thư viện
+
+Mã 2D được hỗ trợ:
+- QR Code — Hỗ trợ URL, văn bản, dữ liệu lớn
+- DataMatrix — Nhỏ gọn, dùng trong điện tử và linh kiện nhỏ
+
+Cài đặt QR Code:
+- Chế độ kích thước: Tự động (theo dữ liệu) hoặc Cố định
+- Sửa lỗi: L (7%), M (15%), Q (25%), H (30%)
+- Phiên bản cố định: 1-40 (cao hơn = nhiều dữ liệu hơn, lớn hơn)
+- Kích thước module: 1-10 px
+- DPI: Độ phân giải khi tạo mã
+
+QUAN TRỌNG: Nếu dùng chế độ Cố định, hãy đảm bảo dữ liệu vừa
+với dung lượng phiên bản đã chọn.
+
+================================================================
+7. LIÊN KẾT DỮ LIỆU
+================================================================
+
+Liên kết dữ liệu kết nối đối tượng nhãn với cột cơ sở dữ liệu
+Excel, đảm bảo mỗi nhãn in nhận đúng dữ liệu.
+
+Cách liên kết:
+1. Nhập file Excel (nút Import Excel trên ribbon)
+2. Chọn đối tượng trên canvas
+3. Trong bảng thuộc tính, đặt Nguồn thành 'Excel Field'
+4. Chọn cột Excel từ danh sách thả xuống
+5. Đối tượng sẽ hiển thị badge xanh cho biết trường đã liên kết
+
+Trạng thái liên kết:
+- ✓ Đã liên kết — Trường tìm thấy trong Excel
+- ⚠ Thiếu — Trường không tìm thấy trong dữ liệu Excel hiện tại
+- Trống — Chưa đặt liên kết (nội dung tĩnh)
+
+================================================================
+8. DỮ LIỆU EXCEL
+================================================================
+
+ANLAbel sử dụng file Excel (.xlsx) làm cơ sở dữ liệu cho dữ
+liệu nhãn.
+
+Nhập Excel:
+1. Nhấn 'Import Excel' trên ribbon
+2. Chọn file .xlsx
+3. Chọn sheet chứa dữ liệu
+4. Dòng đầu tiên phải chứa tên cột (tiêu đề trường)
+
+Sau khi nhập, bảng bên trái hiển thị:
+- Phần Database — Đường dẫn file và thông tin dòng hiện tại
+- Bảng Excel Rows — Tất cả các dòng với tất cả các cột
+- Chọn dòng để xem trước nhãn trên canvas
+
+================================================================
+9. IN ẤN
+================================================================
+
+Thiết lập máy in:
+- Nhấn 'Printer Setup' để chọn máy in, kích thước nhãn,
+  DPI và hướng in
+
+Xem trước khi in (Ctrl+P):
+- Trái: Xem trước nhãn với điều hướng trang
+- Dưới: Bảng dữ liệu Excel hiển thị TẤT CẢ các cột từ
+  file Excel của bạn
+- Phải: Cài đặt in, hiệu chỉnh, thiết lập nhãn
+
+Số bản in cho mỗi dòng:
+- Trong bảng dữ liệu Excel, mỗi dòng có cột 'Copies' với
+  nút lên (▲) / xuống (▼)
+- Mặc định là 1 bản/dòng
+- Nhấn ▲ để tăng, ▼ để giảm (tối thiểu 1)
+- Mỗi bản in tạo một nhãn trong công việc in
+
+Chế độ in:
+- Chỉ dòng Excel hiện tại — In chỉ cho dòng đang chọn
+- Tất cả các dòng Excel — In cho mọi dòng trong bảng
+
+In:
+- Nhấn 'Print' trong Preview hoặc dùng Print Current / Print
+  All Rows trong ribbon
+- Nhật ký in được tự động ghi vào print-history.xlsx
+
+================================================================
+10. HIỆU CHỈNH (CALIBRATION)
+================================================================
+
+Hiệu chỉnh giúp sửa lỗi căn chỉnh giữa thiết kế trên màn hình
+và kết quả in thực tế.
+
+Khi nào cần hiệu chỉnh:
+- Nhãn in bị dịch trái/phải hoặc lên/xuống
+- Nhãn in lớn hơn hoặc nhỏ hơn dự kiến
+- Sau khi thay đổi máy in hoặc loại nhãn
+
+Cách hiệu chỉnh:
+1. Mở Xem trước khi in (Ctrl+P)
+2. Mở phần 'Calibration' ở bảng bên phải
+3. Nhấn 'Print calibration' để in mẫu kiểm tra
+4. Đo kết quả in
+5. Điều chỉnh Offset X/Y (dịch chuyển mm) và Scale X/Y
+   (sửa tỷ lệ)
+6. In lại để kiểm tra
+
+Ví dụ: Nếu nhãn in lệch phải 2mm, đặt Offset X = -2.00.
+Nếu mã vạch rộng hơn 1%, đặt Scale X = 0.9900.
+
+Nhấn 'Reset offset/scale' để khôi phục mặc định.
+
+================================================================
+11. PHÍM TẮT
+================================================================
+
+Toàn cục:
+  Ctrl+N .............. Tạo template mới
+  Ctrl+O .............. Mở template
+  Ctrl+S .............. Lưu template
+  Ctrl+Z .............. Hoàn tác
+  Ctrl+Y .............. Làm lại
+  Ctrl+P .............. Xem trước khi in
+  F1 .................. Mở hướng dẫn
+  Delete .............. Xóa đối tượng đang chọn
+
+Canvas:
+  Ctrl+Cuộn chuột ..... Phóng to/thu nhỏ
+  Cuộn chuột .......... Cuộn dọc
+  Shift+Cuộn chuột .... Cuộn ngang
+  Kéo thả ............. Di chuyển đối tượng
+  Kéo tay cầm ......... Thay đổi kích thước đối tượng
+
+Xem trước khi in:
+  Ctrl+Cuộn chuột ..... Phóng to/thu nhỏ
+  Nút mũi tên ......... Trang trước/sau
+  Enter (ô số trang) .. Nhảy đến trang số
+
+================================================================
+12. GIỚI THIỆU
+================================================================
+
+ANLAbel - Thiết kế Nhãn
+Tác giả: Duc An
+Email: ducancdt@gmail.com
+Phiên bản: closebeta v0.042
+
+Giấy phép:
+Phần mềm này được tạo bởi Duc An (ducancdt@gmail.com).
+
+Thư viện sử dụng:
+- .NET 8 / WPF — Microsoft
+- ClosedXML 0.105.0 — Giấy phép MIT
+- ZXing.Net 0.16.11 — Giấy phép Apache-2.0
+
+================================================================
+        © Duc An | ducancdt@gmail.com
+================================================================

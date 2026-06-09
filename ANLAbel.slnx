@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ANLAbel.App/ANLAbel.App.csproj" />
+    <Project Path="src/ANLAbel.Barcode/ANLAbel.Barcode.csproj" />
+    <Project Path="src/ANLAbel.Core/ANLAbel.Core.csproj" />
+    <Project Path="src/ANLAbel.Data/ANLAbel.Data.csproj" />
+    <Project Path="src/ANLAbel.Printing/ANLAbel.Printing.csproj" />
+    <Project Path="src/ANLAbel.Project/ANLAbel.Project.csproj" />
+    <Project Path="src/ANLAbel.Tests/ANLAbel.Tests.csproj" />
+    <Project Path="src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj" />
+  </Folder>
+</Solution>

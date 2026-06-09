@@ -1,0 +1,24 @@
+:root {
+  --anl-blue: #0F62D0;
+  --anl-green: #22A05A;
+  --anl-red: #EF4444;
+  --anl-muted: #64748B;
+}
+
+.anl-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--anl-blue);
+  stroke: currentColor;
+  fill: none;
+}
+
+.anl-icon-sm { width: 16px; height: 16px; }
+.anl-icon-md { width: 24px; height: 24px; }
+.anl-icon-lg { width: 32px; height: 32px; }
+.anl-icon-xl { width: 56px; height: 56px; }
+
+.anl-icon-excel { color: var(--anl-green); }
+.anl-icon-danger { color: var(--anl-red); }
+.anl-icon-muted { color: var(--anl-muted); }
+.anl-icon-disabled { opacity: .45; }

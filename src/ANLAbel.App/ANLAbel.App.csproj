@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <NuGetAudit>false</NuGetAudit>
+    <Version>0.042</Version>
+    <AssemblyVersion>0.042.0.0</AssemblyVersion>
+    <FileVersion>0.042.0.0</FileVersion>
+    <InformationalVersion>0.042</InformationalVersion>
+    <ApplicationIcon>anlabel.ico</ApplicationIcon>
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ANLAbel.Barcode\ANLAbel.Barcode.csproj" />
+    <ProjectReference Include="..\ANLAbel.Core\ANLAbel.Core.csproj" />
+    <ProjectReference Include="..\ANLAbel.Data\ANLAbel.Data.csproj" />
+    <ProjectReference Include="..\ANLAbel.Printing\ANLAbel.Printing.csproj" />
+    <ProjectReference Include="..\ANLAbel.Project\ANLAbel.Project.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="..\..\anlabel_standard_icon_pack_v2_match_mockup\png_64\*.png">
+      <Link>Icons\%(Filename)%(Extension)</Link>
+    </Resource>
+    <Resource Include="anlabel.ico">
+      <Link>anlabel.ico</Link>
+    </Resource>
+  </ItemGroup>
+
+</Project>
