@@ -251,8 +251,9 @@ public sealed class LabelVisualRenderer
             var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
             if (vectorData is not null)
             {
-                // Auto-grow: if the barcode needs more width than allocated, expand the rect
-                var requiredWidthMm = vectorData.WidthModules * 96.0 / barcodeDpi * (96.0 / 96.0) * (barcodeDpi / 96.0) / (96.0 / 25.4);
+                // Auto-grow: if the barcode needs more width than allocated, expand the rect.
+                // WidthModules is the number of pixel-columns at barcodeDpi resolution.
+                var requiredWidthMm = vectorData.WidthModules / (double)barcodeDpi * 25.4;
                 if (requiredWidthMm > widthMm * 1.05)
                 {
                     rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(requiredWidthMm), rect.Height);
@@ -321,8 +322,19 @@ public sealed class LabelVisualRenderer
         if (totalModules <= 0)
             return;
 
+        // Snap left/right edges to whole pixels so no white space appears at barcode ends
+        var snappedLeft = Math.Round(rect.Left);
+        var snappedRight = Math.Round(rect.Left + rect.Width);
+        var snappedTop = Math.Round(rect.Top);
+        var snappedBottom = Math.Round(rect.Top + rect.Height);
+        var guidelines = new GuidelineSet(
+            new[] { snappedLeft, snappedRight },
+            new[] { snappedTop, snappedBottom });
+        dc.PushGuidelineSet(guidelines);
+
         var brush = Brushes.Black;
-        var targetWidth = rect.Width;
+        var targetWidth = snappedRight - snappedLeft;
+        var barHeight = snappedBottom - snappedTop;
         var i = 0;
 
         while (i < totalModules)
@@ -341,13 +353,15 @@ public sealed class LabelVisualRenderer
                 if (barWidth < 1.0)
                     barWidth = 1.0; // minimum one DIP to remain visible
 
-                dc.DrawRectangle(brush, null, new Rect(rect.Left + leftPx, rect.Top, barWidth, rect.Height));
+                dc.DrawRectangle(brush, null, new Rect(snappedLeft + leftPx, snappedTop, barWidth, barHeight));
             }
             else
             {
                 i++;
             }
         }
+
+        dc.Pop(); // Pop GuidelineSet
     }
 
     private static void DrawErrorFrame(DrawingContext dc, Rect rect, string message)
@@ -473,10 +487,10 @@ public sealed class LabelVisualRenderer
             TextAlignment = TextAlignment.Center
         };
 
-        // Center text horizontally under the barcode, positioned at bottom of the original rect
-        var textX = barcodeRect.Left + barcodeRect.Width / 2;
+        // Center text horizontally within the barcode rect, positioned just below the bars
+        var textX = barcodeRect.Left + (barcodeRect.Width - text.Width) / 2.0;
         var textY = barcodeRect.Bottom + 2;
-        dc.DrawText(text, new Point(textX - text.Width / 2, textY));
+        dc.DrawText(text, new Point(textX, textY));
     }
 
     private static void DrawText(DrawingContext dc, string value, double x, double y, double fontSizePt, Brush brush)

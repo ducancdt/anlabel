@@ -1703,7 +1703,7 @@ public sealed class LabelDesignerCanvas : Canvas
                     TextAlignment = TextAlignment.Center
                 };
                 var textX = barcodeWidthDip / 2;
-                dc.DrawText(text, new Point(textX - text.Width / 2, barcodeHeightDip + 2));
+                dc.DrawText(text, new Point(textX, barcodeHeightDip + 2));
             }
 
             // Use barcode DPI for composite to keep text sharp at print resolution
