@@ -1670,7 +1670,49 @@ public sealed class LabelDesignerCanvas : Canvas
                 pixels.BgraPixels,
                 pixels.Stride);
             source.Freeze();
-            return source;
+
+            // If ShowBarcodeText is disabled, return barcode only
+            if (!item.ShowBarcodeText || string.IsNullOrWhiteSpace(data))
+            {
+                return source;
+            }
+
+            // Composite: barcode image + text below it
+            var barcodeWidthDip = pixels.WidthPixels * 96.0 / item.QrDpi;
+            var barcodeHeightDip = pixels.HeightPixels * 96.0 / item.QrDpi;
+            var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
+            var textHeightDip = fontSizeDip * 1.6;
+            var totalHeight = barcodeHeightDip + textHeightDip + 2;
+            var totalWidth = Math.Max(barcodeWidthDip, 100);
+
+            var visual = new DrawingVisual();
+            RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.NearestNeighbor);
+            using (var dc = visual.RenderOpen())
+            {
+                dc.DrawImage(source, new Rect(0, 0, barcodeWidthDip, barcodeHeightDip));
+
+                var text = new FormattedText(
+                    data,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    fontSizeDip,
+                    Brushes.Black,
+                    1.0)
+                {
+                    TextAlignment = TextAlignment.Center
+                };
+                var textX = barcodeWidthDip / 2;
+                dc.DrawText(text, new Point(textX - text.Width / 2, barcodeHeightDip + 2));
+            }
+
+            var compositeDpi = 96.0;
+            var compositePixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth));
+            var compositePixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight));
+            var composite = new RenderTargetBitmap(compositePixelWidth, compositePixelHeight, compositeDpi, compositeDpi, PixelFormats.Pbgra32);
+            composite.Render(visual);
+            composite.Freeze();
+            return composite;
         }
         catch (ArgumentException)
         {
