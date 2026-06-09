@@ -9,14 +9,13 @@ obj/
 *.DotSettings.user
 project.lock.json
 
-## Build output
-TestOutput/ANLABEL-build*/
-TestOutput/*.xlsx
-TestOutput/*.csv
-TestOutput/build-verify/
-
-## Releases (don't commit installers)
+## Build output & distribution
+TestOutput/
+dist/
 releases/
+
+## Publish output
+*.zip
 
 ## User-specific
 *.rsuser
@@ -37,3 +36,6 @@ Desktop.ini
 
 ## Logs
 *.log
+
+## Agent instructions
+agent.md
