@@ -21,7 +21,6 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        Loaded += MainWindow_Loaded;
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(OpenPrintPreview),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.P, System.Windows.Input.ModifierKeys.Control)));
