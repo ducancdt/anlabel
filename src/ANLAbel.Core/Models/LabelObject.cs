@@ -8,6 +8,7 @@ namespace ANLAbel.Core.Models;
 public sealed class LabelObject : ObservableObject
 {
     private string _id = Guid.NewGuid().ToString("N");
+    private string _linkedToId = string.Empty;
     private ObjectType _type;
     private string _name = "Object";
     private double _xMm;
@@ -35,6 +36,16 @@ public sealed class LabelObject : ObservableObject
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
     private string _bindingStateDisplayText = string.Empty;
+
+    /// <summary>
+    /// When non-empty, this object is linked to the barcode/QR object with the given Id.
+    /// Linked text objects move with the barcode and mirror its data content.
+    /// </summary>
+    public string LinkedToId
+    {
+        get => _linkedToId;
+        set => SetProperty(ref _linkedToId, value ?? string.Empty);
+    }
 
     public string Id
     {
