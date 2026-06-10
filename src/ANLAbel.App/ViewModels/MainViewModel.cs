@@ -1634,9 +1634,20 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
-        // Note: linked text position is NOT auto-synced when barcode moves.
-        // The user can freely position the linked text independently.
-        // Content sync (Text/BindingExpression) is handled above.
+        // Sync linked text position when barcode moves/resizes — keep it centered below barcode
+        if (sender is LabelObject movedObj
+            && movedObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
+            && e.PropertyName is nameof(LabelObject.XMm) or nameof(LabelObject.YMm) or nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm))
+        {
+            var linked = Template.Objects.FirstOrDefault(o => o.LinkedToId == movedObj.Id);
+            if (linked is not null)
+            {
+                // Sync position: text stays centered below barcode
+                linked.XMm = movedObj.XMm;
+                linked.WidthMm = movedObj.WidthMm;
+                linked.YMm = movedObj.YMm + movedObj.HeightMm + 1;
+            }
+        }
 
         if (e.PropertyName is nameof(LabelObject.BindingExpression)
             or nameof(LabelObject.Text)
