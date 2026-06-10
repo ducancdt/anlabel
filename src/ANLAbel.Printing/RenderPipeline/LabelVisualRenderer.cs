@@ -251,14 +251,7 @@ public sealed class LabelVisualRenderer
             var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
             if (vectorData is not null)
             {
-                // Auto-grow: if the barcode needs more width than allocated, expand the rect.
-                // WidthModules is the number of pixel-columns at barcodeDpi resolution.
-                var requiredWidthMm = vectorData.WidthModules / (double)barcodeDpi * 25.4;
-                if (requiredWidthMm > widthMm * 1.05)
-                {
-                    rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(requiredWidthMm), rect.Height);
-                }
-
+                // Draw within allocated rect — no auto-grow to prevent misalignment with linked text
                 DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
                 return;
             }
