@@ -1293,7 +1293,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void AddBarcode()
     {
-        AddObject(new LabelObject
+        var barcode = new LabelObject
         {
             Type = ObjectType.BarcodeCode128,
             Name = "Barcode",
@@ -1305,12 +1305,13 @@ public sealed class MainViewModel : ObservableObject
             HeightMm = 10,
             BarcodeSymbology = BarcodeSymbology.Code128,
             Style = { BorderThicknessMm = 0 }
-        });
+        };
+        AddBarcodeWithLinkedText(barcode);
     }
 
     private void AddQrCode()
     {
-        AddObject(new LabelObject
+        var qr = new LabelObject
         {
             Type = ObjectType.QRCode,
             Name = "QR Code",
@@ -1321,12 +1322,13 @@ public sealed class MainViewModel : ObservableObject
             WidthMm = 8,
             HeightMm = 8,
             Style = { BorderThicknessMm = 0 }
-        });
+        };
+        AddBarcodeWithLinkedText(qr);
     }
 
     private void AddDataMatrix()
     {
-        AddObject(new LabelObject
+        var dm = new LabelObject
         {
             Type = ObjectType.DataMatrix,
             Name = "Data Matrix",
@@ -1337,7 +1339,40 @@ public sealed class MainViewModel : ObservableObject
             WidthMm = 18,
             HeightMm = 18,
             Style = { BorderThicknessMm = 0 }
-        });
+        };
+        AddBarcodeWithLinkedText(dm);
+    }
+
+    /// <summary>
+    /// Adds a barcode/QR object along with a linked text object positioned just below it.
+    /// The text object mirrors the barcode's content and moves together with it.
+    /// </summary>
+    private void AddBarcodeWithLinkedText(LabelObject barcode)
+    {
+        barcode.ShowBarcodeText = false; // Use linked text instead of built-in text
+        barcode.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
+        Template.Objects.Add(barcode);
+
+        var linkedText = new LabelObject
+        {
+            Type = ObjectType.Text,
+            Name = $"{barcode.Name} Text",
+            Text = barcode.Text,
+            BindingExpression = barcode.BindingExpression,
+            XMm = barcode.XMm,
+            YMm = barcode.YMm + barcode.HeightMm + 1,
+            WidthMm = barcode.WidthMm,
+            HeightMm = 5,
+            LinkedToId = barcode.Id,
+            Style = { FontSizePt = 7, BorderThicknessMm = 0, Alignment = TextAlignmentMode.Center }
+        };
+        linkedText.ZIndex = barcode.ZIndex + 1;
+        Template.Objects.Add(linkedText);
+
+        ObserveObject(linkedText);
+        SelectedObject = barcode;
+        StatusText = $"Added {barcode.Name} with linked text";
+        RecordTemplateChange();
     }
 
     private void AddObject(LabelObject labelObject)
@@ -1355,7 +1390,29 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        Template.Objects.Remove(SelectedObject);
+        var toDelete = SelectedObject;
+
+        // If this is a barcode, also remove its linked text object
+        if (toDelete.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
+        {
+            var linkedText = Template.Objects.FirstOrDefault(o => o.LinkedToId == toDelete.Id);
+            if (linkedText is not null)
+            {
+                Template.Objects.Remove(linkedText);
+            }
+        }
+
+        // If this is a linked text, also remove its barcode parent
+        if (!string.IsNullOrWhiteSpace(toDelete.LinkedToId))
+        {
+            var parent = Template.Objects.FirstOrDefault(o => o.Id == toDelete.LinkedToId);
+            if (parent is not null)
+            {
+                Template.Objects.Remove(parent);
+            }
+        }
+
+        Template.Objects.Remove(toDelete);
         SelectedObject = null;
         StatusText = "Deleted selected object";
     }
@@ -1523,6 +1580,38 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.HeightMm))
             {
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
+            }
+        }
+
+        // Sync linked text when barcode data changes
+        if (sender is LabelObject barcodeObj
+            && barcodeObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
+            && e.PropertyName is nameof(LabelObject.Text) or nameof(LabelObject.BindingExpression))
+        {
+            var linked = Template.Objects.FirstOrDefault(o => o.LinkedToId == barcodeObj.Id);
+            if (linked is not null)
+            {
+                if (e.PropertyName is nameof(LabelObject.Text))
+                    linked.Text = barcodeObj.Text;
+                if (e.PropertyName is nameof(LabelObject.BindingExpression))
+                    linked.BindingExpression = barcodeObj.BindingExpression;
+            }
+        }
+
+        // Sync linked text position when barcode position/size changes
+        if (sender is LabelObject movedObj
+            && movedObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
+            && e.PropertyName is nameof(LabelObject.XMm) or nameof(LabelObject.YMm) or nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm))
+        {
+            var linked = Template.Objects.FirstOrDefault(o => o.LinkedToId == movedObj.Id);
+            if (linked is not null)
+            {
+                if (e.PropertyName is nameof(LabelObject.XMm))
+                    linked.XMm = movedObj.XMm;
+                if (e.PropertyName is nameof(LabelObject.WidthMm))
+                    linked.WidthMm = movedObj.WidthMm;
+                if (e.PropertyName is nameof(LabelObject.YMm) or nameof(LabelObject.HeightMm))
+                    linked.YMm = movedObj.YMm + movedObj.HeightMm + 1;
             }
         }
 
