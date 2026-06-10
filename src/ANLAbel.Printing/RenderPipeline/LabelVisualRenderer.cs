@@ -262,7 +262,8 @@ public sealed class LabelVisualRenderer
                 // Reserve space for text if ShowBarcodeText is enabled
                 if (item.ShowBarcodeText && item.Type != ObjectType.QRCode && item.Type != ObjectType.DataMatrix)
                 {
-                    var textHeightDip = MmConverter.MmToDip(item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.6);
+                    // Font size pt→DIP is direct (1pt = 96/72 DIP). Do NOT wrap in MmConverter — that would make it 3.78x too large.
+                    var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
                     var barcodeRect = new Rect(rect.Left, rect.Top, rect.Width, Math.Max(1, rect.Height - textHeightDip));
                     DrawVectorBarcode(dc, vectorData, barcodeRect, barcodeDpi);
                     DrawBarcodeText(dc, data, barcodeRect, item);
@@ -286,7 +287,7 @@ public sealed class LabelVisualRenderer
             // Reserve space for text if ShowBarcodeText is enabled (for 2D codes)
             if (item.ShowBarcodeText)
             {
-                var textHeightDip = MmConverter.MmToDip(item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.6);
+                var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
                 var barcodeAreaHeight = Math.Max(1, rect.Height - textHeightDip);
                 var scaleRatio = barcodeAreaHeight / naturalHeightDip;
                 var scaledWidth = naturalWidthDip * scaleRatio;
