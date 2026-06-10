@@ -234,7 +234,27 @@ public sealed class LabelVisualRenderer
             var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
             if (vectorData is not null)
             {
-                // Draw within allocated rect — no auto-grow to prevent misalignment with linked text
+                if (item.ShowBarcodeText && !string.IsNullOrWhiteSpace(data))
+                {
+                    var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
+                    var barcodeRect = new Rect(rect.Left, rect.Top, rect.Width, Math.Max(1, rect.Height - textHeightDip));
+                    DrawVectorBarcode(dc, vectorData, barcodeRect, barcodeDpi);
+                    var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
+                    var text = new FormattedText(
+                        data,
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        FlowDirection.LeftToRight,
+                        new Typeface("Segoe UI"),
+                        fontSizeDip,
+                        Brushes.Black,
+                        1.0)
+                    {
+                        TextAlignment = TextAlignment.Center
+                    };
+                    var textX = rect.Left + (rect.Width - text.Width) / 2.0;
+                    dc.DrawText(text, new Point(textX, barcodeRect.Bottom + 2));
+                    return;
+                }
                 DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
                 return;
             }
@@ -252,7 +272,33 @@ public sealed class LabelVisualRenderer
                 new[] { rect.Left, rect.Left + naturalWidthDip },
                 new[] { rect.Top, rect.Top + naturalHeightDip });
             dc.PushGuidelineSet(guidelines);
-            dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
+            if (item.ShowBarcodeText && !string.IsNullOrWhiteSpace(data))
+            {
+                var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
+                var barcodeAreaHeight = Math.Max(1, rect.Height - textHeightDip);
+                var scaleRatio = barcodeAreaHeight / naturalHeightDip;
+                var scaledWidth = naturalWidthDip * scaleRatio;
+                var barcodeRect = new Rect(rect.Left, rect.Top, scaledWidth, barcodeAreaHeight);
+                dc.DrawImage(source, barcodeRect);
+                var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
+                var text = new FormattedText(
+                    data,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    fontSizeDip,
+                    Brushes.Black,
+                    1.0)
+                {
+                    TextAlignment = TextAlignment.Center
+                };
+                var textX = rect.Left + (rect.Width - text.Width) / 2.0;
+                dc.DrawText(text, new Point(textX, barcodeRect.Bottom + 2));
+            }
+            else
+            {
+                dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
+            }
             dc.Pop();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
