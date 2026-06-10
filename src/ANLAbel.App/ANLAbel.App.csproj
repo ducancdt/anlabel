@@ -7,10 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <NuGetAudit>false</NuGetAudit>
-    <Version>0.043</Version>
-    <AssemblyVersion>0.043.0.0</AssemblyVersion>
-    <FileVersion>0.043.0.0</FileVersion>
-    <InformationalVersion>0.043</InformationalVersion>
+    <Version>0.044</Version>
+    <AssemblyVersion>0.044.0.0</AssemblyVersion>
+    <FileVersion>0.044.0.0</FileVersion>
+    <InformationalVersion>0.044</InformationalVersion>
     <ApplicationIcon>anlabel.ico</ApplicationIcon>
     <PublishSingleFile>false</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
