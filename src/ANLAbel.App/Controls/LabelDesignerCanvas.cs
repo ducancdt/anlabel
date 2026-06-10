@@ -1671,49 +1671,8 @@ public sealed class LabelDesignerCanvas : Canvas
                 pixels.Stride);
             source.Freeze();
 
-            // If ShowBarcodeText is disabled, return barcode only
-            if (!item.ShowBarcodeText || string.IsNullOrWhiteSpace(data))
-            {
-                return source;
-            }
-
-            // Composite: barcode image + text below — use barcode DPI to avoid blurry text
-            var barcodeWidthDip = pixels.WidthPixels * 96.0 / item.QrDpi;
-            var barcodeHeightDip = pixels.HeightPixels * 96.0 / item.QrDpi;
-            var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
-            var textHeightDip = fontSizeDip * 1.8;
-            var totalHeight = barcodeHeightDip + textHeightDip + 2;
-            var totalWidth = barcodeWidthDip;
-
-            var visual = new DrawingVisual();
-            RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.NearestNeighbor);
-            using (var dc = visual.RenderOpen())
-            {
-                dc.DrawImage(source, new Rect(0, 0, barcodeWidthDip, barcodeHeightDip));
-
-                var text = new FormattedText(
-                    data,
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface("Segoe UI"),
-                    fontSizeDip,
-                    Brushes.Black,
-                    1.0)
-                {
-                    TextAlignment = TextAlignment.Center
-                };
-                var textX = barcodeWidthDip / 2;
-                dc.DrawText(text, new Point(textX, barcodeHeightDip + 2));
-            }
-
-            // Use barcode DPI for composite to keep text sharp at print resolution
-            var compositeDpi = item.QrDpi;
-            var compositePixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth * compositeDpi / 96.0));
-            var compositePixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight * compositeDpi / 96.0));
-            var composite = new RenderTargetBitmap(compositePixelWidth, compositePixelHeight, compositeDpi, compositeDpi, PixelFormats.Pbgra32);
-            composite.Render(visual);
-            composite.Freeze();
-            return composite;
+            // Return barcode source directly — linked text object handles text display
+            return source;
         }
         catch (ArgumentException)
         {
