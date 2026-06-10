@@ -1365,6 +1365,7 @@ public sealed class MainViewModel : ObservableObject
             WidthMm = barcode.WidthMm,
             HeightMm = 5,
             LinkedToId = barcode.Id,
+            IsLocked = true, // Locked: moves only via barcode position sync
             Style = { FontSizePt = 7, BorderThicknessMm = 0, Alignment = TextAlignmentMode.Center }
         };
         linkedText.ZIndex = barcode.ZIndex + 1;
@@ -1604,6 +1605,7 @@ public sealed class MainViewModel : ObservableObject
                     WidthMm = toggleObj.WidthMm,
                     HeightMm = 5,
                     LinkedToId = toggleObj.Id,
+                    IsLocked = true, // Locked: moves only via barcode position sync
                     Style = { FontSizePt = 7, BorderThicknessMm = 0, Alignment = TextAlignmentMode.Center }
                 };
                 linkedText.ZIndex = toggleObj.ZIndex + 1;
@@ -1642,7 +1644,7 @@ public sealed class MainViewModel : ObservableObject
             var linked = Template.Objects.FirstOrDefault(o => o.LinkedToId == movedObj.Id);
             if (linked is not null)
             {
-                // Sync position: text stays centered below barcode
+                linked.IsLocked = true; // Ensure it stays locked
                 linked.XMm = movedObj.XMm;
                 linked.WidthMm = movedObj.WidthMm;
                 linked.YMm = movedObj.YMm + movedObj.HeightMm + 1;
