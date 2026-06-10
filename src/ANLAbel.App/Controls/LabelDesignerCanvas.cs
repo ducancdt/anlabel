@@ -445,7 +445,11 @@ public sealed class LabelDesignerCanvas : Canvas
                 {
                     border.ClipToBounds = false;
                     border.Clip = null;
-                    FitTextObjectToContent(item, ref width, ref height);
+                    // Skip auto-fit for linked text (locked to barcode) to prevent feedback loop
+                    if (string.IsNullOrWhiteSpace(item.LinkedToId))
+                    {
+                        FitTextObjectToContent(item, ref width, ref height);
+                    }
                     textHost.Width = Math.Max(1, width);
                     textHost.Height = Math.Max(1, height);
                     textHost.PreviewVisual = CreateTextVisual(item, width, height);

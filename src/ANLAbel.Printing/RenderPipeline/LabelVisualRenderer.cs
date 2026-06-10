@@ -221,24 +221,7 @@ public sealed class LabelVisualRenderer
             return;
         }
 
-        if (IsSquare2DCodeLike(item))
-        {
-            var fitSizeMm = item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize
-                ? QrAutoSizeHelper.CalculateFixedSizeMm(item.QrFixedVersion, item.QrModuleSizePx, item.QrQuietZoneModules, item.QrDpi, GetAvailableQrSizeMm(item, labelWidthMm, labelHeightMm))
-                : QrAutoSizeHelper.CalculateRequiredSizeMm(
-                    data,
-                    item.WidthMm,
-                    item.HeightMm,
-                    item.QrErrorCorrection,
-                    item.QrModuleSizePx,
-                    item.QrQuietZoneModules,
-                    item.QrDpi,
-                    maxSizeMm: GetAvailableQrSizeMm(item, labelWidthMm, labelHeightMm));
-            if (fitSizeMm is not null)
-            {
-                rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(fitSizeMm.Value), MmConverter.MmToDip(fitSizeMm.Value));
-            }
-        }
+        // No QR auto-size in print renderer — render at model size to stay aligned with linked text
 
         try
         {
