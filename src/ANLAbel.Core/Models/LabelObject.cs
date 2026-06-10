@@ -32,6 +32,7 @@ public sealed class LabelObject : ObservableObject
     private int _qrDpi = 300;
     private ObjectStyle _style = new();
     private bool _showBarcodeText = true;
+    private bool _hasLinkedText = false;
     private double _barcodeTextFontSizePt = 7;
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
@@ -302,6 +303,15 @@ public sealed class LabelObject : ObservableObject
     {
         get => _showBarcodeText;
         set => SetProperty(ref _showBarcodeText, value);
+    }
+
+    /// <summary>
+    /// When true, a linked text object is created below the barcode and synced with its data.
+    /// </summary>
+    public bool HasLinkedText
+    {
+        get => _hasLinkedText;
+        set => SetProperty(ref _hasLinkedText, value);
     }
 
     /// <summary>
