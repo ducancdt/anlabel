@@ -1350,6 +1350,7 @@ public sealed class MainViewModel : ObservableObject
     private void AddBarcodeWithLinkedText(LabelObject barcode)
     {
         barcode.ShowBarcodeText = false; // Use linked text instead of built-in text
+        barcode.HasLinkedText = true;
         barcode.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
         Template.Objects.Add(barcode);
 
@@ -1580,6 +1581,41 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.HeightMm))
             {
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
+            }
+        }
+
+        // Toggle linked text on/off when HasLinkedText checkbox changes
+        if (sender is LabelObject toggleObj
+            && toggleObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
+            && e.PropertyName is nameof(LabelObject.HasLinkedText))
+        {
+            var existingLinked = Template.Objects.FirstOrDefault(o => o.LinkedToId == toggleObj.Id);
+            if (toggleObj.HasLinkedText && existingLinked is null)
+            {
+                // Create linked text
+                var linkedText = new LabelObject
+                {
+                    Type = ObjectType.Text,
+                    Name = $"{toggleObj.Name} Text",
+                    Text = toggleObj.Text,
+                    BindingExpression = toggleObj.BindingExpression,
+                    XMm = toggleObj.XMm,
+                    YMm = toggleObj.YMm + toggleObj.HeightMm + 1,
+                    WidthMm = toggleObj.WidthMm,
+                    HeightMm = 5,
+                    LinkedToId = toggleObj.Id,
+                    Style = { FontSizePt = 7, BorderThicknessMm = 0, Alignment = TextAlignmentMode.Center }
+                };
+                linkedText.ZIndex = toggleObj.ZIndex + 1;
+                Template.Objects.Add(linkedText);
+                ObserveObject(linkedText);
+                StatusText = "Linked text created";
+            }
+            else if (!toggleObj.HasLinkedText && existingLinked is not null)
+            {
+                // Remove linked text
+                Template.Objects.Remove(existingLinked);
+                StatusText = "Linked text removed";
             }
         }
 
