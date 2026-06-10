@@ -259,19 +259,7 @@ public sealed class LabelVisualRenderer
                     rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(requiredWidthMm), rect.Height);
                 }
 
-                // Reserve space for text if ShowBarcodeText is enabled
-                if (item.ShowBarcodeText && item.Type != ObjectType.QRCode && item.Type != ObjectType.DataMatrix)
-                {
-                    // Font size pt→DIP is direct (1pt = 96/72 DIP). Do NOT wrap in MmConverter — that would make it 3.78x too large.
-                    var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
-                    var barcodeRect = new Rect(rect.Left, rect.Top, rect.Width, Math.Max(1, rect.Height - textHeightDip));
-                    DrawVectorBarcode(dc, vectorData, barcodeRect, barcodeDpi);
-                    DrawBarcodeText(dc, data, barcodeRect, item);
-                }
-                else
-                {
-                    DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
-                }
+                DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
                 return;
             }
 
@@ -284,26 +272,12 @@ public sealed class LabelVisualRenderer
             var naturalWidthDip = pixels.WidthPixels * 96.0 / barcodeDpi;
             var naturalHeightDip = pixels.HeightPixels * 96.0 / barcodeDpi;
 
-            // Reserve space for text if ShowBarcodeText is enabled (for 2D codes)
-            if (item.ShowBarcodeText)
-            {
-                var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
-                var barcodeAreaHeight = Math.Max(1, rect.Height - textHeightDip);
-                var scaleRatio = barcodeAreaHeight / naturalHeightDip;
-                var scaledWidth = naturalWidthDip * scaleRatio;
-                var barcodeRect = new Rect(rect.Left, rect.Top, scaledWidth, barcodeAreaHeight);
-                dc.DrawImage(source, barcodeRect);
-                DrawBarcodeText(dc, data, new Rect(rect.Left, rect.Top, Math.Max(scaledWidth, rect.Width), barcodeAreaHeight), item);
-            }
-            else
-            {
-                var guidelines = new GuidelineSet(
-                    new[] { rect.Left, rect.Left + naturalWidthDip },
-                    new[] { rect.Top, rect.Top + naturalHeightDip });
-                dc.PushGuidelineSet(guidelines);
-                dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
-                dc.Pop();
-            }
+            var guidelines = new GuidelineSet(
+                new[] { rect.Left, rect.Left + naturalWidthDip },
+                new[] { rect.Top, rect.Top + naturalHeightDip });
+            dc.PushGuidelineSet(guidelines);
+            dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
+            dc.Pop();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -469,29 +443,6 @@ public sealed class LabelVisualRenderer
         return FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
             ? FormulaBindingEvaluator.Evaluate(item.BindingExpression, row).Value
             : BindingExpressionEvaluator.Evaluate(item.BindingExpression, row);
-    }
-
-    private static void DrawBarcodeText(DrawingContext dc, string data, Rect barcodeRect, LabelObject item)
-    {
-        if (string.IsNullOrWhiteSpace(data)) return;
-
-        var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
-        var text = new FormattedText(
-            data,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            new Typeface("Segoe UI"),
-            fontSizeDip,
-            Brushes.Black,
-            1.0)
-        {
-            TextAlignment = TextAlignment.Center
-        };
-
-        // Center text horizontally within the barcode rect, positioned just below the bars
-        var textX = barcodeRect.Left + (barcodeRect.Width - text.Width) / 2.0;
-        var textY = barcodeRect.Bottom + 2;
-        dc.DrawText(text, new Point(textX, textY));
     }
 
     private static void DrawText(DrawingContext dc, string value, double x, double y, double fontSizePt, Brush brush)
