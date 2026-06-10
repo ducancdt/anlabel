@@ -1349,31 +1349,12 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     private void AddBarcodeWithLinkedText(LabelObject barcode)
     {
-        barcode.ShowBarcodeText = false; // Use linked text instead of built-in text
-        barcode.HasLinkedText = true;
+        barcode.ShowBarcodeText = true; // Text rendered as composite bitmap inside barcode
+        barcode.HasLinkedText = false;
         barcode.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
         Template.Objects.Add(barcode);
-
-        var linkedText = new LabelObject
-        {
-            Type = ObjectType.Text,
-            Name = $"{barcode.Name} Text",
-            Text = barcode.Text,
-            BindingExpression = barcode.BindingExpression,
-            XMm = barcode.XMm,
-            YMm = barcode.YMm + barcode.HeightMm + 1,
-            WidthMm = barcode.WidthMm,
-            HeightMm = 5,
-            LinkedToId = barcode.Id,
-            IsLocked = true, // Locked: moves only via barcode position sync
-            Style = { FontSizePt = 7, BorderThicknessMm = 0, Alignment = TextAlignmentMode.Center }
-        };
-        linkedText.ZIndex = barcode.ZIndex + 1;
-        Template.Objects.Add(linkedText);
-
-        ObserveObject(linkedText);
         SelectedObject = barcode;
-        StatusText = $"Added {barcode.Name} with linked text";
+        StatusText = $"Added {barcode.Name}";
         RecordTemplateChange();
     }
 
@@ -1633,21 +1614,6 @@ public sealed class MainViewModel : ObservableObject
                     linked.Text = barcodeObj.Text;
                 if (e.PropertyName is nameof(LabelObject.BindingExpression))
                     linked.BindingExpression = barcodeObj.BindingExpression;
-            }
-        }
-
-        // Sync linked text position when barcode moves/resizes — keep it centered below barcode
-        if (sender is LabelObject movedObj
-            && movedObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
-            && e.PropertyName is nameof(LabelObject.XMm) or nameof(LabelObject.YMm) or nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm))
-        {
-            var linked = Template.Objects.FirstOrDefault(o => o.LinkedToId == movedObj.Id);
-            if (linked is not null)
-            {
-                linked.IsLocked = true; // Ensure it stays locked
-                linked.XMm = movedObj.XMm;
-                linked.WidthMm = movedObj.WidthMm;
-                linked.YMm = movedObj.YMm + movedObj.HeightMm + 1;
             }
         }
 
