@@ -662,3 +662,90 @@
 ### Quy tac lam viec tiep theo
 - Sau moi phan hoan thanh, cap nhat outline nay voi noi dung da lam va cach verify.
 - Sau khi build/test xong, tu dong mo app de test neu thay doi lien quan UI hoac workflow nguoi dung.
+
+## Tu van refactor tiep theo (sau v0.046)
+
+Da lam xong trong v0.046: BindingResolver (single source), tach MainViewModel thanh 5 partial, xUnit cho ANLAbel.Tests + ANLAbel.UnitTests, CI workflow. Cac viec nen lam tiep, sap theo uu tien:
+
+### Uu tien CAO
+
+1. **Tach `LabelDesignerCanvas.cs` (2079 dong) thanh partial classes** — lam giong cach da tach `MainViewModel`. File hien la file lon nhat solution va gom nhieu domain ro ret:
+   - `.Render` — `Rebuild`, `AddObjectElement`, `UpdateObjectElement`, `OnRender`, `DrawObjectErrors`, `CreateTextVisual`, adorner/error badge.
+   - `.Input` — cac handler chuot/phim: `CanvasMouseButtonDown/Move/Up`, `CanvasKeyDown`, dependency-property callbacks.
+   - `.Drawing` — CAD snap: `BeginSnapDrawing`, `UpdateSnapDrawing`, `CompleteSnapDrawing`, `TryApplyTypedDimensions`, `ApplyLineEnd/BoxEnd`, `SnapToGridMm`, `UpdateCommandText`.
+   - `.Selection` — marquee + group + clipboard: `BeginMarqueeSelection`...`CompleteMarqueeSelection`, `MoveSelectedGroup`, `CopySelection`, `PasteSelection`, `DeleteSelection`, arrow-key move.
+   - `.Resize` — `ResizeSelectedObject`, alignment guides (`ShowAlignmentGuides`/`HideAlignmentGuides`/`CheckSnap`).
+   - Verify: build PASS, mo app, kiem tra ve/keo/resize/copy-paste/marquee van hoat dong nhu cu.
+
+2. **Gop logic auto-size QR / 2D matrix dang viet 2 lan** — day la dung class loi "2 ban drift" ma BindingResolver/BarcodeObjectDrawer da xu ly cho cho khac:
+   - Canvas: `TryApplyMatrixAutoSize` + `IsMatrixBarcode` + `GetAvailableQrSizeMm` + re-entrancy guard `_matrixAutoSizingObjects`.
+   - ViewModel (`MainViewModel.Objects.cs`): `ApplyQrAutoSizeFromModel` + `IsSquare2DCodeLike` + `GetAvailableQrSizeMm` + guard `_applyingQrAutoSize`.
+   - Hien tai **chua phai bug dang song** (canvas truyen `capacityProvider = null`, nhung `QrAutoSizeHelper` tu `??= new QrCapacityTable()` nen ra cung ket qua voi `_qrCapacityTable` cua VM). Nhung 2 routine doc lap voi 2 predicate va 2 guard rieng -> chi can sua rule 1 ben la WYSIWYG lech. Nen tach 1 service dung chung (vi du `QrAutoSizeCoordinator`) cho ca canvas va VM goi.
+   - Verify: them test trong `ANLAbel.UnitTests` khoa "canvas va VM tinh ra cung size cho cung object".
+
+### Uu tien TRUNG BINH
+
+3. **Gop cac helper nho con trung giua canvas va VM**: `IsTextBoxOverflowing`, `GetAvailableQrSizeMm`, predicate "la 2D matrix code" (`IsMatrixBarcode` vs `IsSquare2DCodeLike`). Dua ve 1 cho (extension tren `LabelObject` hoac helper trong `ANLAbel.Core`).
+
+4. **Sua doc-drift lenh verify trong PLAN**: vai muc verify cu van ghi `dotnet run --project src/ANLAbel.Tests/...` (dong ~501, ~658). Sau khi `ANLAbel.Tests` chuyen sang xUnit, `Program.cs` chi con comment nen `dotnet run` khong chay test nua. Lenh chuan tu day:
+   - `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj`
+   - `dotnet test src/ANLAbel.Tests/ANLAbel.Tests.csproj`
+
+### Uu tien THAP
+
+5. **Test hoi quy cho `BindingResolver`** (khoa lai #3): `Resolve`/`ResolveObject` dung cho 3 case — formula (`FIELD/CONCAT`), placeholder `{Field}`, va `row == null` (tra ve text/expression goc).
+
+6. **Code-behind lon con lai**: `PrintPreviewWindow.xaml.cs` (714 dong), `HelpWindow.xaml.cs` (527 dong). Can nhac tach phan logic khong-UI (vd preflight/tracking trong PrintPreview) ra helper de de test, nhung uu tien thap vi chua gay loi.
+
+## Redesign Print History (he thong truy xuat tem)
+
+### Van de cua thiet ke hien tai (`PrintLogService` ghi thang xlsx)
+- **Ghi de toan bo file moi lan in**: `AppendMany` load ca `print-history.xlsx` vao RAM (`new XLWorkbook(LogFilePath)`), them dong, roi `SaveAs` ghi de toan bo. O(n) theo so dong da co -> in cang nhieu cang cham, ton RAM. Voi app in tem cong nghiep (hang nghin tem/ngay) se nghen.
+- **Tu chong lai chinh no**: app tu mo file xlsx sau moi lan in, nhung lan in sau lai can `SaveAs` ghi de dung file do -> Excel giu file thi ghi fail. Message "Print history is open" chi la va trieu chung.
+- **File phinh vo han**: khong co gioi han/rotation. xlsx tran ~1.048.576 dong, ClosedXML nghen tu lau truoc do.
+- **Log "da gui" chu khong phai "da in"**: log chay sau khi `PrintRows` tra `true` = job da spool, khong phai tem da in ra. Thieu Status/Operator nen khong phuc vu truy xuat that (ai in, thanh cong/that bai, in lai).
+- **Sai primitive**: Excel la format xuat bao cao tot nhung append-only log toi. `RowData` nhoi thanh chuoi `Field=Value;` -> khong query duoc.
+
+### Huong da chon: SQLite lam nguon su that, Excel/CSV chi la export
+- **SQLite (`Microsoft.Data.Sqlite`)** lam system-of-record. File `%AppData%/ANLAbel/print-history.db`.
+  - Append O(1), khong ghi de ca file -> in nhanh, khong phinh RAM.
+  - WAL mode -> khong tranh khoa file voi Excel -> bo luon bug "history is open".
+  - Query co index theo `PrintedAt`/`PartNo`/`Lot`/`PrinterName`/`TemplateName`.
+- **Giu nguyen interface `PrintLogService`**, chi thay implementation (append + query). UI/ViewModel khong doi.
+- **Bo auto-open xlsx** sau khi in. Thay bang:
+  - Nut `Print History` mo **viewer trong app** (DataGrid) co loc theo ngay/part/lot/may in/template.
+  - Nut `Export Excel` sinh xlsx tu ket qua da loc (dung lai ClosedXML, nhung chi la export theo yeu cau).
+- **Mo rong `PrintLogEntry`** them: `Status` (Spooled/Failed/Reprint), `Operator` (`Environment.UserName`), `Machine` (`Environment.MachineName`), `SerialNumber`, `BatchId`.
+- **Migration**: 1 lan import xlsx cu sang db neu file ton tai (optional, co the bo qua).
+- Phuong an thay the neu khong muon them dependency: **JSONL** (moi tem = 1 dong JSON), append O(1), zero-dep, sinh xlsx khi can; nhuoc diem query phai load-vao-RAM-roi-loc (on toi ~100k dong). Chon SQLite vi dinh huong san xuat lau dai.
+
+### Verify
+- Append 10k+ entry: thoi gian in/log gan nhu hang so, khong tang tuyen tinh.
+- Mo Excel xem file export trong khi van in tiep -> khong loi khoa file.
+- Viewer loc dung theo ngay/part/lot/may in.
+- Them test `ANLAbel.Tests` (hoac UnitTests voi db tam): append + query round-trip, filter dung.
+
+## Roadmap tinh nang (bam workflow Excel -> barcode -> in batch)
+
+### Tier 1 - gia tri cao, khop dung cai app dang lam
+- **In lai tu Print History**: chon tem/lo da in de in lai chinh xac (cuc ky can khi tem ket/nhoe). Phu thuoc redesign history o tren (history phai luu du data de dung lai tem: template path/snapshot + row data).
+- **Serial / counter tu tang**: so seri chay tu dong qua cac lan in, luu ben (`SN0001...`), ghep date/shift code. Tinh nang loi cua tem san xuat.
+- **Theo doi "row da in / chua in"** dua tren history: in tiep cac dong chua in, hoac in lai range (vi du 50-120).
+- **Preflight "field bat buoc khong rong"** (vi du Lot khong duoc trong): mo rong `PrintPreflightValidator` da co.
+
+### Tier 2
+- **Ham formula ngay/han dung**: `TODAY()`, `EXPIRY(+30d)`, shift code - mo rong engine `FIELD/CONCAT` san co trong `ANLAbel.Core.Expressions.Formulas`.
+- **Tro ly GS1 / Application Identifier** cho GS1-128 (GTIN, NSX/HSD) - pho bien trong logistics.
+- **Multi-up (n cot x m hang / kho)** cho may in sheet.
+- **Thu vien template + recent + thumbnail.**
+
+### Tier 3 - hoan thien
+- Align/distribute, duplicate object, khoa/mo khoa object (`LabelObject.IsLocked` da co san nhung chua co UI).
+- Export PDF/PNG 1 tem (dang nam ngoai scope Phase 1).
+- Toggle don vi mm/inch.
+
+### Thu tu de xuat
+1. Redesign Print History (SQLite) - vi no mo khoa ca "in lai" lan "theo doi da in/chua in".
+2. Serial counter tu tang.
+3. In lai tu history + theo doi row da in.
+4. Cac ham formula ngay/han + GS1 helper.
