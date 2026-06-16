@@ -4,7 +4,6 @@ using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
-using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Printing.RenderPipeline;
@@ -34,7 +33,7 @@ public sealed class PrintPreflightValidator
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
                 var row = rows[rowIndex];
-                var data = ResolveExpression(item, row);
+                var data = BindingResolver.ResolveObject(item, row);
 
                 switch (item.Type)
                 {
@@ -166,23 +165,6 @@ public sealed class PrintPreflightValidator
         {
             return ex.Message;
         }
-    }
-
-    private static string ResolveExpression(LabelObject item, IReadOnlyDictionary<string, string>? row)
-    {
-        if (string.IsNullOrWhiteSpace(item.BindingExpression))
-        {
-            return item.Text;
-        }
-
-        if (row is null)
-        {
-            return item.BindingExpression;
-        }
-
-        return FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
-            ? FormulaBindingEvaluator.Evaluate(item.BindingExpression, row).Value
-            : BindingExpressionEvaluator.Evaluate(item.BindingExpression, row);
     }
 
     private static RectMm GetObjectBoundsMm(LabelObject item)

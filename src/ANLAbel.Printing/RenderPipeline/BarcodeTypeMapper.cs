@@ -3,7 +3,7 @@ using ANLAbel.Core.Enums;
 
 namespace ANLAbel.Printing.RenderPipeline;
 
-internal static class BarcodeTypeMapper
+public static class BarcodeTypeMapper
 {
     public static BarcodeType ToRendererType(BarcodeSymbology symbology)
     {

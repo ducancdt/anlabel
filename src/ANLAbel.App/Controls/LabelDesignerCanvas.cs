@@ -16,8 +16,6 @@ using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
-using ANLAbel.Core.Expressions.Formulas;
-using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Printing.RenderPipeline;
@@ -1504,12 +1502,9 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private string GetDisplayText(LabelObject item)
     {
-        if (item.Type is not (ObjectType.Text or ObjectType.TextBox) || string.IsNullOrWhiteSpace(item.BindingExpression))
-        {
+        if (item.Type is not (ObjectType.Text or ObjectType.TextBox))
             return item.Text;
-        }
-
-        return ResolveExpression(item.BindingExpression, PreviewRow);
+        return BindingResolver.ResolveObject(item, PreviewRow);
     }
 
     private bool IsTextBoxOverflowing(LabelObject item, double widthDip, double heightDip)
@@ -1645,86 +1640,20 @@ public sealed class LabelDesignerCanvas : Canvas
     private ImageSource? CreateBarcodeImageSource(LabelObject item)
     {
         var data = ResolveObjectData(item);
-        var type = item.Type switch
-        {
-            ObjectType.QRCode => BarcodeType.QRCode,
-            ObjectType.DataMatrix => BarcodeType.DataMatrix,
-            _ => BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
-        };
-
-        if (!_barcodeRenderer.ValidateData(data, type))
-        {
-            return null;
-        }
+        var labelWidthMm = Template?.WidthMm ?? (item.XMm + item.WidthMm);
+        var labelHeightMm = Template?.HeightMm ?? (item.YMm + item.HeightMm);
+        var widthDip = MmConverter.MmToDip(item.WidthMm);
+        var heightDip = MmConverter.MmToDip(item.HeightMm);
+        var dpi = item.QrDpi > 0 ? item.QrDpi : 300;
 
         try
         {
-            var pixels = _barcodeRenderer.RenderBarcode(data, type, item.WidthMm, item.HeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
-            var source = BitmapSource.Create(
-                pixels.WidthPixels,
-                pixels.HeightPixels,
-                item.QrDpi,
-                item.QrDpi,
-                PixelFormats.Bgra32,
-                null,
-                pixels.BgraPixels,
-                pixels.Stride);
-            source.Freeze();
-
-            // If ShowBarcodeText is disabled, return barcode only
-            if (!item.ShowBarcodeText || string.IsNullOrWhiteSpace(data))
-            {
-                return source;
-            }
-
-            // Composite: barcode image + text below — use barcode DPI to avoid blurry text
-            var barcodeWidthDip = pixels.WidthPixels * 96.0 / item.QrDpi;
-            var barcodeHeightDip = pixels.HeightPixels * 96.0 / item.QrDpi;
-            var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
-            var textHeightDip = fontSizeDip * 1.8;
-            var totalHeight = barcodeHeightDip + textHeightDip + 2;
-            var totalWidth = barcodeWidthDip;
-
-            var visual = new DrawingVisual();
-            RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.NearestNeighbor);
-            using (var dc = visual.RenderOpen())
-            {
-                dc.DrawImage(source, new Rect(0, 0, barcodeWidthDip, barcodeHeightDip));
-
-                var text = new FormattedText(
-                    data,
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface("Segoe UI"),
-                    fontSizeDip,
-                    Brushes.Black,
-                    1.0)
-                {
-                    TextAlignment = TextAlignment.Center
-                };
-                var textX = barcodeWidthDip / 2;
-                dc.DrawText(text, new Point(textX, barcodeHeightDip + 2));
-            }
-
-            // Use barcode DPI for composite to keep text sharp at print resolution
-            var compositeDpi = item.QrDpi;
-            var compositePixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth * compositeDpi / 96.0));
-            var compositePixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight * compositeDpi / 96.0));
-            var composite = new RenderTargetBitmap(compositePixelWidth, compositePixelHeight, compositeDpi, compositeDpi, PixelFormats.Pbgra32);
-            composite.Render(visual);
-            composite.Freeze();
-            return composite;
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-        catch (InvalidOperationException)
-        {
-            return null;
+            return BarcodeObjectDrawer.RenderToImageSource(
+                item, widthDip, heightDip, data, _barcodeRenderer, dpi, labelWidthMm, labelHeightMm);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
+            System.Diagnostics.Debug.WriteLine($"[Canvas] Barcode render failed for {item.Name}: {ex.Message}");
             return null;
         }
     }
@@ -1781,14 +1710,7 @@ public sealed class LabelDesignerCanvas : Canvas
     }
 
     private string ResolveObjectData(LabelObject item)
-    {
-        if (string.IsNullOrWhiteSpace(item.BindingExpression))
-        {
-            return item.Text;
-        }
-
-        return ResolveExpression(item.BindingExpression, PreviewRow);
-    }
+        => BindingResolver.ResolveObject(item, PreviewRow);
 
     private double GetAvailableQrSizeMm(LabelObject item)
     {
@@ -1800,18 +1722,6 @@ public sealed class LabelDesignerCanvas : Canvas
         var availableWidthMm = Template.WidthMm - item.XMm;
         var availableHeightMm = Template.HeightMm - item.YMm;
         return Math.Max(1, Math.Min(availableWidthMm, availableHeightMm));
-    }
-
-    private static string ResolveExpression(string expression, IReadOnlyDictionary<string, string>? row)
-    {
-        if (row is null)
-        {
-            return expression;
-        }
-
-        return FormulaBindingEvaluator.LooksLikeFormula(expression)
-            ? FormulaBindingEvaluator.Evaluate(expression, row).Value
-            : BindingExpressionEvaluator.Evaluate(expression, row);
     }
 
     private void ShowSelectionAdorner(LabelObject item)

@@ -599,6 +599,66 @@
 - Version hien thi va assembly duoc dong bo len `0.040`.
 - `dotnet build ANLAbel.slnx --nologo -v q` thanh cong (0 warning, 0 error).
 
+## Rule kien truc: Barcode tich hop text (HRI)
+
+### Boi canh / van de goc
+- Logic ve barcode + text (human-readable text duoi barcode) dang bi viet 2 lan, lech nhau:
+  - Designer canvas `LabelDesignerCanvas.CreateBarcodeImageSource()`:
+    - Render barcode bang BITMAP (`RenderBarcode`).
+    - Mo hinh layout GROW: total height = barcode height day du + text height + 2 ben duoi.
+    - textHeightDip = `fontSizeDip * 1.8`.
+  - Print renderer `LabelVisualRenderer.DrawBarcode()`:
+    - Render barcode 1D bang VECTOR (`RenderBarcodeVector`), 2D bang bitmap.
+    - Mo hinh layout SHRINK: barcode bi ep nho lai trong rect (`rect.Height - textHeight`) de chua text.
+    - textHeightDip = `fontSizeDip * 1.8 + 4`.
+- Hai phia khac nhau ca duong render (bitmap vs vector), cong thuc cao text, va mo hinh layout (grow vs shrink) -> vo WYSIWYG: tem in ra khong giong designer. Cac fix v0.040/0.043/0.044/0.045 chi chua trieu chung mot phia nen loi tai dien.
+
+### Rule bat buoc tu day ve sau
+- **Single source of truth cho layout barcode+text**: tao mot helper dung chung (vi du `BarcodeTextLayout` trong `ANLAbel.Core` hoac `ANLAbel.Printing`) nhan vao object + kich thuoc rect, tra ve:
+  - `BarcodeRect` (vung ve bars),
+  - `TextRect` + `TextOrigin` + `FontSizeDip`,
+  - `RequiredWidthDip` (cho auto-grow).
+- **Designer va print PHAI goi cung helper nay**. Cam tinh lai textHeight/vi tri text doc lap o moi phia.
+- **Chon DUY NHAT mot mo hinh layout** va ghi ro: barcode+text nam GON trong `WidthMm/HeightMm` cua object (SHRINK), text reserve tu chinh chieu cao object. Khong dung mo hinh GROW lam object phinh ra ngoai kich thuoc da luu, vi se lech voi preflight va kho tem.
+- **Mot hang so cao text duy nhat**: dinh nghia he so (vi du `TextHeightFactor = 1.8`) va padding o mot cho trong helper; cam hardcode `1.8`, `+4`, `+2` rai rac.
+- **Cung duong render giua designer va print** cho cung loai ma: neu print 1D dung vector thi designer cung nen reflect dung ty le vector do (toi thieu phai khop chieu cao bars/text), tranh bitmap-vs-vector lam lech.
+- **HRI text chi ap dung cho 1D barcode**; QR/DataMatrix/Aztec/PDF417 (2D) khong ve HRI text duoi ma tru khi co yeu cau rieng, vi 2D khong co chuan HRI giong 1D.
+- **Auto-grow chieu rong** phai tinh trong helper va tra ve cho ca designer (cap nhat khung chon) lan print, de barcode khong bi "squished" o ca hai noi giong nhau.
+- **Validate + clip**: neu barcode+text vuot kho tem sau khi layout, bao qua `PrintPreflightValidator` thay vi de moi phia tu xu ly.
+
+### Invariant / cach verify
+- Them test hoi quy trong `ANLAbel.UnitTests`:
+  - `barcode text layout is identical for designer and print` — cung input -> cung `BarcodeRect`/`TextRect`/`FontSizeDip`.
+  - `barcode with text stays within object bounds` — barcode+text khong vuot `WidthMm/HeightMm`.
+  - `barcode text only for 1D symbologies`.
+- Sau khi refactor: build `dotnet build ANLAbel.slnx`, chay test PASS, mo app va so sanh truc tiep mot barcode Code128 co text giua designer va Print Preview phai trung khop (cao bars, co text, vi tri text).
+
+## Refactor: gop render designer va print (sau BarcodeTextLayout)
+
+### Da hoan thanh
+- Xoa `BarcodeTypeMapper` trung lap trong `ANLAbel.App.Controls`:
+  - Chuyen ve 1 ban duy nhat `ANLAbel.Printing.RenderPipeline.BarcodeTypeMapper` (public).
+  - Cap nhat `MainViewModel` va `LabelDesignerCanvas` dung namespace Printing.
+- Tao `BarcodeObjectDrawer` trong `ANLAbel.Printing.RenderPipeline`:
+  - Chua toan bo logic render barcode (vector 1D, bitmap 2D, HRI text, auto-grow, error frame, QR/DM autosize).
+  - `Draw(DrawingContext, ...)` de print renderer goi.
+  - `RenderToImageSource(...)` de designer canvas goi — rasterize cung duong code thanh BitmapSource.
+  - Dam bao WYSIWYG: designer va print dung cung mot code path.
+- `LabelVisualRenderer.DrawBarcode()` delegate sang `BarcodeObjectDrawer.Draw()`.
+- `LabelDesignerCanvas.CreateBarcodeImageSource()` delegate sang `BarcodeObjectDrawer.RenderToImageSource()`.
+- Them CI `.github/workflows/ci.yml`: Windows runner, dotnet build + integration tests + unit tests moi push.
+
+### Quy tac bo sung
+- Bat cu logic render barcode nao moi phai nam trong `BarcodeObjectDrawer`, khong viet them o designer hoac print renderer.
+- `BarcodeTypeMapper` chi co 1 ban trong `ANLAbel.Printing.RenderPipeline`.
+- CI phai PASS truoc khi merge bat ky PR nao.
+
+### Verify
+- `dotnet build ANLAbel.slnx --nologo -v q` thanh cong (0 warning, 0 error).
+- `dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj` tat ca PASS.
+- `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj` tat ca PASS.
+- Mo app, them barcode Code128 va QR Code, so sanh designer va Print Preview — layout khop nhau.
+
 ### Quy tac lam viec tiep theo
 - Sau moi phan hoan thanh, cap nhat outline nay voi noi dung da lam va cach verify.
 - Sau khi build/test xong, tu dong mo app de test neu thay doi lien quan UI hoac workflow nguoi dung.

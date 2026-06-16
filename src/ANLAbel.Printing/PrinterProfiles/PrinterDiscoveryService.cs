@@ -26,8 +26,9 @@ public sealed class PrinterDiscoveryService
                 .ThenBy(printer => printer.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToArray();
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[PrinterDiscovery] Failed to enumerate printers: {ex.Message}");
             return Array.Empty<PrinterInfo>();
         }
     }
@@ -52,8 +53,9 @@ public sealed class PrinterDiscoveryService
         {
             return read();
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[PrinterDiscovery] SafeRead failed: {ex.Message}");
             return default;
         }
     }

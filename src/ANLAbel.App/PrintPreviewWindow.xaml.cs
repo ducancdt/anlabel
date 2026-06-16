@@ -13,7 +13,6 @@ using ANLAbel.App.Services;
 using ANLAbel.App.ViewModels;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
-using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Data.PrintLogs;
@@ -665,22 +664,8 @@ public partial class PrintPreviewWindow : Window
 
     private static string CreateObjectContent(LabelObject item, IReadOnlyDictionary<string, string>? row)
     {
-        var value = string.IsNullOrWhiteSpace(item.BindingExpression)
-            ? item.Text
-            : ResolveExpression(item.BindingExpression, row);
+        var value = BindingResolver.ResolveObject(item, row);
         return string.IsNullOrWhiteSpace(value) ? string.Empty : $"{item.Name}={value}";
-    }
-
-    private static string ResolveExpression(string expression, IReadOnlyDictionary<string, string>? row)
-    {
-        if (row is null)
-        {
-            return expression;
-        }
-
-        return FormulaBindingEvaluator.LooksLikeFormula(expression)
-            ? FormulaBindingEvaluator.Evaluate(expression, row).Value
-            : BindingExpressionEvaluator.Evaluate(expression, row);
     }
 
     private void OpenPrintHistoryFile()
