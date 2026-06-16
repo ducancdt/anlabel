@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore ANLAbel.slnx
+
+      - name: Build
+        run: dotnet build ANLAbel.slnx --no-restore --nologo -v q
+
+      - name: Run unit tests
+        run: dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -v q
+
+      - name: Run integration tests
+        run: dotnet test src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build --nologo -v q

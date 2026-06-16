@@ -119,8 +119,9 @@ public sealed class PrintService
 
             dialog.PrintDocument(paginator, $"{template.Name} calibration");
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[PrintService] Calibration print failed: {ex.Message}");
             return false;
         }
 

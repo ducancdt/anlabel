@@ -15,7 +15,6 @@ using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
-using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 
@@ -207,185 +206,22 @@ public sealed class LabelVisualRenderer
     private void DrawBarcode(DrawingContext dc, LabelObject item, Rect rect, IReadOnlyDictionary<string, string>? row, int dpi, double labelWidthMm, double labelHeightMm)
     {
         var data = ResolveData(item, row);
-        var type = item.Type switch
-        {
-            ObjectType.QRCode => BarcodeType.QRCode,
-            ObjectType.DataMatrix => BarcodeType.DataMatrix,
-            _ => BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
-        };
-
-        if (!_barcodeRenderer.ValidateData(data, type))
-        {
-            dc.DrawRectangle(Brushes.White, new Pen(Brushes.Red, 1), rect);
-            DrawErrorFrame(dc, rect, "Invalid barcode data");
-            return;
-        }
-
-        if (IsSquare2DCodeLike(item))
-        {
-            var fitSizeMm = item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize
-                ? QrAutoSizeHelper.CalculateFixedSizeMm(item.QrFixedVersion, item.QrModuleSizePx, item.QrQuietZoneModules, item.QrDpi, GetAvailableQrSizeMm(item, labelWidthMm, labelHeightMm))
-                : QrAutoSizeHelper.CalculateRequiredSizeMm(
-                    data,
-                    item.WidthMm,
-                    item.HeightMm,
-                    item.QrErrorCorrection,
-                    item.QrModuleSizePx,
-                    item.QrQuietZoneModules,
-                    item.QrDpi,
-                    maxSizeMm: GetAvailableQrSizeMm(item, labelWidthMm, labelHeightMm));
-            if (fitSizeMm is not null)
-            {
-                rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(fitSizeMm.Value), MmConverter.MmToDip(fitSizeMm.Value));
-            }
-        }
-
-        try
-        {
-            var widthMm = MmConverter.DipToMm(rect.Width);
-            var heightMm = MmConverter.DipToMm(rect.Height);
-            var barcodeDpi = item.QrDpi > 0 ? item.QrDpi : dpi;
-
-            // Try vector rendering for 1D barcodes — eliminates all rasterization/interpolation
-            // artifacts ("crease/wrinkle" effect) by drawing sharp vector rectangles.
-            var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
-            if (vectorData is not null)
-            {
-                // Auto-grow: if the barcode needs more width than allocated, expand the rect.
-                // WidthModules is the number of pixel-columns at barcodeDpi resolution.
-                var requiredWidthMm = vectorData.WidthModules / (double)barcodeDpi * 25.4;
-                if (requiredWidthMm > widthMm * 1.05)
-                {
-                    rect = new Rect(rect.Left, rect.Top, MmConverter.MmToDip(requiredWidthMm), rect.Height);
-                }
-
-                // Reserve space for text if ShowBarcodeText is enabled
-                if (item.ShowBarcodeText && item.Type != ObjectType.QRCode && item.Type != ObjectType.DataMatrix)
-                {
-                    // Font size pt→DIP is direct (1pt = 96/72 DIP). Do NOT wrap in MmConverter — that would make it 3.78x too large.
-                    var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
-                    var barcodeRect = new Rect(rect.Left, rect.Top, rect.Width, Math.Max(1, rect.Height - textHeightDip));
-                    DrawVectorBarcode(dc, vectorData, barcodeRect, barcodeDpi);
-                    DrawBarcodeText(dc, data, barcodeRect, item);
-                }
-                else
-                {
-                    DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
-                }
-                return;
-            }
-
-            // Fallback to bitmap for 2D codes (QR, DataMatrix, PDF417, Aztec)
-            var pixels = _barcodeRenderer.RenderBarcode(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
-            var source = BitmapSource.Create(pixels.WidthPixels, pixels.HeightPixels, barcodeDpi, barcodeDpi, PixelFormats.Bgra32, null, pixels.BgraPixels, pixels.Stride);
-            source.Freeze();
-
-            // Draw the barcode at its natural DIP size to prevent WPF scaling artifacts.
-            var naturalWidthDip = pixels.WidthPixels * 96.0 / barcodeDpi;
-            var naturalHeightDip = pixels.HeightPixels * 96.0 / barcodeDpi;
-
-            // Reserve space for text if ShowBarcodeText is enabled (for 2D codes)
-            if (item.ShowBarcodeText)
-            {
-                var textHeightDip = item.BarcodeTextFontSizePt * 96.0 / 72.0 * 1.8 + 4;
-                var barcodeAreaHeight = Math.Max(1, rect.Height - textHeightDip);
-                var scaleRatio = barcodeAreaHeight / naturalHeightDip;
-                var scaledWidth = naturalWidthDip * scaleRatio;
-                var barcodeRect = new Rect(rect.Left, rect.Top, scaledWidth, barcodeAreaHeight);
-                dc.DrawImage(source, barcodeRect);
-                DrawBarcodeText(dc, data, new Rect(rect.Left, rect.Top, Math.Max(scaledWidth, rect.Width), barcodeAreaHeight), item);
-            }
-            else
-            {
-                var guidelines = new GuidelineSet(
-                    new[] { rect.Left, rect.Left + naturalWidthDip },
-                    new[] { rect.Top, rect.Top + naturalHeightDip });
-                dc.PushGuidelineSet(guidelines);
-                dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
-                dc.Pop();
-            }
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
-        {
-            dc.DrawRectangle(Brushes.White, new Pen(Brushes.Red, 1), rect);
-            DrawErrorFrame(dc, rect, "Barcode cannot be rendered");
-        }
-    }
-
-    private static void DrawVectorBarcode(DrawingContext dc, BarcodeVectorData vectorData, Rect rect, int dpi)
-    {
-        // Draw each barcode module as a pixel-snapped rectangle.
-        // Avoid ScaleTransform because fractional DIP widths cause anti-aliased
-        // bar edges that create "crease/wrinkle" artifacts when printed.
-        // Instead, compute each bar's position directly in target coordinates,
-        // snapping to whole printer-pixel boundaries.
-        var totalModules = vectorData.WidthModules;
-        if (totalModules <= 0)
-            return;
-
-        // Snap left/right edges to whole pixels so no white space appears at barcode ends
-        var snappedLeft = Math.Round(rect.Left);
-        var snappedRight = Math.Round(rect.Left + rect.Width);
-        var snappedTop = Math.Round(rect.Top);
-        var snappedBottom = Math.Round(rect.Top + rect.Height);
-        var guidelines = new GuidelineSet(
-            new[] { snappedLeft, snappedRight },
-            new[] { snappedTop, snappedBottom });
-        dc.PushGuidelineSet(guidelines);
-
-        var brush = Brushes.Black;
-        var targetWidth = snappedRight - snappedLeft;
-        var barHeight = snappedBottom - snappedTop;
-        var i = 0;
-
-        while (i < totalModules)
-        {
-            if (vectorData.RowBits[i])
-            {
-                // Find the end of this contiguous dark run
-                var startModule = i;
-                while (i < totalModules && vectorData.RowBits[i])
-                    i++;
-
-                // Compute pixel-snapped positions in target rect
-                var leftPx = Math.Round(startModule * targetWidth / totalModules);
-                var rightPx = Math.Round(i * targetWidth / totalModules);
-                var barWidth = rightPx - leftPx;
-                if (barWidth < 1.0)
-                    barWidth = 1.0; // minimum one DIP to remain visible
-
-                dc.DrawRectangle(brush, null, new Rect(snappedLeft + leftPx, snappedTop, barWidth, barHeight));
-            }
-            else
-            {
-                i++;
-            }
-        }
-
-        dc.Pop(); // Pop GuidelineSet
+        BarcodeObjectDrawer.Draw(dc, item, rect, data, _barcodeRenderer, dpi, labelWidthMm, labelHeightMm);
     }
 
     private static void DrawErrorFrame(DrawingContext dc, Rect rect, string message)
     {
-        var pen = new Pen(Brushes.Red, 1.4)
-        {
-            DashStyle = DashStyles.Dash
-        };
+        var pen = new Pen(Brushes.Red, 1.4) { DashStyle = DashStyles.Dash };
         dc.DrawRectangle(null, pen, rect);
-        DrawErrorBadge(dc, rect);
-        DrawText(dc, message, rect.Left + 2, rect.Top + 2, 7, Brushes.Red);
-    }
-
-    private static void DrawErrorBadge(DrawingContext dc, Rect rect)
-    {
         const double radius = 7;
         var center = new Point(rect.Right - radius, rect.Top + radius);
         dc.DrawEllipse(Brushes.Red, null, center, radius, radius);
-        var text = new FormattedText("!", System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 11, Brushes.White, 1.0)
+        var badge = new FormattedText("!", System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 11, Brushes.White, 1.0)
         {
             TextAlignment = TextAlignment.Center
         };
-        dc.DrawText(text, new Point(center.X, center.Y - text.Height / 2 - 0.5));
+        dc.DrawText(badge, new Point(center.X, center.Y - badge.Height / 2 - 0.5));
+        DrawText(dc, message, rect.Left + 2, rect.Top + 2, 7, Brushes.Red);
     }
 
     private static void PushOutputTransforms(DrawingContext dc, Rect printableRect, PrintRenderPlan plan)
@@ -427,72 +263,8 @@ public sealed class LabelVisualRenderer
         return rotation;
     }
 
-    private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
-    {
-        return new BarcodeRenderOptions
-        {
-            ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules
-        };
-    }
-
-    private static bool IsSquare2DCodeLike(LabelObject item)
-    {
-        return item.Type == ObjectType.QRCode
-            || item.Type == ObjectType.DataMatrix
-            || item.Type == ObjectType.BarcodeCode128
-                && item.BarcodeSymbology is BarcodeSymbology.QRCode
-                    or BarcodeSymbology.DataMatrix
-                    or BarcodeSymbology.Aztec
-                    or BarcodeSymbology.Pdf417;
-    }
-
-    private static double GetAvailableQrSizeMm(LabelObject item, double labelWidthMm, double labelHeightMm)
-    {
-        var availableWidthMm = labelWidthMm - item.XMm;
-        var availableHeightMm = labelHeightMm - item.YMm;
-        return Math.Max(1, Math.Min(availableWidthMm, availableHeightMm));
-    }
-
     private static string ResolveData(LabelObject item, IReadOnlyDictionary<string, string>? row)
-    {
-        if (string.IsNullOrWhiteSpace(item.BindingExpression))
-        {
-            return item.Text;
-        }
-
-        if (row is null)
-        {
-            return item.BindingExpression;
-        }
-
-        return FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
-            ? FormulaBindingEvaluator.Evaluate(item.BindingExpression, row).Value
-            : BindingExpressionEvaluator.Evaluate(item.BindingExpression, row);
-    }
-
-    private static void DrawBarcodeText(DrawingContext dc, string data, Rect barcodeRect, LabelObject item)
-    {
-        if (string.IsNullOrWhiteSpace(data)) return;
-
-        var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
-        var text = new FormattedText(
-            data,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            new Typeface("Segoe UI"),
-            fontSizeDip,
-            Brushes.Black,
-            1.0)
-        {
-            TextAlignment = TextAlignment.Center
-        };
-
-        // Center text horizontally within the barcode rect, positioned just below the bars
-        var textX = barcodeRect.Left + (barcodeRect.Width - text.Width) / 2.0;
-        var textY = barcodeRect.Bottom + 2;
-        dc.DrawText(text, new Point(textX, textY));
-    }
+        => BindingResolver.ResolveObject(item, row);
 
     private static void DrawText(DrawingContext dc, string value, double x, double y, double fontSizePt, Brush brush)
     {
