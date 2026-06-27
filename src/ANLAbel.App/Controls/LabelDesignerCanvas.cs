@@ -441,16 +441,12 @@ public sealed class LabelDesignerCanvas : Canvas
                     ? ParseBrush(item.Style.FillColor, Brushes.Transparent)
                     : Brushes.Transparent;
 
-                if (border.Child is VisualPreviewHost textHost && item.Type == ObjectType.Text)
-                {
-                    border.ClipToBounds = false;
-                    border.Clip = null;
-                    // Skip auto-fit for linked text (locked to barcode) to prevent feedback loop
-                    if (string.IsNullOrWhiteSpace(item.LinkedToId))
+                    if (border.Child is VisualPreviewHost textHost && item.Type == ObjectType.Text)
                     {
+                        border.ClipToBounds = false;
+                        border.Clip = null;
                         FitTextObjectToContent(item, ref width, ref height);
-                    }
-                    textHost.Width = Math.Max(1, width);
+                        textHost.Width = Math.Max(1, width);
                     textHost.Height = Math.Max(1, height);
                     textHost.PreviewVisual = CreateTextVisual(item, width, height);
                 }
@@ -1675,49 +1671,10 @@ public sealed class LabelDesignerCanvas : Canvas
                 pixels.Stride);
             source.Freeze();
 
-            // If ShowBarcodeText is disabled, return barcode only
-            if (!item.ShowBarcodeText || string.IsNullOrWhiteSpace(data))
-            {
-                return source;
-            }
-
-            // Composite: barcode image + text below — single object, no sync issues
-            var barcodeWidthDip = pixels.WidthPixels * 96.0 / item.QrDpi;
-            var barcodeHeightDip = pixels.HeightPixels * 96.0 / item.QrDpi;
-            var fontSizeDip = item.BarcodeTextFontSizePt * 96.0 / 72.0;
-            var textHeightDip = fontSizeDip * 1.8;
-            var totalHeight = barcodeHeightDip + textHeightDip + 2;
-            var totalWidth = barcodeWidthDip;
-
-            var visual = new DrawingVisual();
-            RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.NearestNeighbor);
-            using (var dc = visual.RenderOpen())
-            {
-                dc.DrawImage(source, new Rect(0, 0, barcodeWidthDip, barcodeHeightDip));
-
-                var text = new FormattedText(
-                    data,
-                    System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface("Segoe UI"),
-                    fontSizeDip,
-                    Brushes.Black,
-                    1.0)
-                {
-                    TextAlignment = TextAlignment.Center
-                };
-                var textX = barcodeWidthDip / 2;
-                dc.DrawText(text, new Point(textX, barcodeHeightDip + 2));
-            }
-
-            // Render at barcode DPI for crisp text
-            var compositeDpi = item.QrDpi;
-            var compositePixelWidth = Math.Max(1, (int)Math.Ceiling(totalWidth * compositeDpi / 96.0));
-            var compositePixelHeight = Math.Max(1, (int)Math.Ceiling(totalHeight * compositeDpi / 96.0));
-            var composite = new RenderTargetBitmap(compositePixelWidth, compositePixelHeight, compositeDpi, compositeDpi, PixelFormats.Pbgra32);
-            composite.Render(visual);
-            composite.Freeze();
-            return composite;
+            // Return barcode only — text below barcode is handled by Linked Text objects.
+            // Inline text compositing was removed because it caused misalignment between
+            // the barcode and text in print/preview (text appeared too far from the bars).
+            return source;
         }
         catch (ArgumentException)
         {

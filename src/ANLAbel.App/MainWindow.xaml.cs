@@ -141,6 +141,10 @@ public partial class MainWindow : Window
         {
             _viewModel.ClearSelectedBindingCommand.Execute(null);
         }
+        else if (source == "Binding")
+        {
+            // Show formula builder panel; formula is applied when user clicks Apply
+        }
     }
 
     private void ExcelFieldComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -201,7 +205,9 @@ public partial class MainWindow : Window
         _syncingContentSource = true;
         try
         {
-            var targetTag = _viewModel.HasSelectedBinding ? "Excel" : "Static";
+            var targetTag = _viewModel.IsSelectedBindingFormula ? "Binding"
+                          : _viewModel.HasSelectedBinding ? "Excel"
+                          : "Static";
             foreach (var comboItem in ContentSourceComboBox.Items.OfType<ComboBoxItem>())
             {
                 if (string.Equals(comboItem.Tag?.ToString(), targetTag, StringComparison.Ordinal))
@@ -359,6 +365,25 @@ public partial class MainWindow : Window
     private void Help_Click(object sender, RoutedEventArgs e)
     {
         new HelpWindow { Owner = this }.ShowDialog();
+    }
+
+    private TemplateLibrary.TemplateLibraryService? _templateLibrary;
+
+    private async void TemplateLibrary_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _templateLibrary ??= new TemplateLibrary.TemplateLibraryService();
+            var window = new TemplateLibraryWindow(_templateLibrary) { Owner = this };
+            if (window.ShowDialog() == true && window.ChosenTemplate is not null)
+            {
+                await _viewModel.LoadTemplateFromLibraryAsync(window.ChosenTemplate);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Template Library", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void DesignerScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)

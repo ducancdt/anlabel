@@ -121,6 +121,8 @@ public sealed class MainViewModel : ObservableObject
         AddQrCodeCommand = new RelayCommand(AddQrCode);
         AddDataMatrixCommand = new RelayCommand(AddDataMatrix);
         DeleteSelectedCommand = new RelayCommand(DeleteSelected, () => SelectedObject is not null);
+        BringToFrontCommand = new RelayCommand(BringToFront, () => SelectedObject is not null);
+        SendToBackCommand = new RelayCommand(SendToBack, () => SelectedObject is not null);
         UndoCommand = new RelayCommand(Undo, () => _undoStack.Count > 0);
         RedoCommand = new RelayCommand(Redo, () => _redoStack.Count > 0);
         ZoomInCommand = new RelayCommand(() => Zoom = Math.Min(4, Zoom + 0.1));
@@ -162,9 +164,10 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _selectedObject, value))
             {
                 ((RelayCommand)DeleteSelectedCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)BringToFrontCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)SendToBackCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ClearSelectedBindingCommand).RaiseCanExecuteChanged();
-                ((RelayCommand)DeleteSelectedCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)InsertFunctionFormulaCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ApplyFormulaBuilderCommand).RaiseCanExecuteChanged();
@@ -475,6 +478,8 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AddQrCodeCommand { get; }
     public ICommand AddDataMatrixCommand { get; }
     public ICommand DeleteSelectedCommand { get; }
+    public ICommand BringToFrontCommand { get; }
+    public ICommand SendToBackCommand { get; }
     public ICommand UndoCommand { get; }
     public ICommand RedoCommand { get; }
     public ICommand ZoomInCommand { get; }
@@ -536,6 +541,23 @@ public sealed class MainViewModel : ObservableObject
         CurrentFilePath = filePath;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
+    }
+
+    /// <summary>
+    /// Loads a template picked from the built-in Template Library. The template is a
+    /// fresh in-memory copy (not a file), so the current file path is cleared and the
+    /// user is prompted for a destination on first Save.
+    /// </summary>
+    public async Task LoadTemplateFromLibraryAsync(LabelTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        UnobserveTemplate(Template);
+        Template = template;
+        ResetHistory();
+        CurrentFilePath = string.Empty;
+        SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
+        await RestoreLinkedExcelDataAsync();
+        StatusText = $"Đã mở mẫu từ thư viện: {template.Name}";
     }
 
     public IReadOnlyList<string> GetExcelSheetNames(string filePath)
@@ -1306,7 +1328,7 @@ public sealed class MainViewModel : ObservableObject
             BarcodeSymbology = BarcodeSymbology.Code128,
             Style = { BorderThicknessMm = 0 }
         };
-        AddBarcodeWithLinkedText(barcode);
+        AddBarcodeObject(barcode);
     }
 
     private void AddQrCode()
@@ -1323,7 +1345,7 @@ public sealed class MainViewModel : ObservableObject
             HeightMm = 8,
             Style = { BorderThicknessMm = 0 }
         };
-        AddBarcodeWithLinkedText(qr);
+        AddBarcodeObject(qr);
     }
 
     private void AddDataMatrix()
@@ -1340,17 +1362,15 @@ public sealed class MainViewModel : ObservableObject
             HeightMm = 18,
             Style = { BorderThicknessMm = 0 }
         };
-        AddBarcodeWithLinkedText(dm);
+        AddBarcodeObject(dm);
     }
 
     /// <summary>
     /// Adds a barcode/QR object along with a linked text object positioned just below it.
     /// The text object mirrors the barcode's content and moves together with it.
     /// </summary>
-    private void AddBarcodeWithLinkedText(LabelObject barcode)
+    private void AddBarcodeObject(LabelObject barcode)
     {
-        barcode.ShowBarcodeText = true; // Text rendered as composite bitmap inside barcode
-        barcode.HasLinkedText = false;
         barcode.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
         Template.Objects.Add(barcode);
         SelectedObject = barcode;
@@ -1374,30 +1394,25 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var toDelete = SelectedObject;
-
-        // If this is a barcode, also remove its linked text object
-        if (toDelete.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
-        {
-            var linkedText = Template.Objects.FirstOrDefault(o => o.LinkedToId == toDelete.Id);
-            if (linkedText is not null)
-            {
-                Template.Objects.Remove(linkedText);
-            }
-        }
-
-        // If this is a linked text, also remove its barcode parent
-        if (!string.IsNullOrWhiteSpace(toDelete.LinkedToId))
-        {
-            var parent = Template.Objects.FirstOrDefault(o => o.Id == toDelete.LinkedToId);
-            if (parent is not null)
-            {
-                Template.Objects.Remove(parent);
-            }
-        }
-
         Template.Objects.Remove(toDelete);
         SelectedObject = null;
         StatusText = "Deleted selected object";
+    }
+
+    private void BringToFront()
+    {
+        if (SelectedObject is null || Template.Objects.Count == 0) return;
+        var maxZ = Template.Objects.Max(o => o.ZIndex);
+        if (SelectedObject.ZIndex != maxZ)
+            SelectedObject.ZIndex = maxZ + 1;
+    }
+
+    private void SendToBack()
+    {
+        if (SelectedObject is null || Template.Objects.Count == 0) return;
+        var minZ = Template.Objects.Min(o => o.ZIndex);
+        if (SelectedObject.ZIndex != minZ)
+            SelectedObject.ZIndex = minZ - 1;
     }
 
     private void Undo()
@@ -1563,57 +1578,6 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.HeightMm))
             {
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
-            }
-        }
-
-        // Toggle linked text on/off when HasLinkedText checkbox changes
-        if (sender is LabelObject toggleObj
-            && toggleObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
-            && e.PropertyName is nameof(LabelObject.HasLinkedText))
-        {
-            var existingLinked = Template.Objects.FirstOrDefault(o => o.LinkedToId == toggleObj.Id);
-            if (toggleObj.HasLinkedText && existingLinked is null)
-            {
-                // Create linked text
-                var linkedText = new LabelObject
-                {
-                    Type = ObjectType.Text,
-                    Name = $"{toggleObj.Name} Text",
-                    Text = toggleObj.Text,
-                    BindingExpression = toggleObj.BindingExpression,
-                    XMm = toggleObj.XMm,
-                    YMm = toggleObj.YMm + toggleObj.HeightMm + 1,
-                    WidthMm = toggleObj.WidthMm,
-                    HeightMm = 5,
-                    LinkedToId = toggleObj.Id,
-                    IsLocked = true, // Locked: moves only via barcode position sync
-                    Style = { FontSizePt = 7, BorderThicknessMm = 0, Alignment = TextAlignmentMode.Center }
-                };
-                linkedText.ZIndex = toggleObj.ZIndex + 1;
-                Template.Objects.Add(linkedText);
-                ObserveObject(linkedText);
-                StatusText = "Linked text created";
-            }
-            else if (!toggleObj.HasLinkedText && existingLinked is not null)
-            {
-                // Remove linked text
-                Template.Objects.Remove(existingLinked);
-                StatusText = "Linked text removed";
-            }
-        }
-
-        // Sync linked text when barcode data changes
-        if (sender is LabelObject barcodeObj
-            && barcodeObj.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
-            && e.PropertyName is nameof(LabelObject.Text) or nameof(LabelObject.BindingExpression))
-        {
-            var linked = Template.Objects.FirstOrDefault(o => o.LinkedToId == barcodeObj.Id);
-            if (linked is not null)
-            {
-                if (e.PropertyName is nameof(LabelObject.Text))
-                    linked.Text = barcodeObj.Text;
-                if (e.PropertyName is nameof(LabelObject.BindingExpression))
-                    linked.BindingExpression = barcodeObj.BindingExpression;
             }
         }
 
