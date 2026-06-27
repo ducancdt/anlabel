@@ -136,8 +136,8 @@
 
         <Style x:Key="RibbonButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width" Value="58"/>
-            <Setter Property="Height" Value="54"/>
-            <Setter Property="Padding" Value="3,2"/>
+            <Setter Property="Height" Value="62"/>
+            <Setter Property="Padding" Value="3,4"/>
             <Setter Property="Margin" Value="1,0"/>
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#FFFFFF"/>
@@ -250,9 +250,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="22" Height="22" Background="{StaticResource AppBlueBrush}" CornerRadius="5" Margin="0,0,10,0">
-                        <TextBlock Text="A" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Image Width="24" Height="24" Margin="0,0,10,0" Source="/ANLAbel.App;component/anlabel.ico"
+                           RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
                     <TextBlock Text="ANLAbel - Label Designer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     <Border Margin="10,0,0,0" Padding="7,2" Background="#EAF3FF" BorderBrush="{StaticResource AppBlueBrush}" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
                         <TextBlock Text="closebeta v0.053" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
@@ -289,6 +288,14 @@
                             </Button>
                         </StackPanel>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="File"/>
+                    </StackPanel>
+
+                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
+                    <StackPanel>
+                        <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="Mở thư viện mẫu tem có sẵn">
+                            <StackPanel><TextBlock Text="📚" FontSize="20" TextAlignment="Center"/><TextBlock Text="Templates" TextAlignment="Center"/><TextBlock Text="Library" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                        </Button>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Library"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
@@ -745,6 +752,7 @@
                                         <ComboBox x:Name="ContentSourceComboBox" SelectionChanged="ContentSourceComboBox_SelectionChanged" SelectedIndex="0" Margin="0,1,0,2">
                                             <ComboBoxItem Content="Text" Tag="Static"/>
                                             <ComboBoxItem Content="Excel Field" Tag="Excel"/>
+                                            <ComboBoxItem Content="Binding / Formula" Tag="Binding"/>
                                         </ComboBox>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Excel"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
@@ -761,6 +769,47 @@
                                                       SelectionChanged="ExcelFieldComboBox_SelectionChanged"
                                                       Margin="0,3,0,0"/>
                                         </StackPanel>
+                                        <StackPanel>
+                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                            <!-- Fields section -->
+                                            <TextBlock Text="Add Excel field" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,0,0,2"/>
+                                            <ItemsControl ItemsSource="{Binding LabelDatabaseFields}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="{Binding DisplayName}" Command="{Binding DataContext.AddFormulaFieldPartCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" Margin="0,0,3,3" Padding="4,2" FontSize="10"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <!-- Separators -->
+                                            <TextBlock Text="Separators" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,2"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Space" Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" " Margin="0,0,3,0" Padding="4,2" FontSize="10"/>
+                                                <Button Content=" - " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" - " Margin="0,0,3,0" Padding="4,2" FontSize="10"/>
+                                                <Button Content=" / " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" / " Margin="0,0,3,0" Padding="4,2" FontSize="10"/>
+                                                <Button Content=" | " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" | " Margin="0,0,3,0" Padding="4,2" FontSize="10"/>
+                                            </StackPanel>
+                                            <!-- Text part -->
+                                            <TextBlock Text="Add text" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,2"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="4"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <TextBox Text="{Binding FormulaBuilderText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="11" MinHeight="22"/>
+                                                <Button Grid.Column="2" Content="Add" Command="{Binding AddFormulaTextPartCommand}" Padding="6,2" FontSize="10"/>
+                                            </Grid>
+                                            <!-- Parts list -->
+                                            <TextBlock Text="Formula parts" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,2"/>
+                                            <ListBox ItemsSource="{Binding FormulaBuilderParts}" SelectedItem="{Binding SelectedFormulaBuilderPart, Mode=TwoWay}" DisplayMemberPath="DisplayText" MaxHeight="80" FontSize="10"/>
+                                            <Button Content="Remove selected" Command="{Binding RemoveFormulaPartCommand}" Margin="0,2,0,0" Padding="4,2" FontSize="10" HorizontalAlignment="Right"/>
+                                            <!-- Expression preview -->
+                                            <TextBlock Text="Expression" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,2"/>
+                                            <TextBlock Text="{Binding FormulaBuilderExpression}" FontSize="10" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
+                                            <!-- Apply / Clear -->
+                                            <Grid Margin="0,4,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="4"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <Button Content="Clear" Command="{Binding ClearFormulaBuilderCommand}" Padding="4,3" FontSize="10"/>
+                                                <Button Grid.Column="2" Content="Apply Formula" Command="{Binding ApplyFormulaBuilderCommand}" Padding="6,3" FontSize="10" FontWeight="SemiBold"/>
+                                            </Grid>
+                                        </StackPanel>
                                         <TextBlock Text="{Binding BarcodeValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
                                     </StackPanel>
                                 </Border>
@@ -775,6 +824,19 @@
                                             <ComboBoxItem Content="180°" Tag="180"/>
                                             <ComboBoxItem Content="270°" Tag="270"/>
                                         </ComboBox>
+                                        <TextBlock Text="Layer order" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,2"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="↑ Bring to Front" Command="{Binding BringToFrontCommand}" Padding="4,2" FontSize="10" Margin="0,0,4,0"/>
+                                            <Button Content="↓ Send to Back" Command="{Binding SendToBackCommand}" Padding="4,2" FontSize="10"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4,2" Margin="0,0,0,2">
+                                    <StackPanel>
+                                        <TextBlock Text="Object" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,2"/>
+                                        <CheckBox Content="Visible" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,0,0,2"/>
+                                        <CheckBox Content="Locked (prevent drag)" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}"/>
                                     </StackPanel>
                                 </Border>
 
@@ -838,7 +900,6 @@
                                         <!-- Linked text & DPI: compact single row -->
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <CheckBox Grid.Column="0" Content="Linked text" IsChecked="{Binding SelectedObject.HasLinkedText, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Create a linked text object below barcode"/>
                                             <TextBlock Grid.Column="2" Text="DPI" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,3,0" FontSize="11"/>
                                             <TextBox Grid.Column="3" Text="{Binding SelectedObject.QrDpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" MinHeight="22" FontSize="11"/>
                                         </Grid>
