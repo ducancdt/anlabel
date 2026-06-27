@@ -135,10 +135,11 @@
         </Style>
 
         <Style x:Key="RibbonButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Width" Value="58"/>
-            <Setter Property="Height" Value="62"/>
-            <Setter Property="Padding" Value="3,4"/>
+            <Setter Property="MinWidth" Value="56"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="Padding" Value="7,5"/>
             <Setter Property="Margin" Value="1,0"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#FFFFFF"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -326,7 +327,7 @@
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="Mở thư viện mẫu tem có sẵn">
-                            <StackPanel><TextBlock Text="📚" FontSize="20" TextAlignment="Center"/><TextBlock Text="Templates" TextAlignment="Center"/><TextBlock Text="Library" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="Templates" TextAlignment="Center"/></StackPanel>
                         </Button>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Library"/>
                     </StackPanel>
@@ -351,7 +352,7 @@
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="Import" TextAlignment="Center"/><TextBlock Text="Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Reload data from the linked Excel file and sheet">
-                                <StackPanel><TextBlock Text="↻" FontSize="24" TextAlignment="Center"/><TextBlock Text="Update" TextAlignment="Center"/><TextBlock Text="Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                                <StackPanel><TextBlock Text="↻" FontSize="16" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Update" TextAlignment="Center"/><TextBlock Text="Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                             </Button>
                         </StackPanel>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Data"/>
@@ -373,7 +374,7 @@
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_all_rows.png"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="All Rows" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource RibbonButton}" Click="PrintHistory_Click" ToolTip="Open the single print history Excel file">
-                                <StackPanel><TextBlock Text="H" FontSize="22" FontWeight="Bold" TextAlignment="Center"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="History" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                                <StackPanel><TextBlock Text="H" FontSize="16" FontWeight="Bold" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="History" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintCalibrationCommand}">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/test_print.png"/><TextBlock Text="Test" TextAlignment="Center"/><TextBlock Text="Print" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
@@ -401,7 +402,7 @@
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <Button Style="{StaticResource RibbonButton}" Click="Help_Click">
-                            <StackPanel><TextBlock Text="?" FontSize="24" FontWeight="Bold" TextAlignment="Center" Foreground="#2563EB"/><TextBlock Text="Help" TextAlignment="Center"/><TextBlock Text="F1" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="Help" TextAlignment="Center"/><TextBlock Text="F1" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                         </Button>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Help"/>
                     </StackPanel>
