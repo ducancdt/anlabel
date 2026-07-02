@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ANLAbel.Core\ANLAbel.Core.csproj" />
+    <ProjectReference Include="..\ANLAbel.Data\ANLAbel.Data.csproj" />
   </ItemGroup>
 
 </Project>

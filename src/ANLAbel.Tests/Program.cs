@@ -5,6 +5,7 @@ using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
+using ANLAbel.Data.DataLogs;
 using ANLAbel.Data.Excel;
 using ANLAbel.Data.PrintLogs;
 using ANLAbel.App.ViewModels;
@@ -41,7 +42,10 @@ var tests = new (string Name, Func<Task> Run)[]
     ("template excel link survives folder move", TestExcelLinkSurvivesFolderMove),
     ("data source registry CRUD", TestDataSourceRegistryCrud),
     ("designer preview row keeps object geometry", TestDesignerPreviewRowKeepsGeometry),
-    ("excel read honors cancellation", TestExcelReadHonorsCancellation)
+    ("excel read honors cancellation", TestExcelReadHonorsCancellation),
+    ("excel refresh skips unchanged file", TestExcelRefreshSkipsUnchangedFile),
+    ("database config full round trip", TestDatabaseConfigRoundTrip),
+    ("data operation log records import success and failure", TestDataOperationLogRecordsImports)
 };
 
 var failed = 0;
@@ -812,6 +816,180 @@ static async Task TestExcelReadHonorsCancellation()
     {
         // Expected: the UI can leave a stalled/slow read without blocking its thread.
     }
+}
+
+static async Task TestDataOperationLogRecordsImports()
+{
+    // database-plan TC6: every import/refresh/relink must leave a trace so a bad
+    // print run can be traced back to which data was read and when.
+    var dir = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"data-log-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(dir);
+    var logPath = Path.Combine(dir, "data-operations.jsonl");
+    var excelPath = Path.Combine(dir, "data.xlsx");
+    using (var workbook = new XLWorkbook())
+    {
+        var sheet = workbook.AddWorksheet("Parts");
+        sheet.Cell(1, 1).Value = "PartNo";
+        sheet.Cell(2, 1).Value = "PN-100";
+        workbook.SaveAs(excelPath);
+    }
+
+    var vm = new MainViewModel(
+        new ANLAbel.Project.SaveLoad.ProjectFileService(),
+        new ExcelDataService(),
+        new ANLAbel.Printing.PrinterProfiles.PrintService(),
+        new ANLAbel.Printing.PrinterProfiles.PrinterDiscoveryService(),
+        new PrintLogService(),
+        new DataOperationLogService(logPath));
+
+    await vm.ImportExcelAsync(excelPath, "Parts");
+
+    // Failure case: sheet that does not exist must also be logged, then rethrown.
+    var missingSheetThrew = false;
+    try
+    {
+        await vm.ImportExcelAsync(excelPath, "DoesNotExist");
+    }
+    catch
+    {
+        missingSheetThrew = true;
+    }
+    AssertEqual(true, missingSheetThrew, "Importing a missing sheet must throw (and still be logged as a failure)");
+
+    var lines = await WaitForLogLinesAsync(logPath, minLineCount: 2);
+    AssertEqual(true, lines.Length >= 2, "Both the successful import and the failed import must be logged");
+
+    var successLine = lines.FirstOrDefault(line => line.Contains("\"Success\":true", StringComparison.Ordinal));
+    AssertEqual(false, successLine is null, "A successful import entry must be present in the log");
+    AssertEqual(true, successLine!.Contains("\"Operation\":\"Import\"", StringComparison.Ordinal), "Successful entry must record the operation label");
+    AssertEqual(true, successLine.Contains("\"RowCount\":1", StringComparison.Ordinal), "Successful entry must record the row count");
+
+    var failureLine = lines.FirstOrDefault(line => line.Contains("\"Success\":false", StringComparison.Ordinal));
+    AssertEqual(false, failureLine is null, "A failed import entry must be present in the log");
+    AssertEqual(false, string.IsNullOrEmpty(ExtractJsonStringField(failureLine!, "ErrorMessage")), "Failed entry must record an error message");
+
+    try { Directory.Delete(dir, true); } catch { }
+}
+
+static async Task<string[]> WaitForLogLinesAsync(string logPath, int minLineCount)
+{
+    for (var attempt = 0; attempt < 40; attempt++)
+    {
+        if (File.Exists(logPath))
+        {
+            var lines = (await File.ReadAllLinesAsync(logPath)).Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+            if (lines.Length >= minLineCount)
+            {
+                return lines;
+            }
+        }
+
+        await Task.Delay(50);
+    }
+
+    return File.Exists(logPath) ? await File.ReadAllLinesAsync(logPath) : Array.Empty<string>();
+}
+
+static string ExtractJsonStringField(string jsonLine, string fieldName)
+{
+    var marker = $"\"{fieldName}\":\"";
+    var start = jsonLine.IndexOf(marker, StringComparison.Ordinal);
+    if (start < 0)
+    {
+        return string.Empty;
+    }
+
+    start += marker.Length;
+    var end = jsonLine.IndexOf('"', start);
+    return end < 0 ? string.Empty : jsonLine[start..end];
+}
+
+static async Task TestDatabaseConfigRoundTrip()
+{
+    // database-plan TC2: every DatabaseConfig field must survive a full save/open
+    // cycle, not just the handful (FilePath/SheetName/LastSelectedRow) already
+    // covered by "template save/load". A dropped field here silently breaks
+    // relink, key-based row tracking, or the shared data-source registry.
+    var service = new ProjectFileService();
+    var directory = Path.Combine(Environment.CurrentDirectory, "TestOutput");
+    Directory.CreateDirectory(directory);
+    var filePath = Path.Combine(directory, $"db-config-roundtrip-{Guid.NewGuid():N}.anlabel");
+
+    var template = new LabelTemplate { Name = "DB Config Round Trip", WidthMm = 60, HeightMm = 40 };
+    template.DatabaseConfig.DataSourceId = "src-001";
+    template.DatabaseConfig.FilePath = @"C:\labels\data\parts.xlsx";
+    template.DatabaseConfig.RelativePath = "parts.xlsx";
+    template.DatabaseConfig.SheetName = "Parts";
+    template.DatabaseConfig.HeaderRowIndex = 2;
+    template.DatabaseConfig.KeyField = "PartNo";
+    template.DatabaseConfig.KeyValue = "PN-100";
+    template.DatabaseConfig.LastSelectedRow = 3;
+    template.DatabaseConfig.AvailableFields.Add(new DatabaseField { Name = "PartNo", DisplayName = "Part No", SampleValue = "PN-100" });
+    template.DatabaseConfig.AvailableFields.Add(new DatabaseField { Name = "Qty", DisplayName = "Quantity", SampleValue = "10" });
+    template.DatabaseConfig.LabelFields.Add(new DatabaseField { Name = "PartNo", DisplayName = "Part No", SampleValue = "PN-100" });
+
+    await service.SaveAsync(template, filePath);
+    var loaded = await service.LoadAsync(filePath);
+
+    AssertEqual("src-001", loaded.DatabaseConfig.DataSourceId, "DataSourceId must survive save/open");
+    AssertEqual(@"C:\labels\data\parts.xlsx", loaded.DatabaseConfig.FilePath, "FilePath must survive save/open");
+    AssertEqual("parts.xlsx", loaded.DatabaseConfig.RelativePath, "RelativePath must survive save/open");
+    AssertEqual("Parts", loaded.DatabaseConfig.SheetName, "SheetName must survive save/open");
+    AssertEqual(2, loaded.DatabaseConfig.HeaderRowIndex, "HeaderRowIndex must survive save/open");
+    AssertEqual("PartNo", loaded.DatabaseConfig.KeyField, "KeyField must survive save/open");
+    AssertEqual("PN-100", loaded.DatabaseConfig.KeyValue, "KeyValue must survive save/open");
+    AssertEqual(3, loaded.DatabaseConfig.LastSelectedRow, "LastSelectedRow must survive save/open");
+    AssertEqual(2, loaded.DatabaseConfig.AvailableFields.Count, "AvailableFields must survive save/open");
+    AssertEqual(1, loaded.DatabaseConfig.LabelFields.Count, "LabelFields must survive save/open");
+    AssertEqual("PartNo", loaded.DatabaseConfig.LabelFields[0].Name, "LabelFields entries must keep their Name");
+    AssertEqual("Part No", loaded.DatabaseConfig.LabelFields[0].DisplayName, "LabelFields entries must keep their DisplayName");
+
+    try { File.Delete(filePath); } catch { }
+}
+
+static async Task TestExcelRefreshSkipsUnchangedFile()
+{
+    // Scenario: RefreshExcelDataAsync must not re-read the workbook when its
+    // LastWriteTimeUtc has not changed since the last import (database-plan TC4) —
+    // this avoids unnecessary I/O and gives the user a "data is fresh" signal.
+    var dir = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"refresh-cache-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(dir);
+    var excelPath = Path.Combine(dir, "data.xlsx");
+    using (var workbook = new XLWorkbook())
+    {
+        var sheet = workbook.AddWorksheet("Parts");
+        sheet.Cell(1, 1).Value = "PartNo";
+        sheet.Cell(2, 1).Value = "PN-100";
+        workbook.SaveAs(excelPath);
+    }
+
+    var vm = new MainViewModel();
+    await vm.ImportExcelAsync(excelPath, "Parts");
+    var afterImportStatus = vm.StatusText;
+    AssertEqual(true, afterImportStatus.StartsWith("Imported", StringComparison.Ordinal),
+        "First import must report rows imported");
+
+    // Refresh again without touching the file: must short-circuit, not re-import.
+    await vm.RefreshExcelDataAsync();
+    AssertEqual(true, vm.StatusText.Contains("already up to date", StringComparison.OrdinalIgnoreCase),
+        "Refresh must report the cached/unchanged state instead of re-reading an untouched file");
+
+    // Touch the file (new content + newer write time) then refresh: must re-import.
+    await Task.Delay(50);
+    using (var workbook = new XLWorkbook())
+    {
+        var sheet = workbook.AddWorksheet("Parts");
+        sheet.Cell(1, 1).Value = "PartNo";
+        sheet.Cell(2, 1).Value = "PN-200";
+        workbook.SaveAs(excelPath);
+    }
+    File.SetLastWriteTimeUtc(excelPath, DateTime.UtcNow);
+
+    await vm.RefreshExcelDataAsync();
+    AssertEqual(true, vm.StatusText.StartsWith("Imported", StringComparison.Ordinal),
+        "Refresh must re-import once the linked file's write time has changed");
+
+    try { Directory.Delete(dir, true); } catch { }
 }
 
 static void AssertEqual<T>(T expected, T actual, string message)

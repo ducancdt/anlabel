@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -20,6 +21,7 @@ using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
+using ANLAbel.Data.Preferences;
 using ANLAbel.Printing.RenderPipeline;
 
 namespace ANLAbel.App.Controls;
@@ -50,6 +52,14 @@ public sealed class LabelDesignerCanvas : Canvas
         DependencyProperty.Register(nameof(DrawingCommandText), typeof(string), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+    public static readonly DependencyProperty IsSnapToObjectsEnabledProperty =
+        DependencyProperty.Register(nameof(IsSnapToObjectsEnabled), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSnapPreferenceChanged));
+
+    public static readonly DependencyProperty InteractionStatusTextProperty =
+        DependencyProperty.Register(nameof(InteractionStatusText), typeof(string), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
     public static readonly RoutedCommand DeleteSelectionCommand = new(nameof(DeleteSelectionCommand), typeof(LabelDesignerCanvas));
 
     private readonly Dictionary<LabelObject, FrameworkElement> _objectElements = new();
@@ -58,6 +68,8 @@ public sealed class LabelDesignerCanvas : Canvas
     private readonly List<LabelObject> _clipboardObjects = new();
     private readonly Dictionary<LabelObject, (double X, double Y, double EndX, double EndY)> _groupDragStarts = new();
     private readonly IBarcodeRenderer _barcodeRenderer = new ZxingBarcodeRenderer();
+    private readonly DesignerPreferencesService _designerPreferencesService = new();
+    private readonly MenuItem _snapMenuItem;
     private SelectionResizeAdorner? _selectionAdorner;
     private LabelObject? _adornedObject;
     private Border? _marqueeElement;
@@ -92,6 +104,25 @@ public sealed class LabelDesignerCanvas : Canvas
         MouseRightButtonUp += CanvasMouseButtonUp;
         LostMouseCapture += CanvasLostMouseCapture;
         KeyDown += CanvasKeyDown;
+        _snapMenuItem = new MenuItem
+        {
+            Header = "Snap to objects",
+            IsCheckable = true
+        };
+        _snapMenuItem.Click += (_, _) => IsSnapToObjectsEnabled = _snapMenuItem.IsChecked;
+        ContextMenu = new ContextMenu { Items = { _snapMenuItem } };
+        ContextMenuOpening += (_, e) =>
+        {
+            if (DrawingTool is not null)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            _snapMenuItem.IsChecked = IsSnapToObjectsEnabled;
+        };
+
+        SetCurrentValue(IsSnapToObjectsEnabledProperty, _designerPreferencesService.Load().SnapToObjects);
         CommandBindings.Add(new CommandBinding(DeleteSelectionCommand, (_, e) =>
         {
             e.Handled = DeleteSelection();
@@ -132,6 +163,18 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         get => (string)GetValue(DrawingCommandTextProperty);
         set => SetValue(DrawingCommandTextProperty, value);
+    }
+
+    public bool IsSnapToObjectsEnabled
+    {
+        get => (bool)GetValue(IsSnapToObjectsEnabledProperty);
+        set => SetValue(IsSnapToObjectsEnabledProperty, value);
+    }
+
+    public string InteractionStatusText
+    {
+        get => (string)GetValue(InteractionStatusTextProperty);
+        set => SetValue(InteractionStatusTextProperty, value);
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -274,7 +317,9 @@ public sealed class LabelDesignerCanvas : Canvas
                 // Alignment guide: compute snap position against other objects
                 // Hold Alt to temporarily disable snapping
                 var snap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
-                if (!Keyboard.IsKeyDown(Key.LeftAlt) && !Keyboard.IsKeyDown(Key.RightAlt))
+                if (IsSnapToObjectsEnabled
+                    && !Keyboard.IsKeyDown(Key.LeftAlt)
+                    && !Keyboard.IsKeyDown(Key.RightAlt))
                 {
                     snap = ComputeAlignmentSnap(item, proposedX, proposedY);
                     if (snap.SnapX is not null)
@@ -750,6 +795,29 @@ public sealed class LabelDesignerCanvas : Canvas
         canvas.SelectedObject = null;
         canvas.RemoveSelectionAdorner();
         canvas.Cursor = Cursors.Cross;
+    }
+
+    private static void OnSnapPreferenceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var canvas = (LabelDesignerCanvas)d;
+        var enabled = (bool)e.NewValue;
+        canvas._snapMenuItem.IsChecked = enabled;
+        canvas.InteractionStatusText = enabled
+            ? "Snap to objects enabled (hold Alt to bypass)"
+            : "Snap to objects disabled";
+
+        try
+        {
+            canvas._designerPreferencesService.Save(new DesignerPreferences { SnapToObjects = enabled });
+        }
+        catch (IOException)
+        {
+            canvas.InteractionStatusText += " — preference could not be saved";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            canvas.InteractionStatusText += " — preference could not be saved";
+        }
     }
 
     private void CanvasMouseButtonDown(object sender, MouseButtonEventArgs e)
@@ -1358,6 +1426,9 @@ public sealed class LabelDesignerCanvas : Canvas
         MoveSelectedGroup(deltaX, deltaY);
         _groupDragStarts.Clear();
         InvalidateVisual();
+        InteractionStatusText = _selectedObjects.Count == 1
+            ? $"{_selectedObjects.First().Name}: X {_selectedObjects.First().XMm:0.##} mm, Y {_selectedObjects.First().YMm:0.##} mm (nudge {stepMm:0.##} mm)"
+            : $"Moved {_selectedObjects.Count} objects by {stepMm:0.##} mm";
         return true;
     }
 

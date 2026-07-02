@@ -612,3 +612,10 @@
 - Excel async co cancel, timeout UNC/network 30 giay va `FileShare.ReadWrite`; re-link khong doc workbook tren UI thread.
 - Them nen `DataSource`/`DataSourceRegistry`, `DataSourceId`, `KeyValue`; UI manager va watcher lam o dot tiep.
 - Them regression test geometry khi doi preview row, cancel Excel va registry CRUD.
+
+### Phien ban 0.061 - Designer interaction controls
+
+- Them toggle `Snap objects` tren ribbon va context menu cua canvas; Alt van tam bo snap trong luc keo.
+- Luu preference snap rieng theo may tai `%LocalAppData%\ANLAbel\designer-preferences.json`, khong ghi vao template.
+- Keyboard nudge hien X/Y moi hoac so object da move tren status bar.
+- Them xUnit cho round-trip preference va fallback an toan khi JSON bi hong.
