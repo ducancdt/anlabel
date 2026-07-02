@@ -8,8 +8,8 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 ## Trang thai hien tai (2026-07-02)
 
-- Version hien thi trong app: `0.057`.
-- Build: `dotnet build ANLAbel.slnx` PASS. Test: `ANLAbel.Tests` 18/18 PASS.
+- Version hien thi trong app: `0.058`.
+- Build: `dotnet build ANLAbel.slnx --no-restore` PASS. Test: `ANLAbel.Tests` 22/22 PASS; `ANLAbel.UnitTests` 31/31 PASS.
 - Luong release chinh: `build-trial.ps1` / `build-license-system.ps1` -> `dotnet publish` -> `publish_out/{trial-x64,commercial-x64,license-master-x64}` -> Inno Setup (`installer/ANLAbel-Trial-x64.iss`, `ANLAbel-Commercial-x64.iss`, `ANLAbel-License-Master-x64.iss`) -> `releases/`.
 - Deploy nhanh de test tren may dev: `deploy-desktop.ps1` (publish self-contained win-x64 -> robocopy vao `%LOCALAPPDATA%\Programs\ANLAbel`).
 
@@ -29,6 +29,24 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 6. **Dong bo version**: tao `build-common.ps1` doc `Version` tu `.csproj`, sua `build-trial.ps1` + `build-license-system.ps1` goi `build-common.ps1`, sua `deploy-desktop.ps1` lay version tu `.csproj`, sua 3 installer `.iss` dong bo version `0.057`. Commit `6212fa0`.
 7. **Ra soat UI thread + Cancel Excel import**: kiem tra printer enumeration (OK — local nhan), them `CancelButton` + `CancellationTokenSource` cho `ExcelImportWindow` khi doc file Excel qua mang. Commit `f9f4047`.
 8. **Template Library unit test**: them test `template library links sample-data.xlsx` kiem tra tat ca `*.anlabel` trong `TemplateLibrary/` co `DatabaseConfig.FilePath` tro toi `sample-data.xlsx`. 18/18 test PASS. Commit `69549a2`.
+9. **GĐ1 database-plan — sua ho loi "mat link" Excel** (`docs/database-plan.md` muc 1-3, 3b):
+   - `DatabaseConfig.RelativePath` + `ResolveExcelPath()` (absolute → relative → same dir → broken) trong `MainViewModel.cs`.
+   - `UpdateRelativePath()` tu tinh RelativePath khi Save/Import Excel.
+   - `RelinkExcelAsync()` + nut re-link khi link bi hong.
+   - `RestoreLinkedExcelDataAsync()` tu dong restore Excel data khi mo template.
+   - `ExtractSampleData()` bi xoa khoi `TemplateLibraryService.cs` — template thu vien khong ghi de `sample-data.xlsx` nua (muc 3b).
+   - Test `template excel link survives folder move`: tao template + Excel cung thu muc, copy sang vi tri khac, xoa goc, mo lai → link tu dong resolve bang RelativePath. 19/19 test PASS.
+10. **On dinh designer — dot 1** (`docs/designer-stability-plan.md`):
+   - Render/doi `PreviewRow` khong con ghi nguoc `WidthMm/HeightMm` cua text/QR vao model.
+   - Matrix barcode chi ep vuong khi property kich thuoc thay doi; giu tam cho chieu duoc app tu dieu chinh.
+   - Snap giam tu `3 mm` xuong `1 mm`, giu `Alt` de tam tat snap, clamp drag du 4 canh.
+   - Mat mouse capture hoac bam `Esc` khi dang keo se khoi phuc ca nhom object, khong de teleport o lan keo sau.
+   - Them regression test `designer preview row keeps object geometry`.
+   - Smoke app PASS: process responsive, title `ANLAbel - Label Designer v0.058`.
+11. **Nen GĐ2 database-plan + I/O Excel an toan hon**:
+   - Them model `DataSource`, registry JSON tai `%AppData%\ANLAbel\data-sources.json`, va `DatabaseConfig.DataSourceId` (chua noi UI manager).
+   - Ghi nho row bang `KeyField` + `KeyValue`, fallback ve `LastSelectedRow` neu key khong con.
+   - Doc Excel ho tro `CancellationToken`, timeout 30 giay cho UNC/network va `FileShare.ReadWrite`; luong re-link khong con doc workbook tren UI thread.
 
 ## Viec can lam tiep (uu tien de xuat, chua ai duyet — hoi nguoi dung truoc khi lam)
 
@@ -49,3 +67,16 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 ### Uu tien thap — thu vien template
 - [ ] Neu them template mau moi tu file thiet ke thuc te cua khach hang trong tuong lai, luon genericize + gan link Excel + bo khoi `Exclude` ngay tu dau (theo rule 8 trong `agent.md`), khong de tinh trang "them nhung chua hoan thanh" nhu 5 template lan nay.
 - [x] Can nhac viet 1 unit test nho kiem tra tat ca `*.anlabel` trong `TemplateLibrary/` (khong bi Exclude) co `DatabaseConfig.FilePath` tro toi `sample-data.xlsx` hop le, tranh regression tuong tu lan sau.
+
+### Uu tien trung binh — database plan GĐ1 (sua ho loi "mat link" Excel)
+- [x] Luu duong dan kep `FilePath` + `RelativePath` trong `DatabaseConfig` (`docs/database-plan.md` muc 1).
+- [x] Thu tu tim Excel: tuyet doi → tuong doi → cung thu muc → broken (`ResolveExcelPath()`).
+- [x] Nut re-link ro rang khi link hong (`RelinkExcelAsync()` + `RelinkExcelCommand`).
+- [x] Khong ghi de `sample-data.xlsx` vo dieu kien (`ExtractSampleData()` da bi xoa, muc 3b).
+- [x] Test `template excel link survives folder move` — 19/19 test PASS.
+
+### Uu tien tiep theo — hoan thien GĐ2 data source manager
+- [ ] Noi `DataSourceRegistry` vao panel Data Sources: them/sua/xoa/re-link source dung chung.
+- [ ] Cho template chon `DataSourceId` va fallback ve `FilePath` cu de giu tuong thich nguoc.
+- [ ] Them `FileSystemWatcher` debounce va badge "Data changed — Update".
+- [ ] Them UI chon `KeyField`; backend `KeyValue`/restore theo key da co.
