@@ -20,6 +20,7 @@
 
         <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="12">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton" Content="Cancel" Width="96" Height="32" Click="Cancel_Click" Visibility="Collapsed" Margin="0,0,8,0"/>
                 <Button Content="Close" Width="96" Height="32" IsCancel="True" Click="Close_Click"/>
             </StackPanel>
         </Border>
