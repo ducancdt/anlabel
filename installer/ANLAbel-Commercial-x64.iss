@@ -3,15 +3,15 @@
 [Setup]
 AppId={{A8B2C3D4-E5F6-4789-ABCD-EF0123456789}
 AppName=ANLAbel - Label Designer
-AppVersion=0.062
+AppVersion=0.064
 AppPublisher=Duc An
 AppPublisherURL=https://github.com/ducancdt
 AppSupportURL=mailto:ducancdt@gmail.com
 DefaultDirName={localappdata}\Programs\ANLAbel
 DefaultGroupName=ANLAbel
 LicenseFile=..\docs\license-notices.md
-OutputDir=..\releases\ANLAbel-Commercial-v0.062
-OutputBaseFilename=ANLAbel-Commercial-v0.062-Setup-x64
+OutputDir=..\releases\ANLAbel-Commercial-v0.064
+OutputBaseFilename=ANLAbel-Commercial-v0.064-Setup-x64
 SetupIconFile=..\src\ANLAbel.App\anlabel.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -20,7 +20,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\ANLAbel.App.exe
-VersionInfoVersion=0.062.0.0
+VersionInfoVersion=0.064.0.0
 VersionInfoCompany=Duc An
 VersionInfoDescription=ANLAbel Commercial - Label Designer
 

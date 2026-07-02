@@ -8,8 +8,8 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 ## Trang thai hien tai (2026-07-02)
 
-- Version hien thi trong app: `0.062`.
-- Build: `dotnet build ANLAbel.slnx --no-restore` PASS. Test: `ANLAbel.Tests` 25/25 PASS; `ANLAbel.UnitTests` 39/39 PASS. Smoke: app responsive, title `ANLAbel - Label Designer v0.062`.
+- Version hien thi trong app: `0.064`.
+- Build: `dotnet build ANLAbel.slnx --no-restore` PASS (0 warning, 0 error). Test: `ANLAbel.Tests` 26/26 PASS; `ANLAbel.UnitTests` 45/45 PASS. Smoke: app responsive, title `ANLAbel - Label Designer v0.064`.
 - Luong release chinh: `build-trial.ps1` / `build-license-system.ps1` -> `dotnet publish` -> `publish_out/{trial-x64,commercial-x64,license-master-x64}` -> Inno Setup (`installer/ANLAbel-Trial-x64.iss`, `ANLAbel-Commercial-x64.iss`, `ANLAbel-License-Master-x64.iss`) -> `releases/`.
 - Deploy nhanh de test tren may dev: `deploy-desktop.ps1` (publish self-contained win-x64 -> robocopy vao `%LOCALAPPDATA%\Programs\ANLAbel`).
 
@@ -70,6 +70,13 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
    - `ExcelDataReadException` phan loai file mat, workbook hong, sheet mat va header row sai.
    - Missing-sheet message liet ke sheet hien co de nguoi dung sua mapping nhanh.
    - 6 xUnit moi bao phu corrupt file, renamed sheet, duplicate/blank header, shared-open workbook va header ngoai vung.
+16. **Print reliability — round-trip don vi cong nghiep**, v0.063:
+   - Test mm/DIP va mm/printer-dots tai 203/300/600 DPI, tolerance toi da `0.05 mm` tren kich thuoc 0.5-150 mm.
+   - Conversion voi DPI 0/am fail-fast bang `ArgumentOutOfRangeException`.
+17. **Database TC5 — Row Tracking Key UI**, v0.064:
+   - ComboBox chon key ngay trong Data Sources; option rong quay ve tracking theo row index.
+   - Luu `KeyField`/`KeyValue` va giu dung ban ghi sau refresh du row phia tren bi chen/xoa.
+   - Regression `key field selection tracks row across refresh` PASS.
 15. **Database plan — Giai doan TC (tiep tuc: TC2 + TC6)**, v0.061:
    - TC2: test moi `database config full round trip` — populate day du `DatabaseConfig` (DataSourceId, FilePath, RelativePath, SheetName, HeaderRowIndex, KeyField, KeyValue, LastSelectedRow, AvailableFields, LabelFields) qua `ProjectFileService`, assert khong mat field nao sau save/open.
    - TC6: model + service moi `DataOperationLogEntry`/`DataOperationLogService` (`src/ANLAbel.Data/DataLogs/`) ghi JSON-lines vao `%LocalAppData%\ANLAbel\logs\data-operations.jsonl` moi lan Import/Refresh/Relink/Open-restore — fire-and-forget, khong bao gio chan hoac lam hong thao tac du lieu chinh du ghi log that bai. Noi vao diem hoi tu chung `MainViewModel.ImportExcelAsync` (private overload nhan `operation` label: Import/Refresh/Relink/Open).
@@ -79,7 +86,7 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 ## Dinh huong moi tu chu du an (2026-07-02, chieu) — thu tu uu tien
 
-1. **Day manh phan gan database + siet tin cay database**: dang lam "Giai doan TC" trong `docs/database-plan.md`. Da xong TC1, TC2, TC3, TC4, TC6 (xem muc 13, 15 ben duoi). Con lai TC5 (UI chon KeyField — backend da co san) va TC7 (test them cac ca hong) truoc khi mo rong GD3.
+1. **Day manh phan gan database + siet tin cay database**: Giai doan TC1-TC7 da hoan tat. Huong tiep theo la GĐ2: noi `DataSourceRegistry` vao UI va them watcher file.
 2. **Siet tin cay In & Preview**: theo `docs/print-preview-reliability-plan.md` — dot 1 (preflight tung dong + kiem tra du lieu tuoi + chuan hoa print log) lam truoc, gan chat voi Giai doan TC cua database.
 3. **Template thu vien KHONG tu gan Excel nua**: DA XONG (commit `c3da135`) — sample-data.xlsx bi go khoi bundle, DatabaseConfig cua 17 template de trong, test `template library standalone (no sample-data link)` bao ve. Rule 8 `agent.md` da cap nhat theo quyet dinh nay.
 4. **Kiem tra & sap xep lai Properties panel**: theo `docs/properties-panel-plan.md` — dot A DA XONG (v0.059, xem muc 12 ben duoi). Dot B/C (sap xep lai thu tu card, gop 3 card binding, Formula Builder Expander, Rotation 4 nut, Layer Forward/Backward) cho duyet.
@@ -115,4 +122,4 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 - [ ] Noi `DataSourceRegistry` vao panel Data Sources: them/sua/xoa/re-link source dung chung.
 - [ ] Cho template chon `DataSourceId` va fallback ve `FilePath` cu de giu tuong thich nguoc.
 - [ ] Them `FileSystemWatcher` debounce va badge "Data changed — Update".
-- [ ] Them UI chon `KeyField`; backend `KeyValue`/restore theo key da co.
+- [x] Them UI chon `KeyField`; backend `KeyValue`/restore theo key da co. Hoan tat v0.064.

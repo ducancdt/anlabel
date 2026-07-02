@@ -85,14 +85,14 @@ public partial class App : Application
     {
         if (result.IsActivated)
         {
-            window.Title = "ANLAbel - Label Designer v0.062 — Đã kích hoạt";
-            window.BuildChannelText.Text = "LICENSED · v0.062";
+            window.Title = "ANLAbel - Label Designer v0.064 — Đã kích hoạt";
+            window.BuildChannelText.Text = "LICENSED · v0.064";
         }
         else
         {
             var days = Math.Max(1, (int)Math.Ceiling(result.Remaining.TotalDays));
-            window.Title = $"ANLAbel - Label Designer v0.062 — Dùng thử còn {days} ngày";
-            window.BuildChannelText.Text = "TRIAL 7 NGÀY · v0.062";
+            window.Title = $"ANLAbel - Label Designer v0.064 — Dùng thử còn {days} ngày";
+            window.BuildChannelText.Text = "TRIAL 7 NGÀY · v0.064";
         }
     }
 

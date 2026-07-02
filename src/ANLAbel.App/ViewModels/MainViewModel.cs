@@ -159,6 +159,7 @@ public sealed class MainViewModel : ObservableObject
                 UnobserveTemplate(oldTemplate);
                 ObserveTemplate(value);
                 _lastTemplateSnapshot = CaptureTemplateSnapshot();
+                OnPropertyChanged(nameof(SelectedKeyFieldName));
             }
         }
     }
@@ -331,6 +332,39 @@ public sealed class MainViewModel : ObservableObject
     public string CurrentExcelRowText => ExcelDataView is null || ExcelDataView.Count == 0 || SelectedDataItem is not DataRowView rowView
         ? "No Excel row selected"
         : $"Row {GetDataRowViewIndex(rowView) + 1} of {ExcelDataView.Count}";
+
+    /// <summary>
+    /// Column names the user can pick as the row-tracking key (database-plan TC5).
+    /// The empty first entry lets the user clear the key back to index-based tracking.
+    /// </summary>
+    public IReadOnlyList<string> KeyFieldOptions => new[] { string.Empty }.Concat(ExcelHeaders).ToArray();
+
+    public string SelectedKeyFieldName
+    {
+        get => Template.DatabaseConfig.KeyField;
+        set
+        {
+            var normalized = value ?? string.Empty;
+            if (Template.DatabaseConfig.KeyField == normalized)
+            {
+                return;
+            }
+
+            Template.DatabaseConfig.KeyField = normalized;
+            Template.DatabaseConfig.KeyValue = TryGetCurrentRowValue(normalized);
+            OnPropertyChanged();
+        }
+    }
+
+    private string TryGetCurrentRowValue(string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName) || SelectedDataItem is not DataRowView rowView || !rowView.Row.Table.Columns.Contains(fieldName))
+        {
+            return string.Empty;
+        }
+
+        return rowView.Row[fieldName]?.ToString() ?? string.Empty;
+    }
     public bool HasSelectedBinding => SelectedObject is not null && !string.IsNullOrWhiteSpace(SelectedObject.BindingExpression);
     public bool IsSelectedBindingFormula => SelectedObject is not null && FormulaBindingEvaluator.LooksLikeFormula(SelectedObject.BindingExpression);
     public string SelectedBindingKindText => EvaluateSelectedBinding().KindText;
@@ -678,6 +712,8 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasLinkedExcelSource));
         OnPropertyChanged(nameof(LinkedExcelSourceText));
         OnPropertyChanged(nameof(CurrentExcelRowText));
+        OnPropertyChanged(nameof(KeyFieldOptions));
+        OnPropertyChanged(nameof(SelectedKeyFieldName));
 
         _excelDataReadAtLocal = DateTime.Now;
         _excelDataSourceWriteTimeUtc = TryGetFileWriteTimeUtc(filePath);
@@ -804,6 +840,8 @@ public sealed class MainViewModel : ObservableObject
             SelectedDataItem = null;
             ExcelHeaders.Clear();
             OnPropertyChanged(nameof(CurrentExcelRowText));
+            OnPropertyChanged(nameof(KeyFieldOptions));
+            OnPropertyChanged(nameof(SelectedKeyFieldName));
             IsExcelLinkBroken = true;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Linked Excel file not found: {Template.DatabaseConfig.FilePath}";
             return;
