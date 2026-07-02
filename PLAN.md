@@ -625,3 +625,14 @@
 - Them `ExcelDataReadException` voi ma loi file mat, workbook hong, sheet mat, header row sai.
 - Missing-sheet message liet ke cac sheet hien co; workbook hong co message ro rang thay vi exception thu vien kho hieu.
 - Them 6 xUnit cho missing/corrupt/renamed sheet/header trung-rong/file dang mo/header ngoai vung.
+
+### Phien ban 0.063 - Print unit round-trip reliability
+
+- Khoa round-trip mm/DIP va mm/printer dots tai 203/300/600 DPI, sai so toi da 0.05 mm.
+- Fail-fast neu DPI bang 0 hoac am de chan print plan vo nghia tu som.
+
+### Phien ban 0.064 - Row Tracking Key
+
+- Them ComboBox chon KeyField trong Data Sources; option rong de tracking theo row index.
+- Luu KeyValue cua row dang chon va khoi phuc dung ban ghi sau refresh du row bi chen/xoa.
+- Them regression test chen row phia tren `PN-200`, refresh van giu `PN-200`.

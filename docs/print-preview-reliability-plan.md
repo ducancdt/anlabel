@@ -34,7 +34,7 @@ Nguyên tắc xuyên suốt (đúng rule 4-6 `agent.md`): sản phẩm phục v�
 ### Đợt 2 — WYSIWYG kiểm chứng được
 
 4. **Test "3 đường render cùng hình học"**: với 2-3 template chuẩn (text bind + barcode + QR + line/rect, có rotation), render offscreen qua (a) designer canvas logic, (b) `LabelVisualRenderer` preview, (c) `LabelVisualRenderer` print plan → so bounds từng object (tolerance ≤ 0.1mm). Chạy trong `ANLAbel.Tests`.
-5. **Test round-trip đơn vị đo**: `MmConverter` mm→DIP→mm và mm→pixel@DPI→mm với DPI 203/300/600 (các DPI phổ biến của Zebra/TSC/Godex) — sai số tích luỹ ≤ 0.05mm.
+5. ✅ **Test round-trip đơn vị đo** (v0.063): `MmConverterRoundTripTests` khóa mm→DIP→mm và mm→printer dots→mm với DPI 203/300/600 trên các kích thước tem đại diện 0,5–150mm; sai số tích luỹ ≤ 0,05mm. `MmToPrinterDots`/`PrinterDotsToMm` giờ fail-fast khi DPI ≤ 0 thay vì trả kết quả vô nghĩa.
 6. **Preview phải dùng đúng `PrintRenderPlan` sẽ in** (offset, rotate 180, margin driver): thêm chỉ báo trên preview "Plan: 203 DPI · offset 1.0/0.5mm · rotated" để người dùng thấy preview đang mô phỏng đúng cấu hình in.
 
 ### Đợt 3 — Driver & chất lượng barcode

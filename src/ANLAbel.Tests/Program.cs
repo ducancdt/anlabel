@@ -7,6 +7,7 @@ using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Data.DataLogs;
 using ANLAbel.Data.Excel;
+using System.Data;
 using ANLAbel.Data.PrintLogs;
 using ANLAbel.App.ViewModels;
 using ANLAbel.App.Controls;
@@ -45,7 +46,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("excel read honors cancellation", TestExcelReadHonorsCancellation),
     ("excel refresh skips unchanged file", TestExcelRefreshSkipsUnchangedFile),
     ("database config full round trip", TestDatabaseConfigRoundTrip),
-    ("data operation log records import success and failure", TestDataOperationLogRecordsImports)
+    ("data operation log records import success and failure", TestDataOperationLogRecordsImports),
+    ("key field selection tracks row across refresh", TestKeyFieldSelectionTracksRow)
 };
 
 var failed = 0;
@@ -902,6 +904,66 @@ static string ExtractJsonStringField(string jsonLine, string fieldName)
     start += marker.Length;
     var end = jsonLine.IndexOf('"', start);
     return end < 0 ? string.Empty : jsonLine[start..end];
+}
+
+static async Task TestKeyFieldSelectionTracksRow()
+{
+    // database-plan TC5: once the user picks a KeyField, the selected row must
+    // survive a refresh even if rows above it were inserted/removed in Excel
+    // (index-based tracking alone would silently jump to the wrong record).
+    var dir = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"keyfield-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(dir);
+    var excelPath = Path.Combine(dir, "data.xlsx");
+    using (var workbook = new XLWorkbook())
+    {
+        var sheet = workbook.AddWorksheet("Parts");
+        sheet.Cell(1, 1).Value = "PartNo";
+        sheet.Cell(1, 2).Value = "Qty";
+        sheet.Cell(2, 1).Value = "PN-100";
+        sheet.Cell(2, 2).Value = "10";
+        sheet.Cell(3, 1).Value = "PN-200";
+        sheet.Cell(3, 2).Value = "20";
+        workbook.SaveAs(excelPath);
+    }
+
+    var vm = new MainViewModel();
+    await vm.ImportExcelAsync(excelPath, "Parts");
+
+    AssertEqual(true, vm.KeyFieldOptions.Contains(string.Empty), "KeyFieldOptions must offer a blank entry to clear the key");
+    AssertEqual(true, vm.KeyFieldOptions.Contains("PartNo"), "KeyFieldOptions must include the imported column names");
+
+    // Select PartNo as the key, then select the PN-200 row.
+    vm.SelectedKeyFieldName = "PartNo";
+    AssertEqual("PartNo", vm.Template.DatabaseConfig.KeyField, "Setting SelectedKeyFieldName must update DatabaseConfig.KeyField");
+
+    var rows = vm.ExcelDataView!.Cast<DataRowView>().ToArray();
+    var pn200Row = rows.First(r => (string)r["PartNo"] == "PN-200");
+    vm.SelectedDataItem = pn200Row;
+    AssertEqual("PN-200", vm.Template.DatabaseConfig.KeyValue, "Selecting a row must record its key value once a KeyField is set");
+
+    // Insert a new row above PN-200 in the workbook, then refresh — PN-200 must
+    // stay selected even though its row index shifted.
+    await Task.Delay(50);
+    using (var workbook = new XLWorkbook())
+    {
+        var sheet = workbook.AddWorksheet("Parts");
+        sheet.Cell(1, 1).Value = "PartNo";
+        sheet.Cell(1, 2).Value = "Qty";
+        sheet.Cell(2, 1).Value = "PN-050";
+        sheet.Cell(2, 2).Value = "5";
+        sheet.Cell(3, 1).Value = "PN-100";
+        sheet.Cell(3, 2).Value = "10";
+        sheet.Cell(4, 1).Value = "PN-200";
+        sheet.Cell(4, 2).Value = "20";
+        workbook.SaveAs(excelPath);
+    }
+    File.SetLastWriteTimeUtc(excelPath, DateTime.UtcNow);
+
+    await vm.RefreshExcelDataAsync();
+    var selectedAfterRefresh = (DataRowView)vm.SelectedDataItem!;
+    AssertEqual("PN-200", (string)selectedAfterRefresh["PartNo"], "Row must still be tracked by KeyField after a row was inserted above it");
+
+    try { Directory.Delete(dir, true); } catch { }
 }
 
 static async Task TestDatabaseConfigRoundTrip()
