@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:ANLAbel.App.Controls"
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.054"
+        Title="ANLAbel - Label Designer v0.057"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="800" Width="1440"
         MinHeight="430" MinWidth="720"
@@ -291,10 +291,11 @@
                            RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
                     <TextBlock Text="ANLAbel - Label Designer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     <Border Margin="10,0,0,0" Padding="7,2" Background="#EAF3FF" BorderBrush="{StaticResource AppBlueBrush}" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock Text="closebeta v0.054" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                        <TextBlock x:Name="BuildChannelText" Text="commercial v0.056" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                     </Border>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="ActivationButton" Content="Kích hoạt" Visibility="Collapsed" Padding="12,4" Margin="0,0,16,0"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/printer_setup.png" Width="18" Height="18" Margin="0,0,7,0"/>
                     <TextBlock Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=Printer not selected, FallbackValue=Printer not selected}" FontWeight="SemiBold" Foreground="#334155" Margin="0,0,24,0"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/table.png" Width="18" Height="18" Margin="0,0,7,0"/>

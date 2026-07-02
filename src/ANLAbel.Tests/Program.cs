@@ -35,7 +35,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preflight blocks text outside label", TestPrintPreflightBlocksTextOutsideLabel),
     ("print preflight validation", TestPrintPreflightValidation),
     ("print log excel append", TestPrintLogAppend),
-    ("template library links sample-data.xlsx", TestTemplateLibraryLinks)
+    ("template library standalone (no sample-data link)", TestTemplateLibraryStandalone)
 };
 
 var failed = 0;
@@ -575,7 +575,7 @@ static async Task TestPrintLogAppend()
     AssertEqual(true, File.Exists(service.LogFilePath), "Print log Excel file should exist");
 }
 
-static Task TestTemplateLibraryLinks()
+static Task TestTemplateLibraryStandalone()
 {
     // Walk up from bin output to the source TemplateLibrary directory
     var baseDir = AppContext.BaseDirectory;
@@ -612,20 +612,16 @@ static Task TestTemplateLibraryLinks()
         }
 
         var filePath = template.DatabaseConfig.FilePath;
-        if (string.IsNullOrWhiteSpace(filePath))
+        if (!string.IsNullOrWhiteSpace(filePath))
         {
-            failures.Add($"{Path.GetFileName(file)}: DatabaseConfig.FilePath is empty");
-        }
-        else if (!string.Equals(Path.GetFileName(filePath), "sample-data.xlsx", StringComparison.OrdinalIgnoreCase))
-        {
-            failures.Add($"{Path.GetFileName(file)}: DatabaseConfig.FilePath points to '{Path.GetFileName(filePath)}' instead of sample-data.xlsx");
+            failures.Add($"{Path.GetFileName(file)}: DatabaseConfig.FilePath should be empty but is '{filePath}'");
         }
     }
 
     if (failures.Count > 0)
     {
         throw new InvalidOperationException(
-            $"Template Library link failures:\n  - {string.Join("\n  - ", failures)}");
+            $"Template Library standalone failures (templates must not ship with hardcoded Excel links):\n  - {string.Join("\n  - ", failures)}");
     }
 
     return Task.CompletedTask;

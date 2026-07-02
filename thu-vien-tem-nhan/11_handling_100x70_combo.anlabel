@@ -753,7 +753,7 @@
       {
         "Name": "Vendor",
         "DisplayName": "Vendor",
-        "SampleValue": "DELTEC VIETNAM CO., LTD"
+        "SampleValue": "YOUR COMPANY"
       },
       {
         "Name": "MfgDate",
@@ -810,7 +810,7 @@
       {
         "Name": "Vendor",
         "DisplayName": "Vendor",
-        "SampleValue": "DELTEC VIETNAM CO., LTD"
+        "SampleValue": "YOUR COMPANY"
       },
       {
         "Name": "PartNo",

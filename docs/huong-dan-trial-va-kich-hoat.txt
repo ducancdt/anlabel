@@ -1,0 +1,25 @@
+ANLABEL TRIAL 7 NGAY VA KICH HOAT OFFLINE
+=========================================
+
+CHO KHACH HANG
+1. Cai dat ANLAbel Trial bang file Setup x64.
+2. Ban dung thu bat dau o lan mo dau tien va co hieu luc dung 7 ngay.
+3. Bam nut "Kich hoat" tren thanh tren cung de xem va sao chep Ma may.
+4. Gui Ma may cho nha cung cap.
+5. Dan Key kich hoat duoc cap vao cua so Kich hoat va bam KICH HOAT.
+6. Co the kich hoat khi dang con han hoac sau khi het 7 ngay.
+
+CHO CHU PHAN MEM
+1. KHONG gui thu muc/file ANLAbel License Master cho khach hang.
+2. Mo ANLAbel License Master tren dung tai khoan Windows cua chu phan mem.
+3. Dan Ma may khach hang, nhap ten khach hang.
+4. Chon key vinh vien hoac bo chon va dat ngay het han.
+5. Bam TAO KEY KICH HOAT; key duoc tu dong sao chep.
+6. Gui duy nhat chuoi key cho dung khach hang co Ma may tuong ung.
+
+BAO MAT
+- Key gan voi mot Ma may, khong dung duoc tren may khac.
+- Key duoc ky so ECDSA; sua bat ky ky tu nao se bi tu choi.
+- Khoa rieng Master duoc Windows ma hoa cho tai khoan hien tai.
+- Neu cai lai Windows/mat tai khoan chu phan mem, Master key co the khong mo duoc.
+- Khong cong khai source hoac bo cai License Master.

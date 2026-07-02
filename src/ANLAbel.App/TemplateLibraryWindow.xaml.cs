@@ -51,11 +51,6 @@ public partial class TemplateLibraryWindow : Window
         AddFilterItem($"🗂  Tất cả  ({_all.Count})", _ => true);
 
         AddSectionHeader("⭐ Mẫu của bạn");
-        const string deltecGroup = "Mẫu DELTEC / Jabil";
-        var deltecCount = _all.Count(i => i.Group == deltecGroup);
-        if (deltecCount > 0)
-            AddFilterItem($"📂  DELTEC / Jabil  ({deltecCount})", i => i.Group == deltecGroup);
-
         AddSectionHeader("🏭 Tem tiêu chuẩn");
         const string stdGroup = "Tem công nghiệp";
         var stdCount = _all.Count(i => i.Group == stdGroup);

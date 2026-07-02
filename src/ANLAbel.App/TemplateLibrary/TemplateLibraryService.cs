@@ -22,69 +22,28 @@ public sealed class LibraryTemplateItem
 
 /// <summary>
 /// Loads the label templates that ship embedded inside the application and
-/// exposes them to the Template Library window. Also unpacks the bundled
-/// sample Excel workbook to a writable location so bound templates work
-/// out-of-the-box on any machine.
+/// exposes them to the Template Library window.
 /// </summary>
 public sealed class TemplateLibraryService
 {
-    private const string SampleExcelResourceSuffix = ".TemplateLibrary.sample-data.xlsx";
-    private const string SampleExcelFileName = "sample-data.xlsx";
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public string SampleDataPath { get; }
     public IReadOnlyList<LibraryTemplateItem> Items { get; }
 
     public TemplateLibraryService()
     {
-        SampleDataPath = ExtractSampleData();
         Items = LoadItems();
     }
 
-    /// <summary>Returns a fresh, editable copy of the template with its Excel link repaired.</summary>
+    /// <summary>Returns a fresh, editable copy of the template.</summary>
     public LabelTemplate Materialize(LibraryTemplateItem item)
     {
-        var template = JsonSerializer.Deserialize<LabelTemplate>(item.Json, JsonOptions)
-                       ?? throw new InvalidDataException("Template could not be read.");
-
-        var linked = template.DatabaseConfig.FilePath;
-        if (!string.IsNullOrWhiteSpace(linked) &&
-            string.Equals(Path.GetFileName(linked), SampleExcelFileName, StringComparison.OrdinalIgnoreCase))
-        {
-            template.DatabaseConfig.FilePath = SampleDataPath;
-        }
-
-        return template;
-    }
-
-    private static string ExtractSampleData()
-    {
-        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel");
-        Directory.CreateDirectory(dir);
-        var target = Path.Combine(dir, SampleExcelFileName);
-
-        var asm = Assembly.GetExecutingAssembly();
-        var resName = asm.GetManifestResourceNames()
-            .FirstOrDefault(n => n.EndsWith(SampleExcelResourceSuffix, StringComparison.OrdinalIgnoreCase));
-        if (resName is not null)
-        {
-            try
-            {
-                using var rs = asm.GetManifestResourceStream(resName)!;
-                using var fs = File.Create(target);
-                rs.CopyTo(fs);
-            }
-            catch
-            {
-                // If the file is locked (already open) keep the existing copy.
-            }
-        }
-        return target;
+        return JsonSerializer.Deserialize<LabelTemplate>(item.Json, JsonOptions)
+               ?? throw new InvalidDataException("Template could not be read.");
     }
 
     private static List<LibraryTemplateItem> LoadItems()
@@ -142,10 +101,6 @@ public sealed class TemplateLibraryService
 
     private static string DescribeGroup(string resourceName)
     {
-        // file names like "...TemplateLibrary.20_sample_..." belong to the sample set
-        var file = resourceName.Split('.').Reverse().Skip(1).FirstOrDefault() ?? resourceName;
-        return file.StartsWith("2", StringComparison.Ordinal) && file.Contains("sample", StringComparison.OrdinalIgnoreCase)
-            ? "Mẫu DELTEC / Jabil"
-            : "Tem công nghiệp";
+        return "Tem công nghiệp";
     }
 }
