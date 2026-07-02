@@ -1,0 +1,432 @@
+{
+  "Id": "ffd8790c02394525b79ab4edf82f6ba9",
+  "Name": "Pallet 100×50 (barcode)",
+  "WidthMm": 100,
+  "HeightMm": 50,
+  "Dpi": 203,
+  "GapMm": 0,
+  "MarginMm": 1,
+  "Orientation": "Landscape",
+  "Objects": [
+    {
+      "Id": "98f72838ce8543d2b6fe1f0546584707",
+      "Type": "Text",
+      "Name": "Field: Vendor",
+      "XMm": 2,
+      "YMm": 2,
+      "WidthMm": 96,
+      "HeightMm": 6,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{Vendor}",
+      "Text": "Vendor",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 12,
+        "Bold": true,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "8dd32221720942e0995a4b6bc37c1b48",
+      "Type": "Text",
+      "Name": "dst",
+      "XMm": 2,
+      "YMm": 10,
+      "WidthMm": 18,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "",
+      "Text": "Location:",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 8,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "052c18da7fdf475c987cb37f636af6cf",
+      "Type": "Text",
+      "Name": "Field: Location",
+      "XMm": 22,
+      "YMm": 10,
+      "WidthMm": 40,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{Location}",
+      "Text": "Location",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 10,
+        "Bold": true,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "8e8f7b3191dc4807b023041398a31b46",
+      "Type": "Text",
+      "Name": "qt",
+      "XMm": 62,
+      "YMm": 10,
+      "WidthMm": 12,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "",
+      "Text": "QTY:",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 8,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "9893440f6916423b900728c763d25fd1",
+      "Type": "Text",
+      "Name": "Field: Qty",
+      "XMm": 74,
+      "YMm": 10,
+      "WidthMm": 24,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{Qty}",
+      "Text": "Qty",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 12,
+        "Bold": true,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "89f2f0eaab114deebfc2ec6ba9bcd60e",
+      "Type": "BarcodeCode128",
+      "Name": "Barcode: SerialNo",
+      "XMm": 2,
+      "YMm": 16,
+      "WidthMm": 96,
+      "HeightMm": 22,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 6,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{SerialNo}",
+      "Text": "SerialNo",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 8,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "4ce733eddd9a4b849ea090ece1602b48",
+      "Type": "Text",
+      "Name": "Field: SerialNo",
+      "XMm": 2,
+      "YMm": 39,
+      "WidthMm": 96,
+      "HeightMm": 5,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{SerialNo}",
+      "Text": "SerialNo",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 9,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Center",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    }
+  ],
+  "PrinterProfile": {
+    "PrinterName": "",
+    "PaperName": "100 × 50 mm",
+    "SettingsSource": "Label",
+    "PaperSizeSource": "DriverAutomatic",
+    "MediaType": "Gap",
+    "FeedDirection": "TopToBottom",
+    "Rotated180": false,
+    "Dpi": 203,
+    "LabelWidthMm": 100,
+    "LabelHeightMm": 50,
+    "GapMm": 0,
+    "OffsetXMm": 0,
+    "OffsetYMm": 0,
+    "ScaleX": 1,
+    "ScaleY": 1,
+    "PhysicalWidthMm": 100,
+    "PhysicalHeightMm": 50
+  },
+  "DatabaseConfig": {
+    "FilePath": "H:\\00_REPOS_PROJECTS\\ANLABEL\\thu-vien-tem-nhan\\sample-data.xlsx",
+    "SheetName": "Data",
+    "HeaderRowIndex": 1,
+    "KeyField": "PartNo",
+    "LastSelectedRow": 0,
+    "AvailableFields": [
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "5110561"
+      },
+      {
+        "Name": "PartName",
+        "DisplayName": "PartName",
+        "SampleValue": "Seal Ring 1A005943"
+      },
+      {
+        "Name": "Description",
+        "DisplayName": "Description",
+        "SampleValue": "Rubber seal ring"
+      },
+      {
+        "Name": "Qty",
+        "DisplayName": "Qty",
+        "SampleValue": "200"
+      },
+      {
+        "Name": "Unit",
+        "DisplayName": "Unit",
+        "SampleValue": "PCS"
+      },
+      {
+        "Name": "Lot",
+        "DisplayName": "Lot",
+        "SampleValue": "180526"
+      },
+      {
+        "Name": "PO",
+        "DisplayName": "PO",
+        "SampleValue": "2603188"
+      },
+      {
+        "Name": "Vendor",
+        "DisplayName": "Vendor",
+        "SampleValue": "DELTEC VIETNAM CO., LTD"
+      },
+      {
+        "Name": "MfgDate",
+        "DisplayName": "MfgDate",
+        "SampleValue": "22/06/2026"
+      },
+      {
+        "Name": "Rev",
+        "DisplayName": "Rev",
+        "SampleValue": "A"
+      },
+      {
+        "Name": "SerialNo",
+        "DisplayName": "SerialNo",
+        "SampleValue": "SN26060001"
+      },
+      {
+        "Name": "Location",
+        "DisplayName": "Location",
+        "SampleValue": "A-12-03"
+      },
+      {
+        "Name": "Inspector",
+        "DisplayName": "Inspector",
+        "SampleValue": "QC01"
+      },
+      {
+        "Name": "Result",
+        "DisplayName": "Result",
+        "SampleValue": "PASS"
+      },
+      {
+        "Name": "Country",
+        "DisplayName": "Country",
+        "SampleValue": "Vietnam"
+      },
+      {
+        "Name": "MPN",
+        "DisplayName": "MPN",
+        "SampleValue": "MCP-MC-00446"
+      },
+      {
+        "Name": "DateCode",
+        "DisplayName": "DateCode",
+        "SampleValue": "2626"
+      },
+      {
+        "Name": "QRData",
+        "DisplayName": "QRData",
+        "SampleValue": "PN:5110561|LOT:180526|QTY:200"
+      }
+    ],
+    "LabelFields": [
+      {
+        "Name": "Vendor",
+        "DisplayName": "Vendor",
+        "SampleValue": "DELTEC VIETNAM CO., LTD"
+      },
+      {
+        "Name": "Location",
+        "DisplayName": "Location",
+        "SampleValue": "A-12-03"
+      },
+      {
+        "Name": "Qty",
+        "DisplayName": "Qty",
+        "SampleValue": "200"
+      },
+      {
+        "Name": "SerialNo",
+        "DisplayName": "SerialNo",
+        "SampleValue": "SN26060001"
+      }
+    ]
+  }
+}

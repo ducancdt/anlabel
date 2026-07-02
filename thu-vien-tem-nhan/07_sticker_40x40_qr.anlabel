@@ -1,0 +1,267 @@
+{
+  "Id": "e693418669af4d31a689af7552acfcd7",
+  "Name": "QR Sticker 40×40 (QR only)",
+  "WidthMm": 40,
+  "HeightMm": 40,
+  "Dpi": 203,
+  "GapMm": 0,
+  "MarginMm": 1,
+  "Orientation": "Landscape",
+  "Objects": [
+    {
+      "Id": "2e3c4a46868a4a8580c7bf384e806c75",
+      "Type": "Text",
+      "Name": "Field: PartNo",
+      "XMm": 2,
+      "YMm": 1.5,
+      "WidthMm": 36,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{PartNo}",
+      "Text": "PartNo",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 9,
+        "Bold": true,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Center",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "65af0fb2f27543d0bb24820e022ede7e",
+      "Type": "QRCode",
+      "Name": "QR: QRData",
+      "XMm": 7,
+      "YMm": 6.5,
+      "WidthMm": 26,
+      "HeightMm": 26,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 6,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{QRData}",
+      "Text": "QRData",
+      "BarcodeSymbology": "QRCode",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 3,
+      "QrQuietZoneModules": 2,
+      "QrDpi": 203,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 8,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": false,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "1bbda9f2140142f5b01c5f44e641af55",
+      "Type": "Text",
+      "Name": "Field: Lot",
+      "XMm": 2,
+      "YMm": 34,
+      "WidthMm": 36,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{Lot}",
+      "Text": "Lot",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 7,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Center",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    }
+  ],
+  "PrinterProfile": {
+    "PrinterName": "",
+    "PaperName": "40 × 40 mm",
+    "SettingsSource": "Label",
+    "PaperSizeSource": "DriverAutomatic",
+    "MediaType": "Gap",
+    "FeedDirection": "TopToBottom",
+    "Rotated180": false,
+    "Dpi": 203,
+    "LabelWidthMm": 40,
+    "LabelHeightMm": 40,
+    "GapMm": 0,
+    "OffsetXMm": 0,
+    "OffsetYMm": 0,
+    "ScaleX": 1,
+    "ScaleY": 1,
+    "PhysicalWidthMm": 40,
+    "PhysicalHeightMm": 40
+  },
+  "DatabaseConfig": {
+    "FilePath": "H:\\00_REPOS_PROJECTS\\ANLABEL\\thu-vien-tem-nhan\\sample-data.xlsx",
+    "SheetName": "Data",
+    "HeaderRowIndex": 1,
+    "KeyField": "PartNo",
+    "LastSelectedRow": 0,
+    "AvailableFields": [
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "5110561"
+      },
+      {
+        "Name": "PartName",
+        "DisplayName": "PartName",
+        "SampleValue": "Seal Ring 1A005943"
+      },
+      {
+        "Name": "Description",
+        "DisplayName": "Description",
+        "SampleValue": "Rubber seal ring"
+      },
+      {
+        "Name": "Qty",
+        "DisplayName": "Qty",
+        "SampleValue": "200"
+      },
+      {
+        "Name": "Unit",
+        "DisplayName": "Unit",
+        "SampleValue": "PCS"
+      },
+      {
+        "Name": "Lot",
+        "DisplayName": "Lot",
+        "SampleValue": "180526"
+      },
+      {
+        "Name": "PO",
+        "DisplayName": "PO",
+        "SampleValue": "2603188"
+      },
+      {
+        "Name": "Vendor",
+        "DisplayName": "Vendor",
+        "SampleValue": "DELTEC VIETNAM CO., LTD"
+      },
+      {
+        "Name": "MfgDate",
+        "DisplayName": "MfgDate",
+        "SampleValue": "22/06/2026"
+      },
+      {
+        "Name": "Rev",
+        "DisplayName": "Rev",
+        "SampleValue": "A"
+      },
+      {
+        "Name": "SerialNo",
+        "DisplayName": "SerialNo",
+        "SampleValue": "SN26060001"
+      },
+      {
+        "Name": "Location",
+        "DisplayName": "Location",
+        "SampleValue": "A-12-03"
+      },
+      {
+        "Name": "Inspector",
+        "DisplayName": "Inspector",
+        "SampleValue": "QC01"
+      },
+      {
+        "Name": "Result",
+        "DisplayName": "Result",
+        "SampleValue": "PASS"
+      },
+      {
+        "Name": "Country",
+        "DisplayName": "Country",
+        "SampleValue": "Vietnam"
+      },
+      {
+        "Name": "MPN",
+        "DisplayName": "MPN",
+        "SampleValue": "MCP-MC-00446"
+      },
+      {
+        "Name": "DateCode",
+        "DisplayName": "DateCode",
+        "SampleValue": "2626"
+      },
+      {
+        "Name": "QRData",
+        "DisplayName": "QRData",
+        "SampleValue": "PN:5110561|LOT:180526|QTY:200"
+      }
+    ],
+    "LabelFields": [
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "5110561"
+      },
+      {
+        "Name": "QRData",
+        "DisplayName": "QRData",
+        "SampleValue": "PN:5110561|LOT:180526|QTY:200"
+      },
+      {
+        "Name": "Lot",
+        "DisplayName": "Lot",
+        "SampleValue": "180526"
+      }
+    ]
+  }
+}

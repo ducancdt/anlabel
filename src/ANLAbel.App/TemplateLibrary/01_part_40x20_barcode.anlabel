@@ -1,0 +1,222 @@
+{
+  "Id": "939bc3541d7244a78787642809deaa94",
+  "Name": "Part Label 40×20 (barcode)",
+  "WidthMm": 40,
+  "HeightMm": 20,
+  "Dpi": 203,
+  "GapMm": 0,
+  "MarginMm": 1,
+  "Orientation": "Landscape",
+  "Objects": [
+    {
+      "Id": "e66afd0f8dae428f8ec1283a01d2e144",
+      "Type": "Text",
+      "Name": "Field: PartName",
+      "XMm": 2,
+      "YMm": 1.2,
+      "WidthMm": 36,
+      "HeightMm": 4,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 5,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{PartName}",
+      "Text": "PartName",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 8,
+        "Bold": true,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    },
+    {
+      "Id": "35c79c7473974cacb1fcfb8adefbfed6",
+      "Type": "BarcodeCode128",
+      "Name": "Barcode: PartNo",
+      "XMm": 2,
+      "YMm": 5.5,
+      "WidthMm": 36,
+      "HeightMm": 12,
+      "LineEndXMm": 0,
+      "LineEndYMm": 0,
+      "Rotation": 0,
+      "ZIndex": 6,
+      "IsLocked": false,
+      "IsVisible": true,
+      "BindingExpression": "{PartNo}",
+      "Text": "PartNo",
+      "BarcodeSymbology": "Code128",
+      "QrSizingMode": "AutoSizeByData",
+      "QrErrorCorrection": "M",
+      "QrFixedVersion": 1,
+      "QrModuleSizePx": 6,
+      "QrQuietZoneModules": 4,
+      "QrDpi": 300,
+      "Style": {
+        "FontFamily": "Arial",
+        "FontSizePt": 8,
+        "Bold": false,
+        "Italic": false,
+        "Underline": false,
+        "Alignment": "Left",
+        "BorderThicknessMm": 0.0,
+        "OutlineStyle": "None",
+        "FillStyle": "None",
+        "CornerRadiusMm": 0,
+        "FillColor": "#00FFFFFF",
+        "StrokeColor": "#FF000000"
+      },
+      "ShowBarcodeText": true,
+      "BarcodeTextFontSizePt": 7
+    }
+  ],
+  "PrinterProfile": {
+    "PrinterName": "",
+    "PaperName": "40 × 20 mm",
+    "SettingsSource": "Label",
+    "PaperSizeSource": "DriverAutomatic",
+    "MediaType": "Gap",
+    "FeedDirection": "TopToBottom",
+    "Rotated180": false,
+    "Dpi": 203,
+    "LabelWidthMm": 40,
+    "LabelHeightMm": 20,
+    "GapMm": 0,
+    "OffsetXMm": 0,
+    "OffsetYMm": 0,
+    "ScaleX": 1,
+    "ScaleY": 1,
+    "PhysicalWidthMm": 40,
+    "PhysicalHeightMm": 20
+  },
+  "DatabaseConfig": {
+    "FilePath": "H:\\00_REPOS_PROJECTS\\ANLABEL\\thu-vien-tem-nhan\\sample-data.xlsx",
+    "SheetName": "Data",
+    "HeaderRowIndex": 1,
+    "KeyField": "PartNo",
+    "LastSelectedRow": 0,
+    "AvailableFields": [
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "5110561"
+      },
+      {
+        "Name": "PartName",
+        "DisplayName": "PartName",
+        "SampleValue": "Seal Ring 1A005943"
+      },
+      {
+        "Name": "Description",
+        "DisplayName": "Description",
+        "SampleValue": "Rubber seal ring"
+      },
+      {
+        "Name": "Qty",
+        "DisplayName": "Qty",
+        "SampleValue": "200"
+      },
+      {
+        "Name": "Unit",
+        "DisplayName": "Unit",
+        "SampleValue": "PCS"
+      },
+      {
+        "Name": "Lot",
+        "DisplayName": "Lot",
+        "SampleValue": "180526"
+      },
+      {
+        "Name": "PO",
+        "DisplayName": "PO",
+        "SampleValue": "2603188"
+      },
+      {
+        "Name": "Vendor",
+        "DisplayName": "Vendor",
+        "SampleValue": "DELTEC VIETNAM CO., LTD"
+      },
+      {
+        "Name": "MfgDate",
+        "DisplayName": "MfgDate",
+        "SampleValue": "22/06/2026"
+      },
+      {
+        "Name": "Rev",
+        "DisplayName": "Rev",
+        "SampleValue": "A"
+      },
+      {
+        "Name": "SerialNo",
+        "DisplayName": "SerialNo",
+        "SampleValue": "SN26060001"
+      },
+      {
+        "Name": "Location",
+        "DisplayName": "Location",
+        "SampleValue": "A-12-03"
+      },
+      {
+        "Name": "Inspector",
+        "DisplayName": "Inspector",
+        "SampleValue": "QC01"
+      },
+      {
+        "Name": "Result",
+        "DisplayName": "Result",
+        "SampleValue": "PASS"
+      },
+      {
+        "Name": "Country",
+        "DisplayName": "Country",
+        "SampleValue": "Vietnam"
+      },
+      {
+        "Name": "MPN",
+        "DisplayName": "MPN",
+        "SampleValue": "MCP-MC-00446"
+      },
+      {
+        "Name": "DateCode",
+        "DisplayName": "DateCode",
+        "SampleValue": "2626"
+      },
+      {
+        "Name": "QRData",
+        "DisplayName": "QRData",
+        "SampleValue": "PN:5110561|LOT:180526|QTY:200"
+      }
+    ],
+    "LabelFields": [
+      {
+        "Name": "PartName",
+        "DisplayName": "PartName",
+        "SampleValue": "Seal Ring 1A005943"
+      },
+      {
+        "Name": "PartNo",
+        "DisplayName": "PartNo",
+        "SampleValue": "5110561"
+      }
+    ]
+  }
+}
