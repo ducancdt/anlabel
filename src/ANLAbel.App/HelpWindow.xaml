@@ -33,12 +33,14 @@
                     <ListBoxItem Padding="10,7" Tag="ribbon">🔧 Ribbon Toolbar</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="canvas">🎨 Design Canvas</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="objects">📦 Objects</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="barcode">📊 Barcode</ListBoxItem>
+                    <ListBoxItem Padding="10,7" Tag="properties">🎛️ Properties Panel</ListBoxItem>
+                    <ListBoxItem Padding="10,7" Tag="barcode">📊 Barcode &amp; QR</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="binding">🔗 Data Binding</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="excel">📑 Excel Data</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="printer">🖨️ Printing</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="calibration">🎯 Calibration</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="shortcuts">⌨️ Keyboard Shortcuts</ListBoxItem>
+                    <ListBoxItem Padding="10,7" Tag="faq">❓ FAQ</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="about">ℹ️ About</ListBoxItem>
                 </ListBox>
             </DockPanel>
