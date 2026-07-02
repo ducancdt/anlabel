@@ -19,7 +19,7 @@ public sealed class ExcelDataService
         {
             cancellationToken.ThrowIfCancellationRequested();
             using var stream = OpenFileStream(filePath, cancellationToken);
-            using var workbook = new XLWorkbook(stream);
+            using var workbook = OpenWorkbook(stream, filePath);
             cancellationToken.ThrowIfCancellationRequested();
             return (IReadOnlyList<string>)workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
         }, CancellationToken.None);
@@ -35,12 +35,17 @@ public sealed class ExcelDataService
     public IReadOnlyList<string> GetSheetNames(string filePath)
     {
         using var stream = OpenFileStream(filePath);
-        using var workbook = new XLWorkbook(stream);
+        using var workbook = OpenWorkbook(stream, filePath);
         return workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
     }
 
     public async Task<DataTable> LoadSheetAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
     {
+        if (headerRowIndex < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(headerRowIndex), "Excel header row must be 1 or greater.");
+        }
+
         var readTask = Task.Run(
             () => LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken),
             CancellationToken.None);
@@ -54,8 +59,16 @@ public sealed class ExcelDataService
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = OpenFileStream(filePath, cancellationToken);
-        using var workbook = new XLWorkbook(stream);
-        var worksheet = workbook.Worksheet(sheetName);
+        using var workbook = OpenWorkbook(stream, filePath);
+        if (!workbook.TryGetWorksheet(sheetName, out var worksheet))
+        {
+            var availableSheets = string.Join(", ", workbook.Worksheets.Select(sheet => sheet.Name));
+            throw new ExcelDataReadException(
+                ExcelDataReadError.MissingSheet,
+                $"Excel sheet '{sheetName}' was not found in {Path.GetFileName(filePath)}. Available sheets: {availableSheets}.",
+                filePath,
+                sheetName);
+        }
         var usedRange = worksheet.RangeUsed();
         var table = new DataTable(sheetName);
 
@@ -67,6 +80,15 @@ public sealed class ExcelDataService
         var firstColumn = usedRange.RangeAddress.FirstAddress.ColumnNumber;
         var lastColumn = usedRange.RangeAddress.LastAddress.ColumnNumber;
         var lastRow = usedRange.RangeAddress.LastAddress.RowNumber;
+        if (headerRowIndex > lastRow)
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.InvalidHeaderRow,
+                $"Header row {headerRowIndex} is outside the used range of sheet '{sheetName}' (last row: {lastRow}).",
+                filePath,
+                sheetName);
+        }
+
         var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         for (var column = firstColumn; column <= lastColumn; column++)
@@ -112,16 +134,55 @@ public sealed class ExcelDataService
     /// </summary>
     private static FileStream OpenFileStream(string filePath, CancellationToken cancellationToken = default)
     {
-        var stream = new FileStream(
-            filePath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.ReadWrite,
-            bufferSize: 4096,
-            useAsync: false);
+        FileStream stream;
+        try
+        {
+            stream = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                bufferSize: 4096,
+                useAsync: false);
+        }
+        catch (FileNotFoundException ex)
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.MissingFile,
+                $"Excel file was not found: {filePath}",
+                filePath,
+                innerException: ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.MissingFile,
+                $"Excel folder was not found: {Path.GetDirectoryName(filePath)}",
+                filePath,
+                innerException: ex);
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
         return stream;
+    }
+
+    private static XLWorkbook OpenWorkbook(Stream stream, string filePath)
+    {
+        try
+        {
+            return new XLWorkbook(stream);
+        }
+        catch (Exception ex) when (ex is InvalidDataException
+                                   or FormatException
+                                   or NotSupportedException
+                                   or ArgumentException)
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.InvalidWorkbook,
+                $"Excel file is damaged or is not a valid .xlsx/.xlsm workbook: {Path.GetFileName(filePath)}",
+                filePath,
+                innerException: ex);
+        }
     }
 
     private static bool IsNetworkPath(string filePath)

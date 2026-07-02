@@ -619,3 +619,9 @@
 - Luu preference snap rieng theo may tai `%LocalAppData%\ANLAbel\designer-preferences.json`, khong ghi vao template.
 - Keyboard nudge hien X/Y moi hoac so object da move tren status bar.
 - Them xUnit cho round-trip preference va fallback an toan khi JSON bi hong.
+
+### Phien ban 0.062 - Excel reliability TC7
+
+- Them `ExcelDataReadException` voi ma loi file mat, workbook hong, sheet mat, header row sai.
+- Missing-sheet message liet ke cac sheet hien co; workbook hong co message ro rang thay vi exception thu vien kho hieu.
+- Them 6 xUnit cho missing/corrupt/renamed sheet/header trung-rong/file dang mo/header ngoai vung.
