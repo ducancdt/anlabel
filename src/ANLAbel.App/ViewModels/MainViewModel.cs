@@ -79,6 +79,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _isToolboxVisible = true;
     private bool _isPropertiesVisible = true;
     private BindingIssueSummary? _selectedBindingIssue;
+    private bool _isExcelLinkBroken;
 
     private static readonly JsonSerializerOptions HistoryJsonOptions = new()
     {
@@ -137,6 +138,7 @@ public sealed class MainViewModel : ObservableObject
         ShowAllPanelsCommand = new RelayCommand(ShowAllPanels);
         InsertFunctionFormulaCommand = new RelayCommand(parameter => InsertFunctionFormula(GetFormulaText(parameter)), _ => SelectedObject is not null);
         SelectBindingIssueCommand = new RelayCommand(parameter => SelectBindingIssue(parameter as BindingIssueSummary), parameter => parameter is BindingIssueSummary);
+        RelinkExcelCommand = new RelayCommand(async () => await RelinkExcelAsync(), () => HasLinkedExcelSource && IsExcelLinkBroken);
         ObserveTemplate(Template);
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
     }
@@ -208,6 +210,11 @@ public sealed class MainViewModel : ObservableObject
                 if (value is DataRowView rowView)
                 {
                     Template.DatabaseConfig.LastSelectedRow = Math.Max(0, GetDataRowViewIndex(rowView));
+                    if (!string.IsNullOrWhiteSpace(Template.DatabaseConfig.KeyField)
+                        && rowView.Row.Table.Columns.Contains(Template.DatabaseConfig.KeyField))
+                    {
+                        Template.DatabaseConfig.KeyValue = rowView.Row[Template.DatabaseConfig.KeyField]?.ToString() ?? string.Empty;
+                    }
                 }
 
                 PreviewRow = CreatePreviewRow(value);
@@ -294,9 +301,25 @@ public sealed class MainViewModel : ObservableObject
         ? string.Empty
         : $"{SelectedObject.Name} | {SelectedObjectTypeText} | {SelectedObject.WidthMm:0.##} x {SelectedObject.HeightMm:0.##} mm";
     public bool HasLinkedExcelSource => !string.IsNullOrWhiteSpace(Template.DatabaseConfig.FilePath) && !string.IsNullOrWhiteSpace(Template.DatabaseConfig.SheetName);
+    public bool IsExcelLinkBroken
+    {
+        get => _isExcelLinkBroken;
+        private set
+        {
+            if (SetProperty(ref _isExcelLinkBroken, value))
+            {
+                OnPropertyChanged(nameof(ExcelLinkStatusText));
+                ((RelayCommand)RelinkExcelCommand).RaiseCanExecuteChanged();
+            }
+        }
+    }
+
     public string LinkedExcelSourceText => HasLinkedExcelSource
         ? $"{Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}"
         : "No Excel file linked";
+    public string ExcelLinkStatusText => IsExcelLinkBroken
+        ? "⚠ Excel link broken — click Relink to locate the file"
+        : string.Empty;
     public string CurrentExcelRowText => ExcelDataView is null || ExcelDataView.Count == 0 || SelectedDataItem is not DataRowView rowView
         ? "No Excel row selected"
         : $"Row {GetDataRowViewIndex(rowView) + 1} of {ExcelDataView.Count}";
@@ -494,6 +517,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ShowAllPanelsCommand { get; }
     public ICommand InsertFunctionFormulaCommand { get; }
     public ICommand SelectBindingIssueCommand { get; }
+    public ICommand RelinkExcelCommand { get; }
 
     private void ShowAllPanels()
     {
@@ -528,6 +552,7 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task SaveAsync(string filePath)
     {
+        UpdateRelativePath(filePath);
         await _projectFileService.SaveAsync(Template, filePath);
         CurrentFilePath = filePath;
         StatusText = $"Saved: {Path.GetFileName(filePath)}";
@@ -560,9 +585,9 @@ public sealed class MainViewModel : ObservableObject
         StatusText = $"Đã mở mẫu từ thư viện: {template.Name}";
     }
 
-    public IReadOnlyList<string> GetExcelSheetNames(string filePath)
+    public Task<IReadOnlyList<string>> GetExcelSheetNamesAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return _excelDataService.GetSheetNames(filePath);
+        return _excelDataService.GetSheetNamesAsync(filePath, cancellationToken);
     }
 
     public IReadOnlyList<PrinterInfo> GetInstalledPrinters()
@@ -596,9 +621,9 @@ public sealed class MainViewModel : ObservableObject
         StatusText = $"Printer: {printer.Name}, paper: {paper.Name} ({widthMm:0.##} x {heightMm:0.##} mm), orientation: {orientation}";
     }
 
-    public async Task ImportExcelAsync(string filePath, string sheetName)
+    public async Task ImportExcelAsync(string filePath, string sheetName, CancellationToken cancellationToken = default)
     {
-        var table = await _excelDataService.LoadSheetAsync(filePath, sheetName);
+        var table = await _excelDataService.LoadSheetAsync(filePath, sheetName, Template.DatabaseConfig.HeaderRowIndex, cancellationToken);
         ExcelDataView = table.DefaultView;
         ExcelHeaders.Clear();
         foreach (DataColumn column in table.Columns)
@@ -609,10 +634,17 @@ public sealed class MainViewModel : ObservableObject
         Template.DatabaseConfig.FilePath = filePath;
         Template.DatabaseConfig.SheetName = sheetName;
         Template.DatabaseConfig.HeaderRowIndex = 1;
+
+        // Update RelativePath if template has been saved
+        if (!string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            UpdateRelativePath(CurrentFilePath);
+        }
+
         SyncDatabaseFieldsFromTable(table);
         if (ExcelDataView.Count > 0)
         {
-            var targetRowIndex = Math.Max(0, Math.Min(ExcelDataView.Count - 1, Template.DatabaseConfig.LastSelectedRow));
+            var targetRowIndex = FindRowIndexByKeyField(table) ?? Math.Max(0, Math.Min(ExcelDataView.Count - 1, Template.DatabaseConfig.LastSelectedRow));
             SelectedDataItem = ExcelDataView[targetRowIndex];
         }
         else
@@ -638,6 +670,33 @@ public sealed class MainViewModel : ObservableObject
         StatusText = $"Excel data refreshed: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
     }
 
+    /// <summary>
+    /// Finds the row index matching the stored KeyField/KeyValue pair.
+    /// Returns the matching index, or null if not found (caller should fallback to LastSelectedRow).
+    /// </summary>
+    private int? FindRowIndexByKeyField(DataTable table)
+    {
+        var keyField = Template.DatabaseConfig.KeyField;
+        var keyValue = Template.DatabaseConfig.KeyValue;
+        if (string.IsNullOrWhiteSpace(keyField) || string.IsNullOrWhiteSpace(keyValue) || !table.Columns.Contains(keyField))
+        {
+            return null;
+        }
+
+        for (var i = 0; i < table.Rows.Count; i++)
+        {
+            var cellValue = table.Rows[i][keyField]?.ToString() ?? string.Empty;
+            if (string.Equals(cellValue, keyValue, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        // Key not found — data may have changed. Keep LastSelectedRow but warn.
+        StatusText = $"Key row \"{keyValue}\" not found in column \"{keyField}\" — row may have been removed or changed";
+        return null;
+    }
+
     private bool CanRefreshExcelData()
     {
         return !string.IsNullOrWhiteSpace(Template.DatabaseConfig.FilePath)
@@ -652,24 +711,32 @@ public sealed class MainViewModel : ObservableObject
 
         if (!HasLinkedExcelSource)
         {
+            IsExcelLinkBroken = false;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}";
             return;
         }
 
-        if (!File.Exists(Template.DatabaseConfig.FilePath))
+        // Resolve Excel path: absolute → relative → same directory
+        var resolvedPath = ResolveExcelPath();
+        if (resolvedPath is null)
         {
             ExcelDataView = null;
             PreviewRow = null;
             SelectedDataItem = null;
             ExcelHeaders.Clear();
             OnPropertyChanged(nameof(CurrentExcelRowText));
+            IsExcelLinkBroken = true;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Linked Excel file not found: {Template.DatabaseConfig.FilePath}";
             return;
         }
 
+        // Update FilePath to the resolved path so it works from the new location
+        Template.DatabaseConfig.FilePath = resolvedPath;
+
         try
         {
             await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName);
+            IsExcelLinkBroken = false;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link restored: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
         }
         catch (Exception ex)
@@ -679,7 +746,148 @@ public sealed class MainViewModel : ObservableObject
             SelectedDataItem = null;
             ExcelHeaders.Clear();
             OnPropertyChanged(nameof(CurrentExcelRowText));
+            IsExcelLinkBroken = true;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link could not be restored: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Prompts the user to locate the linked Excel file and restores the connection.
+    /// </summary>
+    private async Task RelinkExcelAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Locate Excel file",
+            Filter = "Excel Files (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|All Files (*.*)|*.*",
+            FileName = Path.GetFileName(Template.DatabaseConfig.FilePath)
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var filePath = dialog.FileName;
+
+        // If the Excel file has sheets, prompt the user to pick one
+        IReadOnlyList<string> sheets;
+        try
+        {
+            sheets = await _excelDataService.GetSheetNamesAsync(filePath);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Cannot read Excel file: {ex.Message}";
+            return;
+        }
+
+        if (sheets.Count == 0)
+        {
+            StatusText = $"No sheets found in {Path.GetFileName(filePath)}";
+            return;
+        }
+
+        var sheetName = sheets.Contains(Template.DatabaseConfig.SheetName)
+            ? Template.DatabaseConfig.SheetName
+            : sheets[0];
+
+        Template.DatabaseConfig.FilePath = filePath;
+
+        if (!string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            UpdateRelativePath(CurrentFilePath);
+        }
+
+        try
+        {
+            await ImportExcelAsync(filePath, sheetName);
+            IsExcelLinkBroken = false;
+            StatusText = $"Excel re-linked: {Path.GetFileName(filePath)} / {sheetName}";
+        }
+        catch (Exception ex)
+        {
+            IsExcelLinkBroken = true;
+            StatusText = $"Re-link failed: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Tries to find the linked Excel file by checking (in order):
+    /// 1. Absolute path (FilePath)
+    /// 2. Relative to the .anlabel file (RelativePath)
+    /// 3. Same directory as the .anlabel file (filename only)
+    /// Returns the resolved absolute path, or null if not found.
+    /// </summary>
+    private string? ResolveExcelPath()
+    {
+        var config = Template.DatabaseConfig;
+        var fileName = Path.GetFileName(config.FilePath);
+
+        // 1. Try absolute path
+        if (!string.IsNullOrWhiteSpace(config.FilePath) && File.Exists(config.FilePath))
+        {
+            return config.FilePath;
+        }
+
+        // 2. Try relative path (relative to the .anlabel file location)
+        if (!string.IsNullOrWhiteSpace(config.RelativePath) && !string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            var templateDir = Path.GetDirectoryName(CurrentFilePath);
+            if (templateDir is not null)
+            {
+                var candidate = Path.GetFullPath(Path.Combine(templateDir, config.RelativePath));
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        // 3. Try same directory as .anlabel file (filename only)
+        if (!string.IsNullOrWhiteSpace(fileName) && !string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            var templateDir = Path.GetDirectoryName(CurrentFilePath);
+            if (templateDir is not null)
+            {
+                var candidate = Path.Combine(templateDir, fileName);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Updates DatabaseConfig.RelativePath based on the current FilePath and the template's save location.
+    /// </summary>
+    private void UpdateRelativePath(string templateFilePath)
+    {
+        var excelPath = Template.DatabaseConfig.FilePath;
+        if (string.IsNullOrWhiteSpace(excelPath) || string.IsNullOrWhiteSpace(templateFilePath))
+        {
+            Template.DatabaseConfig.RelativePath = string.Empty;
+            return;
+        }
+
+        var templateDir = Path.GetDirectoryName(Path.GetFullPath(templateFilePath));
+        if (templateDir is null)
+        {
+            Template.DatabaseConfig.RelativePath = string.Empty;
+            return;
+        }
+
+        try
+        {
+            var relativeUri = new Uri(templateDir + Path.DirectorySeparatorChar).MakeRelativeUri(new Uri(Path.GetFullPath(excelPath)));
+            Template.DatabaseConfig.RelativePath = Uri.UnescapeDataString(relativeUri.ToString().Replace('/', Path.DirectorySeparatorChar));
+        }
+        catch
+        {
+            Template.DatabaseConfig.RelativePath = string.Empty;
         }
     }
 

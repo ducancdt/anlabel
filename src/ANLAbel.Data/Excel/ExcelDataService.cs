@@ -5,20 +5,56 @@ namespace ANLAbel.Data.Excel;
 
 public sealed class ExcelDataService
 {
+    private static readonly TimeSpan DefaultNetworkTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Returns sheet names from the workbook. Runs on a background thread so it
+    /// is safe to call from the UI thread. Supports cancellation and opens files
+    /// with <see cref="FileShare.ReadWrite"/> so that workbooks already open in
+    /// Excel can still be read.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> GetSheetNamesAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        var readTask = Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var stream = OpenFileStream(filePath, cancellationToken);
+            using var workbook = new XLWorkbook(stream);
+            cancellationToken.ThrowIfCancellationRequested();
+            return (IReadOnlyList<string>)workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
+        }, CancellationToken.None);
+
+        return IsNetworkPath(filePath)
+            ? await readTask.WaitAsync(DefaultNetworkTimeout, cancellationToken)
+            : await readTask.WaitAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Backwards-compatible synchronous overload.
+    /// </summary>
     public IReadOnlyList<string> GetSheetNames(string filePath)
     {
-        using var workbook = new XLWorkbook(filePath);
+        using var stream = OpenFileStream(filePath);
+        using var workbook = new XLWorkbook(stream);
         return workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
     }
 
-    public Task<DataTable> LoadSheetAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
+    public async Task<DataTable> LoadSheetAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
     {
-        return Task.Run(() => LoadSheet(filePath, sheetName, headerRowIndex), cancellationToken);
+        var readTask = Task.Run(
+            () => LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken),
+            CancellationToken.None);
+
+        return IsNetworkPath(filePath)
+            ? await readTask.WaitAsync(DefaultNetworkTimeout, cancellationToken)
+            : await readTask.WaitAsync(cancellationToken);
     }
 
-    private static DataTable LoadSheet(string filePath, string sheetName, int headerRowIndex)
+    private static DataTable LoadSheet(string filePath, string sheetName, int headerRowIndex, CancellationToken cancellationToken = default)
     {
-        using var workbook = new XLWorkbook(filePath);
+        cancellationToken.ThrowIfCancellationRequested();
+        using var stream = OpenFileStream(filePath, cancellationToken);
+        using var workbook = new XLWorkbook(stream);
         var worksheet = workbook.Worksheet(sheetName);
         var usedRange = worksheet.RangeUsed();
         var table = new DataTable(sheetName);
@@ -35,6 +71,7 @@ public sealed class ExcelDataService
 
         for (var column = firstColumn; column <= lastColumn; column++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var rawHeader = CleanCellText(worksheet.Cell(headerRowIndex, column).GetFormattedString());
             var header = string.IsNullOrWhiteSpace(rawHeader) ? $"Column{column - firstColumn + 1}" : rawHeader;
             header = MakeUniqueHeader(header, headers);
@@ -43,6 +80,7 @@ public sealed class ExcelDataService
 
         for (var row = headerRowIndex + 1; row <= lastRow; row++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var dataRow = table.NewRow();
             var hasValue = false;
 
@@ -64,6 +102,32 @@ public sealed class ExcelDataService
         }
 
         return table;
+    }
+
+    /// <summary>
+    /// Opens a <see cref="FileStream"/> with <see cref="FileShare.ReadWrite"/>
+    /// so that workbooks already open in Excel can still be read. For UNC/network
+    /// paths, a read timeout is applied so that stalled connections do not hang
+    /// the caller indefinitely.
+    /// </summary>
+    private static FileStream OpenFileStream(string filePath, CancellationToken cancellationToken = default)
+    {
+        var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite,
+            bufferSize: 4096,
+            useAsync: false);
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return stream;
+    }
+
+    private static bool IsNetworkPath(string filePath)
+    {
+        return filePath.StartsWith(@"\\", StringComparison.Ordinal)
+               || filePath.StartsWith("//", StringComparison.Ordinal);
     }
 
     private static string CleanCellText(string value)

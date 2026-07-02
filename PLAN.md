@@ -602,3 +602,13 @@
 ### Quy tac lam viec tiep theo
 - Sau moi phan hoan thanh, cap nhat outline nay voi noi dung da lam va cach verify.
 - Sau khi build/test xong, tu dong mo app de test neu thay doi lien quan UI hoac workflow nguoi dung.
+
+### Phien ban 0.058 - Designer stability va nen Data Source Manager
+
+- Loai bo mutation geometry trong render/PreviewRow cua designer; text auto-fit chi con la visual.
+- Sua matrix square sizing theo property nguoi dung vua doi va giu tam cho chieu app tu dieu chinh.
+- Giam snap 3 mm xuong 1 mm, Alt tam tat snap, clamp drag du bon canh.
+- Lost mouse capture/Esc khoi phuc ca group drag de tranh object teleport.
+- Excel async co cancel, timeout UNC/network 30 giay va `FileShare.ReadWrite`; re-link khong doc workbook tren UI thread.
+- Them nen `DataSource`/`DataSourceRegistry`, `DataSourceId`, `KeyValue`; UI manager va watcher lam o dot tiep.
+- Them regression test geometry khi doi preview row, cancel Excel va registry CRUD.

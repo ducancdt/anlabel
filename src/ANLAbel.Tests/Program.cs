@@ -8,6 +8,8 @@ using ANLAbel.Core.Models;
 using ANLAbel.Data.Excel;
 using ANLAbel.Data.PrintLogs;
 using ANLAbel.App.ViewModels;
+using ANLAbel.App.Controls;
+using ANLAbel.Data;
 using ANLAbel.Project.SaveLoad;
 using ANLAbel.Printing.PrinterProfiles;
 using ANLAbel.Printing.RenderPipeline;
@@ -35,7 +37,11 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preflight blocks text outside label", TestPrintPreflightBlocksTextOutsideLabel),
     ("print preflight validation", TestPrintPreflightValidation),
     ("print log excel append", TestPrintLogAppend),
-    ("template library standalone (no sample-data link)", TestTemplateLibraryStandalone)
+    ("template library standalone (no sample-data link)", TestTemplateLibraryStandalone),
+    ("template excel link survives folder move", TestExcelLinkSurvivesFolderMove),
+    ("data source registry CRUD", TestDataSourceRegistryCrud),
+    ("designer preview row keeps object geometry", TestDesignerPreviewRowKeepsGeometry),
+    ("excel read honors cancellation", TestExcelReadHonorsCancellation)
 };
 
 var failed = 0;
@@ -625,6 +631,187 @@ static Task TestTemplateLibraryStandalone()
     }
 
     return Task.CompletedTask;
+}
+
+static async Task TestExcelLinkSurvivesFolderMove()
+{
+    // Scenario: save template + Excel in same directory, copy both to a new location,
+    // open from new location — the Excel link must resolve via RelativePath.
+    var baseDir = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"folder-move-{Guid.NewGuid():N}");
+    var sourceDir = Path.Combine(baseDir, "Source");
+    Directory.CreateDirectory(sourceDir);
+
+    // 1. Create a real Excel file in sourceDir
+    var excelPath = Path.Combine(sourceDir, "data.xlsx");
+    using (var workbook = new XLWorkbook())
+    {
+        var sheet = workbook.AddWorksheet("Parts");
+        sheet.Cell(1, 1).Value = "PartNo";
+        sheet.Cell(1, 2).Value = "Qty";
+        sheet.Cell(2, 1).Value = "PN-100";
+        sheet.Cell(2, 2).Value = "50";
+        workbook.SaveAs(excelPath);
+    }
+
+    // 2. Save a template via MainViewModel (which calls UpdateRelativePath)
+    var vm = new MainViewModel();
+    await vm.ImportExcelAsync(excelPath, "Parts");
+    var templatePath = Path.Combine(sourceDir, "test-template.anlabel");
+    await vm.SaveAsync(templatePath);
+
+    // Verify RelativePath was stored (should be "data.xlsx" since same directory)
+    AssertEqual(false, string.IsNullOrWhiteSpace(vm.Template.DatabaseConfig.RelativePath),
+        "RelativePath must be stored after save");
+    AssertEqual("data.xlsx", vm.Template.DatabaseConfig.RelativePath,
+        "RelativePath should be the filename when Excel and template are in the same directory");
+
+    // 3. Copy entire directory to a new location (simulating folder move)
+    var destDir = Path.Combine(baseDir, "Dest");
+    Directory.CreateDirectory(destDir);
+    var destTemplate = Path.Combine(destDir, "test-template.anlabel");
+    var destExcel = Path.Combine(destDir, "data.xlsx");
+    File.Copy(templatePath, destTemplate);
+    File.Copy(excelPath, destExcel);
+
+    // 4. Delete originals to ensure the absolute path won't work
+    File.Delete(templatePath);
+    File.Delete(excelPath);
+    Directory.Delete(sourceDir, true);
+
+    // 5. Open from new location
+    var vm2 = new MainViewModel();
+    await vm2.OpenAsync(destTemplate);
+
+    AssertEqual(false, vm2.IsExcelLinkBroken,
+        "Excel link must be restored after folder move via RelativePath or same-directory fallback");
+    AssertEqual(true, vm2.HasLinkedExcelSource,
+        "Template must still report a linked Excel source after folder move");
+
+    // Cleanup
+    try { Directory.Delete(baseDir, true); } catch { }
+}
+
+static Task TestDataSourceRegistryCrud()
+{
+    var registryPath = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"ds-registry-{Guid.NewGuid():N}.json");
+    var registry = new DataSourceRegistry(registryPath);
+
+    // Load empty (file does not exist yet)
+    registry.Load();
+    AssertEqual(0, registry.Sources.Count, "New registry should have no sources");
+
+    // Upsert a source
+    var source = new DataSource
+    {
+        Id = "test-ds-1",
+        Name = "Production Excel",
+        FilePath = @"C:\data\production.xlsx",
+        SheetName = "Parts",
+        HeaderRowIndex = 1
+    };
+    registry.Upsert(source);
+    AssertEqual(1, registry.Sources.Count, "Registry should have 1 source after upsert");
+
+    // Save and reload
+    registry.Save();
+    var registry2 = new DataSourceRegistry(registryPath);
+    registry2.Load();
+    AssertEqual(1, registry2.Sources.Count, "Reloaded registry should have 1 source");
+    var loaded = registry2.GetById("test-ds-1");
+    AssertEqual(true, loaded is not null, "GetById should find the source");
+    AssertEqual("Production Excel", loaded!.Name, "Source name must survive round trip");
+    AssertEqual(@"C:\data\production.xlsx", loaded.FilePath, "Source FilePath must survive round trip");
+    AssertEqual("Parts", loaded.SheetName, "Source SheetName must survive round trip");
+
+    // Update
+    loaded.Name = "Production Excel v2";
+    registry2.Upsert(loaded);
+    registry2.Save();
+    var registry3 = new DataSourceRegistry(registryPath);
+    registry3.Load();
+    AssertEqual("Production Excel v2", registry3.GetById("test-ds-1")!.Name, "Updated name must survive round trip");
+
+    // Remove
+    registry3.Remove("test-ds-1");
+    AssertEqual(0, registry3.Sources.Count, "Registry should have 0 sources after remove");
+    registry3.Save();
+    var registry4 = new DataSourceRegistry(registryPath);
+    registry4.Load();
+    AssertEqual(0, registry4.Sources.Count, "Saved empty registry should persist");
+
+    // Template references DataSourceId
+    var template = new LabelTemplate();
+    template.DatabaseConfig.DataSourceId = "test-ds-1";
+    AssertEqual("test-ds-1", template.DatabaseConfig.DataSourceId, "DataSourceId must survive assignment");
+
+    // Cleanup
+    try { File.Delete(registryPath); } catch { }
+    return Task.CompletedTask;
+}
+
+static Task TestDesignerPreviewRowKeepsGeometry()
+{
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var text = new LabelObject
+            {
+                Type = ObjectType.Text,
+                XMm = 12.5,
+                YMm = 7.25,
+                WidthMm = 18,
+                HeightMm = 6,
+                BindingExpression = "{PartNo}",
+                Text = "Part"
+            };
+            var template = new LabelTemplate { WidthMm = 100, HeightMm = 50 };
+            template.Objects.Add(text);
+            var before = (text.XMm, text.YMm, text.WidthMm, text.HeightMm);
+
+            var canvas = new LabelDesignerCanvas { Template = template };
+            canvas.PreviewRow = new Dictionary<string, string> { ["PartNo"] = "A" };
+            canvas.PreviewRow = new Dictionary<string, string>
+            {
+                ["PartNo"] = "A-VERY-LONG-PART-NUMBER-THAT-USED-TO-RESIZE-THE-MODEL"
+            };
+
+            var after = (text.XMm, text.YMm, text.WidthMm, text.HeightMm);
+            AssertEqual(before, after, "Changing PreviewRow must not mutate designer object geometry");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static async Task TestExcelReadHonorsCancellation()
+{
+    var service = new ExcelDataService();
+    using var cts = new CancellationTokenSource();
+    cts.Cancel();
+
+    try
+    {
+        await service.GetSheetNamesAsync("not-used.xlsx", cts.Token);
+        throw new InvalidOperationException("Canceled Excel read unexpectedly completed");
+    }
+    catch (OperationCanceledException)
+    {
+        // Expected: the UI can leave a stalled/slow read without blocking its thread.
+    }
 }
 
 static void AssertEqual<T>(T expected, T actual, string message)

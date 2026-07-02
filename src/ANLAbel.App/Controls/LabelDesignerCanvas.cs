@@ -76,7 +76,7 @@ public sealed class LabelDesignerCanvas : Canvas
     private int _pasteCount;
 
     // Alignment guide system
-    private const double SnapThresholdMm = 3.0;
+    private const double SnapThresholdMm = 1.0;
     private Line? _guideVertical;
     private Line? _guideHorizontal;
 
@@ -90,6 +90,7 @@ public sealed class LabelDesignerCanvas : Canvas
         MouseMove += CanvasMouseMove;
         MouseLeftButtonUp += CanvasMouseButtonUp;
         MouseRightButtonUp += CanvasMouseButtonUp;
+        LostMouseCapture += CanvasLostMouseCapture;
         KeyDown += CanvasKeyDown;
         CommandBindings.Add(new CommandBinding(DeleteSelectionCommand, (_, e) =>
         {
@@ -271,18 +272,24 @@ public sealed class LabelDesignerCanvas : Canvas
                 var proposedY = _startYMm + deltaYMm;
 
                 // Alignment guide: compute snap position against other objects
-                var snap = ComputeAlignmentSnap(item, proposedX, proposedY);
-                if (snap.SnapX is not null)
+                // Hold Alt to temporarily disable snapping
+                var snap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+                if (!Keyboard.IsKeyDown(Key.LeftAlt) && !Keyboard.IsKeyDown(Key.RightAlt))
                 {
-                    proposedX = snap.SnapX.Value;
-                }
-                if (snap.SnapY is not null)
-                {
-                    proposedY = snap.SnapY.Value;
+                    snap = ComputeAlignmentSnap(item, proposedX, proposedY);
+                    if (snap.SnapX is not null)
+                    {
+                        proposedX = snap.SnapX.Value;
+                    }
+                    if (snap.SnapY is not null)
+                    {
+                        proposedY = snap.SnapY.Value;
+                    }
                 }
 
-                item.XMm = Math.Max(0, proposedX);
-                item.YMm = Math.Max(0, proposedY);
+                // Clamp all 4 sides (consistent with group drag behavior)
+                item.XMm = Math.Max(0, Math.Min(Template!.WidthMm - item.WidthMm, proposedX));
+                item.YMm = Math.Max(0, Math.Min(Template!.HeightMm - item.HeightMm, proposedY));
 
                 // Show/hide guide lines
                 ShowAlignmentGuides(snap);
@@ -293,6 +300,7 @@ public sealed class LabelDesignerCanvas : Canvas
         element.PreviewMouseLeftButtonUp += (sender, _) =>
         {
             _dragObject = null;
+            _groupDragStarts.Clear();
             HideAlignmentGuides();
             ((FrameworkElement)sender).ReleaseMouseCapture();
         };
@@ -338,27 +346,10 @@ public sealed class LabelDesignerCanvas : Canvas
         };
     }
 
-    private void UpdateObjectElement(LabelObject item, bool allowMatrixAutoSize = false)
+    private void UpdateObjectElement(LabelObject item)
     {
         if (!_objectElements.TryGetValue(item, out var element))
         {
-            return;
-        }
-
-        if (allowMatrixAutoSize && TryApplyMatrixAutoSize(item))
-        {
-            UpdateObjectElement(item);
-            return;
-        }
-
-        if (!_matrixAutoSizingObjects.Contains(item)
-            && IsMatrixBarcode(item)
-            && !IsAutoSizedMatrixBarcode(item)
-            && Math.Abs(item.WidthMm - item.HeightMm) > 0.01)
-        {
-            var fittedSizeMm = Math.Max(1, Math.Min(item.WidthMm, item.HeightMm));
-            item.WidthMm = fittedSizeMm;
-            item.HeightMm = fittedSizeMm;
             return;
         }
 
@@ -489,7 +480,46 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         if (sender is LabelObject item)
         {
-            UpdateObjectElement(item, ShouldApplyMatrixAutoSize(e.PropertyName));
+            // Matrix auto-fit: run when user explicitly changes barcode properties (not during render).
+            // This is the only place where WidthMm/HeightMm should change due to auto-sizing.
+            if (ShouldApplyMatrixAutoSize(e.PropertyName) && IsMatrixBarcode(item) && !_matrixAutoSizingObjects.Contains(item))
+            {
+                TryApplyMatrixAutoSize(item);
+            }
+
+            // Enforce square for non-auto-sized matrix barcodes when user changes W or H
+            if (e.PropertyName is nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm)
+                && IsMatrixBarcode(item)
+                && !IsAutoSizedMatrixBarcode(item)
+                && !_matrixAutoSizingObjects.Contains(item)
+                && Math.Abs(item.WidthMm - item.HeightMm) > 0.01)
+            {
+                var oldW = item.WidthMm;
+                var oldH = item.HeightMm;
+                var fittedSizeMm = e.PropertyName == nameof(LabelObject.WidthMm)
+                    ? oldW
+                    : oldH;
+                _matrixAutoSizingObjects.Add(item);
+                try
+                {
+                    if (e.PropertyName == nameof(LabelObject.WidthMm))
+                    {
+                        item.HeightMm = fittedSizeMm;
+                        item.YMm += (oldH - fittedSizeMm) / 2.0;
+                    }
+                    else
+                    {
+                        item.WidthMm = fittedSizeMm;
+                        item.XMm += (oldW - fittedSizeMm) / 2.0;
+                    }
+                }
+                finally
+                {
+                    _matrixAutoSizingObjects.Remove(item);
+                }
+            }
+
+            UpdateObjectElement(item);
             UpdateCanvasExtent();
         }
 
@@ -703,7 +733,7 @@ public sealed class LabelDesignerCanvas : Canvas
         var canvas = (LabelDesignerCanvas)d;
         foreach (var item in canvas._objectElements.Keys)
         {
-            canvas.UpdateObjectElement(item, allowMatrixAutoSize: true);
+            canvas.UpdateObjectElement(item);
         }
     }
 
@@ -781,10 +811,65 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
+    private void CanvasLostMouseCapture(object sender, MouseEventArgs e)
+    {
+        // Safety: if mouse capture is lost (Alt+Tab, popup, etc.), clean up drag state
+        // to prevent object teleporting when the user re-clicks.
+        if (_dragObject is not null)
+        {
+            // Revert every object in a group drag, not only the object that owns capture.
+            foreach (var pair in _groupDragStarts)
+            {
+                pair.Key.XMm = pair.Value.X;
+                pair.Key.YMm = pair.Value.Y;
+                if (pair.Key.Type == ObjectType.Line)
+                {
+                    pair.Key.LineEndXMm = pair.Value.EndX;
+                    pair.Key.LineEndYMm = pair.Value.EndY;
+                }
+            }
+
+            _dragObject = null;
+            _groupDragStarts.Clear();
+            HideAlignmentGuides();
+        }
+
+        if (_isMarqueeSelecting)
+        {
+            _isMarqueeSelecting = false;
+            if (_marqueeElement is not null)
+            {
+                Children.Remove(_marqueeElement);
+                _marqueeElement = null;
+            }
+        }
+    }
+
     private void CanvasKeyDown(object sender, KeyEventArgs e)
     {
         if (DrawingTool is null)
         {
+            // Esc while dragging = cancel drag, revert to start position
+            if (e.Key == Key.Escape && _dragObject is not null)
+            {
+                foreach (var pair in _groupDragStarts)
+                {
+                    pair.Key.XMm = pair.Value.X;
+                    pair.Key.YMm = pair.Value.Y;
+                    if (pair.Key.Type == ObjectType.Line)
+                    {
+                        pair.Key.LineEndXMm = pair.Value.EndX;
+                        pair.Key.LineEndYMm = pair.Value.EndY;
+                    }
+                }
+
+                _dragObject = null;
+                _groupDragStarts.Clear();
+                HideAlignmentGuides();
+                e.Handled = true;
+                return;
+            }
+
             if (e.Key == Key.Delete && DeleteSelection())
             {
                 e.Handled = true;
@@ -1608,6 +1693,8 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private void FitTextObjectToContent(LabelObject item, ref double width, ref double height)
     {
+        // VISUAL-ONLY fit: compute the visual size for rendering without mutating WidthMm/HeightMm.
+        // The model keeps its user-set dimensions. If text overflows, it renders larger (Text) or clips (TextBox).
         if (Template is null)
         {
             return;
@@ -1620,7 +1707,6 @@ public sealed class LabelDesignerCanvas : Canvas
             Brushes.Black,
             1.0);
 
-        // measure text width/height in pure DIP (no zoom), then convert to mm using MmConverter
         var minSizeMm = 1.0;
         var fitWidthMm = MmConverter.DipToMm(Math.Ceiling(text.WidthIncludingTrailingWhitespace))
             + MmConverter.DipToMm(4)   // 2 left + 2 right DIP padding (matches CreateTextVisual x=2)
@@ -1629,15 +1715,9 @@ public sealed class LabelDesignerCanvas : Canvas
 
         fitWidthMm = Math.Max(minSizeMm, fitWidthMm);
         fitHeightMm = Math.Max(minSizeMm, fitHeightMm);
-        fitWidthMm = Math.Min(Template.WidthMm - item.XMm, fitWidthMm);
-        fitHeightMm = Math.Min(Template.HeightMm - item.YMm, fitHeightMm);
 
-        if (Math.Abs(item.WidthMm - fitWidthMm) > 0.05 || Math.Abs(item.HeightMm - fitHeightMm) > 0.05)
-        {
-            item.WidthMm = fitWidthMm;
-            item.HeightMm = fitHeightMm;
-        }
-
+        // Do NOT clamp to template bounds or mutate item.WidthMm/HeightMm.
+        // Text can render larger than the model size — this is intentional for designer preview.
         width = MmToDip(fitWidthMm);
         height = MmToDip(fitHeightMm);
     }

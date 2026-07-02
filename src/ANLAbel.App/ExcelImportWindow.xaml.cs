@@ -48,11 +48,7 @@ public partial class ExcelImportWindow : Window
             // workbooks, network/OneDrive paths, or a file locked open in Excel),
             // so it must run off the UI thread or the window appears frozen.
             var token = _cts.Token;
-            var sheets = await Task.Run(() =>
-            {
-                token.ThrowIfCancellationRequested();
-                return _viewModel.GetExcelSheetNames(dialog.FileName);
-            }, token);
+            var sheets = await _viewModel.GetExcelSheetNamesAsync(dialog.FileName, token);
 
             Mouse.OverrideCursor = null;
             CancelButton.Visibility = Visibility.Collapsed;
@@ -64,7 +60,7 @@ public partial class ExcelImportWindow : Window
 
             Mouse.OverrideCursor = Cursors.Wait;
             CancelButton.Visibility = Visibility.Visible;
-            await _viewModel.ImportExcelAsync(dialog.FileName, sheetDialog.SelectedSheetName);
+            await _viewModel.ImportExcelAsync(dialog.FileName, sheetDialog.SelectedSheetName, token);
         }
         catch (OperationCanceledException)
         {
