@@ -8,8 +8,8 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 ## Trang thai hien tai (2026-07-02)
 
-- Version hien thi trong app: `0.061`.
-- Build: `dotnet build ANLAbel.slnx` PASS (0 loi). Test: `ANLAbel.Tests` 25/25 PASS; `ANLAbel.UnitTests` 33/33 PASS. Smoke: `ANLAbel.App.exe` (debug) khoi dong thanh cong, khong exception.
+- Version hien thi trong app: `0.062`.
+- Build: `dotnet build ANLAbel.slnx --no-restore` PASS. Test: `ANLAbel.Tests` 25/25 PASS; `ANLAbel.UnitTests` 39/39 PASS. Smoke: app responsive, title `ANLAbel - Label Designer v0.062`.
 - Luong release chinh: `build-trial.ps1` / `build-license-system.ps1` -> `dotnet publish` -> `publish_out/{trial-x64,commercial-x64,license-master-x64}` -> Inno Setup (`installer/ANLAbel-Trial-x64.iss`, `ANLAbel-Commercial-x64.iss`, `ANLAbel-License-Master-x64.iss`) -> `releases/`.
 - Deploy nhanh de test tren may dev: `deploy-desktop.ps1` (publish self-contained win-x64 -> robocopy vao `%LOCALAPPDATA%\Programs\ANLAbel`).
 
@@ -66,6 +66,10 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
    - Preference luu rieng theo may trong `designer-preferences.json`, khong lam ban template.
    - Keyboard nudge hien toa do moi tren status bar; group nudge hien so object da di chuyen.
    - xUnit preference round-trip/corrupt JSON PASS; UI Automation toggle On → Off → On va file preference doi dung theo; app responsive title `v0.061`.
+15. **Database TC7 — loi Excel co ngu canh + regression**, v0.062:
+   - `ExcelDataReadException` phan loai file mat, workbook hong, sheet mat va header row sai.
+   - Missing-sheet message liet ke sheet hien co de nguoi dung sua mapping nhanh.
+   - 6 xUnit moi bao phu corrupt file, renamed sheet, duplicate/blank header, shared-open workbook va header ngoai vung.
 15. **Database plan — Giai doan TC (tiep tuc: TC2 + TC6)**, v0.061:
    - TC2: test moi `database config full round trip` — populate day du `DatabaseConfig` (DataSourceId, FilePath, RelativePath, SheetName, HeaderRowIndex, KeyField, KeyValue, LastSelectedRow, AvailableFields, LabelFields) qua `ProjectFileService`, assert khong mat field nao sau save/open.
    - TC6: model + service moi `DataOperationLogEntry`/`DataOperationLogService` (`src/ANLAbel.Data/DataLogs/`) ghi JSON-lines vao `%LocalAppData%\ANLAbel\logs\data-operations.jsonl` moi lan Import/Refresh/Relink/Open-restore — fire-and-forget, khong bao gio chan hoac lam hong thao tac du lieu chinh du ghi log that bai. Noi vao diem hoi tu chung `MainViewModel.ImportExcelAsync` (private overload nhan `operation` label: Import/Refresh/Relink/Open).
