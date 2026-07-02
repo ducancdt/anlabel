@@ -34,7 +34,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preflight blocks object outside label", TestPrintPreflightBlocksObjectOutsideLabel),
     ("print preflight blocks text outside label", TestPrintPreflightBlocksTextOutsideLabel),
     ("print preflight validation", TestPrintPreflightValidation),
-    ("print log excel append", TestPrintLogAppend)
+    ("print log excel append", TestPrintLogAppend),
+    ("template library links sample-data.xlsx", TestTemplateLibraryLinks)
 };
 
 var failed = 0;
@@ -572,6 +573,62 @@ static async Task TestPrintLogAppend()
     });
 
     AssertEqual(true, File.Exists(service.LogFilePath), "Print log Excel file should exist");
+}
+
+static Task TestTemplateLibraryLinks()
+{
+    // Walk up from bin output to the source TemplateLibrary directory
+    var baseDir = AppContext.BaseDirectory;
+    var libraryDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "ANLAbel.App", "TemplateLibrary"));
+    if (!Directory.Exists(libraryDir))
+    {
+        // Fallback: try relative to solution root
+        libraryDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "..", "src", "ANLAbel.App", "TemplateLibrary"));
+    }
+
+    if (!Directory.Exists(libraryDir))
+    {
+        throw new InvalidOperationException($"TemplateLibrary directory not found. Searched: {libraryDir}");
+    }
+
+    var anlabelFiles = Directory.GetFiles(libraryDir, "*.anlabel");
+    AssertEqual(true, anlabelFiles.Length > 0, "TemplateLibrary must contain at least one .anlabel file");
+
+    var options = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
+
+    var failures = new List<string>();
+    foreach (var file in anlabelFiles)
+    {
+        var json = File.ReadAllText(file);
+        var template = System.Text.Json.JsonSerializer.Deserialize<LabelTemplate>(json, options);
+        if (template is null)
+        {
+            failures.Add($"{Path.GetFileName(file)}: could not deserialize");
+            continue;
+        }
+
+        var filePath = template.DatabaseConfig.FilePath;
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            failures.Add($"{Path.GetFileName(file)}: DatabaseConfig.FilePath is empty");
+        }
+        else if (!string.Equals(Path.GetFileName(filePath), "sample-data.xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            failures.Add($"{Path.GetFileName(file)}: DatabaseConfig.FilePath points to '{Path.GetFileName(filePath)}' instead of sample-data.xlsx");
+        }
+    }
+
+    if (failures.Count > 0)
+    {
+        throw new InvalidOperationException(
+            $"Template Library link failures:\n  - {string.Join("\n  - ", failures)}");
+    }
+
+    return Task.CompletedTask;
 }
 
 static void AssertEqual<T>(T expected, T actual, string message)
