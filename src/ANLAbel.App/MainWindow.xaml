@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:ANLAbel.App.Controls"
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.058"
+        Title="ANLAbel - Label Designer v0.061"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="800" Width="1440"
         MinHeight="430" MinWidth="720"
@@ -291,7 +291,7 @@
                            RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
                     <TextBlock Text="ANLAbel - Label Designer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     <Border Margin="10,0,0,0" Padding="7,2" Background="#EAF3FF" BorderBrush="{StaticResource AppBlueBrush}" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock x:Name="BuildChannelText" Text="commercial v0.058" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                        <TextBlock x:Name="BuildChannelText" Text="commercial v0.061" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                     </Border>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -389,9 +389,21 @@
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="Panels" TextAlignment="Center"/><TextBlock Text="restore" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                        </Button>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="Panels" TextAlignment="Center"/><TextBlock Text="restore" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            </Button>
+                            <ToggleButton Width="72" Height="64" Margin="1,0" Padding="7,5"
+                                          IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToObjectsEnabled, Mode=TwoWay}"
+                                          AutomationProperties.Name="Snap to objects"
+                                          ToolTip="Snap object edges and centers while dragging. Hold Alt to bypass temporarily.">
+                                <StackPanel>
+                                    <TextBlock Text="â‡„" FontSize="18" Height="20" TextAlignment="Center"/>
+                                    <TextBlock Text="Snap" TextAlignment="Center"/>
+                                    <TextBlock Text="objects" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                </StackPanel>
+                            </ToggleButton>
+                        </StackPanel>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="View"/>
                     </StackPanel>
 
@@ -604,6 +616,7 @@
                                                 <StackPanel Orientation="Horizontal"><Image Source="Icons/database.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Database"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem Header="{Binding LinkedExcelSourceText}"/>
+                                            <TextBlock Text="{Binding ExcelDataFreshnessText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" Margin="4,0,4,2" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding ExcelLinkStatusText}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap"/>
                                             <Button Content="🔗 Relink Excel..." Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
                                             <TreeViewItem Header="{Binding CurrentExcelRowText}"/>
@@ -711,6 +724,7 @@
                                                           PreviewRow="{Binding PreviewRow}"
                                                           DrawingTool="{Binding DrawingTool, Mode=TwoWay}"
                                                           DrawingCommandText="{Binding DrawingCommandText, Mode=TwoWay}"
+                                                          InteractionStatusText="{Binding StatusText, Mode=TwoWay}"
                                                           Zoom="{Binding Zoom}"/>
                         </Border>
                     </Grid>
@@ -795,6 +809,80 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding SelectedObjectTypeText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                         <TextBlock Text="{Binding SelectedObjectSummaryText}" FontSize="10.5" Foreground="#475569" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource PropCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Position &amp; Size (mm)" Style="{StaticResource PropTitle}"/>
+                                        <StackPanel>
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Line}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="X" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.XMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Y" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.YMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Width" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.WidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Height" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.HeightMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Line}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="X1" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.XMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Y1" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.YMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="X2" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.LineEndXMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Y2" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.LineEndYMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
@@ -935,7 +1023,65 @@
                                                 <CheckBox Content="Underline" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Grid>
+                                        <TextBlock Text="Color" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+                                            <TextBox Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                            <Border Grid.Column="2" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
+                                        </Grid>
                                         <TextBlock Text="{Binding TextBoxValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border>
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Rectangle}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Ellipse}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Line}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Shape Style" Style="{StaticResource PropTitle}"/>
+                                        <StackPanel>
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Line}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="Fill" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+                                                <ComboBox ItemsSource="{Binding FillStyles}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
+                                                <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.FillColor}"/>
+                                            </Grid>
+                                            <TextBlock Text="Corner radius" Style="{StaticResource PropLabel}"/>
+                                            <TextBox Text="{Binding SelectedObject.Style.CornerRadiusMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown" Margin="0,2,0,4"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Outline" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+                                            <ComboBox ItemsSource="{Binding OutlineStyles}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
+                                            <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                            <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
+                                        </Grid>
+                                        <TextBlock Text="Thickness (mm)" Style="{StaticResource PropLabel}"/>
+                                        <TextBox Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                     </StackPanel>
                                 </Border>
 

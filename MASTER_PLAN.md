@@ -8,8 +8,8 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 ## Trang thai hien tai (2026-07-02)
 
-- Version hien thi trong app: `0.058`.
-- Build: `dotnet build ANLAbel.slnx --no-restore` PASS. Test: `ANLAbel.Tests` 22/22 PASS; `ANLAbel.UnitTests` 31/31 PASS.
+- Version hien thi trong app: `0.061`.
+- Build: `dotnet build ANLAbel.slnx` PASS (0 loi). Test: `ANLAbel.Tests` 25/25 PASS; `ANLAbel.UnitTests` 33/33 PASS. Smoke: `ANLAbel.App.exe` (debug) khoi dong thanh cong, khong exception.
 - Luong release chinh: `build-trial.ps1` / `build-license-system.ps1` -> `dotnet publish` -> `publish_out/{trial-x64,commercial-x64,license-master-x64}` -> Inno Setup (`installer/ANLAbel-Trial-x64.iss`, `ANLAbel-Commercial-x64.iss`, `ANLAbel-License-Master-x64.iss`) -> `releases/`.
 - Deploy nhanh de test tren may dev: `deploy-desktop.ps1` (publish self-contained win-x64 -> robocopy vao `%LOCALAPPDATA%\Programs\ANLAbel`).
 
@@ -17,7 +17,9 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 - `docs/audit-2026-07-02.md` — bao cao audit 2 bug + 5 van de phu.
 - `docs/database-plan.md` — plan quan ly du lieu database/Excel dau vao (3 giai doan: sua ho loi "mat link" bang relative path + re-link UI; data source manager dung chung + FileSystemWatcher + KeyField; CSV/lazy-load/nguon khac).
-- `docs/designer-stability-plan.md` — plan sua bug object tu nhay vi tri/kich thuoc trong designer (nguyen nhan goc: duong render ghi nguoc vao model — text auto-fit, matrix ep vuong, QR auto-size deu mutate WidthMm/HeightMm khi ve lai/doi PreviewRow; 6 buoc sua, can duyet vi co thay doi UX auto-fit).
+- `docs/designer-stability-plan.md` — plan sua bug object tu nhay vi tri/kich thuoc trong designer (nguyen nhan goc: duong render ghi nguoc vao model — text auto-fit, matrix ep vuong, QR auto-size deu mutate WidthMm/HeightMm khi ve lai/doi PreviewRow; 6 buoc sua, can duyet vi co thay doi UX auto-fit). Dot 1 da lam xong (muc 10 ben duoi).
+- `docs/print-preview-reliability-plan.md` — plan siet do tin cay In & Preview (preflight tung dong, kiem tra du lieu tuoi truoc khi in, test WYSIWYG 3 duong render, khop DPI barcode voi may in, bao cao lo in + chong trung tem). MOI 2026-07-02.
+- `docs/properties-panel-plan.md` — audit + sap xep lai Properties panel (them Position & Size X/Y/W/H mm, Shape Style, mau chu; gop 3 card binding trung lap; Formula Builder thanh Expander). MOI 2026-07-02.
 
 ## Da xong trong dot audit nay
 
@@ -47,6 +49,36 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
    - Them model `DataSource`, registry JSON tai `%AppData%\ANLAbel\data-sources.json`, va `DatabaseConfig.DataSourceId` (chua noi UI manager).
    - Ghi nho row bang `KeyField` + `KeyValue`, fallback ve `LastSelectedRow` neu key khong con.
    - Doc Excel ho tro `CancellationToken`, timeout 30 giay cho UNC/network va `FileShare.ReadWrite`; luong re-link khong con doc workbook tren UI thread.
+12. **Properties panel — Dot A** (`docs/properties-panel-plan.md` muc 6), v0.059:
+   - Card moi "Position & Size (mm)" (X/Y/Width/Height; X1/Y1/X2/Y2 rieng cho Line) bind truc tiep vao model co san, khong can property ViewModel moi.
+   - Card moi "Shape Style" cho Rectangle/Ellipse/Line (Fill, Corner radius, Outline, Thickness) + mau chu (StrokeColor) trong card Text Style — deu co hex TextBox + swatch xem truoc.
+   - Moi o so moi dung `UpdateSourceTrigger=LostFocus` + handler `PositionSizeTextBox_KeyDown` (Enter de commit) — dung rule 9 `agent.md`, tan dung undo debounce co san (khong can code undo rieng).
+   - Build PASS, `ANLAbel.Tests` 22/22 PASS, `ANLAbel.UnitTests` 31/31 PASS, smoke app PASS. Version `0.058` → `0.059`.
+13. **Database plan — Giai doan TC (bat dau)**, v0.060:
+   - Audit lai code truoc khi lam moi phat hien TC1 (bao cao schema) va TC3 (trang thai link tuong minh) **da co san phan lon** tu truoc (panel Binding Issues + `GetBindingIssues()`, panel Database + `LinkedExcelSourceText`/`ExcelLinkStatusText`/`RelinkExcelCommand`) — tranh lam trung lap, chi bo sung phan con thieu.
+   - TC1: `StatusText` sau Import/Refresh Excel gio noi them so object co van de binding (vd "... — 2 object(s) have missing/broken bindings").
+   - TC3+TC4: them `ExcelDataFreshnessText` ("Data read at HH:mm:ss") hien trong panel Database; `RefreshExcelDataAsync()` so `TryGetFileWriteTimeUtc()` voi lan doc truoc — file chua doi thi bo qua doc lai (`"...already up to date..."`), file da doi moi doc lai nhu cu.
+   - Test moi: `excel refresh skips unchanged file` (kiem ca nhanh skip va nhanh doc lai khi file thay doi).
+   - Build PASS, `ANLAbel.Tests` 23/23 PASS (them 1 test), `ANLAbel.UnitTests` 31/31 PASS, smoke app PASS. Version `0.059` → `0.060`.
+   - Chi tiet + phan con thieu (TC2/TC5/TC6/TC7): `docs/database-plan.md` muc "Giai doan TC".
+14. **Designer interaction — snap/nudge** (`docs/designer-stability-plan.md`), v0.061:
+   - Toggle `Snap objects` tren ribbon va context menu canvas; Alt tam bypass snap van giu nguyen.
+   - Preference luu rieng theo may trong `designer-preferences.json`, khong lam ban template.
+   - Keyboard nudge hien toa do moi tren status bar; group nudge hien so object da di chuyen.
+   - xUnit preference round-trip/corrupt JSON PASS; UI Automation toggle On → Off → On va file preference doi dung theo; app responsive title `v0.061`.
+15. **Database plan — Giai doan TC (tiep tuc: TC2 + TC6)**, v0.061:
+   - TC2: test moi `database config full round trip` — populate day du `DatabaseConfig` (DataSourceId, FilePath, RelativePath, SheetName, HeaderRowIndex, KeyField, KeyValue, LastSelectedRow, AvailableFields, LabelFields) qua `ProjectFileService`, assert khong mat field nao sau save/open.
+   - TC6: model + service moi `DataOperationLogEntry`/`DataOperationLogService` (`src/ANLAbel.Data/DataLogs/`) ghi JSON-lines vao `%LocalAppData%\ANLAbel\logs\data-operations.jsonl` moi lan Import/Refresh/Relink/Open-restore — fire-and-forget, khong bao gio chan hoac lam hong thao tac du lieu chinh du ghi log that bai. Noi vao diem hoi tu chung `MainViewModel.ImportExcelAsync` (private overload nhan `operation` label: Import/Refresh/Relink/Open).
+   - Test moi: `data operation log records import success and failure` (kiem ca nhanh thanh cong va nhanh that bai).
+   - Build PASS, `ANLAbel.Tests` 23/23 → 25/25 PASS (them 2 test), `ANLAbel.UnitTests` 33/33 PASS, smoke app PASS. Version `0.060` → `0.061`.
+   - Con lai trong Giai doan TC: TC5 (UI chon KeyField — backend da co san), TC7 (test them cac ca hong: mat file giua chung, sheet doi ten, file .xlsx hong). Chi tiet: `docs/database-plan.md`.
+
+## Dinh huong moi tu chu du an (2026-07-02, chieu) — thu tu uu tien
+
+1. **Day manh phan gan database + siet tin cay database**: dang lam "Giai doan TC" trong `docs/database-plan.md`. Da xong TC1, TC2, TC3, TC4, TC6 (xem muc 13, 15 ben duoi). Con lai TC5 (UI chon KeyField — backend da co san) va TC7 (test them cac ca hong) truoc khi mo rong GD3.
+2. **Siet tin cay In & Preview**: theo `docs/print-preview-reliability-plan.md` — dot 1 (preflight tung dong + kiem tra du lieu tuoi + chuan hoa print log) lam truoc, gan chat voi Giai doan TC cua database.
+3. **Template thu vien KHONG tu gan Excel nua**: DA XONG (commit `c3da135`) — sample-data.xlsx bi go khoi bundle, DatabaseConfig cua 17 template de trong, test `template library standalone (no sample-data link)` bao ve. Rule 8 `agent.md` da cap nhat theo quyet dinh nay.
+4. **Kiem tra & sap xep lai Properties panel**: theo `docs/properties-panel-plan.md` — dot A DA XONG (v0.059, xem muc 12 ben duoi). Dot B/C (sap xep lai thu tu card, gop 3 card binding, Formula Builder Expander, Rotation 4 nut, Layer Forward/Backward) cho duyet.
 
 ## Viec can lam tiep (uu tien de xuat, chua ai duyet — hoi nguoi dung truoc khi lam)
 
@@ -65,8 +97,8 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 - [x] Can nhac them progress bar/huy (cancel) that su cho Import Excel voi file network, thay vi chi wait cursor. Da them `CancelButton` + `CancellationTokenSource` trong `ExcelImportWindow`.
 
 ### Uu tien thap — thu vien template
-- [ ] Neu them template mau moi tu file thiet ke thuc te cua khach hang trong tuong lai, luon genericize + gan link Excel + bo khoi `Exclude` ngay tu dau (theo rule 8 trong `agent.md`), khong de tinh trang "them nhung chua hoan thanh" nhu 5 template lan nay.
-- [x] Can nhac viet 1 unit test nho kiem tra tat ca `*.anlabel` trong `TemplateLibrary/` (khong bi Exclude) co `DatabaseConfig.FilePath` tro toi `sample-data.xlsx` hop le, tranh regression tuong tu lan sau.
+- [ ] Neu them template mau moi tu file thiet ke thuc te cua khach hang trong tuong lai: genericize + de trong `DatabaseConfig` (KHONG gan link Excel — quyet dinh 2026-07-02, rule 8 moi trong `agent.md`) + dam bao duoc match boi `EmbeddedResource Include="TemplateLibrary\*.anlabel"`.
+- [x] Unit test bao ve: `template library standalone (no sample-data link)` — moi `*.anlabel` trong `TemplateLibrary/` phai co `DatabaseConfig.FilePath` rong (da thay the test cu "links sample-data.xlsx" sau khi doi dinh huong).
 
 ### Uu tien trung binh — database plan GĐ1 (sua ho loi "mat link" Excel)
 - [x] Luu duong dan kep `FilePath` + `RelativePath` trong `DatabaseConfig` (`docs/database-plan.md` muc 1).

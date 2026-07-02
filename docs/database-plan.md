@@ -1,6 +1,12 @@
 # Plan: Quản lý dữ liệu database/Excel đầu vào
 
-**Ngày:** 2026-07-02 · **Trạng thái:** Giai đoạn 1 hoàn tất; Giai đoạn 2 đang làm nền
+**Ngày:** 2026-07-02 · **Trạng thái:** Giai đoạn 1 hoàn tất; Giai đoạn TC: TC1/TC2/TC3/TC4/TC6 xong, còn TC5 (UI KeyField) + TC7 (test thêm ca hỏng)
+
+## Định hướng từ chủ dự án (2026-07-02, ưu tiên cao nhất)
+
+1. **Đẩy mạnh phần gắn database (binding)** — đây là tính năng lõi của sản phẩm; ưu tiên hoàn thiện luồng gắn dữ liệu vào object (Excel field / formula) mượt và rõ ràng hơn.
+2. **Siết chặt độ tin cậy phần database** — mọi thao tác dữ liệu (import, refresh, relink, restore khi mở file) phải đoán được, không mất dữ liệu, không treo, sai ở đâu báo rõ ở đó. Xem "Giai đoạn TC — Siết tin cậy" bên dưới, làm **trước** phần mở rộng (GĐ3).
+3. **Template thư viện KHÔNG tự gắn Excel nữa** — ✅ đã thực hiện (commit `c3da135`): gỡ `sample-data.xlsx` khỏi bundle, `DatabaseConfig.FilePath/SheetName` của mọi template thư viện để trống, test `template library standalone (no sample-data link)` bảo vệ quyết định này. Người dùng mở template rồi tự Import Excel của họ; `BindingExpression` placeholder giữ nguyên để map vào cột thật. Rule 8 trong `agent.md` đã cập nhật theo.
 
 ## Hiện trạng (đã audit)
 
@@ -10,7 +16,7 @@ Luồng dữ liệu hiện tại của một template `.anlabel`:
 - Import qua dialog `Import Excel` (`ExcelImportWindow`) → `ExcelDataService` (ClosedXML) đọc header dòng 1 + toàn bộ rows thành chuỗi.
 - Mở lại template: nếu file Excel còn tồn tại đúng đường dẫn thì tự restore data + row cuối đã chọn; mất file thì báo link hỏng nhưng template vẫn mở được.
 - Binding `{Field}` / `FIELD("...")` có cơ chế match mềm (bỏ khoảng trắng/gạch/hoa-thường) và tự repair khi header đổi nhẹ.
-- Template thư viện đóng gói sẵn dùng file nhúng `sample-data.xlsx`, giải nén ra `%LocalAppData%\ANLAbel\` và tự vá `FilePath` lúc Materialize.
+- Template thư viện: **từ commit `c3da135` không còn ship `sample-data.xlsx` và không tự gắn link Excel** — `DatabaseConfig` để trống, người dùng tự Import Excel sau khi mở template (quyết định chủ dự án 2026-07-02).
 
 ### Điểm yếu chính
 
@@ -47,6 +53,18 @@ Luồng dữ liệu hiện tại của một template `.anlabel`:
 6b. ✅ **Cancel/timeout khi đọc file** (điểm yếu 8): `CancellationToken` cho `GetSheetNames`/`LoadSheetAsync`, nút Cancel trên UI, timeout 30s cho đường dẫn UNC/network và mở stream bằng `FileShare.ReadWrite`. Luồng re-link cũng dùng API async, không đọc workbook trên UI thread.
 6c. **Báo cáo schema sau import/refresh** (điểm yếu 9): gom mọi `BindingExpression`/formula trong template → danh sách cột cần có → so với header thực tế → hiện tóm tắt cột thiếu một chỗ (status bar + dialog khi mở template). Cache kết quả đọc theo `(path, sheet, LastWriteTimeUtc)` để refresh không đọc lại file chưa đổi.
 
+### Giai đoạn TC — Siết tin cậy database (ưu tiên mới 2026-07-02, làm trước GĐ3)
+
+Mục tiêu: mọi con đường dữ liệu đi vào tem đều **đoán được và kiểm chứng được**. Các hạng mục:
+
+TC1. **Báo cáo schema một chỗ** — ⚠️ **đã có sẵn phần lớn khi audit lại code** (không phải làm từ đầu): `MainViewModel.GetBindingIssues()` + panel "Binding Issues" (`MainWindow.xaml` dòng ~638) đã liệt kê từng object có `BindingExpression` bị thiếu cột/lỗi, tự refresh sau `RaiseDatabaseFieldStateChanged()` (gọi sau Import/Refresh/thêm-xoá field). ✅ 2026-07-02 (v0.060) bổ sung thêm: `StatusText` sau `ImportExcelAsync` giờ nối thêm số lượng object có vấn đề binding, vd. `"Imported 40 rows from data.xlsx / Sheet1 — 2 object(s) have missing/broken bindings"` — để người dùng thấy ngay không cần mở panel. Còn thiếu (chưa làm): chặn/cảnh báo cứng lúc **in** khi thiếu cột (nối với preflight, xem `docs/print-preview-reliability-plan.md`).
+TC2. ✅ **Kiểm chứng round-trip khi save/open** (v0.061): test `database config full round trip` — populate đầy đủ `DatabaseConfig` (DataSourceId, FilePath, RelativePath, SheetName, HeaderRowIndex, KeyField, KeyValue, LastSelectedRow, AvailableFields, LabelFields) qua `ProjectFileService.SaveAsync`/`LoadAsync`, assert từng field giữ nguyên sau round-trip JSON.
+TC3. **Trạng thái link hiển thị tường minh** — ⚠️ **đã có sẵn phần lớn**: panel Database (`MainWindow.xaml` ~dòng 606-609) đã hiển thị `LinkedExcelSourceText` (file/sheet), `ExcelLinkStatusText` (cảnh báo đỏ khi hỏng) + nút `RelinkExcelCommand`. ✅ 2026-07-02 (v0.060) bổ sung `ExcelDataFreshnessText` ("Data read at HH:mm:ss") ngay dưới tên file/sheet — phần còn thiếu duy nhất là hiển thị số dòng ngay tại đây (hiện số dòng chỉ có trong `CurrentExcelRowText` ở khu vực DataGrid, không phải cùng chỗ với trạng thái link).
+TC4. **Cache + so `LastWriteTimeUtc`** — ✅ **đã làm xong (v0.060)**: `MainViewModel` lưu `_excelDataSourceWriteTimeUtc` sau mỗi import; `RefreshExcelDataAsync()` gọi `TryGetFileWriteTimeUtc()` (stat file, không đọc nội dung) so với giá trị đã lưu — nếu trùng thì bỏ qua đọc lại, báo `"Excel data already up to date (Data read at HH:mm:ss) — file has not changed since last read"`; nếu khác thì đọc lại như cũ. Test: `excel refresh skips unchanged file` (PASS) — kiểm cả 2 nhánh (file không đổi → skip; file đổi nội dung + write time → đọc lại).
+TC5. **Không mất lựa chọn dòng khi refresh**: giữ đúng bản ghi theo `KeyField`/`KeyValue` (backend đã có, `FindRowIndexByKeyField`), thêm UI chọn KeyField + cảnh báo khi key không còn tồn tại sau refresh (backend đã cảnh báo qua `StatusText`, còn thiếu UI chọn field). **Còn thiếu UI chọn KeyField.**
+TC6. ✅ **Nhật ký thao tác dữ liệu** (v0.061): `DataOperationLogService` (mới, `src/ANLAbel.Data/DataLogs/`) ghi 1 dòng JSON (`.jsonl`) mỗi lần import/refresh/relink/mở-lại-link vào `%LocalAppData%\ANLAbel\logs\data-operations.jsonl`: thời điểm, `Operation` (Import/Refresh/Relink/Open), đường dẫn Excel, sheet, số dòng, số cột, thành công/thất bại + thông điệp lỗi. Ghi kiểu fire-and-forget (`Task.Run`, không await) và nuốt mọi `IOException`/`UnauthorizedAccessException` — lỗi ghi log không bao giờ làm hỏng thao tác dữ liệu chính, đúng tinh thần "best-effort trace". Nối vào `MainViewModel.ImportExcelAsync` (điểm hội tụ chung của cả 4 luồng) qua overload private nhận `operation` label. Test: `data operation log records import success and failure` — kiểm cả nhánh thành công (ghi đúng RowCount) và nhánh thất bại (sheet không tồn tại → vẫn ném exception như cũ cho UI xử lý, đồng thời ghi log lỗi).
+TC7. **Test bao phủ các ca hỏng**: file bị khoá (đang mở Excel — đã có `IOException` message riêng), file mất giữa chừng, sheet bị đổi tên, header trùng tên cột (đã có `MakeUniqueHeader` xử lý), ô rỗng/merge cell, file .xlsx hỏng — cần bổ sung test tự động cho các ca chưa có coverage (mất file giữa chừng, sheet đổi tên, file .xlsx hỏng/corrupt). **Phần lớn hành vi runtime đã đúng, còn thiếu test tự động xác nhận.**
+
 ### Giai đoạn 3 — Mở rộng nguồn và hiệu năng
 
 7. **CSV** (UTF-8, chọn delimiter) qua cùng interface `IDataSourceReader` — `ExcelDataService` hiện tại trở thành 1 implementation.
@@ -57,10 +75,10 @@ Luồng dữ liệu hiện tại của một template `.anlabel`:
 ## Ràng buộc phải giữ
 
 - Tương thích ngược: mọi file `.anlabel` cũ (chỉ có `FilePath` tuyệt đối) phải mở được y như trước.
-- Không phá cơ chế template thư viện (`sample-data.xlsx` nhúng + vá path lúc Materialize) — Giai đoạn 1 phải xử lý trường hợp này như một source đặc biệt.
+- Template thư viện luôn standalone (không link Excel, không ship file dữ liệu) — mọi thay đổi không được phá test `template library standalone (no sample-data link)`.
 - Mọi thao tác đọc file phải chạy nền (rule 7 trong `agent.md`), có wait indicator, bắt riêng `IOException` file đang bị Excel khoá.
 - Mỗi giai đoạn xong phải: build PASS, test PASS, bump version hiển thị, cập nhật `PLAN.md`/`MASTER_PLAN.md`.
 
 ## Thứ tự làm đề xuất
 
-Giai đoạn 1 (mục 1-3) làm trước — giải quyết trực tiếp nỗi đau hiện tại, chạm ít code. Giai đoạn 2 làm khi người dùng xác nhận cần dùng chung source giữa nhiều template. Giai đoạn 3 theo nhu cầu thực tế.
+Giai đoạn 1 ✅ xong. Thứ tự tiếp theo (định hướng 2026-07-02): **Giai đoạn TC (siết tin cậy) → hoàn thiện GĐ2 (nối registry vào UI, watcher, KeyField UI) → GĐ3 theo nhu cầu thực tế.** Mỗi đợt: build + test PASS, bump version, cập nhật `MASTER_PLAN.md`.

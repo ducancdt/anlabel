@@ -225,6 +225,17 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PositionSizeTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox textBox)
+        {
+            return;
+        }
+
+        textBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        e.Handled = true;
+    }
+
     private void ObjectTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
         if (sender is not TextBox textBox || !CanApplyTextBoxInput(textBox, e.Text))

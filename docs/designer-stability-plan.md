@@ -66,7 +66,7 @@ Nguyên nhân bổ sung phía input/UX (điều tra lần 2 cùng ngày, cùng f
 
 Thay đổi hành vi auto-fit là thay đổi UX có chủ đích (text sẽ không còn tự co giãn theo row Excel). Cần xác nhận với người dùng trước khi làm Bước 2 — nếu vẫn muốn auto-fit theo row, phương án thay thế là fit **chỉ phần hiển thị** (visual) mà không ghi vào model, giữ `WidthMm/HeightMm` trong file `.anlabel` cố định.
 
-## Tiến độ triển khai 0.058
+## Tiến độ triển khai 0.058–0.061
 
 - [x] Render và đổi `PreviewRow` chỉ đọc geometry model; text fit chỉ thay kích thước visual.
 - [x] Matrix barcode không còn bị ép vuông trong render pass; việc ép vuông chạy khi property Width/Height đổi.
@@ -74,6 +74,7 @@ Thay đổi hành vi auto-fit là thay đổi UX có chủ đích (text sẽ kh�
 - [x] Snap giảm còn 1 mm; giữ Alt để tạm tắt; drag đơn được clamp đủ bốn cạnh.
 - [x] Lost mouse capture/Esc khôi phục toàn bộ group drag và xoá trạng thái kéo.
 - [x] Có test đổi preview row với chuỗi ngắn/dài nhưng geometry model không đổi.
-- [ ] Toggle "Snap to objects" và status bar cho keyboard nudge để lại cho đợt UI kế tiếp.
+- [x] Toggle "Snap to objects" trên ribbon + context menu canvas; lưu lựa chọn tại `%LocalAppData%\ANLAbel\designer-preferences.json`; giữ Alt vẫn tạm bỏ snap.
+- [x] Keyboard nudge cập nhật status bar với X/Y mới (một object) hoặc số object đã di chuyển (group).
 - [x] Build PASS, `ANLAbel.Tests` 22/22 PASS, `ANLAbel.UnitTests` 31/31 PASS; app mở responsive với title `v0.058`.
 - [ ] Kiểm tra tay sâu bằng template nhiều text binding/QR trên dữ liệu sản xuất thật để đánh giá cảm giác kéo/snap.

@@ -19,6 +19,7 @@ using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Core.Mvvm;
+using ANLAbel.Data.DataLogs;
 using ANLAbel.Data.Excel;
 using ANLAbel.Data.PrintLogs;
 using ANLAbel.Project.SaveLoad;
@@ -48,6 +49,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly PrintService _printService;
     private readonly PrinterDiscoveryService _printerDiscoveryService;
     private readonly PrintLogService _printLogService;
+    private readonly DataOperationLogService _dataOperationLogService;
     private readonly IBarcodeRenderer _barcodeValidator = new ZxingBarcodeRenderer();
     private readonly QrCapacityTable _qrCapacityTable = new();
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
@@ -80,6 +82,8 @@ public sealed class MainViewModel : ObservableObject
     private bool _isPropertiesVisible = true;
     private BindingIssueSummary? _selectedBindingIssue;
     private bool _isExcelLinkBroken;
+    private DateTime? _excelDataReadAtLocal;
+    private DateTime? _excelDataSourceWriteTimeUtc;
 
     private static readonly JsonSerializerOptions HistoryJsonOptions = new()
     {
@@ -88,17 +92,18 @@ public sealed class MainViewModel : ObservableObject
     };
 
     public MainViewModel()
-        : this(new ProjectFileService(), new ExcelDataService(), new PrintService(), new PrinterDiscoveryService(), new PrintLogService())
+        : this(new ProjectFileService(), new ExcelDataService(), new PrintService(), new PrinterDiscoveryService(), new PrintLogService(), new DataOperationLogService())
     {
     }
 
-    public MainViewModel(IProjectFileService projectFileService, ExcelDataService excelDataService, PrintService printService, PrinterDiscoveryService printerDiscoveryService, PrintLogService printLogService)
+    public MainViewModel(IProjectFileService projectFileService, ExcelDataService excelDataService, PrintService printService, PrinterDiscoveryService printerDiscoveryService, PrintLogService printLogService, DataOperationLogService? dataOperationLogService = null)
     {
         _projectFileService = projectFileService;
         _excelDataService = excelDataService;
         _printService = printService;
         _printerDiscoveryService = printerDiscoveryService;
         _printLogService = printLogService;
+        _dataOperationLogService = dataOperationLogService ?? new DataOperationLogService();
         AddTextCommand = new RelayCommand(AddText);
         AddTextBoxCommand = new RelayCommand(AddTextBox);
         AddExcelFieldCommand = new RelayCommand(parameter => AddExcelField(GetFieldName(parameter)), parameter => !string.IsNullOrWhiteSpace(GetFieldName(parameter)));
@@ -319,6 +324,9 @@ public sealed class MainViewModel : ObservableObject
         : "No Excel file linked";
     public string ExcelLinkStatusText => IsExcelLinkBroken
         ? "⚠ Excel link broken — click Relink to locate the file"
+        : string.Empty;
+    public string ExcelDataFreshnessText => HasLinkedExcelSource && !IsExcelLinkBroken && _excelDataReadAtLocal is not null
+        ? $"Data read at {_excelDataReadAtLocal.Value:HH:mm:ss}"
         : string.Empty;
     public string CurrentExcelRowText => ExcelDataView is null || ExcelDataView.Count == 0 || SelectedDataItem is not DataRowView rowView
         ? "No Excel row selected"
@@ -623,7 +631,22 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task ImportExcelAsync(string filePath, string sheetName, CancellationToken cancellationToken = default)
     {
-        var table = await _excelDataService.LoadSheetAsync(filePath, sheetName, Template.DatabaseConfig.HeaderRowIndex, cancellationToken);
+        await ImportExcelAsync(filePath, sheetName, "Import", cancellationToken);
+    }
+
+    private async Task ImportExcelAsync(string filePath, string sheetName, string operation, CancellationToken cancellationToken = default)
+    {
+        DataTable table;
+        try
+        {
+            table = await _excelDataService.LoadSheetAsync(filePath, sheetName, Template.DatabaseConfig.HeaderRowIndex, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogDataOperation(operation, filePath, sheetName, rowCount: 0, columnCount: 0, success: false, ex.Message);
+            throw;
+        }
+
         ExcelDataView = table.DefaultView;
         ExcelHeaders.Clear();
         foreach (DataColumn column in table.Columns)
@@ -655,7 +678,36 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasLinkedExcelSource));
         OnPropertyChanged(nameof(LinkedExcelSourceText));
         OnPropertyChanged(nameof(CurrentExcelRowText));
-        StatusText = $"Imported {table.Rows.Count} rows from {Path.GetFileName(filePath)} / {sheetName}";
+
+        _excelDataReadAtLocal = DateTime.Now;
+        _excelDataSourceWriteTimeUtc = TryGetFileWriteTimeUtc(filePath);
+        OnPropertyChanged(nameof(ExcelDataFreshnessText));
+
+        var issueCount = GetBindingIssues().Count;
+        var issueSuffix = issueCount > 0 ? $" — {issueCount} object(s) have missing/broken bindings" : string.Empty;
+        StatusText = $"Imported {table.Rows.Count} rows from {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
+        LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: true, errorMessage: string.Empty);
+    }
+
+    /// <summary>
+    /// Fire-and-forget append to the local data-operation log (database-plan.md TC6).
+    /// Never awaited and never allowed to throw — a logging failure must not affect
+    /// the data operation that triggered it.
+    /// </summary>
+    private void LogDataOperation(string operation, string excelFilePath, string sheetName, int rowCount, int columnCount, bool success, string errorMessage)
+    {
+        var entry = new DataOperationLogEntry
+        {
+            Operation = operation,
+            TemplateFilePath = CurrentFilePath,
+            ExcelFilePath = excelFilePath,
+            SheetName = sheetName,
+            RowCount = rowCount,
+            ColumnCount = columnCount,
+            Success = success,
+            ErrorMessage = errorMessage
+        };
+        _ = _dataOperationLogService.AppendAsync(entry);
     }
 
     public async Task RefreshExcelDataAsync()
@@ -666,8 +718,35 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName);
-        StatusText = $"Excel data refreshed: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
+        var currentWriteTimeUtc = TryGetFileWriteTimeUtc(Template.DatabaseConfig.FilePath);
+        if (currentWriteTimeUtc is not null && currentWriteTimeUtc == _excelDataSourceWriteTimeUtc)
+        {
+            StatusText = $"Excel data already up to date ({ExcelDataFreshnessText}) — file has not changed since last read";
+            return;
+        }
+
+        await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName, "Refresh");
+    }
+
+    /// <summary>
+    /// Reads the file's last-write time for freshness/cache comparisons. Returns null
+    /// if the file is missing or inaccessible rather than throwing — this is a best-effort
+    /// metadata check, not a critical read path.
+    /// </summary>
+    private static DateTime? TryGetFileWriteTimeUtc(string filePath)
+    {
+        try
+        {
+            return File.Exists(filePath) ? File.GetLastWriteTimeUtc(filePath) : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -735,7 +814,7 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName);
+            await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName, "Open");
             IsExcelLinkBroken = false;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link restored: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
         }
@@ -801,7 +880,7 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            await ImportExcelAsync(filePath, sheetName);
+            await ImportExcelAsync(filePath, sheetName, "Relink");
             IsExcelLinkBroken = false;
             StatusText = $"Excel re-linked: {Path.GetFileName(filePath)} / {sheetName}";
         }
