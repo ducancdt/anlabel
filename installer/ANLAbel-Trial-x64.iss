@@ -3,15 +3,15 @@
 [Setup]
 AppId={{5E638998-0D16-4AE0-9E8E-54D84FA26E4A}
 AppName=ANLAbel Trial - Label Designer
-AppVersion=0.085
+AppVersion=0.086
 AppPublisher=Duc An
 AppPublisherURL=https://github.com/ducancdt
 AppSupportURL=mailto:ducancdt@gmail.com
 DefaultDirName={localappdata}\Programs\ANLAbel Trial
 DefaultGroupName=ANLAbel Trial
-LicenseFile=..\docs\license-notices.md
-OutputDir=..\releases\ANLAbel-Trial-7-Day-v0.085
-OutputBaseFilename=ANLAbel-Trial-7-Day-v0.085-Setup-x64
+LicenseFile=..\LICENSE
+OutputDir=..\releases\ANLAbel-Trial-7-Day-v0.086
+OutputBaseFilename=ANLAbel-Trial-7-Day-v0.086-Setup-x64
 SetupIconFile=..\src\ANLAbel.App\anlabel.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -21,7 +21,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\ANLAbel.App.exe
 UninstallDisplayName=ANLAbel Trial 7 Day
-VersionInfoVersion=0.085.0.0
+VersionInfoVersion=0.086.0.0
 VersionInfoCompany=Duc An
 VersionInfoDescription=ANLAbel Trial - 7 Day
 VersionInfoCopyright=Copyright (c) Duc An
@@ -41,6 +41,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "..\publish_out\trial-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\docs\huong-dan-su-dung-ANLAbel.txt"; DestDir: "{app}\docs"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE"; Flags: ignoreversion
 Source: "..\docs\license-notices.md"; DestDir: "{app}\docs"; Flags: ignoreversion
 Source: "..\docs\huong-dan-trial-va-kich-hoat.txt"; DestDir: "{app}\docs"; Flags: ignoreversion
 
