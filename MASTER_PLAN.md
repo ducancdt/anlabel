@@ -8,8 +8,8 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 ## Trang thai hien tai (2026-07-03)
 
-- Version hien thi trong app: `0.085`.
-- Build: `dotnet build ANLAbel.slnx --no-restore` PASS (0 warning, 0 error). Test: `ANLAbel.Tests` 50/50 PASS; `ANLAbel.UnitTests` 45/45 PASS (bao gom TC7 reliability). Smoke: app responsive, title `ANLAbel - Label Designer v0.085`.
+- Version hien thi trong app: `0.086`.
+- Build: `dotnet build ANLAbel.slnx --no-restore` PASS (0 warning, 0 error). Test: `ANLAbel.Tests` 51/51 PASS; `ANLAbel.UnitTests` 45/45 PASS (bao gom TC7 reliability). Smoke: app responsive, title `ANLAbel - Label Designer v0.086`.
 - Doc Excel: `ExcelDataService` (ANLAbel.Data) dung `ExcelDataReader` (streaming, nhe RAM) thay cho `ClosedXML` (DOM day du, ton RAM) tu v0.083 — xem muc 35. Timeout cung 45s cho moi thao tac doc file cuc bo tu v0.084 (safety net, chua phai fix tan goc) — xem muc 36.
 - Print History: chuyen tu Excel-ghi-lai-toan-bo-moi-lan-in sang CSV append-only (O(1) moi lan in) tu v0.085 + nut "Export to Excel" rieng de xuat bao cao dep khi can — xem muc 37. Khong con tu dong mo Excel sau moi lan in.
 - **CANH BAO CHUA GIAI QUYET XONG**: mot may 4GB RAM cua chu du an van bao treo khi Import Excel ke ca sau khi doi thu vien doc Excel (v0.083) voi file NHO (<500 dong) — treo VINH VIEN vai phut, khong phai cham. Nguyen nhan that su CHUA XAC DINH DUOC, khong tai hien duoc trong moi truong nay. v0.084 chi them luoi an toan (timeout 45s) de tranh phai Task-Manager-kill, KHONG phai fix goc. Xem chi tiet dieu tra + huong lam tiep o muc 36.
@@ -239,6 +239,10 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
    - Xac nhan bang tay qua UI that: bam "Print History" khi chua tung in (bao dung "Print history file has not been created yet", khong crash), bam "Export to Excel" khi log rong (xuat thanh cong, khong crash, hoi mo file dung cach).
    - Build PASS, `ANLAbel.Tests` 49/49 → 50/50 PASS, `ANLAbel.UnitTests` 45/45 PASS, smoke app PASS. Version `0.084` → `0.085`. Da build lai Trial installer: `releases/ANLAbel-Trial-7-Day-v0.085/ANLAbel-Trial-7-Day-v0.085-Setup-x64.exe`.
    - **Luu y**: khong tu dong chuyen du lieu cu tu `print-history.xlsx` (neu co tu ban truoc) sang `print-history.csv` moi — file cu van con nguyen tren may, log moi bat dau ghi tu dau tu ban v0.085 tro di. Khong lam migration tu dong vi nam ngoai pham vi yeu cau va them rui ro khong can thiet.
+38. **Chuyen ANLAbel thanh du an ma nguon mo GPL-3.0-only**, v0.086:
+   - Them `LICENSE` chuan GNU GPL v3, `README.md`, `CONTRIBUTING.md` va GitHub Actions CI.
+   - Xoa tuyen bo proprietary trong Help/About; thay bang quyen su dung, sua doi va phan phoi theo GPL, thong bao khong bao hanh va duong dan source.
+   - Cac installer dong goi kem `LICENSE`; thu vien ben thu ba van giu giay phep rieng trong `docs/license-notices.md`.
 
 ## Dinh huong moi tu chu du an (2026-07-02, chieu) — thu tu uu tien
 
