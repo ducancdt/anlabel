@@ -873,8 +873,13 @@ public partial class HelpWindow : Window
         ab.Children.Add(P("Email: ducancdt@gmail.com"));
         ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.053"));
         ab.Children.Add(H2(vi ? "Bản quyền" : "Copyright"));
-        ab.Children.Add(P("Copyright © 2024–2026 Duc An. " + (vi ? "Bảo lưu mọi quyền." : "All rights reserved.")));
-        ab.Children.Add(P(vi ? "Phần mềm này là sở hữu độc quyền. Nghiêm cấm sao chép, phân phối lại hoặc dịch ngược mã nguồn khi chưa có văn bản cho phép của tác giả." : "This software is proprietary. Redistribution or reverse engineering without written permission is prohibited."));
+        ab.Children.Add(P("Copyright © 2024–2026 Duc An."));
+        ab.Children.Add(P(vi
+            ? "ANLAbel là phần mềm tự do, được cấp phép theo GNU General Public License phiên bản 3.0 (GPL-3.0-only). Bạn được quyền sử dụng, nghiên cứu, sửa đổi và phân phối lại theo các điều khoản của GPL. Mã nguồn: https://github.com/ducancdt/anlabel"
+            : "ANLAbel is free software licensed under the GNU General Public License version 3.0 (GPL-3.0-only). You may use, study, modify, and redistribute it under the GPL terms. Source code: https://github.com/ducancdt/anlabel"));
+        ab.Children.Add(P(vi
+            ? "Phần mềm được cung cấp KHÔNG KÈM BẤT KỲ BẢO HÀNH NÀO. Bản sửa đổi được phân phối phải giữ giấy phép GPL và cung cấp mã nguồn tương ứng."
+            : "This software is provided WITHOUT ANY WARRANTY. Distributed modified versions must preserve the GPL and provide the corresponding source code."));
         ab.Children.Add(H2(vi ? "Giấy phép thư viện bên thứ ba" : "Third-Party Licenses"));
         ab.Children.Add(P(vi ? "ANLAbel sử dụng các thư viện mã nguồn mở. Thông báo giấy phép được ghi lại bên dưới theo yêu cầu." : "ANLAbel includes open-source components. Their license notices are reproduced below as required."));
         ab.Children.Add(LicenseBox("ZXing.Net — Apache License 2.0",

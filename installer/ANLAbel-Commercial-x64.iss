@@ -3,15 +3,15 @@
 [Setup]
 AppId={{A8B2C3D4-E5F6-4789-ABCD-EF0123456789}
 AppName=ANLAbel - Label Designer
-AppVersion=0.085
+AppVersion=0.086
 AppPublisher=Duc An
 AppPublisherURL=https://github.com/ducancdt
 AppSupportURL=mailto:ducancdt@gmail.com
 DefaultDirName={localappdata}\Programs\ANLAbel
 DefaultGroupName=ANLAbel
-LicenseFile=..\docs\license-notices.md
-OutputDir=..\releases\ANLAbel-Commercial-v0.085
-OutputBaseFilename=ANLAbel-Commercial-v0.085-Setup-x64
+LicenseFile=..\LICENSE
+OutputDir=..\releases\ANLAbel-Commercial-v0.086
+OutputBaseFilename=ANLAbel-Commercial-v0.086-Setup-x64
 SetupIconFile=..\src\ANLAbel.App\anlabel.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -20,7 +20,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\ANLAbel.App.exe
-VersionInfoVersion=0.085.0.0
+VersionInfoVersion=0.086.0.0
 VersionInfoCompany=Duc An
 VersionInfoDescription=ANLAbel Commercial - Label Designer
 ; Update-in-place: AppId co dinh nen chay lai installer se tu cap nhat dung thu muc cu.
@@ -37,6 +37,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "..\publish_out\commercial-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\docs\huong-dan-su-dung-ANLAbel.txt"; DestDir: "{app}\docs"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE"; Flags: ignoreversion
 Source: "..\docs\license-notices.md"; DestDir: "{app}\docs"; Flags: ignoreversion
 
 [Icons]
