@@ -9,6 +9,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using ANLAbel.App.Services;
 using ANLAbel.App.ViewModels;
 using ANLAbel.Core.Enums;
@@ -28,6 +29,7 @@ public partial class PrintPreviewWindow : Window
     private readonly DataView? _excelDataView;
     private readonly PrintService _printService;
     private readonly PrintLogService _printLogService;
+    private readonly PrintOperationLogService _printOperationLogService = new();
     private readonly PrinterDiscoveryService _printerDiscoveryService = new();
     private readonly string _templateFilePath;
     private string _selectedPrinterName = string.Empty;
@@ -38,6 +40,10 @@ public partial class PrintPreviewWindow : Window
     private PrintPreflightResult _preflightResult = new(Array.Empty<PrintPreflightIssue>());
     private readonly List<TrackingRowViewModel> _trackingRows = new();
     private bool _isRefreshing;
+    private readonly DateTime? _excelKnownWriteTimeUtc;
+    private IReadOnlyDictionary<string, string>?[] _allRowsCache = Array.Empty<IReadOnlyDictionary<string, string>?>();
+    private readonly DispatcherTimer _filterDebounceTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private const string AllColumnsFilterOption = "(All columns)";
 
     public PrintPreviewWindow(LabelTemplate template, IReadOnlyDictionary<string, string>? currentRow, DataView? excelDataView, PrintService printService, PrintLogService printLogService, string templateFilePath)
     {
@@ -54,6 +60,7 @@ public partial class PrintPreviewWindow : Window
         _printLogService = printLogService;
         _templateFilePath = templateFilePath;
         _selectedPrinterName = template.PrinterProfile.PrinterName;
+        _excelKnownWriteTimeUtc = TryGetExcelWriteTimeUtc();
 
         // Restore saved printer preferences if no printer configured yet
         if (string.IsNullOrWhiteSpace(_selectedPrinterName))
@@ -71,6 +78,11 @@ public partial class PrintPreviewWindow : Window
         }
 
         DataContext = this;
+        _filterDebounceTimer.Tick += (_, _) =>
+        {
+            _filterDebounceTimer.Stop();
+            RefreshPreviewPagesOnly();
+        };
 
         try
         {
@@ -88,6 +100,34 @@ public partial class PrintPreviewWindow : Window
     public PrintPreviewPageViewModel? CurrentPage => Pages.Count == 0 ? null : Pages[Math.Max(0, Math.Min(Pages.Count - 1, _currentPageIndex))];
     public string PrinterName => string.IsNullOrWhiteSpace(_selectedPrinterName) ? "(no printer selected)" : _selectedPrinterName;
     public string LabelSizeText => $"Label: {_template.WidthMm:0.##} × {_template.HeightMm:0.##} mm | DPI: {_template.PrinterProfile.Dpi}";
+
+    /// <summary>
+    /// Print-preview-reliability-plan Đợt 2 item 6: makes explicit that this preview is
+    /// simulating the exact <see cref="ANLAbel.Printing.RenderPipeline.PrintRenderPlan"/>
+    /// values (offset/rotate/margin from <see cref="PrinterProfile"/>) that will be used
+    /// for the real print job — not a generic "as designed" view.
+    /// </summary>
+    public string PrintPlanSummaryText
+    {
+        get
+        {
+            var profile = _template.PrinterProfile;
+            var parts = new List<string>
+            {
+                $"Plan: {profile.Dpi} DPI",
+                $"offset {profile.OffsetXMm:0.##}/{profile.OffsetYMm:0.##} mm"
+            };
+            if (profile.Rotated180)
+            {
+                parts.Add("rotated 180°");
+            }
+            if (_template.MarginMm > 0)
+            {
+                parts.Add($"margin {_template.MarginMm:0.##} mm");
+            }
+            return string.Join(" · ", parts);
+        }
+    }
     public string PageCountText => $"Labels/pages: {Pages.Count}";
     public string PageInput
     {
@@ -163,35 +203,208 @@ public partial class PrintPreviewWindow : Window
     {
         try
         {
+            if (IsLinkedExcelDataStale())
+            {
+                var choice = MessageBox.Show(
+                    this,
+                    "The linked Excel file has changed since this preview was opened. Printing now may use outdated data.\n\nClose this window and click Update Excel to refresh, or continue printing with the data currently shown here?\n\nYes = print with the data shown here\nNo = cancel and go update first",
+                    "Excel data may be outdated",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                if (choice != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
             ApplyPrintSetup();
-            var rows = GetSelectedRows().ToArray();
-            if (rows.Length == 0)
+            var selected = GetSelectedRowsWithSource();
+            if (selected.Length == 0)
             {
                 MessageBox.Show(this, "No rows selected for printing. Use checkboxes to select rows.", "Print", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
+            // Đợt 4 item 11 — "chống trùng tem": warn before re-sending a row that was
+            // already printed earlier in this same preview session.
+            var alreadyPrintedRows = selected.Select(entry => entry.SourceRowNumber).Distinct()
+                .Where(rowNumber => _trackingRows.FirstOrDefault(r => r.SourceRowNumber == rowNumber)?.IsPrinted == true)
+                .OrderBy(n => n)
+                .ToArray();
+            if (alreadyPrintedRows.Length > 0)
+            {
+                var choice = MessageBox.Show(
+                    this,
+                    $"{alreadyPrintedRows.Length} selected row(s) were already printed earlier in this session (Row {string.Join(", ", alreadyPrintedRows)}).\n\nPrinting again may create duplicate labels. Continue?",
+                    "Rows already printed this session",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                if (choice != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            var rows = selected.Select(entry => entry.Row).ToArray();
             var preflight = _printService.ValidateRows(_template, rows);
+            var skippedSourceRows = Array.Empty<int>();
             if (!preflight.IsSuccess)
             {
-                _preflightResult = preflight;
-                OnPropertyChanged();
-                MessageBox.Show(this, preflight.ToUserMessage(), "Print blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                // Đợt 4 item 10 — "bỏ qua dòng lỗi, in các dòng còn lại": map the
+                // flattened-row-index issues back to their originating tracking rows so
+                // the user can choose to print just the rows that pass preflight.
+                var badSourceRows = preflight.Issues
+                    .Where(issue => issue.RowNumber > 0 && issue.RowNumber <= selected.Length)
+                    .Select(issue => selected[issue.RowNumber - 1].SourceRowNumber)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToArray();
+                var totalSelectedRows = selected.Select(entry => entry.SourceRowNumber).Distinct().Count();
+
+                if (badSourceRows.Length == 0 || badSourceRows.Length >= totalSelectedRows)
+                {
+                    // Template-level issue (object outside label, etc.) or every row is
+                    // bad — nothing safe to print, block the whole job as before.
+                    _preflightResult = preflight;
+                    OnPropertyChanged();
+                    MessageBox.Show(this, preflight.ToUserMessage(), "Print blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var remainingCount = totalSelectedRows - badSourceRows.Length;
+                var choice = MessageBox.Show(
+                    this,
+                    $"{badSourceRows.Length} row(s) have preflight issues and will be skipped:\nRow {string.Join(", ", badSourceRows)}\n\n{preflight.ToUserMessage(5)}\n\nPrint the remaining {remainingCount} row(s) instead?",
+                    "Some rows blocked",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Warning);
+                if (choice != MessageBoxResult.Yes)
+                {
+                    _preflightResult = preflight;
+                    OnPropertyChanged();
+                    return;
+                }
+
+                foreach (var vm in _trackingRows.Where(r => badSourceRows.Contains(r.SourceRowNumber)))
+                {
+                    vm.IsSelected = false;
+                }
+                skippedSourceRows = badSourceRows;
+                selected = GetSelectedRowsWithSource();
+                rows = selected.Select(entry => entry.Row).ToArray();
+                if (rows.Length == 0)
+                {
+                    MessageBox.Show(this, "No rows left to print after skipping the blocked ones.", "Print", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                preflight = _printService.ValidateRows(_template, rows);
+                if (!preflight.IsSuccess)
+                {
+                    _preflightResult = preflight;
+                    OnPropertyChanged();
+                    MessageBox.Show(this, preflight.ToUserMessage(), "Print blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
             }
 
             _printService.PrintRows(_template, rows, _selectedPrinterName, $"{_template.Name} preview print");
+            LogPrintOperation(rows.Length, success: true, errorMessage: string.Empty);
             await WritePrintHistoryAsync(rows);
+
+            foreach (var sourceRowNumber in selected.Select(entry => entry.SourceRowNumber).Distinct())
+            {
+                var vm = _trackingRows.FirstOrDefault(r => r.SourceRowNumber == sourceRowNumber);
+                if (vm is not null)
+                {
+                    vm.IsPrinted = true;
+                }
+            }
+
+            // Đợt 4 item 10 — batch report so the user knows exactly what happened,
+            // not just "a print job was sent".
+            var printedRowCount = selected.Select(entry => entry.SourceRowNumber).Distinct().Count();
+            var summary = $"Printed {rows.Length} label(s) from {printedRowCount} row(s).";
+            if (skippedSourceRows.Length > 0)
+            {
+                summary += $"\nSkipped {skippedSourceRows.Length} row(s) with preflight issues: Row {string.Join(", ", skippedSourceRows)}.";
+            }
+            summary += $"\n\nHistory: {_printLogService.LogFilePath}";
+            MessageBox.Show(this, summary, "Print complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            OnPropertyChanged();
         }
         catch (Exception ex)
         {
+            LogPrintOperation(0, success: false, ex.Message);
             MessageBox.Show(this, ex.Message, "Print failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    /// <summary>
+    /// Fire-and-forget job-level print trace (print-preview-reliability-plan.md item 3),
+    /// separate from the human-facing print-history.csv written by
+    /// <see cref="WritePrintHistoryAsync"/>.
+    /// </summary>
+    private void LogPrintOperation(int labelsPrinted, bool success, string errorMessage)
+    {
+        var entry = new PrintOperationLogEntry
+        {
+            TemplateName = _template.Name,
+            TemplateFilePath = _templateFilePath,
+            PrinterName = _selectedPrinterName,
+            LabelWidthMm = _template.PrinterProfile.LabelWidthMm,
+            LabelHeightMm = _template.PrinterProfile.LabelHeightMm,
+            Dpi = _template.PrinterProfile.Dpi,
+            PrintMode = "Print Preview",
+            RowsSelected = _trackingRows.Count(r => r.IsSelected),
+            LabelsPrinted = labelsPrinted,
+            Success = success,
+            ErrorMessage = errorMessage
+        };
+        _ = _printOperationLogService.AppendAsync(entry);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    /// <summary>
+    /// Reads the linked Excel file's last-write time for the freshness check below.
+    /// Best-effort only — a missing/locked file must not block printing here (the
+    /// preflight/print pipeline already handles the "no data" case separately).
+    /// </summary>
+    private DateTime? TryGetExcelWriteTimeUtc()
+    {
+        var filePath = _template.DatabaseConfig.FilePath;
+        try
+        {
+            return !string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath) ? File.GetLastWriteTimeUtc(filePath) : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Print-preview-reliability-plan R2: warns before printing if the linked Excel file
+    /// changed after this preview window captured its snapshot of the data, since the
+    /// rows shown/printed here would otherwise silently be stale.
+    /// </summary>
+    private bool IsLinkedExcelDataStale()
+    {
+        if (_excelKnownWriteTimeUtc is null)
+        {
+            return false;
+        }
+
+        var currentWriteTimeUtc = TryGetExcelWriteTimeUtc();
+        return currentWriteTimeUtc is not null && currentWriteTimeUtc != _excelKnownWriteTimeUtc;
     }
 
     private void PreviewScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -351,13 +564,123 @@ public partial class PrintPreviewWindow : Window
 
     private void SelectAllToggle_Click(object sender, RoutedEventArgs e)
     {
-        var allSelected = _trackingRows.Count > 0 && _trackingRows.All(r => r.IsSelected);
+        // Acts on whatever rows are currently visible, so it stays intuitive while a
+        // row filter is active (e.g. "select all" only checks the matching rows, not
+        // the hundreds of rows currently hidden by the filter).
+        var visibleRows = (TrackingList.ItemsSource as IEnumerable<TrackingRowViewModel> ?? _trackingRows).ToArray();
+        var allSelected = visibleRows.Length > 0 && visibleRows.All(r => r.IsSelected);
         var newState = !allSelected;
-        foreach (var vm in _trackingRows)
+        foreach (var vm in visibleRows)
         {
             vm.IsSelected = newState;
         }
         RefreshPreviewPagesOnly();
+    }
+
+    // ==================== Row filter ====================
+
+    /// <summary>
+    /// Lets the user find rows among a large Excel import (e.g. 1000 rows) by typing a
+    /// value — a product code, lot number, anything — instead of scrolling or editing
+    /// the source file. Matching rows are shown and auto-selected for printing; every
+    /// other row is deselected, so hitting the existing Print button prints exactly the
+    /// filtered rows. Clearing the filter restores the original "everything selected"
+    /// state. Runs live per keystroke (filtering/selection is cheap); the heavier label
+    /// preview re-render is debounced so it only happens once typing pauses.
+    /// </summary>
+    private void RowFilterBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isRefreshing)
+        {
+            return;
+        }
+
+        ApplyRowFilter();
+        _filterDebounceTimer.Stop();
+        _filterDebounceTimer.Start();
+    }
+
+    private void RowFilterBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+        {
+            return;
+        }
+
+        _filterDebounceTimer.Stop();
+        RefreshPreviewPagesOnly();
+    }
+
+    private void RowFilterColumnCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isRefreshing)
+        {
+            return;
+        }
+
+        ApplyRowFilter();
+        RefreshPreviewPagesOnly();
+    }
+
+    private void ClearRowFilter_Click(object sender, RoutedEventArgs e)
+    {
+        RowFilterBox.Text = string.Empty;
+        RowFilterColumnCombo.SelectedIndex = 0;
+        _filterDebounceTimer.Stop();
+        RefreshPreviewPagesOnly();
+    }
+
+    private void ApplyRowFilter()
+    {
+        var filterText = RowFilterBox.Text.Trim();
+        var selectedColumn = RowFilterColumnCombo.SelectedItem as string;
+        var searchAllColumns = string.IsNullOrEmpty(selectedColumn) || selectedColumn == AllColumnsFilterOption;
+
+        if (filterText.Length == 0)
+        {
+            // No filter: restore the default "everything selected" state so the
+            // existing Print button behaves exactly as it did before filtering.
+            foreach (var vm in _trackingRows)
+            {
+                vm.IsSelected = true;
+            }
+            TrackingList.ItemsSource = _trackingRows;
+            FilterMatchCountText.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var visible = new List<TrackingRowViewModel>();
+        foreach (var vm in _trackingRows)
+        {
+            var row = _allRowsCache.ElementAtOrDefault(vm.SourceRowNumber - 1);
+            var isMatch = RowMatchesFilter(row, searchAllColumns ? null : selectedColumn, filterText);
+            vm.IsSelected = isMatch;
+            if (isMatch)
+            {
+                visible.Add(vm);
+            }
+        }
+
+        TrackingList.ItemsSource = visible;
+        FilterMatchCountText.Visibility = Visibility.Visible;
+        FilterMatchCountText.Text = visible.Count == 0
+            ? $"No rows match \"{filterText}\""
+            : $"{visible.Count} of {_trackingRows.Count} row(s) match — selected for printing";
+    }
+
+    private static bool RowMatchesFilter(IReadOnlyDictionary<string, string>? row, string? column, string filterText)
+    {
+        if (row is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(column))
+        {
+            return row.Values.Any(value => value.Contains(filterText, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return row.TryGetValue(column, out var columnValue) && columnValue.Contains(filterText, StringComparison.OrdinalIgnoreCase);
     }
 
     // ==================== Refresh logic ====================
@@ -377,6 +700,7 @@ public partial class PrintPreviewWindow : Window
             // Build tracking rows
             _trackingRows.Clear();
             var allRows = GetRows().ToArray();
+            _allRowsCache = allRows;
             var excelColumns = CollectExcelColumns(allRows);
             var pageNumber = 1;
             var sourceRowNumber = 0;
@@ -385,7 +709,7 @@ public partial class PrintPreviewWindow : Window
             {
                 sourceRowNumber++;
                 var isSelected = true;
-                var copies = 1;
+                var copies = GetCopiesFromRow(row);
                 var vm = new TrackingRowViewModel
                 {
                     SourceRowNumber = sourceRowNumber,
@@ -403,6 +727,12 @@ public partial class PrintPreviewWindow : Window
 
             // Bind to ItemsControl
             TrackingList.ItemsSource = _trackingRows;
+
+            // Reset the row filter (it references columns/rows that were just rebuilt).
+            RowFilterColumnCombo.ItemsSource = new[] { AllColumnsFilterOption }.Concat(excelColumns).ToList();
+            RowFilterColumnCombo.SelectedIndex = 0;
+            RowFilterBox.Text = string.Empty;
+            FilterMatchCountText.Visibility = Visibility.Collapsed;
 
             // Build preview rows
             _previewRows = BuildExpandedRowsFromTracking();
@@ -473,18 +803,10 @@ public partial class PrintPreviewWindow : Window
 
     private IReadOnlyDictionary<string, string>?[] BuildExpandedRowsFromTracking()
     {
-        var allRows = GetRows().ToArray();
-        var expanded = new List<IReadOnlyDictionary<string, string>?>();
-        foreach (var vm in _trackingRows)
-        {
-            if (!vm.IsSelected || vm.Copies <= 0) continue;
-            var row = allRows.ElementAtOrDefault(vm.SourceRowNumber - 1);
-            for (var i = 0; i < vm.Copies; i++)
-            {
-                expanded.Add(row);
-            }
-        }
-        return expanded.ToArray();
+        // Same selection/expansion rule as GetSelectedRowsWithSource() — kept as one
+        // routine so a future change to copy-expansion or null-row handling only needs
+        // to happen in one place instead of three near-identical loops.
+        return GetSelectedRowsWithSource().Select(entry => entry.Row).ToArray();
     }
 
     // ==================== Data helpers ====================
@@ -507,16 +829,30 @@ public partial class PrintPreviewWindow : Window
 
     private IEnumerable<IReadOnlyDictionary<string, string>?> GetSelectedRows()
     {
+        return GetSelectedRowsWithSource().Select(entry => entry.Row);
+    }
+
+    /// <summary>
+    /// Same rows as <see cref="GetSelectedRows"/> (copies expanded), paired with the
+    /// originating <see cref="TrackingRowViewModel.SourceRowNumber"/> so preflight issues
+    /// (which reference a 1-based index into this flattened list) can be mapped back to
+    /// the tracking row that produced them — used for the partial-print offer and the
+    /// per-row "printed" marking (print-preview-reliability-plan Đợt 4).
+    /// </summary>
+    private (IReadOnlyDictionary<string, string>? Row, int SourceRowNumber)[] GetSelectedRowsWithSource()
+    {
         var allRows = GetRows().ToArray();
+        var result = new List<(IReadOnlyDictionary<string, string>? Row, int SourceRowNumber)>();
         foreach (var vm in _trackingRows)
         {
             if (!vm.IsSelected || vm.Copies <= 0) continue;
             var row = allRows.ElementAtOrDefault(vm.SourceRowNumber - 1);
             for (var i = 0; i < vm.Copies; i++)
             {
-                yield return row;
+                result.Add((row, vm.SourceRowNumber));
             }
         }
+        return result.ToArray();
     }
 
     private static List<string> CollectExcelColumns(IReadOnlyDictionary<string, string>?[] allRows)
@@ -543,6 +879,11 @@ public partial class PrintPreviewWindow : Window
         if (row is null || index >= columns.Count) return null;
         var colName = columns[index];
         return row.TryGetValue(colName, out var val) ? val : null;
+    }
+
+    private int GetCopiesFromRow(IReadOnlyDictionary<string, string>? row)
+    {
+        return DatabaseConfig.ResolveCopiesForRow(_template.DatabaseConfig.CopiesField, row);
     }
 
     private void ApplyPrintSetup()
@@ -683,33 +1024,18 @@ public partial class PrintPreviewWindow : Window
             : BindingExpressionEvaluator.Evaluate(expression, row);
     }
 
-    private void OpenPrintHistoryFile()
-    {
-        if (!File.Exists(_printLogService.LogFilePath))
-        {
-            return;
-        }
-
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = _printLogService.LogFilePath,
-            UseShellExecute = true
-        });
-    }
-
     private async Task WritePrintHistoryAsync(IReadOnlyDictionary<string, string>?[] rows)
     {
         try
         {
             await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(row, rows.Length, index + 1)));
-            OpenPrintHistoryFile();
         }
         catch (IOException ex)
         {
             MessageBox.Show(
                 this,
-                $"Print job was sent, but print history could not be saved because the Excel history file is open.\n\nClose print-history.xlsx, then print again if you need the log.\n\n{ex.Message}",
-                "Print history is open",
+                $"Print job was sent, but print history could not be saved.\n\n{ex.Message}",
+                "Print history not saved",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }

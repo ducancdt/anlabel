@@ -686,7 +686,8 @@ public partial class HelpWindow : Window
         rb.Children.Add(P("• Printer Setup — " + (vi ? "chọn máy in, khổ nhãn, DPI, hướng in." : "choose printer, label size, DPI, orientation.")));
         rb.Children.Add(P("• Preview (Ctrl+P) — " + (vi ? "mở cửa sổ xem trước khi in." : "open the print preview window.")));
         rb.Children.Add(P("• Print Current / Print All Rows — " + (vi ? "in dòng đang chọn / tất cả các dòng." : "print the selected row / every row.")));
-        rb.Children.Add(P("• Print History — " + (vi ? "mở file Excel ghi lại lịch sử in." : "open the Excel print-history log.")));
+        rb.Children.Add(P("• Print History — " + (vi ? "mở file CSV ghi lại lịch sử in." : "open the CSV print-history log.")));
+        rb.Children.Add(P("• Export to Excel — " + (vi ? "xuất lịch sử in ra một file Excel đẹp, định dạng sẵn." : "export the print history to a nicely formatted Excel report.")));
         rb.Children.Add(P("• Test Print — " + (vi ? "in mẫu hiệu chỉnh để căn chỉnh máy in." : "print a calibration test pattern.")));
         rb.Children.Add(H2(vi ? "Nhóm View · Edit object · Zoom · Help" : "View · Edit object · Zoom · Help"));
         rb.Children.Add(P("• Panels restore — " + (vi ? "hiện lại Hộp công cụ và bảng Thuộc tính nếu lỡ ẩn." : "re-show the Toolbox and Properties panels if hidden.")));

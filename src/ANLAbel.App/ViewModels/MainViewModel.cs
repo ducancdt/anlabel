@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
@@ -19,6 +20,7 @@ using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Core.Mvvm;
+using ANLAbel.Data;
 using ANLAbel.Data.DataLogs;
 using ANLAbel.Data.Excel;
 using ANLAbel.Data.PrintLogs;
@@ -50,6 +52,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly PrinterDiscoveryService _printerDiscoveryService;
     private readonly PrintLogService _printLogService;
     private readonly DataOperationLogService _dataOperationLogService;
+    private readonly PrintOperationLogService _printOperationLogService;
+    private readonly DataSourceRegistry _dataSourceRegistry;
     private readonly IBarcodeRenderer _barcodeValidator = new ZxingBarcodeRenderer();
     private readonly QrCapacityTable _qrCapacityTable = new();
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
@@ -84,6 +88,10 @@ public sealed class MainViewModel : ObservableObject
     private bool _isExcelLinkBroken;
     private DateTime? _excelDataReadAtLocal;
     private DateTime? _excelDataSourceWriteTimeUtc;
+    private FileSystemWatcher? _excelFileWatcher;
+    private readonly object _excelStaleDebounceLock = new();
+    private System.Threading.Timer? _excelStaleDebounceTimer;
+    private bool _isExcelDataStale;
 
     private static readonly JsonSerializerOptions HistoryJsonOptions = new()
     {
@@ -96,16 +104,22 @@ public sealed class MainViewModel : ObservableObject
     {
     }
 
-    public MainViewModel(IProjectFileService projectFileService, ExcelDataService excelDataService, PrintService printService, PrinterDiscoveryService printerDiscoveryService, PrintLogService printLogService, DataOperationLogService? dataOperationLogService = null)
+    public MainViewModel(IProjectFileService projectFileService, ExcelDataService excelDataService, PrintService printService, PrinterDiscoveryService printerDiscoveryService, PrintLogService printLogService, DataOperationLogService? dataOperationLogService = null, DataSourceRegistry? dataSourceRegistry = null, PrintOperationLogService? printOperationLogService = null)
     {
         _projectFileService = projectFileService;
         _excelDataService = excelDataService;
         _printService = printService;
         _printerDiscoveryService = printerDiscoveryService;
         _printLogService = printLogService;
+        _printOperationLogService = printOperationLogService ?? new PrintOperationLogService();
         _dataOperationLogService = dataOperationLogService ?? new DataOperationLogService();
+        _dataSourceRegistry = dataSourceRegistry ?? new DataSourceRegistry();
+        _dataSourceRegistry.Load();
+        DataSources = new ObservableCollection<DataSource>(_dataSourceRegistry.Sources);
         AddTextCommand = new RelayCommand(AddText);
         AddTextBoxCommand = new RelayCommand(AddTextBox);
+        AddImageCommand = new RelayCommand(AddImage);
+        ReplaceSelectedImageCommand = new RelayCommand(ReplaceSelectedImage, () => SelectedObject is not null && SelectedObject.Type == ObjectType.Image);
         AddExcelFieldCommand = new RelayCommand(parameter => AddExcelField(GetFieldName(parameter)), parameter => !string.IsNullOrWhiteSpace(GetFieldName(parameter)));
         BindSelectedAsExcelFieldCommand = new RelayCommand(parameter => BindSelectedAsExcelField(GetFieldName(parameter)), parameter => SelectedObject is not null && !string.IsNullOrWhiteSpace(GetFieldName(parameter)));
         ClearSelectedBindingCommand = new RelayCommand(ClearSelectedBinding, () => SelectedObject is not null);
@@ -129,6 +143,9 @@ public sealed class MainViewModel : ObservableObject
         DeleteSelectedCommand = new RelayCommand(DeleteSelected, () => SelectedObject is not null);
         BringToFrontCommand = new RelayCommand(BringToFront, () => SelectedObject is not null);
         SendToBackCommand = new RelayCommand(SendToBack, () => SelectedObject is not null);
+        BringForwardCommand = new RelayCommand(BringForward, () => SelectedObject is not null);
+        SendBackwardCommand = new RelayCommand(SendBackward, () => SelectedObject is not null);
+        SetRotationCommand = new RelayCommand(parameter => SetRotation(parameter), _ => SelectedObject is not null);
         UndoCommand = new RelayCommand(Undo, () => _undoStack.Count > 0);
         RedoCommand = new RelayCommand(Redo, () => _redoStack.Count > 0);
         ZoomInCommand = new RelayCommand(() => Zoom = Math.Min(4, Zoom + 0.1));
@@ -144,6 +161,10 @@ public sealed class MainViewModel : ObservableObject
         InsertFunctionFormulaCommand = new RelayCommand(parameter => InsertFunctionFormula(GetFormulaText(parameter)), _ => SelectedObject is not null);
         SelectBindingIssueCommand = new RelayCommand(parameter => SelectBindingIssue(parameter as BindingIssueSummary), parameter => parameter is BindingIssueSummary);
         RelinkExcelCommand = new RelayCommand(async () => await RelinkExcelAsync(), () => HasLinkedExcelSource && IsExcelLinkBroken);
+        AddCurrentAsDataSourceCommand = new RelayCommand(AddCurrentAsDataSource, () => HasLinkedExcelSource && !IsExcelLinkBroken);
+        UseDataSourceCommand = new RelayCommand(async parameter => { if (parameter is DataSource source) { await UseDataSourceAsync(source); } }, parameter => parameter is DataSource);
+        RemoveDataSourceCommand = new RelayCommand(parameter => RemoveDataSource(parameter as DataSource), parameter => parameter is DataSource);
+        RelinkDataSourceCommand = new RelayCommand(async parameter => { if (parameter is DataSource source) { await RelinkDataSourceAsync(source); } }, parameter => parameter is DataSource);
         ObserveTemplate(Template);
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
     }
@@ -160,6 +181,7 @@ public sealed class MainViewModel : ObservableObject
                 ObserveTemplate(value);
                 _lastTemplateSnapshot = CaptureTemplateSnapshot();
                 OnPropertyChanged(nameof(SelectedKeyFieldName));
+                OnPropertyChanged(nameof(SelectedCopiesFieldName));
             }
         }
     }
@@ -174,16 +196,20 @@ public sealed class MainViewModel : ObservableObject
                 ((RelayCommand)DeleteSelectedCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)BringToFrontCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)SendToBackCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)BringForwardCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)SendBackwardCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ClearSelectedBindingCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)InsertFunctionFormulaCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ApplyFormulaBuilderCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)ReplaceSelectedImageCommand).RaiseCanExecuteChanged();
                 OnPropertyChanged(nameof(SelectedObjectTypeText));
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
                 RaiseFormulaPreviewChanged();
                 OnPropertyChanged(nameof(BarcodeValidationMessage));
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
+                OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
             }
         }
     }
@@ -205,6 +231,7 @@ public sealed class MainViewModel : ObservableObject
     public PrintService PrintService => _printService;
     public PrintLogService PrintLogService => _printLogService;
     public string PrintHistoryFilePath => _printLogService.LogFilePath;
+    public ExcelDataService ExcelDataService => _excelDataService;
 
     public object? SelectedDataItem
     {
@@ -290,6 +317,37 @@ public sealed class MainViewModel : ObservableObject
     public string FormulaBuilderPreviewValue => EvaluateFormulaBuilder().Value;
     public string FormulaBuilderPreviewErrors => string.Join(Environment.NewLine, EvaluateFormulaBuilder().Errors);
     public string BarcodeValidationMessage => ValidateSelectedBarcode();
+
+    /// <summary>
+    /// Warns when a fixed-size matrix barcode's module would print at less than ~2
+    /// physical dots on this label's configured print DPI (properties-panel-plan Đợt C /
+    /// print-preview-reliability-plan R5) — modules that small are unreliable to scan on
+    /// industrial thermal printers. Only meaningful for
+    /// <see cref="QrSizingMode.FixedVersionAndModuleSize"/>, where the module size in
+    /// pixels is an explicit design choice rather than computed to fit the label.
+    /// </summary>
+    public string BarcodeModuleSizeWarningText
+    {
+        get
+        {
+            if (SelectedObject is not { } item || !IsSquare2DCodeLike(item) || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+            {
+                return string.Empty;
+            }
+
+            // Match PrintService.CreatePlan's DPI resolution (PrinterProfile.Dpi first,
+            // then Template.Dpi) so this Designer-side warning agrees with the DPI the
+            // preflight check (PrintPreflightValidator.ValidateBarcodeModuleSizeAtPrintDpi)
+            // will actually enforce at print time. Using Template.Dpi alone would disagree
+            // once PrinterProfile.Dpi is set independently (e.g. via the "Label printer
+            // setup..." dialog in Print Preview, which only updates PrinterProfile.Dpi).
+            var printDpi = Template.PrinterProfile.Dpi > 0 ? Template.PrinterProfile.Dpi : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
+            var effectiveDots = item.QrModuleSizePx * (double)printDpi / item.QrDpi;
+            return effectiveDots < 2
+                ? $"⚠ Module is only ~{effectiveDots:0.#} dot(s) at {printDpi} DPI — likely to fail scanning. Increase Module px or DPI."
+                : string.Empty;
+        }
+    }
     public string TextBoxValidationMessage => ValidateSelectedTextBox();
     public string SelectedObjectTypeText => SelectedObject?.Type switch
     {
@@ -334,6 +392,27 @@ public sealed class MainViewModel : ObservableObject
         : $"Row {GetDataRowViewIndex(rowView) + 1} of {ExcelDataView.Count}";
 
     /// <summary>
+    /// True when the linked Excel file changed on disk since the last import/refresh
+    /// (database-plan GĐ2 item 5). The app never reloads automatically — an in-progress
+    /// design/print session must not have its data swapped out from under it.
+    /// </summary>
+    public bool IsExcelDataStale
+    {
+        get => _isExcelDataStale;
+        private set
+        {
+            if (SetProperty(ref _isExcelDataStale, value))
+            {
+                OnPropertyChanged(nameof(ExcelStaleNoticeText));
+            }
+        }
+    }
+
+    public string ExcelStaleNoticeText => IsExcelDataStale
+        ? "⚠ Excel file changed on disk — click Update Excel to refresh"
+        : string.Empty;
+
+    /// <summary>
     /// Column names the user can pick as the row-tracking key (database-plan TC5).
     /// The empty first entry lets the user clear the key back to index-based tracking.
     /// </summary>
@@ -352,6 +431,28 @@ public sealed class MainViewModel : ObservableObject
 
             Template.DatabaseConfig.KeyField = normalized;
             Template.DatabaseConfig.KeyValue = TryGetCurrentRowValue(normalized);
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Optional Excel column that sets how many copies to print per row in Print Preview
+    /// (database-manager-module-plan.md M4, NiceLabel-style "label copies per record").
+    /// Reuses <see cref="KeyFieldOptions"/> for the picker — same "empty first entry clears
+    /// it" pattern as <see cref="SelectedKeyFieldName"/>.
+    /// </summary>
+    public string SelectedCopiesFieldName
+    {
+        get => Template.DatabaseConfig.CopiesField;
+        set
+        {
+            var normalized = value ?? string.Empty;
+            if (Template.DatabaseConfig.CopiesField == normalized)
+            {
+                return;
+            }
+
+            Template.DatabaseConfig.CopiesField = normalized;
             OnPropertyChanged();
         }
     }
@@ -521,6 +622,8 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public ICommand AddTextCommand { get; }
+    public ICommand AddImageCommand { get; }
+    public ICommand ReplaceSelectedImageCommand { get; }
     public ICommand AddTextBoxCommand { get; }
     public ICommand AddExcelFieldCommand { get; }
     public ICommand BindSelectedAsExcelFieldCommand { get; }
@@ -545,6 +648,9 @@ public sealed class MainViewModel : ObservableObject
     public ICommand DeleteSelectedCommand { get; }
     public ICommand BringToFrontCommand { get; }
     public ICommand SendToBackCommand { get; }
+    public ICommand BringForwardCommand { get; }
+    public ICommand SendBackwardCommand { get; }
+    public ICommand SetRotationCommand { get; }
     public ICommand UndoCommand { get; }
     public ICommand RedoCommand { get; }
     public ICommand ZoomInCommand { get; }
@@ -560,6 +666,18 @@ public sealed class MainViewModel : ObservableObject
     public ICommand InsertFunctionFormulaCommand { get; }
     public ICommand SelectBindingIssueCommand { get; }
     public ICommand RelinkExcelCommand { get; }
+    public ICommand AddCurrentAsDataSourceCommand { get; }
+    public ICommand UseDataSourceCommand { get; }
+    public ICommand RemoveDataSourceCommand { get; }
+    public ICommand RelinkDataSourceCommand { get; }
+
+    /// <summary>
+    /// Shared Excel data sources (database-plan GĐ2 item 4), stored machine-wide at
+    /// <c>%AppData%\ANLAbel\data-sources.json</c>. Templates reference an entry by
+    /// <see cref="DataSource.Id"/> via <see cref="DatabaseConfig.DataSourceId"/> so that
+    /// relinking the shared file once fixes every template that uses it.
+    /// </summary>
+    public ObservableCollection<DataSource> DataSources { get; }
 
     private void ShowAllPanels()
     {
@@ -571,6 +689,8 @@ public sealed class MainViewModel : ObservableObject
     public void NewTemplate(NewTemplateRequest? request)
     {
         request ??= new NewTemplateRequest("Untitled Label", 100, 50, 203);
+        StopWatchingExcelFile();
+        IsExcelDataStale = false;
         UnobserveTemplate(Template);
         Template = new LabelTemplate
         {
@@ -690,7 +810,13 @@ public sealed class MainViewModel : ObservableObject
 
         Template.DatabaseConfig.FilePath = filePath;
         Template.DatabaseConfig.SheetName = sheetName;
-        Template.DatabaseConfig.HeaderRowIndex = 1;
+        // Deliberately NOT resetting HeaderRowIndex here (bug fixed 2026-07-03): the read
+        // above already succeeded using Template.DatabaseConfig.HeaderRowIndex, so that
+        // value is exactly what correctly describes this data. Forcing it back to 1 used
+        // to be harmless when every source's header was always row 1, but now that shared
+        // sources can have a different header row (Database Manager M2), clobbering it here
+        // silently broke every subsequent Refresh/Open for that source — it would try to
+        // re-read with header row 1 even though the file's real header is elsewhere.
 
         // Update RelativePath if template has been saved
         if (!string.IsNullOrWhiteSpace(CurrentFilePath))
@@ -714,10 +840,13 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentExcelRowText));
         OnPropertyChanged(nameof(KeyFieldOptions));
         OnPropertyChanged(nameof(SelectedKeyFieldName));
+        OnPropertyChanged(nameof(SelectedCopiesFieldName));
 
         _excelDataReadAtLocal = DateTime.Now;
         _excelDataSourceWriteTimeUtc = TryGetFileWriteTimeUtc(filePath);
         OnPropertyChanged(nameof(ExcelDataFreshnessText));
+        IsExcelDataStale = false;
+        StartWatchingExcelFile(filePath);
 
         var issueCount = GetBindingIssues().Count;
         var issueSuffix = issueCount > 0 ? $" — {issueCount} object(s) have missing/broken bindings" : string.Empty;
@@ -786,6 +915,103 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// (Re)starts a <see cref="FileSystemWatcher"/> on the linked Excel file so the user
+    /// gets a "data changed" notice without the app silently reloading data mid-session
+    /// (database-plan GĐ2 item 5). Failures to watch (e.g. unreachable network share)
+    /// are swallowed — this is a convenience notice, not a critical path.
+    /// </summary>
+    private void StartWatchingExcelFile(string filePath)
+    {
+        StopWatchingExcelFile();
+
+        try
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            var fileName = Path.GetFileName(filePath);
+            if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName) || !Directory.Exists(directory))
+            {
+                return;
+            }
+
+            var watcher = new FileSystemWatcher(directory, fileName)
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                EnableRaisingEvents = true
+            };
+            watcher.Changed += OnLinkedExcelFileChanged;
+            watcher.Renamed += OnLinkedExcelFileChanged;
+            _excelFileWatcher = watcher;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            // Watching is a convenience notice; if the share is unreachable, the
+            // existing Cancel/timeout/relink flows already cover the hard failure.
+        }
+    }
+
+    private void StopWatchingExcelFile()
+    {
+        if (_excelFileWatcher is null)
+        {
+            return;
+        }
+
+        _excelFileWatcher.EnableRaisingEvents = false;
+        _excelFileWatcher.Changed -= OnLinkedExcelFileChanged;
+        _excelFileWatcher.Renamed -= OnLinkedExcelFileChanged;
+        _excelFileWatcher.Dispose();
+        _excelFileWatcher = null;
+        lock (_excelStaleDebounceLock)
+        {
+            _excelStaleDebounceTimer?.Dispose();
+            _excelStaleDebounceTimer = null;
+        }
+    }
+
+    private void OnLinkedExcelFileChanged(object sender, FileSystemEventArgs e)
+    {
+        // A single Excel save can raise several Changed/Renamed events in quick
+        // succession, and FileSystemWatcher can deliver them on more than one
+        // thread-pool thread concurrently — lock the dispose+replace so two overlapping
+        // events cannot each create a Timer that overwrites the other's field reference
+        // (which would leave one Timer orphaned: unreferenced, silently GC-eligible, or
+        // firing an extra redundant check).
+        lock (_excelStaleDebounceLock)
+        {
+            _excelStaleDebounceTimer?.Dispose();
+            _excelStaleDebounceTimer = new System.Threading.Timer(
+                _ => MarkExcelDataStaleIfActuallyChanged(),
+                null,
+                TimeSpan.FromSeconds(1),
+                Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    private void MarkExcelDataStaleIfActuallyChanged()
+    {
+        // Ignore the notice if the write time actually matches what we already
+        // read (e.g. the app itself just wrote the print log next to it, or the
+        // save re-touched the file without changing content-relevant data).
+        var currentWriteTimeUtc = TryGetFileWriteTimeUtc(Template.DatabaseConfig.FilePath);
+        if (currentWriteTimeUtc is null || currentWriteTimeUtc == _excelDataSourceWriteTimeUtc)
+        {
+            return;
+        }
+
+        // FileSystemWatcher/timer callbacks run on a thread-pool thread; marshal to
+        // the UI thread before touching bindable state when a WPF Dispatcher exists.
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null || dispatcher.CheckAccess())
+        {
+            IsExcelDataStale = true;
+        }
+        else
+        {
+            dispatcher.BeginInvoke(() => IsExcelDataStale = true);
+        }
+    }
+
+    /// <summary>
     /// Finds the row index matching the stored KeyField/KeyValue pair.
     /// Returns the matching index, or null if not found (caller should fallback to LastSelectedRow).
     /// </summary>
@@ -826,15 +1052,35 @@ public sealed class MainViewModel : ObservableObject
 
         if (!HasLinkedExcelSource)
         {
+            StopWatchingExcelFile();
+            IsExcelDataStale = false;
             IsExcelLinkBroken = false;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}";
             return;
+        }
+
+        // If this template references a shared data source, pick up whatever path/sheet
+        // it currently points to first — relinking the shared source once then fixes
+        // every template that references it, instead of each template needing its own
+        // relink (database-plan GĐ2 item 4).
+        DataSource? linkedSource = null;
+        if (!string.IsNullOrWhiteSpace(Template.DatabaseConfig.DataSourceId))
+        {
+            linkedSource = _dataSourceRegistry.GetById(Template.DatabaseConfig.DataSourceId);
+            if (linkedSource is not null)
+            {
+                Template.DatabaseConfig.FilePath = linkedSource.FilePath;
+                Template.DatabaseConfig.SheetName = linkedSource.SheetName;
+                Template.DatabaseConfig.HeaderRowIndex = linkedSource.HeaderRowIndex;
+            }
         }
 
         // Resolve Excel path: absolute → relative → same directory
         var resolvedPath = ResolveExcelPath();
         if (resolvedPath is null)
         {
+            StopWatchingExcelFile();
+            IsExcelDataStale = false;
             ExcelDataView = null;
             PreviewRow = null;
             SelectedDataItem = null;
@@ -842,6 +1088,7 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(CurrentExcelRowText));
             OnPropertyChanged(nameof(KeyFieldOptions));
             OnPropertyChanged(nameof(SelectedKeyFieldName));
+            OnPropertyChanged(nameof(SelectedCopiesFieldName));
             IsExcelLinkBroken = true;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Linked Excel file not found: {Template.DatabaseConfig.FilePath}";
             return;
@@ -853,6 +1100,11 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName, "Open");
+            if (linkedSource is not null)
+            {
+                RecordDataSourceUsage(linkedSource);
+            }
+
             IsExcelLinkBroken = false;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link restored: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
         }
@@ -927,6 +1179,212 @@ public sealed class MainViewModel : ObservableObject
             IsExcelLinkBroken = true;
             StatusText = $"Re-link failed: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Removes the Excel link from this template (database-manager-module-plan.md M1).
+    /// Clears the file/sheet/rows/fields so the template goes back to standalone, but
+    /// deliberately leaves every object's <see cref="LabelObject.BindingExpression"/>
+    /// untouched — importing a file with the same column names resumes without having
+    /// to re-bind objects. This is the only way to escape a permanently broken link
+    /// short of hand-editing the .anlabel file.
+    /// Confirmation is the caller's responsibility (shown in code-behind, not here) so
+    /// this stays callable from automated tests without popping a real dialog.
+    /// </summary>
+    public void UnlinkExcel()
+    {
+        if (!HasLinkedExcelSource)
+        {
+            return;
+        }
+
+        var previousFilePath = Template.DatabaseConfig.FilePath;
+        var previousSheetName = Template.DatabaseConfig.SheetName;
+
+        StopWatchingExcelFile();
+        ExcelDataView = null;
+        ExcelHeaders.Clear();
+        SelectedDataItem = null;
+        SelectedAvailableDatabaseField = null;
+        SelectedLabelDatabaseField = null;
+        SelectedExcelField = null;
+        Template.DatabaseConfig = new DatabaseConfig();
+        IsExcelLinkBroken = false;
+        IsExcelDataStale = false;
+        _excelDataReadAtLocal = null;
+        _excelDataSourceWriteTimeUtc = null;
+
+        OnPropertyChanged(nameof(HasLinkedExcelSource));
+        OnPropertyChanged(nameof(LinkedExcelSourceText));
+        OnPropertyChanged(nameof(ExcelLinkStatusText));
+        OnPropertyChanged(nameof(ExcelDataFreshnessText));
+        OnPropertyChanged(nameof(CurrentExcelRowText));
+        OnPropertyChanged(nameof(KeyFieldOptions));
+        OnPropertyChanged(nameof(SelectedKeyFieldName));
+        OnPropertyChanged(nameof(SelectedCopiesFieldName));
+        RaiseDatabaseFieldStateChanged();
+
+        StatusText = "Excel link removed. Objects keep their bindings — import Excel again to resume printing.";
+        LogDataOperation("Unlink", previousFilePath, previousSheetName, rowCount: 0, columnCount: 0, success: true, errorMessage: string.Empty);
+    }
+
+    /// <summary>
+    /// Saves the currently linked Excel file/sheet as a reusable shared data source
+    /// (database-plan GĐ2 item 4) and points this template at it.
+    /// </summary>
+    private void AddCurrentAsDataSource()
+    {
+        if (!HasLinkedExcelSource || IsExcelLinkBroken)
+        {
+            return;
+        }
+
+        // Avoid creating a duplicate registry entry if the user clicks this more than
+        // once (or the current file/sheet was already saved as a source earlier) — just
+        // point the template at the existing match instead of piling up look-alike rows.
+        var existing = DataSources.FirstOrDefault(s =>
+            string.Equals(s.FilePath, Template.DatabaseConfig.FilePath, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(s.SheetName, Template.DatabaseConfig.SheetName, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            Template.DatabaseConfig.DataSourceId = existing.Id;
+            StatusText = $"Already a shared data source: {existing.DisplayName}";
+            return;
+        }
+
+        var source = new DataSource
+        {
+            FilePath = Template.DatabaseConfig.FilePath,
+            SheetName = Template.DatabaseConfig.SheetName,
+            HeaderRowIndex = Template.DatabaseConfig.HeaderRowIndex
+        };
+        _dataSourceRegistry.Upsert(source);
+        _dataSourceRegistry.Save();
+        DataSources.Add(source);
+        Template.DatabaseConfig.DataSourceId = source.Id;
+        StatusText = $"Added shared data source: {source.DisplayName}";
+    }
+
+    /// <summary>
+    /// Points this template at a shared data source and imports its data.
+    /// </summary>
+    private async Task UseDataSourceAsync(DataSource source)
+    {
+        Template.DatabaseConfig.DataSourceId = source.Id;
+        Template.DatabaseConfig.HeaderRowIndex = source.HeaderRowIndex;
+        try
+        {
+            await ImportExcelAsync(source.FilePath, source.SheetName, "Import");
+            RecordDataSourceUsage(source);
+            StatusText = $"Using shared data source: {source.DisplayName}";
+        }
+        catch (Exception ex)
+        {
+            IsExcelLinkBroken = true;
+            StatusText = $"Could not use shared data source '{source.DisplayName}': {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Records that <paramref name="source"/> was just successfully loaded by the current
+    /// template (database-manager-module-plan.md M3): updates <see cref="DataSource.LastUsedUtc"/>
+    /// and pushes <see cref="CurrentFilePath"/> to the front of <see cref="DataSource.RecentTemplates"/>
+    /// (deduplicated, capped at 10, most-recent-first). Skipped for an unsaved template
+    /// (empty <see cref="CurrentFilePath"/>) since there is no path to record yet.
+    /// </summary>
+    private void RecordDataSourceUsage(DataSource source)
+    {
+        source.LastUsedUtc = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            source.RecentTemplates.RemoveAll(path => string.Equals(path, CurrentFilePath, StringComparison.OrdinalIgnoreCase));
+            source.RecentTemplates.Insert(0, CurrentFilePath);
+            if (source.RecentTemplates.Count > 10)
+            {
+                source.RecentTemplates.RemoveRange(10, source.RecentTemplates.Count - 10);
+            }
+        }
+
+        _dataSourceRegistry.Upsert(source);
+        _dataSourceRegistry.Save();
+    }
+
+    private void RemoveDataSource(DataSource? source)
+    {
+        if (source is null)
+        {
+            return;
+        }
+
+        if (string.Equals(Template.DatabaseConfig.DataSourceId, source.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            // Clear the shared-source reference but keep the template's own FilePath/SheetName
+            // (fallback path already in DatabaseConfig) so it keeps working standalone.
+            Template.DatabaseConfig.DataSourceId = string.Empty;
+        }
+
+        _dataSourceRegistry.Remove(source.Id);
+        _dataSourceRegistry.Save();
+        DataSources.Remove(source);
+        StatusText = $"Removed shared data source: {source.DisplayName}";
+    }
+
+    /// <summary>
+    /// Points a shared data source at a new file location. Every template that
+    /// references this source's Id picks up the new path the next time it is opened
+    /// or refreshed — this is the main payoff of using a shared source over a
+    /// per-template link.
+    /// </summary>
+    private async Task RelinkDataSourceAsync(DataSource source)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Locate Excel file for shared data source",
+            Filter = "Excel Files (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|All Files (*.*)|*.*",
+            FileName = Path.GetFileName(source.FilePath)
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        IReadOnlyList<string> sheets;
+        try
+        {
+            sheets = await _excelDataService.GetSheetNamesAsync(dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Cannot read Excel file: {ex.Message}";
+            return;
+        }
+
+        if (sheets.Count == 0)
+        {
+            StatusText = $"No sheets found in {Path.GetFileName(dialog.FileName)}";
+            return;
+        }
+
+        source.FilePath = dialog.FileName;
+        source.SheetName = sheets.Contains(source.SheetName) ? source.SheetName : sheets[0];
+        _dataSourceRegistry.Upsert(source);
+        _dataSourceRegistry.Save();
+        StatusText = $"Relinked shared data source: {source.DisplayName}";
+
+        if (string.Equals(Template.DatabaseConfig.DataSourceId, source.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            await UseDataSourceAsync(source);
+        }
+    }
+
+    /// <summary>
+    /// Persists a shared data source's <see cref="DataSource.Name"/> after inline
+    /// editing in the Data Sources panel (invoked from the TextBox LostFocus handler).
+    /// </summary>
+    public void PersistDataSources()
+    {
+        _dataSourceRegistry.Save();
     }
 
     /// <summary>
@@ -1299,6 +1757,12 @@ public sealed class MainViewModel : ObservableObject
     {
         try
         {
+            if (IsExcelDataStale)
+            {
+                StatusText = "Print blocked: the linked Excel file changed since it was last read. Click Update Excel first (or use Print Preview, which lets you confirm and print with the current data).";
+                return;
+            }
+
             var rows = ExpandRowsForCopies(PreviewRow is null ? new IReadOnlyDictionary<string, string>?[] { null } : new IReadOnlyDictionary<string, string>?[] { PreviewRow }).ToArray();
             var validationError = ValidatePrintableContent(rows);
             if (validationError is not null)
@@ -1311,12 +1775,12 @@ public sealed class MainViewModel : ObservableObject
             {
                 StatusText = $"Print job sent: {rows.Length} label(s)";
                 await WritePrintLogAsync("Current row", rows, PreviewRow is null ? 0 : 1, rows.Length);
-                OpenPrintHistoryFile();
             }
         }
         catch (Exception ex)
         {
             StatusText = $"Print failed: {ex.Message}";
+            LogPrintOperation("Current row", PreviewRow is null ? 0 : 1, 0, success: false, ex.Message);
         }
     }
 
@@ -1327,6 +1791,12 @@ public sealed class MainViewModel : ObservableObject
             if (ExcelDataView is null || ExcelDataView.Count == 0)
             {
                 StatusText = "No Excel rows to print";
+                return;
+            }
+
+            if (IsExcelDataStale)
+            {
+                StatusText = "Print blocked: the linked Excel file changed since it was last read. Click Update Excel first (or use Print Preview, which lets you confirm and print with the current data).";
                 return;
             }
 
@@ -1348,12 +1818,12 @@ public sealed class MainViewModel : ObservableObject
             {
                 StatusText = $"Print job sent: {rows.Length} labels";
                 await WritePrintLogAsync("All rows", rows, ExcelDataView.Count, rows.Length);
-                OpenPrintHistoryFile();
             }
         }
         catch (Exception ex)
         {
             StatusText = $"Print failed: {ex.Message}";
+            LogPrintOperation("All rows", ExcelDataView?.Count ?? 0, 0, success: false, ex.Message);
         }
     }
 
@@ -1402,6 +1872,99 @@ public sealed class MainViewModel : ObservableObject
             HeightMm = 16,
             Style = { FontSizePt = 9, BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
         });
+    }
+
+    private void ReplaceSelectedImage()
+    {
+        if (SelectedObject is null || SelectedObject.Type != ObjectType.Image)
+        {
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Chọn hình ảnh",
+            Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All Files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            SelectedObject.ImageDataBase64 = Convert.ToBase64String(File.ReadAllBytes(dialog.FileName));
+            SelectedObject.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
+            StatusText = $"Replaced image: {SelectedObject.Name}";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Cannot read image file: {ex.Message}";
+        }
+    }
+
+    private void AddImage()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Chọn hình ảnh",
+            Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All Files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = File.ReadAllBytes(dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Cannot read image file: {ex.Message}";
+            return;
+        }
+
+        var (widthMm, heightMm) = GetDefaultImageSizeMm(bytes);
+
+        AddObject(new LabelObject
+        {
+            Type = ObjectType.Image,
+            Name = Path.GetFileNameWithoutExtension(dialog.FileName),
+            ImageDataBase64 = Convert.ToBase64String(bytes),
+            XMm = 5,
+            YMm = 5,
+            WidthMm = widthMm,
+            HeightMm = heightMm,
+            Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+        });
+    }
+
+    private static (double WidthMm, double HeightMm) GetDefaultImageSizeMm(byte[] imageBytes)
+    {
+        const double defaultMm = 25;
+        try
+        {
+            using var stream = new MemoryStream(imageBytes);
+            var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.Default);
+            var frame = decoder.Frames[0];
+            if (frame.PixelWidth <= 0 || frame.PixelHeight <= 0)
+            {
+                return (defaultMm, defaultMm);
+            }
+
+            var aspect = (double)frame.PixelWidth / frame.PixelHeight;
+            return aspect >= 1
+                ? (defaultMm, defaultMm / aspect)
+                : (defaultMm * aspect, defaultMm);
+        }
+        catch
+        {
+            return (defaultMm, defaultMm);
+        }
     }
 
     private void AddExcelField(string? fieldName)
@@ -1740,6 +2303,43 @@ public sealed class MainViewModel : ObservableObject
             SelectedObject.ZIndex = minZ - 1;
     }
 
+    /// <summary>Swaps ZIndex with the next object above (properties-panel-plan Đợt C).</summary>
+    private void BringForward()
+    {
+        if (SelectedObject is null) return;
+        var current = SelectedObject;
+        var next = Template.Objects
+            .Where(o => o.ZIndex > current.ZIndex)
+            .OrderBy(o => o.ZIndex)
+            .FirstOrDefault();
+        if (next is null) return;
+        (current.ZIndex, next.ZIndex) = (next.ZIndex, current.ZIndex);
+    }
+
+    /// <summary>Swaps ZIndex with the next object below (properties-panel-plan Đợt C).</summary>
+    private void SendBackward()
+    {
+        if (SelectedObject is null) return;
+        var current = SelectedObject;
+        var previous = Template.Objects
+            .Where(o => o.ZIndex < current.ZIndex)
+            .OrderByDescending(o => o.ZIndex)
+            .FirstOrDefault();
+        if (previous is null) return;
+        (current.ZIndex, previous.ZIndex) = (previous.ZIndex, current.ZIndex);
+    }
+
+    /// <summary>Sets rotation from a "0"/"90"/"180"/"270" command parameter (properties-panel-plan Đợt C: 4 quick buttons instead of a ComboBox).</summary>
+    private void SetRotation(object? parameter)
+    {
+        if (SelectedObject is null || parameter is not string text || !int.TryParse(text, out var degrees))
+        {
+            return;
+        }
+
+        SelectedObject.Rotation = degrees;
+    }
+
     private void Undo()
     {
         if (_undoStack.Count == 0)
@@ -1903,6 +2503,15 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.HeightMm))
             {
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
+            }
+
+            if (e.PropertyName is nameof(LabelObject.Type)
+                or nameof(LabelObject.BarcodeSymbology)
+                or nameof(LabelObject.QrSizingMode)
+                or nameof(LabelObject.QrModuleSizePx)
+                or nameof(LabelObject.QrDpi))
+            {
+                OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
             }
         }
 
@@ -2558,6 +3167,7 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task WritePrintLogAsync(string printMode, IEnumerable<IReadOnlyDictionary<string, string>?> rows, int rowCount, int labelCount, string notes = "")
     {
+        LogPrintOperation(printMode, rowCount, labelCount, success: true, errorMessage: string.Empty);
         try
         {
             var printedAt = DateTime.Now;
@@ -2568,6 +3178,31 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusText = $"Print sent, but log failed: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Fire-and-forget job-level print trace (print-preview-reliability-plan.md item 3).
+    /// Separate from the per-label print-history.csv log written above — this is a
+    /// machine-parseable JSON trace, never awaited and never allowed to affect the print
+    /// job or the (already saved) human-facing history.
+    /// </summary>
+    private void LogPrintOperation(string printMode, int rowsSelected, int labelsPrinted, bool success, string errorMessage)
+    {
+        var entry = new PrintOperationLogEntry
+        {
+            TemplateName = Template.Name,
+            TemplateFilePath = CurrentFilePath,
+            PrinterName = Template.PrinterProfile.PrinterName,
+            LabelWidthMm = Template.PrinterProfile.LabelWidthMm,
+            LabelHeightMm = Template.PrinterProfile.LabelHeightMm,
+            Dpi = Template.PrinterProfile.Dpi,
+            PrintMode = printMode,
+            RowsSelected = rowsSelected,
+            LabelsPrinted = labelsPrinted,
+            Success = success,
+            ErrorMessage = errorMessage
+        };
+        _ = _printOperationLogService.AppendAsync(entry);
     }
 
     private PrintLogEntry CreatePrintLogEntry(string printMode, IReadOnlyDictionary<string, string>? row, int rowCount, int labelCount, int labelIndex, DateTime printedAt, string notes)

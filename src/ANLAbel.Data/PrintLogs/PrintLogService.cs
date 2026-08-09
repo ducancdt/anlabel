@@ -1,22 +1,21 @@
+using System.Text;
 using ClosedXML.Excel;
 
 namespace ANLAbel.Data.PrintLogs;
 
+/// <summary>
+/// Writes the human-facing print history as append-only CSV (changed 2026-07-04 from a
+/// live .xlsx rewritten via ClosedXML on every print). The old design opened the ENTIRE
+/// existing log into a full ClosedXML DOM, appended one row, and re-saved the whole file —
+/// O(n) work per print that got slower and heavier every month of production use, using the
+/// same memory-hungry parser that caused the Import Excel hang fixed earlier this session.
+/// CSV appends are O(1): one <see cref="File.AppendAllText(string, string)"/> call per print,
+/// no matter how large the log has grown. Use <see cref="ExportToExcelAsync"/> for an
+/// occasional, on-demand formatted report — ClosedXML is fine there since it only runs once
+/// per user click, not once per label.
+/// </summary>
 public sealed class PrintLogService
 {
-    public PrintLogService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "ANLAbel",
-            "print-history.xlsx"))
-    {
-    }
-
-    public PrintLogService(string logFilePath)
-    {
-        LogFilePath = logFilePath;
-    }
-
     private static readonly string[] Headers =
     {
         "PrintedAt",
@@ -35,11 +34,26 @@ public sealed class PrintLogService
         "Notes"
     };
 
+    private readonly object _writeLock = new();
+
+    public PrintLogService()
+        : this(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "ANLAbel",
+            "print-history.csv"))
+    {
+    }
+
+    public PrintLogService(string logFilePath)
+    {
+        LogFilePath = logFilePath;
+    }
+
     public string LogFilePath { get; }
 
     public Task AppendAsync(PrintLogEntry entry, CancellationToken cancellationToken = default)
     {
-        return Task.Run(() => Append(entry), cancellationToken);
+        return Task.Run(() => AppendMany(new[] { entry }), cancellationToken);
     }
 
     public Task AppendManyAsync(IEnumerable<PrintLogEntry> entries, CancellationToken cancellationToken = default)
@@ -47,53 +61,187 @@ public sealed class PrintLogService
         return Task.Run(() => AppendMany(entries), cancellationToken);
     }
 
-    private void Append(PrintLogEntry entry)
+    /// <summary>
+    /// Reads the whole CSV log and writes a nicely formatted .xlsx report (bold header, light
+    /// blue fill, auto-fit columns — the same look the old live-Excel log had). This is a rare,
+    /// user-initiated action (a button click), not something that runs on every print, so using
+    /// ClosedXML's full-DOM writer here is fine — the memory cost of a one-off export is nothing
+    /// like the cost of doing that same full-DOM rewrite after every single label.
+    /// </summary>
+    public Task ExportToExcelAsync(string destinationXlsxPath, CancellationToken cancellationToken = default)
     {
-        AppendMany(new[] { entry });
+        return Task.Run(() => ExportToExcel(destinationXlsxPath, cancellationToken), cancellationToken);
+    }
+
+    private void ExportToExcel(string destinationXlsxPath, CancellationToken cancellationToken)
+    {
+        var rows = ReadAllRows(cancellationToken);
+
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.AddWorksheet("PrintHistory");
+        for (var column = 0; column < Headers.Length; column++)
+        {
+            var cell = worksheet.Cell(1, column + 1);
+            cell.Value = Headers[column];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#DCEBFF");
+        }
+
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var row = rows[rowIndex];
+            for (var column = 0; column < Headers.Length && column < row.Count; column++)
+            {
+                worksheet.Cell(rowIndex + 2, column + 1).Value = row[column];
+            }
+        }
+
+        worksheet.Columns().AdjustToContents();
+
+        var directory = Path.GetDirectoryName(destinationXlsxPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        workbook.SaveAs(destinationXlsxPath);
+    }
+
+    /// <summary>
+    /// Parses the CSV log back into rows (skipping the header). Fields never contain raw
+    /// newlines — <see cref="AppendMany"/> strips them before writing — so a simple per-line
+    /// reader is safe here without needing a full multi-line-aware CSV grammar.
+    /// </summary>
+    private List<List<string>> ReadAllRows(CancellationToken cancellationToken)
+    {
+        var rows = new List<List<string>>();
+        if (!File.Exists(LogFilePath))
+        {
+            return rows;
+        }
+
+        using var reader = new StreamReader(LogFilePath, Encoding.UTF8);
+        var isHeaderRow = true;
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (isHeaderRow)
+            {
+                isHeaderRow = false;
+                continue;
+            }
+
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            rows.Add(ParseCsvLine(line));
+        }
+
+        return rows;
     }
 
     private void AppendMany(IEnumerable<PrintLogEntry> entries)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(LogFilePath)!);
-
-        using var workbook = File.Exists(LogFilePath) ? new XLWorkbook(LogFilePath) : new XLWorkbook();
-        var worksheet = workbook.Worksheets.FirstOrDefault(sheet => sheet.Name == "PrintHistory")
-            ?? workbook.AddWorksheet("PrintHistory");
-
-        EnsureHeaders(worksheet);
-        var row = Math.Max(2, worksheet.LastRowUsed()?.RowNumber() + 1 ?? 2);
-        foreach (var entry in entries)
+        var directory = Path.GetDirectoryName(LogFilePath);
+        if (!string.IsNullOrEmpty(directory))
         {
-            worksheet.Cell(row, 1).Value = entry.PrintedAt;
-            worksheet.Cell(row, 1).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
-            worksheet.Cell(row, 2).Value = entry.PartNo;
-            worksheet.Cell(row, 3).Value = entry.ItemName;
-            worksheet.Cell(row, 4).Value = entry.Lot;
-            worksheet.Cell(row, 5).Value = entry.Quantity;
-            worksheet.Cell(row, 6).Value = entry.LabelContent;
-            worksheet.Cell(row, 7).Value = entry.RowData;
-            worksheet.Cell(row, 8).Value = entry.TemplateName;
-            worksheet.Cell(row, 9).Value = entry.PrinterName;
-            worksheet.Cell(row, 10).Value = entry.PrintMode;
-            worksheet.Cell(row, 11).Value = entry.LabelIndex;
-            worksheet.Cell(row, 12).Value = entry.ExcelFilePath;
-            worksheet.Cell(row, 13).Value = entry.ExcelSheetName;
-            worksheet.Cell(row, 14).Value = entry.Notes;
-            row++;
+            Directory.CreateDirectory(directory);
         }
 
-        worksheet.Columns().AdjustToContents();
-        workbook.SaveAs(LogFilePath);
+        var builder = new StringBuilder();
+
+        // Locking + checking File.Exists must happen together so two concurrent print jobs
+        // can't both decide the file is new and each write their own header row.
+        lock (_writeLock)
+        {
+            if (!File.Exists(LogFilePath))
+            {
+                builder.AppendLine(string.Join(",", Headers.Select(EscapeCsvField)));
+            }
+
+            foreach (var entry in entries)
+            {
+                builder.AppendLine(string.Join(",", new[]
+                {
+                    entry.PrintedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    entry.PartNo,
+                    entry.ItemName,
+                    entry.Lot,
+                    entry.Quantity,
+                    entry.LabelContent,
+                    entry.RowData,
+                    entry.TemplateName,
+                    entry.PrinterName,
+                    entry.PrintMode,
+                    entry.LabelIndex.ToString(),
+                    entry.ExcelFilePath,
+                    entry.ExcelSheetName,
+                    entry.Notes
+                }.Select(EscapeCsvField)));
+            }
+
+            File.AppendAllText(LogFilePath, builder.ToString(), Encoding.UTF8);
+        }
     }
 
-    private static void EnsureHeaders(IXLWorksheet worksheet)
+    /// <summary>
+    /// RFC4180-style escaping. Field values are stripped of \r/\n first (print log fields are
+    /// short summaries, not multi-line text — see <see cref="AppendMany"/>/callers), so quoting
+    /// is only needed for commas and embedded quotes.
+    /// </summary>
+    private static string EscapeCsvField(string? value)
     {
-        for (var index = 0; index < Headers.Length; index++)
+        var cleaned = (value ?? string.Empty).Replace("\r", " ").Replace("\n", " ");
+        return cleaned.Contains(',') || cleaned.Contains('"')
+            ? "\"" + cleaned.Replace("\"", "\"\"") + "\""
+            : cleaned;
+    }
+
+    private static List<string> ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var current = new StringBuilder();
+        var inQuotes = false;
+
+        for (var i = 0; i < line.Length; i++)
         {
-            var cell = worksheet.Cell(1, index + 1);
-            cell.Value = Headers[index];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#DCEBFF");
+            var c = line[i];
+            if (inQuotes)
+            {
+                if (c == '"' && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current.Append('"');
+                    i++;
+                }
+                else if (c == '"')
+                {
+                    inQuotes = false;
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            else if (c == '"' && current.Length == 0)
+            {
+                inQuotes = true;
+            }
+            else if (c == ',')
+            {
+                fields.Add(current.ToString());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
         }
+
+        fields.Add(current.ToString());
+        return fields;
     }
 }

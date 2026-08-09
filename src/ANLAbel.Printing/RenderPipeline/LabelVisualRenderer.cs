@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -163,6 +164,9 @@ public sealed class LabelVisualRenderer
             case ObjectType.DataMatrix:
                 DrawBarcode(dc, item, rect, row, dpi, labelWidthMm, labelHeightMm);
                 break;
+            case ObjectType.Image:
+                DrawImage(dc, item, rect);
+                break;
         }
 
         if (needsRotation)
@@ -227,7 +231,15 @@ public sealed class LabelVisualRenderer
         {
             var widthMm = MmConverter.DipToMm(rect.Width);
             var heightMm = MmConverter.DipToMm(rect.Height);
-            var barcodeDpi = item.QrDpi > 0 ? item.QrDpi : dpi;
+            // Print-preview-reliability-plan R5/item 8 (2026-07-03, confirmed with project
+            // owner): prioritize the plan's real print DPI over the object's own QrDpi, so
+            // module dots are sized correctly for the physical printer. This intentionally
+            // reopens a prior WYSIWYG tradeoff — the Designer canvas still renders barcodes
+            // at the object's own QrDpi (unaffected by any PrintRenderPlan), so Preview/Print
+            // may now show a different module size than the Designer when QrDpi does not
+            // match the configured print DPI. `PrintPreflightValidator` warns before printing
+            // when this mismatch would shrink the module below ~2 physical dots.
+            var barcodeDpi = dpi > 0 ? dpi : item.QrDpi;
 
             // Try vector rendering for 1D barcodes — eliminates all rasterization/interpolation
             // artifacts ("crease/wrinkle" effect) by drawing sharp vector rectangles.
@@ -261,6 +273,51 @@ public sealed class LabelVisualRenderer
         {
             dc.DrawRectangle(Brushes.White, new Pen(Brushes.Red, 1), rect);
             DrawErrorFrame(dc, rect, "Barcode cannot be rendered");
+        }
+    }
+
+    private void DrawImage(DrawingContext dc, LabelObject item, Rect rect)
+    {
+        var source = DecodeImage(item.ImageDataBase64);
+        if (source is null)
+        {
+            DrawErrorFrame(dc, rect, "No image");
+            return;
+        }
+
+        var scale = Math.Min(rect.Width / source.PixelWidth, rect.Height / source.PixelHeight);
+        var drawWidth = source.PixelWidth * scale;
+        var drawHeight = source.PixelHeight * scale;
+        var drawRect = new Rect(
+            rect.Left + (rect.Width - drawWidth) / 2,
+            rect.Top + (rect.Height - drawHeight) / 2,
+            drawWidth,
+            drawHeight);
+        dc.DrawImage(source, drawRect);
+    }
+
+    private static BitmapImage? DecodeImage(string base64)
+    {
+        if (string.IsNullOrWhiteSpace(base64))
+        {
+            return null;
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(base64);
+            using var stream = new MemoryStream(bytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch
+        {
+            return null;
         }
     }
 

@@ -236,6 +236,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void ManageDataSources_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new DatabaseManagerWindow(_viewModel) { Owner = this };
+        window.ShowDialog();
+    }
+
     private void ObjectTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
     {
         if (sender is not TextBox textBox || !CanApplyTextBoxInput(textBox, e.Text))
@@ -373,6 +379,49 @@ public partial class MainWindow : Window
         _viewModel.OpenPrintHistoryFile();
     }
 
+    private async void ExportPrintHistory_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = "Export print history to Excel",
+            Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+            FileName = $"print-history-{DateTime.Now:yyyy-MM-dd}.xlsx"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        Mouse.OverrideCursor = Cursors.Wait;
+        try
+        {
+            await _viewModel.PrintLogService.ExportToExcelAsync(dialog.FileName);
+            var openReport = MessageBox.Show(
+                this,
+                $"Exported to {dialog.FileName}.\n\nOpen it now?",
+                "Export complete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information) == MessageBoxResult.Yes;
+            if (openReport)
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = dialog.FileName,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Export failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
+    }
+
     private void Help_Click(object sender, RoutedEventArgs e)
     {
         new HelpWindow { Owner = this }.ShowDialog();
@@ -394,6 +443,20 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show(this, ex.Message, "Template Library", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void UnlinkExcel_Click(object sender, RoutedEventArgs e)
+    {
+        var confirmed = MessageBox.Show(
+            this,
+            "Remove the Excel link from this template?\n\nObjects keep their field bindings but will show placeholders until you import data again.",
+            "Unlink Excel",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question) == MessageBoxResult.Yes;
+        if (confirmed)
+        {
+            _viewModel.UnlinkExcel();
         }
     }
 

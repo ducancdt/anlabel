@@ -17,6 +17,7 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             throw new ArgumentException("Barcode data is empty or invalid.", nameof(data));
         }
 
+        data = NormalizeData(data, type);
         options ??= new BarcodeRenderOptions();
         var widthPixels = Math.Max(8, (int)Math.Round(widthMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
         var heightPixels = Math.Max(8, (int)Math.Round(heightMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
@@ -51,6 +52,21 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             BarcodeType.Aztec => true,
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Code 39 and Codabar are validated case-insensitively (letters may be typed in
+    /// any case), but ZXing's writers for these formats do a case-sensitive lookup
+    /// against an uppercase-only alphabet. Anything not found — including lowercase
+    /// letters — silently triggers Code 39's Full ASCII/extended shift-code mode
+    /// instead of throwing, producing a barcode that scanners in standard mode read
+    /// back garbled. Uppercase first so the data always maps onto the plain alphabet.
+    /// </summary>
+    private static string NormalizeData(string data, BarcodeType type)
+    {
+        return type is BarcodeType.Code39 or BarcodeType.Codabar
+            ? data.ToUpperInvariant()
+            : data;
     }
 
     public string GetBarcodeInfo(string data, BarcodeType type)
@@ -94,6 +110,7 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             return null;
         }
 
+        data = NormalizeData(data, type);
         options ??= new BarcodeRenderOptions();
         var widthPixels = Math.Max(8, (int)Math.Round(widthMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
         var heightPixels = Math.Max(8, (int)Math.Round(heightMm / 25.4 * dpi, MidpointRounding.AwayFromZero));

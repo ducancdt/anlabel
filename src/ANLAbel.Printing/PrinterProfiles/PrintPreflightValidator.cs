@@ -25,15 +25,17 @@ public sealed class PrintPreflightValidator
         _barcodeRenderer = barcodeRenderer;
     }
 
-    public PrintPreflightResult Validate(LabelTemplate template, IReadOnlyList<IReadOnlyDictionary<string, string>?> rows)
+    public PrintPreflightResult Validate(LabelTemplate template, IReadOnlyList<IReadOnlyDictionary<string, string>?> rows, int? printDpi = null)
     {
         var issues = new List<PrintPreflightIssue>();
         foreach (var item in template.Objects.Where(item => item.IsVisible))
         {
             ValidateObjectWithinLabel(template, item, issues);
+            ValidateBarcodeModuleSizeAtPrintDpi(item, printDpi, issues);
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
                 var row = rows[rowIndex];
+                ValidateBindingFieldsPresent(item, row, rowIndex, issues);
                 var data = ResolveExpression(item, row);
 
                 switch (item.Type)
@@ -54,6 +56,75 @@ public sealed class PrintPreflightValidator
         }
 
         return new PrintPreflightResult(issues);
+    }
+
+    /// <summary>
+    /// Flags rows where a bound Excel column is missing (print-preview-reliability-plan R3).
+    /// The plain "{Field}" syntax silently resolves missing fields to an empty string
+    /// (<see cref="BindingExpressionEvaluator.Evaluate"/>), so without this check the
+    /// object would print blank with no warning at all. Formula bindings already surface
+    /// "field not found" via <see cref="FormulaEvaluationResult.Errors"/>, so those are
+    /// simply forwarded instead of re-detected.
+    /// </summary>
+    private static void ValidateBindingFieldsPresent(LabelObject item, IReadOnlyDictionary<string, string>? row, int rowIndex, List<PrintPreflightIssue> issues)
+    {
+        if (string.IsNullOrWhiteSpace(item.BindingExpression) || row is null)
+        {
+            return;
+        }
+
+        if (FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression))
+        {
+            var result = FormulaBindingEvaluator.Evaluate(item.BindingExpression, row);
+            if (result.Errors.Count > 0)
+            {
+                issues.Add(new PrintPreflightIssue(
+                    rowIndex + 1,
+                    item.Name,
+                    item.Type.ToString(),
+                    $"Formula binding error: {string.Join("; ", result.Errors)}"));
+            }
+            return;
+        }
+
+        var missing = BindingExpressionEvaluator.GetFields(item.BindingExpression)
+            .Where(field => !FieldNameResolver.TryGetValue(row, field, out _, out _))
+            .ToArray();
+        if (missing.Length > 0)
+        {
+            issues.Add(new PrintPreflightIssue(
+                rowIndex + 1,
+                item.Name,
+                item.Type.ToString(),
+                $"Missing field(s) in Excel data: {string.Join(", ", missing)}. This object will print blank for this row."));
+        }
+    }
+
+    /// <summary>
+    /// Warns when a fixed-size matrix barcode's module would print at under ~2 physical
+    /// dots on the printer's actual DPI (print-preview-reliability-plan R5/item 8) —
+    /// modules that small are unreliable to scan on industrial thermal printers. Only
+    /// meaningful for <see cref="QrSizingMode.FixedVersionAndModuleSize"/>, where the
+    /// module size in pixels is an explicit design choice rather than computed to fit
+    /// the label. Row-independent (depends only on object config), so it is checked once
+    /// per object rather than once per row.
+    /// </summary>
+    private static void ValidateBarcodeModuleSizeAtPrintDpi(LabelObject item, int? printDpi, List<PrintPreflightIssue> issues)
+    {
+        if (printDpi is null || printDpi <= 0 || item.QrDpi <= 0 || !item.IsSquare2DCodeLike() || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+        {
+            return;
+        }
+
+        var effectiveDots = item.QrModuleSizePx * (double)printDpi.Value / item.QrDpi;
+        if (effectiveDots < 2)
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Module is only ~{effectiveDots:0.#} dot(s) when printed at {printDpi} DPI — likely to fail scanning. Increase Module px, set QrDpi to match the printer, or use Auto size."));
+        }
     }
 
     private static void ValidateObjectWithinLabel(LabelTemplate template, LabelObject item, List<PrintPreflightIssue> issues)

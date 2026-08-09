@@ -387,6 +387,18 @@ public sealed class LabelDesignerCanvas : Canvas
                     UseLayoutRounding = true
                 }
             },
+            ObjectType.Image => new Border
+            {
+                Background = Brushes.Transparent,
+                BorderBrush = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Child = new Image
+                {
+                    Stretch = Stretch.Uniform,
+                    SnapsToDevicePixels = true,
+                    UseLayoutRounding = true
+                }
+            },
             _ => new Border()
         };
     }
@@ -494,9 +506,13 @@ public sealed class LabelDesignerCanvas : Canvas
                     textBoxHost.Height = Math.Max(1, height);
                     textBoxHost.PreviewVisual = CreateTextBoxVisual(item, width, height);
                 }
-                else if (border.Child is Image image)
+                else if (border.Child is Image image && item.Type == ObjectType.Image)
                 {
-                    image.Source = CreateBarcodeImageSource(item);
+                    image.Source = CreatePictureImageSource(item);
+                }
+                else if (border.Child is Image barcodeImage)
+                {
+                    barcodeImage.Source = CreateBarcodeImageSource(item);
                 }
             }
 
@@ -1836,6 +1852,31 @@ public sealed class LabelDesignerCanvas : Canvas
             return null;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return null;
+        }
+    }
+
+    private static ImageSource? CreatePictureImageSource(LabelObject item)
+    {
+        if (string.IsNullOrWhiteSpace(item.ImageDataBase64))
+        {
+            return null;
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(item.ImageDataBase64);
+            using var stream = new MemoryStream(bytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch
         {
             return null;
         }

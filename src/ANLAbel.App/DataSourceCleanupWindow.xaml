@@ -1,0 +1,40 @@
+<Window x:Class="ANLAbel.App.DataSourceCleanupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Clean Up Orphaned Data Sources"
+        Height="440" Width="560"
+        MinHeight="320" MinWidth="440"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI" FontSize="12"
+        Background="#EEF2F6">
+    <Window.Resources>
+        <SolidColorBrush x:Key="LineBrush" Color="#D9E2EC"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#64748B"/>
+    </Window.Resources>
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+            <TextBlock TextWrapping="Wrap"
+                       Text="These shared data sources point to an Excel file that no longer exists and have not been used in the last 30 days. Tick the ones you want to remove from the registry."/>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Remove Selected" Padding="8,4" Click="RemoveSelected_Click" Margin="0,0,8,0" Foreground="#B91C1C"/>
+                <Button Content="Close" Width="96" Height="30" IsCancel="True" Click="Close_Click"/>
+            </StackPanel>
+        </Border>
+
+        <ListBox x:Name="OrphanListBox" Margin="14" BorderThickness="0" Background="Transparent">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,6">
+                        <StackPanel>
+                            <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayName}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding DetailText}" FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="22,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

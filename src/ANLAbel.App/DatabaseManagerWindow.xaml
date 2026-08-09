@@ -1,0 +1,116 @@
+<Window x:Class="ANLAbel.App.DatabaseManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Database Manager"
+        Height="620" Width="900"
+        MinHeight="480" MinWidth="760"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI" FontSize="12"
+        Background="#EEF2F6">
+    <Window.Resources>
+        <SolidColorBrush x:Key="LineBrush" Color="#D9E2EC"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#64748B"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,8,0,3"/>
+        </Style>
+    </Window.Resources>
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+            <StackPanel>
+                <TextBlock Text="Database Manager" FontSize="17" FontWeight="SemiBold"/>
+                <TextBlock Text="Manage Excel data sources shared across templates: add, test, edit, relink, or remove." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Close" Width="96" Height="32" IsCancel="True" Click="Close_Click"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Margin="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Shared data sources" FontWeight="SemiBold"/>
+                        <TextBlock Text="Reuse one Excel file/sheet across multiple templates." FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                        <Button Content="+ Save current template's Excel link" Command="{Binding AddCurrentAsDataSourceCommand}" Padding="6,4" Margin="0,0,0,8" HorizontalContentAlignment="Left"/>
+                    </StackPanel>
+                    <Button DockPanel.Dock="Bottom" Content="Clean up..." Click="CleanUp_Click" Margin="0,8,0,0"
+                            ToolTip="Find and remove shared sources whose Excel file is missing and unused for 30+ days"/>
+                    <ListBox x:Name="SourceListBox" ItemsSource="{Binding DataSources}" DisplayMemberPath="DisplayName" SelectionChanged="SourceListBox_SelectionChanged"/>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <Grid>
+                    <TextBlock Text="Select a data source on the left, or add the current template's Excel link, to manage it here."
+                               Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" VerticalAlignment="Top"
+                               Visibility="{Binding IsChecked, ElementName=NoSelectionMarker, Converter={StaticResource BoolToVisibility}}"/>
+                    <CheckBox x:Name="NoSelectionMarker" Visibility="Collapsed" IsChecked="True"/>
+
+                    <ScrollViewer x:Name="DetailPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="NameTextBox" LostFocus="NameTextBox_LostFocus"/>
+
+                            <TextBlock Text="Excel file" Style="{StaticResource FieldLabel}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="FilePathTextBox" IsReadOnly="True"/>
+                                <Button Grid.Column="2" Content="Relink..." Width="90" Click="Relink_Click"/>
+                            </Grid>
+
+                            <TextBlock Text="Sheet" Style="{StaticResource FieldLabel}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="SheetComboBox" IsEditable="True" SelectionChanged="SheetComboBox_SelectionChanged" LostFocus="SheetComboBox_LostFocus"/>
+                                <Button Grid.Column="2" Content="Load sheets" Width="90" Click="LoadSheets_Click"/>
+                            </Grid>
+
+                            <TextBlock Text="Header row" Style="{StaticResource FieldLabel}"/>
+                            <TextBox x:Name="HeaderRowTextBox" Width="80" HorizontalAlignment="Left" LostFocus="HeaderRowTextBox_LostFocus"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button Content="Test Connection" Padding="8,4" Click="TestConnection_Click" Margin="0,0,8,0"/>
+                                <Button Content="Preview data..." Padding="8,4" Click="PreviewData_Click" Margin="0,0,8,0"/>
+                            </StackPanel>
+                            <TextBlock x:Name="TestResultText" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="11.5"/>
+
+                            <DataGrid x:Name="PreviewDataGrid" AutoGenerateColumns="True" IsReadOnly="True" MaxHeight="220"
+                                      Margin="0,8,0,0" Visibility="Collapsed" HeadersVisibility="Column"/>
+
+                            <Border Background="#F8FAFC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Used by the currently open template" FontWeight="SemiBold" FontSize="11.5"/>
+                                    <TextBlock x:Name="UsedByCurrentTemplateText" FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Button Content="Use for current template" Padding="8,4" Click="UseForCurrentTemplate_Click" Margin="0,0,8,0"/>
+                                <Button Content="Remove..." Padding="8,4" Click="Remove_Click" Foreground="#B91C1C"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
