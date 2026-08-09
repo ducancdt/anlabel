@@ -5,6 +5,7 @@ AppId={{A2690B09-4EC7-428A-BB61-1BB018EB4E96}
 AppName=ANLAbel License Master
 AppVersion=1.0.0
 AppPublisher=Duc An
+LicenseFile=..\LICENSE
 DefaultDirName={localappdata}\Programs\ANLAbel License Master
 DefaultGroupName=ANLAbel License Master
 OutputDir=..\releases\ANLAbel-License-Master-v1.0
@@ -29,6 +30,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "..\publish_out\license-master-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE"; Flags: ignoreversion
 Source: "..\docs\huong-dan-trial-va-kich-hoat.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
