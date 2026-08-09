@@ -3,15 +3,15 @@
 [Setup]
 AppId={{5E638998-0D16-4AE0-9E8E-54D84FA26E4A}
 AppName=ANLAbel Trial - Label Designer
-AppVersion=0.064
+AppVersion=0.085
 AppPublisher=Duc An
 AppPublisherURL=https://github.com/ducancdt
 AppSupportURL=mailto:ducancdt@gmail.com
 DefaultDirName={localappdata}\Programs\ANLAbel Trial
 DefaultGroupName=ANLAbel Trial
 LicenseFile=..\docs\license-notices.md
-OutputDir=..\releases\ANLAbel-Trial-7-Day-v0.064
-OutputBaseFilename=ANLAbel-Trial-7-Day-v0.064-Setup-x64
+OutputDir=..\releases\ANLAbel-Trial-7-Day-v0.085
+OutputBaseFilename=ANLAbel-Trial-7-Day-v0.085-Setup-x64
 SetupIconFile=..\src\ANLAbel.App\anlabel.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -21,10 +21,16 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\ANLAbel.App.exe
 UninstallDisplayName=ANLAbel Trial 7 Day
-VersionInfoVersion=0.064.0.0
+VersionInfoVersion=0.085.0.0
 VersionInfoCompany=Duc An
 VersionInfoDescription=ANLAbel Trial - 7 Day
 VersionInfoCopyright=Copyright (c) Duc An
+; Update-in-place: cung AppId nen chay lai installer tren may da cai se tu nhan dien
+; ban cu va ghi de vao dung thu muc cu, khong can go tay truoc. Key kich hoat/trang
+; thai trial nam o %LocalAppData%/Registry (ngoai {app}) nen KHONG bi mat khi update.
+CloseApplications=yes
+CloseApplicationsFilter=ANLAbel.App.exe
+RestartApplications=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

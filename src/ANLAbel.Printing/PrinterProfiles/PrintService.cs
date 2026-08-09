@@ -33,7 +33,10 @@ public sealed class PrintService
 
     public PrintPreflightResult ValidateRows(LabelTemplate template, IReadOnlyList<IReadOnlyDictionary<string, string>?> rows)
     {
-        return _preflightValidator.Validate(template, rows);
+        // Best-known print DPI before an actual PrintTicket exists — same derivation
+        // CreatePreviewPages uses, so preflight matches what preview/print will show.
+        var plan = CreatePlan(template, null);
+        return _preflightValidator.Validate(template, rows, plan.Dpi);
     }
 
     public bool PrintCurrentRow(LabelTemplate template, IReadOnlyDictionary<string, string>? row)

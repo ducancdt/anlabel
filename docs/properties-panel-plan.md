@@ -1,6 +1,6 @@
 # Plan: Kiểm tra & sắp xếp lại Properties panel
 
-**Ngày:** 2026-07-02 · **Trạng thái:** Đợt A đã làm xong (xem mục 6); Đợt B/C chờ duyệt · Theo định hướng chủ dự án: "kiểm tra và sắp xếp lại properties"
+**Ngày:** 2026-07-03 · **Trạng thái:** Cả 3 đợt A, B, C đều đã làm xong (xem mục 6, 7, 8) · Theo định hướng chủ dự án: "kiểm tra và sắp xếp lại properties"
 
 ## 1. Hiện trạng (audit `MainWindow.xaml` ~dòng 770-1016)
 
@@ -64,3 +64,23 @@ Nguyên tắc: nhóm theo tần suất + luồng tư duy "đặt đâu → to ba
 - **Kiểm tra đã chạy**: `dotnet build ANLAbel.slnx` PASS (0 lỗi); `ANLAbel.Tests` 22/22 PASS; `ANLAbel.UnitTests` 31/31 PASS; chạy thử `ANLAbel.App.exe` (debug build) khởi động thành công, không exception trong log, đóng process sạch.
 - Version bump: `0.058` → `0.059` (csproj Version/AssemblyVersion/FileVersion/InformationalVersion, title `MainWindow.xaml`, `BuildChannelText` cả 2 nhánh Licensed/Trial trong `App.xaml.cs`).
 - **Chưa làm (để Đợt B/C)**: sắp xếp lại thứ tự card, gộp 3 card binding trùng lặp, Formula Builder Expander, Rotation 4 nút, Layer Forward/Backward, cảnh báo module-size barcode.
+
+## 7. Đợt B — Đã thực hiện (2026-07-03, v0.067)
+
+- **Sắp xếp lại thứ tự card**: đổi chỗ "Transform & Arrange" lên trước "Content" — đúng thứ tự đề xuất ở mục 3 (Header → Position & Size → Transform & Arrange → Content → Text Style → Shape Style → Barcode). Thao tác phổ biến nhất khi chỉnh layout (vị trí/kích thước/xoay/lớp) giờ không cần cuộn qua Content/Formula Builder mới tới.
+- **Gộp 3 card trùng lặp (Content / Binding / Formula Output) thành 1 card "Content"**: phần "Binding" (source type, status, preview, used/missing fields, errors) và "Formula Output" (output preview, used fields, errors) giờ nằm trong 2 `StackPanel` con bên trong card Content, mỗi cái vẫn giữ nguyên điều kiện hiện `HasSelectedBinding`/`IsSelectedBindingFormula` như card độc lập trước đây (không đổi logic hiển thị, chỉ đổi vị trí). Có 1 đường kẻ phân cách mờ trước phần Binding để tách biệt trực quan với phần Source/Content phía trên.
+- **Formula Builder thu vào `Expander`**: toàn bộ control builder cũ (chips field, separators, add text, parts list, expression preview, Apply/Clear) giờ nằm trong `<Expander Header="Formula Builder" IsExpanded="True">` — đặt `IsExpanded="True"` mặc định vì `Expander` này chỉ hiện khi `Source=Binding/Formula` (đã có DataTrigger từ trước), nên "tự mở khi ở chế độ Binding" tương đương "mặc định mở trong ngữ cảnh đó"; người dùng có thể tự thu gọn nếu chỉ muốn xem Preview/status mà không cần builder chiếm chỗ.
+- **Không đổi binding nào tới `MainViewModel`**: chỉ di chuyển XAML, không property nào bị mồ côi (`SelectedBinding*`/`FormulaPreview*` vẫn dùng nguyên).
+- **Kiểm tra đã chạy**: `dotnet build ANLAbel.slnx` PASS (0 lỗi); `ANLAbel.Tests` 28/28 PASS (không đổi số lượng — Đợt B thuần UI, không có test riêng); `ANLAbel.UnitTests` 45/45 PASS; chạy thử `ANLAbel.App.exe` (debug build) khởi động thành công, không exception trong log, đóng process sạch. **Lưu ý:** môi trường hiện tại không có công cụ chụp màn hình cho ứng dụng desktop WPF (khác web app) — chưa xác nhận bằng mắt cách hiển thị Expander/thứ tự card trên UI thật, chỉ xác nhận app khởi động không lỗi. Nên người dùng tự mở app kiểm tra trực quan trước khi coi Đợt B là xong hẳn.
+- Version bump: `0.066` → `0.067`.
+- **Chưa làm (để Đợt C)**: Rotation 4 nút thay ComboBox, Layer Forward/Backward, cảnh báo module-size barcode khi DPI thấp.
+
+## 8. Đợt C — Đã thực hiện (2026-07-03, v0.068)
+
+- **Rotation 4 nút thay ComboBox**: 4 `Button` (0°/90°/180°/270°) trong `UniformGrid Columns="4"`, mỗi nút gọi `SetRotationCommand` (mới, `MainViewModel`) với `CommandParameter` là chuỗi độ — 1 click thay vì mở dropdown + chọn (2 thao tác) như ComboBox cũ. Label phía trên đổi thành "Rotation (current: {0}°)" bind trực tiếp `SelectedObject.Rotation` để người dùng vẫn biết giá trị hiện tại (không làm nút nào "sáng" lên do không có converter so sánh sẵn — đánh đổi hợp lý cho scope nhỏ này).
+- **Layer Forward/Backward**: thêm `BringForwardCommand`/`SendBackwardCommand` — hoán đổi `ZIndex` với đúng 1 object liền kề phía trên/dưới (khác với Front/Back vốn nhảy hẳn lên đầu/xuống cuối). Đặt thành hàng nút riêng ngay dưới hàng Front/Back trong card Transform & Arrange.
+- **Cảnh báo module-size barcode khi DPI thấp**: property mới `BarcodeModuleSizeWarningText` trong `MainViewModel` — chỉ áp dụng cho matrix code (QR/DataMatrix/Aztec/PDF417) ở chế độ `QrSizingMode.FixedVersionAndModuleSize` (chế độ duy nhất mà `QrModuleSizePx` là lựa chọn thiết kế tường minh của người dùng, không phải giá trị máy tự suy ra). Công thức: quy đổi module (px, thiết kế ở `QrDpi` của object) sang số dot vật lý thực tế ở `Template.Dpi` (DPI in đã cấu hình cho tem — proxy tốt nhất có sẵn cho "DPI máy in thật" mà không cần chạm vào print pipeline). Cảnh báo khi < 2 dot — dưới ngưỡng này máy quét công nghiệp thường không đọc được. Đây là bản rút gọn nằm trong Properties panel (cảnh báo sớm lúc thiết kế) của mục "R5"/"item 8" trong `print-preview-reliability-plan.md` — bản đầy đủ (chặn cứng lúc in, tự render lại ở đúng DPI máy in) vẫn còn nguyên trong plan đó, chưa làm.
+- **Test mới**: `layer forward/backward swap adjacent ZIndex`, `rotation quick buttons set exact degrees`, `barcode module size warning flags sub-2-dot modules` (kiểm cả trường hợp cảnh báo bật/tắt và trường hợp `AutoSizeByData` không bị cảnh báo).
+- **Kiểm tra đã chạy**: build PASS; `ANLAbel.Tests` 28/28 → 31/31 PASS (thêm 3 test); `ANLAbel.UnitTests` 45/45 PASS; smoke `ANLAbel.App.exe` v0.068 khởi động sạch, không exception. Version `0.067` → `0.068`.
+- **Lưu ý tương tự Đợt B**: chưa xác nhận bằng mắt cách hiển thị 4 nút Rotation/nút Forward-Backward/dòng cảnh báo module-size trên UI thật (môi trường không có công cụ chụp màn hình app desktop WPF) — chỉ xác nhận qua build/test/smoke logic. Nên tự mở app kiểm tra trực quan.
+- **Toàn bộ `properties-panel-plan.md` (Đợt A, B, C) coi như hoàn tất.**

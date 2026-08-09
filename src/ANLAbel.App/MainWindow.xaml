@@ -4,7 +4,7 @@
         xmlns:controls="clr-namespace:ANLAbel.App.Controls"
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.064"
+        Title="ANLAbel - Label Designer v0.085"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="800" Width="1440"
         MinHeight="430" MinWidth="720"
@@ -291,7 +291,7 @@
                            RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
                     <TextBlock Text="ANLAbel - Label Designer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     <Border Margin="10,0,0,0" Padding="7,2" Background="#EAF3FF" BorderBrush="{StaticResource AppBlueBrush}" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock x:Name="BuildChannelText" Text="commercial v0.064" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                        <TextBlock x:Name="BuildChannelText" Text="commercial v0.085" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                     </Border>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -377,8 +377,11 @@
                             <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintAllRowsCommand}">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_all_rows.png"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="All Rows" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="PrintHistory_Click" ToolTip="Open the single print history Excel file">
+                            <Button Style="{StaticResource RibbonButton}" Click="PrintHistory_Click" ToolTip="Open the print history CSV log (fast to write, keeps growing forever without slowing down)">
                                 <StackPanel><TextBlock Text="H" FontSize="16" FontWeight="Bold" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="History" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource RibbonButton}" Click="ExportPrintHistory_Click" ToolTip="Export the print history log to a nicely formatted Excel report">
+                                <StackPanel><TextBlock Text="X" FontSize="16" FontWeight="Bold" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Export" TextAlignment="Center"/><TextBlock Text="to Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintCalibrationCommand}">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/test_print.png"/><TextBlock Text="Test" TextAlignment="Center"/><TextBlock Text="Print" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
@@ -495,7 +498,7 @@
                     </Border>
 
                     <StackPanel Grid.Row="1" Margin="8,8,8,8">
-                        <UniformGrid Columns="2" Rows="3">
+                        <UniformGrid Columns="2" Rows="4">
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Static Text" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
@@ -513,6 +516,9 @@
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Ellipse" TextAlignment="Center" FontSize="12"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddImageCommand}">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Image" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                         </UniformGrid>
 
@@ -619,6 +625,11 @@
                                             <TextBlock Text="{Binding ExcelDataFreshnessText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" Margin="4,0,4,2" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding ExcelLinkStatusText}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap"/>
                                             <Button Content="🔗 Relink Excel..." Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
+                                            <TextBlock Text="{Binding ExcelStaleNoticeText}" Foreground="#B45309" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
+                                            <Button Content="↻ Update Excel" Command="{Binding RefreshExcelDataCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
+                                            <Button Content="⛔ Unlink Excel" Click="UnlinkExcel_Click" Margin="4,2" Padding="6,2" HorizontalAlignment="Left"
+                                                    ToolTip="Remove the Excel link from this template. Object bindings are kept — import Excel again to resume printing."
+                                                    Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}"/>
                                             <TreeViewItem Header="{Binding CurrentExcelRowText}"/>
                                         </TreeViewItem>
                                     </TreeView>
@@ -653,6 +664,30 @@
                                             <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
                                                        Text="Optional: pick a column to keep the same row selected after refresh, even if Excel rows are inserted or removed. Leave blank to track by row position."/>
                                             <ComboBox ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedKeyFieldName, Mode=TwoWay}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
+                                            Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
+                                        <StackPanel>
+                                            <TextBlock Text="Copies Per Record" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
+                                                       Text="Optional: pick a column whose value sets how many labels to print for each row in Print Preview. Leave blank for 1 copy per row (still editable by hand there)."/>
+                                            <ComboBox ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedCopiesFieldName, Mode=TwoWay}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Shared Data Sources" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
+                                                       Text="Reuse one Excel file/sheet across multiple templates. Relinking a shared source once fixes it for every template that uses it."/>
+                                            <ItemsControl ItemsSource="{Binding DataSources}" Margin="0,0,0,6">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="#334155" TextWrapping="Wrap" Margin="0,1"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <Button Content="Manage Data Sources..." Click="ManageDataSources_Click" HorizontalAlignment="Left" Padding="6,2"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
@@ -897,6 +932,34 @@
 
                                 <Border Style="{StaticResource PropCard}">
                                     <StackPanel>
+                                        <TextBlock Text="Transform &amp; Arrange" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="{Binding SelectedObject.Rotation, StringFormat=Rotation (current: {0}°)}" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <UniformGrid Columns="4" Margin="0,0,0,2">
+                                            <Button Content="0°" Command="{Binding SetRotationCommand}" CommandParameter="0" Padding="4,5" FontSize="11" Margin="0,0,2,0"/>
+                                            <Button Content="90°" Command="{Binding SetRotationCommand}" CommandParameter="90" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
+                                            <Button Content="180°" Command="{Binding SetRotationCommand}" CommandParameter="180" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
+                                            <Button Content="270°" Command="{Binding SetRotationCommand}" CommandParameter="270" Padding="4,5" FontSize="11" Margin="2,0,0,0"/>
+                                        </UniformGrid>
+                                        <TextBlock Text="Layer order" Style="{StaticResource PropLabel}"/>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Button Content="↑ Bring to Front" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Grid.Column="2" Content="↓ Send to Back" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
+                                        </Grid>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Button Content="Bring Forward" Command="{Binding BringForwardCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Grid.Column="2" Content="Send Backward" Command="{Binding SendBackwardCommand}" Padding="6,5" FontSize="11"/>
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <CheckBox Content="Visible" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
+                                            <CheckBox Content="Locked" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource PropCard}">
+                                    <StackPanel>
                                         <TextBlock Text="Content" Style="{StaticResource PropTitle}"/>
                                         <TextBlock Text="{Binding LinkedExcelSourceText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="0,0,0,2"/>
                                         <TextBlock Text="Source" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
@@ -922,70 +985,91 @@
                                         </StackPanel>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                            <!-- Fields section -->
-                                            <TextBlock Text="Add Excel field" Style="{StaticResource PropLabel}"/>
-                                            <ItemsControl ItemsSource="{Binding LabelDatabaseFields}">
-                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Style="{StaticResource ChipButton}" Content="{Binding DisplayName}" Command="{Binding DataContext.AddFormulaFieldPartCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                            <!-- Separators -->
-                                            <TextBlock Text="Separators" Style="{StaticResource PropLabel}"/>
-                                            <WrapPanel>
-                                                <Button Style="{StaticResource ChipButton}" Content="Space" Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" "/>
-                                                <Button Style="{StaticResource ChipButton}" Content=" - " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" - "/>
-                                                <Button Style="{StaticResource ChipButton}" Content=" / " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" / "/>
-                                                <Button Style="{StaticResource ChipButton}" Content=" | " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" | "/>
-                                            </WrapPanel>
-                                            <!-- Text part -->
-                                            <TextBlock Text="Add text" Style="{StaticResource PropLabel}"/>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="5"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                                <TextBox Text="{Binding FormulaBuilderText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="12" MinHeight="26" Margin="0"/>
-                                                <Button Grid.Column="2" Style="{StaticResource ChipButton}" Content="Add" Command="{Binding AddFormulaTextPartCommand}" Margin="0" MinHeight="26"/>
-                                            </Grid>
-                                            <!-- Parts list -->
-                                            <TextBlock Text="Formula parts" Style="{StaticResource PropLabel}"/>
-                                            <ListBox ItemsSource="{Binding FormulaBuilderParts}" SelectedItem="{Binding SelectedFormulaBuilderPart, Mode=TwoWay}" DisplayMemberPath="DisplayText" MaxHeight="90" FontSize="11"/>
-                                            <Button Style="{StaticResource ChipButton}" Content="Remove selected" Command="{Binding RemoveFormulaPartCommand}" Margin="0,5,0,0" HorizontalAlignment="Right"/>
-                                            <!-- Expression preview -->
-                                            <TextBlock Text="Expression" Style="{StaticResource PropLabel}"/>
-                                            <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,4">
-                                                <TextBlock Text="{Binding FormulaBuilderExpression}" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
-                                            </Border>
-                                            <!-- Apply / Clear -->
-                                            <Grid Margin="0,6,0,0">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                <Button Content="Clear" Command="{Binding ClearFormulaBuilderCommand}" Padding="6,6" FontSize="11"/>
-                                                <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Height="Auto" Padding="6,6" FontSize="11" Content="Apply Formula" Command="{Binding ApplyFormulaBuilderCommand}"/>
-                                            </Grid>
+                                            <Expander Header="Formula Builder" IsExpanded="True" Margin="0,2,0,0">
+                                                <StackPanel Margin="0,6,0,0">
+                                                    <!-- Fields section -->
+                                                    <TextBlock Text="Add Excel field" Style="{StaticResource PropLabel}"/>
+                                                    <ItemsControl ItemsSource="{Binding LabelDatabaseFields}">
+                                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Button Style="{StaticResource ChipButton}" Content="{Binding DisplayName}" Command="{Binding DataContext.AddFormulaFieldPartCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <!-- Separators -->
+                                                    <TextBlock Text="Separators" Style="{StaticResource PropLabel}"/>
+                                                    <WrapPanel>
+                                                        <Button Style="{StaticResource ChipButton}" Content="Space" Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" "/>
+                                                        <Button Style="{StaticResource ChipButton}" Content=" - " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" - "/>
+                                                        <Button Style="{StaticResource ChipButton}" Content=" / " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" / "/>
+                                                        <Button Style="{StaticResource ChipButton}" Content=" | " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" | "/>
+                                                    </WrapPanel>
+                                                    <!-- Text part -->
+                                                    <TextBlock Text="Add text" Style="{StaticResource PropLabel}"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="5"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <TextBox Text="{Binding FormulaBuilderText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="12" MinHeight="26" Margin="0"/>
+                                                        <Button Grid.Column="2" Style="{StaticResource ChipButton}" Content="Add" Command="{Binding AddFormulaTextPartCommand}" Margin="0" MinHeight="26"/>
+                                                    </Grid>
+                                                    <!-- Parts list -->
+                                                    <TextBlock Text="Formula parts" Style="{StaticResource PropLabel}"/>
+                                                    <ListBox ItemsSource="{Binding FormulaBuilderParts}" SelectedItem="{Binding SelectedFormulaBuilderPart, Mode=TwoWay}" DisplayMemberPath="DisplayText" MaxHeight="90" FontSize="11"/>
+                                                    <Button Style="{StaticResource ChipButton}" Content="Remove selected" Command="{Binding RemoveFormulaPartCommand}" Margin="0,5,0,0" HorizontalAlignment="Right"/>
+                                                    <!-- Expression preview -->
+                                                    <TextBlock Text="Expression" Style="{StaticResource PropLabel}"/>
+                                                    <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,4">
+                                                        <TextBlock Text="{Binding FormulaBuilderExpression}" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
+                                                    </Border>
+                                                    <!-- Apply / Clear -->
+                                                    <Grid Margin="0,6,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <Button Content="Clear" Command="{Binding ClearFormulaBuilderCommand}" Padding="6,6" FontSize="11"/>
+                                                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Height="Auto" Padding="6,6" FontSize="11" Content="Apply Formula" Command="{Binding ApplyFormulaBuilderCommand}"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Expander>
                                         </StackPanel>
                                         <TextBlock Text="{Binding BarcodeValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                                    </StackPanel>
-                                </Border>
 
-                                <Border Style="{StaticResource PropCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Transform &amp; Arrange" Style="{StaticResource PropTitle}"/>
-                                        <TextBlock Text="Rotation" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
-                                        <ComboBox SelectedValue="{Binding SelectedObject.Rotation, Mode=TwoWay}" SelectedValuePath="Tag" Margin="0,0,0,2">
-                                            <ComboBoxItem Content="0°" Tag="0"/>
-                                            <ComboBoxItem Content="90°" Tag="90"/>
-                                            <ComboBoxItem Content="180°" Tag="180"/>
-                                            <ComboBoxItem Content="270°" Tag="270"/>
-                                        </ComboBox>
-                                        <TextBlock Text="Layer order" Style="{StaticResource PropLabel}"/>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Button Content="↑ Bring to Front" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
-                                            <Button Grid.Column="2" Content="↓ Send to Back" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
-                                        </Grid>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <CheckBox Content="Visible" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
-                                            <CheckBox Content="Locked" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                        <StackPanel Margin="0,8,0,0">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasSelectedBinding}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <Border BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,8"/>
+                                            <TextBlock Text="Binding" Style="{StaticResource PropTitle}"/>
+                                            <TextBlock Text="{Binding SelectedBindingKindText, StringFormat=Source type: {0}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding SelectedBindingStatusText}" FontSize="10.5" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="0,2,0,2"/>
+                                            <TextBlock Text="Preview" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
+                                            <TextBox Text="{Binding SelectedBindingPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="22" Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding SelectedBindingUsedFieldsSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding SelectedBindingMissingFieldsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{Binding SelectedBindingErrorsText}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
+
+                                        <StackPanel Margin="0,8,0,0">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSelectedBindingFormula}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="Formula Output" Style="{StaticResource PropTitle}"/>
+                                            <TextBlock Text="Output" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                            <TextBox Text="{Binding FormulaPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="26" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Used fields: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -1123,6 +1207,7 @@
                                                 </Grid>
                                             </StackPanel>
                                         </Border>
+                                        <TextBlock Text="{Binding BarcodeModuleSizeWarningText}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
                                     </StackPanel>
                                 </Border>
 
@@ -1131,43 +1216,19 @@
                                         <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasSelectedBinding}" Value="True">
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Image}">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Binding" Style="{StaticResource PropTitle}"/>
-                                        <TextBlock Text="{Binding SelectedBindingKindText, StringFormat=Source type: {0}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding SelectedBindingStatusText}" FontSize="10.5" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="0,2,0,2"/>
-                                        <TextBlock Text="Preview" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
-                                        <TextBox Text="{Binding SelectedBindingPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="22" Margin="0,0,0,2"/>
-                                        <TextBlock Text="{Binding SelectedBindingUsedFieldsSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding SelectedBindingMissingFieldsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                        <TextBlock Text="{Binding SelectedBindingErrorsText}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Image" Style="{StaticResource PropTitle}"/>
+                                        <Button Content="Choose image..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4"/>
+                                        <TextBlock Text="Aspect ratio is preserved and the picture is centered inside its frame." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
 
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSelectedBindingFormula}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock Text="Formula Output" Style="{StaticResource PropTitle}"/>
-                                        <TextBlock Text="Output" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
-                                        <TextBox Text="{Binding FormulaPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="26" Margin="0,0,0,4"/>
-                                        <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Used fields: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                </Border>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>

@@ -43,6 +43,25 @@
                         <TextBlock Text="Excel Data" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center"/>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedRowsText}" Foreground="#475569" FontSize="10" VerticalAlignment="Center"/>
                     </DockPanel>
+                    <!-- Row filter: find rows by value (e.g. a product code) among many rows and
+                         print only the matches, without editing the source Excel file. -->
+                    <Grid DockPanel.Dock="Top" Margin="10,0,10,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="112"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="🔎" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="11"/>
+                        <TextBox Grid.Column="1" x:Name="RowFilterBox" VerticalAlignment="Center" FontSize="11" Padding="4,3"
+                                 ToolTip="Type a value (e.g. a product code) to find matching rows. Matching rows are auto-selected for printing; the rest are deselected."
+                                 TextChanged="RowFilterBox_TextChanged" PreviewKeyDown="RowFilterBox_PreviewKeyDown"/>
+                        <ComboBox Grid.Column="2" x:Name="RowFilterColumnCombo" Margin="6,0,0,0" FontSize="11" VerticalAlignment="Center"
+                                  ToolTip="Limit the search to one column (default: all columns)"
+                                  SelectionChanged="RowFilterColumnCombo_SelectionChanged"/>
+                        <Button Grid.Column="3" Content="✕" Width="22" Margin="4,0,0,0" ToolTip="Clear filter (select all rows again)" Click="ClearRowFilter_Click"/>
+                    </Grid>
+                    <TextBlock DockPanel.Dock="Top" x:Name="FilterMatchCountText" Margin="10,0,10,4" FontSize="10" Foreground="#0F4C81" FontWeight="SemiBold" Visibility="Collapsed"/>
                     <!-- Header row -->
                     <Grid Background="#F1F5F9" Margin="6,0,6,0">
                         <Grid.ColumnDefinitions>
@@ -50,13 +69,14 @@
                             <ColumnDefinition Width="40"/>
                             <ColumnDefinition Width="40"/>
                             <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="22"/>
+                            <ColumnDefinition Width="18"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Content="☑ All" FontWeight="SemiBold" FontSize="9" Background="Transparent" BorderThickness="0" Margin="2,0" Click="SelectAllToggle_Click"/>
                         <TextBlock Grid.Column="1" Text="Pg#" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
                         <TextBlock Grid.Column="2" Text="Row" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
                         <TextBlock Grid.Column="3" Text="Cp" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
+                        <TextBlock Grid.Column="4" Text="🖶" FontSize="9" Margin="2,2" ToolTip="Printed this session"/>
                     </Grid>
                     <!-- Row list using ItemsControl (crash-free: no DataTable/DataRowView/DataGrid internals) -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto" MinHeight="80">
@@ -72,6 +92,7 @@
                                                 <ColumnDefinition Width="22"/>
                                                 <ColumnDefinition Width="22"/>
                                                 <ColumnDefinition Width="22"/>
+                                                <ColumnDefinition Width="18"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <!-- Clickable checkmark -->
@@ -97,8 +118,10 @@
                                             <Button Grid.Column="5" Content="▼" FontSize="7" Width="18" Height="16"
                                                     Padding="0" Margin="1,0"
                                                     Click="CopiesDown_Click" Tag="{Binding SourceRowNumber}"/>
+                                            <!-- Printed-this-session indicator -->
+                                            <TextBlock Grid.Column="6" Text="{Binding PrintedIndicatorText}" FontSize="9" Margin="2,0" ToolTip="Printed this session — printing again may duplicate a label"/>
                                             <!-- Excel data preview -->
-                                            <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="4,0">
+                                            <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0">
                                                 <TextBlock Text="{Binding Col1}" Margin="0,0,6,0"/>
                                                 <TextBlock Text="{Binding Col2}" Margin="0,0,6,0" Foreground="#64748B"/>
                                                 <TextBlock Text="{Binding Col3}" Margin="0,0,6,0" Foreground="#64748B"/>
@@ -150,6 +173,7 @@
                         <StackPanel>
                             <TextBlock Text="{Binding PrinterName}" TextWrapping="Wrap" Foreground="#0F172A" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding LabelSizeText}" Foreground="#475569" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding PrintPlanSummaryText}" Foreground="#475569" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 

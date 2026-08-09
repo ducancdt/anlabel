@@ -85,14 +85,26 @@ public partial class App : Application
     {
         if (result.IsActivated)
         {
-            window.Title = "ANLAbel - Label Designer v0.064 — Đã kích hoạt";
-            window.BuildChannelText.Text = "LICENSED · v0.064";
+            if (result.ActivationExpiresUtc is { } expiresUtc)
+            {
+                // Key kích hoạt có thời hạn (vd. license 6 tháng/1 năm cấp cho bản trial) —
+                // phải hiện rõ còn bao lâu, không được gộp chung với "Đã kích hoạt" vĩnh viễn
+                // như trước, nếu không người dùng sẽ không biết key sắp hết hạn.
+                var daysLeft = Math.Max(0, (int)Math.Ceiling((expiresUtc - DateTimeOffset.UtcNow).TotalDays));
+                window.Title = $"ANLAbel - Label Designer v0.085 — Đã kích hoạt, còn {daysLeft} ngày (hết hạn {expiresUtc.ToLocalTime():dd/MM/yyyy})";
+                window.BuildChannelText.Text = $"LICENSED · còn {daysLeft} ngày · v0.085";
+            }
+            else
+            {
+                window.Title = "ANLAbel - Label Designer v0.085 — Đã kích hoạt (vĩnh viễn)";
+                window.BuildChannelText.Text = "LICENSED · Vĩnh viễn · v0.085";
+            }
         }
         else
         {
             var days = Math.Max(1, (int)Math.Ceiling(result.Remaining.TotalDays));
-            window.Title = $"ANLAbel - Label Designer v0.064 — Dùng thử còn {days} ngày";
-            window.BuildChannelText.Text = "TRIAL 7 NGÀY · v0.064";
+            window.Title = $"ANLAbel - Label Designer v0.085 — Dùng thử còn {days} ngày";
+            window.BuildChannelText.Text = "TRIAL 7 NGÀY · v0.085";
         }
     }
 

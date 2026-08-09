@@ -6,8 +6,11 @@ $masterProject = Join-Path $root "src\ANLAbel.LicenseGenerator\ANLAbel.LicenseGe
 $trialPublish = Join-Path $root "publish_out\trial-x64"
 $commercialPublish = Join-Path $root "publish_out\commercial-x64"
 $masterPublish = Join-Path $root "publish_out\license-master-x64"
-$trialRelease = Join-Path $root "releases\ANLAbel-Trial-7-Day-v0.057"
-$commercialRelease = Join-Path $root "releases\ANLAbel-Commercial-v0.057"
+# Read Version straight from the csproj so this script never drifts out of sync with the
+# app again, the way the old hardcoded "v0.057" did.
+$version = (Select-String -Path $trialProject -Pattern '<Version>(.+)</Version>').Matches[0].Groups[1].Value
+$trialRelease = Join-Path $root "releases\ANLAbel-Trial-7-Day-v$version"
+$commercialRelease = Join-Path $root "releases\ANLAbel-Commercial-v$version"
 $masterRelease = Join-Path $root "releases\ANLAbel-License-Master-v1.0"
 
 foreach ($path in @($trialPublish, $commercialPublish, $masterPublish, $trialRelease, $commercialRelease, $masterRelease)) {
@@ -24,8 +27,8 @@ if ($LASTEXITCODE -ne 0) { throw "Commercial publish failed (exit $LASTEXITCODE)
 dotnet publish $masterProject -c Release -r win-x64 --self-contained true -o $masterPublish
 if ($LASTEXITCODE -ne 0) { throw "License Master publish failed (exit $LASTEXITCODE)" }
 
-$trialZip = Join-Path $trialRelease "ANLAbel-Trial-7-Day-v0.057-Portable-x64.zip"
-$commercialZip = Join-Path $commercialRelease "ANLAbel-Commercial-v0.057-Portable-x64.zip"
+$trialZip = Join-Path $trialRelease "ANLAbel-Trial-7-Day-v$version-Portable-x64.zip"
+$commercialZip = Join-Path $commercialRelease "ANLAbel-Commercial-v$version-Portable-x64.zip"
 $masterZip = Join-Path $masterRelease "ANLAbel-License-Master-v1.0-Private-x64.zip"
 Compress-Archive -Path (Join-Path $trialPublish "*") -DestinationPath $trialZip -CompressionLevel Optimal
 Compress-Archive -Path (Join-Path $commercialPublish "*") -DestinationPath $commercialZip -CompressionLevel Optimal

@@ -8,6 +8,19 @@ CHO KHACH HANG
 4. Gui Ma may cho nha cung cap.
 5. Dan Key kich hoat duoc cap vao cua so Kich hoat va bam KICH HOAT.
 6. Co the kich hoat khi dang con han hoac sau khi het 7 ngay.
+7. Sau khi kich hoat, thanh tieu de/o trang thai hien ro thoi han con lai:
+   "Da kich hoat, con N ngay (het han dd/mm/yyyy)" neu key co thoi han,
+   hoac "Da kich hoat (vinh vien)" neu la key khong gioi han.
+
+CAP NHAT PHIEN BAN MOI (khong can nhap lai key)
+1. Chi can chay file Setup x64 cua phien ban moi tren may da cai ANLAbel Trial —
+   KHONG can go cai ban cu truoc.
+2. Setup se tu nhan dien ban da cai (cung ID) va cap nhat de vao dung thu muc cu.
+   Neu ANLAbel dang mo, Setup se tu dong dong lai truoc khi cap nhat va co the
+   mo lai sau khi xong.
+3. Key kich hoat va trang thai dung thu duoc luu o AppData/Registry rieng cua
+   Windows (ngoai thu muc cai dat), nen KHONG bi mat khi cap nhat — mo ANLAbel
+   len van thay "Da kich hoat" nhu cu, khong phai nhap lai key.
 
 CHO CHU PHAN MEM
 1. KHONG gui thu muc/file ANLAbel License Master cho khach hang.

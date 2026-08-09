@@ -14,6 +14,8 @@ public sealed class DataSource : ObservableObject
     private string _filePath = string.Empty;
     private string _sheetName = string.Empty;
     private int _headerRowIndex = 1;
+    private DateTime? _lastUsedUtc;
+    private List<string> _recentTemplates = new();
 
     public string Id
     {
@@ -48,4 +50,27 @@ public sealed class DataSource : ObservableObject
     public string DisplayName => string.IsNullOrWhiteSpace(Name)
         ? $"{Path.GetFileName(FilePath)} / {SheetName}"
         : Name;
+
+    /// <summary>
+    /// Last time this source was actually loaded by a template (database-manager-module-plan.md
+    /// M3) — lets the Database Manager show which sources are stale/unused before removal.
+    /// Null for sources created before this field existed or never used since.
+    /// </summary>
+    public DateTime? LastUsedUtc
+    {
+        get => _lastUsedUtc;
+        set => SetProperty(ref _lastUsedUtc, value);
+    }
+
+    /// <summary>
+    /// Absolute paths of the last (up to 10, most-recent-first) .anlabel templates that
+    /// loaded this source — answers "which templates does removing this affect" without
+    /// scanning the whole disk. Defaults to an empty list so registries written before
+    /// this field existed still deserialize cleanly.
+    /// </summary>
+    public List<string> RecentTemplates
+    {
+        get => _recentTemplates;
+        set => SetProperty(ref _recentTemplates, value ?? new List<string>());
+    }
 }

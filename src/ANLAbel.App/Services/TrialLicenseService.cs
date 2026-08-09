@@ -9,7 +9,14 @@ namespace ANLAbel.App.Services;
 
 internal enum TrialCheckStatus { Valid, Expired, ClockTampered, StorageError }
 
-internal sealed record TrialCheckResult(TrialCheckStatus Status, TimeSpan Remaining, bool IsFirstRun, string? ErrorMessage = null, bool IsActivated = false)
+internal sealed record TrialCheckResult(
+    TrialCheckStatus Status,
+    TimeSpan Remaining,
+    bool IsFirstRun,
+    string? ErrorMessage = null,
+    bool IsActivated = false,
+    DateTimeOffset? ActivationExpiresUtc = null,
+    string? ActivationCustomer = null)
 {
     public bool IsAllowed => Status == TrialCheckStatus.Valid;
 }
@@ -36,7 +43,8 @@ internal sealed class TrialLicenseService
         {
             var validation = ActivationLicense.Validate(activation, GetMachineId(), now);
             if (validation.IsValid)
-                return new(TrialCheckStatus.Valid, TimeSpan.MaxValue, false, null, true);
+                return new(TrialCheckStatus.Valid, TimeSpan.MaxValue, false, null, true,
+                    validation.Payload?.ExpiresUtc, validation.Payload?.Customer);
         }
 
         var records = new List<TrialRecord>();

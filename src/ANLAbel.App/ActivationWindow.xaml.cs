@@ -33,7 +33,10 @@ public partial class ActivationWindow : Window
                 return;
             }
 
-            MessageBox.Show("ANLAbel đã được kích hoạt thành công.", "Kích hoạt hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
+            var usageText = result.Payload?.ExpiresUtc is { } expiresUtc
+                ? $"Thời hạn sử dụng: còn {Math.Max(0, (int)Math.Ceiling((expiresUtc - DateTimeOffset.UtcNow).TotalDays))} ngày (hết hạn {expiresUtc.ToLocalTime():dd/MM/yyyy})."
+                : "Thời hạn sử dụng: vĩnh viễn (không giới hạn thời gian).";
+            MessageBox.Show($"ANLAbel đã được kích hoạt thành công.\n\n{usageText}", "Kích hoạt hoàn tất", MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
         }
         catch (Exception ex) { MessageBox.Show(ex.Message, "Không thể lưu kích hoạt", MessageBoxButton.OK, MessageBoxImage.Stop); }

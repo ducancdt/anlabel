@@ -1,6 +1,6 @@
 # Plan: Quản lý dữ liệu database/Excel đầu vào
 
-**Ngày:** 2026-07-02 · **Trạng thái:** Giai đoạn 1 và Giai đoạn TC (TC1–TC7) hoàn tất
+**Ngày:** 2026-07-03 · **Trạng thái:** Giai đoạn 1, Giai đoạn 2, Giai đoạn TC (TC1–TC7) đều hoàn tất. Giai đoạn 3 item 8 (header-row picker + preview) ✅ xong (v0.079). Còn lại: CSV, lazy-load file lớn, ODBC/SQL — làm theo nhu cầu thực tế, chưa có yêu cầu cụ thể.
 
 ## Định hướng từ chủ dự án (2026-07-02, ưu tiên cao nhất)
 
@@ -43,13 +43,13 @@ Luồng dữ liệu hiện tại của một template `.anlabel`:
 
 ### Giai đoạn 2 — Data source dùng chung + cập nhật chủ động
 
-4. **Tách `DataSource` thành đối tượng quản lý riêng** (registry theo máy, lưu `%AppData%\ANLAbel\data-sources.json`): mỗi source có Id, tên hiển thị, đường dẫn, sheet, header row. Template tham chiếu `DataSourceId` (giữ fallback đường dẫn cũ để tương thích). Panel `Data Sources` bên trái nâng cấp thành danh sách source thật sự: thêm/sửa/xoá/re-link một chỗ, mọi template dùng chung hưởng theo.
-   - ✅ Đã có phần nền: model `DataSource`, `DataSourceRegistry` CRUD + JSON round-trip, `DatabaseConfig.DataSourceId` và test registry.
-   - ⏳ Chưa nối registry vào `MainViewModel`/panel Data Sources; template hiện vẫn chạy theo `FilePath` cũ.
-5. **Theo dõi file thay đổi**: `FileSystemWatcher` trên file Excel đang link (debounce ~1s); khi file đổi, hiện badge "Dữ liệu đã thay đổi — bấm Update" (không tự reload ngầm để tránh giật preview giữa chừng khi đang thiết kế/in).
-6. **Khoá theo `KeyField`**: cho phép chọn 1 cột làm khoá trong dialog import; `LastSelectedRow` lưu thêm giá trị khoá, khi reload thì tìm lại đúng bản ghi theo khoá trước, theo index sau, lệch thì cảnh báo.
-   - ✅ Backend đã lưu `KeyValue` và restore theo key trước, index sau.
-   - ⏳ Chưa có UI chọn `KeyField` trong dialog import.
+4. ✅ **Tách `DataSource` thành đối tượng quản lý riêng** (v0.066): nối `DataSourceRegistry` vào `MainViewModel` (load lúc khởi tạo, tham số tuỳ chọn để test dùng registry riêng). Panel `Data Sources` bên trái có thẻ "Shared Data Sources" mới:
+   - Nút "Save current Excel link as shared source" (`AddCurrentAsDataSourceCommand`) tạo `DataSource` từ FilePath/SheetName/HeaderRowIndex đang link, gán `Template.DatabaseConfig.DataSourceId`.
+   - Mỗi source hiển thị Name (sửa trực tiếp, tự lưu registry khi mất focus), FilePath, SheetName, và 3 nút: **Use** (`UseDataSourceCommand` — trỏ template hiện tại vào source này rồi import), **Relink...** (`RelinkDataSourceCommand` — mở dialog chọn file mới, cập nhật path/sheet của source, tự import lại nếu template đang dùng đúng source đó), **Remove** (`RemoveDataSourceCommand` — xoá khỏi registry, template quay về theo dõi bằng `FilePath` riêng, không tự xoá dữ liệu template).
+   - **Fallback tương thích ngược đã hoạt động đúng như thiết kế**: khi mở template có `DataSourceId`, `RestoreLinkedExcelDataAsync` ưu tiên đọc FilePath/SheetName/HeaderRowIndex hiện tại từ registry (nếu source còn tồn tại) *trước khi* chạy chuỗi resolve tuyệt đối→tương đối→cùng thư mục — nghĩa là **relink 1 nguồn dùng chung sẽ tự sửa cho mọi template tham chiếu nó**, không cần relink từng template. Template không có `DataSourceId` (file cũ) vẫn chạy y hệt luồng trước đây.
+   - Test end-to-end mới: `shared data source relink fixes every referencing template` — tạo source từ 1 template, lưu template, "di chuyển" file bằng cách sửa path trong registry (mô phỏng thao tác Relink), mở lại template trong phiên `MainViewModel` mới → xác nhận tự động trỏ đúng file mới, không báo link hỏng, đọc đúng dữ liệu mới.
+5. ✅ **Theo dõi file thay đổi** (v0.065): `FileSystemWatcher` (khởi động trong `StartWatchingExcelFile`, gọi mỗi lần Import/Refresh/Relink/Open thành công) theo dõi file Excel đang link, debounce 1s bằng `System.Threading.Timer` (không dùng `DispatcherTimer` để không phụ thuộc message loop — chạy được cả khi test không có `Application` WPF). Khi file đổi thật sự (so `LastWriteTimeUtc` để bỏ qua touch không đổi nội dung), panel Database hiện dòng cảnh báo `ExcelStaleNoticeText` + nút "↻ Update Excel" (bind `RefreshExcelDataCommand` có sẵn) — **không tự reload ngầm**, đúng yêu cầu tránh giật dữ liệu giữa lúc đang thiết kế/in. Watcher tự dừng khi tạo template mới hoặc mất link. Test: `linked excel file watcher flags stale data` — sửa file ngoài app, chờ cờ `IsExcelDataStale` bật lên, xác nhận dữ liệu trong RAM chưa đổi cho tới khi bấm Update, rồi mới nạp dữ liệu mới.
+6. ✅ **Khoá theo `KeyField`** (hoàn tất qua TC5, v0.064 — xem "Giai đoạn TC" bên dưới): cho phép chọn 1 cột làm khoá; `LastSelectedRow` lưu thêm giá trị khoá, khi reload thì tìm lại đúng bản ghi theo khoá trước, theo index sau, lệch thì cảnh báo. UI đặt trong panel Database ("Row Tracking Key" ComboBox) thay vì trong dialog import như đề xuất ban đầu — hiệu quả tương đương, ít thay đổi dialog hiện có hơn.
 6b. ✅ **Cancel/timeout khi đọc file** (điểm yếu 8): `CancellationToken` cho `GetSheetNames`/`LoadSheetAsync`, nút Cancel trên UI, timeout 30s cho đường dẫn UNC/network và mở stream bằng `FileShare.ReadWrite`. Luồng re-link cũng dùng API async, không đọc workbook trên UI thread.
 6c. **Báo cáo schema sau import/refresh** (điểm yếu 9): gom mọi `BindingExpression`/formula trong template → danh sách cột cần có → so với header thực tế → hiện tóm tắt cột thiếu một chỗ (status bar + dialog khi mở template). Cache kết quả đọc theo `(path, sheet, LastWriteTimeUtc)` để refresh không đọc lại file chưa đổi.
 
@@ -57,7 +57,7 @@ Luồng dữ liệu hiện tại của một template `.anlabel`:
 
 Mục tiêu: mọi con đường dữ liệu đi vào tem đều **đoán được và kiểm chứng được**. Các hạng mục:
 
-TC1. **Báo cáo schema một chỗ** — ⚠️ **đã có sẵn phần lớn khi audit lại code** (không phải làm từ đầu): `MainViewModel.GetBindingIssues()` + panel "Binding Issues" (`MainWindow.xaml` dòng ~638) đã liệt kê từng object có `BindingExpression` bị thiếu cột/lỗi, tự refresh sau `RaiseDatabaseFieldStateChanged()` (gọi sau Import/Refresh/thêm-xoá field). ✅ 2026-07-02 (v0.060) bổ sung thêm: `StatusText` sau `ImportExcelAsync` giờ nối thêm số lượng object có vấn đề binding, vd. `"Imported 40 rows from data.xlsx / Sheet1 — 2 object(s) have missing/broken bindings"` — để người dùng thấy ngay không cần mở panel. Còn thiếu (chưa làm): chặn/cảnh báo cứng lúc **in** khi thiếu cột (nối với preflight, xem `docs/print-preview-reliability-plan.md`).
+TC1. **Báo cáo schema một chỗ** — ✅ **HOÀN TẤT TOÀN BỘ**: `MainViewModel.GetBindingIssues()` + panel "Binding Issues" (`MainWindow.xaml` dòng ~638) liệt kê từng object có `BindingExpression` bị thiếu cột/lỗi, tự refresh sau `RaiseDatabaseFieldStateChanged()`. `StatusText` sau `ImportExcelAsync` nối thêm số lượng object có vấn đề binding (v0.060). Phần "chặn cứng lúc in khi thiếu cột" — xác nhận lại 2026-07-03: đã có từ trước qua `PrintPreflightValidator.ValidateBindingFieldsPresent` (kiểm cả binding `{Field}` qua `FieldNameResolver` lẫn formula qua `FormulaEvaluationResult.Errors`), test `print preflight blocks missing bound field` bảo vệ — ghi chú "còn thiếu" trước đó là lỗi thời, không phải việc còn tồn đọng.
 TC2. ✅ **Kiểm chứng round-trip khi save/open** (v0.061): test `database config full round trip` — populate đầy đủ `DatabaseConfig` (DataSourceId, FilePath, RelativePath, SheetName, HeaderRowIndex, KeyField, KeyValue, LastSelectedRow, AvailableFields, LabelFields) qua `ProjectFileService.SaveAsync`/`LoadAsync`, assert từng field giữ nguyên sau round-trip JSON.
 TC3. **Trạng thái link hiển thị tường minh** — ⚠️ **đã có sẵn phần lớn**: panel Database (`MainWindow.xaml` ~dòng 606-609) đã hiển thị `LinkedExcelSourceText` (file/sheet), `ExcelLinkStatusText` (cảnh báo đỏ khi hỏng) + nút `RelinkExcelCommand`. ✅ 2026-07-02 (v0.060) bổ sung `ExcelDataFreshnessText` ("Data read at HH:mm:ss") ngay dưới tên file/sheet — phần còn thiếu duy nhất là hiển thị số dòng ngay tại đây (hiện số dòng chỉ có trong `CurrentExcelRowText` ở khu vực DataGrid, không phải cùng chỗ với trạng thái link).
 TC4. **Cache + so `LastWriteTimeUtc`** — ✅ **đã làm xong (v0.060)**: `MainViewModel` lưu `_excelDataSourceWriteTimeUtc` sau mỗi import; `RefreshExcelDataAsync()` gọi `TryGetFileWriteTimeUtc()` (stat file, không đọc nội dung) so với giá trị đã lưu — nếu trùng thì bỏ qua đọc lại, báo `"Excel data already up to date (Data read at HH:mm:ss) — file has not changed since last read"`; nếu khác thì đọc lại như cũ. Test: `excel refresh skips unchanged file` (PASS) — kiểm cả 2 nhánh (file không đổi → skip; file đổi nội dung + write time → đọc lại).
@@ -67,10 +67,10 @@ TC7. ✅ **Test bao phủ các ca hỏng** (v0.062): thêm `ExcelDataReadExcepti
 
 ### Giai đoạn 3 — Mở rộng nguồn và hiệu năng
 
-7. **CSV** (UTF-8, chọn delimiter) qua cùng interface `IDataSourceReader` — `ExcelDataService` hiện tại trở thành 1 implementation.
-8. **Chọn dòng header + preview 50 dòng đầu trước khi import** (dialog import thêm bảng preview và ô "Header row").
-9. **Đọc lười (lazy) cho file lớn**: nếu > ~20.000 dòng, chỉ nạp trang đang xem cho DataGrid; print pipeline stream theo batch thay vì giữ cả DataTable string.
-10. (Tuỳ nhu cầu khách) ODBC/SQL Server/Google Sheets — chỉ làm khi có yêu cầu thật, giữ qua cùng interface.
+7. **CSV** (UTF-8, chọn delimiter) qua cùng interface `IDataSourceReader` — `ExcelDataService` hiện tại trở thành 1 implementation. CHƯA LÀM (chưa có yêu cầu cụ thể; là thay đổi kiến trúc lớn hơn — đổi tên/khái quát hoá luồng `ImportExcelAsync` khắp `MainViewModel`/`ExcelImportWindow` — nên để dành khi có nhu cầu thật thay vì đoán trước).
+8. ✅ **Chọn dòng header + preview trước khi import** (v0.079): `ExcelDataService.PreviewRowsAsync(filePath, sheetName, maxRows, ct)` (method mới, không sửa method đọc dữ liệu chính sẵn có) đọc tối đa N dòng vật lý đầu tiên kèm đúng số dòng tuyệt đối trong sheet (`ExcelPreviewRow.RowNumber` — khớp trực tiếp với `DatabaseConfig.HeaderRowIndex`/tham số `headerRowIndex` của `LoadSheetAsync`, kể cả khi dữ liệu không bắt đầu từ dòng 1). Cửa sổ mới `ExcelHeaderRowWindow` hiện bảng preview cho người dùng click chọn đúng dòng chứa tên cột, nối vào `ExcelImportWindow.Browse_Click` (sau khi chọn sheet, trước khi Import) — preview lỗi thì fallback im lặng về dòng 1 như hành vi cũ, không chặn import. Test: `excel preview rows use absolute row numbers and respect maxRows`.
+9. **Đọc lười (lazy) cho file lớn**: nếu > ~20.000 dòng, chỉ nạp trang đang xem cho DataGrid; print pipeline stream theo batch thay vì giữ cả DataTable string. CHƯA LÀM — chưa có bằng chứng thực tế (file khách hàng lớn cỡ nào) để thiết kế đúng ngưỡng/chiến lược cache mà không đoán mò; rủi ro sửa sai cao hơn lợi ích nếu làm khi chưa có ca thật.
+10. (Tuỳ nhu cầu khách) ODBC/SQL Server/Google Sheets — chỉ làm khi có yêu cầu thật, giữ qua cùng interface. CHƯA LÀM, đúng như định hướng ban đầu.
 
 ## Ràng buộc phải giữ
 
@@ -81,4 +81,4 @@ TC7. ✅ **Test bao phủ các ca hỏng** (v0.062): thêm `ExcelDataReadExcepti
 
 ## Thứ tự làm đề xuất
 
-Giai đoạn 1 ✅ xong. Thứ tự tiếp theo (định hướng 2026-07-02): **Giai đoạn TC (siết tin cậy) → hoàn thiện GĐ2 (nối registry vào UI, watcher, KeyField UI) → GĐ3 theo nhu cầu thực tế.** Mỗi đợt: build + test PASS, bump version, cập nhật `MASTER_PLAN.md`.
+Giai đoạn 1 ✅ xong. Giai đoạn TC ✅ xong (TC1–TC7). Giai đoạn 2 ✅ xong toàn bộ (item 4 Data Source Registry UI, item 5 watcher, item 6 KeyField UI). Việc còn lại chỉ còn Giai đoạn 3 — làm theo nhu cầu thực tế (CSV, header-row picker, lazy-load file lớn, ODBC/SQL). Mỗi đợt: build + test PASS, bump version, cập nhật `MASTER_PLAN.md`.

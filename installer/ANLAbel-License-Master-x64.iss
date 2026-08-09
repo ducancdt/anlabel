@@ -19,6 +19,10 @@ PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\ANLAbel.LicenseGenerator.exe
 VersionInfoVersion=1.0.0.0
 VersionInfoDescription=ANLAbel License Master - PRIVATE
+; Update-in-place: AppId co dinh nen chay lai installer se tu cap nhat dung thu muc cu.
+CloseApplications=yes
+CloseApplicationsFilter=ANLAbel.LicenseGenerator.exe
+RestartApplications=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

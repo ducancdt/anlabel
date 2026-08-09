@@ -35,6 +35,7 @@ public sealed class LabelObject : ObservableObject
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
     private string _bindingStateDisplayText = string.Empty;
+    private string _imageDataBase64 = string.Empty;
 
     public string Id
     {
@@ -284,6 +285,19 @@ public sealed class LabelObject : ObservableObject
     }
 
     /// <summary>
+    /// Base64-encoded bytes of an inserted picture (PNG/JPEG/BMP). Embedded directly so
+    /// templates stay standalone files, consistent with the rest of the template format.
+    /// </summary>
+    public string ImageDataBase64
+    {
+        get => _imageDataBase64;
+        set => SetProperty(ref _imageDataBase64, value);
+    }
+
+    [JsonIgnore]
+    public bool HasImageData => !string.IsNullOrWhiteSpace(ImageDataBase64);
+
+    /// <summary>
     /// When true, displays human-readable text content below the barcode.
     /// Default is true (industry standard for 1D barcodes).
     /// </summary>
@@ -349,7 +363,13 @@ public sealed class LabelObject : ObservableObject
         }
     }
 
-    private bool IsSquare2DCodeLike()
+    /// <summary>
+    /// True for matrix-style barcodes (QR/DataMatrix, or Code128-typed objects whose
+    /// symbology was switched to a 2D kind) — the shared predicate for "does this object
+    /// behave like a square/matrix code" used across the designer, renderers, and preflight
+    /// validation. Public so callers outside this assembly don't need their own copy.
+    /// </summary>
+    public bool IsSquare2DCodeLike()
     {
         return Type == ObjectType.QRCode
             || Type == ObjectType.DataMatrix

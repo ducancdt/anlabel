@@ -1,11 +1,57 @@
 using System.Data;
-using ClosedXML.Excel;
+using System.Globalization;
+using ExcelDataReader;
 
 namespace ANLAbel.Data.Excel;
 
+/// <summary>
+/// One raw physical row from <see cref="ExcelDataService.PreviewRowsAsync"/>. <see cref="RowNumber"/>
+/// is the sheet's absolute 1-based row number — the same value <c>DatabaseConfig.HeaderRowIndex</c>
+/// and <c>LoadSheetAsync</c>'s headerRowIndex parameter use, so it can be assigned directly once
+/// the user points at the real header row in a preview grid.
+/// </summary>
+public sealed record ExcelPreviewRow(int RowNumber, IReadOnlyList<string> Cells);
+
+/// <summary>One sheet's name plus its preview rows, from <see cref="ExcelDataService.GetSheetsWithPreviewAsync"/>.</summary>
+public sealed record ExcelSheetPreview(string SheetName, IReadOnlyList<ExcelPreviewRow> Rows);
+
+/// <summary>
+/// Reads .xlsx/.xlsm workbooks with ExcelDataReader (bug fix 2026-07-03: switched from
+/// ClosedXML). ClosedXML builds a full in-memory DOM of the whole workbook — every sheet,
+/// every cell's style/formatting — regardless of how little of it a caller actually reads,
+/// which made even a modest Import spike memory hard enough to trigger long, all-thread
+/// Garbage Collector pauses on RAM-constrained machines (reported as the app "hanging" while
+/// adding an Excel file, confirmed by moderate-not-pegged CPU alongside high RAM use at the
+/// time). ExcelDataReader is a forward-only streaming reader with no such DOM — it reads raw
+/// cell values sheet-by-sheet, row-by-row, and never materializes sheets or rows the caller
+/// doesn't ask for.
+/// </summary>
 public sealed class ExcelDataService
 {
     private static readonly TimeSpan DefaultNetworkTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Safety-net timeout applied to LOCAL file reads too (bug fix 2026-07-03, second round):
+    /// a machine reported the app "hanging" during Import Excel even after the ExcelDataReader
+    /// switch, with a SMALL local file, for several minutes until force-killed via Task Manager
+    /// — a genuine stuck condition, not just slowness, that could not be reproduced elsewhere.
+    /// Previously only UNC/network paths got a timeout; a local read had none at all, so a stuck
+    /// call (inside ExcelDataReader itself, or anywhere in this class) could hang forever with no
+    /// recovery except killing the process. This does not fix whatever the underlying stuck
+    /// condition is — the background Task.Run may keep running after this fires — but it
+    /// guarantees the UI always gets back control with a clear, actionable error instead of an
+    /// unrecoverable freeze.
+    /// </summary>
+    private static readonly TimeSpan DefaultLocalTimeout = TimeSpan.FromSeconds(45);
+
+    static ExcelDataService()
+    {
+        // ExcelReaderFactory needs the Windows-1252 code page even for .xlsx files (its
+        // configuration constructor references it for legacy .xls fallback), which .NET
+        // Core/5+ no longer registers by default — without this, every CreateReader call
+        // throws NotSupportedException("No data is available for encoding 1252").
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+    }
 
     /// <summary>
     /// Returns sheet names from the workbook. Runs on a background thread so it
@@ -19,14 +65,105 @@ public sealed class ExcelDataService
         {
             cancellationToken.ThrowIfCancellationRequested();
             using var stream = OpenFileStream(filePath, cancellationToken);
-            using var workbook = OpenWorkbook(stream, filePath);
-            cancellationToken.ThrowIfCancellationRequested();
-            return (IReadOnlyList<string>)workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
+            using var reader = OpenReader(stream, filePath);
+            var names = new List<string>();
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                names.Add(reader.Name);
+            } while (reader.NextResult());
+
+            return (IReadOnlyList<string>)names;
         }, CancellationToken.None);
 
-        return IsNetworkPath(filePath)
-            ? await readTask.WaitAsync(DefaultNetworkTimeout, cancellationToken)
-            : await readTask.WaitAsync(cancellationToken);
+        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+    }
+
+    /// <summary>
+    /// Lightweight connectivity check for the Database Manager (database-manager-module-plan.md
+    /// M2): verifies the file opens, the sheet exists, and the header row yields at least one
+    /// column, without the caller having to keep the resulting <see cref="DataTable"/> around.
+    /// Never throws — failures are reported in the returned message so the UI can show them
+    /// inline next to a "Test Connection" button.
+    /// </summary>
+    public async Task<(bool Ok, string Message)> TestConnectionAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var table = await LoadSheetAsync(filePath, sheetName, headerRowIndex, cancellationToken);
+            return table.Columns.Count > 0
+                ? (true, $"OK — {table.Columns.Count} column(s), {table.Rows.Count} row(s).")
+                : (false, "Sheet has no columns at the given header row.");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads up to <paramref name="maxRows"/> raw physical rows from the top of the sheet,
+    /// with no assumption about which row is the header (database-plan.md Giai đoạn 3 item 8:
+    /// "chọn dòng header + preview trước khi import"). Used to render a preview grid so the
+    /// user can point at the actual header row before importing, instead of the app always
+    /// assuming row 1. Streaming stops reading this sheet as soon as maxRows is reached — it
+    /// never touches the rest of the sheet, let alone other sheets in the workbook.
+    /// </summary>
+    public async Task<IReadOnlyList<ExcelPreviewRow>> PreviewRowsAsync(string filePath, string sheetName, int maxRows = 15, CancellationToken cancellationToken = default)
+    {
+        var readTask = Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var stream = OpenFileStream(filePath, cancellationToken);
+            using var reader = OpenReader(stream, filePath);
+            if (!SeekToSheet(reader, sheetName, out var availableSheets))
+            {
+                throw new ExcelDataReadException(
+                    ExcelDataReadError.MissingSheet,
+                    $"Excel sheet '{sheetName}' was not found in {Path.GetFileName(filePath)}. Available sheets: {availableSheets}.",
+                    filePath,
+                    sheetName);
+            }
+
+            return (IReadOnlyList<ExcelPreviewRow>)ReadPreviewRows(reader, maxRows, cancellationToken);
+        }, CancellationToken.None);
+
+        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+    }
+
+    /// <summary>
+    /// Combines <see cref="GetSheetNamesAsync"/> and <see cref="PreviewRowsAsync"/> into a
+    /// single file open (bug fix 2026-07-03): opening a workbook used to parse the whole file
+    /// into memory regardless of how much of it you read afterward, so calling both separately
+    /// — as <c>ExcelImportWindow.Browse_Click</c> originally did after the header-row-picker
+    /// feature was added — silently made every Import re-parse the same file a second time
+    /// before the real import parsed it a third time. This method reads every sheet's name and
+    /// preview rows in one streaming pass so the import dialog only needs to open the file
+    /// twice total (once here, once for the real <see cref="LoadSheetAsync"/>).
+    /// </summary>
+    public async Task<IReadOnlyList<ExcelSheetPreview>> GetSheetsWithPreviewAsync(string filePath, int maxRows = 15, CancellationToken cancellationToken = default)
+    {
+        var readTask = Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var stream = OpenFileStream(filePath, cancellationToken);
+            using var reader = OpenReader(stream, filePath);
+            var result = new List<ExcelSheetPreview>();
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var sheetName = reader.Name;
+                result.Add(new ExcelSheetPreview(sheetName, ReadPreviewRows(reader, maxRows, cancellationToken)));
+            } while (reader.NextResult());
+
+            return (IReadOnlyList<ExcelSheetPreview>)result;
+        }, CancellationToken.None);
+
+        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
     }
 
     /// <summary>
@@ -35,8 +172,14 @@ public sealed class ExcelDataService
     public IReadOnlyList<string> GetSheetNames(string filePath)
     {
         using var stream = OpenFileStream(filePath);
-        using var workbook = OpenWorkbook(stream, filePath);
-        return workbook.Worksheets.Select(sheet => sheet.Name).ToArray();
+        using var reader = OpenReader(stream, filePath);
+        var names = new List<string>();
+        do
+        {
+            names.Add(reader.Name);
+        } while (reader.NextResult());
+
+        return names;
     }
 
     public async Task<DataTable> LoadSheetAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
@@ -50,71 +193,82 @@ public sealed class ExcelDataService
             () => LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken),
             CancellationToken.None);
 
-        return IsNetworkPath(filePath)
-            ? await readTask.WaitAsync(DefaultNetworkTimeout, cancellationToken)
-            : await readTask.WaitAsync(cancellationToken);
+        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
     }
 
     private static DataTable LoadSheet(string filePath, string sheetName, int headerRowIndex, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = OpenFileStream(filePath, cancellationToken);
-        using var workbook = OpenWorkbook(stream, filePath);
-        if (!workbook.TryGetWorksheet(sheetName, out var worksheet))
+        using var reader = OpenReader(stream, filePath);
+        if (!SeekToSheet(reader, sheetName, out var availableSheets))
         {
-            var availableSheets = string.Join(", ", workbook.Worksheets.Select(sheet => sheet.Name));
             throw new ExcelDataReadException(
                 ExcelDataReadError.MissingSheet,
                 $"Excel sheet '{sheetName}' was not found in {Path.GetFileName(filePath)}. Available sheets: {availableSheets}.",
                 filePath,
                 sheetName);
         }
-        var usedRange = worksheet.RangeUsed();
-        var table = new DataTable(sheetName);
 
-        if (usedRange is null)
+        var table = new DataTable(sheetName);
+        string[]? headerCells = null;
+        var dataRows = new List<string[]>();
+        var rowNumber = 0;
+        while (reader.Read())
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            rowNumber++;
+            var cells = ReadRowCellsArray(reader);
+            if (rowNumber == headerRowIndex)
+            {
+                headerCells = cells;
+            }
+            else if (rowNumber > headerRowIndex)
+            {
+                dataRows.Add(cells);
+            }
+        }
+
+        if (rowNumber == 0)
+        {
+            // Sheet has no rows at all — matches the previous ClosedXML "usedRange is null"
+            // behavior of returning an empty table rather than an InvalidHeaderRow error.
             return table;
         }
 
-        var firstColumn = usedRange.RangeAddress.FirstAddress.ColumnNumber;
-        var lastColumn = usedRange.RangeAddress.LastAddress.ColumnNumber;
-        var lastRow = usedRange.RangeAddress.LastAddress.RowNumber;
-        if (headerRowIndex > lastRow)
+        if (headerCells is null)
         {
             throw new ExcelDataReadException(
                 ExcelDataReadError.InvalidHeaderRow,
-                $"Header row {headerRowIndex} is outside the used range of sheet '{sheetName}' (last row: {lastRow}).",
+                $"Header row {headerRowIndex} is outside the used range of sheet '{sheetName}' (last row: {rowNumber}).",
                 filePath,
                 sheetName);
         }
 
         var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        for (var column = firstColumn; column <= lastColumn; column++)
+        for (var column = 0; column < headerCells.Length; column++)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var rawHeader = CleanCellText(worksheet.Cell(headerRowIndex, column).GetFormattedString());
-            var header = string.IsNullOrWhiteSpace(rawHeader) ? $"Column{column - firstColumn + 1}" : rawHeader;
+            var rawHeader = headerCells[column];
+            var header = string.IsNullOrWhiteSpace(rawHeader) ? $"Column{column + 1}" : rawHeader;
             header = MakeUniqueHeader(header, headers);
             table.Columns.Add(header, typeof(string));
         }
 
-        for (var row = headerRowIndex + 1; row <= lastRow; row++)
+        foreach (var rowCells in dataRows)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var dataRow = table.NewRow();
             var hasValue = false;
 
-            for (var column = firstColumn; column <= lastColumn; column++)
+            for (var column = 0; column < table.Columns.Count; column++)
             {
-                var value = CleanCellText(worksheet.Cell(row, column).GetFormattedString());
+                var value = column < rowCells.Length ? rowCells[column] : string.Empty;
                 if (!string.IsNullOrEmpty(value))
                 {
                     hasValue = true;
                 }
 
-                dataRow[column - firstColumn] = value;
+                dataRow[column] = value;
             }
 
             if (hasValue)
@@ -124,6 +278,54 @@ public sealed class ExcelDataService
         }
 
         return table;
+    }
+
+    private static List<ExcelPreviewRow> ReadPreviewRows(IExcelDataReader reader, int maxRows, CancellationToken cancellationToken)
+    {
+        var rows = new List<ExcelPreviewRow>();
+        var rowNumber = 0;
+        while (rows.Count < maxRows && reader.Read())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            rowNumber++;
+            rows.Add(new ExcelPreviewRow(rowNumber, ReadRowCellsArray(reader)));
+        }
+
+        return rows;
+    }
+
+    private static string[] ReadRowCellsArray(IExcelDataReader reader)
+    {
+        var fieldCount = reader.FieldCount;
+        var cells = new string[fieldCount];
+        for (var column = 0; column < fieldCount; column++)
+        {
+            cells[column] = CleanCellText(FormatCellValue(reader, column));
+        }
+
+        return cells;
+    }
+
+    /// <summary>
+    /// Finds <paramref name="sheetName"/> by advancing through the workbook's result sets
+    /// (case-insensitive, matching Excel's own sheet-name uniqueness rule). Streaming means
+    /// sheets before the match are never read row-by-row — only their names are touched.
+    /// </summary>
+    private static bool SeekToSheet(IExcelDataReader reader, string sheetName, out string availableSheets)
+    {
+        var names = new List<string>();
+        do
+        {
+            names.Add(reader.Name);
+            if (string.Equals(reader.Name, sheetName, StringComparison.OrdinalIgnoreCase))
+            {
+                availableSheets = string.Empty;
+                return true;
+            }
+        } while (reader.NextResult());
+
+        availableSheets = string.Join(", ", names);
+        return false;
     }
 
     /// <summary>
@@ -166,16 +368,19 @@ public sealed class ExcelDataService
         return stream;
     }
 
-    private static XLWorkbook OpenWorkbook(Stream stream, string filePath)
+    private static IExcelDataReader OpenReader(Stream stream, string filePath)
     {
         try
         {
-            return new XLWorkbook(stream);
+            return ExcelReaderFactory.CreateReader(stream);
         }
-        catch (Exception ex) when (ex is InvalidDataException
+        catch (Exception ex) when (ex is ExcelDataReader.Exceptions.ExcelReaderException
+                                   or InvalidDataException
                                    or FormatException
                                    or NotSupportedException
-                                   or ArgumentException)
+                                   or ArgumentException
+                                   or EndOfStreamException
+                                   or IndexOutOfRangeException)
         {
             throw new ExcelDataReadException(
                 ExcelDataReadError.InvalidWorkbook,
@@ -189,6 +394,56 @@ public sealed class ExcelDataService
     {
         return filePath.StartsWith(@"\\", StringComparison.Ordinal)
                || filePath.StartsWith("//", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Converts a raw cell value to display text. Unlike ClosedXML's GetFormattedString(),
+    /// this does not replicate Excel's exact number-format rendering (currency symbols,
+    /// thousands separators, custom formats) — it is a best-effort approximation covering
+    /// the cases that matter for label data: plain numbers (trimmed, no forced decimals),
+    /// percentages (detected via the cell's format code), and dates. This is an accepted
+    /// trade-off for the memory-usage fix switching away from ClosedXML's full-DOM parser.
+    /// </summary>
+    private static string FormatCellValue(IExcelDataReader reader, int column)
+    {
+        var value = reader.GetValue(column);
+        switch (value)
+        {
+            case null:
+                return string.Empty;
+            case string text:
+                return text;
+            case bool flag:
+                return flag ? "TRUE" : "FALSE";
+            case DateTime date:
+                return date.TimeOfDay == TimeSpan.Zero
+                    ? date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    : date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            case double or float or decimal or int or long or short or byte:
+                return FormatNumber(Convert.ToDouble(value, CultureInfo.InvariantCulture), reader, column);
+            default:
+                return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        }
+    }
+
+    private static string FormatNumber(double value, IExcelDataReader reader, int column)
+    {
+        string? formatCode = null;
+        try
+        {
+            formatCode = reader.GetNumberFormatString(column);
+        }
+        catch (Exception ex) when (ex is IndexOutOfRangeException or NotSupportedException)
+        {
+            // Format lookup is best-effort — fall back to plain number formatting below.
+        }
+
+        if (formatCode is not null && formatCode.Contains('%'))
+        {
+            return (value * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+        }
+
+        return value.ToString("0.##########", CultureInfo.InvariantCulture);
     }
 
     private static string CleanCellText(string value)
