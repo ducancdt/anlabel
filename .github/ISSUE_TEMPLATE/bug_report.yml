@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a reproducible ANLAbel defect or printing problem.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve ANLAbel. Remove customer names, production data, credentials, and proprietary templates before attaching anything.
+  - type: input
+    id: version
+    attributes:
+      label: ANLAbel version
+      placeholder: "For example: v0.086"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Designer
+        - Excel import or data binding
+        - Print Preview
+        - Physical printing
+        - Template library
+        - Installation or startup
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Describe the smallest reliable sequence that triggers the problem.
+      placeholder: |
+        1. Open...
+        2. Select...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: printer
+    attributes:
+      label: Printer and media details
+      description: Required for Print Preview or physical-print problems.
+      placeholder: "Model, Windows driver/version, 203/300/600 DPI, label width × height, gap/mark type, orientation"
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "For example: Windows 11 24H2 x64"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or sanitized evidence
+      description: Paste text or attach screenshots and a minimal generic template. Do not upload confidential data.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: I removed customer data, credentials, and proprietary content.
+          required: true
