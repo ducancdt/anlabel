@@ -2,6 +2,8 @@
 
 Thank you for helping improve ANLAbel. Contributions that improve industrial label-printing reliability, printer compatibility, data handling, accessibility, documentation, and test coverage are welcome.
 
+Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Before you start
 
 1. Search existing issues and pull requests to avoid duplicate work.
@@ -46,6 +48,11 @@ For printer-specific issues, include as much of the following as possible:
 - A minimal template and sample data with confidential information removed.
 
 Physical-printer results are especially valuable because driver behavior differs between Zebra, TSC, Godex, SATO, Argox, Honeywell, Intermec, Citizen, Toshiba TEC, and Seagull/BarTender drivers.
+
+## Questions and security
+
+- Use [GitHub Discussions](https://github.com/ducancdt/anlabel/discussions) for setup questions and early ideas.
+- Follow [SECURITY.md](SECURITY.md) when reporting a suspected vulnerability; do not disclose it in a public issue.
 
 ## Licensing contributions
 

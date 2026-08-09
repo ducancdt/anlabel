@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an improvement grounded in a real label-printing workflow.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow or problem
+      description: Explain who needs this and what they are trying to accomplish.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful change.
+    validations:
+      required: true
+  - type: textarea
+    id: printer
+    attributes:
+      label: Printer environment
+      placeholder: "Model, driver, DPI, media dimensions, orientation, and calibration method if relevant"
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Current workaround or alternatives
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and the roadmap.
+          required: true
+        - label: This request does not include confidential customer data.
+          required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup questions and ideas
+    url: https://github.com/ducancdt/anlabel/discussions
+    about: Use GitHub Discussions for questions, printer notes, and early ideas.
+  - name: Security vulnerability
+    url: https://github.com/ducancdt/anlabel/security/policy
+    about: Read the private-reporting instructions before disclosing a vulnerability.

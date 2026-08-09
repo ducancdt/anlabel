@@ -1,35 +1,53 @@
 # ANLAbel
 
-[![CI](https://github.com/ducancdt/anlabel/actions/workflows/ci.yml/badge.svg)](https://github.com/ducancdt/anlabel/actions/workflows/ci.yml)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+![ANLAbel — Industrial Label Design & Printing](docs/assets/anlabel-social-preview.jpg)
 
-ANLAbel is an open-source Windows desktop application for designing and printing industrial labels. It is built with C#/.NET 8 and WPF for manufacturing, warehouse, traceability, and product-identification workflows.
+<p align="center">
+  <strong>Open-source Windows software for designing and printing industrial labels from real production data.</strong>
+</p>
 
-The application targets industrial label printers through their Windows drivers, including common Zebra, TSC, Godex, SATO, Argox, Honeywell, Intermec, Citizen, and Toshiba TEC workflows.
+<p align="center">
+  <a href="https://github.com/ducancdt/anlabel/releases/latest">Download for Windows</a>
+  · <a href="docs/quick-start.md">Quick start</a>
+  · <a href="https://github.com/ducancdt/anlabel/issues/new/choose">Report an issue</a>
+  · <a href="https://github.com/ducancdt/anlabel/discussions">Join the discussion</a>
+</p>
 
-## Features
+<p align="center">
+  <a href="https://github.com/ducancdt/anlabel/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ducancdt/anlabel/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg"></a>
+  <a href="https://github.com/ducancdt/anlabel/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ducancdt/anlabel?label=release"></a>
+  <a href="https://github.com/ducancdt/anlabel/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/ducancdt/anlabel?style=flat"></a>
+</p>
 
-- Visual label designer with text, images, shapes, lines, barcodes, QR Code, Data Matrix, Aztec, and PDF417.
-- Excel-driven label content with sheet selection, header-row preview, field binding, formulas, and row tracking.
-- Shared Data Source Manager with connection tests, relinking, unlinking, usage tracking, and cleanup.
-- Batch print preview with record filtering, per-record copy counts, row selection, and duplicate-print warnings.
-- Print preflight for missing data, out-of-bounds objects, stale Excel data, barcode size, and real print DPI.
-- CSV append-only print history with Excel report export.
-- Portable `.anlabel` JSON templates and a built-in template library.
-- Millimeter-accurate rendering for 203, 300, and 600 DPI printer workflows.
+ANLAbel is a C#/.NET 8 WPF application for manufacturing, warehouse, traceability, quality-control, and product-identification workflows. It combines a visual label designer, Excel-driven variable data, industrial barcode support, print preflight, and millimeter-accurate output in one focused desktop tool.
 
-## Download
+## Why ANLAbel
 
-The current Windows x64 installer is available from the [ANLAbel Full v0.085 release](https://github.com/ducancdt/anlabel/releases/tag/v0.085-full).
+- **Design visually:** arrange text, images, shapes, lines, tables, barcodes, QR Code, Data Matrix, Aztec, and PDF417 on a millimeter-based canvas.
+- **Connect production data:** import Excel sheets, preview headers, bind fields, apply formulas, and track printed rows.
+- **Print with confidence:** validate missing data, bounds, stale sources, barcode module size, label orientation, and physical printer DPI before printing.
+- **Work with industrial printers:** target Windows drivers used with Zebra, TSC, Godex, SATO, Argox, Honeywell, Intermec, Citizen, and Toshiba TEC devices.
+- **Keep workflows portable:** save readable `.anlabel` JSON templates and reuse generic templates from the built-in library.
+- **Audit output:** retain append-only CSV print history and export reports to Excel.
 
-The Full build has no trial period and does not require a license key or activation code.
+## Get started
 
-> The installer is currently unsigned. Windows SmartScreen may display a warning when it is opened for the first time.
+1. Download the [latest Windows x64 installer](https://github.com/ducancdt/anlabel/releases/latest).
+2. Install and open ANLAbel. The Full build has no trial period, activation step, or license key.
+3. Choose a label size or open a template.
+4. Add static content, barcodes, and variable fields.
+5. Import your Excel data, preview records, select your printer, and run Print Preview.
 
-## Requirements
+See the detailed workflow notes in the [quick-start guide](docs/quick-start.md).
+
+> The installer is currently unsigned. Windows SmartScreen may display a warning on first launch. Verify that the download comes from this repository's Releases page.
+
+## Supported environment
 
 - Windows 10 or Windows 11, x64.
-- A Windows-compatible label-printer driver for physical printing.
+- A Windows-compatible industrial label-printer driver for physical printing.
+- 203, 300, and 600 DPI label workflows.
 - Visual Studio 2022 or a compatible .NET SDK when building from source.
 
 ## Build from source
@@ -49,13 +67,17 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj -c Release
 dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj -c Release
 ```
 
-The project currently contains application-level regression tests and xUnit tests covering data import, template persistence, barcode rendering, print geometry, DPI conversion, preflight validation, licensing-policy behavior, and reliability cases.
+The repository includes application-level regression tests and xUnit tests covering data import, template persistence, barcode rendering, print geometry, DPI conversion, preflight validation, licensing policy, and reliability cases.
 
-## Contributing
+## Community
 
-Bug reports, printer-compatibility feedback, documentation improvements, and code contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change.
+- Use the issue forms for reproducible bugs and feature requests.
+- Use [GitHub Discussions](https://github.com/ducancdt/anlabel/discussions) for setup questions, printer compatibility notes, and ideas.
+- Review the [roadmap](ROADMAP.md) to find useful areas for testing and contribution.
+- Report vulnerabilities privately using [SECURITY.md](SECURITY.md).
 
-When reporting a printing problem, include the printer model, Windows driver name/version, configured DPI, label dimensions, orientation, and a minimal `.anlabel` template when it is safe to share.
+If ANLAbel solves a real labeling problem for you, consider starring the repository and sharing the release with another manufacturing or warehouse team. Printer compatibility reports are especially valuable.
 
 ## License
 
@@ -63,4 +85,4 @@ ANLAbel source code is licensed under the [GNU General Public License v3.0 only]
 
 Third-party libraries and assets retain their respective licenses. See [docs/license-notices.md](docs/license-notices.md) for notices.
 
-Copyright © 2026 Duc An.
+Copyright (c) 2026 Duc An.
