@@ -3,6 +3,7 @@
 **Status:** pre-implementation handoff; design review required
 **Parent plan:** [`docs/reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) section R4.4
 **Current product sequence:** [`PLAN.md`](../PLAN.md) transform persistence/preview/dispatch entries through 0.211
+**UI/UX specification:** [`R4_DATA_WORKSPACE_UI_SPEC.md`](R4_DATA_WORKSPACE_UI_SPEC.md)
 **Figma reference:** panels file [`ANLAbel UI exploration`](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5), shell `8:2`, Data tab `9:2`
 
 ## 1. First operator task
@@ -65,7 +66,7 @@ The frequency order should remain: source/context -> sample row -> transforms ->
 
 ## 5. Figma evidence and routing
 
-The read-only metadata and screenshot of Data tab content `9:2` were checked on 2026-08-13:
+The read-only metadata for panels file `kqyNBI0DgRHnPzJTDBIui5` and Data tab content `9:2` was checked on 2026-08-13:
 
 | Node | Name | Size | Reusable intent |
 | --- | --- | --- | --- |

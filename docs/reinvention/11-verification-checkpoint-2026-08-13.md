@@ -71,6 +71,10 @@ The documentation-only [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](../P3_BARCODE_CHECK
 
 **Superseding docs-only Markdown audit after the P3 barcode check-digit/HRI UI spec (2026-08-13):** `80` Markdown files, `575` relative links checked, and `0` broken paths. The `79`/`563` figures above are the preceding P8 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`R4_DATA_WORKSPACE_UI_SPEC.md`](../R4_DATA_WORKSPACE_UI_SPEC.md) is the next R4 product-slice contract after v0.211. It maps the read-only Figma Data shell to one derived-field authoring task, sample/lineage diagnostics and atomic fail-closed Apply semantics; it does not add a transform editor, alter connectors or authorize a Figma edit.
+
+**Superseding docs-only Markdown audit after the R4 Data Workspace UI spec (2026-08-13):** `81` Markdown files, `583` relative links checked, and `0` broken paths. The `80`/`575` figures above are the preceding P3 barcode UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
