@@ -10,6 +10,7 @@ It does **not** replace:
 
 | Doc | Role |
 | --- | --- |
+| [`BARCODE_UI_UX_PROGRAM_INDEX.md`](BARCODE_UI_UX_PROGRAM_INDEX.md) | Barcode P3-P8 UI/UX sequence, source/action ownership, read-only Figma routing and shared gates |
 | [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) | Competitive gap matrix (M1–M22) and official NL/BT mechanics |
 | [`barcode-notes.md`](barcode-notes.md) | Implementation history (engine, DPI quirks) |
 | [`reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) | Whole-product reinvention phases |

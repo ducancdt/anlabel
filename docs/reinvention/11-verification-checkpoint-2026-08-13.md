@@ -101,6 +101,10 @@ The P8 read-only Figma check used shell node `2:2` (`1440 x 900`) with Print & O
 
 **Superseding docs-only Markdown audit after the P8 physical-verifier UI docs (2026-08-13):** `92` Markdown files, `713` relative links/assets checked, and `0` broken paths. The `90`/`689` figures above are the preceding P7 baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`BARCODE_UI_UX_PROGRAM_INDEX.md`](../BARCODE_UI_UX_PROGRAM_INDEX.md) now coordinates barcode P3-P8 state ownership, read-only Figma routing, shared runtime gates and explicit hardware/ADR non-claims. It does not replace the individual handoffs or authorize code/Figma edits.
+
+**Superseding docs-only Markdown audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
+
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 
 ### Named barcode gates rechecked

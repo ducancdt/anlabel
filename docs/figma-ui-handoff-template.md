@@ -61,6 +61,8 @@ Barcode P7 UI spec note: [`P7_PRINT_METHOD_UI_SPEC.md`](P7_PRINT_METHOD_UI_SPEC.
 
 Barcode P8 UI spec note: [`P8_PHYSICAL_VERIFIER_UI_SPEC.md`](P8_PHYSICAL_VERIFIER_UI_SPEC.md) maps job-level verifier/grade evidence to a future Print Center or History detail surface. Shell node `2:2` and Control Center History `3:85` have no verifier state; keep both read-only until a real fixture/adapter supplies a named state and runtime evidence.
 
+Barcode UI/UX program note: use [`BARCODE_UI_UX_PROGRAM_INDEX.md`](BARCODE_UI_UX_PROGRAM_INDEX.md) for P3-P8 sequencing, one action owner, shared acceptance gates and the read-only Figma node map. Individual handoffs/specs remain authoritative; this index does not authorize implementation or Figma writes.
+
 P7 UI spec note: [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md) maps Figma Administration `5:41` to local activation/preferences/data-source/evidence links and a future retention preview; it keeps roles, users, sync, server licenses and unsupported categories out of the local desktop contract.
 
 P8 UI spec note: [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md) maps Figma Applications `7:88` to a deferred local file-drop trigger contract, explicit lifecycle/claim/provenance states and P5 deep-links; web apps, TCP, cloud, login and unattended printing remain out of scope.

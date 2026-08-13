@@ -5,6 +5,8 @@
 **Scope:** Defining **barcode-object mechanics** (symbology, size/module/X-dimension, check digit, human-readable/HRI) — not a full symbology catalog rewrite, GS1 certification, or physical verifier campaign.
 **Method:** Official product help only for competitors; ANLAbel status from shipped source inspection (paths listed below).
 
+**UI/UX coordination:** [`BARCODE_UI_UX_PROGRAM_INDEX.md`](BARCODE_UI_UX_PROGRAM_INDEX.md) coordinates the P3-P8 handoffs, source/action owners, read-only Figma nodes and runtime/non-claim gates; this matrix remains the competitive mechanic truth.
+
 ## Current status cross-check (2026-08-13)
 
 The P1 and P2 software slices are now **Have** in the matrix: the current checkout passes the named logical-module, `SizedFromX`, legacy `FrameOwned`, and HRI placement gates. “Have” here means an implemented and regression-covered ANLAbel software path; it does not mean full NiceLabel/BarTender parity, hardware verifier grade, printer-native command support, or GS1 certification. The worktree remains dirty, so these results are not a release approval.
