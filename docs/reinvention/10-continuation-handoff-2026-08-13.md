@@ -337,6 +337,10 @@ The documentation-only [`PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md`](../PR
 
 **Superseding audit after the Print Preview/Calibration UI owner packet (2026-08-13):** `108` Markdown files, `1101` relative links/assets checked, and `0` broken paths. The `107`/`1072` figures above are the preceding designer shell/panel/Excel baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](../CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md) is the next local action-owner gate. It records the existing WPF Print Center refresh/recovery/reprint/support-export states, keeps the future History surface read-only and deep-linked, and does not authorize a second dispatch path, Figma write or Text/TextBox change.
+
+**Superseding audit after the Print Center recovery owner packet (2026-08-13):** `109` Markdown files, `1133` relative links/assets checked, and `0` broken paths. The `108`/`1101` figures above are the preceding Print Preview/Calibration baseline; external URLs remain outside this local-path audit.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

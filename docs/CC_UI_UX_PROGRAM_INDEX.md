@@ -11,6 +11,7 @@
 **P1 Operations Overview UI spec:** [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md)
 **P2 Print Queue UI spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
 **P5 History + reprint UI spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
+**P5 Print Center recovery owner packet:** [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md)
 **P3 Document Library UI spec:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
 **P3 Document Library owner decision packet:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md)
 **P4 Approval Workflow UI spec:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
@@ -30,7 +31,7 @@ This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It pre
 | --- | --- | --- | --- | --- |
 | CC-P1 | Operations Overview | `PrintCenterWindow`, queue status, activation and history entry points exist separately; no unified overview. | [Overview `2:2`](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4) (`1280 × 800`) | [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) · choose host, local cards/time window, runtime evidence. |
 | CC-P2 | Print Queue Console | Queue discovery, named-queue lookup and one-job spool observation; no fleet table or command service. | Printers `2:37` (`1280 × 800`) | [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md) · approve read-only host/status taxonomy; defer mutations. |
-| CC-P5 | History + controlled reprint | CSV per-label history, best-effort operation JSONL, hash-chained job state, Print Center/reprint guard. | History `3:85` (`1280 × 800`) | [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) · define read model/provenance/time/privacy; one reprint owner. |
+| CC-P5 | History + controlled reprint | CSV per-label history, best-effort operation JSONL, hash-chained job state, Print Center/reprint guard. | History `3:85` (`1280 × 800`) | [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) + [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md) · define read model/provenance/time/privacy while keeping the existing recovery action owner. |
 | CC-P3 | Document Library + Revision | Embedded gallery plus primary/`.bak`/`.revisions` inspection, semantic diff and validated restore; no local-root browser. | Documents `3:2` (`1280 × 800`) | [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) · choose root/host/preview/revision entry points. |
 | CC-P4 | Approval Workflow | Versioned envelope and print preflight exist; no document state enum, transition store, actor policy or Published gate. | Workflow `7:2` (`1280 × 800`) | [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md) · approve migration/audit/policy contract; separate from P5 reprint approval. |
 | CC-P6 | Local Analytics | CSV/JSONL/state evidence exists; no cross-source aggregate or Analytics window. | Analytics `5:2` (`1280 × 800`) | [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md) · approve units/source precedence/timezone/redaction; read-only only. |
@@ -71,6 +72,8 @@ The first concrete UI/UX content spec is [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`
 The first P2 UI contract is [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md); it maps Figma Printers `2:37` to a host-neutral, read-only queue table/detail wireframe, local source-to-row rules, responsive behavior and proposed AutomationIds without authorizing a queue window or commands.
 
 The first P5 UI contract is [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md); it maps Figma History `3:85` to a provenance-first activity/detail wireframe, three-source field rules, explicit reprint eligibility and proposed AutomationIds without creating a second action owner.
+
+The concrete recovery owner is bounded separately by [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md); it records the existing WPF `PrintCenterWindow` state/action gates, exact-manifest boundary, support export and target-scale/UIA evidence. It does not choose the future History host or authorize a second dispatch path.
 
 The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md); it maps Figma Documents `3:2` to local-root/built-in browse, validated file metadata, revision inspection and guarded restore without authorizing workflow, check-out or ACL controls.
 
