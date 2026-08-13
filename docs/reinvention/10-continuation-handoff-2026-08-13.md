@@ -202,6 +202,10 @@ The new [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](../CC_P2_PRINT_QUEUE_UI_SPEC.md) maps t
 
 **Superseding audit after the P2 Print Queue UI spec (2026-08-13):** `73` Markdown files, `504` relative links checked, and `0` broken paths. The `72`/`494` figures above are the preceding P1 UI spec baseline; external URLs remain outside this local-path audit.
 
+The new [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](../CC_P5_HISTORY_REPRINT_UI_SPEC.md) maps read-only Figma History `3:85` to a provenance-first activity/detail surface over state-store, operation JSONL and CSV detail, with explicit Request → Approve → Prepare → Dispatch boundaries. It does not authorize a History host, a new reprint owner, runtime merge code or a Figma edit.
+
+**Superseding audit after the P5 History + reprint UI spec (2026-08-13):** `74` Markdown files, `514` relative links checked, and `0` broken paths. The `73`/`504` figures above are the preceding P2 UI spec baseline; external URLs remain outside this local-path audit.
+
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff

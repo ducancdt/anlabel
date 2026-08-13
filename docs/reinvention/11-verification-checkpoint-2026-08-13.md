@@ -43,6 +43,10 @@ The documentation-only [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](../CC_P2_PRINT_QUEUE_UI_
 
 **Superseding docs-only Markdown audit after the P2 Print Queue UI spec (2026-08-13):** `73` Markdown files, `504` relative links checked, and `0` broken paths. The `72`/`494` figures above are the preceding P1 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](../CC_P5_HISTORY_REPRINT_UI_SPEC.md) maps read-only History metadata `3:85` to a provenance-first activity/detail surface, separate CSV/job/state evidence and explicit controlled-reprint stages. It does not authorize a History host, queue/reprint mutation, runtime read-model code or a Figma edit.
+
+**Superseding docs-only Markdown audit after the P5 History + reprint UI spec (2026-08-13):** `74` Markdown files, `514` relative links checked, and `0` broken paths. The `73`/`504` figures above are the preceding P2 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
