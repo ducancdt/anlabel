@@ -63,6 +63,10 @@ The documentation-only [`CC_P7_ADMINISTRATION_UI_SPEC.md`](../CC_P7_ADMINISTRATI
 
 **Superseding docs-only Markdown audit after the P7 Administration UI spec (2026-08-13):** `78` Markdown files, `555` relative links checked, and `0` broken paths. The `77`/`544` figures above are the preceding P6 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](../CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md) maps read-only Applications metadata `7:88` to a deferred local file-drop trigger contract, explicit claim/lifecycle/provenance states and P5 deep-links. It does not authorize a trigger runner, TCP/web/cloud scope, automatic retry, unattended dispatch, runtime implementation or Figma edit.
+
+**Superseding docs-only Markdown audit after the P8 Applications/Automation UI spec (2026-08-13):** `79` Markdown files, `563` relative links checked, and `0` broken paths. The `78`/`555` figures above are the preceding P7 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
