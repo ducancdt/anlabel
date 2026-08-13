@@ -43,6 +43,16 @@ See the detailed workflow notes in the [quick-start guide](docs/quick-start.md).
 
 > The installer is currently unsigned. Windows SmartScreen may display a warning on first launch. Verify that the download comes from this repository's Releases page.
 
+## Documentation and design references
+
+- [Roadmap](ROADMAP.md) — high-level priorities and contribution directions.
+- [Master plan](MASTER_PLAN.md) — product history and release narrative.
+- [Detailed plan](PLAN.md) — chronological implementation notes and regression gates.
+- [Continuation handoff](docs/reinvention/10-continuation-handoff-2026-08-13.md) — current documentation reconciliation queue and ownership boundary.
+- [Security policy](SECURITY.md) — private vulnerability reporting and handling guidance.
+
+The optional [ANLAbel shell reference in Figma](https://www.figma.com/design/zdN71qfzrYV6pPt1b2FRRc/ANLAbel-%E2%80%94-NiceLabel-Shell-Recreation) and [frequency-first panels exploration](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5) are visual research references. A Figma frame does not replace WPF runtime screenshots, regression coverage, or physical-printer evidence.
+
 ## Supported environment
 
 - Windows 10 or Windows 11, x64.
