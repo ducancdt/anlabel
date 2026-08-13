@@ -123,7 +123,7 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 
 ### 4. Close documentation links after the checkpoint
 
-The repository-local link/path audit is recorded in the [current verification checkpoint](11-verification-checkpoint-2026-08-13.md): 57 Markdown files, 209 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
+The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after adding the P3 handoff is 58 Markdown files, 219 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff
 
