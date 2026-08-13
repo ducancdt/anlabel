@@ -36,10 +36,12 @@ The corresponding status and non-claims are recorded in [`INDUSTRIAL_BARCODE_EXE
 No new Figma inspection or edit was needed for this checkpoint: it changes documentation and evidence ownership, not UI behavior. Existing read-only references remain authoritative for visual intent:
 
 - shell `2:2`;
-- panels `8:2`, selected Properties `13:2`, tabs `18:69`;
+- panels `8:2`, Data tab `9:2`, selected Properties `13:2`, tabs `18:69`;
 - Excel verification component `22:82`.
 
 There is still no dedicated barcode-Properties frame. If P3 check-digit/HRI policy becomes a UI slice, select the first operator task, name a Figma node (or explicitly reuse a current reference), then close it with a runtime screenshot/measurement and regression coverage. A Figma frame alone is not runtime proof.
+
+The next R4 Data Workspace UI slice has the same boundary: Figma `9:2` supplies the Data-tab shell and empty/current/settings/binding-check cards, but no transform editor, sample table, lineage or invalid-state variants. The detailed scope and ready gate are recorded in [`R4_DATA_WORKSPACE_UI_HANDOFF.md`](../R4_DATA_WORKSPACE_UI_HANDOFF.md); no implementation or release claim is implied by the reference.
 
 ## Release gates still open
 
