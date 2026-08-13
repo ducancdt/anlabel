@@ -47,6 +47,10 @@ The documentation-only [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](../CC_P5_HISTORY_REP
 
 **Superseding docs-only Markdown audit after the P5 History + reprint UI spec (2026-08-13):** `74` Markdown files, `514` relative links checked, and `0` broken paths. The `73`/`504` figures above are the preceding P2 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md) maps read-only Documents metadata `3:2` to local-root/built-in browse, validated revision evidence and guarded restore. It does not authorize a document browser, workflow/check-out/ACL mutation, runtime implementation or a Figma edit.
+
+**Superseding docs-only Markdown audit after the P3 Document Library + Revision UI spec (2026-08-13):** `75` Markdown files, `524` relative links checked, and `0` broken paths. The `74`/`514` figures above are the preceding P5 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:

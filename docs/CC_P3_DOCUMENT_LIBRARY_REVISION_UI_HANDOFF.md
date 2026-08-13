@@ -5,6 +5,7 @@
 **Related continuation:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
 **Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
+**UI/UX content spec:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
 
 CC-P3 follows the P5 read-model/reprint gate and precedes P4 workflow policy in the shared sequence. Reuse the selected local host and the existing `TemplateLibraryService`/`ProjectRevisionService` owners; keep check-out, permissions and workflow claims deferred until P4 is approved.
 
