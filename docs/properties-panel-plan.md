@@ -1,5 +1,7 @@
 # Plan: Kiểm tra & sắp xếp lại Properties panel
 
+> **Current continuation (2026-08-13):** This July audit remains historical. Current Figma metadata, open panel-width/tab-name decisions, and the reusable Figma → WPF evidence checklist live in the [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md) and [handoff template](figma-ui-handoff-template.md). Preserve the protected Text/TextBox behavior while reconciling any new UI revision.
+
 **Ngày:** 2026-07-03 · **Trạng thái:** Cả 3 đợt A, B, C đều đã làm xong (xem mục 6, 7, 8) · Theo định hướng chủ dự án: "kiểm tra và sắp xếp lại properties"
 
 ## 1. Hiện trạng (audit `MainWindow.xaml` ~dòng 770-1016)

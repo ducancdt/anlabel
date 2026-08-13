@@ -1,5 +1,7 @@
 # Plan: Khắc phục object tự nhảy vị trí/kích thước trong Designer
 
+> **Current continuation (2026-08-13):** This July stability audit remains historical. Use the [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md) for current ownership/evidence boundaries and the [Figma → WPF handoff template](figma-ui-handoff-template.md) for any shell or Properties UI slice. Keep designer/preview/print parity and the protected Text/TextBox contract explicit.
+
 **Ngày:** 2026-07-02 · **Trạng thái:** Đợt ổn định đầu tiên hoàn tất và đã verify
 
 ## Triệu chứng người dùng báo
