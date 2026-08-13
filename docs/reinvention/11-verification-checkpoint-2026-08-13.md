@@ -27,6 +27,8 @@
 
 **Superseding docs-only Markdown audit after CC-P6 (2026-08-13):** `67` Markdown files, `383` relative links checked, and `0` broken paths. The `66`/`365` figures above are the preceding CC-P8 audit; external URLs remain outside this local-path check.
 
+**Superseding docs-only Markdown audit after CC-P7 (2026-08-13):** `68` Markdown files, `406` relative links checked, and `0` broken paths. The `67`/`383` figures above are the preceding CC-P6 audit; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -66,6 +68,8 @@ CC-P4 is documentation-only: Workflow `7:2` supplies candidate state/action/hist
 CC-P8 is documentation-only and deferred: Applications `7:88` supplies a Web Applications shell and Automation sidebar, while current source has only the linked-Excel freshness watcher and manual manifest/preflight/queue path; no trigger host, file-claim protocol, TCP listener, web form or unattended-print service exists. The local file-drop proposal, lifecycle/deduplication/provenance matrix and prerequisite gates are recorded in [`CC_P8_AUTOMATION_UI_HANDOFF.md`](../CC_P8_AUTOMATION_UI_HANDOFF.md); History `3:101` is a research destination, not live automation evidence, and no implementation or Figma edit is implied.
 
 CC-P6 is documentation-only: Analytics `5:2` supplies chart/filter reference regions, while current local evidence remains split across per-label CSV, best-effort operation JSONL and hash-chained job state; no cross-source aggregate or Analytics UI exists. The unit/provenance/timezone/redaction matrix and software-counter boundary are recorded in [`CC_P6_ANALYTICS_UI_HANDOFF.md`](../CC_P6_ANALYTICS_UI_HANDOFF.md); no cloud telemetry, physical-output claim, implementation or Figma edit is implied.
+
+CC-P7 is documentation-only: Administration `5:41` supplies server-admin categories and sample role table, while current source supports local activation/DPAPI state, designer/printer preferences, versioned data-source registry/cleanup and local evidence files but no multi-user admin service. The thin-local-host, retention/recovery/privacy matrix is recorded in [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](../CC_P7_ADMINISTRATION_UI_HANDOFF.md); no roles, users, sync, SMTP, license-seat server, workflow admin, implementation or Figma edit is implied.
 
 ## Release gates still open
 
