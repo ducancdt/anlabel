@@ -273,6 +273,10 @@ The P8 read-only Figma check confirmed shell node `2:2` (`1440 x 900`) with Prin
 
 **Superseding audit after the P8 physical-verifier UI docs (2026-08-13):** `92` Markdown files, `713` relative links/assets checked, and `0` broken paths. The `90`/`689` figures above are the preceding P7 baseline; external URLs remain outside this local-path audit.
 
+The new [`BARCODE_UI_UX_PROGRAM_INDEX.md`](../BARCODE_UI_UX_PROGRAM_INDEX.md) consolidates P3-P8 barcode UI/UX sequencing, one source/action owner per surface, read-only Figma node routing and shared runtime/non-claim gates. It does not replace individual handoffs, authorize implementation or require a new Figma frame.
+
+**Superseding audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.
