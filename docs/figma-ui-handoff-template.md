@@ -33,7 +33,7 @@ Known ANLAbel references that should be reused when applicable:
 
 Coverage note (metadata checked 2026-08-13, panels file Page `0:1`): the page currently lists frames `1:2`, `4:2`, `8:2`, `13:2`, `18:69`, and `22:82`, with no dedicated Database Manager frame. Do not treat the Excel-link component as a complete Manager design; for a Manager slice, first record the exact workflow (unlink, test connection, preview, use, remove, or cleanup), then locate or create the smallest state-specific reference and map it to WPF controls.
 
-Barcode UI coverage note: the same page has only the compact-ribbon text layer `1:8` (`Text TextBox Image Barcode`) for barcode authoring. That is a navigation hint, not a Properties/state design. P1/P2 barcode software slices are closed; a future P3+ barcode UI slice must provide a state-specific node (or an explicit decision to reuse the existing WPF surface), measured controls, and runtime evidence. Do not infer check-digit policy, HRI display, X-dimension, or preflight copy from that text layer alone.
+Barcode UI coverage note: the same page has only the compact-ribbon text layer `1:8` (`Text TextBox Image Barcode`) for barcode authoring. That is a navigation hint, not a Properties/state design. P1/P2 barcode software slices are closed; the proposed P3 check-digit/HRI slice is routed through [`P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md`](P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md). Any P3+ UI slice must provide a state-specific node (or an explicit decision to reuse the existing WPF surface), measured controls, and runtime evidence. Do not infer check-digit policy, HRI display, X-dimension, or preflight copy from that text layer alone.
 
 ## 3. Contract and behavior
 
