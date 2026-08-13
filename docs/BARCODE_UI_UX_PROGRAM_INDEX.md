@@ -6,6 +6,7 @@
 **Competitive source:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md)
 **Figma routing template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
 **P3 owner decision packet:** [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md)
+**P4 owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -100,6 +101,8 @@ If an existing node cannot answer a concrete state question, record either an ow
 
 For the first open authoring slice, record D1-D5 in [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md) before treating a Code 39-first policy, HRI copy/default, persistence shape or WPF/Figma/runtime owner as approved.
 
+For the next geometry/diagnostics slice, record D1-D6 in [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) before treating a ratio legal set, density formula, quiet-zone convention, threshold or runtime owner as approved.
+
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
 3. Decide whether P7 native output is a product option or remains consciously deferred with an ADR.
@@ -111,3 +114,7 @@ Until these decisions are recorded, the barcode UI/UX program is mapped but open
 ### P3 decision route
 
 P3 is the first open authoring slice in this index. The source audit shows Code 39 and ITF renderer support but no check-digit policy or HRI masking field; the panels metadata shows no barcode-specific state. Use the [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md) to capture the symbology, payload semantics, copy/default, persistence and WPF/Figma/runtime ownership before any implementation. Its Code 39-first option is a recommendation, not a product decision.
+
+### P4 decision route
+
+P4 is the next geometry/diagnostics slice. The source has logical quiet-zone modules, profile-level requirements and shared X quantization, but no ratio field, ratio renderer hint, density contract or physical-QZ result. Use the [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) to capture the legal symbology, ratio representation, density/QZ conventions, legacy-X behavior and WPF/Figma/runtime ownership before implementation. Its per-side Code 39 option is a recommendation pending a renderer/standards probe.

@@ -277,9 +277,13 @@ The new [`BARCODE_UI_UX_PROGRAM_INDEX.md`](../BARCODE_UI_UX_PROGRAM_INDEX.md) co
 
 The documentation-only [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](../P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md) is the next owner gate under that index. It records source evidence for the Code 39/ITF gap, recommends a Code 39-first `None`/`Auto`/`Verify` boundary, separates HRI masking from encoded modules, and requires D1-D5 sign-off before implementation. No barcode model, renderer, Figma or Text/TextBox change is implied.
 
+The documentation-only [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](../P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) is the following owner gate. It records the current logical-module/profile and X-quantization evidence, the missing ratio/density/physical-QZ contract, the side/total and legacy-X decisions, and the renderer/standards probe required before implementation. No barcode model, renderer, Figma or Text/TextBox change is implied.
+
 **Superseding audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the P4 barcode ratio/QZ owner decision packet (2026-08-13):** `95` Markdown files, `771` relative links/assets checked, and `0` broken paths. The `94`/`749` figures above are the preceding P3 barcode owner-packet baseline; external URLs remain outside this local-path audit.
 
 ## Definition of done for this handoff
 
