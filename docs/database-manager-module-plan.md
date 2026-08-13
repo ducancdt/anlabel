@@ -3,6 +3,8 @@
 **Ngày:** 2026-07-03 · **Trạng thái:** M1 + M2 + M3 + M4-copies-per-record đã xong (v0.080). Chỉ còn M4-filter/sort (tùy chọn) và Giai đoạn 3 phần CSV/lazy-load/ODBC (theo nhu cầu thực tế).
 **Yêu cầu gốc từ chủ dự án:** "tạo thành 1 module riêng quản lý phần database này, bao gồm việc xóa, gỡ database, quản lý database" — sau khi audit phần gắn link Excel hiện tại và nghiên cứu cách NiceLabel làm.
 
+> **Current continuation (2026-08-13):** M1–M4 và các version ở trên là checkpoint lịch sử; phần UI click-through vẫn cần người dùng smoke-test theo các lưu ý trong từng đợt. Reconciliation/ownership hiện tại nằm ở [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md). Metadata read-only của panels file, Page `0:1`, hiện chỉ liệt kê các frame `1:2`, `4:2`, `8:2`, `13:2`, `18:69`, `22:82`; chưa có node Database Manager riêng. Nếu mở slice UI cho Manager, phải ghi node/state mới hoặc lý do dùng reference hiện có trong [Figma → WPF handoff template](figma-ui-handoff-template.md), rồi đóng bằng runtime evidence.
+
 > Đọc kèm: `docs/database-plan.md` (nền tảng đã xong: registry, watcher, key field, log, relink). Plan này KHÔNG làm lại các phần đó — chỉ gom chúng về một chỗ và bổ sung phần còn thiếu.
 
 ---

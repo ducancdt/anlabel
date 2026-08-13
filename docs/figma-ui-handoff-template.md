@@ -31,6 +31,8 @@ Known ANLAbel references that should be reused when applicable:
 - Excel link verification component: same panels file, component `22:82`.
 - Control Center research shells: [Figma file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4); local crops are under `docs/assets/nicelabel-control-center/ui-screens/`.
 
+Coverage note (metadata checked 2026-08-13, panels file Page `0:1`): the page currently lists frames `1:2`, `4:2`, `8:2`, `13:2`, `18:69`, and `22:82`, with no dedicated Database Manager frame. Do not treat the Excel-link component as a complete Manager design; for a Manager slice, first record the exact workflow (unlink, test connection, preview, use, remove, or cleanup), then locate or create the smallest state-specific reference and map it to WPF controls.
+
 ## 3. Contract and behavior
 
 ### User-visible states
