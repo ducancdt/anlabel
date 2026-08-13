@@ -25,6 +25,8 @@
 
 **Superseding docs-only Markdown audit after CC-P8 (2026-08-13):** `66` Markdown files, `365` relative links checked, and `0` broken paths. The `65`/`347` figures above are the preceding CC-P4 audit; external URLs remain outside this local-path check.
 
+**Superseding docs-only Markdown audit after CC-P6 (2026-08-13):** `67` Markdown files, `383` relative links checked, and `0` broken paths. The `66`/`365` figures above are the preceding CC-P8 audit; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -62,6 +64,8 @@ CC-P3 is documentation-only: Documents `3:2` supplies the browse/folder/card ref
 CC-P4 is documentation-only: Workflow `7:2` supplies candidate state/action/history vocabulary, while current source has no typed document workflow, local actor/role policy, transition audit store, or Published print gate. The state graph, legacy migration, audit boundary, and policy-on print matrix are recorded in [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](../CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md); P5 linked-reprint approval remains a separate job decision, and no implementation or Figma edit is implied.
 
 CC-P8 is documentation-only and deferred: Applications `7:88` supplies a Web Applications shell and Automation sidebar, while current source has only the linked-Excel freshness watcher and manual manifest/preflight/queue path; no trigger host, file-claim protocol, TCP listener, web form or unattended-print service exists. The local file-drop proposal, lifecycle/deduplication/provenance matrix and prerequisite gates are recorded in [`CC_P8_AUTOMATION_UI_HANDOFF.md`](../CC_P8_AUTOMATION_UI_HANDOFF.md); History `3:101` is a research destination, not live automation evidence, and no implementation or Figma edit is implied.
+
+CC-P6 is documentation-only: Analytics `5:2` supplies chart/filter reference regions, while current local evidence remains split across per-label CSV, best-effort operation JSONL and hash-chained job state; no cross-source aggregate or Analytics UI exists. The unit/provenance/timezone/redaction matrix and software-counter boundary are recorded in [`CC_P6_ANALYTICS_UI_HANDOFF.md`](../CC_P6_ANALYTICS_UI_HANDOFF.md); no cloud telemetry, physical-output claim, implementation or Figma edit is implied.
 
 ## Release gates still open
 
