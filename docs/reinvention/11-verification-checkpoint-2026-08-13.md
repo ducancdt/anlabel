@@ -115,6 +115,8 @@ The documentation-only [`P7_PRINT_METHOD_DECISION_PACKET.md`](../P7_PRINT_METHOD
 
 The documentation-only [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](../P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) is the following hardware-gated evidence owner gate. It records the current hash-only manifest-bound verifier contract, adapter identity/correlation/timeout/busy rules, grade scales, completion requirement, redaction/signature policy, Figma boundary and lab fixture evidence required before implementation. No device SDK, certification claim, Figma edit or Text/TextBox change is implied.
 
+The documentation-only [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) is the next downstream owner gate. It records configured-root cardinality, Built-in/local source precedence, host/action ownership, validated file/thumbnail states, primary/backup/archive lineage, compare/restore/dirty-edit policy and the CC-P4 workflow boundary required before implementation. No document browser, workflow/check-out/ACL control, Figma edit or Text/TextBox change is implied.
+
 **Superseding docs-only Markdown audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding docs-only Markdown audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
@@ -128,6 +130,8 @@ The documentation-only [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](../P8_PHYSICA
 **Superseding docs-only Markdown audit after the P7 print-method owner decision packet (2026-08-13):** `98` Markdown files, `845` relative links/assets checked, and `0` broken paths. The `97`/`816` figures above are the preceding P6 GS1 owner-packet baseline; external URLs remain outside this local-path check.
 
 **Superseding docs-only Markdown audit after the P8 physical-verifier owner decision packet (2026-08-13):** `99` Markdown files, `875` relative links/assets checked, and `0` broken paths. The `98`/`845` figures above are the preceding P7 print-method owner-packet baseline; external URLs remain outside this local-path check.
+
+**Superseding docs-only Markdown audit after the CC-P3 document-library/revision owner decision packet (2026-08-13):** `100` Markdown files, `899` relative links/assets checked, and `0` broken paths. The `99`/`875` figures above are the preceding P8 physical-verifier owner-packet baseline; external URLs remain outside this local-path check.
 
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 

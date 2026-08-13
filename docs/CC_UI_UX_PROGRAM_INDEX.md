@@ -11,6 +11,7 @@
 **P2 Print Queue UI spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
 **P5 History + reprint UI spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
 **P3 Document Library UI spec:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
+**P3 Document Library owner decision packet:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md)
 **P4 Approval Workflow UI spec:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
 **P6 Local Analytics UI spec:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
 **P7 Administration UI spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
@@ -65,6 +66,8 @@ The first P2 UI contract is [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_U
 The first P5 UI contract is [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md); it maps Figma History `3:85` to a provenance-first activity/detail wireframe, three-source field rules, explicit reprint eligibility and proposed AutomationIds without creating a second action owner.
 
 The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md); it maps Figma Documents `3:2` to local-root/built-in browse, validated file metadata, revision inspection and guarded restore without authorizing workflow, check-out or ACL controls.
+
+The P3 owner gate is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it records root cardinality, Built-in/local source precedence, host/action ownership, validation/thumbnail behavior, revision retention, compare/restore/dirty-edit policy, CC-P4 boundary and runtime/Figma evidence. It is documentation-only and does not authorize a document browser.
 
 The first P4 UI contract is [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md); it maps Figma Workflow `7:2` to candidate document states, actor/audit evidence and a policy-on print boundary without authorizing a workflow store, permissions model or Published gate.
 
@@ -149,7 +152,7 @@ Before any slice closes, the host gate must name the navigation owner, disabled/
 
 1. Host choice for P1/P2/P3/P5/P6/P7 and stable AutomationId vocabulary.
 2. Local queue/status/time/privacy semantics and P5 three-source precedence.
-3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy.
+3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy; record P3 D1-D8 in [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) before implementation.
 4. P6 source units/timezone/redaction and P7 retention/recovery scope.
 5. P8 local file-drop trigger claim/deduplication semantics and prerequisite policy gate.
 6. Whether any future UI needs a new state-specific Figma node; if so, identify the smallest state and keep the existing file.
