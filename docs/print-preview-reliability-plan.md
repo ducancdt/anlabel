@@ -4,6 +4,8 @@
 
 > **Current continuation (2026-08-13):** Mục 9 (kiểm chứng máy in thật) vẫn là open gate; các mốc v0.069–v0.072 ở trên là lịch sử, không phải bằng chứng cho worktree hiện tại. Khi chọn một UI/UX slice cho Print Preview, dùng [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md) và [Figma → WPF handoff template](figma-ui-handoff-template.md): node Figma chỉ mô tả trạng thái/ý định thị giác, còn runtime screenshot, build/test và hardware evidence mới đóng gate. Quy trình đo một tem calibration nằm ở [print-calibration.md](print-calibration.md). Không chỉnh Text/TextBox contract khi làm slice này.
 
+> **Preview/Calibration UI owner gate (2026-08-13):** [`PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md`](PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md) records the existing WPF Preview/Printer Setup/Calibration state and evidence contract. Keep the shell Print & Output metadata read-only; do not treat software queue acceptance as physical calibration or verifier evidence.
+
 Nguyên tắc xuyên suốt (đúng rule 4-6 `agent.md`): sản phẩm phục vụ máy in tem nhãn công nghiệp (Zebra, TSC, Godex, SATO...) — mọi quyết định phải theo hành vi thật của driver các dòng máy này, không theo máy in văn phòng.
 
 ## 1. Hiện trạng (đã có nền tốt)
