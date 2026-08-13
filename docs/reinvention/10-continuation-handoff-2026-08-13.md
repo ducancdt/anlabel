@@ -65,6 +65,18 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 
 The release snapshot must distinguish application regressions, xUnit tests, build warnings/errors and runtime smoke evidence. A green local test run does not close the hardware, driver, verifier or physical-label gates.
 
+#### Dirty-worktree verification observed 2026-08-13
+
+The commands above were run against the current broad, uncommitted implementation wave. They provide useful engineering evidence, but **do not close the P0 release checkpoint** because `git status` is not clean and the changed files have not been reconciled into an owning commit:
+
+| Check | Result | Scope note |
+| --- | --- | --- |
+| `dotnet build ANLAbel.slnx --no-restore --nologo -v quiet -p:UseSharedCompilation=false -nodeReuse:false` | PASS · 0 warnings · 0 errors · 34.91s | Compile evidence only. |
+| `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -v quiet` | PASS · 356/356 | xUnit/contract evidence for the current binaries. |
+| `dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build` | PASS · 157/157, 0 failures | Application regression harness; not a physical-printer smoke test. |
+
+The next owner must rerun the same gates after selecting/staging the intended implementation scope, then attach the clean commit, display version, and any manual UI/hardware evidence before changing the release claim.
+
 ### 2. Reconcile the barcode documents
 
 Use [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) as the ordered phase spine and [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md) as the gap matrix. The next documentation pass should, in one change:
