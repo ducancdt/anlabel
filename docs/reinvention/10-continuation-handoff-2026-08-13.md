@@ -27,7 +27,7 @@ These are documentation inconsistencies visible in the current worktree. They ar
 | Priority | Finding | Required resolution |
 | --- | --- | --- |
 | P0 | The `MASTER_PLAN.md` banner describes barcode P0/P1/P2 as shipped at product display `v0.202`, while the historical status heading still says `2026-08-10`. | Add one current-status block after the release gate with the actual display version, build result, application-test count, xUnit count and smoke evidence. Do not delete the historical entries. |
-| P0 | [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) marks P1 and P2 complete, but its older research/checklist text and [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md) still describe P1/P2 as the next/open slice. | Reconcile the phase table, deferred list, “next coding slice” paragraph and matrix rows in one documentation change, using the same named regression gates. |
+| P0 · closed 2026-08-13 (docs-only) | [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md), [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md), and [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](../P1_LINEAR_GEOMETRY_NEXT_SLICE.md) had conflicting P1/P2 next/open wording. | Reconciled in one documentation checkpoint; named build, xUnit, and application gates are recorded in the execution spine and closure record. |
 | P1 | [`industrial-panel-design.md`](../industrial-panel-design.md) is labeled “v0.201”, while the product banner points at `v0.202`. | Clarify that the Figma/design-system revision is the design baseline (if that is intended), or update it after a fresh screenshot review. Do not silently equate a design revision with a release version. |
 | P1 | [`PLAN.md`](../../PLAN.md) contains later transform/data checkpoints than the current-status narrative in `MASTER_PLAN.md`. | Once the implementation wave is committed, append a single release snapshot to both files and link the detailed execution checkpoint; keep all earlier entries intact. |
 | P2 | Several new Markdown files and UI assets are untracked in this worktree. | Include them in the owning implementation checkpoint only after their links, encoding and asset paths pass the repository audit. This handoff does not stage or commit them. |
@@ -79,23 +79,30 @@ The next owner must rerun the same gates after selecting/staging the intended im
 
 ### 2. Reconcile the barcode documents
 
-Use [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) as the ordered phase spine and [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md) as the gap matrix. The next documentation pass should, in one change:
+Use [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) as the ordered phase spine and [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md) as the gap matrix. The following documentation checkpoint completed the reconciliation in one change:
 
-1. make the P1/P2 status table, deferred/open list and “next coding slice” agree;
-2. preserve the legacy-safe `FrameOwned` behavior and the explicit opt-in `SizedFromX` claim if those gates are green;
-3. keep physical verifier, printer-native command, full GS1 registry and hardware certification as open/non-claims unless external evidence exists; and
-4. keep `P1_LINEAR_GEOMETRY_NEXT_SLICE.md` as historical planning context or clearly mark it superseded—never leave two competing “next slice” documents without a pointer.
+1. made the P1/P2 status table, deferred/open list and “next coding slice” agree;
+2. preserved the legacy-safe `FrameOwned` behavior and the explicit opt-in `SizedFromX` claim because those gates are green;
+3. kept physical verifier, printer-native command, full GS1 registry and hardware certification as open/non-claims because no external evidence exists; and
+4. marked `P1_LINEAR_GEOMETRY_NEXT_SLICE.md` as historical closure context so two competing “next slice” documents are not left without a pointer.
+
+#### Barcode documentation reconciliation (2026-08-13)
+
+- P1 is now marked closed for the software geometry slice: logical module count, effective-module readout, opt-in `SizedFromX`, and legacy `FrameOwned` behavior.
+- P2 is now marked closed for the software HRI triad: `None`, `Below`, and `Above`, with shared designer/preview/print geometry and clone/save coverage.
+- The P1 note is explicitly a closure record; the next open barcode phase is P3.
+- Physical verifier/grade, printer-native commands, full GS1/catalog parity, and the dirty-worktree release checkpoint remain open non-claims.
 
 #### Barcode evidence crosswalk (read-only, 2026-08-13)
 
-The current source tree and the green application regression run provide a useful crosswalk, but they do not authorize rewriting the other agent's dirty/untracked Markdown files:
+The current source tree and the green application regression run provide a useful crosswalk. The three barcode documents above now carry the corresponding status wording; the implementation wave remains dirty and is not release-approved:
 
-| Slice | Current source/test evidence | Wording that still conflicts | Required documentation action |
+| Slice | Current source/test evidence | Historical discrepancy | Documentation result |
 | --- | --- | --- | --- |
 | P0 · X-dimension and print-DPI quantization | `LinearBarcodeModuleContract`, shared print preflight, and the existing P0 regression gates are present; `print preflight blocks undersized linear X-dim at print dpi` and related tests pass. | Research marks P0 done and the execution spine marks P0 done. | Keep one canonical “done” row and carry the same gate names into the matrix; no new claim is needed. |
-| P1 · logical modules / opt-in `SizedFromX` | [`LinearBarcodeProductionWidth.cs`](../../src/ANLAbel.Printing/RenderPipeline/LinearBarcodeProductionWidth.cs), [`LinearBarcodeModuleContract.cs`](../../src/ANLAbel.Core/Barcode/LinearBarcodeModuleContract.cs), and tests `linear barcode width follows quantized X-dim when SizedFromX`, `compiled scene print uses SizedFromX production width`, and `legacy frame-owned width not auto-sized when X is zero` are present and passed. | The execution spine says P1 DONE, while the research matrix still says “P1+ open”; the spine also retains a “next coding slice” paragraph and stop conditions that read as pre-ship. | Reconcile the P1 status table, research M2/M6 rows, deferred list, “next” paragraph, and acceptance history in one owner change. Preserve `FrameOwned` legacy behavior and explicit `SizedFromX` opt-in. |
-| P2 · HRI placement | [`BarcodeHriLayout.cs`](../../src/ANLAbel.Core/Barcode/BarcodeHriLayout.cs), [`BarcodeHriLayoutTests.cs`](../../src/ANLAbel.UnitTests/BarcodeHriLayoutTests.cs), and application gates cover `None`, `Below`, `Above`, clone/save and shared print geometry. | The execution spine marks P2 DONE, but its bottom “next order” still lists P2 as next; the research summary uses a different phase ordering. | Make the phase table, bottom roadmap, research M9 row and history agree; leave optional UPC split/ratio/HRI polish open if not evidenced. |
-| External industrial proof | No physical verifier, printer-native command path, full GS1 certification, or hardware campaign was run in this environment. | Any “industrial credibility” wording can be read too broadly if it follows software gates immediately. | Keep these as explicit non-claims/open gates even when P0–P2 software tests are green. |
+| P1 · logical modules / opt-in `SizedFromX` · closed 2026-08-13 | [`LinearBarcodeProductionWidth.cs`](../../src/ANLAbel.Printing/RenderPipeline/LinearBarcodeProductionWidth.cs), [`LinearBarcodeModuleContract.cs`](../../src/ANLAbel.Core/Barcode/LinearBarcodeModuleContract.cs), and tests `linear barcode width follows quantized X-dim when SizedFromX`, `compiled scene print uses SizedFromX production width`, and `legacy frame-owned width not auto-sized when X is zero` are present and passed. | The older research wording called P1+ open and the closure note still read as pre-ship. | Resolved across the execution spine, research matrix, deferred list, and P1 closure record. `FrameOwned` remains the legacy default; `SizedFromX` is explicit. |
+| P2 · HRI placement · closed 2026-08-13 | [`BarcodeHriLayout.cs`](../../src/ANLAbel.Core/Barcode/BarcodeHriLayout.cs), [`BarcodeHriLayoutTests.cs`](../../src/ANLAbel.UnitTests/BarcodeHriLayoutTests.cs), and application gates cover `None`, `Below`, `Above`, clone/save and shared print geometry. | The older bottom roadmap still listed P2 as next. | Resolved in the phase table, bottom roadmap, research M9 row, and handoff; optional UPC/offset polish remains open. |
+| External industrial proof | No physical verifier, printer-native command path, full GS1 certification, or hardware campaign was run in this environment. | Software gates can be over-read as industrial certification. | Kept as explicit non-claims/open gates even when P0–P2 software tests are green. |
 
 ### 3. Use Figma only for a concrete UI/UX gate
 
@@ -107,7 +114,7 @@ Read-only Figma metadata has now been checked for shell `2:2`, panels `8:2`, Pro
 | Frequency-first workspace/panels | [ANLAbel UI exploration](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5), overview `8:2`, selected properties `13:2`, tabs `18:69` | Are Layers/Data and Label/Layout/Advanced real task switches, with no duplicate zoom or nested disclosure? |
 | Excel link verification | Same Figma file, component `22:82` | Do Not linked / Checking / Verified / Stale / Failed states show evidence and a safe next action? |
 | Database Manager | No dedicated frame in panels Page `0:1`; see the coverage note in [`figma-ui-handoff-template.md`](../figma-ui-handoff-template.md) | Is the next slice unlink, test connection, preview, use, remove, or cleanup—and which smallest state-specific reference should own it? |
-| Barcode authoring Properties | No dedicated barcode-properties frame; current WPF card is [`MainWindow.xaml#L1878`](../../src/ANLAbel.App/MainWindow.xaml#L1878) through the barcode validation/readout controls | If P1/P2 UI work is selected, which controls are the first operator task (symbology, X-dim, HRI, effective readout, or warning), and what state-specific Figma node will own it? |
+| Barcode authoring Properties | No dedicated barcode-properties frame; current WPF card is [`MainWindow.xaml#L1878`](../../src/ANLAbel.App/MainWindow.xaml#L1878) through the barcode validation/readout controls | P1/P2 software slices are closed. If a later barcode Properties UI slice is selected (for example P3 check-digit/HRI policy), define the first operator task and state-specific Figma reference before changing the panel. |
 | Control Center benchmark | [Control Center shells](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4) and local crops under `docs/assets/nicelabel-control-center/ui-screens/` | Which operations are evidence-backed local desktop features, and which remain research-only? |
 
 Only invoke a Figma inspection/edit when a specific UI slice is selected and the current node does not answer the question. The acceptance artifact should be a screenshot or measured node review at the target window/display scales; a Figma frame alone is not runtime proof. Do not create a second design file for a surface already covered by the references above.
