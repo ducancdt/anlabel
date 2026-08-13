@@ -4,6 +4,7 @@
 **Parent plan:** [`reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) §R4.4
 **Next-slice evidence:** [`reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) v0.211
 **Handoff:** [`R4_DATA_WORKSPACE_UI_HANDOFF.md`](R4_DATA_WORKSPACE_UI_HANDOFF.md)
+**Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
 **Figma reference:** panels file `kqyNBI0DgRHnPzJTDBIui5`, Data shell `9:2`
 
 This specification turns the next R4 product slice into a reviewable operator contract: author one derived field, inspect its sample value and lineage, and repair diagnostics before preview or print. It does not implement a transform editor, add a connector, change the legacy binding language, or change any Text/TextBox behavior.
@@ -174,3 +175,5 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 - a claim of typed connector parity, physical print verification or Figma implementation.
 
 Until the owner approves the first formula vocabulary, draft/commit UX, Figma reuse and runtime evidence owner, this file remains a UI/UX specification and R4 Data Workspace remains open.
+
+The shared source/read-model and Database Manager boundary is governed by [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md); do not infer registry ownership, Manager behavior or a new Figma state from this transform specification alone.

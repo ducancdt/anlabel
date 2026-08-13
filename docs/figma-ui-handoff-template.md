@@ -91,6 +91,8 @@ P8 UI spec note: [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS
 
 P8 owner-decision note: [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md) records the first-trigger prerequisite, one host/lifecycle owner, claim/deduplication and restart semantics, configuration/provenance schema, shared preflight/manifest/queue spine, History/privacy and deferred TCP/web/security scope. Complete its D1-D8 sign-off before implementation; the packet does not authorize a trigger runner, unattended printing or a Figma write.
 
+R4 data-surface owner-decision note: [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md) records one shared source/connector identity, separate Data Workspace and Database Manager action owners, transform draft/commit and fail-closed rules, Manager async/mutation safety, proposed AutomationIds, read-only Figma reuse and target-scale runtime fixtures. Complete D1-D10 before implementation/runtime closure; the packet does not authorize a transform editor, registry rewrite, new Manager frame or Figma write.
+
 ## 3. Contract and behavior
 
 CC-P2 routing note: Control Center Printers metadata `2:37` is a research shell with a `220 DIP` filter rail and `1000 DIP` main pane. Route the local read-only queue slice through [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md); its Pause/Resume/Delete/Reserve/Unreserve labels are deferred command concepts, not current ANLAbel capabilities.

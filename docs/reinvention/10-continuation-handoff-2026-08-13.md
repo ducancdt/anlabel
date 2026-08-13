@@ -325,6 +325,10 @@ The documentation-only [`CC_P8_AUTOMATION_DECISION_PACKET.md`](../CC_P8_AUTOMATI
 
 **Superseding audit after the CC-P1/P2/P5 upstream implementation-gate packet (2026-08-13):** `105` Markdown files, `1014` relative links/assets checked, and `0` broken paths. The `104`/`997` figures above are the preceding CC-P8 automation owner-packet baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](../R4_DATA_SURFACES_OWNER_DECISION_PACKET.md) now consolidates the next non-CC data-surface gate: one shared source/connector identity, separate Data Workspace and Database Manager action owners, transform draft/commit and fail-closed rules, Manager async/mutation safety, read-only Figma routing and target-scale fixtures. It does not authorize a transform editor, registry rewrite, new Manager frame, Figma write or Text/TextBox change.
+
+**Superseding audit after the R4 data-surface owner decision packet (2026-08-13):** `106` Markdown files, `1046` relative links/assets checked, and `0` broken paths. The `105`/`1014` figures above are the preceding CC upstream baseline; external URLs remain outside this local-path audit.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

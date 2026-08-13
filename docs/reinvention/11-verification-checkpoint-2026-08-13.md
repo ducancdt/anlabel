@@ -207,6 +207,10 @@ The documentation-only [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](../CC_P1_P2_P5_REA
 
 The documentation-only [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) is the upstream readiness gate after the host/read-model contracts. It consolidates one host choice, one projection/action owner, queue identity, P1/P2/P5 scope, navigation/accessibility and runtime/Figma evidence; it does not authorize a WPF host or navigation change.
 
+The documentation-only [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](../R4_DATA_SURFACES_OWNER_DECISION_PACKET.md) is the next non-CC data-surface owner gate. It consolidates one shared source/connector identity, separate Data Workspace and Database Manager hosts, transform draft/commit semantics, Manager async/mutation safety, read-only Figma reuse and target-scale runtime fixtures; it does not authorize a transform editor, registry rewrite, new Manager frame, Figma write or Text/TextBox change.
+
+**Superseding docs-only Markdown audit after the R4 data-surface owner decision packet (2026-08-13):** `106` Markdown files, `1046` relative links/assets checked, and `0` broken paths. The `105`/`1014` figures above are the preceding CC upstream baseline; external URLs remain outside this local-path check.
+
 The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.
