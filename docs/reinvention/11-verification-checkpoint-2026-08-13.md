@@ -223,6 +223,10 @@ The documentation-only [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](../
 
 **Superseding docs-only Markdown audit after the Print Center recovery owner packet (2026-08-13):** `109` Markdown files, `1133` relative links/assets checked, and `0` broken paths. The `108`/`1101` figures above are the preceding Print Preview/Calibration baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](../DATABASE_MANAGER_UI_DECISION_PACKET.md) is the next non-CC data-surface owner gate. It keeps the existing WPF Database Manager/Cleanup action owners explicit, routes panels Figma metadata read-only and preserves the R4 source identity, fallback and protected Text/TextBox boundaries.
+
+**Superseding docs-only Markdown audit after the Database Manager/Cleanup owner packet (2026-08-13):** `110` Markdown files, `1169` relative links/assets checked, and `0` broken paths. The `109`/`1133` figures above are the preceding Print Center recovery baseline; external URLs remain outside this local-path check.
+
 The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.
