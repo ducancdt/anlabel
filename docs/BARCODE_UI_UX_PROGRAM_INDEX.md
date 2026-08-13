@@ -10,6 +10,7 @@
 **P5 owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
 **P6 owner decision packet:** [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md)
 **P7 owner decision packet:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md)
+**P8 owner decision packet:** [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -112,6 +113,8 @@ For the GS1 diagnostics slice, record D1-D7 in [`P6_GS1_AI_UI_DECISION_PACKET.md
 
 For the print-method slice, record D1-D8 in [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) before treating Graphic/Native vocabulary, capability evidence, fallback behavior, method-sensitive persistence or a printer pilot as approved.
 
+For the physical-verifier slice, record D1-D8 in [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) before treating a host, grade scale, adapter/correlation, completion rule, redaction policy, signed evidence or lab fixture as approved.
+
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
 3. Decide whether P7 native output is a product option or remains consciously deferred with an ADR.
@@ -139,3 +142,7 @@ P6 is the GS1 diagnostics slice. Core already owns strict `(AI)value` parsing, c
 ### P7 decision route
 
 P7 is the dispatch/output slice. The current path is WPF `PrintDocument` plus app-rendered graphic output with explicit queue/ticket and effective-output-contract validation; `PrintJobManifest.PrintMode` remains a workflow description and no native adapter or method-sensitive result fields exist. Use the [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) to approve the Graphic/Native model, capability-record scope, explicit fallback policy, manifest migration, parity severity and real printer-family pilot before implementation. Figma shell `2:2`/`2:39` is placement-only and contains no method state; no native, physical or certification claim is implied.
+
+### P8 decision route
+
+P8 is the physical-verifier evidence slice. Core already separates spool/queue states from `Completed`, requires accepted manifest-bound scanner/verifier evidence for lifecycle completion, keeps ANSI/ISO grade scales explicit and enforces adapter identity, correlation, timeout and busy rules. Use the [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) to approve the host, method/grade thresholds, request binding, lab fixture, signed-evidence policy, redaction and runtime ownership before implementation. Figma History `3:85` is generic row/detail research with no verifier state; no physical or certification claim is implied.

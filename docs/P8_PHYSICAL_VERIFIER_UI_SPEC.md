@@ -4,6 +4,7 @@
 **Scope:** one job-level evidence surface for physical scanner/verifier results
 **Date:** 2026-08-13
 **Related handoff:** [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](P8_PHYSICAL_VERIFIER_UI_HANDOFF.md)
+**Owner decision packet:** [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
 
 ## 1. User tasks
 
