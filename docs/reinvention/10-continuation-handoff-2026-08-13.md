@@ -210,6 +210,10 @@ The new [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](../CC_P3_DOCUMENT_LIBRARY
 
 **Superseding audit after the P3 Document Library + Revision UI spec (2026-08-13):** `75` Markdown files, `524` relative links checked, and `0` broken paths. The `74`/`514` figures above are the preceding P5 UI spec baseline; external URLs remain outside this local-path audit.
 
+The new [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](../CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md) maps read-only Figma Workflow `7:2` to candidate document states, explicit actor/audit evidence and a fail-closed policy-on print boundary. It does not authorize a workflow enum/store, permissions model, Published gate, runtime UI or a Figma edit; P5 linked-reprint approval remains separate.
+
+**Superseding audit after the P4 Approval Workflow UI spec (2026-08-13):** `76` Markdown files, `534` relative links checked, and `0` broken paths. The `75`/`524` figures above are the preceding P3 UI spec baseline; external URLs remain outside this local-path audit.
+
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff

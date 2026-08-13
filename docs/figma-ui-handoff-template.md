@@ -53,6 +53,8 @@ P5 UI spec note: [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_S
 
 P3 UI spec note: [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md) is the local-root/built-in browse and revision mapping from Figma Documents `3:2`; it keeps validated load, diff, audit and guarded restore explicit while workflow/check-out/ACL states remain deferred.
 
+P4 UI spec note: [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md) maps Figma Workflow `7:2` to candidate document-state, actor/audit and policy-on print content; it keeps document approval separate from P5 linked-reprint approval and remains review-only until a store/host/policy decision exists.
+
 ## 3. Contract and behavior
 
 CC-P2 routing note: Control Center Printers metadata `2:37` is a research shell with a `220 DIP` filter rail and `1000 DIP` main pane. Route the local read-only queue slice through [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md); its Pause/Resume/Delete/Reserve/Unreserve labels are deferred command concepts, not current ANLAbel capabilities.
