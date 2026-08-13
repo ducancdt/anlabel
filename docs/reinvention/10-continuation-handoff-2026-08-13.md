@@ -86,6 +86,17 @@ Use [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLA
 3. keep physical verifier, printer-native command, full GS1 registry and hardware certification as open/non-claims unless external evidence exists; and
 4. keep `P1_LINEAR_GEOMETRY_NEXT_SLICE.md` as historical planning context or clearly mark it superseded—never leave two competing “next slice” documents without a pointer.
 
+#### Barcode evidence crosswalk (read-only, 2026-08-13)
+
+The current source tree and the green application regression run provide a useful crosswalk, but they do not authorize rewriting the other agent's dirty/untracked Markdown files:
+
+| Slice | Current source/test evidence | Wording that still conflicts | Required documentation action |
+| --- | --- | --- | --- |
+| P0 · X-dimension and print-DPI quantization | `LinearBarcodeModuleContract`, shared print preflight, and the existing P0 regression gates are present; `print preflight blocks undersized linear X-dim at print dpi` and related tests pass. | Research marks P0 done and the execution spine marks P0 done. | Keep one canonical “done” row and carry the same gate names into the matrix; no new claim is needed. |
+| P1 · logical modules / opt-in `SizedFromX` | [`LinearBarcodeProductionWidth.cs`](../../src/ANLAbel.Printing/RenderPipeline/LinearBarcodeProductionWidth.cs), [`LinearBarcodeModuleContract.cs`](../../src/ANLAbel.Core/Barcode/LinearBarcodeModuleContract.cs), and tests `linear barcode width follows quantized X-dim when SizedFromX`, `compiled scene print uses SizedFromX production width`, and `legacy frame-owned width not auto-sized when X is zero` are present and passed. | The execution spine says P1 DONE, while the research matrix still says “P1+ open”; the spine also retains a “next coding slice” paragraph and stop conditions that read as pre-ship. | Reconcile the P1 status table, research M2/M6 rows, deferred list, “next” paragraph, and acceptance history in one owner change. Preserve `FrameOwned` legacy behavior and explicit `SizedFromX` opt-in. |
+| P2 · HRI placement | [`BarcodeHriLayout.cs`](../../src/ANLAbel.Core/Barcode/BarcodeHriLayout.cs), [`BarcodeHriLayoutTests.cs`](../../src/ANLAbel.UnitTests/BarcodeHriLayoutTests.cs), and application gates cover `None`, `Below`, `Above`, clone/save and shared print geometry. | The execution spine marks P2 DONE, but its bottom “next order” still lists P2 as next; the research summary uses a different phase ordering. | Make the phase table, bottom roadmap, research M9 row and history agree; leave optional UPC split/ratio/HRI polish open if not evidenced. |
+| External industrial proof | No physical verifier, printer-native command path, full GS1 certification, or hardware campaign was run in this environment. | Any “industrial credibility” wording can be read too broadly if it follows software gates immediately. | Keep these as explicit non-claims/open gates even when P0–P2 software tests are green. |
+
 ### 3. Use Figma only for a concrete UI/UX gate
 
 Read-only Figma metadata has now been checked for shell `2:2`, panels `8:2`, Properties tabs `18:69`, and Excel verification `22:82`. The detailed dimensions and state nodes are recorded in [`figma-ui-handoff-template.md`](../figma-ui-handoff-template.md). Existing references remain the design source; no Figma file was edited or duplicated:
