@@ -5,6 +5,7 @@
 **Current product sequence:** [`PLAN.md`](../PLAN.md) transform persistence/preview/dispatch entries through 0.211
 **UI/UX specification:** [`R4_DATA_WORKSPACE_UI_SPEC.md`](R4_DATA_WORKSPACE_UI_SPEC.md)
 **Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
+**Concrete owner decision packet:** [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](R4_DATA_WORKSPACE_UI_DECISION_PACKET.md)
 **Figma reference:** panels file [`ANLAbel UI exploration`](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5), shell `8:2`, Data tab `9:2`
 
 ## 1. First operator task
@@ -105,7 +106,7 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 
 ## 7. Ownership and ready gate
 
-The cross-surface source/read-model, host ownership, draft/commit, async freshness, Figma routing and runtime evidence decisions are consolidated in [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md). That packet keeps Data Workspace authoring in the Data tab and shared-source CRUD in `DatabaseManagerWindow`; it is documentation-only and does not authorize a transform editor or Figma edit.
+The cross-surface source/read-model, host ownership, draft/commit, async freshness, Figma routing and runtime evidence decisions are consolidated in [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md). The concrete ten-decision owner gate is [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](R4_DATA_WORKSPACE_UI_DECISION_PACKET.md); it keeps Data Workspace authoring in the Data tab and shared-source CRUD in `DatabaseManagerWindow`, records the current raw-fallback gap, and remains documentation-only without authorizing a transform editor or Figma edit.
 
 This handoff is **not ready for implementation** until the owner records:
 
