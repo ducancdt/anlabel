@@ -65,6 +65,12 @@ Before implementation, the owner must choose one of these paths in the handoff t
 
 Do not edit Figma merely to make a screenshot look complete. The runtime screenshot/measurement at target window and display scales is the acceptance artifact.
 
+### Read-only Figma node scan (2026-08-13)
+
+The panels file was checked at Page `0:1` after selecting P3 as the next UI slice. The page contains the compact ribbon (`1:2`, with the `Text TextBox Image Barcode` navigation text at `1:8`), frequency-first panels (`8:2`), selected Properties (`13:2`), tabbed Properties (`18:69`) and Excel verification (`22:82`). No barcode-specific Properties frame, check-digit control, HRI mask state, or optional-symbology state is present in that page metadata.
+
+**Interim routing decision:** keep the existing selected-Properties language and spacing as the reference (`18:69` for the tabbed card, `13:2` for the compact utility pattern), and treat the P3 controls as an implementation-owned extension until an owner either approves that reuse explicitly or supplies a state-specific Figma node. This is a design-input decision, not a claim that the WPF UI is implemented. Do not create or edit a Figma frame solely to satisfy this handoff.
+
 ## 6. Regression and acceptance gates
 
 Required software gates for this slice:
