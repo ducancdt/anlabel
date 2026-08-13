@@ -14,6 +14,7 @@ Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDU
 ## Documentation and UI/UX contributions
 
 - Start with the [roadmap](ROADMAP.md) and the [continuation handoff](docs/reinvention/10-continuation-handoff-2026-08-13.md) so a new note does not duplicate an active plan.
+- Use the [Figma → WPF handoff template](docs/figma-ui-handoff-template.md) for a concrete UI/UX slice; leave placeholders unresolved until the node, states, WPF mapping, and acceptance evidence are known.
 - Keep historical Markdown entries intact. Add a dated checkpoint, named command/test evidence, explicit open items, and links to the document that owns the decision.
 - When a plan and implementation disagree, record the disagreement as open until a clean checkpoint supplies fresh evidence; do not silently turn an uncommitted change into a release claim.
 - For a UI/UX proposal, identify the existing Figma file and node before creating anything new. Record the file URL, node/frame identifier, target window/display scale, mapped WPF surface or `AutomationId`, and the runtime screenshot or measurement that will validate it.
