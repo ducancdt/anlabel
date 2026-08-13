@@ -4,6 +4,9 @@
 **Owning roadmap:** [`MASTER_PLAN.md`](../MASTER_PLAN.md), section `2. Documents — storage, versioning, workflow`
 **Related continuation:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
+
+CC-P3 follows the P5 read-model/reprint gate and precedes P4 workflow policy in the shared sequence. Reuse the selected local host and the existing `TemplateLibraryService`/`ProjectRevisionService` owners; keep check-out, permissions and workflow claims deferred until P4 is approved.
 
 This handoff turns the CC-P3 “local document library → revision everywhere” milestone into one reviewable WPF slice. It records current source evidence and a Figma route; it does not claim that local folders, search, check-out, workflow states, or a unified browser have shipped.
 
