@@ -67,6 +67,8 @@ P3 owner-decision note: [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE
 
 P4 owner-decision note: [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) records the source-backed ratio/density/physical-QZ gap, the existing logical-module/profile policies, the per-side versus total convention, legacy X=0 boundary and explicit Figma reuse/state-node choice. Complete its D1-D6 sign-off before implementation; the packet does not authorize a Figma write.
 
+P5 owner-decision note: [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md) preserves the shipped QR contract, records the current QR-shaped Data Matrix gap, requires a renderer capability probe, and defines explicit unsupported-control and Figma reuse/state-node choices. Complete its D1-D7 sign-off before implementation; the packet does not authorize a Figma write.
+
 P7 UI spec note: [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md) maps Figma Administration `5:41` to local activation/preferences/data-source/evidence links and a future retention preview; it keeps roles, users, sync, server licenses and unsupported categories out of the local desktop contract.
 
 P8 UI spec note: [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md) maps Figma Applications `7:88` to a deferred local file-drop trigger contract, explicit lifecycle/claim/provenance states and P5 deep-links; web apps, TCP, cloud, login and unattended printing remain out of scope.

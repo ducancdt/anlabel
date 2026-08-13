@@ -4,6 +4,7 @@
 **Parent spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P5
 **Competitive matrix:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M16/M17
 **UI/UX specification:** [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md)
+**Owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
 **Figma rule:** use the selected-Properties shell in [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md); no barcode-specific 2D frame is recorded.
 
 ## 1. Operator task

@@ -279,11 +279,15 @@ The documentation-only [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](../P3_BARCO
 
 The documentation-only [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](../P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) is the following owner gate. It records the current logical-module/profile and X-quantization evidence, the missing ratio/density/physical-QZ contract, the side/total and legacy-X decisions, and the renderer/standards probe required before implementation. No barcode model, renderer, Figma or Text/TextBox change is implied.
 
+The documentation-only [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](../P5_2D_BARCODE_PARITY_DECISION_PACKET.md) is the next 2D authoring owner gate. It preserves QR capacity/module behavior, records the current QR-shaped Data Matrix controls and renderer gap, requires an explicit automatic/unsupported boundary, and names the renderer/Figma/runtime evidence needed before implementation. No barcode model, renderer, Figma or Text/TextBox change is implied.
+
 **Superseding audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P4 barcode ratio/QZ owner decision packet (2026-08-13):** `95` Markdown files, `771` relative links/assets checked, and `0` broken paths. The `94`/`749` figures above are the preceding P3 barcode owner-packet baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the P5 2D barcode parity owner decision packet (2026-08-13):** `96` Markdown files, `793` relative links/assets checked, and `0` broken paths. The `95`/`771` figures above are the preceding P4 barcode owner-packet baseline; external URLs remain outside this local-path audit.
 
 ## Definition of done for this handoff
 

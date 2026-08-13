@@ -7,6 +7,7 @@
 **Figma routing template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
 **P3 owner decision packet:** [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md)
 **P4 owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
+**P5 owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -103,6 +104,8 @@ For the first open authoring slice, record D1-D5 in [`P3_BARCODE_CHECK_DIGIT_DEC
 
 For the next geometry/diagnostics slice, record D1-D6 in [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) before treating a ratio legal set, density formula, quiet-zone convention, threshold or runtime owner as approved.
 
+For the 2D parity slice, record D1-D7 in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md) before treating QR copy, Data Matrix size/EC vocabulary, unsupported-control behavior or runtime ownership as approved.
+
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
 3. Decide whether P7 native output is a product option or remains consciously deferred with an ADR.
@@ -118,3 +121,7 @@ P3 is the first open authoring slice in this index. The source audit shows Code 
 ### P4 decision route
 
 P4 is the next geometry/diagnostics slice. The source has logical quiet-zone modules, profile-level requirements and shared X quantization, but no ratio field, ratio renderer hint, density contract or physical-QZ result. Use the [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md) to capture the legal symbology, ratio representation, density/QZ conventions, legacy-X behavior and WPF/Figma/runtime ownership before implementation. Its per-side Code 39 option is a recommendation pending a renderer/standards probe.
+
+### P5 decision route
+
+P5 is the 2D parity slice. The current shared card exposes QR-named sizing/version/EC controls for Data Matrix, while the renderer applies error correction only to QR and the preflight capacity path is QR-specific. Use the [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md) to preserve QR compatibility, define an honest DM automatic/unsupported boundary and assign renderer/Figma/runtime ownership before implementation. No Data Matrix parity is implied by the shared Properties shell.

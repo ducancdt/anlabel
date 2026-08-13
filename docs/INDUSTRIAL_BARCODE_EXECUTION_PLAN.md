@@ -372,6 +372,8 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 **Outcome:** Data Matrix gets first-class sizing/ECC controls analogous to QR where the engine supports them; QR UI copy aligns with industrial language (Symbol Version / Module).
 
+**Owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md). Complete its D1-D7 sign-off (QR compatibility, DM size/EC capability, persistence, module/QZ policy, unsupported state and UI/Figma/runtime ownership) before coding; the packet is documentation-only.
+
 **UI/UX handoff/spec:** [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) · [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md). These are pre-implementation design/contract artifacts; P5 is not claimed complete by these links.
 
 #### In scope

@@ -3,6 +3,7 @@
 **Status:** documentation-only, pre-implementation UI/UX contract (2026-08-13)
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P5
 **Handoff:** [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md)
+**Owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
 **Research gaps:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M16/M17
 **Figma boundary:** selected-Properties shell from `18:69` / `13:2`; no P5-specific barcode frame is present
 
