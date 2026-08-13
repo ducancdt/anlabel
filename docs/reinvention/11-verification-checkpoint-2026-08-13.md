@@ -39,6 +39,10 @@
 
 **Superseding docs-only Markdown audit after the P1 Operations Overview UI spec (2026-08-13):** `72` Markdown files, `494` relative links checked, and `0` broken paths. The `71`/`484` figures above are the preceding read-model contract audit; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](../CC_P2_PRINT_QUEUE_UI_SPEC.md) maps read-only Printers metadata `2:37` to local queue evidence, queue/job state scope, responsive table/detail behavior and proposed AutomationIds. It does not authorize a queue console, queue mutation, host choice or Figma edit.
+
+**Superseding docs-only Markdown audit after the P2 Print Queue UI spec (2026-08-13):** `73` Markdown files, `504` relative links checked, and `0` broken paths. The `72`/`494` figures above are the preceding P1 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
