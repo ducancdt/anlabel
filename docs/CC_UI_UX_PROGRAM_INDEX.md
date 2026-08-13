@@ -13,6 +13,7 @@
 **P3 Document Library UI spec:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
 **P3 Document Library owner decision packet:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md)
 **P4 Approval Workflow UI spec:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
+**P4 Approval Workflow owner decision packet:** [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md)
 **P6 Local Analytics UI spec:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
 **P7 Administration UI spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
 **P8 Applications/Automation UI spec:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
@@ -70,6 +71,8 @@ The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3
 The P3 owner gate is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it records root cardinality, Built-in/local source precedence, host/action ownership, validation/thumbnail behavior, revision retention, compare/restore/dirty-edit policy, CC-P4 boundary and runtime/Figma evidence. It is documentation-only and does not authorize a document browser.
 
 The first P4 UI contract is [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md); it maps Figma Workflow `7:2` to candidate document states, actor/audit evidence and a policy-on print boundary without authorizing a workflow store, permissions model or Published gate.
+
+The P4 owner gate is [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md); it records the state graph, envelope/migration choice, exact revision/hash coverage, actor/audit ownership, policy-on print composition, host/action boundary and runtime/Figma fixtures. It is documentation-only and does not authorize a workflow or Published print gate.
 
 The first P6 UI contract is [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md); it maps Figma Analytics `5:2` to source-backed local aggregates, explicit label/job/event units, partial-source states, safe filters and P5 deep-links without authorizing telemetry or physical-output claims.
 
@@ -152,7 +155,7 @@ Before any slice closes, the host gate must name the navigation owner, disabled/
 
 1. Host choice for P1/P2/P3/P5/P6/P7 and stable AutomationId vocabulary.
 2. Local queue/status/time/privacy semantics and P5 three-source precedence.
-3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy; record P3 D1-D8 in [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) before implementation.
+3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy; record P3 D1-D8 in [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) and P4 D1-D8 in [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) before implementation.
 4. P6 source units/timezone/redaction and P7 retention/recovery scope.
 5. P8 local file-drop trigger claim/deduplication semantics and prerequisite policy gate.
 6. Whether any future UI needs a new state-specific Figma node; if so, identify the smallest state and keep the existing file.
