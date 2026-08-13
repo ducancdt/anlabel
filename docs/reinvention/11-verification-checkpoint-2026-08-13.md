@@ -51,6 +51,10 @@ The documentation-only [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](../CC_P3_D
 
 **Superseding docs-only Markdown audit after the P3 Document Library + Revision UI spec (2026-08-13):** `75` Markdown files, `524` relative links checked, and `0` broken paths. The `74`/`514` figures above are the preceding P5 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](../CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md) maps read-only Workflow metadata `7:2` to candidate document states, actor/audit boundaries and policy-on print blocking rules. It does not authorize a workflow store, permission change, Published gate, runtime implementation or Figma edit; P5 linked-reprint approval remains distinct.
+
+**Superseding docs-only Markdown audit after the P4 Approval Workflow UI spec (2026-08-13):** `76` Markdown files, `534` relative links checked, and `0` broken paths. The `75`/`524` figures above are the preceding P3 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
