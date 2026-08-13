@@ -7,6 +7,7 @@
 **Figma routing template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
 **P1/P2/P5 host decision packet:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **P1/P2/P5 read-model contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
+**P1/P2/P5 upstream implementation gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **P1 Operations Overview UI spec:** [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md)
 **P2 Print Queue UI spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
 **P5 History + reprint UI spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
@@ -62,6 +63,8 @@ This is a sequencing constraint, not a claim that earlier slices are shipped. Be
 The upstream handoffs now carry this routing note directly: [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) owns the host/readiness gate, [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md) owns canonical queue/status evidence, and [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) owns the three-source read model and exact-manifest reprint gate.
 
 The shared evidence projection is specified in [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md): state-store lineage is authoritative, operation JSONL is supplemental, CSV remains per-label detail/export, and live queue lookup stays separate from historical job state.
+
+The upstream implementation gate is [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md); it consolidates host selection, one read-model owner, queue identity, P1/P2/P5 scope, Print Center action ownership, navigation/accessibility and target-scale verification. It is documentation-only and does not authorize a host or WPF navigation change.
 
 The first concrete UI/UX content spec is [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md); it maps Figma Overview `2:2` to a host-neutral WPF wireframe, responsive behavior, proposed AutomationIds and P1 state gates without authorizing implementation.
 
@@ -162,7 +165,7 @@ Before any slice closes, the host gate must name the navigation owner, disabled/
 
 ## 6. Cross-surface owner decisions still open
 
-1. Host choice for P1/P2/P3/P5/P6/P7 and stable AutomationId vocabulary.
+1. Host choice for P1/P2/P3/P5/P6/P7 and stable AutomationId vocabulary; record the upstream P1/P2/P5 gate in [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) before adding navigation.
 2. Local queue/status/time/privacy semantics and P5 three-source precedence.
 3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy; record P3 D1-D8 in [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) and P4 D1-D8 in [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) before implementation.
 4. P6 source units/timezone/redaction and P7 retention/recovery scope; record P7 D1-D8 in [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md) before implementation.
