@@ -9,6 +9,7 @@
 **P1/P2/P5 read-model contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **P1/P2/P5 upstream implementation gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **P1 Operations Overview UI spec:** [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md)
+**P1 Operations Overview owner decision packet:** [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md)
 **P2 Print Queue UI spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
 **P2 Print Queue owner decision packet:** [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md)
 **P5 History + reprint UI spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
@@ -69,6 +70,8 @@ The shared evidence projection is specified in [`CC_P1_P2_P5_READ_MODEL_CONTRACT
 The upstream implementation gate is [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md); it consolidates host selection, one read-model owner, queue identity, P1/P2/P5 scope, Print Center action ownership, navigation/accessibility and target-scale verification. It is documentation-only and does not authorize a host or WPF navigation change.
 
 The first concrete UI/UX content spec is [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md); it maps Figma Overview `2:2` to a host-neutral WPF wireframe, responsive behavior, proposed AutomationIds and P1 state gates without authorizing implementation.
+
+The concrete P1 source/action gate is [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md); it preserves the upstream host choice and existing Printer Setup, Print Center and History owners.
 
 The first P2 UI contract is [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md); it maps Figma Printers `2:37` to a host-neutral, read-only queue table/detail wireframe, local source-to-row rules, responsive behavior and proposed AutomationIds without authorizing a queue window or commands.
 

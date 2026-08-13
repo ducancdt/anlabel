@@ -353,6 +353,10 @@ The documentation-only [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](../CC_P2_PRIN
 
 **Superseding docs-only Markdown audit after the CC-P2 Print Queue M1 owner packet (2026-08-13):** `112` Markdown files, `1243` relative links/assets checked, and `0` broken paths. The `111`/`1205` figures above are the preceding R4 Data Workspace owner-packet baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md) is the next CC owner gate. It makes the local Operations Overview read/route contract concrete: queue health, durable recovery, build-conditional activation, a deliberately deferred recent-terminal-fault aggregate, explicit deep-links and refresh/provenance boundaries. It preserves the upstream host choice, existing action owners and protected Text/TextBox/no-auto-retry boundaries; it does not authorize a new host or Figma write.
+
+**Superseding docs-only Markdown audit after the CC-P1 Operations Overview owner packet (2026-08-13):** `113` Markdown files, `1285` relative links/assets checked, and `0` broken paths. The `112`/`1243` figures above are the preceding CC-P2 Print Queue owner-packet baseline; external URLs remain outside this local-path check.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.
