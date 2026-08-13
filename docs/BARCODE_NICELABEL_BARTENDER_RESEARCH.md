@@ -236,6 +236,8 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 
 ## 8. Recommended product sequencing
 
+P3 owner routing is consolidated in [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md): complete the Code 39/ITF choice, `None`/`Auto`/`Verify` payload convention, HRI copy/default, persistence and runtime/Figma ownership before implementation. The packet is a recommendation and evidence checklist, not a claim that M7/M8 are shipped.
+
 **Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0–P2 software slices closed; P3 next).
 **P1 closure record:** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — retained for the logical-module and legacy-safety rationale; it is no longer an unstarted coding slice.
 

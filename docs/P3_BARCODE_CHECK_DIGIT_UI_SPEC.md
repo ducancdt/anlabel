@@ -4,6 +4,7 @@
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P3
 **Competitive gap:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M7/M8
 **Handoff:** [`P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md`](P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md)
+**Owner decision packet:** [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md)
 **Figma boundary:** reuse selected-Properties language from `18:69` / `13:2` only after owner approval; no barcode-specific frame exists
 
 This document turns the P3 handoff into a reviewable operator-facing UI contract. It does not add a check-digit model, change barcode rendering, edit Figma, or claim that P3 is implemented. The first proposed optional-check slice is Code 39; ITF and other symbologies require their own standards and regression coverage.
