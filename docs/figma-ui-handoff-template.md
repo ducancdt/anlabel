@@ -89,7 +89,22 @@ dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -
 dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 ```
 
-## 6. Handoff decision
+## 6. Read-only Figma metadata snapshot
+
+The current Excel-link UI reference was checked through Figma metadata on 2026-08-13. This confirms the design structure and node names only; it does not prove WPF runtime behavior, typography, accessibility, or print parity.
+
+| Node | Name | Position in parent | Size |
+| --- | --- | --- | --- |
+| `22:82` | `Excel Link Verification` | `(4924, 0)` | `620 × 455` |
+| `22:5` | `State=Not linked` | `(0, 0)` | `284 × 125` |
+| `22:22` | `State=Checking` | `(312, 0)` | `284 × 125` |
+| `22:37` | `State=Verified` | `(0, 153)` | `284 × 125` |
+| `22:52` | `State=Stale` | `(312, 153)` | `284 × 125` |
+| `22:67` | `State=Failed` | `(0, 306)` | `284 × 125` |
+
+When implementing this slice, preserve the five-state model and then attach independent WPF/runtime evidence to each state.
+
+## 7. Handoff decision
 
 Choose exactly one and explain it:
 
