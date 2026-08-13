@@ -246,6 +246,8 @@ P6 owner routing is consolidated in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_A
 
 P7 owner routing is consolidated in [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md): approve the Graphic/Native model, capability-record scope, explicit fallback, output-contract/parity policy, method-sensitive manifest migration and real printer-family pilot before implementation. M19 remains ADR/pilot-gated; the current graphic path is the only evidenced dispatch method.
 
+P8 owner routing is consolidated in [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md): approve the job-level host, scanner/verifier methods and grade scales, manifest/content binding, adapter correlation/timeout/busy policy, completion gate, redaction/signature policy and real lab fixture before implementation. M20 remains hardware-gated; queue/preflight/golden evidence is not physical verification.
+
 **Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0–P2 software slices closed; P3 next).
 **P1 closure record:** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — retained for the logical-module and legacy-safety rationale; it is no longer an unstarted coding slice.
 

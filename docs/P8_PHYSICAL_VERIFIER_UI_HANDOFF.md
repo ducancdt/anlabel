@@ -4,6 +4,7 @@
 **Date:** 2026-08-13
 **Owner:** printing / industrial verification product review
 **Related phase:** P8 in [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md)
+**Owner decision packet:** [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
 
 ## 1. Purpose and boundary
 

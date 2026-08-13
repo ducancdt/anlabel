@@ -482,6 +482,7 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 - [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) records the hash-only evidence boundary, current Core/App source, Figma references and hardware non-claims.
 - [`P8_PHYSICAL_VERIFIER_UI_SPEC.md`](P8_PHYSICAL_VERIFIER_UI_SPEC.md) defines the job-level state matrix, grade/manifest rules, redacted evidence surface, AutomationIds and target-scale gates.
+- [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) records the host, method/grade, adapter/correlation, completion, redaction, signed-evidence and lab-closure decisions; it is documentation-only.
 
 ---
 
