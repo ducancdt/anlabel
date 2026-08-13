@@ -17,6 +17,7 @@
 **P6 Local Analytics UI spec:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
 **P6 Local Analytics owner decision packet:** [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md)
 **P7 Administration UI spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
+**P7 Administration owner decision packet:** [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md)
 **P8 Applications/Automation UI spec:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
 
 This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It prevents a research frame from being mistaken for a shipped WPF feature, keeps one action owner per operation, and records the dependency order before any UI or Figma work begins. The individual handoff remains authoritative for its state matrix and acceptance details.
@@ -80,6 +81,8 @@ The first P6 UI contract is [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SP
 The P6 owner gate is [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md); it records metric units, source precedence/conflicts, timezone boundaries, dimension/privacy policy, verifier disclaimer, host/export ownership and runtime/Figma fixtures. It is documentation-only and does not authorize an Analytics window or second log.
 
 The first P7 UI contract is [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md); it maps Figma Administration `5:41` to local activation, preferences, data-source maintenance, evidence links and retention-preview boundaries without authorizing roles, users, sync or server-license semantics.
+
+The P7 owner gate is [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md); it records thin-host/action ownership, activation status, preferences, registry/cleanup, evidence/retention, privacy/security and unsupported-category boundaries plus runtime/Figma fixtures. It is documentation-only and does not authorize a server-admin surface or destructive retention.
 
 The first P8 UI contract is [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md); it maps Figma Applications `7:88` to a deferred local file-drop trigger, lifecycle/claim/provenance states and P5 deep-links without authorizing a trigger runner, TCP/web host or unattended dispatch.
 
@@ -159,7 +162,7 @@ Before any slice closes, the host gate must name the navigation owner, disabled/
 1. Host choice for P1/P2/P3/P5/P6/P7 and stable AutomationId vocabulary.
 2. Local queue/status/time/privacy semantics and P5 three-source precedence.
 3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy; record P3 D1-D8 in [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) and P4 D1-D8 in [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) before implementation.
-4. P6 source units/timezone/redaction and P7 retention/recovery scope.
+4. P6 source units/timezone/redaction and P7 retention/recovery scope; record P7 D1-D8 in [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md) before implementation.
 5. P8 local file-drop trigger claim/deduplication semantics and prerequisite policy gate.
 6. Whether any future UI needs a new state-specific Figma node; if so, identify the smallest state and keep the existing file.
 
