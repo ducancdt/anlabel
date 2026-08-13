@@ -83,6 +83,10 @@ The documentation-only [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](../P4_BARCO
 
 **Superseding docs-only Markdown audit after the P4 barcode ratio/quiet-zone UI docs (2026-08-13):** `84` Markdown files, `616` relative links checked, and `0` broken paths. The `82`/`593` figures above are the preceding Database Manager UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](../P5_2D_BARCODE_PARITY_UI_HANDOFF.md) and [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](../P5_2D_BARCODE_PARITY_UI_SPEC.md) define the next open 2D barcode UI/UX contract: QR naming/capacity preservation, standard-aware Data Matrix sizing/EC semantics, shared fixed-module DPI risk and explicit unsupported states. No barcode implementation, model field, Figma edit or P5 closure is implied.
+
+**Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
