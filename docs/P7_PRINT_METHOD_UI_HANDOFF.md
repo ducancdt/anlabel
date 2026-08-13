@@ -4,6 +4,7 @@
 **Date:** 2026-08-13
 **Owner:** barcode/printing product review
 **Related phase:** P7 in [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md)
+**Owner decision packet:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md)
 
 ## 1. Purpose and decision boundary
 

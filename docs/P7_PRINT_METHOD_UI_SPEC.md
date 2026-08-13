@@ -4,6 +4,7 @@
 **Scope:** one Print & Output decision surface for graphic versus pilot-approved printer-native output
 **Date:** 2026-08-13
 **Related handoff:** [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md)
+**Owner decision packet:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md)
 
 ## 1. User tasks
 
