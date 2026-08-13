@@ -4,6 +4,9 @@
 **Owning roadmap:** [`MASTER_PLAN.md`](../MASTER_PLAN.md), section `7. Administration`
 **Related handoffs:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md), [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md), [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md), [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
+
+CC-P7 is a cross-cutting local-settings/retention slice, not a replacement for the P1-P6 action owners. Reuse the shared host only for local activation, preferences, data-source and evidence-retention links; roles, users, sync and server-license semantics remain outside this roadmap boundary.
 
 This handoff translates the CC-P7 “light admin” roadmap into an evidence-backed local desktop boundary. It does not add roles, users, a server license seat table, SMTP alerts, synchronization, workflow administration, or Figma edits. The Figma Administration frame is a competitive research shell; current ANLAbel evidence supports only local activation, preferences, data-source registry/cleanup and local log/recovery ownership.
 

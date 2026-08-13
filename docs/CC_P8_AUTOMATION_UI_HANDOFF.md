@@ -5,6 +5,9 @@
 **Prerequisites:** CC-P1 Operations Overview, CC-P2 Print Queue, CC-P5 History, and CC-P4 document policy evidence must remain stable before an automation host is implemented.
 **Related handoffs:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md), [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md), [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md), [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
+
+CC-P8 remains deferred until P1/P2/P5 evidence paths and P4 document policy are stable. Any future host must call the existing preflight -> manifest -> queue spine and write History; it cannot bypass the shared navigation/owner gate or introduce a second dispatch path.
 
 This handoff records the smallest safe direction for future local automation. It does not add a trigger runner, web form, cloud integration, background service, or Figma edit. Automation must call the same validated preflight, immutable manifest, explicit queue, and History path as manual Quick Print; it must never become a silent second dispatch stack.
 

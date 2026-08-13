@@ -4,6 +4,9 @@
 **Owning roadmap:** [`MASTER_PLAN.md`](../MASTER_PLAN.md), section `6. Analytics`
 **Related handoffs:** [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md), [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md), [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
+
+CC-P6 consumes the P5 read model and P1/P2 queue identity as read-only evidence. It may deep-link to History but must not create a second log, reprint, queue-success or physical-output authority; host and navigation remain the shared program decision.
 
 This handoff defines a local, read-only analytics slice over existing evidence. It does not add cloud telemetry, cost optimization claims, a physical-label counter, a second log store, or a Figma edit. Analytics must preserve each source’s granularity and provenance: a per-label CSV row, a best-effort job trace and a hash-chained job-state event are not interchangeable facts.
 

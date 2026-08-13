@@ -5,6 +5,9 @@
 **Predecessor:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md)
 **Continuation:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
+
+CC-P4 consumes the P3 revision owner and is the policy gate before downstream automation. Document approval must remain separate from P5 linked-reprint approval; reuse the selected host only after the state, actor/audit and Published-print policy are explicitly approved.
 
 This handoff defines the product and UI boundary for a future local approval workflow. It does not add a workflow enum, print gate, permissions model, or Figma edit. The existing “Approve reprint” action is a print-job lineage decision and must not be presented as approval of a label document.
 
