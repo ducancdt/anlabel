@@ -17,7 +17,7 @@ The source-of-truth split is:
 | Whole-product execution | [`07-execution-plan.md`](07-execution-plan.md) | Close a slice only with named gates and explicit non-claims. |
 | Industrial barcode sequence | [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) | Phase status must agree with the competitive matrix before claiming done. |
 | Barcode competitive truth | [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md) | Keep “Have”, “Partial” and “Missing” evidence-based; never claim certification. |
-| Designer shell / panels | [`NICELABEL_DESIGNER_SHELL_RESEARCH.md`](../NICELABEL_DESIGNER_SHELL_RESEARCH.md), [`industrial-panel-design.md`](../industrial-panel-design.md) | Use Figma as a visual reference and WPF runtime evidence as acceptance evidence. |
+| Designer shell / panels | [`NICELABEL_DESIGNER_SHELL_RESEARCH.md`](../NICELABEL_DESIGNER_SHELL_RESEARCH.md), [`industrial-panel-design.md`](../industrial-panel-design.md), [`figma-ui-handoff-template.md`](../figma-ui-handoff-template.md) | Use Figma as a visual reference and WPF runtime evidence as acceptance evidence. |
 | Control Center comparison | [`NICELABEL_CONTROL_CENTER_USER_GUIDE.md`](../NICELABEL_CONTROL_CENTER_USER_GUIDE.md) | Research only; do not turn it into a web-LMS claim. |
 
 ## Reconciliation queue
@@ -31,6 +31,9 @@ These are documentation inconsistencies visible in the current worktree. They ar
 | P1 | [`industrial-panel-design.md`](../industrial-panel-design.md) is labeled “v0.201”, while the product banner points at `v0.202`. | Clarify that the Figma/design-system revision is the design baseline (if that is intended), or update it after a fresh screenshot review. Do not silently equate a design revision with a release version. |
 | P1 | [`PLAN.md`](../../PLAN.md) contains later transform/data checkpoints than the current-status narrative in `MASTER_PLAN.md`. | Once the implementation wave is committed, append a single release snapshot to both files and link the detailed execution checkpoint; keep all earlier entries intact. |
 | P2 | Several new Markdown files and UI assets are untracked in this worktree. | Include them in the owning implementation checkpoint only after their links, encoding and asset paths pass the repository audit. This handoff does not stage or commit them. |
+| P1 | Figma metadata for panels node `8:2` reports two `300 DIP` panels, while `industrial-panel-design.md` documents Workspace `268 DIP` and Properties `280 DIP`. | Treat the values as competing design/reference evidence. Resolve with a named decision and runtime screenshots at target scales before changing WPF widths. |
+| P1 | Figma node `18:69` names the third Properties tab `More`, while the product notes call it `Advanced`. | Choose one operator-facing label, update the design/reference note and UI acceptance IDs together, and preserve the three-task tab contract. |
+| P2 | Figma shell node `2:2` carries QA text `GPL-3.0 · v0.201`, while the product banner points at `v0.202`. | Keep the design label as historical reference until a release owner explicitly reconciles it; do not infer release metadata from a Figma text layer. |
 
 ## Ordered next work
 
@@ -59,7 +62,7 @@ Use [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLA
 
 ### 3. Use Figma only for a concrete UI/UX gate
 
-No Figma connection is required for this documentation-only slice. Existing references are enough to plan the next review:
+Read-only Figma metadata has now been checked for shell `2:2`, panels `8:2`, Properties tabs `18:69`, and Excel verification `22:82`. The detailed dimensions and state nodes are recorded in [`figma-ui-handoff-template.md`](../figma-ui-handoff-template.md). Existing references remain the design source; no Figma file was edited or duplicated:
 
 | UI surface | Existing reference | Review question |
 | --- | --- | --- |
