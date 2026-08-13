@@ -39,6 +39,8 @@ Control Center coverage note: read-only metadata checked on 2026-08-13 for Contr
 
 ## 3. Contract and behavior
 
+CC-P2 routing note: Control Center Printers metadata `2:37` is a research shell with a `220 DIP` filter rail and `1000 DIP` main pane. Route the local read-only queue slice through [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md); its Pause/Resume/Delete/Reserve/Unreserve labels are deferred command concepts, not current ANLAbel capabilities.
+
 ### User-visible states
 
 | State | Trigger | Visible evidence | Safe next action | Failure/empty behavior |
@@ -180,6 +182,7 @@ This table routes the open UI/UX findings already backed by the read-only metada
 | Database Manager | Needs runtime/design review | Panels Page `0:1` has no Manager frame; current WPF `DatabaseManagerWindow` already has list/detail, Test Connection, Preview, Use, Remove and Cleanup states | Follow [`DATABASE_MANAGER_UI_HANDOFF.md`](DATABASE_MANAGER_UI_HANDOFF.md): approve current WPF information architecture or name a state-specific reference, then close the runtime state matrix. |
 | Barcode P3 authoring | Deferred pending a state reference | Page `0:1` metadata scan (2026-08-13) finds only ribbon text layer `1:8`; no barcode Properties/check-digit/HRI state exists. P1/P2 software evidence is closed and P3 is check-digit/HRI display policy. | Use `18:69`/`13:2` as interim shell language only; owner must explicitly approve reuse or provide a state-specific node, then add runtime evidence and regression coverage. |
 | CC-P1 Operations Overview | Roadmap; needs product/design review | Control Center `2:2` gives the Overview shell, license/workstation/error card hierarchy and nav; current WPF has `PrintCenterWindow` recovery plus queue/activation/deep-link primitives, but no unified overview | Follow [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md): choose the host surface and local evidence contract before implementing cards or changing Figma. |
+| CC-P2 Print Queue Console | Roadmap; M1 read-only slice needs product/design review | Control Center `2:37` gives the Printers shell, filter rail, table and command vocabulary; current WPF has discovery, saved-queue lookup and one-job spool observation, but no fleet table or command service | Follow [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md): approve the read-only host, status taxonomy and local queue evidence before enabling any command strip. |
 | Text/TextBox behavior | Protected contract | [`AGENTS.md`](../AGENTS.md) and [`NICELABEL_TEXTBOX_RESEARCH.md`](NICELABEL_TEXTBOX_RESEARCH.md) | Do not use a visual reference to alter ownership, sizing, wrapping, clipping, padding, resize lifecycle or print parity without an explicit contract change. |
 
 **Decision rule:** a Figma frame is design input only. The owning slice remains open until the target window/display-scale screenshot or UI Automation measurement, named regression, and relevant build/test evidence are attached. Use [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md) for cross-surface ownership and [`11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md) for the current dirty-worktree boundary.

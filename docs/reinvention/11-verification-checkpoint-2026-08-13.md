@@ -47,6 +47,8 @@ Database Manager has a separate evidence boundary: the current WPF `DatabaseMana
 
 CC-P1 has the same documentation-only boundary: the current WPF `PrintCenterWindow` provides durable recovery actions, while queue status, activation and print-history entry points remain separate. Read-only Control Center metadata supplies Overview `2:2` plus future Printers `2:37` and History `3:85`, but no local Operations Overview exists yet. The proposed state matrix, local-evidence/non-claim rules and host-surface decision are recorded in [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md); no implementation or Figma edit is implied.
 
+CC-P2 is also documentation-only: read-only metadata for Printers `2:37` supplies the filter/table/command shell, while the current WPF has no multi-queue console or Pause/Resume/Delete command service. The M1 read-only scope, state taxonomy and command deferral are recorded in [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md); no implementation, queue mutation or Figma edit is implied.
+
 ## Release gates still open
 
 - clean implementation ownership and a fresh post-commit rerun of the commands above;

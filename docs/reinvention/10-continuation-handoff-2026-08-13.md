@@ -42,6 +42,8 @@ These are documentation inconsistencies visible in the current worktree. They ar
 
 CC-P1 also remains an open UI/UX finding: the roadmap names an Operations Overview, but the current WPF only has a recovery dialog, queue warning and separate setup/history/activation entry points. Follow [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) to choose one host surface, define local evidence/time-window semantics and attach target-scale runtime evidence before claiming the overview exists.
 
+CC-P2 is the next queue-management finding: the roadmap names a multi-queue Print Management surface, while the current WPF has printer discovery, saved-queue lookup and one-job spool observation but no fleet table or queue-command service. Follow [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md) to approve the M1 read-only host and status taxonomy before designing Pause/Resume/Delete controls.
+
 The current WPF file confirms that the `268/280` and `Advanced` values are not only prose in the untracked panel note; they are already the implementation baseline in the dirty worktree:
 
 | Surface | Current WPF evidence | Implication for the open Figma findings |
@@ -124,11 +126,15 @@ Read-only Figma metadata has now been checked for shell `2:2`, panels `8:2`, Pro
 
 | Control Center benchmark / CC-P1 Operations Overview | [Control Center shells](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Overview `2:2`, future deep-link references `2:37` and `3:85`; local crops under `docs/assets/nicelabel-control-center/ui-screens/` | Which operations are evidence-backed local desktop features, and which remain research-only? Follow [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) for the state matrix and owner decision. |
 
+| Control Center benchmark / CC-P2 Print Queue Console | [Control Center Printers shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), node `2:37`; future local state-specific reference remains open | Which queue fields are real local evidence, which filters are safe, and which command semantics need a separate contract? Follow [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md) before changing WPF or Figma. |
+
 Only invoke a Figma inspection/edit when a specific UI slice is selected and the current node does not answer the question. The acceptance artifact should be a screenshot or measured node review at the target window/display scales; a Figma frame alone is not runtime proof. Do not create a second design file for a surface already covered by the references above.
 
 ### 4. Close documentation links after the checkpoint
 
 **Superseding audit after the CC-P1 handoff (2026-08-13):** `61` Markdown files, `269` relative links checked, and `0` broken paths. The `60`/`252` figures in the paragraph below are the preceding post-Database-Manager baseline; use this rerun for the current documentation checkpoint.
+
+**Superseding audit after the CC-P2 handoff (2026-08-13):** `62` Markdown files, `291` relative links checked, and `0` broken paths. The `61`/`269` figures above are the preceding CC-P1 baseline.
 
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
