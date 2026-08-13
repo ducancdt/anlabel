@@ -21,6 +21,8 @@
 
 **Superseding docs-only Markdown audit (2026-08-13):** `64` Markdown files, `329` relative links checked, and `0` broken paths after the CC-P3 handoff. The earlier `57`/`209` row above remains the original checkpoint baseline; this rerun checks repository-local paths only, not external URLs.
 
+**Superseding docs-only Markdown audit after CC-P4 (2026-08-13):** `65` Markdown files, `347` relative links checked, and `0` broken paths. The `64`/`329` figures above are the preceding CC-P3 audit; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -54,6 +56,8 @@ CC-P2 is also documentation-only: read-only metadata for Printers `2:37` supplie
 CC-P5 is documentation-only as well: History `3:85` supplies filter/activity/detail affordances, while current WPF keeps CSV history, job JSONL and hash-chained state/reprint actions in separate owners. The provenance model, state matrix and exact-manifest reprint gates are recorded in [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](../CC_P5_HISTORY_REPRINT_UI_HANDOFF.md); no unified browser implementation or Figma edit is implied.
 
 CC-P3 is documentation-only: Documents `3:2` supplies the browse/folder/card reference and Workflow `7:2` supplies deferred CC-P4 vocabulary, while current WPF has an embedded-template gallery and saved-file primary/backup/archive revision recovery but no configured local-root browser, check-out flag, or workflow enum. The root/host/preview/revision state matrix and owner decisions are recorded in [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md); no implementation or Figma edit is implied.
+
+CC-P4 is documentation-only: Workflow `7:2` supplies candidate state/action/history vocabulary, while current source has no typed document workflow, local actor/role policy, transition audit store, or Published print gate. The state graph, legacy migration, audit boundary, and policy-on print matrix are recorded in [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](../CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md); P5 linked-reprint approval remains a separate job decision, and no implementation or Figma edit is implied.
 
 ## Release gates still open
 
