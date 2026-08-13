@@ -3,6 +3,7 @@
 **Status:** pre-implementation handoff; design review required
 **Parent spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P3
 **Competitive matrix:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M7/M8
+**UI/UX specification:** [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md)
 **Figma rule:** use [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md) and an existing reference first; the current panels page has no dedicated barcode-Properties frame.
 
 ## 1. Operator task
@@ -67,7 +68,7 @@ Do not edit Figma merely to make a screenshot look complete. The runtime screens
 
 ### Read-only Figma node scan (2026-08-13)
 
-The panels file was checked at Page `0:1` after selecting P3 as the next UI slice. The page contains the compact ribbon (`1:2`, with the `Text TextBox Image Barcode` navigation text at `1:8`), frequency-first panels (`8:2`), selected Properties (`13:2`), tabbed Properties (`18:69`) and Excel verification (`22:82`). No barcode-specific Properties frame, check-digit control, HRI mask state, or optional-symbology state is present in that page metadata.
+The panels file `kqyNBI0DgRHnPzJTDBIui5` was checked at Page `0:1` after selecting P3 as the next UI slice. The page contains the compact ribbon (`1:2`, with the `Text TextBox Image Barcode` navigation text at `1:8`), frequency-first panels (`8:2`), selected Properties (`13:2`, `300 × 700`) and tabbed Properties (`18:69`, `300 × 700`), plus Excel verification (`22:82`). No barcode-specific Properties frame, check-digit control, HRI mask state, or optional-symbology state is present in that page metadata.
 
 **Interim routing decision:** keep the existing selected-Properties language and spacing as the reference (`18:69` for the tabbed card, `13:2` for the compact utility pattern), and treat the P3 controls as an implementation-owned extension until an owner either approves that reuse explicitly or supplies a state-specific Figma node. This is a design-input decision, not a claim that the WPF UI is implemented. Do not create or edit a Figma frame solely to satisfy this handoff.
 

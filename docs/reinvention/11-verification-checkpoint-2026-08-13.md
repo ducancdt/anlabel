@@ -67,6 +67,10 @@ The documentation-only [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](../CC_P8_APP
 
 **Superseding docs-only Markdown audit after the P8 Applications/Automation UI spec (2026-08-13):** `79` Markdown files, `563` relative links checked, and `0` broken paths. The `78`/`555` figures above are the preceding P7 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](../P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) is the next open barcode UI/UX contract. It proposes a Code 39-first `None`/`Auto`/`Verify` policy, display-only HRI masking, fail-closed Verify states, responsive/accessibility gates and interim reuse of Figma `18:69`/`13:2`. It does not add a barcode model, change rendering, authorize a Figma edit or close P3.
+
+**Superseding docs-only Markdown audit after the P3 barcode check-digit/HRI UI spec (2026-08-13):** `80` Markdown files, `575` relative links checked, and `0` broken paths. The `79`/`563` figures above are the preceding P8 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
