@@ -104,6 +104,21 @@ The current Excel-link UI reference was checked through Figma metadata on 2026-0
 
 When implementing this slice, preserve the five-state model and then attach independent WPF/runtime evidence to each state.
 
+The full shell reference was also checked through Figma metadata on 2026-08-13:
+
+| Node | Name | Position in parent | Size |
+| --- | --- | --- | --- |
+| `2:2` | `ANLAbel — Full Shell v1` | `(80, 80)` | `1440 × 900` |
+| `2:3` | `R1 Quick Access` | `(0, 0)` | `1440 × 52` |
+| `2:23` | `R2 Ribbon` | `(0, 52)` | `1440 × 90` |
+| `2:80` | `R3 Toolbox` | `(12, 12)` | `250 × 271` |
+| `2:109` | `R4 Workspace` | `(12, 291)` | `250 × 421` |
+| `2:123` | `R5 Design Surface` | `(268, 0)` | `880 × 724` |
+| `2:132` | `R6 Object Properties` | `(1148, 0)` | `292 × 724` |
+| `2:170` | `R7 Status Bar` | `(0, 866)` | `1440 × 34` |
+
+The shell metadata exposes the intended WPF mapping: `Shell.QuickAccess`, `Shell.Ribbon`, `Shell.Toolbox`, `Shell.Workspace`, `Shell.Canvas`, `Shell.Properties`, and `Shell.Status`. The Figma QA label currently reads `GPL-3.0 · v0.201`; treat that as a design-reference version and reconcile it with the product release snapshot before changing either artifact.
+
 ## 7. Handoff decision
 
 Choose exactly one and explain it:
