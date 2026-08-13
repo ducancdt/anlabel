@@ -19,6 +19,8 @@
 | Repository-local Markdown link audit | PASS · 57 Markdown files, 209 relative links checked, 0 broken paths | Relative paths/assets only; external URLs still require network/source review. |
 | Worktree ownership | OPEN · broad dirty implementation wave and untracked research/code/assets remain | This checkpoint must not be used to stage or release those files. |
 
+**Superseding docs-only Markdown audit (2026-08-13):** `64` Markdown files, `329` relative links checked, and `0` broken paths after the CC-P3 handoff. The earlier `57`/`209` row above remains the original checkpoint baseline; this rerun checks repository-local paths only, not external URLs.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -50,6 +52,8 @@ CC-P1 has the same documentation-only boundary: the current WPF `PrintCenterWind
 CC-P2 is also documentation-only: read-only metadata for Printers `2:37` supplies the filter/table/command shell, while the current WPF has no multi-queue console or Pause/Resume/Delete command service. The M1 read-only scope, state taxonomy and command deferral are recorded in [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md); no implementation, queue mutation or Figma edit is implied.
 
 CC-P5 is documentation-only as well: History `3:85` supplies filter/activity/detail affordances, while current WPF keeps CSV history, job JSONL and hash-chained state/reprint actions in separate owners. The provenance model, state matrix and exact-manifest reprint gates are recorded in [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](../CC_P5_HISTORY_REPRINT_UI_HANDOFF.md); no unified browser implementation or Figma edit is implied.
+
+CC-P3 is documentation-only: Documents `3:2` supplies the browse/folder/card reference and Workflow `7:2` supplies deferred CC-P4 vocabulary, while current WPF has an embedded-template gallery and saved-file primary/backup/archive revision recovery but no configured local-root browser, check-out flag, or workflow enum. The root/host/preview/revision state matrix and owner decisions are recorded in [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md); no implementation or Figma edit is implied.
 
 ## Release gates still open
 
