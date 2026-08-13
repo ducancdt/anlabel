@@ -49,6 +49,7 @@ See the detailed workflow notes in the [quick-start guide](docs/quick-start.md).
 - [Master plan](MASTER_PLAN.md) — product history and release narrative.
 - [Detailed plan](PLAN.md) — chronological implementation notes and regression gates.
 - [Continuation handoff](docs/reinvention/10-continuation-handoff-2026-08-13.md) — current documentation reconciliation queue and ownership boundary.
+- [Figma → WPF handoff template](docs/figma-ui-handoff-template.md) — reusable UI/UX states, node mapping, and runtime evidence checklist.
 - [Security policy](SECURITY.md) — private vulnerability reporting and handling guidance.
 
 The optional [ANLAbel shell reference in Figma](https://www.figma.com/design/zdN71qfzrYV6pPt1b2FRRc/ANLAbel-%E2%80%94-NiceLabel-Shell-Recreation) and [frequency-first panels exploration](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5) are visual research references. A Figma frame does not replace WPF runtime screenshots, regression coverage, or physical-printer evidence.
