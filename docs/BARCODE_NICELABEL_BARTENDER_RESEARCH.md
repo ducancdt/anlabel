@@ -190,7 +190,7 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | M12 | **HRI placement offsets / alignment** | Centered-in-strip style geometry; no horizontal/vertical offset fields | **Partial** | Add offsets only if production labels require retail-style UPC split |
 | M13 | **HRI per-data-source visibility** (BarTender) | Single data value per barcode object | **Missing** | N/A until multi-source barcode concatenation UI exists |
 | M14 | **Quiet zones** | `QrQuietZoneModules` + `BarcodeRenderOptions.QuietZoneModules`; GS1 profile raises linear QZ requirements | **Have** (module-count) | P4 review contract maps the logical value to physical mm from the shared effective X resolution; implementation remains open |
-| M15 | **GS1 / AI encoding** | `BarcodeApplicationProfile.Gs1`, FNC1 normalize, AI registry subset, preflight | **Partial** (industrial subset, not full BT AI wizard) | Grow AI registry; no claim of full GS1 certification |
+| M15 | **GS1 / AI encoding** | `BarcodeApplicationProfile.Gs1`, strict `(AI)value` notation, FNC1 normalize, versioned AI registry subset, preflight | **Partial** (industrial subset, not full BT AI wizard) | Grow demanded AI classes with tests; review diagnostics-first [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) and [`P6_GS1_AI_UI_SPEC.md`](P6_GS1_AI_UI_SPEC.md); no claim of full GS1 certification |
 | M16 | **QR version / ECC / fixed module** | `QrSizingMode`, fixed version, `QrModuleSizePx`, capacity table, preflight blocks undersized frame | **Have** | Align naming with BT “Symbol Version” in UI copy; review [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md) before changing the card |
 | M17 | **Data Matrix size / EC** | Rendered via ZXing; less UI than QR and current EC/version fields are QR-named | **Partial** | Define renderer-supported DM size/EC semantics and standard-aware unavailable states; review [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) before implementation |
 | M18 | **Bearer / guard bars** | Not first-class model | **Missing** | Defer unless ITF-14 retail is a target vertical |
@@ -245,7 +245,8 @@ Research-level summary (same order):
 4. **P3** — Check-digit policy for Code 39/ITF + HRI show/hide check digit (M7/M8); review the [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before coding.
 5. **P4** — ratio, density presentation and physical quiet-zone mm — review [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) and its spec before coding.
 6. **P5** — QR naming and Data Matrix UI parity — review [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) and its spec before coding.
-7. **P6+** — GS1 growth, native path and hardware verifier — keep the open/non-claim boundaries in the execution spine.
+7. **P6** — GS1 AI subset growth and diagnostics-first UI — review [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) and its spec before coding.
+8. **P7/P8** — native path and hardware verifier — keep the open/non-claim boundaries in the execution spine.
 
 ---
 

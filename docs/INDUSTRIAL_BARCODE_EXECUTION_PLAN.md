@@ -393,6 +393,8 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 **Outcome:** Broader industrial AI subset for common logistics labels; preflight remains fail-closed on invalid AI structure.
 
+**UI/UX handoff/spec:** [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) · [`P6_GS1_AI_UI_SPEC.md`](P6_GS1_AI_UI_SPEC.md). These are diagnostics-first, pre-implementation artifacts; P6 is not a full GS1 wizard or certification claim.
+
 #### In scope
 
 - Grow `Gs1AiRegistry` / official snapshot coverage for demanded AIs.

@@ -85,6 +85,10 @@ The documentation-only [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](../P4_BARCO
 
 The documentation-only [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](../P5_2D_BARCODE_PARITY_UI_HANDOFF.md) and [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](../P5_2D_BARCODE_PARITY_UI_SPEC.md) define the next open 2D barcode UI/UX contract: QR naming/capacity preservation, standard-aware Data Matrix sizing/EC semantics, shared fixed-module DPI risk and explicit unsupported states. No barcode implementation, model field, Figma edit or P5 closure is implied.
 
+The documentation-only [`P6_GS1_AI_UI_HANDOFF.md`](../P6_GS1_AI_UI_HANDOFF.md) and [`P6_GS1_AI_UI_SPEC.md`](../P6_GS1_AI_UI_SPEC.md) define the next open GS1 UI/UX contract: strict `(AI)value` notation, parsed AI/boundary/FNC1 diagnostics, registry provenance and separate geometry/preflight status. No parser/rendering implementation, full AI wizard, Figma edit or GS1 certification claim is implied.
+
+**Superseding docs-only Markdown audit after the P6 GS1 AI UI docs (2026-08-13):** `88` Markdown files, `669` relative links/assets checked, and `0` broken paths. The `86`/`642` figures above are the preceding P5 baseline; external URLs remain outside this local-path audit.
+
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 
 ### Named barcode gates rechecked
