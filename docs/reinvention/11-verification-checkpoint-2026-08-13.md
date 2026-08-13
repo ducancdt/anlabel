@@ -95,6 +95,12 @@ The P7 read-only Figma check used shell node `2:2` (`1440 x 900`), Print & Outpu
 
 **Superseding docs-only Markdown audit after the P7 print-method UI docs (2026-08-13):** `90` Markdown files, `689` relative links/assets checked, and `0` broken paths. The `88`/`669` figures above are the preceding P6 baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](../P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) and [`P8_PHYSICAL_VERIFIER_UI_SPEC.md`](../P8_PHYSICAL_VERIFIER_UI_SPEC.md) define the open hardware verifier surface: hash-only manifest-bound evidence, explicit ANSI/ISO grade policy, timeout/busy/cancel/rejection states, redacted support export and a strict distinction between queue/preflight/golden/visual audit and physical completion. No device SDK, signed-evidence schema, Figma edit or grade certification is claimed.
+
+The P8 read-only Figma check used shell node `2:2` (`1440 x 900`) with Print & Output `2:39` and status bar `2:170`, plus Control Center History `3:85` (`1280 x 800`) with filters `3:99` and activity frame `3:101`. Neither contains verifier/device/grade states; P8 remains open until fixture, adapter, evidence and target-scale runtime gates exist.
+
+**Superseding docs-only Markdown audit after the P8 physical-verifier UI docs (2026-08-13):** `92` Markdown files, `713` relative links/assets checked, and `0` broken paths. The `90`/`689` figures above are the preceding P7 baseline; external URLs remain outside this local-path audit.
+
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 
 ### Named barcode gates rechecked
