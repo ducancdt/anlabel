@@ -345,6 +345,10 @@ The documentation-only [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](../DATABASE_MA
 
 **Superseding audit after the Database Manager/Cleanup owner packet (2026-08-13):** `110` Markdown files, `1169` relative links/assets checked, and `0` broken paths. The `109`/`1133` figures above are the preceding Print Center recovery baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](../R4_DATA_WORKSPACE_UI_DECISION_PACKET.md) is the next R4 owner gate. It keeps the existing Data-tab source/row/binding-check host explicit, routes bounded transform draft/Apply/result/lineage ownership through one Data Workspace surface, records the current invalid raw-fallback risk, and preserves the Database Manager and protected Text/TextBox boundaries. It does not authorize a transform editor or Figma write.
+
+**Superseding docs-only Markdown audit after the R4 Data Workspace authoring/diagnostics owner packet (2026-08-13):** `111` Markdown files, `1205` relative links/assets checked, and `0` broken paths. The `110`/`1169` figures above are the preceding Database Manager/Cleanup owner-packet baseline; external URLs remain outside this local-path check.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

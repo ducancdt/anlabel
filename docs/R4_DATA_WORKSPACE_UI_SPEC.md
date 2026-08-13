@@ -5,9 +5,12 @@
 **Next-slice evidence:** [`reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) v0.211
 **Handoff:** [`R4_DATA_WORKSPACE_UI_HANDOFF.md`](R4_DATA_WORKSPACE_UI_HANDOFF.md)
 **Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
+**Concrete owner decision packet:** [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](R4_DATA_WORKSPACE_UI_DECISION_PACKET.md)
 **Figma reference:** panels file `kqyNBI0DgRHnPzJTDBIui5`, Data shell `9:2`
 
 This specification turns the next R4 product slice into a reviewable operator contract: author one derived field, inspect its sample value and lineage, and repair diagnostics before preview or print. It does not implement a transform editor, add a connector, change the legacy binding language, or change any Text/TextBox behavior.
+
+The concrete owner boundary, current WPF evidence, raw-fallback risk, proposed UIA IDs and D1-D10 sign-off rows are recorded in [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](R4_DATA_WORKSPACE_UI_DECISION_PACKET.md); this specification remains the host-neutral behavior contract.
 
 ## 1. Operator outcome
 
