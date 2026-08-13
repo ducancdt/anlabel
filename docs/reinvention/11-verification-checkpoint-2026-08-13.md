@@ -45,6 +45,8 @@ The next R4 Data Workspace UI slice has the same boundary: Figma `9:2` supplies 
 
 Database Manager has a separate evidence boundary: the current WPF `DatabaseManagerWindow`/`DataSourceCleanupWindow` code exists, but the recorded plan says the click-through has not been manually verified and Figma Page `0:1` has no Manager frame. The state matrix and owner gate are recorded in [`DATABASE_MANAGER_UI_HANDOFF.md`](../DATABASE_MANAGER_UI_HANDOFF.md).
 
+CC-P1 has the same documentation-only boundary: the current WPF `PrintCenterWindow` provides durable recovery actions, while queue status, activation and print-history entry points remain separate. Read-only Control Center metadata supplies Overview `2:2` plus future Printers `2:37` and History `3:85`, but no local Operations Overview exists yet. The proposed state matrix, local-evidence/non-claim rules and host-surface decision are recorded in [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md); no implementation or Figma edit is implied.
+
 ## Release gates still open
 
 - clean implementation ownership and a fresh post-commit rerun of the commands above;
