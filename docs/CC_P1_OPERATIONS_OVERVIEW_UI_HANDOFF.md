@@ -9,6 +9,7 @@
 **Read-model contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Upstream implementation gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **UI/UX content spec:** [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md)
+**Concrete owner decision packet:** [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. It does not claim a web Control Center, multi-tenant LMS, physical print completion, or license-seat parity.
@@ -121,5 +122,7 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 3. Define the source and time window for “recent errors” and the behavior when logs or queue lookup are unavailable.
 4. Assign stable AutomationIds, runtime screenshot/UI Automation ownership and the first implementation checkpoint.
 5. Keep the existing no-auto-retry, explicit queue identity, guarded reprint and protected Text/TextBox contracts unchanged.
+
+The concrete P1 owner gate is [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md). It keeps the overview read/route-only, records the current queue timestamp/recent-fault/activation read-model gaps and preserves the upstream host choice plus existing Printer Setup, Print Center and History action owners.
 
 Until these decisions and runtime evidence exist, this document is a handoff—not a claim that Operations Overview is shipped or design-verified.

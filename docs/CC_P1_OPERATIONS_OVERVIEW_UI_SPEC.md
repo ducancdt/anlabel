@@ -4,9 +4,12 @@
 **Host decision:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Evidence contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Handoff:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md)
+**Concrete owner decision packet:** [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Overview `2:2`
 
 This spec defines the P1 content contract independently of the eventual WPF host. It is intended to fit Option C (staged P1 entry point) from the host packet, but it does not select that option or authorize a new window. It does not copy server, license-seat or workstation claims from the research shell and does not change the protected Text/TextBox contract.
+
+The concrete source/action boundary, queue timestamp and recent-terminal-fault gaps, activation build boundary and D1-D10 owner rows are recorded in [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md); this file remains the host-neutral content contract.
 
 ## 1. Operator outcome
 
