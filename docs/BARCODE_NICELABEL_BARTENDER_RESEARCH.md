@@ -178,8 +178,8 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | --- | --- | --- | --- | --- |
 | M1 | **Symbology selection** (large catalog, default Code 128) | `LabelObject.BarcodeSymbology` + grouped ComboBox in Properties; `ZxingBarcodeRenderer` map; tests for several 1D/2D | **Have** (subset of catalog) | Expand catalog only when engine + validation + UI exist; do not claim full BT/NL list |
 | M2 | **X-dimension** as explicit physical module width (mm/mil) for 1D | **Shipped:** `BarcodeModuleWidthMm` + quantize/preflight; **`BarcodeWidthMode.SizedFromX`** sets production width = effMm × pure logical modules (`CountLinearModules` / `LinearBarcodeProductionWidth`); default **FrameOwned** keeps legacy; Properties checkbox “Size width from X × modules”; mil readout via effective-module line | **Have** (authored X + optional size-from-X) | Optional: mil unit field; bar-height-only model field |
-| M3 | **Wide/narrow ratio** (Code 39 etc.) | Not exposed on model/UI; ZXing defaults | **Missing** | Optional per-symbology ratio property when 1D X-dim lands |
-| M4 | **Density** (BarTender) | Not a separate property; density emerges from frame + engine | **Missing** | Treat as presentation of X-dim/ratio, not a third independent control unless UI research demands it |
+| M3 | **Wide/narrow ratio** (Code 39 etc.) | Not exposed on model/UI; ZXing defaults | **Missing** | P4 review contract proposes a Code 39-first legal ratio policy; see [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md) before implementation |
+| M4 | **Density** (BarTender) | Not a separate property; density emerges from frame + engine | **Missing** | P4 keeps density read-only as a presentation of effective X/ratio, never a third independent control; see [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md) |
 | M5 | **Symbol height** independent of width (1D) | Object `HeightMm` / HRI strip reserves symbol height via `BarcodeHriLayoutContract` | **Partial** | Keep frame-owned height; document that height is frame-driven not “bar height only” unless HRI disabled |
 | M6 | **Printer-actual X preview** (NiceLabel “actual properties based on selected printer”) | **Shipped:** preflight + Properties warning + **`BarcodeEffectiveModuleReadoutText`** (mm / mil / dots @ plan DPI) from same `Resolve` path | **Have** | Optional polish of readout chrome only |
 | M7 | **Check digit include / auto / verify** | GS1 path validates GTIN check digit (`BarcodeApplicationContract`); no general Code 39 optional check-digit toggle; Code 128 check digit left to engine (mandatory in standards) | **Partial** | P3 review contract proposes a Code 39-first `None`/`Auto`/`Verify` policy; keep GS1 verify fail-closed. See [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before implementation. |
@@ -189,7 +189,7 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | M11 | **HRI auto font scaling with barcode size** | Fixed point size unless user edits; no auto-scale with frame | **Missing** | Optional auto-scale HRI when frame resizes (must not mutate TextBox text contract) |
 | M12 | **HRI placement offsets / alignment** | Centered-in-strip style geometry; no horizontal/vertical offset fields | **Partial** | Add offsets only if production labels require retail-style UPC split |
 | M13 | **HRI per-data-source visibility** (BarTender) | Single data value per barcode object | **Missing** | N/A until multi-source barcode concatenation UI exists |
-| M14 | **Quiet zones** | `QrQuietZoneModules` + `BarcodeRenderOptions.QuietZoneModules`; GS1 profile raises linear QZ requirements | **Have** (module-count) | Map quiet zone to mm at X-dim for preflight “physical quiet zone” |
+| M14 | **Quiet zones** | `QrQuietZoneModules` + `BarcodeRenderOptions.QuietZoneModules`; GS1 profile raises linear QZ requirements | **Have** (module-count) | P4 review contract maps the logical value to physical mm from the shared effective X resolution; implementation remains open |
 | M15 | **GS1 / AI encoding** | `BarcodeApplicationProfile.Gs1`, FNC1 normalize, AI registry subset, preflight | **Partial** (industrial subset, not full BT AI wizard) | Grow AI registry; no claim of full GS1 certification |
 | M16 | **QR version / ECC / fixed module** | `QrSizingMode`, fixed version, `QrModuleSizePx`, capacity table, preflight blocks undersized frame | **Have** | Align naming with BT “Symbol Version” in UI copy |
 | M17 | **Data Matrix size / EC** | Rendered via ZXing; less UI than QR | **Partial** | Parity controls when industrial DM is priority |
@@ -243,7 +243,7 @@ Research-level summary (same order):
 2. ~~**P1** — auto frame width from X×modules + effective mils readout~~ **done as an opt-in software slice** (M2/M6; legacy `FrameOwned` preserved).
 3. ~~**P2** — HRI placement enum None/Below/Above on shared `BarcodeHriLayoutContract`~~ **done as a software slice** (M9).
 4. **P3** — Check-digit policy for Code 39/ITF + HRI show/hide check digit (M7/M8); review the [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before coding.
-5. **P4+** — ratio, quiet-zone mm, DM UI, GS1 growth, native path, hardware verifier — see execution plan.
+5. **P4+** — ratio, quiet-zone mm, DM UI, GS1 growth, native path, hardware verifier — review [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) and its spec before coding.
 
 ---
 
