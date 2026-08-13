@@ -8,6 +8,7 @@
 **Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **Host decision packet:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Read-model contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
+**UI/UX content spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, `CC / Printers — Print Management` node `2:37`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. The Figma shell is a visual and information-architecture reference only. It does not prove that ANLAbel has a multi-workstation service, licensed-printer seat accounting, printer-native controls, or physical-label verification.

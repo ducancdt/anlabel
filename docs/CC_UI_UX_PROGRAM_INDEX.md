@@ -8,6 +8,7 @@
 **P1/P2/P5 host decision packet:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **P1/P2/P5 read-model contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **P1 Operations Overview UI spec:** [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md)
+**P2 Print Queue UI spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
 
 This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It prevents a research frame from being mistaken for a shipped WPF feature, keeps one action owner per operation, and records the dependency order before any UI or Figma work begins. The individual handoff remains authoritative for its state matrix and acceptance details.
 
@@ -52,6 +53,8 @@ The upstream handoffs now carry this routing note directly: [`CC_P1_OPERATIONS_O
 The shared evidence projection is specified in [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md): state-store lineage is authoritative, operation JSONL is supplemental, CSV remains per-label detail/export, and live queue lookup stays separate from historical job state.
 
 The first concrete UI/UX content spec is [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md); it maps Figma Overview `2:2` to a host-neutral WPF wireframe, responsive behavior, proposed AutomationIds and P1 state gates without authorizing implementation.
+
+The first P2 UI contract is [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md); it maps Figma Printers `2:37` to a host-neutral, read-only queue table/detail wireframe, local source-to-row rules, responsive behavior and proposed AutomationIds without authorizing a queue window or commands.
 
 The downstream handoffs carry the same boundary: [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) owns local revision access, [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md) owns document policy/audit, [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md) owns read-only aggregation, [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](CC_P7_ADMINISTRATION_UI_HANDOFF.md) owns local settings/retention links, and [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md) owns the deferred trigger contract. None may create a second action or dispatch authority.
 

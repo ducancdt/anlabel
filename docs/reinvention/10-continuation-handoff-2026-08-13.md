@@ -198,6 +198,10 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 
 **Superseding audit after the P1 Operations Overview UI spec (2026-08-13):** `72` Markdown files, `494` relative links checked, and `0` broken paths. The `71`/`484` figures above are the preceding read-model contract baseline; external URLs remain outside this local-path audit.
 
+The new [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](../CC_P2_PRINT_QUEUE_UI_SPEC.md) maps the read-only Figma Printers node `2:37` to local queue discovery, saved-queue lookup, job-scoped spool evidence, responsive table/detail behavior and proposed AutomationIds. It does not authorize a queue console, command service, host choice, or Figma edit.
+
+**Superseding audit after the P2 Print Queue UI spec (2026-08-13):** `73` Markdown files, `504` relative links checked, and `0` broken paths. The `72`/`494` figures above are the preceding P1 UI spec baseline; external URLs remain outside this local-path audit.
+
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff
