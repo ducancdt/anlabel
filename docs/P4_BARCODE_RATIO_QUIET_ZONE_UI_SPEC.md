@@ -4,6 +4,7 @@
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P4
 **Handoff:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md)
 **Research gap:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M3/M4/M14
+**Owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
 **Figma boundary:** selected-Properties language from `18:69` / `13:2`; no P4-specific frame is present
 
 This document maps P4 to a safe operator surface: ratio is an authored per-symbology policy, density is a derived readout, and quiet-zone width is reported in physical millimetres from the effective print-DPI X-dimension. It does not add model fields, edit Figma, change barcode rendering or claim P4 complete.

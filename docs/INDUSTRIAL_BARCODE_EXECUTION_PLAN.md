@@ -336,6 +336,8 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 **Outcome:** Linear codes that support wide/narrow ratio expose it safely; quiet zones are reportable as **physical mm** at current X (not only module counts).
 
+**Owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md). Complete its D1-D6 sign-off (symbology/legal set, ratio representation, density, QZ convention, thresholds and UI/Figma/runtime ownership) before coding; the packet is documentation-only.
+
 **UI/UX handoff/spec:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) · [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md). These are pre-implementation design/contract artifacts; P4 is not claimed complete by these links.
 
 #### In scope

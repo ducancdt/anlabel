@@ -4,6 +4,7 @@
 **Parent spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P4
 **Competitive matrix:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M3/M4/M14
 **UI/UX specification:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md)
+**Owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
 **Figma rule:** use the selected-Properties references in [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md); no barcode-specific P4 frame is recorded.
 
 ## 1. Operator task
