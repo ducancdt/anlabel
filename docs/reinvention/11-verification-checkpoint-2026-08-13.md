@@ -215,6 +215,10 @@ The documentation-only [`DESIGNER_SHELL_PANEL_EXCEL_VERIFICATION_DECISION_PACKET
 
 **Superseding audit after the designer shell/panel/Excel verification owner packet (2026-08-13):** `107` Markdown files, `1072` relative links/assets checked, and `0` broken paths. The `106`/`1046` figures above are the preceding R4 data-surface baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md`](../PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md) is the next UI/UX owner gate. It keeps the existing WPF Preview/Printer Setup/Calibration workflow authoritative, routes Figma metadata read-only and separates software queue acceptance from physical calibration evidence.
+
+**Superseding docs-only Markdown audit after the Print Preview/Calibration UI owner packet (2026-08-13):** `108` Markdown files, `1101` relative links/assets checked, and `0` broken paths. The `107`/`1072` figures above are the preceding designer shell/panel/Excel baseline; external URLs remain outside this local-path check.
+
 The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.

@@ -333,6 +333,10 @@ The documentation-only [`DESIGNER_SHELL_PANEL_EXCEL_VERIFICATION_DECISION_PACKET
 
 **Superseding audit after the designer shell/panel/Excel verification owner packet (2026-08-13):** `107` Markdown files, `1072` relative links/assets checked, and `0` broken paths. The `106`/`1046` figures above are the preceding R4 data-surface baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md`](../PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md) is the next UI/UX owner gate. It records the existing WPF Preview/Printer Setup/Calibration states, effective-plan/preflight/stale-data ownership, target-scale/UIA evidence and the separate physical-calibration boundary; it does not authorize a redesign, Figma write or Text/TextBox change.
+
+**Superseding audit after the Print Preview/Calibration UI owner packet (2026-08-13):** `108` Markdown files, `1101` relative links/assets checked, and `0` broken paths. The `107`/`1072` figures above are the preceding designer shell/panel/Excel baseline; external URLs remain outside this local-path audit.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

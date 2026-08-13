@@ -109,4 +109,6 @@ These gates prove software policy and queue safety. They do not replace the phys
 
 ## UI/UX note
 
+The owner gate for the existing Preview/Printer Setup/Calibration workflow is [`PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md`](PRINT_PREVIEW_CALIBRATION_UI_DECISION_PACKET.md). It keeps Figma shell nodes read-only and separates software queue acceptance from physical measurement.
+
 The checked Figma references do not contain a dedicated calibration screen. If calibration UI changes, use the [Figma → WPF handoff template](figma-ui-handoff-template.md), record the exact state/node and target display scales, and attach a WPF runtime screenshot. Do not infer a new calibration workflow from the shell or barcode ribbon frames alone.
