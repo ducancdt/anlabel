@@ -281,6 +281,8 @@ The documentation-only [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](../P4_
 
 The documentation-only [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](../P5_2D_BARCODE_PARITY_DECISION_PACKET.md) is the next 2D authoring owner gate. It preserves QR capacity/module behavior, records the current QR-shaped Data Matrix controls and renderer gap, requires an explicit automatic/unsupported boundary, and names the renderer/Figma/runtime evidence needed before implementation. No barcode model, renderer, Figma or Text/TextBox change is implied.
 
+The documentation-only [`P6_GS1_AI_UI_DECISION_PACKET.md`](../P6_GS1_AI_UI_DECISION_PACKET.md) is the following GS1 diagnostics owner gate. It records the strict parser and curated/offline registry evidence, first AI-family choice, `[FNC1]` boundary copy, provenance/update policy, diagnostics-versus-geometry ownership and runtime/Figma evidence required before implementation. No parser, renderer, Figma or Text/TextBox change is implied.
+
 **Superseding audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
@@ -288,6 +290,8 @@ The documentation-only [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](../P5_2D_BARC
 **Superseding audit after the P4 barcode ratio/QZ owner decision packet (2026-08-13):** `95` Markdown files, `771` relative links/assets checked, and `0` broken paths. The `94`/`749` figures above are the preceding P3 barcode owner-packet baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P5 2D barcode parity owner decision packet (2026-08-13):** `96` Markdown files, `793` relative links/assets checked, and `0` broken paths. The `95`/`771` figures above are the preceding P4 barcode owner-packet baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the P6 GS1 diagnostics owner decision packet (2026-08-13):** `97` Markdown files, `816` relative links/assets checked, and `0` broken paths. The `96`/`793` figures above are the preceding P5 barcode owner-packet baseline; external URLs remain outside this local-path audit.
 
 ## Definition of done for this handoff
 

@@ -4,6 +4,7 @@
 **Parent spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P6
 **Competitive matrix:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M15
 **UI/UX specification:** [`P6_GS1_AI_UI_SPEC.md`](P6_GS1_AI_UI_SPEC.md)
+**Owner decision packet:** [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md)
 **Figma rule:** use the selected-Properties shell in [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md); no GS1-specific frame is recorded.
 
 ## 1. Operator task

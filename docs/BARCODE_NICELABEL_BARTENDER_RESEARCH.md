@@ -242,6 +242,8 @@ P4 owner routing is consolidated in [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKE
 
 P5 owner routing is consolidated in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md): preserve QR capacity/module behavior, probe Data Matrix size/EC support, and choose an explicit unsupported-control state before implementation. M16/M17 remain open; the shared QR-shaped card is not evidence of Data Matrix parity.
 
+P6 owner routing is consolidated in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md): approve the first demanded AI families, strict notation/binding behavior, visible `[FNC1]` boundaries, curated-versus-official registry provenance, separate geometry/preflight ownership and runtime evidence before implementation. M15 remains an incremental industrial subset, not a full GS1 wizard or certification claim.
+
 **Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0–P2 software slices closed; P3 next).
 **P1 closure record:** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — retained for the logical-module and legacy-safety rationale; it is no longer an unstarted coding slice.
 
