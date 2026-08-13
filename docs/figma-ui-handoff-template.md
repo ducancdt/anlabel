@@ -49,6 +49,8 @@ P1 UI spec note: [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERV
 
 P2 UI spec note: [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md) is the host-neutral, read-only mapping from Figma Printers `2:37` to queue source fields, status scope, responsive table/detail content and proposed AutomationIds; it remains open until a host and runtime evidence are selected.
 
+P5 UI spec note: [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md) is the provenance-first mapping from Figma History `3:85` to three-source activity/detail content, explicit reprint eligibility and proposed AutomationIds; it remains open until a host and runtime evidence are selected.
+
 ## 3. Contract and behavior
 
 CC-P2 routing note: Control Center Printers metadata `2:37` is a research shell with a `220 DIP` filter rail and `1000 DIP` main pane. Route the local read-only queue slice through [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md); its Pause/Resume/Delete/Reserve/Unreserve labels are deferred command concepts, not current ANLAbel capabilities.
