@@ -49,6 +49,8 @@ CC-P1 has the same documentation-only boundary: the current WPF `PrintCenterWind
 
 CC-P2 is also documentation-only: read-only metadata for Printers `2:37` supplies the filter/table/command shell, while the current WPF has no multi-queue console or Pause/Resume/Delete command service. The M1 read-only scope, state taxonomy and command deferral are recorded in [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md); no implementation, queue mutation or Figma edit is implied.
 
+CC-P5 is documentation-only as well: History `3:85` supplies filter/activity/detail affordances, while current WPF keeps CSV history, job JSONL and hash-chained state/reprint actions in separate owners. The provenance model, state matrix and exact-manifest reprint gates are recorded in [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](../CC_P5_HISTORY_REPRINT_UI_HANDOFF.md); no unified browser implementation or Figma edit is implied.
+
 ## Release gates still open
 
 - clean implementation ownership and a fresh post-commit rerun of the commands above;
