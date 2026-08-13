@@ -57,6 +57,8 @@ P4 UI spec note: [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_
 
 P6 UI spec note: [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md) maps Figma Analytics `5:2` to source-backed local aggregates and explicit label/job/event units, partial-source states and P5 deep-links; it remains read-only and does not treat sample bars or dimensions as product data.
 
+P6 owner-decision note: [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md) records metric units, CSV/operation/state precedence and conflicts, timezone boundaries, dimension/privacy rules, the physical-output disclaimer, P5 deep-link/export ownership and runtime/Figma fixtures. Complete its D1-D8 sign-off before implementation; the packet does not authorize an Analytics window, telemetry or a Figma write.
+
 Barcode P7 UI spec note: [`P7_PRINT_METHOD_UI_SPEC.md`](P7_PRINT_METHOD_UI_SPEC.md) maps the existing shell Print & Output group `2:39` (Setup `2:41`, Preview `2:44`, Print `2:47`) to an ADR-first graphic/native method surface. Shell node `2:2` has no method, capability or fallback state; keep it read-only until a printer-family pilot and runtime evidence exist.
 
 Barcode P8 UI spec note: [`P8_PHYSICAL_VERIFIER_UI_SPEC.md`](P8_PHYSICAL_VERIFIER_UI_SPEC.md) maps job-level verifier/grade evidence to a future Print Center or History detail surface. Shell node `2:2` and Control Center History `3:85` have no verifier state; keep both read-only until a real fixture/adapter supplies a named state and runtime evidence.

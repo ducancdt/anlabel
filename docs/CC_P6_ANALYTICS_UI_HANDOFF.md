@@ -6,6 +6,7 @@
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
 **Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **UI/UX content spec:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
+**Owner decision packet:** [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md)
 
 CC-P6 consumes the P5 read model and P1/P2 queue identity as read-only evidence. It may deep-link to History but must not create a second log, reprint, queue-success or physical-output authority; host and navigation remain the shared program decision.
 

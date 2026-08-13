@@ -15,6 +15,7 @@
 **P4 Approval Workflow UI spec:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
 **P4 Approval Workflow owner decision packet:** [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md)
 **P6 Local Analytics UI spec:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
+**P6 Local Analytics owner decision packet:** [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md)
 **P7 Administration UI spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
 **P8 Applications/Automation UI spec:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
 
@@ -75,6 +76,8 @@ The first P4 UI contract is [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVA
 The P4 owner gate is [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md); it records the state graph, envelope/migration choice, exact revision/hash coverage, actor/audit ownership, policy-on print composition, host/action boundary and runtime/Figma fixtures. It is documentation-only and does not authorize a workflow or Published print gate.
 
 The first P6 UI contract is [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md); it maps Figma Analytics `5:2` to source-backed local aggregates, explicit label/job/event units, partial-source states, safe filters and P5 deep-links without authorizing telemetry or physical-output claims.
+
+The P6 owner gate is [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md); it records metric units, source precedence/conflicts, timezone boundaries, dimension/privacy policy, verifier disclaimer, host/export ownership and runtime/Figma fixtures. It is documentation-only and does not authorize an Analytics window or second log.
 
 The first P7 UI contract is [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md); it maps Figma Administration `5:41` to local activation, preferences, data-source maintenance, evidence links and retention-preview boundaries without authorizing roles, users, sync or server-license semantics.
 
