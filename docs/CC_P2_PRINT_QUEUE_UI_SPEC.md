@@ -4,9 +4,12 @@
 **Host decision:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Evidence contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Handoff:** [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md)
+**Concrete owner decision packet:** [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Printers `2:37`
 
 This spec defines the first **read-only** queue console. It maps the Figma Print Management shell to local Windows discovery, explicit saved-queue lookup and job-scoped spool evidence. It does not add a WPF window, queue commands, printer groups, license seats or a second recovery/dispatch owner.
+
+The concrete source/action boundary, current empty-list error gap, owner sign-off rows and M1 fixtures are recorded in [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md); this file remains the host-neutral UI behavior contract.
 
 ## 1. Operator outcome
 
