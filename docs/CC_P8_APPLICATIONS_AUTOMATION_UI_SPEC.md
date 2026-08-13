@@ -4,6 +4,7 @@
 **Prerequisites:** P1/P2/P5 evidence paths and P4 document policy must remain stable
 **Handoff:** [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md)
 **Program route:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
+**Owner decision packet:** [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Applications `7:88`, History destination `3:101`
 
 This spec maps the Figma Applications shell to the smallest local automation direction: one explicitly configured file-drop trigger that reuses the manual preflight → manifest → queue → History spine. It does not create a trigger runner, web form, TCP listener, cloud integration, background service or unattended-print capability.

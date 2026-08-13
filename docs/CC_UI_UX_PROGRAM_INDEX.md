@@ -19,6 +19,7 @@
 **P7 Administration UI spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
 **P7 Administration owner decision packet:** [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md)
 **P8 Applications/Automation UI spec:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
+**P8 Applications/Automation owner decision packet:** [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md)
 
 This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It prevents a research frame from being mistaken for a shipped WPF feature, keeps one action owner per operation, and records the dependency order before any UI or Figma work begins. The individual handoff remains authoritative for its state matrix and acceptance details.
 
@@ -85,6 +86,8 @@ The first P7 UI contract is [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRA
 The P7 owner gate is [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md); it records thin-host/action ownership, activation status, preferences, registry/cleanup, evidence/retention, privacy/security and unsupported-category boundaries plus runtime/Figma fixtures. It is documentation-only and does not authorize a server-admin surface or destructive retention.
 
 The first P8 UI contract is [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md); it maps Figma Applications `7:88` to a deferred local file-drop trigger, lifecycle/claim/provenance states and P5 deep-links without authorizing a trigger runner, TCP/web host or unattended dispatch.
+
+The P8 owner gate is [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md); it records the first-trigger prerequisite, host/lifecycle owner, claim/deduplication protocol, configuration/provenance schema, shared print spine/policy gate, recovery/retry, History/privacy and deferred security boundaries. It is documentation-only and does not authorize an Automation host or trigger runner.
 
 The downstream handoffs carry the same boundary: [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) owns local revision access, [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md) owns document policy/audit, [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md) owns read-only aggregation, [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](CC_P7_ADMINISTRATION_UI_HANDOFF.md) owns local settings/retention links, and [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md) owns the deferred trigger contract. None may create a second action or dispatch authority.
 
@@ -163,7 +166,7 @@ Before any slice closes, the host gate must name the navigation owner, disabled/
 2. Local queue/status/time/privacy semantics and P5 three-source precedence.
 3. P3 root/preview/revision entry points and P4 workflow migration/actor/audit/print policy; record P3 D1-D8 in [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) and P4 D1-D8 in [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) before implementation.
 4. P6 source units/timezone/redaction and P7 retention/recovery scope; record P7 D1-D8 in [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md) before implementation.
-5. P8 local file-drop trigger claim/deduplication semantics and prerequisite policy gate.
+5. P8 local file-drop trigger claim/deduplication semantics and prerequisite policy gate; record P8 D1-D8 in [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md) before implementation.
 6. Whether any future UI needs a new state-specific Figma node; if so, identify the smallest state and keep the existing file.
 
 ## 7. Current decision
