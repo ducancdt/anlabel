@@ -87,7 +87,33 @@ These gates apply to every CC slice and must be attached to the owning handoff b
 | Regression | Named application regression plus unit/contract tests for pure policy/read-model rules | Green tests do not prove physical verifier or driver certification. |
 | External evidence | Physical verifier, driver, printer, network, identity or security evidence explicitly marked open when unavailable | No Control Center/LMS, multi-tenant, cloud or physical-output claim without evidence. |
 
-## 5. Cross-surface owner decisions still open
+## 5. Shared host and navigation gate
+
+The CC slices need one host decision before they add navigation or a second command surface. The current WPF shell is real evidence, but it is the Label Designer shell, not a shipped Control Center host:
+
+| Current source region | Evidence | Boundary |
+| --- | --- | --- |
+| Quick access / ribbon / status | [`MainWindow.xaml`](../src/ANLAbel.App/MainWindow.xaml#L375) exposes `Shell.QuickAccess`; [`#L434`](../src/ANLAbel.App/MainWindow.xaml#L434) exposes `Shell.Ribbon`; [`#L561`](../src/ANLAbel.App/MainWindow.xaml#L561) exposes `Shell.Status`. | Reuse is possible only through an owner-approved host decision; these regions do not prove a CC navigation shell. |
+| Workspace / canvas / properties | [`MainWindow.xaml`](../src/ANLAbel.App/MainWindow.xaml#L635) exposes `Shell.Toolbox`; [`#L695`](../src/ANLAbel.App/MainWindow.xaml#L695) exposes `Shell.Workspace`; [`#L1012`](../src/ANLAbel.App/MainWindow.xaml#L1012) exposes `Shell.Canvas`; [`#L1082`](../src/ANLAbel.App/MainWindow.xaml#L1082) exposes `Shell.Properties`. | Preserve the existing designer shell and the protected Text/TextBox contract; do not reinterpret these IDs as CC module IDs. |
+| Recovery / controlled actions | [`PrintCenterWindow.xaml`](../src/ANLAbel.App/PrintCenterWindow.xaml#L96) owns reconcile, acknowledge, void, linked reprint, approved preview and support-evidence actions. | P1/P5 must deep-link to this owner rather than create a second dispatch/reprint stack. |
+
+### Host choice remains open
+
+The owner must choose one of these bounded options before a CC navigation implementation:
+
+1. a `MainWindow` hub that deep-links to existing windows and keeps the designer shell as the primary host;
+2. a dedicated local `ControlCenterWindow` that reuses the same services and stable action owners; or
+3. a staged P1-only entry point that proves the read model before adding a persistent navigation shell.
+
+The Figma Overview/Printers/History/Documents/Workflow/Analytics/Administration/Applications frames are visual references for those options. They do not authorize a browser, multi-tenant identity, server license seats or new WPF windows by themselves.
+
+### Proposed future navigation vocabulary
+
+If a host is approved, reserve a stable vocabulary such as `CC.Root`, `CC.Nav.Overview`, `CC.Nav.Printers`, `CC.Nav.History`, `CC.Nav.Documents`, `CC.Nav.Workflow`, `CC.Nav.Analytics`, `CC.Nav.Administration`, `CC.Nav.Automation`, `CC.Content` and `CC.Status`. These are proposals, not current AutomationIds; the owner must reconcile them with existing `Shell.*` IDs and attach UI Automation evidence at `1024 x 600`, `100%`, `125%` and `150%`.
+
+Before any slice closes, the host gate must name the navigation owner, disabled/not-implemented behavior, keyboard/focus path, scroll owner and deep-link target. Missing Figma states should be recorded as WPF evidence gaps or an explicit reuse decision; do not create a new Figma file just to make the shell appear complete.
+
+## 6. Cross-surface owner decisions still open
 
 1. Host choice for P1/P2/P3/P5/P6/P7 and stable AutomationId vocabulary.
 2. Local queue/status/time/privacy semantics and P5 three-source precedence.
@@ -96,6 +122,6 @@ These gates apply to every CC slice and must be attached to the owning handoff b
 5. P8 local file-drop trigger claim/deduplication semantics and prerequisite policy gate.
 6. Whether any future UI needs a new state-specific Figma node; if so, identify the smallest state and keep the existing file.
 
-## 6. Current decision
+## 7. Current decision
 
 **Program is mapped; all slices remain open until their individual gates close.** The Markdown handoffs and Figma metadata now cover the roadmap’s CC-P1…P8 surfaces without authorizing code or design edits. The next implementation decision should select one upstream slice (P1/P2/P5) and attach runtime evidence before moving to downstream P3/P4/P6/P7/P8 work.
