@@ -194,7 +194,7 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | M16 | **QR version / ECC / fixed module** | `QrSizingMode`, fixed version, `QrModuleSizePx`, capacity table, preflight blocks undersized frame | **Have** | Align naming with BT “Symbol Version” in UI copy; review [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md) before changing the card |
 | M17 | **Data Matrix size / EC** | Rendered via ZXing; less UI than QR and current EC/version fields are QR-named | **Partial** | Define renderer-supported DM size/EC semantics and standard-aware unavailable states; review [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) before implementation |
 | M18 | **Bearer / guard bars** | Not first-class model | **Missing** | Defer unless ITF-14 retail is a target vertical |
-| M19 | **Print method: printer-native vs graphic** | App-owned raster/vector graphic path; no ZPL/EPL native barcode command emit | **Partial** (graphic only) | Open: vendor printer fonts / native barcode commands |
+| M19 | **Print method: printer-native vs graphic** | App-owned raster/vector graphic path; no ZPL/EPL native barcode command emit; `PrintService` has no method/adapter contract | **Partial** (graphic only) | P7 review: [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) and [`P7_PRINT_METHOD_UI_SPEC.md`](P7_PRINT_METHOD_UI_SPEC.md); requires ADR + real printer-family pilot |
 | M20 | **Physical verifier / grade** | `BarcodeVerificationContract` / physical verifier tests exist as software contracts | **Partial** / **open hardware** | Hardware verifier remains open — do not claim complete |
 | M21 | **Engine swap** | `IBarcodeRenderer` abstraction; ZXing implementation | **Have** (seam) | Zint optional later |
 | M22 | **Designer / print DPI parity** | Plan DPI drives render; tests forbid using only object QrDpi for print | **Have** | Keep regression gates |
@@ -204,7 +204,7 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | Path | Strong today | Weak vs NL/BT |
 | --- | --- | --- |
 | **1D** (Code 128/39, EAN/UPC family in engine) | Symbology list, HRI on/off + font pt + **None/Below/Above placement**, GS1 profile for logistics, quiet zone modules, shared HRI geometry, **authored X-dim mm + print-DPI quantize/preflight + opt-in `SizedFromX` width** | Wide/narrow **ratio**, check-digit UI, check digit in HRI, hardware grade |
-| **2D** (QR / DataMatrix) | Module px + quiet zone, QR sizing modes, capacity, undersized-frame preflight, ECC | DM UI parity; X-dim language in UI; native printer path; standard-aware control copy is specified in [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md) |
+| **2D** (QR / DataMatrix) | Module px + quiet zone, QR sizing modes, capacity, undersized-frame preflight, ECC | DM UI parity; X-dim language in UI; native printer path; standard-aware control copy is specified in [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md); print-method resolution remains P7 and is shared with 1D |
 
 ---
 
@@ -246,7 +246,8 @@ Research-level summary (same order):
 5. **P4** — ratio, density presentation and physical quiet-zone mm — review [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) and its spec before coding.
 6. **P5** — QR naming and Data Matrix UI parity — review [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) and its spec before coding.
 7. **P6** — GS1 AI subset growth and diagnostics-first UI — review [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) and its spec before coding.
-8. **P7/P8** — native path and hardware verifier — keep the open/non-claim boundaries in the execution spine.
+8. **P7** — print method: graphic versus printer-native — review [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) and its spec; remain ADR/pilot-gated and do not claim native support from a queue name or Figma shell.
+9. **P8** — physical verifier / grade — keep the open hardware and non-claim boundary in the execution spine.
 
 ---
 

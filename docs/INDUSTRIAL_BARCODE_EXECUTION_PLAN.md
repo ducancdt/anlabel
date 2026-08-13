@@ -440,6 +440,11 @@ dotnet run --project src/ANLAbel.Tests --no-build
 - Requires architecture ADR + at least one real printer family pilot.
 - External blocker (no device / no driver docs) → leave phase open; do not fake PASS.
 
+#### UI/UX review package
+
+- [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) records the ADR-first boundary, source evidence, Figma shell routing and native/non-native non-claims.
+- [`P7_PRINT_METHOD_UI_SPEC.md`](P7_PRINT_METHOD_UI_SPEC.md) defines the Print & Output controls, state matrix, explicit fallback policy, AutomationIds and target-scale acceptance gates.
+
 ---
 
 ### P8 — Physical verifier / grade program — `[ ]` OPEN HARDWARE
