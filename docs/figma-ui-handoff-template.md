@@ -33,7 +33,7 @@ Known ANLAbel references that should be reused when applicable:
 
 Coverage note (metadata checked 2026-08-13, panels file Page `0:1`): the page currently lists frames `1:2`, `4:2`, `8:2`, `13:2`, `18:69`, and `22:82`, with no dedicated Database Manager frame. Do not treat the Excel-link component as a complete Manager design; for a Manager slice, first record the exact workflow (unlink, test connection, preview, use, remove, or cleanup), then locate or create the smallest state-specific reference and map it to WPF controls.
 
-Barcode UI coverage note: the same page has only the compact-ribbon text layer `1:8` (`Text TextBox Image Barcode`) for barcode authoring. That is a navigation hint, not a Properties/state design. A P1/P2 barcode UI slice must provide a state-specific node (or an explicit decision to reuse the existing WPF surface), measured controls, and runtime evidence; do not infer X-dimension, HRI placement, or preflight copy from that text layer alone.
+Barcode UI coverage note: the same page has only the compact-ribbon text layer `1:8` (`Text TextBox Image Barcode`) for barcode authoring. That is a navigation hint, not a Properties/state design. P1/P2 barcode software slices are closed; a future P3+ barcode UI slice must provide a state-specific node (or an explicit decision to reuse the existing WPF surface), measured controls, and runtime evidence. Do not infer check-digit policy, HRI display, X-dimension, or preflight copy from that text layer alone.
 
 ## 3. Contract and behavior
 
@@ -165,7 +165,22 @@ The compact selected-object reference was checked through Figma metadata on 2026
 
 The selected summary explicitly says `Fixed frame · wraps and clips at bounds`; the behavior card exposes `Auto wrap`, `Print boundary: Clip`, and a fit status. This is direct design evidence for the protected TextBox contract. It also explains the naming evolution: v0.199 uses a collapsed `Advanced` utility section, while v0.200 uses a third tab named `More`. Choose the intended revision before implementation instead of treating the labels as interchangeable.
 
-## 7. Handoff decision
+## 7. Current continuation decisions (2026-08-13)
+
+This table routes the open UI/UX findings already backed by the read-only metadata above. It is not a release claim and does not authorize code or Figma edits by itself.
+
+| Surface | Current status | Evidence | Decision / next owner action |
+| --- | --- | --- | --- |
+| Excel link verification | Existing reference and implementation evidence | Component `22:82`; five-state contract is recorded in the panel plan and current verification checkpoint | Reuse the existing reference. Any further UI change still needs runtime screenshot/automation evidence for each state. |
+| Shell and frequency-first panels | Needs design review | Figma `8:2` reports `300/300 DIP`; current WPF/design note records Workspace `268` and Properties `280` | Keep WPF `268/280` as the working baseline. Do not change widths until an owner decision and target-scale runtime measurement resolve the competing values. |
+| Properties third task label | Needs design review | Figma node `18:69` uses `More`; current WPF exposes `Advanced`; the compact reference also uses `Advanced` | Keep `Advanced` as the operator-facing label. Rename only after the owner chooses one label and updates automation/acceptance names together. |
+| Database Manager | Deferred pending a dedicated state reference | Panels Page `0:1` has no Manager frame; the module plan lists unlink, test, preview, use, remove and cleanup workflows | Define one smallest workflow first, then explicitly reuse the shell language or create/locate a state-specific reference before implementation. |
+| Barcode P3 authoring | Deferred pending a state reference | Only ribbon text layer `1:8` exists; P1/P2 software evidence is closed and P3 is check-digit/HRI display policy | Select the first operator task, map its controls to a named node or record an explicit WPF-reuse decision, then add runtime evidence and regression coverage. |
+| Text/TextBox behavior | Protected contract | [`AGENTS.md`](../AGENTS.md) and [`NICELABEL_TEXTBOX_RESEARCH.md`](NICELABEL_TEXTBOX_RESEARCH.md) | Do not use a visual reference to alter ownership, sizing, wrapping, clipping, padding, resize lifecycle or print parity without an explicit contract change. |
+
+**Decision rule:** a Figma frame is design input only. The owning slice remains open until the target window/display-scale screenshot or UI Automation measurement, named regression, and relevant build/test evidence are attached. Use [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md) for cross-surface ownership and [`11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md) for the current dirty-worktree boundary.
+
+## 8. Handoff decision
 
 Choose exactly one and explain it:
 
