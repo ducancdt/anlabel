@@ -5,6 +5,7 @@
 **Handoff:** [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md)
 **Specification:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
 **Predecessor:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md)
+**P5 separation contract:** [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md)
 
 ## Purpose and decision boundary
@@ -20,6 +21,11 @@ validated local revision + exact document hash
 ```
 
 The packet is a review gate. It does not add a state property, mutate the project envelope, block printing, add identity/roles, create a local browser, or edit Figma. Existing Text/TextBox ownership, geometry, overflow and designer/preview/print parity remain protected.
+
+**Current dependency note:** P3 owns validated local document identity and one revision/restore path;
+P4 may compose a future document policy only after that identity is stable. P5 linked-reprint
+approval remains a separate print-job decision and never becomes a document transition. This packet
+keeps both downstream action domains documentation-only.
 
 ## Decision summary
 
@@ -38,13 +44,16 @@ The packet is a review gate. It does not add a state property, mutate the projec
 
 | Evidence | What it proves | What it does not prove |
 | --- | --- | --- |
-| [`LabelTemplate.cs`](../src/ANLAbel.Core/Models/LabelTemplate.cs) `ExtensionData` and [`TemplateExtensionContract.cs`](../src/ANLAbel.Core/Models/TemplateExtensionContract.cs) | Unknown template members survive round trips and can contribute a deterministic extension fingerprint. | Extension data is not a workflow state, actor record, role check or durable transition history. |
-| [`ProjectFileService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectFileService.cs) | Current envelope writes `format`, `schemaVersion` (`2`) and `template`; future schema fails closed while legacy raw payloads remain loadable. | A missing workflow field cannot safely mean Published; migration and policy exceptions are still product decisions. |
-| [`ProjectRevisionService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionService.cs) and [`ProjectRevisionArchive.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionArchive.cs) | Primary/backup/archive bytes can be validated, compared, restored and retained with bounded local audit evidence. | A valid revision archive is not an approval event or an authenticated multi-user audit store. |
-| [`PrintPreflightValidator.cs`](../src/ANLAbel.Printing/PrinterProfiles/PrintPreflightValidator.cs) | Existing preflight owns geometry, binding, font, image, barcode and TextBox checks. | It has no document workflow input; publication policy must compose outside it and must not alter Text/TextBox rules. |
-| [`PrintJobState.cs`](../src/ANLAbel.Core/Printing/PrintJobState.cs) and [`PrintJobOperatorActionService.cs`](../src/ANLAbel.Data/PrintLogs/PrintJobOperatorActionService.cs) | Reprint request/approval is an immutable-manifest job action and does not dispatch by itself. | `ReprintApproved` is not document approval; reusing its command/store would conflate two audit domains. |
-| [`PrintJobStateStore.cs`](../src/ANLAbel.Data/PrintLogs/PrintJobStateStore.cs) | Print events carry sequence, previous/integrity hashes, manifest/scene/output hashes and normalized actor data. | A print actor such as `operator` is not authenticated workflow identity, and the job store is not automatically the workflow owner. |
-| [`MainWindow.xaml.cs`](../src/ANLAbel.App/MainWindow.xaml.cs) and [`PrintPreviewWindow.xaml`](../src/ANLAbel.App/PrintPreviewWindow.xaml) | Current WPF reaches library, revision, preview, queue and recovery surfaces. | No current transition service, role policy, workflow history or Published print gate exists. |
+| [`LabelTemplate.cs`](../src/ANLAbel.Core/Models/LabelTemplate.cs#L95-L101) `ExtensionData` and [`TemplateExtensionContract.cs`](../src/ANLAbel.Core/Models/TemplateExtensionContract.cs#L12-L30) | Unknown template members survive round trips and can contribute a deterministic extension fingerprint. | Extension data is not a workflow state, actor record, role check or durable transition history. |
+| [`ProjectFileService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectFileService.cs#L11-L61) and [`ProjectFileService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectFileService.cs#L282-L318) | Current envelope writes `format`, `schemaVersion` (`2`) and `template`; future schema fails closed while legacy raw payloads remain loadable. | A missing workflow field cannot safely mean Published; migration and policy exceptions are still product decisions. |
+| [`ProjectRevisionService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionService.cs#L89-L218) and [`ProjectRevisionArchive.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionArchive.cs#L37-L193) | Primary/backup/archive bytes can be validated, compared, restored and retained with bounded local audit evidence. | A valid revision archive is not an approval event or an authenticated multi-user audit store. |
+| [`DocumentSnapshot.cs`](../src/ANLAbel.Core/Scene/DocumentSnapshot.cs#L18-L78) and [`DocumentSnapshot.cs`](../src/ANLAbel.Core/Scene/DocumentSnapshot.cs#L435-L480) | The current document hash covers the snapshot, authored extension fingerprint and persisted design/data identity. | A hash proves byte/content identity for the chosen snapshot; it is not an actor decision or Published policy. |
+| [`PrintPreflightValidator.cs`](../src/ANLAbel.Printing/PrinterProfiles/PrintPreflightValidator.cs#L32-L88) | Existing preflight owns geometry, binding, font, image, barcode and TextBox checks. | It has no document workflow input; publication policy must compose outside it and must not alter Text/TextBox rules. |
+| [`PrintService.cs`](../src/ANLAbel.Printing/PrinterProfiles/PrintService.cs#L292-L348) and [`PrintService.cs`](../src/ANLAbel.Printing/PrinterProfiles/PrintService.cs#L350-L390) | Preview/prepare and dispatch use explicit plans, rows and queue/output contracts; no Published-state check exists. | A future policy must compose with these owners and re-check state/hash without changing geometry/preflight rules. |
+| [`DispatchRevalidationContract.cs`](../src/ANLAbel.Core/Printing/DispatchRevalidationContract.cs#L1-L90) | Prepared versus final document/output identity can be compared and changed fields reported before submission. | Dispatch revalidation is not document workflow storage or actor approval. |
+| [`PrintJobState.cs`](../src/ANLAbel.Core/Printing/PrintJobState.cs#L1-L90) and [`PrintJobOperatorActionService.cs`](../src/ANLAbel.Data/PrintLogs/PrintJobOperatorActionService.cs#L63-L187) | Reprint request/approval is an immutable-manifest job action and does not dispatch by itself. | `ReprintApproved` is not document approval; reusing its command/store would conflate two audit domains. |
+| [`PrintJobStateStore.cs`](../src/ANLAbel.Data/PrintLogs/PrintJobStateStore.cs#L1-L90) | Print events carry sequence, previous/integrity hashes, manifest/scene/output hashes and normalized actor data. | A print actor such as `operator` is not authenticated workflow identity, and the job store is not automatically the workflow owner. |
+| [`MainWindow.xaml.cs`](../src/ANLAbel.App/MainWindow.xaml.cs#L701-L716) and [`PrintPreviewWindow.xaml.cs`](../src/ANLAbel.App/PrintPreviewWindow.xaml.cs#L309-L401) | Current WPF reaches library, revision, preview, queue and recovery surfaces; preview performs effective-plan and preflight work before dispatch. | No current transition service, role policy, workflow history or Published print gate exists. |
 | Read-only Control Center Workflow [`asnGsLMxceJWb3HlfaE3q4`](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), node `7:2` | Metadata gives `1280 x 800`; sidebar `7:23` (`220 x 229`); `WorkflowMain` `7:37` (`1060 x 812`); state path `7:42`; actions `7:59`; history `7:69` (`1020 x 300`). | Sample users/dates and labels do not prove local states, identity, permissions, scheduling, failure handling or print eligibility. |
 
 ## Proposed state and transition contract
