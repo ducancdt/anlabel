@@ -31,6 +31,8 @@
 
 **Superseding docs-only Markdown audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `446` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 audit; external URLs remain outside this local-path check.
 
+**Superseding docs-only Markdown audit after the P1/P2/P5 host decision packet (2026-08-13):** `70` Markdown files, `470` relative links checked, and `0` broken paths. The `69`/`446` figures above are the preceding CC UI/UX program audit; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -78,6 +80,8 @@ The cross-surface [`CC_UI_UX_PROGRAM_INDEX.md`](../CC_UI_UX_PROGRAM_INDEX.md) is
 Its shared host/navigation gate records the existing `Shell.*` WPF regions and `PrintCenterWindow` action owner, but leaves the host choice and proposed `CC.*` AutomationIds open until runtime evidence exists.
 
 The P1/P2/P5 handoffs now link back to this program boundary and state their dependency ownership; this is documentation coordination only and does not close any runtime, UI Automation, print or physical-verifier gate.
+
+The documentation-only [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PACKET.md) consolidates the open host choice and Figma evidence boundary; no host, WPF navigation or Figma frame has been selected or edited.
 
 The downstream P3/P4/P6/P7/P8 handoffs now link to the same boundary and preserve one owner per operation; their design/review and deferred statuses remain open.
 
