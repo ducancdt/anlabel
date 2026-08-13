@@ -12,6 +12,7 @@
 **Upstream implementation gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **UI/UX content spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
 **Existing recovery action owner packet:** [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md)
+**History/read-model owner packet:** [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, `CC / History` node `3:85`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. It does not claim a shipped Control Center, physical-output verification, or permission to create a second reprint/dispatch stack.
@@ -19,6 +20,8 @@ This is a documentation handoff, not an authorization to modify the dirty implem
 CC-P5 is the first downstream read-model/reprint gate after P1 and P2. It must reuse the selected host, queue identity and Print Center action owner; the program index coordinates that order, while this handoff remains authoritative for source precedence, provenance, detail and exact-manifest acceptance.
 
 The current WPF recovery owner is documented in [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md). That packet narrows the existing `PrintCenterWindow` action/state boundary; it does not replace this handoff's future History read-model contract or authorize a new host.
+
+The concrete History/read-model owner boundary is recorded in [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md). It complements the recovery packet: History remains read-only, source provenance/diagnostics stay visible, and all controlled-reprint mutations return to the existing Print Center owner.
 
 ## 1. Operator task
 
