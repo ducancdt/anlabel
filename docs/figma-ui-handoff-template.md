@@ -147,6 +147,20 @@ The selected-object Properties reference was checked through Figma metadata on 2
 
 The Label tab prioritizes Content, `Wrap in fixed frame`, `Block print and warn`, and typography. The node name for the third tab is `Properties tab / More`, while the current product notes call that tab `Advanced`; keep the naming discrepancy open until the owner chooses the final label. The Text Box behavior controls are contract-sensitive and must not be changed merely to match a visual reference.
 
+The compact selected-object reference was checked through Figma metadata on 2026-08-13:
+
+| Node | Name | Position in parent | Size |
+| --- | --- | --- | --- |
+| `13:2` | `ANLAbel — Properties selected v0.199` | `(4044, 0)` | `300 × 700` |
+| `13:7` | `Selected object content` | `(0, 48)` | `300 × 652` |
+| `13:8` | `Selected object summary` | `(12, 12)` | `276 × 62` |
+| `15:2` | `Content card` | `(12, 82)` | `276 × 150` |
+| `15:16` | `Text Box behavior` | `(12, 240)` | `276 × 137` |
+| `15:32` | `Utility · Position and size · collapsed` | `(12, 385)` | `276 × 48` |
+| `15:41` | `Utility · Advanced · collapsed` | `(12, 441)` | `276 × 48` |
+
+The selected summary explicitly says `Fixed frame · wraps and clips at bounds`; the behavior card exposes `Auto wrap`, `Print boundary: Clip`, and a fit status. This is direct design evidence for the protected TextBox contract. It also explains the naming evolution: v0.199 uses a collapsed `Advanced` utility section, while v0.200 uses a third tab named `More`. Choose the intended revision before implementation instead of treating the labels as interchangeable.
+
 ## 7. Handoff decision
 
 Choose exactly one and explain it:
