@@ -4,9 +4,12 @@
 **Parent plan:** [`MASTER_PLAN.md`](../MASTER_PLAN.md#control-center--lms-operations--large-improvement-plans-2026-08-12), section 1, CC-P1
 **Cross-surface handoff:** [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Current verification boundary:** [`11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. It does not claim a web Control Center, multi-tenant LMS, physical print completion, or license-seat parity.
+
+CC-P1 is the upstream host and local-evidence gate for the suggested `CC-P1 -> CC-P2 -> CC-P5` sequence. Close the host choice, refresh/read-model ownership and explicit deep-link contract here before downstream queue or History surfaces add navigation. The shared index coordinates this sequence; this handoff remains authoritative for P1 states and acceptance details.
 
 ## 1. Operator task
 

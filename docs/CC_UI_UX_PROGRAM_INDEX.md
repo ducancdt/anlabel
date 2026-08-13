@@ -44,6 +44,8 @@ This is a sequencing constraint, not a claim that earlier slices are shipped. Be
 2. the downstream slice must reuse the upstream source/action owner rather than copy its data or dispatch path;
 3. unresolved source, identity, privacy, or physical-verifier gaps remain visible in the UI and handoff.
 
+The upstream handoffs now carry this routing note directly: [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) owns the host/readiness gate, [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md) owns canonical queue/status evidence, and [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) owns the three-source read model and exact-manifest reprint gate.
+
 | Action/data owner | Reused by | Never duplicate |
 | --- | --- | --- |
 | Queue discovery, effective ticket and spool observation | P1, P2, P5, P8 | Queue mutation or a second queue-success definition. |

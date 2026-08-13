@@ -29,7 +29,7 @@
 
 **Superseding docs-only Markdown audit after CC-P7 (2026-08-13):** `68` Markdown files, `406` relative links checked, and `0` broken paths. The `67`/`383` figures above are the preceding CC-P6 audit; external URLs remain outside this local-path check.
 
-**Superseding docs-only Markdown audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `430` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 audit; external URLs remain outside this local-path check.
+**Superseding docs-only Markdown audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `436` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 audit; external URLs remain outside this local-path check.
 
 ### Named barcode gates rechecked
 
@@ -76,6 +76,8 @@ CC-P7 is documentation-only: Administration `5:41` supplies server-admin categor
 The cross-surface [`CC_UI_UX_PROGRAM_INDEX.md`](../CC_UI_UX_PROGRAM_INDEX.md) is also documentation-only. It links all CC-P1 through CC-P8 handoffs, preserves the dependency order, records one action owner per slice and maps the read-only Figma nodes listed above; it does not create a runtime Control Center, change WPF behavior or edit the Figma file.
 
 Its shared host/navigation gate records the existing `Shell.*` WPF regions and `PrintCenterWindow` action owner, but leaves the host choice and proposed `CC.*` AutomationIds open until runtime evidence exists.
+
+The P1/P2/P5 handoffs now link back to this program boundary and state their dependency ownership; this is documentation coordination only and does not close any runtime, UI Automation, print or physical-verifier gate.
 
 ## Release gates still open
 
