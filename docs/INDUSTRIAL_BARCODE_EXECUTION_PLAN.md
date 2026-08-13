@@ -468,6 +468,11 @@ dotnet run --project src/ANLAbel.Tests --no-build
 2. End-to-end grade only when a real adapter returns signed evidence.
 3. Software preflight **never** advertised as verifier grade (Help copy already warns).
 
+#### UI/UX review package
+
+- [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) records the hash-only evidence boundary, current Core/App source, Figma references and hardware non-claims.
+- [`P8_PHYSICAL_VERIFIER_UI_SPEC.md`](P8_PHYSICAL_VERIFIER_UI_SPEC.md) defines the job-level state matrix, grade/manifest rules, redacted evidence surface, AutomationIds and target-scale gates.
+
 ---
 
 ### Px — Demand-driven backlog (not scheduled)
