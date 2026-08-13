@@ -133,6 +133,20 @@ The frequency-first panel reference was checked through Figma metadata on 2026-0
 
 The reference makes `Layers` and `Data` real tabs, with `Data` active, a compact `No data linked` action, collapsed data settings, and binding checks. It also exposes a documentation discrepancy: the Figma reference uses `300 DIP` panels, while `docs/industrial-panel-design.md` currently documents `268 DIP` Workspace and `280 DIP` Properties. Keep this as an open reconciliation item; do not change WPF dimensions from metadata alone without a runtime screenshot and an owning design decision.
 
+The selected-object Properties reference was checked through Figma metadata on 2026-08-13:
+
+| Node | Name | Position in parent | Size |
+| --- | --- | --- | --- |
+| `18:69` | `ANLAbel — Properties tabs v0.200` | `(4504, 0)` | `300 × 700` |
+| `18:70` | `Properties header` | `(0, 0)` | `300 × 48` |
+| `18:71` | `Selected object summary` | `(0, 48)` | `300 × 68` |
+| `18:72` | `Properties tabs` | `(0, 116)` | `300 × 38` |
+| `18:73` | `Label tab content` | `(0, 154)` | `300 × 546` |
+| `18:94` | `Text Box behavior card` | `(8, 182)` | `284 × 126` |
+| `18:95` | `Typography quick card` | `(8, 315)` | `284 × 174` |
+
+The Label tab prioritizes Content, `Wrap in fixed frame`, `Block print and warn`, and typography. The node name for the third tab is `Properties tab / More`, while the current product notes call that tab `Advanced`; keep the naming discrepancy open until the owner chooses the final label. The Text Box behavior controls are contract-sensitive and must not be changed merely to match a visual reference.
+
 ## 7. Handoff decision
 
 Choose exactly one and explain it:
