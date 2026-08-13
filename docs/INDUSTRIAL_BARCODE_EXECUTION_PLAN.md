@@ -292,6 +292,8 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 
 **Outcome:** Symbologies that allow optional check digits expose an explicit policy; HRI can show or hide the check digit without changing encoded symbol rules.
 
+**Owner decision packet:** [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md). Complete its D1-D5 sign-off (symbology, payload semantics, HRI copy/default, persistence and UI/Figma/runtime ownership) before coding; the packet is documentation-only.
+
 **UI/UX handoff:** [`P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md`](P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md) · [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md). These are pre-implementation design/ownership artifacts; no barcode Properties UI is claimed complete by these links.
 
 #### In scope

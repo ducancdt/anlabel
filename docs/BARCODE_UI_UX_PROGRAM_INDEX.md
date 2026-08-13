@@ -5,6 +5,7 @@
 **Roadmap source:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md)
 **Competitive source:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md)
 **Figma routing template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
+**P3 owner decision packet:** [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -97,6 +98,8 @@ If an existing node cannot answer a concrete state question, record either an ow
 
 ## 7. Open owner decisions
 
+For the first open authoring slice, record D1-D5 in [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md) before treating a Code 39-first policy, HRI copy/default, persistence shape or WPF/Figma/runtime owner as approved.
+
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
 3. Decide whether P7 native output is a product option or remains consciously deferred with an ADR.
@@ -104,3 +107,7 @@ If an existing node cannot answer a concrete state question, record either an ow
 5. Attach target-scale runtime evidence and named regression gates before changing any UI.
 
 Until these decisions are recorded, the barcode UI/UX program is mapped but open. The next useful action is to select one slice and close its owner/runtime gate; broad Figma redesign or phase-wide implementation is not authorized by this index.
+
+### P3 decision route
+
+P3 is the first open authoring slice in this index. The source audit shows Code 39 and ITF renderer support but no check-digit policy or HRI masking field; the panels metadata shows no barcode-specific state. Use the [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md) to capture the symbology, payload semantics, copy/default, persistence and WPF/Figma/runtime ownership before any implementation. Its Code 39-first option is a recommendation, not a product decision.
