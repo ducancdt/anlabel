@@ -2,6 +2,8 @@
 
 **Ngày:** 2026-07-03 · **Trạng thái:** Đợt 1, Đợt 2, Đợt 4 hoàn tất. Đợt 3: mục 8 (DPI barcode) hoàn tất, mục 7 (khổ giấy driver) dừng theo quyết định chủ dự án, mục 9 cần phần cứng thật để hoàn tất. **Toàn bộ plan coi như xong phần code khả thi trong môi trường hiện tại** — chỉ còn mục 9 cần test tay trên máy in thật. Theo định hướng chủ dự án: "phần in và preview cũng siết kỹ đảm bảo tin cậy"
 
+> **Current continuation (2026-08-13):** Mục 9 (kiểm chứng máy in thật) vẫn là open gate; các mốc v0.069–v0.072 ở trên là lịch sử, không phải bằng chứng cho worktree hiện tại. Khi chọn một UI/UX slice cho Print Preview, dùng [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md) và [Figma → WPF handoff template](figma-ui-handoff-template.md): node Figma chỉ mô tả trạng thái/ý định thị giác, còn runtime screenshot, build/test và hardware evidence mới đóng gate. Không chỉnh Text/TextBox contract khi làm slice này.
+
 Nguyên tắc xuyên suốt (đúng rule 4-6 `agent.md`): sản phẩm phục vụ máy in tem nhãn công nghiệp (Zebra, TSC, Godex, SATO...) — mọi quyết định phải theo hành vi thật của driver các dòng máy này, không theo máy in văn phòng.
 
 ## 1. Hiện trạng (đã có nền tốt)
