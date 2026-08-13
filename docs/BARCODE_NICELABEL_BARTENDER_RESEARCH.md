@@ -240,6 +240,8 @@ P3 owner routing is consolidated in [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`
 
 P4 owner routing is consolidated in [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md): complete the ratio legal set, density/QZ convention, threshold source, legacy-X treatment and runtime/Figma ownership before implementation. M3/M4/M14 remain open; no ratio or physical-QZ behavior is claimed shipped by this note.
 
+P5 owner routing is consolidated in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md): preserve QR capacity/module behavior, probe Data Matrix size/EC support, and choose an explicit unsupported-control state before implementation. M16/M17 remain open; the shared QR-shaped card is not evidence of Data Matrix parity.
+
 **Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0–P2 software slices closed; P3 next).
 **P1 closure record:** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — retained for the logical-module and legacy-safety rationale; it is no longer an unstarted coding slice.
 
