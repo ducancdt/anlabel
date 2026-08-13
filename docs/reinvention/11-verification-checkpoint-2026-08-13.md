@@ -75,6 +75,10 @@ The documentation-only [`R4_DATA_WORKSPACE_UI_SPEC.md`](../R4_DATA_WORKSPACE_UI_
 
 **Superseding docs-only Markdown audit after the R4 Data Workspace UI spec (2026-08-13):** `81` Markdown files, `583` relative links checked, and `0` broken paths. The `80`/`575` figures above are the preceding P3 barcode UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`DATABASE_MANAGER_UI_SPEC.md`](../DATABASE_MANAGER_UI_SPEC.md) specifies the existing WPF Manager's source-list/detail states, async connection/preview evidence, usage-aware removal and guarded cleanup. It uses Figma `8:2`/`9:2` only as read-only shell reference and does not claim runtime click-through, a new Manager frame or a Figma edit.
+
+**Superseding docs-only Markdown audit after the Database Manager UI spec (2026-08-13):** `82` Markdown files, `593` relative links checked, and `0` broken paths. The `81`/`583` figures above are the preceding R4 Data Workspace UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
