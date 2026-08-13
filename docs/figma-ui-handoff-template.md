@@ -45,6 +45,8 @@ P1/P2/P5 host review note: use [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_
 
 P1/P2/P5 data note: use [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md) to keep state-store lineage, operation JSONL, per-label CSV and live queue lookup separate when mapping UI fields.
 
+P1/P2/P5 implementation-gate note: use [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) to record the single host, canonical read-model owner, queue identity, P1/P2/P5 boundaries, Print Center action owner, AutomationIds and target-scale evidence before adding navigation or WPF UI.
+
 P1 UI spec note: [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) is the host-neutral mapping from Figma Overview `2:2` to responsive WPF content and proposed AutomationIds; it remains open until a host and runtime evidence are selected.
 
 P2 UI spec note: [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md) is the host-neutral, read-only mapping from Figma Printers `2:37` to queue source fields, status scope, responsive table/detail content and proposed AutomationIds; it remains open until a host and runtime evidence are selected.

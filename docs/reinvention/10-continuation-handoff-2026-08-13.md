@@ -50,6 +50,8 @@ The new [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PAC
 
 The new [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](../CC_P1_P2_P5_READ_MODEL_CONTRACT.md) defines source authority, joins, timestamp basis, conflict handling and surface-specific projections for P1/P2/P5. It is a review contract only; no read-model class or UI is implemented.
 
+The documentation-only [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) is the upstream readiness gate after the host/read-model contracts. It consolidates one host choice, one projection/action owner, queue identity, P1/P2/P5 scope, navigation/accessibility and runtime/Figma evidence; it does not authorize a WPF host or navigation change.
+
 The new [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) maps the read-model fields to Figma Overview `2:2`, a responsive host-neutral wireframe, proposed `CC.P1.*` AutomationIds and state gates. It does not select a host or authorize code/Figma edits.
 
 The handoff template now carries a Figma escalation protocol: identify a missing state first, inspect metadata read-only, map it to a WPF owner, and close with runtime evidence. No new Figma file or frame is required by the current P1/P2/P5 packet.
@@ -320,6 +322,8 @@ The documentation-only [`CC_P8_AUTOMATION_DECISION_PACKET.md`](../CC_P8_AUTOMATI
 **Superseding audit after the CC-P7 administration owner decision packet (2026-08-13):** `103` Markdown files, `973` relative links/assets checked, and `0` broken paths. The `102`/`947` figures above are the preceding CC-P6 analytics owner-packet baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the CC-P8 automation owner decision packet (2026-08-13):** `104` Markdown files, `997` relative links/assets checked, and `0` broken paths. The `103`/`973` figures above are the preceding CC-P7 administration owner-packet baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the CC-P1/P2/P5 upstream implementation-gate packet (2026-08-13):** `105` Markdown files, `1014` relative links/assets checked, and `0` broken paths. The `104`/`997` figures above are the preceding CC-P8 automation owner-packet baseline; external URLs remain outside this local-path audit.
 
 ## Definition of done for this handoff
 

@@ -149,6 +149,8 @@ The documentation-only [`CC_P8_AUTOMATION_DECISION_PACKET.md`](../CC_P8_AUTOMATI
 
 **Superseding docs-only Markdown audit after the CC-P8 automation owner decision packet (2026-08-13):** `104` Markdown files, `997` relative links/assets checked, and `0` broken paths. The `103`/`973` figures above are the preceding CC-P7 administration owner-packet baseline; external URLs remain outside this local-path check.
 
+**Superseding docs-only Markdown audit after the CC-P1/P2/P5 upstream implementation-gate packet (2026-08-13):** `105` Markdown files, `1014` relative links/assets checked, and `0` broken paths. The `104`/`997` figures above are the preceding CC-P8 automation owner-packet baseline; external URLs remain outside this local-path check.
+
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 
 ### Named barcode gates rechecked
@@ -202,6 +204,8 @@ The P1/P2/P5 handoffs now link back to this program boundary and state their dep
 The documentation-only [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PACKET.md) consolidates the open host choice and Figma evidence boundary; no host, WPF navigation or Figma frame has been selected or edited.
 
 The documentation-only [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](../CC_P1_P2_P5_READ_MODEL_CONTRACT.md) records current source authority and merge rules; it does not claim a runtime projection, UI, print result or physical verification.
+
+The documentation-only [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) is the upstream readiness gate after the host/read-model contracts. It consolidates one host choice, one projection/action owner, queue identity, P1/P2/P5 scope, navigation/accessibility and runtime/Figma evidence; it does not authorize a WPF host or navigation change.
 
 The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
