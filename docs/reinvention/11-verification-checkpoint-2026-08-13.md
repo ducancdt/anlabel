@@ -43,6 +43,8 @@ There is still no dedicated barcode-Properties frame. If P3 check-digit/HRI poli
 
 The next R4 Data Workspace UI slice has the same boundary: Figma `9:2` supplies the Data-tab shell and empty/current/settings/binding-check cards, but no transform editor, sample table, lineage or invalid-state variants. The detailed scope and ready gate are recorded in [`R4_DATA_WORKSPACE_UI_HANDOFF.md`](../R4_DATA_WORKSPACE_UI_HANDOFF.md); no implementation or release claim is implied by the reference.
 
+Database Manager has a separate evidence boundary: the current WPF `DatabaseManagerWindow`/`DataSourceCleanupWindow` code exists, but the recorded plan says the click-through has not been manually verified and Figma Page `0:1` has no Manager frame. The state matrix and owner gate are recorded in [`DATABASE_MANAGER_UI_HANDOFF.md`](../DATABASE_MANAGER_UI_HANDOFF.md).
+
 ## Release gates still open
 
 - clean implementation ownership and a fresh post-commit rerun of the commands above;
