@@ -119,6 +119,20 @@ The full shell reference was also checked through Figma metadata on 2026-08-13:
 
 The shell metadata exposes the intended WPF mapping: `Shell.QuickAccess`, `Shell.Ribbon`, `Shell.Toolbox`, `Shell.Workspace`, `Shell.Canvas`, `Shell.Properties`, and `Shell.Status`. The Figma QA label currently reads `GPL-3.0 · v0.201`; treat that as a design-reference version and reconcile it with the product release snapshot before changing either artifact.
 
+The frequency-first panel reference was checked through Figma metadata on 2026-08-13:
+
+| Node | Name | Position in parent | Size |
+| --- | --- | --- | --- |
+| `8:2` | `ANLAbel — Frequency-first Panels v0.198` | `(3260, 0)` | `664 × 788` |
+| `8:4` | `Panel pair` | `(24, 64)` | `616 × 700` |
+| `8:5` | `Workspace panel` | `(0, 0)` | `300 × 700` |
+| `8:6` | `Properties panel` | `(316, 0)` | `300 × 700` |
+| `8:15` | `Workspace tabs` | `(0, 48)` | `300 × 42` |
+| `9:2` | `Data tab content` | `(0, 90)` | `300 × 610` |
+| `9:45` | `Properties empty state content` | `(0, 48)` | `300 × 652` |
+
+The reference makes `Layers` and `Data` real tabs, with `Data` active, a compact `No data linked` action, collapsed data settings, and binding checks. It also exposes a documentation discrepancy: the Figma reference uses `300 DIP` panels, while `docs/industrial-panel-design.md` currently documents `268 DIP` Workspace and `280 DIP` Properties. Keep this as an open reconciliation item; do not change WPF dimensions from metadata alone without a runtime screenshot and an owning design decision.
+
 ## 7. Handoff decision
 
 Choose exactly one and explain it:
