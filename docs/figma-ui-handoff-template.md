@@ -212,6 +212,18 @@ This table routes the open UI/UX findings already backed by the read-only metada
 
 **Decision rule:** a Figma frame is design input only. The owning slice remains open until the target window/display-scale screenshot or UI Automation measurement, named regression, and relevant build/test evidence are attached. Use [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md) for cross-surface ownership and [`11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md) for the current dirty-worktree boundary.
 
+### Figma escalation protocol
+
+Connect to Figma only when a concrete UI/UX question cannot be answered by the current WPF source, this template, or an existing read-only node:
+
+1. State the operator task and missing state/measurement first; do not browse for visual inspiration alone.
+2. Inspect metadata read-only and record the file URL, page, node ID, node name, measured bounds and state represented.
+3. Map the node to an owning WPF surface, stable AutomationId proposal and local source/action owner. Treat sample data, server copy and license totals as research content unless local evidence proves them.
+4. If no node answers the state question, record an explicit WPF reuse decision or request the smallest state-specific Figma reference. Do not create a new file or duplicate a shell merely to fill an evidence gap.
+5. Close the UI slice with target-scale runtime screenshot/UI Automation, keyboard/focus/scroll evidence, named regression and relevant build/test output. A Figma node alone never closes acceptance.
+
+For the current Control Center sequence, route host questions through [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md), then use [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md) to preserve one node/state owner per downstream slice.
+
 ## 8. Handoff decision
 
 Choose exactly one and explain it:

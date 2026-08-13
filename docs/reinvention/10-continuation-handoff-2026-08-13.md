@@ -48,6 +48,8 @@ The P1/P2/P5 handoffs now point directly to that index and declare their upstrea
 
 The new [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PACKET.md) consolidates the three host choices, current WPF/Figma evidence, selection criteria and required owner record. It recommends staged P1 evidence as the review starting point, but does not choose or authorize implementation for the product owner.
 
+The handoff template now carries a Figma escalation protocol: identify a missing state first, inspect metadata read-only, map it to a WPF owner, and close with runtime evidence. No new Figma file or frame is required by the current P1/P2/P5 packet.
+
 The downstream P3/P4/P6/P7/P8 handoffs now point to the same program index and name their bounded owners: revision access, document policy, read-only aggregation, local administration links and deferred automation. These remain documentation-only dependencies; no downstream UI or Figma edit is authorized.
 
 CC-P1 also remains an open UI/UX finding: the roadmap names an Operations Overview, but the current WPF only has a recovery dialog, queue warning and separate setup/history/activation entry points. Follow [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) to choose one host surface, define local evidence/time-window semantics and attach target-scale runtime evidence before claiming the overview exists.
@@ -185,6 +187,8 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 **Superseding audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `446` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P1/P2/P5 host decision packet (2026-08-13):** `70` Markdown files, `470` relative links checked, and `0` broken paths. The `69`/`446` figures above are the preceding CC UI/UX program baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the Figma escalation protocol (2026-08-13):** `70` Markdown files, `472` relative links checked, and `0` broken paths. The `70`/`470` figures above are the preceding host decision packet baseline; external URLs remain outside this local-path audit.
 
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
