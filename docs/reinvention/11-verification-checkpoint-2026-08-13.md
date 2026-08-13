@@ -111,6 +111,8 @@ The documentation-only [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](../P5_2D_BARC
 
 The documentation-only [`P6_GS1_AI_UI_DECISION_PACKET.md`](../P6_GS1_AI_UI_DECISION_PACKET.md) is the following GS1 diagnostics owner gate. It records the strict parser and curated/offline registry evidence, first AI-family choice, `[FNC1]` boundary copy, provenance/update policy, diagnostics-versus-geometry ownership and runtime/Figma evidence required before implementation. No parser, renderer, Figma or Text/TextBox change is implied.
 
+The documentation-only [`P7_PRINT_METHOD_DECISION_PACKET.md`](../P7_PRINT_METHOD_DECISION_PACKET.md) is the following dispatch/output owner gate. It records the current WPF graphic path, missing native adapter/method fields, capability-record scope, explicit fallback, output-contract/parity boundary, manifest migration and real printer-family pilot evidence required before implementation. No print-method implementation, native command claim, Figma edit or Text/TextBox change is implied.
+
 **Superseding docs-only Markdown audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding docs-only Markdown audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
@@ -120,6 +122,8 @@ The documentation-only [`P6_GS1_AI_UI_DECISION_PACKET.md`](../P6_GS1_AI_UI_DECIS
 **Superseding docs-only Markdown audit after the P5 2D barcode parity owner decision packet (2026-08-13):** `96` Markdown files, `793` relative links/assets checked, and `0` broken paths. The `95`/`771` figures above are the preceding P4 barcode owner-packet baseline; external URLs remain outside this local-path audit.
 
 **Superseding docs-only Markdown audit after the P6 GS1 diagnostics owner decision packet (2026-08-13):** `97` Markdown files, `816` relative links/assets checked, and `0` broken paths. The `96`/`793` figures above are the preceding P5 barcode owner-packet baseline; external URLs remain outside this local-path check.
+
+**Superseding docs-only Markdown audit after the P7 print-method owner decision packet (2026-08-13):** `98` Markdown files, `845` relative links/assets checked, and `0` broken paths. The `97`/`816` figures above are the preceding P6 GS1 owner-packet baseline; external URLs remain outside this local-path check.
 
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 

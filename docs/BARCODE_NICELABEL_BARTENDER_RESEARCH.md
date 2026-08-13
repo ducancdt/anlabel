@@ -244,6 +244,8 @@ P5 owner routing is consolidated in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](
 
 P6 owner routing is consolidated in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md): approve the first demanded AI families, strict notation/binding behavior, visible `[FNC1]` boundaries, curated-versus-official registry provenance, separate geometry/preflight ownership and runtime evidence before implementation. M15 remains an incremental industrial subset, not a full GS1 wizard or certification claim.
 
+P7 owner routing is consolidated in [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md): approve the Graphic/Native model, capability-record scope, explicit fallback, output-contract/parity policy, method-sensitive manifest migration and real printer-family pilot before implementation. M19 remains ADR/pilot-gated; the current graphic path is the only evidenced dispatch method.
+
 **Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0–P2 software slices closed; P3 next).
 **P1 closure record:** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — retained for the logical-module and legacy-safety rationale; it is no longer an unstarted coding slice.
 

@@ -9,6 +9,7 @@
 **P4 owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
 **P5 owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
 **P6 owner decision packet:** [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md)
+**P7 owner decision packet:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -109,6 +110,8 @@ For the 2D parity slice, record D1-D7 in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.
 
 For the GS1 diagnostics slice, record D1-D7 in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md) before treating demanded AI families, notation/binding behavior, `[FNC1]` copy, registry provenance, diagnostics ownership or runtime evidence as approved.
 
+For the print-method slice, record D1-D8 in [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) before treating Graphic/Native vocabulary, capability evidence, fallback behavior, method-sensitive persistence or a printer pilot as approved.
+
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
 3. Decide whether P7 native output is a product option or remains consciously deferred with an ADR.
@@ -132,3 +135,7 @@ P5 is the 2D parity slice. The current shared card exposes QR-named sizing/versi
 ### P6 decision route
 
 P6 is the GS1 diagnostics slice. Core already owns strict `(AI)value` parsing, curated-first plus bundled-official registry lookup, FNC1 normalization and fail-closed AI/value/preflight rules, while the WPF surface still exposes one combined validation message. Use the [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md) to approve the first AI families, visible `[FNC1]` boundary treatment, registry provenance/update policy, diagnostics-versus-geometry ownership and runtime evidence before implementation. Figma `13:2` remains a generic `300 × 700` selected-Properties shell with no GS1 state; no full GS1 wizard or certification is implied.
+
+### P7 decision route
+
+P7 is the dispatch/output slice. The current path is WPF `PrintDocument` plus app-rendered graphic output with explicit queue/ticket and effective-output-contract validation; `PrintJobManifest.PrintMode` remains a workflow description and no native adapter or method-sensitive result fields exist. Use the [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) to approve the Graphic/Native model, capability-record scope, explicit fallback policy, manifest migration, parity severity and real printer-family pilot before implementation. Figma shell `2:2`/`2:39` is placement-only and contains no method state; no native, physical or certification claim is implied.

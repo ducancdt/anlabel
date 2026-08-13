@@ -453,6 +453,7 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 - [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) records the ADR-first boundary, source evidence, Figma shell routing and native/non-native non-claims.
 - [`P7_PRINT_METHOD_UI_SPEC.md`](P7_PRINT_METHOD_UI_SPEC.md) defines the Print & Output controls, state matrix, explicit fallback policy, AutomationIds and target-scale acceptance gates.
+- [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) records the method/capability/fallback/persistence decisions and the pilot/runtime evidence required before coding; it is documentation-only.
 
 ---
 
