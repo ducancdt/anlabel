@@ -10,6 +10,7 @@
 **P1/P2/P5 upstream implementation gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **P1 Operations Overview UI spec:** [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md)
 **P2 Print Queue UI spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
+**P2 Print Queue owner decision packet:** [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md)
 **P5 History + reprint UI spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
 **P5 Print Center recovery owner packet:** [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md)
 **P3 Document Library UI spec:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
@@ -70,6 +71,8 @@ The upstream implementation gate is [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`
 The first concrete UI/UX content spec is [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md); it maps Figma Overview `2:2` to a host-neutral WPF wireframe, responsive behavior, proposed AutomationIds and P1 state gates without authorizing implementation.
 
 The first P2 UI contract is [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md); it maps Figma Printers `2:37` to a host-neutral, read-only queue table/detail wireframe, local source-to-row rules, responsive behavior and proposed AutomationIds without authorizing a queue window or commands.
+
+The concrete M1 source/action gate is [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md); it does not supersede the upstream host choice.
 
 The first P5 UI contract is [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md); it maps Figma History `3:85` to a provenance-first activity/detail wireframe, three-source field rules, explicit reprint eligibility and proposed AutomationIds without creating a second action owner.
 

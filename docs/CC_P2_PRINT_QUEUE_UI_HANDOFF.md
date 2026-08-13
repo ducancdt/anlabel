@@ -10,6 +10,7 @@
 **Read-model contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Upstream implementation gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **UI/UX content spec:** [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md)
+**Concrete owner decision packet:** [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, `CC / Printers — Print Management` node `2:37`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. The Figma shell is a visual and information-architecture reference only. It does not prove that ANLAbel has a multi-workstation service, licensed-printer seat accounting, printer-native controls, or physical-label verification.
@@ -135,5 +136,7 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 4. Decide whether local printer groups are needed in the first console and how they persist; keep them separate from licensing.
 5. Assign stable AutomationIds, runtime screenshot/UI Automation ownership and the first clean implementation checkpoint.
 6. Keep explicit queue identity, no-default-fallback, no-auto-retry, guarded reprint and protected Text/TextBox contracts unchanged.
+
+The concrete M1 owner gate is [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md). It narrows the first slice to source-backed read-only queue visibility, canonical identity, refresh/error semantics, queue-versus-job scope and explicit deep-links; it does not choose the upstream host or authorize queue commands/Figma edits.
 
 Until these decisions and runtime evidence exist, this document is a handoff—not a claim that the Print Queue Console is shipped or design-verified.

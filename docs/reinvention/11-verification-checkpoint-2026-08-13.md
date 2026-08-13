@@ -231,6 +231,10 @@ The documentation-only [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](../R4_DATA_WO
 
 **Superseding docs-only Markdown audit after the R4 Data Workspace authoring/diagnostics owner packet (2026-08-13):** `111` Markdown files, `1205` relative links/assets checked, and `0` broken paths. The `110`/`1169` figures above are the preceding Database Manager/Cleanup owner-packet baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](../CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md) is the next CC owner gate. It makes the M1 queue-visibility boundary concrete, preserves the upstream host and Print Center action owners, records the read-only Figma `2:37` route and keeps command/physical-output claims deferred. It does not authorize implementation, a new queue host or a Figma write.
+
+**Superseding docs-only Markdown audit after the CC-P2 Print Queue M1 owner packet (2026-08-13):** `112` Markdown files, `1243` relative links/assets checked, and `0` broken paths. The `111`/`1205` figures above are the preceding R4 Data Workspace owner-packet baseline; external URLs remain outside this local-path check.
+
 The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.

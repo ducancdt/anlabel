@@ -349,6 +349,10 @@ The documentation-only [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](../R4_DATA_WO
 
 **Superseding docs-only Markdown audit after the R4 Data Workspace authoring/diagnostics owner packet (2026-08-13):** `111` Markdown files, `1205` relative links/assets checked, and `0` broken paths. The `110`/`1169` figures above are the preceding Database Manager/Cleanup owner-packet baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](../CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md) is the next CC owner gate. It makes the M1 queue-visibility boundary concrete—Local/Connections discovery, explicit saved-queue identity, refresh/error semantics, queue-versus-job scope, deep-links and deferred commands—while leaving the upstream host choice and Print Center action owner unchanged. It does not authorize a queue window, command service or Figma write.
+
+**Superseding docs-only Markdown audit after the CC-P2 Print Queue M1 owner packet (2026-08-13):** `112` Markdown files, `1243` relative links/assets checked, and `0` broken paths. The `111`/`1205` figures above are the preceding R4 Data Workspace owner-packet baseline; external URLs remain outside this local-path check.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.
