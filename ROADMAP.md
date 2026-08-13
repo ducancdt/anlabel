@@ -9,6 +9,7 @@ This file stays intentionally high-level. Use the following documents for the ev
 - [Master plan](MASTER_PLAN.md) — product history and release narrative.
 - [Detailed plan](PLAN.md) — chronological implementation notes and named regression gates.
 - [Continuation handoff](docs/reinvention/10-continuation-handoff-2026-08-13.md) — current Markdown reconciliation queue and ownership boundary.
+- [Figma → WPF handoff template](docs/figma-ui-handoff-template.md) — reusable UI/UX states, node mapping, and runtime evidence checklist.
 - [Database plan](docs/database-plan.md), [print-preview reliability plan](docs/print-preview-reliability-plan.md), [properties panel plan](docs/properties-panel-plan.md), and [designer stability plan](docs/designer-stability-plan.md) — domain-specific historical plans.
 
 Roadmap bullets are not release evidence. A shipped claim must be attached to a verified build/test/runtime checkpoint, and physical-printer, driver, verifier, and hardware claims remain open until external evidence exists. Figma references are visual inputs for a named UI/UX slice; a Figma frame is not runtime acceptance evidence by itself.
