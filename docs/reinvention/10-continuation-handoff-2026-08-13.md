@@ -35,6 +35,19 @@ These are documentation inconsistencies visible in the current worktree. They ar
 | P1 | Figma node `18:69` names the third Properties tab `More`, while the product notes call it `Advanced`. | Choose one operator-facing label, update the design/reference note and UI acceptance IDs together, and preserve the three-task tab contract. |
 | P2 | Figma shell node `2:2` carries QA text `GPL-3.0 · v0.201`, while the product banner points at `v0.202`. | Keep the design label as historical reference until a release owner explicitly reconciles it; do not infer release metadata from a Figma text layer. |
 
+### Current implementation baseline (read-only evidence)
+
+The current WPF file confirms that the `268/280` and `Advanced` values are not only prose in the untracked panel note; they are already the implementation baseline in the dirty worktree:
+
+| Surface | Current WPF evidence | Implication for the open Figma findings |
+| --- | --- | --- |
+| Main shell columns | [`MainWindow.xaml`](../../src/ANLAbel.App/MainWindow.xaml#L617) binds the Toolbox column to `268` DIP and [`#L621`](../../src/ANLAbel.App/MainWindow.xaml#L621) binds the Properties column to `280` DIP. | Keep the Figma `8:2` `300/300` panels as a competing reference revision; do not widen the runtime columns from metadata alone. |
+| Workspace regions | `Shell.Toolbox`, `Shell.Workspace`, `Shell.Canvas` and `Shell.Properties` are explicit automation regions in the same shell. | A future screenshot/measurement review can compare regions one-to-one without inventing a second shell map. |
+| Properties task tabs | [`MainWindow.xaml`](../../src/ANLAbel.App/MainWindow.xaml#L1206) exposes `Label` at [`#L1214`](../../src/ANLAbel.App/MainWindow.xaml#L1214), `Layout` at [`#L1222`](../../src/ANLAbel.App/MainWindow.xaml#L1222) and `Advanced` at [`#L1230`](../../src/ANLAbel.App/MainWindow.xaml#L1230). | Keep `Advanced` as the current operator-facing label; treat Figma node `18:69`'s `More` name as an unresolved design-language variant, not an automatic rename. |
+| Panel design note | [`industrial-panel-design.md#L55`](../industrial-panel-design.md#L55) and [`#L82`](../industrial-panel-design.md#L82) independently record `268/280`; [`#L72`](../industrial-panel-design.md#L72) records `Advanced`. | The design note and WPF currently agree. The P1 queue stays open until target-scale runtime screenshots and an explicit design decision reconcile the Figma variants. |
+
+**Interim decision:** for this continuation, the WPF `268/280` widths and `Advanced` label remain the working product baseline. Figma nodes `8:2` and `18:69` remain read-only visual evidence; no code, UI, or Figma edit is authorized by this note. A later UI slice may change either value only with a named decision, target-scale screenshot/measurement, updated automation names, and regression coverage.
+
 ## Ordered next work
 
 ### 1. Freeze an evidence snapshot
