@@ -119,6 +119,8 @@ The documentation-only [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](..
 
 The documentation-only [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](../CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) is the next downstream owner gate. It records the candidate state graph, envelope/migration and exact-hash coverage, local actor/audit boundary, policy-on print composition, host/action ownership and deferred scheduling/roles required before implementation. No workflow enum/store, Published print gate, permissions change, Figma edit or Text/TextBox change is implied.
 
+The documentation-only [`CC_P6_ANALYTICS_DECISION_PACKET.md`](../CC_P6_ANALYTICS_DECISION_PACKET.md) is the following downstream owner gate. It records label-row/job/event units, CSV/operation/state precedence and conflict handling, timezone and dimension/privacy rules, the physical-output disclaimer, P5 deep-link/export ownership and source-health/runtime fixtures required before implementation. No Analytics window, telemetry, physical-label claim, Figma edit or Text/TextBox change is implied.
+
 **Superseding docs-only Markdown audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding docs-only Markdown audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
@@ -136,6 +138,8 @@ The documentation-only [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](../CC_P4_A
 **Superseding docs-only Markdown audit after the CC-P3 document-library/revision owner decision packet (2026-08-13):** `100` Markdown files, `899` relative links/assets checked, and `0` broken paths. The `99`/`875` figures above are the preceding P8 physical-verifier owner-packet baseline; external URLs remain outside this local-path check.
 
 **Superseding docs-only Markdown audit after the CC-P4 approval-workflow owner decision packet (2026-08-13):** `101` Markdown files, `923` relative links/assets checked, and `0` broken paths. The `100`/`899` figures above are the preceding CC-P3 document-library/revision owner-packet baseline; external URLs remain outside this local-path check.
+
+**Superseding docs-only Markdown audit after the CC-P6 analytics owner decision packet (2026-08-13):** `102` Markdown files, `947` relative links/assets checked, and `0` broken paths. The `101`/`923` figures above are the preceding CC-P4 approval-workflow owner-packet baseline; external URLs remain outside this local-path check.
 
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 

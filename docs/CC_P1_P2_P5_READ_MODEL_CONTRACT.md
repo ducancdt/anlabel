@@ -59,6 +59,8 @@ The future projection should expose these fields even when a value is unknown. E
 | P2 Print Queue Console | Installed queue rows (`PrinterInfo`), canonical saved-queue lookup, queue/job observations with state taxonomy and timestamps; unknown/error rows remain visible | Printer-level health from one job observation, licensed-seat enforcement, printer-native completion or command capability without a new contract |
 | P5 History | Job-level activity table/detail over state events plus supplemental operation entries; linked per-label CSV detail/export; explicit Request → Approve → Prepare → Dispatch deep-link | A flattened all-success counter, raw label payloads in the table, row-level implicit dispatch, or physical completion from software evidence |
 
+P6 aggregation must consume this projection without creating a second source of truth. The owner gate [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md) defines the separate label-row/job/event units, source conflict rules, timezone/privacy boundaries and read-only deep-link/export contract.
+
 ## 5. Figma routing for this contract
 
 Existing read-only nodes are sufficient for the information-architecture review:

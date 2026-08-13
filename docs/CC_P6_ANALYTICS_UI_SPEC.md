@@ -4,6 +4,7 @@
 **Predecessors:** [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md), [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Handoff:** [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md)
 **Program route:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
+**Owner decision packet:** [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Analytics `5:2`
 
 This spec maps the Figma Analytics shell to local read-only aggregates over CSV label rows, job-level operation traces and hash-chained job state. It does not create a second log, reprint/queue authority, cloud telemetry stream or physical-label counter.
