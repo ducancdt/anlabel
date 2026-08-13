@@ -2,6 +2,8 @@
 
 **Ngày:** 2026-07-03 · **Trạng thái:** Giai đoạn 1, Giai đoạn 2, Giai đoạn TC (TC1–TC7) đều hoàn tất. Giai đoạn 3 item 8 (header-row picker + preview) ✅ xong (v0.079). Còn lại: CSV, lazy-load file lớn, ODBC/SQL — làm theo nhu cầu thực tế, chưa có yêu cầu cụ thể.
 
+> **Current continuation (2026-08-13):** Các trạng thái và version trong file này là checkpoint lịch sử; không tự suy ra một release mới từ worktree đang có implementation chưa commit. Theo dõi reconciliation và ownership boundary ở [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md). Metadata Figma read-only cho luồng Excel link verification (Not linked / Checking / Verified / Stale / Failed, node `22:82`) được ghi trong [Figma → WPF handoff template](figma-ui-handoff-template.md); đó là evidence UX, không thay thế runtime smoke/test.
+
 ## Định hướng từ chủ dự án (2026-07-02, ưu tiên cao nhất)
 
 1. **Đẩy mạnh phần gắn database (binding)** — đây là tính năng lõi của sản phẩm; ưu tiên hoàn thiện luồng gắn dữ liệu vào object (Excel field / formula) mượt và rõ ràng hơn.
