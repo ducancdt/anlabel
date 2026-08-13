@@ -5,6 +5,7 @@
 **Execution checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification boundary:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 **Figma routing template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
+**P1/P2/P5 host decision packet:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 
 This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It prevents a research frame from being mistaken for a shipped WPF feature, keeps one action owner per operation, and records the dependency order before any UI or Figma work begins. The individual handoff remains authoritative for its state matrix and acceptance details.
 
@@ -103,7 +104,7 @@ The CC slices need one host decision before they add navigation or a second comm
 
 ### Host choice remains open
 
-The owner must choose one of these bounded options before a CC navigation implementation:
+The owner must choose one of these bounded options before a CC navigation implementation. The reviewable comparison and required decision fields are in [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md):
 
 1. a `MainWindow` hub that deep-links to existing windows and keeps the designer shell as the primary host;
 2. a dedicated local `ControlCenterWindow` that reuses the same services and stable action owners; or
