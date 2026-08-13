@@ -52,6 +52,8 @@ CC-P4 is the next approval-workflow finding: the roadmap names persisted Draft/I
 
 CC-P8 is deliberately deferred automation work: the roadmap names trigger list/start-stop/configuration and filtered automation logs, while current source has only an Excel freshness watcher and the manual manifest/preflight/queue path. Figma Applications `7:88` provides a Web Applications shell and Automation sidebar but no trigger-detail state; follow [`CC_P8_AUTOMATION_UI_HANDOFF.md`](../CC_P8_AUTOMATION_UI_HANDOFF.md) to define one local file-drop contract and provenance/lifecycle gates before any trigger host or Figma edit.
 
+CC-P6 is the next analytics finding: the roadmap names read-only charts and filters over local logs, while current source has per-label CSV, best-effort operation JSONL and hash-chained job state but no Analytics module or authoritative cross-source aggregate. Figma Analytics `5:2` supplies chart/filter density only; follow [`CC_P6_ANALYTICS_UI_HANDOFF.md`](../CC_P6_ANALYTICS_UI_HANDOFF.md) to approve source units, precedence, timezone, redaction and software-counter wording before adding UI or export.
+
 The current WPF file confirms that the `268/280` and `Advanced` values are not only prose in the untracked panel note; they are already the implementation baseline in the dirty worktree:
 
 | Surface | Current WPF evidence | Implication for the open Figma findings |
@@ -144,6 +146,8 @@ Read-only Figma metadata has now been checked for shell `2:2`, panels `8:2`, Pro
 
 | Control Center benchmark / CC-P8 Applications + Automation | [Control Center Applications shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), node `7:88`; Automation sidebar `7:109`–`7:123`, History destination `3:101`; trigger configuration/detail states remain open | Is the first task a local file-drop trigger, what claim/deduplication and lifecycle semantics are required, and which WPF host owns it? Follow [`CC_P8_AUTOMATION_UI_HANDOFF.md`](../CC_P8_AUTOMATION_UI_HANDOFF.md) before changing WPF, dispatch code or Figma. |
 
+| Control Center benchmark / CC-P6 Local Analytics | [Control Center Analytics shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), node `5:2`; chart `5:16`, filters `5:31`; source-health/partial/no-match/detail states remain open | Which local sources and units are authoritative, what timezone/privacy rules apply, and where does History deep-link? Follow [`CC_P6_ANALYTICS_UI_HANDOFF.md`](../CC_P6_ANALYTICS_UI_HANDOFF.md) before changing WPF, logs or Figma. |
+
 Only invoke a Figma inspection/edit when a specific UI slice is selected and the current node does not answer the question. The acceptance artifact should be a screenshot or measured node review at the target window/display scales; a Figma frame alone is not runtime proof. Do not create a second design file for a surface already covered by the references above.
 
 ### 4. Close documentation links after the checkpoint
@@ -159,6 +163,8 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 **Superseding audit after the CC-P4 handoff (2026-08-13):** `65` Markdown files, `347` relative links checked, and `0` broken paths. The `64`/`329` figures above are the preceding CC-P3 baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the CC-P8 handoff (2026-08-13):** `66` Markdown files, `365` relative links checked, and `0` broken paths. The `65`/`347` figures above are the preceding CC-P4 baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the CC-P6 handoff (2026-08-13):** `67` Markdown files, `383` relative links checked, and `0` broken paths. The `66`/`365` figures above are the preceding CC-P8 baseline; external URLs remain outside this local-path audit.
 
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
