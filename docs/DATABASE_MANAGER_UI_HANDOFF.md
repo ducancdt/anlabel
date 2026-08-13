@@ -4,6 +4,7 @@
 **Parent plan:** [`database-manager-module-plan.md`](database-manager-module-plan.md) (M1-M3 history)
 **Cross-surface handoff:** [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **UI/UX specification:** [`DATABASE_MANAGER_UI_SPEC.md`](DATABASE_MANAGER_UI_SPEC.md)
+**Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
 **Figma reference:** panels file [`ANLAbel UI exploration`](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5), Page `0:1`
 
 ## 1. Operator task
@@ -82,6 +83,8 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 ```
 
 ## 6. Owner decisions before a UI change
+
+The shared source/read-model, Manager-versus-Workspace action boundary, async request identity, Figma reuse rule and target-scale evidence gate are consolidated in [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md). It keeps `DatabaseManagerWindow` as the shared-source owner and does not authorize a new Manager frame or a transform editor in this dialog.
 
 1. Confirm whether the current WPF information architecture is accepted for the first smoke-test pass or whether a new Figma Manager frame is required.
 2. Confirm operator copy for `Test Connection`, `Preview data...`, `Use for current template`, `Remove...` and `Clean up...`.
