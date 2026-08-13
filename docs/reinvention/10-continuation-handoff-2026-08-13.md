@@ -46,6 +46,8 @@ CC-P2 is the next queue-management finding: the roadmap names a multi-queue Prin
 
 CC-P5 is the next history/reprint finding: the roadmap names a unified History browser, while current WPF exposes an external CSV shortcut, separate job JSONL/state stores and guarded Print Center actions. Follow [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](../CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) to define source provenance and keep Request → Approve → Prepare → Dispatch explicit before changing UI.
 
+CC-P3 is the next document-library/revision finding: the roadmap names local storage, folders, preview, revision access and later check-out/workflow, while current WPF has only the embedded-template gallery plus saved-file revision recovery. Read-only Control Center metadata routes the browse shell through Documents `3:2` and workflow vocabulary through `7:2`; follow [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) to choose the local root, host, preview and revision entry points before adding workflow/check-out/ACL behavior.
+
 The current WPF file confirms that the `268/280` and `Advanced` values are not only prose in the untracked panel note; they are already the implementation baseline in the dirty worktree:
 
 | Surface | Current WPF evidence | Implication for the open Figma findings |
@@ -132,6 +134,8 @@ Read-only Figma metadata has now been checked for shell `2:2`, panels `8:2`, Pro
 
 | Control Center benchmark / CC-P5 History + controlled reprint | [Control Center History shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), node `3:85`; detail/reprint/error child states remain open | How should CSV per-label rows, job JSONL and hash-chained state events be projected without losing provenance, and where does the exact-manifest action owner live? Follow [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](../CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) before changing WPF or Figma. |
 
+| Control Center benchmark / CC-P3 Document Library + Revision | [Control Center Documents and Workflow shells](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Documents `3:2`, Workflow `7:2`; selected-file, invalid-file, diff and restore states remain open | Which local-root/folder model and host should own browse and revision access, and which CC-P4 workflow policy is approved? Follow [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) before changing WPF or Figma. |
+
 Only invoke a Figma inspection/edit when a specific UI slice is selected and the current node does not answer the question. The acceptance artifact should be a screenshot or measured node review at the target window/display scales; a Figma frame alone is not runtime proof. Do not create a second design file for a surface already covered by the references above.
 
 ### 4. Close documentation links after the checkpoint
@@ -141,6 +145,8 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 **Superseding audit after the CC-P2 handoff (2026-08-13):** `62` Markdown files, `291` relative links checked, and `0` broken paths. The `61`/`269` figures above are the preceding CC-P1 baseline.
 
 **Superseding audit after the CC-P5 handoff (2026-08-13):** `63` Markdown files, `311` relative links checked, and `0` broken paths. The `62`/`291` figures above are the preceding CC-P2 baseline.
+
+**Superseding audit after the CC-P3 handoff (2026-08-13):** `64` Markdown files, `329` relative links checked, and `0` broken paths. The `63`/`311` figures above are the preceding CC-P5 baseline; external URLs remain outside this local-path audit.
 
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
