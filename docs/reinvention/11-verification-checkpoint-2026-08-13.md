@@ -79,6 +79,10 @@ The documentation-only [`DATABASE_MANAGER_UI_SPEC.md`](../DATABASE_MANAGER_UI_SP
 
 **Superseding docs-only Markdown audit after the Database Manager UI spec (2026-08-13):** `82` Markdown files, `593` relative links checked, and `0` broken paths. The `81`/`583` figures above are the preceding R4 Data Workspace UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](../P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) and [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](../P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md) define the next open barcode UI/UX contract: Code 39-first legal ratio, density as a derived readout, physical quiet-zone mm from shared X resolution and explicit non-claims. No barcode implementation or Figma edit is implied.
+
+**Superseding docs-only Markdown audit after the P4 barcode ratio/quiet-zone UI docs (2026-08-13):** `84` Markdown files, `616` relative links checked, and `0` broken paths. The `82`/`593` figures above are the preceding Database Manager UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
