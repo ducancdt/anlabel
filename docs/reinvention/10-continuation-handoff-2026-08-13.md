@@ -214,6 +214,10 @@ The new [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](../CC_P4_APPROVAL_WORKFLOW_UI_SPE
 
 **Superseding audit after the P4 Approval Workflow UI spec (2026-08-13):** `76` Markdown files, `534` relative links checked, and `0` broken paths. The `75`/`524` figures above are the preceding P3 UI spec baseline; external URLs remain outside this local-path audit.
 
+The new [`CC_P6_ANALYTICS_UI_SPEC.md`](../CC_P6_ANALYTICS_UI_SPEC.md) maps read-only Figma Analytics `5:2` to source-backed local metrics with separate label/job/event units, source-health/partial-data states, safe filters and P5 History deep-links. It does not authorize an Analytics window, telemetry, physical-output count or Figma edit.
+
+**Superseding audit after the P6 Local Analytics UI spec (2026-08-13):** `77` Markdown files, `544` relative links checked, and `0` broken paths. The `76`/`534` figures above are the preceding P4 UI spec baseline; external URLs remain outside this local-path audit.
+
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff

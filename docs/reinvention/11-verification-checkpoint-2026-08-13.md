@@ -55,6 +55,10 @@ The documentation-only [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](../CC_P4_APPROVAL_
 
 **Superseding docs-only Markdown audit after the P4 Approval Workflow UI spec (2026-08-13):** `76` Markdown files, `534` relative links checked, and `0` broken paths. The `75`/`524` figures above are the preceding P3 UI spec baseline; external URLs remain outside this local-path check.
 
+The documentation-only [`CC_P6_ANALYTICS_UI_SPEC.md`](../CC_P6_ANALYTICS_UI_SPEC.md) maps read-only Analytics metadata `5:2` to source-backed local metrics, explicit units, partial-source/unknown states and P5 History deep-links. It does not authorize telemetry, an Analytics window, physical-output claims, runtime implementation or Figma edit.
+
+**Superseding docs-only Markdown audit after the P6 Local Analytics UI spec (2026-08-13):** `77` Markdown files, `544` relative links checked, and `0` broken paths. The `76`/`534` figures above are the preceding P4 UI spec baseline; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
