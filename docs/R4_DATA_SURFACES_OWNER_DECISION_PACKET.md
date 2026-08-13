@@ -6,6 +6,7 @@
 **Data Workspace specification:** [`R4_DATA_WORKSPACE_UI_SPEC.md`](R4_DATA_WORKSPACE_UI_SPEC.md)
 **Database Manager handoff:** [`DATABASE_MANAGER_UI_HANDOFF.md`](DATABASE_MANAGER_UI_HANDOFF.md)
 **Database Manager specification:** [`DATABASE_MANAGER_UI_SPEC.md`](DATABASE_MANAGER_UI_SPEC.md)
+**Concrete Manager/Cleanup owner packet:** [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](DATABASE_MANAGER_UI_DECISION_PACKET.md)
 **Module history:** [`database-manager-module-plan.md`](database-manager-module-plan.md)
 **Figma routing template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
 **Protected contract:** [`../AGENTS.md`](../AGENTS.md)
@@ -13,6 +14,8 @@
 ## Purpose and decision boundary
 
 The repository has two related but deliberately separate data surfaces:
+
+The concrete WPF Manager/Cleanup action and runtime owner is bounded in [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](DATABASE_MANAGER_UI_DECISION_PACKET.md); this cross-surface packet remains authoritative for the shared source/connector identity and Manager-versus-Workspace boundary.
 
 ```text
 Excel/CSV import or shared-source selection

@@ -341,6 +341,10 @@ The documentation-only [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](../
 
 **Superseding audit after the Print Center recovery owner packet (2026-08-13):** `109` Markdown files, `1133` relative links/assets checked, and `0` broken paths. The `108`/`1101` figures above are the preceding Print Preview/Calibration baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](../DATABASE_MANAGER_UI_DECISION_PACKET.md) is the next non-CC data-surface owner gate. It records the existing WPF Manager/Cleanup source states, shared registry/fallback semantics, async request gap, read-only Figma `8:2`/`9:2` routing and target-scale/UIA fixtures; it does not authorize a Manager redesign, registry rewrite, Figma write or Text/TextBox change.
+
+**Superseding audit after the Database Manager/Cleanup owner packet (2026-08-13):** `110` Markdown files, `1169` relative links/assets checked, and `0` broken paths. The `109`/`1133` figures above are the preceding Print Center recovery baseline; external URLs remain outside this local-path audit.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

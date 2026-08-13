@@ -3,10 +3,13 @@
 **Status:** documentation-only runtime/design contract; implementation exists but click-through evidence is open (2026-08-13)
 **Handoff:** [`DATABASE_MANAGER_UI_HANDOFF.md`](DATABASE_MANAGER_UI_HANDOFF.md)
 **Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
+**Concrete Manager/Cleanup owner packet:** [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](DATABASE_MANAGER_UI_DECISION_PACKET.md)
 **Module plan:** [`database-manager-module-plan.md`](database-manager-module-plan.md)
 **Figma reference:** panels file `kqyNBI0DgRHnPzJTDBIui5`, shell `8:2`; no dedicated Manager frame exists
 
 This document turns the existing Database Manager handoff and WPF dialog into a measurable UX contract. It does not redesign the window, change shared-source or Unlink semantics, or claim that the current runtime has been manually verified.
+
+The source-backed action/async/cleanup owner record is [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](DATABASE_MANAGER_UI_DECISION_PACKET.md). This spec remains authoritative for the detailed information architecture and state matrix; the packet adds the implementation-owner decisions and closure evidence boundary.
 
 ## 1. Operator outcome
 

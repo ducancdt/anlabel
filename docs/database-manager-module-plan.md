@@ -5,6 +5,8 @@
 
 > **Current continuation (2026-08-13):** M1–M4 và các version ở trên là checkpoint lịch sử; phần UI click-through vẫn cần người dùng smoke-test theo các lưu ý trong từng đợt. Reconciliation/ownership hiện tại nằm ở [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md). Metadata read-only của panels file, Page `0:1`, hiện chỉ liệt kê các frame `1:2`, `4:2`, `8:2`, `13:2`, `18:69`, `22:82`; chưa có node Database Manager riêng. Handoff state matrix và routing reuse-vs-new-reference hiện nằm ở [Database Manager UI handoff](DATABASE_MANAGER_UI_HANDOFF.md). Cross-surface source/read-model, Manager/Workspace ownership và runtime gate hiện được gom trong [R4 data surfaces owner decision packet](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md). Nếu mở slice UI cho Manager, phải ghi node/state mới hoặc lý do dùng reference hiện có trong [Figma → WPF handoff template](figma-ui-handoff-template.md), rồi đóng bằng runtime evidence.
 
+> **Concrete Manager/Cleanup owner gate (2026-08-13):** [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](DATABASE_MANAGER_UI_DECISION_PACKET.md) records the existing WPF list/detail and cleanup states, shared-source persistence/fallback boundary, async request gap and read-only Figma reuse. It does not authorize a Manager redesign, registry rewrite or Text/TextBox change.
+
 > Đọc kèm: `docs/database-plan.md` (nền tảng đã xong: registry, watcher, key field, log, relink). Plan này KHÔNG làm lại các phần đó — chỉ gom chúng về một chỗ và bổ sung phần còn thiếu.
 
 ---
