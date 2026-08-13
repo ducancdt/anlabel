@@ -57,6 +57,8 @@ P4 UI spec note: [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_
 
 P6 UI spec note: [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md) maps Figma Analytics `5:2` to source-backed local aggregates and explicit label/job/event units, partial-source states and P5 deep-links; it remains read-only and does not treat sample bars or dimensions as product data.
 
+P7 UI spec note: [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md) maps Figma Administration `5:41` to local activation/preferences/data-source/evidence links and a future retention preview; it keeps roles, users, sync, server licenses and unsupported categories out of the local desktop contract.
+
 ## 3. Contract and behavior
 
 CC-P2 routing note: Control Center Printers metadata `2:37` is a research shell with a `220 DIP` filter rail and `1000 DIP` main pane. Route the local read-only queue slice through [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md); its Pause/Resume/Delete/Reserve/Unreserve labels are deferred command concepts, not current ANLAbel capabilities.

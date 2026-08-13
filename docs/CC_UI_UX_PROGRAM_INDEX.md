@@ -13,6 +13,7 @@
 **P3 Document Library UI spec:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
 **P4 Approval Workflow UI spec:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
 **P6 Local Analytics UI spec:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
+**P7 Administration UI spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
 
 This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It prevents a research frame from being mistaken for a shipped WPF feature, keeps one action owner per operation, and records the dependency order before any UI or Figma work begins. The individual handoff remains authoritative for its state matrix and acceptance details.
 
@@ -67,6 +68,8 @@ The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3
 The first P4 UI contract is [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md); it maps Figma Workflow `7:2` to candidate document states, actor/audit evidence and a policy-on print boundary without authorizing a workflow store, permissions model or Published gate.
 
 The first P6 UI contract is [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md); it maps Figma Analytics `5:2` to source-backed local aggregates, explicit label/job/event units, partial-source states, safe filters and P5 deep-links without authorizing telemetry or physical-output claims.
+
+The first P7 UI contract is [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md); it maps Figma Administration `5:41` to local activation, preferences, data-source maintenance, evidence links and retention-preview boundaries without authorizing roles, users, sync or server-license semantics.
 
 The downstream handoffs carry the same boundary: [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) owns local revision access, [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md) owns document policy/audit, [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md) owns read-only aggregation, [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](CC_P7_ADMINISTRATION_UI_HANDOFF.md) owns local settings/retention links, and [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md) owns the deferred trigger contract. None may create a second action or dispatch authority.
 
