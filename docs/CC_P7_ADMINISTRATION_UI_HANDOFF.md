@@ -6,6 +6,7 @@
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
 **Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **UI/UX content spec:** [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md)
+**Owner decision packet:** [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md)
 
 CC-P7 is a cross-cutting local-settings/retention slice, not a replacement for the P1-P6 action owners. Reuse the shared host only for local activation, preferences, data-source and evidence-retention links; roles, users, sync and server-license semantics remain outside this roadmap boundary.
 
