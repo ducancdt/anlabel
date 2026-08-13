@@ -329,6 +329,10 @@ The documentation-only [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](../R4_DATA_
 
 **Superseding audit after the R4 data-surface owner decision packet (2026-08-13):** `106` Markdown files, `1046` relative links/assets checked, and `0` broken paths. The `105`/`1014` figures above are the preceding CC upstream baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`DESIGNER_SHELL_PANEL_EXCEL_VERIFICATION_DECISION_PACKET.md`](../DESIGNER_SHELL_PANEL_EXCEL_VERIFICATION_DECISION_PACKET.md) is the next UI/UX owner gate. It consolidates the R1-R7 shell/action map, the `268/280` versus `300/300` panel-width reconciliation, the `Advanced` tab-label baseline, the five-state Excel verification contract, read-only Figma routing and target-scale/UIA fixtures. It does not authorize a shell change, Figma write, Database Manager redesign or Text/TextBox change.
+
+**Superseding audit after the designer shell/panel/Excel verification owner packet (2026-08-13):** `107` Markdown files, `1072` relative links/assets checked, and `0` broken paths. The `106`/`1046` figures above are the preceding R4 data-surface baseline; external URLs remain outside this local-path audit.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.
