@@ -89,6 +89,12 @@ The documentation-only [`P6_GS1_AI_UI_HANDOFF.md`](../P6_GS1_AI_UI_HANDOFF.md) a
 
 **Superseding docs-only Markdown audit after the P6 GS1 AI UI docs (2026-08-13):** `88` Markdown files, `669` relative links/assets checked, and `0` broken paths. The `86`/`642` figures above are the preceding P5 baseline; external URLs remain outside this local-path audit.
 
+The documentation-only [`P7_PRINT_METHOD_UI_HANDOFF.md`](../P7_PRINT_METHOD_UI_HANDOFF.md) and [`P7_PRINT_METHOD_UI_SPEC.md`](../P7_PRINT_METHOD_UI_SPEC.md) define the next open print-method contract: Graphic remains the default, Native is explicit and ADR/pilot-gated, requested/resolved paths and fallback reasons are visible, and no queue or method may change silently. No native emitter, driver adapter, Figma edit or printer-family pilot is claimed.
+
+The P7 read-only Figma check used shell node `2:2` (`1440 x 900`), Print & Output `2:39`, Setup `2:41`, Preview `2:44`, Print `2:47`, printer status `2:19` and paper status `2:21`. The shell has no method/capability/fallback state, so it remains visual input only; P7 stays open until ADR, pilot, manifest evidence and target-scale runtime checks exist.
+
+**Superseding docs-only Markdown audit after the P7 print-method UI docs (2026-08-13):** `90` Markdown files, `689` relative links/assets checked, and `0` broken paths. The `88`/`669` figures above are the preceding P6 baseline; external URLs remain outside this local-path audit.
+
 **Superseding docs-only Markdown audit after the P5 2D barcode parity UI docs (2026-08-13):** `86` Markdown files, `642` relative links/assets checked, and `0` broken paths. The `84`/`616` figures above are the preceding P4 baseline; external URLs remain outside this local-path audit.
 
 ### Named barcode gates rechecked
