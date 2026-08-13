@@ -41,6 +41,8 @@ For the first physical test:
 3. Confirm barcode readability with the intended scanner.
 4. Adjust calibration or print offset only after verifying the driver paper size and orientation.
 
+Use the [print calibration checklist](print-calibration.md) for the full one-label measurement record, effective DPI/output-contract checks, queue evidence, and explicit hardware-verifier boundary. The [print-preview reliability plan](print-preview-reliability-plan.md) describes the software preflight and stale-data safeguards behind this workflow.
+
 ## Getting help
 
 Use the [bug-report form](https://github.com/ducancdt/anlabel/issues/new?template=bug_report.yml) for reproducible defects. Include the printer model, driver version, DPI, media size, orientation, and whether the issue appears in Designer, Print Preview, physical output, or all three.
