@@ -3,6 +3,7 @@
 **Status:** documentation-only, pre-implementation UI/UX contract (2026-08-13)
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P6
 **Handoff:** [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md)
+**Owner decision packet:** [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md)
 **Research gap:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M15
 **Figma boundary:** selected-Properties shell from `13:2` / `18:69`; no GS1-specific frame is present
 

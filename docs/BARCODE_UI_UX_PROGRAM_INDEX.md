@@ -8,6 +8,7 @@
 **P3 owner decision packet:** [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md)
 **P4 owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
 **P5 owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
+**P6 owner decision packet:** [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -106,6 +107,8 @@ For the next geometry/diagnostics slice, record D1-D6 in [`P4_BARCODE_RATIO_QUIE
 
 For the 2D parity slice, record D1-D7 in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md) before treating QR copy, Data Matrix size/EC vocabulary, unsupported-control behavior or runtime ownership as approved.
 
+For the GS1 diagnostics slice, record D1-D7 in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md) before treating demanded AI families, notation/binding behavior, `[FNC1]` copy, registry provenance, diagnostics ownership or runtime evidence as approved.
+
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
 3. Decide whether P7 native output is a product option or remains consciously deferred with an ADR.
@@ -125,3 +128,7 @@ P4 is the next geometry/diagnostics slice. The source has logical quiet-zone mod
 ### P5 decision route
 
 P5 is the 2D parity slice. The current shared card exposes QR-named sizing/version/EC controls for Data Matrix, while the renderer applies error correction only to QR and the preflight capacity path is QR-specific. Use the [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md) to preserve QR compatibility, define an honest DM automatic/unsupported boundary and assign renderer/Figma/runtime ownership before implementation. No Data Matrix parity is implied by the shared Properties shell.
+
+### P6 decision route
+
+P6 is the GS1 diagnostics slice. Core already owns strict `(AI)value` parsing, curated-first plus bundled-official registry lookup, FNC1 normalization and fail-closed AI/value/preflight rules, while the WPF surface still exposes one combined validation message. Use the [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md) to approve the first AI families, visible `[FNC1]` boundary treatment, registry provenance/update policy, diagnostics-versus-geometry ownership and runtime evidence before implementation. Figma `13:2` remains a generic `300 × 700` selected-Properties shell with no GS1 state; no full GS1 wizard or certification is implied.
