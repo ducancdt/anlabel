@@ -361,6 +361,10 @@ The documentation-only [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](../CC_P5_
 
 **Superseding docs-only Markdown audit after the CC-P5 History/reprint owner packet (2026-08-13):** `114` Markdown files, `1328` relative links/assets checked, and `0` broken paths. The `113`/`1285` figures above are the preceding CC-P1 Operations Overview owner-packet baseline; external URLs remain outside this local-path check.
 
+The next downstream CC gate after P5 is the existing documentation-only [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md). It owns configured-root/Built-in browse, validated file identity, one revision/restore path and the P3-to-P4 workflow boundary; Figma Documents `3:2` remains read-only and no document browser or workflow implementation is implied.
+
+**Superseding docs-only Markdown audit after the P5-to-P3 downstream routing update (2026-08-13):** `114` Markdown files, `1340` relative links/assets checked, and `0` broken paths. The `114`/`1328` figures above are the preceding P5 History/reprint owner-packet baseline; external URLs remain outside this local-path check.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

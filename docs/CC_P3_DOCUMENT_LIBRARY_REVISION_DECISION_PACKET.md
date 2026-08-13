@@ -5,6 +5,8 @@
 **Handoff:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md)
 **Specification:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md)
 **Host packet:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
+**Predecessor:** [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md)
+**Successor:** [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md)
 
 ## Purpose and decision boundary
 
@@ -21,6 +23,12 @@ configured local root + Built-in catalog
 ```
 
 The packet does not authorize a second revision/archive stack, silent materialization, workflow controls, remote sync, server retention or changes to protected Text/TextBox behavior.
+
+**Current dependency note:** the documentation-only P5 History/read-model owner boundary is now
+explicit: History remains read-only and controlled reprint returns to Print Center. CC-P3 is the
+next local filesystem/revision gate; after its D1-D8 decisions, CC-P4 owns document workflow,
+actor/audit and policy-on print questions. This packet does not promote either downstream slice to
+runtime implementation.
 
 ## Decision summary
 
@@ -39,13 +47,16 @@ The packet does not authorize a second revision/archive stack, silent materializ
 
 | Evidence | What it proves | What it does not prove |
 | --- | --- | --- |
-| [`TemplateLibraryWindow.xaml`](../src/ANLAbel.App/TemplateLibraryWindow.xaml) and [`TemplateLibraryWindow.xaml.cs`](../src/ANLAbel.App/TemplateLibraryWindow.xaml.cs) | Current WPF has a gallery/filter/selection surface for embedded resources and materializes a fresh editable copy through the existing service. | Embedded resources are not a local folder, path, revision lineage or multi-user document library. |
-| [`TemplateLibraryService.cs`](../src/ANLAbel.App/TemplateLibrary/TemplateLibraryService.cs) | Manifest resources are enumerated, malformed entries can be skipped, and valid resources are deserialized/materialized through one boundary. | It does not enumerate a configured local root or define root precedence. |
-| [`TemplateRevisionWindow.xaml`](../src/ANLAbel.App/TemplateRevisionWindow.xaml) and [`TemplateRevisionWindow.xaml.cs`](../src/ANLAbel.App/TemplateRevisionWindow.xaml.cs) | Existing revision UI is read-only inspection with Refresh, Compare/status and guarded Restore; confirmation warns about unsaved edits and reload follows a successful commit. | It is not a library browser and does not provide workflow/check-out/ACL semantics. |
-| [`ProjectRevisionService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionService.cs) | Primary, managed backup and local archive entries expose validity/diagnostics; compare is semantic and restore validates source bytes and restricts allowed paths. | “File exists” is not safe; no server, user identity or policy-on workflow is present. |
-| [`ProjectRevisionArchive.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionArchive.cs) | Local `.revisions` snapshots are hash-addressed, durably written, audited in JSONL, tolerant of a torn final line and bounded by retention. | Local JSONL is not authenticated multi-user audit or immutable server history. |
+| [`TemplateLibraryWindow.xaml`](../src/ANLAbel.App/TemplateLibraryWindow.xaml#L1-L75) and [`TemplateLibraryWindow.xaml.cs`](../src/ANLAbel.App/TemplateLibraryWindow.xaml.cs#L28-L43) | Current WPF has a gallery/filter/selection surface for embedded resources and materializes a fresh editable copy through the existing service. | Embedded resources are not a local folder, path, revision lineage or multi-user document library. |
+| [`TemplateLibraryService.cs`](../src/ANLAbel.App/TemplateLibrary/TemplateLibraryService.cs#L23-L86) | Manifest resources are enumerated in deterministic name order, malformed entries can be skipped, and valid resources are deserialized/materialized through one boundary. | It does not enumerate a configured local root or define root precedence. |
+| [`TemplateRevisionWindow.xaml`](../src/ANLAbel.App/TemplateRevisionWindow.xaml#L1-L55) and [`TemplateRevisionWindow.xaml.cs`](../src/ANLAbel.App/TemplateRevisionWindow.xaml.cs#L29-L71) | Existing revision UI is read-only inspection with Refresh, Compare/status and guarded Restore; confirmation warns about unsaved edits and reload follows a successful commit. | It is not a library browser and does not provide workflow/check-out/ACL semantics. |
+| [`ProjectRevisionService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionService.cs#L89-L165) | Primary, managed backup and local archive entries expose validity/diagnostics and audit evidence. | “File exists” is not safe; no server, user identity or policy-on workflow is present. |
+| [`ProjectRevisionService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionService.cs#L167-L218) | Compare is semantic and returns an explicit unavailable result when inputs are invalid; differences cover document/layout/data evidence. | A diff is not a workflow approval or print authorization. |
+| [`ProjectRevisionService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionService.cs#L221-L330) | Restore validates source bytes, restricts allowed paths, archives the previous primary and commits/reloads through a guarded boundary. | Restore does not establish a Published state or multi-user audit. |
+| [`ProjectRevisionArchive.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionArchive.cs#L13-L24) and [`ProjectRevisionArchive.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionArchive.cs#L195-L224) | Local `.revisions` snapshots are bounded by the explicit default retention count (`8`) and cleanup is restricted to the derived archive directory. | Retention is local policy, not server retention or immutable governance. |
+| [`ProjectRevisionArchive.cs`](../src/ANLAbel.Project/SaveLoad/ProjectRevisionArchive.cs#L37-L193) | Archive bytes are durably written, hash-addressed, audited in JSONL and a torn final audit line does not hide valid earlier events. | Local JSONL is not authenticated multi-user audit or immutable server history. |
 | [`ProjectFileService.cs`](../src/ANLAbel.Project/SaveLoad/ProjectFileService.cs) and project-load contracts | Existing load/validation is the source of truth for supported schema and safe materialization. | A thumbnail or card label cannot bypass load validation. |
-| [`MainWindow.xaml.cs`](../src/ANLAbel.App/MainWindow.xaml.cs) | Current entry points open Template Library and expose Revision History for a saved current path. | Current reachability does not prove that every local-library file can open the same revision owner. |
+| [`MainWindow.xaml.cs`](../src/ANLAbel.App/MainWindow.xaml.cs#L701-L716) and [`MainWindow.xaml.cs`](../src/ANLAbel.App/MainWindow.xaml.cs#L788-L801) | Current entry points expose Revision History only for a saved current path and open the embedded Template Library through a separate materialization flow. | Current reachability does not prove that every local-library file can open the same revision owner. |
 | Read-only Control Center Documents [`asnGsLMxceJWb3HlfaE3q4`](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), node `3:2` | Metadata gives `1280 × 800`, toolbar `3:16` (`1248 × 40`), folder rail `3:19` (`240 × 620`), file pane `3:29` (`980 × 620`) and sample cards `3:31`–`3:84`. | No selected detail, invalid-file, diff, restore, dirty-edit, local-root or real repository state exists in the node. |
 | Read-only Workflow node `7:2` in the same file | Candidate Draft/Approved/Published vocabulary and action/history density for later CC-P4 review. | It does not authorize a workflow enum, actor identity, ACL, check-out or print gate. |
 

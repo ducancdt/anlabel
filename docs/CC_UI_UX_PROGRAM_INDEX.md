@@ -84,6 +84,8 @@ The concrete recovery owner is bounded separately by [`CC_P5_PRINT_CENTER_RECOVE
 
 The concrete History/read-model owner boundary is bounded by [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md); it records source precedence, identity/granularity, time/privacy, diagnostics, Figma routing and the read-only deep-link back to Print Center. It does not authorize a History host, runtime merge or Figma write.
 
+The next downstream gate after P5 is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it owns local-root/Built-in document identity, validated open/preview, one revision/restore path and the boundary before CC-P4 workflow policy. P3 reuses Figma Documents `3:2` read-only and does not authorize a browser or Figma write.
+
 The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md); it maps Figma Documents `3:2` to local-root/built-in browse, validated file metadata, revision inspection and guarded restore without authorizing workflow, check-out or ACL controls.
 
 The P3 owner gate is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it records root cardinality, Built-in/local source precedence, host/action ownership, validation/thumbnail behavior, revision retention, compare/restore/dirty-edit policy, CC-P4 boundary and runtime/Figma evidence. It is documentation-only and does not authorize a document browser.
