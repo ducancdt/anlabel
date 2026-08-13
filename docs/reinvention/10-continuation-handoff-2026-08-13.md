@@ -4,6 +4,8 @@
 **Scope:** reconcile the current Markdown roadmap and define the next evidence gate without touching another agent’s dirty code/UI files
 **Protected contract:** the Text/TextBox rules in [`AGENTS.md`](../../AGENTS.md) remain unchanged
 
+**Current evidence pointer:** [`11-verification-checkpoint-2026-08-13.md`](11-verification-checkpoint-2026-08-13.md) records the latest docs-only checkpoint; it is not a release approval.
+
 ## Why this handoff exists
 
 The repository currently contains a large, uncommitted implementation wave across the designer, print pipeline, barcode contracts, data connectors, tests, installers and UI assets. The existing roadmap files also contain new, partially reconciled status blocks. This note is intentionally additive: it records what must be reconciled after the implementation owner reaches a checkpoint; it does not rewrite historical entries or infer that uncommitted code is released.
@@ -26,7 +28,7 @@ These are documentation inconsistencies visible in the current worktree. They ar
 
 | Priority | Finding | Required resolution |
 | --- | --- | --- |
-| P0 | The `MASTER_PLAN.md` banner describes barcode P0/P1/P2 as shipped at product display `v0.202`, while the historical status heading still says `2026-08-10`. | Add one current-status block after the release gate with the actual display version, build result, application-test count, xUnit count and smoke evidence. Do not delete the historical entries. |
+| P0 · evidence captured, owner commit still open | The `MASTER_PLAN.md` banner describes barcode P0/P1/P2 as shipped at product display `v0.202`, while the historical status heading still says `2026-08-10`. | Use the [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) as the source for display version, build result, 157 registered application checks, 356 xUnit checks and Markdown link audit. After a clean implementation owner commit, append the snapshot to `MASTER_PLAN.md` and `PLAN.md` without deleting history. |
 | P0 · closed 2026-08-13 (docs-only) | [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](../INDUSTRIAL_BARCODE_EXECUTION_PLAN.md), [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](../BARCODE_NICELABEL_BARTENDER_RESEARCH.md), and [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](../P1_LINEAR_GEOMETRY_NEXT_SLICE.md) had conflicting P1/P2 next/open wording. | Reconciled in one documentation checkpoint; named build, xUnit, and application gates are recorded in the execution spine and closure record. |
 | P1 | [`industrial-panel-design.md`](../industrial-panel-design.md) is labeled “v0.201”, while the product banner points at `v0.202`. | Clarify that the Figma/design-system revision is the design baseline (if that is intended), or update it after a fresh screenshot review. Do not silently equate a design revision with a release version. |
 | P1 | [`PLAN.md`](../../PLAN.md) contains later transform/data checkpoints than the current-status narrative in `MASTER_PLAN.md`. | Once the implementation wave is committed, append a single release snapshot to both files and link the detailed execution checkpoint; keep all earlier entries intact. |
@@ -121,7 +123,7 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 
 ### 4. Close documentation links after the checkpoint
 
-The owning change should run a repository-local link/path audit over Markdown links and referenced assets, then check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
+The repository-local link/path audit is recorded in the [current verification checkpoint](11-verification-checkpoint-2026-08-13.md): 57 Markdown files, 209 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff
 
