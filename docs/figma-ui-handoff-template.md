@@ -77,6 +77,8 @@ P8 owner-decision note: [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_
 
 CC-P3 owner-decision note: [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md) records local-root cardinality, Built-in/local source precedence, host/action ownership, validated file/thumbnail states, revision retention, compare/restore/dirty-edit policy and the CC-P4 workflow boundary. Complete its D1-D8 sign-off before implementation; the packet does not authorize a browser, workflow controls or a Figma write.
 
+CC-P4 owner-decision note: [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) records the candidate state graph, envelope/migration and exact-hash coverage, local actor/audit boundary, policy-on print composition, host/action ownership and deferred scheduling/roles. Complete its D1-D8 sign-off before implementation; the packet does not authorize workflow controls, a Published gate or a Figma write.
+
 P7 UI spec note: [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md) maps Figma Administration `5:41` to local activation/preferences/data-source/evidence links and a future retention preview; it keeps roles, users, sync, server licenses and unsupported categories out of the local desktop contract.
 
 P8 UI spec note: [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md) maps Figma Applications `7:88` to a deferred local file-drop trigger contract, explicit lifecycle/claim/provenance states and P5 deep-links; web apps, TCP, cloud, login and unattended printing remain out of scope.
