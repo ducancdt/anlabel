@@ -3,6 +3,7 @@
 **Status:** implementation exists; runtime click-through and design ownership are still open
 **Parent plan:** [`database-manager-module-plan.md`](database-manager-module-plan.md) (M1-M3 history)
 **Cross-surface handoff:** [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
+**UI/UX specification:** [`DATABASE_MANAGER_UI_SPEC.md`](DATABASE_MANAGER_UI_SPEC.md)
 **Figma reference:** panels file [`ANLAbel UI exploration`](https://www.figma.com/design/kqyNBI0DgRHnPzJTDBIui5), Page `0:1`
 
 ## 1. Operator task
