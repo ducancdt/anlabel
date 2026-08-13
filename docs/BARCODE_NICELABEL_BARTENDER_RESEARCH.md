@@ -182,8 +182,8 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | M4 | **Density** (BarTender) | Not a separate property; density emerges from frame + engine | **Missing** | Treat as presentation of X-dim/ratio, not a third independent control unless UI research demands it |
 | M5 | **Symbol height** independent of width (1D) | Object `HeightMm` / HRI strip reserves symbol height via `BarcodeHriLayoutContract` | **Partial** | Keep frame-owned height; document that height is frame-driven not “bar height only” unless HRI disabled |
 | M6 | **Printer-actual X preview** (NiceLabel “actual properties based on selected printer”) | **Shipped:** preflight + Properties warning + **`BarcodeEffectiveModuleReadoutText`** (mm / mil / dots @ plan DPI) from same `Resolve` path | **Have** | Optional polish of readout chrome only |
-| M7 | **Check digit include / auto / verify** | GS1 path validates GTIN check digit (`BarcodeApplicationContract`); no general Code 39 optional check-digit toggle; Code 128 check digit left to engine (mandatory in standards) | **Partial** | Per-symbology check-digit policy enum for Code 39/ITF; keep GS1 verify fail-closed |
-| M8 | **Display check digit in HRI** (NL) / **Hide check digit** in HRI (BT) | HRI text = resolved payload string; no separate “show/hide check digit in HRI” flag | **Missing** | HRI display policy flags when check-digit model exists |
+| M7 | **Check digit include / auto / verify** | GS1 path validates GTIN check digit (`BarcodeApplicationContract`); no general Code 39 optional check-digit toggle; Code 128 check digit left to engine (mandatory in standards) | **Partial** | P3 review contract proposes a Code 39-first `None`/`Auto`/`Verify` policy; keep GS1 verify fail-closed. See [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before implementation. |
+| M8 | **Display check digit in HRI** (NL) / **Hide check digit** in HRI (BT) | HRI text = resolved payload string; no separate “show/hide check digit in HRI” flag | **Missing** | P3 review contract proposes a display-only HRI policy that cannot alter encoded modules. See [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md); implementation remains open. |
 | M9 | **HRI presence** (none / above / below) | `BarcodeHriPlacement` enum (`None` / `Below` / `Above`) on shared `BarcodeHriLayoutContract`; legacy `ShowBarcodeText` maps on load | **Have** (P2 2026-08-12) | Optional horizontal offsets / UPC split later (M12) |
 | M10 | **HRI font + size** | `BarcodeTextFontSizePt`; Windows font path for graphic HRI | **Have** | Optional bold/italic later |
 | M11 | **HRI auto font scaling with barcode size** | Fixed point size unless user edits; no auto-scale with frame | **Missing** | Optional auto-scale HRI when frame resizes (must not mutate TextBox text contract) |
@@ -242,7 +242,7 @@ Research-level summary (same order):
 1. ~~**1D X-dimension mm + device-dot quantize at print DPI**~~ **done (software slice M2/M6 / P0)**.
 2. ~~**P1** — auto frame width from X×modules + effective mils readout~~ **done as an opt-in software slice** (M2/M6; legacy `FrameOwned` preserved).
 3. ~~**P2** — HRI placement enum None/Below/Above on shared `BarcodeHriLayoutContract`~~ **done as a software slice** (M9).
-4. **P3** — Check-digit policy for Code 39/ITF + HRI show/hide check digit (M7/M8).
+4. **P3** — Check-digit policy for Code 39/ITF + HRI show/hide check digit (M7/M8); review the [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before coding.
 5. **P4+** — ratio, quiet-zone mm, DM UI, GS1 growth, native path, hardware verifier — see execution plan.
 
 ---
