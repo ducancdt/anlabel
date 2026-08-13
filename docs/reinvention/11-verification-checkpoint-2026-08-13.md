@@ -29,6 +29,8 @@
 
 **Superseding docs-only Markdown audit after CC-P7 (2026-08-13):** `68` Markdown files, `406` relative links checked, and `0` broken paths. The `67`/`383` figures above are the preceding CC-P6 audit; external URLs remain outside this local-path check.
 
+**Superseding docs-only Markdown audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `422` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 audit; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -70,6 +72,8 @@ CC-P8 is documentation-only and deferred: Applications `7:88` supplies a Web App
 CC-P6 is documentation-only: Analytics `5:2` supplies chart/filter reference regions, while current local evidence remains split across per-label CSV, best-effort operation JSONL and hash-chained job state; no cross-source aggregate or Analytics UI exists. The unit/provenance/timezone/redaction matrix and software-counter boundary are recorded in [`CC_P6_ANALYTICS_UI_HANDOFF.md`](../CC_P6_ANALYTICS_UI_HANDOFF.md); no cloud telemetry, physical-output claim, implementation or Figma edit is implied.
 
 CC-P7 is documentation-only: Administration `5:41` supplies server-admin categories and sample role table, while current source supports local activation/DPAPI state, designer/printer preferences, versioned data-source registry/cleanup and local evidence files but no multi-user admin service. The thin-local-host, retention/recovery/privacy matrix is recorded in [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](../CC_P7_ADMINISTRATION_UI_HANDOFF.md); no roles, users, sync, SMTP, license-seat server, workflow admin, implementation or Figma edit is implied.
+
+The cross-surface [`CC_UI_UX_PROGRAM_INDEX.md`](../CC_UI_UX_PROGRAM_INDEX.md) is also documentation-only. It links all CC-P1 through CC-P8 handoffs, preserves the dependency order, records one action owner per slice and maps the read-only Figma nodes listed above; it does not create a runtime Control Center, change WPF behavior or edit the Figma file.
 
 ## Release gates still open
 
