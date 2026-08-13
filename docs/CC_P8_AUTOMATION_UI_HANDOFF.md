@@ -7,6 +7,7 @@
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
 **Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **UI/UX content spec:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
+**Owner decision packet:** [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md)
 
 CC-P8 remains deferred until P1/P2/P5 evidence paths and P4 document policy are stable. Any future host must call the existing preflight -> manifest -> queue spine and write History; it cannot bypass the shared navigation/owner gate or introduce a second dispatch path.
 

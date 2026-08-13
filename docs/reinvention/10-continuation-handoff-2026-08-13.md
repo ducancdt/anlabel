@@ -295,6 +295,8 @@ The documentation-only [`CC_P6_ANALYTICS_DECISION_PACKET.md`](../CC_P6_ANALYTICS
 
 The documentation-only [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](../CC_P7_ADMINISTRATION_DECISION_PACKET.md) is the following downstream owner gate. It records thin-host/action ownership, local activation/preferences/registry/cleanup boundaries, evidence and retention-preview safety, privacy/security rules and unsupported server-category treatment required before implementation. No Admin window, role/user/sync/license-seat feature, destructive retention, Figma edit or Text/TextBox change is implied.
 
+The documentation-only [`CC_P8_AUTOMATION_DECISION_PACKET.md`](../CC_P8_AUTOMATION_DECISION_PACKET.md) is the following downstream owner gate. It records the first local file-drop prerequisite, one trigger/lifecycle owner, claim/deduplication and restart semantics, configuration/provenance fields, shared preflight/manifest/queue/History spine, privacy and deferred TCP/web/security boundaries required before implementation. No trigger runner, unattended print, web app, Figma edit or Text/TextBox change is implied.
+
 **Superseding audit after the barcode UI/UX program index (2026-08-13):** `93` Markdown files, `729` relative links/assets checked, and `0` broken paths. The `92`/`713` figures above are the preceding P8 baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P3 barcode owner decision packet (2026-08-13):** `94` Markdown files, `749` relative links/assets checked, and `0` broken paths. The `93`/`729` figures above are the preceding barcode UI/UX program-index baseline; external URLs remain outside this local-path audit.
@@ -316,6 +318,8 @@ The documentation-only [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](../CC_P7_ADMI
 **Superseding audit after the CC-P6 analytics owner decision packet (2026-08-13):** `102` Markdown files, `947` relative links/assets checked, and `0` broken paths. The `101`/`923` figures above are the preceding CC-P4 approval-workflow owner-packet baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the CC-P7 administration owner decision packet (2026-08-13):** `103` Markdown files, `973` relative links/assets checked, and `0` broken paths. The `102`/`947` figures above are the preceding CC-P6 analytics owner-packet baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the CC-P8 automation owner decision packet (2026-08-13):** `104` Markdown files, `997` relative links/assets checked, and `0` broken paths. The `103`/`973` figures above are the preceding CC-P7 administration owner-packet baseline; external URLs remain outside this local-path audit.
 
 ## Definition of done for this handoff
 
