@@ -45,6 +45,8 @@ P1/P2/P5 host review note: use [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_
 
 P1/P2/P5 data note: use [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md) to keep state-store lineage, operation JSONL, per-label CSV and live queue lookup separate when mapping UI fields.
 
+P1 UI spec note: [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) is the host-neutral mapping from Figma Overview `2:2` to responsive WPF content and proposed AutomationIds; it remains open until a host and runtime evidence are selected.
+
 ## 3. Contract and behavior
 
 CC-P2 routing note: Control Center Printers metadata `2:37` is a research shell with a `220 DIP` filter rail and `1000 DIP` main pane. Route the local read-only queue slice through [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md); its Pause/Resume/Delete/Reserve/Unreserve labels are deferred command concepts, not current ANLAbel capabilities.
