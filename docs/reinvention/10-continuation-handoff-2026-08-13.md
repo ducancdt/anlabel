@@ -222,6 +222,10 @@ The new [`CC_P7_ADMINISTRATION_UI_SPEC.md`](../CC_P7_ADMINISTRATION_UI_SPEC.md) 
 
 **Superseding audit after the P7 Administration UI spec (2026-08-13):** `78` Markdown files, `555` relative links checked, and `0` broken paths. The `77`/`544` figures above are the preceding P6 UI spec baseline; external URLs remain outside this local-path audit.
 
+The new [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](../CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md) maps read-only Figma Applications `7:88` to a deferred local file-drop trigger, explicit claim/dedup/lifecycle/provenance states and P5 deep-links. It does not authorize a trigger runner, TCP/web/cloud host, automatic retry, unattended print or Figma edit.
+
+**Superseding audit after the P8 Applications/Automation UI spec (2026-08-13):** `79` Markdown files, `563` relative links checked, and `0` broken paths. The `78`/`555` figures above are the preceding P7 UI spec baseline; external URLs remain outside this local-path audit.
+
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
 ## Definition of done for this handoff
