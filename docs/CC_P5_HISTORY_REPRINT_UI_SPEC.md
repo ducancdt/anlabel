@@ -4,9 +4,12 @@
 **Host decision:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Evidence contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Handoff:** [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md)
+**Existing recovery action owner packet:** [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, History `3:85`
 
 This spec maps the Figma History shell to a local, read-only projection over durable job state, supplemental operation JSONL and per-label CSV detail. It does not create a History window, merge files at runtime, expose raw label payloads, or add a second reprint/dispatch owner.
+
+The existing WPF `PrintCenterWindow` remains the recovery/reprint action owner; its source-backed state and action gates are recorded in [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md). The future History surface must deep-link to that owner rather than copy its buttons or dispatch path.
 
 ## 1. Operator outcome
 
