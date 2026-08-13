@@ -5,9 +5,12 @@
 **Related CC-P1 handoff:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md)
 **Cross-surface handoff:** [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Current verification boundary:** [`11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, `CC / Printers — Print Management` node `2:37`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. The Figma shell is a visual and information-architecture reference only. It does not prove that ANLAbel has a multi-workstation service, licensed-printer seat accounting, printer-native controls, or physical-label verification.
+
+CC-P2 consumes the P1 host/deep-link decision and supplies the read-only queue evidence reused by P5. Keep queue discovery, canonical identity and spool observation under one owner; the program index coordinates the dependency, while this handoff remains authoritative for P2 status taxonomy and acceptance details.
 
 ## 1. Operator task
 

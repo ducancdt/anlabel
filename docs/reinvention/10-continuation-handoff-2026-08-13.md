@@ -44,6 +44,8 @@ The CC-P1 through CC-P8 handoffs are now joined by [`CC_UI_UX_PROGRAM_INDEX.md`]
 
 The same index now carries the shared host/navigation gate: current `Shell.*` regions and `PrintCenterWindow` actions are evidence owners, while MainWindow hub vs dedicated local host vs staged P1 entry point remains an owner decision. Proposed `CC.*` AutomationIds are not runtime IDs until a host is selected and target-scale UI Automation evidence is captured.
 
+The P1/P2/P5 handoffs now point directly to that index and declare their upstream ownership: P1 host/readiness, P2 canonical queue/status evidence, and P5 three-source history plus exact-manifest reprint. No new implementation or Figma edit is implied.
+
 CC-P1 also remains an open UI/UX finding: the roadmap names an Operations Overview, but the current WPF only has a recovery dialog, queue warning and separate setup/history/activation entry points. Follow [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) to choose one host surface, define local evidence/time-window semantics and attach target-scale runtime evidence before claiming the overview exists.
 
 CC-P2 is the next queue-management finding: the roadmap names a multi-queue Print Management surface, while the current WPF has printer discovery, saved-queue lookup and one-job spool observation but no fleet table or queue-command service. Follow [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md) to approve the M1 read-only host and status taxonomy before designing Pause/Resume/Delete controls.
@@ -176,7 +178,7 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 
 **Superseding audit after the CC-P7 handoff (2026-08-13):** `68` Markdown files, `406` relative links checked, and `0` broken paths. The `67`/`383` figures above are the preceding CC-P6 baseline; external URLs remain outside this local-path audit.
 
-**Superseding audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `430` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 baseline; external URLs remain outside this local-path audit.
+**Superseding audit after the CC UI/UX program index (2026-08-13):** `69` Markdown files, `436` relative links checked, and `0` broken paths. The `68`/`406` figures above are the preceding CC-P7 baseline; external URLs remain outside this local-path audit.
 
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 

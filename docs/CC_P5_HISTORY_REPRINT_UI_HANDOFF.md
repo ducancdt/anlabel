@@ -6,9 +6,12 @@
 **Related CC-P2 handoff:** [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md)
 **Cross-surface handoff:** [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Current verification boundary:** [`11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
+**Program index / host gate:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md), sections 2 and 5
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, `CC / History` node `3:85`
 
 This is a documentation handoff, not an authorization to modify the dirty implementation wave. It does not claim a shipped Control Center, physical-output verification, or permission to create a second reprint/dispatch stack.
+
+CC-P5 is the first downstream read-model/reprint gate after P1 and P2. It must reuse the selected host, queue identity and Print Center action owner; the program index coordinates that order, while this handoff remains authoritative for source precedence, provenance, detail and exact-manifest acceptance.
 
 ## 1. Operator task
 
