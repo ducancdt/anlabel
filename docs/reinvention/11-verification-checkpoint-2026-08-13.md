@@ -37,6 +37,8 @@
 
 **Superseding docs-only Markdown audit after the P1/P2/P5 read-model contract (2026-08-13):** `71` Markdown files, `484` relative links checked, and `0` broken paths. The `70`/`472` figures above are the preceding Figma escalation protocol audit; external URLs remain outside this local-path check.
 
+**Superseding docs-only Markdown audit after the P1 Operations Overview UI spec (2026-08-13):** `72` Markdown files, `494` relative links checked, and `0` broken paths. The `71`/`484` figures above are the preceding read-model contract audit; external URLs remain outside this local-path check.
+
 ### Named barcode gates rechecked
 
 The application runner passed the gates that close the current barcode software slices:
@@ -88,6 +90,8 @@ The P1/P2/P5 handoffs now link back to this program boundary and state their dep
 The documentation-only [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PACKET.md) consolidates the open host choice and Figma evidence boundary; no host, WPF navigation or Figma frame has been selected or edited.
 
 The documentation-only [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](../CC_P1_P2_P5_READ_MODEL_CONTRACT.md) records current source authority and merge rules; it does not claim a runtime projection, UI, print result or physical verification.
+
+The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.
 

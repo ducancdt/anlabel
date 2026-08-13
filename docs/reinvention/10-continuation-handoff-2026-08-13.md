@@ -50,6 +50,8 @@ The new [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PAC
 
 The new [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](../CC_P1_P2_P5_READ_MODEL_CONTRACT.md) defines source authority, joins, timestamp basis, conflict handling and surface-specific projections for P1/P2/P5. It is a review contract only; no read-model class or UI is implemented.
 
+The new [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) maps the read-model fields to Figma Overview `2:2`, a responsive host-neutral wireframe, proposed `CC.P1.*` AutomationIds and state gates. It does not select a host or authorize code/Figma edits.
+
 The handoff template now carries a Figma escalation protocol: identify a missing state first, inspect metadata read-only, map it to a WPF owner, and close with runtime evidence. No new Figma file or frame is required by the current P1/P2/P5 packet.
 
 The downstream P3/P4/P6/P7/P8 handoffs now point to the same program index and name their bounded owners: revision access, document policy, read-only aggregation, local administration links and deferred automation. These remain documentation-only dependencies; no downstream UI or Figma edit is authorized.
@@ -193,6 +195,8 @@ Only invoke a Figma inspection/edit when a specific UI slice is selected and the
 **Superseding audit after the Figma escalation protocol (2026-08-13):** `70` Markdown files, `472` relative links checked, and `0` broken paths. The `70`/`470` figures above are the preceding host decision packet baseline; external URLs remain outside this local-path audit.
 
 **Superseding audit after the P1/P2/P5 read-model contract (2026-08-13):** `71` Markdown files, `484` relative links checked, and `0` broken paths. The `70`/`472` figures above are the preceding Figma escalation protocol baseline; external URLs remain outside this local-path audit.
+
+**Superseding audit after the P1 Operations Overview UI spec (2026-08-13):** `72` Markdown files, `494` relative links checked, and `0` broken paths. The `71`/`484` figures above are the preceding read-model contract baseline; external URLs remain outside this local-path audit.
 
 The [current verification checkpoint](11-verification-checkpoint-2026-08-13.md) records the earlier audit at 57 Markdown files and 209 relative links. The latest docs-only audit after the P3/R4 handoffs and Database Manager UI handoff is 60 Markdown files, 252 relative links, and 0 broken paths. After the implementation owner reaches a clean checkpoint, rerun it and check that every newly named test or version appears in the file that owns that claim. Broken links, stale test counts and contradictory “next” labels remain open findings, not cosmetic cleanup.
 
