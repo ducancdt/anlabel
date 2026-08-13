@@ -243,6 +243,10 @@ The documentation-only [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](../CC_P5_
 
 **Superseding docs-only Markdown audit after the CC-P5 History/reprint owner packet (2026-08-13):** `114` Markdown files, `1328` relative links/assets checked, and `0` broken paths. The `113`/`1285` figures above are the preceding CC-P1 Operations Overview owner-packet baseline; external URLs remain outside this local-path check.
 
+The next downstream CC gate after P5 is the existing documentation-only [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](../CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md). It owns configured-root/Built-in browse, validated file identity, one revision/restore path and the P3-to-P4 workflow boundary; Figma Documents `3:2` remains read-only and no document browser or workflow implementation is implied.
+
+**Superseding docs-only Markdown audit after the P5-to-P3 downstream routing update (2026-08-13):** `114` Markdown files, `1340` relative links/assets checked, and `0` broken paths. The `114`/`1328` figures above are the preceding P5 History/reprint owner-packet baseline; external URLs remain outside this local-path check.
+
 The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.
