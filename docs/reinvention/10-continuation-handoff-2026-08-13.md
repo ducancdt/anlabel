@@ -365,6 +365,10 @@ The next downstream CC gate after P5 is the existing documentation-only [`CC_P3_
 
 **Superseding docs-only Markdown audit after the P5-to-P3 downstream routing update (2026-08-13):** `114` Markdown files, `1340` relative links/assets checked, and `0` broken paths. The `114`/`1328` figures above are the preceding P5 History/reprint owner-packet baseline; external URLs remain outside this local-path check.
 
+The next policy gate after P3 is the existing documentation-only [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](../CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md). It composes candidate document state/audit and policy-on print behavior over the validated P3 revision/hash, keeps P5 reprint approval separate, and routes Figma Workflow `7:2` read-only; no workflow store, Published gate or Figma edit is implied.
+
+**Superseding docs-only Markdown audit after the P3-to-P4 workflow routing update (2026-08-13):** `114` Markdown files, `1352` relative links/assets checked, and `0` broken paths. The `114`/`1340` figures above are the preceding P5-to-P3 routing baseline; external URLs remain outside this local-path check.
+
 ## Definition of done for this handoff
 
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.

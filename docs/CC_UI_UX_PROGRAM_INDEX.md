@@ -86,6 +86,8 @@ The concrete History/read-model owner boundary is bounded by [`CC_P5_HISTORY_REP
 
 The next downstream gate after P5 is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it owns local-root/Built-in document identity, validated open/preview, one revision/restore path and the boundary before CC-P4 workflow policy. P3 reuses Figma Documents `3:2` read-only and does not authorize a browser or Figma write.
 
+CC-P4 is the next policy gate after P3: [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) composes a future document-state/audit policy over the validated revision/hash and existing preflight/dispatch owners. It must remain separate from P5 `ReprintApproved`, and Figma Workflow `7:2` remains vocabulary/density reference only.
+
 The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md); it maps Figma Documents `3:2` to local-root/built-in browse, validated file metadata, revision inspection and guarded restore without authorizing workflow, check-out or ACL controls.
 
 The P3 owner gate is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it records root cardinality, Built-in/local source precedence, host/action ownership, validation/thumbnail behavior, revision retention, compare/restore/dirty-edit policy, CC-P4 boundary and runtime/Figma evidence. It is documentation-only and does not authorize a document browser.
