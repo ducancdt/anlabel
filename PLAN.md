@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## 2D industrial parity (QR & Data Matrix) (0.260)
+
+- Polished 2D barcode authoring terminology in Properties panel (`2D Mode`, `ECC level`, `Symbol version`, `Module size (px)`).
+- Unified 2D matrix module sizing and preflight checks across QR Code and DataMatrix (`IsSquare2DCodeLike`).
+- Sub-2-dot fixed modules at print DPI fail closed with actionable diagnostics.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## Code 39 wide:narrow ratio & physical quiet zone (0.259)
 
 - Added Code 39 wide:narrow ratio selection (`Code39WideNarrowRatio`, `Code39RatioContract`) supporting `2.0:1`, `2.2:1`, `2.5:1`, `3.0:1`.
