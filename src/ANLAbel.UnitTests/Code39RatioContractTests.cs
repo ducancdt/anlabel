@@ -120,4 +120,23 @@ public sealed class Code39RatioContractTests
         Assert.NotNull(ratio);
         Assert.False(legacy!.RowBits.SequenceEqual(ratio!.RowBits));
     }
+
+    [Fact]
+    public void ClonerAndSnapshotPreserveCode39WideNarrowRatio()
+    {
+        var original = new Core.Models.LabelObject
+        {
+            Type = ObjectType.BarcodeCode128,
+            BarcodeSymbology = BarcodeSymbology.Code39,
+            Code39WideNarrowRatio = Code39WideNarrowRatio.Ratio2_5,
+            BarcodeModuleWidthMm = 0.33,
+            QrQuietZoneModules = 10
+        };
+
+        var clone = Core.Models.LabelObjectCloner.Clone(original);
+        Assert.Equal(Code39WideNarrowRatio.Ratio2_5, clone.Code39WideNarrowRatio);
+
+        var snapshot = Core.Scene.SceneObjectSnapshot.Capture(original);
+        Assert.Equal(Code39WideNarrowRatio.Ratio2_5, snapshot.Code39WideNarrowRatio);
+    }
 }

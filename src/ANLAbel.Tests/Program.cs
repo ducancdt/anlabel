@@ -143,6 +143,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preflight accepts comfortable linear X-dim", TestPreflightAcceptsComfortableLinearXDim),
     ("legacy linear preflight uses logical modules not pixel columns", TestLegacyLinearPreflightUsesLogicalModules),
     ("linear barcode width follows quantized X-dim when SizedFromX", TestLinearBarcodeWidthFollowsQuantizedXDim),
+    ("code 39 wide narrow ratio and physical quiet zone preflight", TestCode39RatioAndQuietZonePreflight),
     ("compiled scene print uses SizedFromX production width", TestCompiledScenePrintUsesSizedFromXWidth),
     ("legacy frame-owned width not auto-sized when X is zero", TestLegacyFrameOwnedWidthNotAutoSized),
     ("print preflight blocks missing bound field", TestPrintPreflightBlocksMissingField),
@@ -7864,6 +7865,88 @@ static Task TestLinearBarcodeWidthFollowsQuantizedXDim()
     // Print path uses the same helper (parity with designer).
     var again = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, renderer, dpi, payload);
     AssertEqual(true, Math.Abs(again - production) <= 1e-6, "Designer/print production width must share one formula");
+
+    return Task.CompletedTask;
+}
+
+static Task TestCode39RatioAndQuietZonePreflight()
+{
+    var validator = new PrintPreflightValidator(new ZxingBarcodeRenderer());
+
+    // 1. Illegal ratio 2.0:1 on sub-0.508 mm module
+    var templateIllegalRatio = new LabelTemplate
+    {
+        WidthMm = 100,
+        HeightMm = 50,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Barcode1",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code39,
+                Text = "CODE39",
+                BarcodeModuleWidthMm = 0.33,
+                Code39WideNarrowRatio = Code39WideNarrowRatio.Ratio2_0,
+                QrQuietZoneModules = 10,
+                WidthMm = 60,
+                HeightMm = 20
+            }
+        ]
+    };
+    var resultIllegal = validator.Validate(templateIllegalRatio, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, resultIllegal.Issues.Any(i => i.Message.Contains("Code 39 wide:narrow ratio 2.0:1 requires")), "Ratio 2.0:1 with X < 0.508 mm must fail closed in preflight");
+
+    // 2. Sub-standard quiet zone (< max(10X, 2.54 mm))
+    var templateSubQz = new LabelTemplate
+    {
+        WidthMm = 100,
+        HeightMm = 50,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Barcode1",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code39,
+                Text = "CODE39",
+                BarcodeModuleWidthMm = 0.33,
+                Code39WideNarrowRatio = Code39WideNarrowRatio.Ratio2_5,
+                QrQuietZoneModules = 2,
+                WidthMm = 60,
+                HeightMm = 20
+            }
+        ]
+    };
+    var resultSubQz = validator.Validate(templateSubQz, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, resultSubQz.Issues.Any(i => i.Message.Contains("Code 39 quiet zone is")), "Quiet zone below standard minimum must fail closed in preflight");
+
+    // 3. Legal ratio and compliant quiet zone
+    var templateLegal = new LabelTemplate
+    {
+        WidthMm = 100,
+        HeightMm = 50,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Barcode1",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code39,
+                Text = "CODE39",
+                BarcodeModuleWidthMm = 0.33,
+                Code39WideNarrowRatio = Code39WideNarrowRatio.Ratio2_5,
+                QrQuietZoneModules = 10,
+                WidthMm = 60,
+                HeightMm = 20
+            }
+        ]
+    };
+    var resultLegal = validator.Validate(templateLegal, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(0, resultLegal.Issues.Count, "Legal Code 39 ratio and quiet zone must pass preflight");
 
     return Task.CompletedTask;
 }

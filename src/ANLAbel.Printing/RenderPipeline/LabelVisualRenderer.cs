@@ -642,7 +642,8 @@ public sealed class LabelVisualRenderer
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
             QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
+            Code39WideNarrowRatio = item.Code39WideNarrowRatio
         };
     }
 

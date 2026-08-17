@@ -7,10 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <NuGetAudit>false</NuGetAudit>
-    <Version>0.258</Version>
-    <AssemblyVersion>0.258.0.0</AssemblyVersion>
-    <FileVersion>0.258.0.0</FileVersion>
-    <InformationalVersion>0.258</InformationalVersion>
+    <Version>0.259</Version>
+    <AssemblyVersion>0.259.0.0</AssemblyVersion>
+    <FileVersion>0.259.0.0</FileVersion>
+    <InformationalVersion>0.259</InformationalVersion>
     <ApplicationIcon>anlabel.ico</ApplicationIcon>
     <PublishSingleFile>false</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -23,7 +23,7 @@
 
   <PropertyGroup Condition="'$(TrialBuild)' == 'true'">
     <DefineConstants>$(DefineConstants);TRIAL_BUILD</DefineConstants>
-    <InformationalVersion>0.258-trial.7d</InformationalVersion>
+    <InformationalVersion>0.259-trial.7d</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
