@@ -144,6 +144,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("legacy linear preflight uses logical modules not pixel columns", TestLegacyLinearPreflightUsesLogicalModules),
     ("linear barcode width follows quantized X-dim when SizedFromX", TestLinearBarcodeWidthFollowsQuantizedXDim),
     ("code 39 wide narrow ratio and physical quiet zone preflight", TestCode39RatioAndQuietZonePreflight),
+    ("print method configuration and preflight fails closed for unconfigured native", TestPrintMethodConfigurationAndPreflight),
     ("compiled scene print uses SizedFromX production width", TestCompiledScenePrintUsesSizedFromXWidth),
     ("legacy frame-owned width not auto-sized when X is zero", TestLegacyFrameOwnedWidthNotAutoSized),
     ("print preflight blocks missing bound field", TestPrintPreflightBlocksMissingField),
@@ -7947,6 +7948,46 @@ static Task TestCode39RatioAndQuietZonePreflight()
     };
     var resultLegal = validator.Validate(templateLegal, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
     AssertEqual(0, resultLegal.Issues.Count, "Legal Code 39 ratio and quiet zone must pass preflight");
+
+    return Task.CompletedTask;
+}
+
+static Task TestPrintMethodConfigurationAndPreflight()
+{
+    var validator = new PrintPreflightValidator(new ZxingBarcodeRenderer());
+
+    // 1. Default template uses ApplicationGraphic and passes preflight cleanly
+    var templateDefault = new LabelTemplate
+    {
+        WidthMm = 100,
+        HeightMm = 50,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Code1",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                Text = "TEST-123",
+                WidthMm = 60,
+                HeightMm = 20
+            }
+        ]
+    };
+    AssertEqual(PrintMethod.ApplicationGraphic, templateDefault.PrinterProfile.PrintMethod, "Default print method must be ApplicationGraphic");
+    var resultDefault = validator.Validate(templateDefault, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(0, resultDefault.Issues.Count, "ApplicationGraphic default must pass preflight");
+
+    // 2. PrinterNative without active hardware driver must fail closed with explicit message
+    templateDefault.PrinterProfile.PrintMethod = PrintMethod.PrinterNative;
+    templateDefault.PrinterProfile.PrinterName = "Zebra ZD420";
+    var resultNative = validator.Validate(templateDefault, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, resultNative.Issues.Any(i => i.Message.Contains("Print method is set to PrinterNative")), "PrinterNative without active direct command driver must fail closed in preflight");
+
+    // 3. Manifest records PrintMethod
+    var manifest = PrintJobManifest.Create("Test", "test.anlabel", "Print Preview", "Zebra ZD420", 100, 50, 300, 300, 1, 0, null, printMethod: "ApplicationGraphic");
+    AssertEqual("ApplicationGraphic", manifest.PrintMethod, "Manifest must record PrintMethod");
 
     return Task.CompletedTask;
 }

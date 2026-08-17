@@ -4750,6 +4750,8 @@ public sealed class MainViewModel : ObservableObject
             DpiX = result?.DpiX > 0 ? result.DpiX : Template.PrinterProfile.Dpi,
             DpiY = result?.DpiY > 0 ? result.DpiY : Template.PrinterProfile.Dpi,
             PrintMode = printMode,
+            PrintMethod = Template.PrinterProfile.PrintMethod.ToString(),
+            NativeCommandsUsed = Template.PrinterProfile.PrintMethod == PrintMethod.PrinterNative,
             Outcome = result?.Outcome.ToString() ?? (success ? PrintJobOutcome.SpoolAccepted.ToString() : PrintJobOutcome.Failed.ToString()),
             OutcomeEvidence = result?.IsPhysicalCompletionVerified == true
                 ? "device-confirmed"

@@ -21,6 +21,8 @@ public sealed class PrintOperationLogEntry
     public int DpiX { get; init; }
     public int DpiY { get; init; }
     public string PrintMode { get; init; } = string.Empty;
+    public string PrintMethod { get; init; } = "ApplicationGraphic";
+    public bool NativeCommandsUsed { get; init; }
     public string Outcome { get; init; } = string.Empty;
     public string OutcomeEvidence { get; init; } = string.Empty;
     public int? SpoolJobId { get; init; }

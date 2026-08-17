@@ -43,6 +43,7 @@ public sealed class PrintPreflightValidator
         var completedUnits = 0;
         var reportStride = Math.Max(1, totalUnits / 100);
         progress?.Report(new PrintPreflightProgress(0, totalUnits));
+        ValidatePrintMethod(template, issues);
 
         foreach (var item in visibleItems)
         {
@@ -732,6 +733,21 @@ public sealed class PrintPreflightValidator
                     item.Type.ToString(),
                     $"Code 39 quiet zone is {observedQzMm:0.##} mm per side ({item.QrQuietZoneModules} modules), which is below the required standard minimum of {requiredQzMm:0.##} mm (at least max(10X, 2.54 mm)). Increase quiet zone modules to at least {Math.Ceiling(requiredQzMm / effectiveX)}."));
             }
+        }
+    }
+
+    private static void ValidatePrintMethod(LabelTemplate template, List<PrintPreflightIssue> issues)
+    {
+        if (template.PrinterProfile.PrintMethod == PrintMethod.PrinterNative)
+        {
+            var printerName = string.IsNullOrWhiteSpace(template.PrinterProfile.PrinterName)
+                ? "(none)"
+                : template.PrinterProfile.PrinterName;
+            issues.Add(new PrintPreflightIssue(
+                0,
+                "Template",
+                "PrinterProfile",
+                $"Print method is set to PrinterNative, but a verified thermal direct-command driver is not configured for printer '{printerName}'. Switch PrintMethod to ApplicationGraphic for exact designer rendering."));
         }
     }
 

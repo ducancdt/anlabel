@@ -133,6 +133,11 @@ public partial class PrintPreviewWindow : Window
 
     public string PreviewTitle => $"Print Preview - {_template.Name}";
     public LabelTemplate LabelTemplate => _template;
+    public IReadOnlyList<PrintMethodOption> PrintMethodOptions { get; } = new[]
+    {
+        new PrintMethodOption(PrintMethod.ApplicationGraphic, "Application graphic (Designer parity)"),
+        new PrintMethodOption(PrintMethod.PrinterNative, "Printer native (Thermal commands)")
+    };
     public List<PrintPreviewPageViewModel> Pages { get; } = new();
     public PrintPreviewPageViewModel? CurrentPage => Pages.Count == 0 ? null : Pages[Math.Max(0, Math.Min(Pages.Count - 1, _currentPageIndex))];
     public string PrinterName => string.IsNullOrWhiteSpace(_selectedPrinterName) ? "(no printer selected)" : _selectedPrinterName;
@@ -665,6 +670,8 @@ public partial class PrintPreviewWindow : Window
             DpiX = result.DpiX > 0 ? result.DpiX : _template.PrinterProfile.Dpi,
             DpiY = result.DpiY > 0 ? result.DpiY : _template.PrinterProfile.Dpi,
             PrintMode = "Print Preview",
+            PrintMethod = _template.PrinterProfile.PrintMethod.ToString(),
+            NativeCommandsUsed = _template.PrinterProfile.PrintMethod == PrintMethod.PrinterNative,
             Outcome = result.Outcome.ToString(),
             OutcomeEvidence = result.IsPhysicalCompletionVerified
                 ? "device-confirmed"
@@ -1576,3 +1583,5 @@ public class BoolToCheckmarkConverter : IValueConverter
         throw new NotSupportedException();
     }
 }
+
+public sealed record PrintMethodOption(PrintMethod Value, string DisplayName);
