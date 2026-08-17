@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## High-contrast non-inverted icon color palette & optical alignment (0.265)
+
+- Re-rendered all 40 icons with solid, high-contrast foreground ink and vibrant semantic accents, completely eliminating inverted/washed-out light-blue strokes on light button backgrounds.
+- Calibrated optical centering and bounding box geometry ($48\times 48\text{ px}$ canvas with uniform $40\times 40\text{ px}$ optical target and $2.0-2.6\text{ px}$ stroke weights).
+- Added `RenderOptions.BitmapScalingMode="HighQuality"`, `SnapsToDevicePixels="True"`, and `UseLayoutRounding="True"` to all button and header icon containers.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## App-wide modern vector icons & distinct semantic color coding (0.264)
 
 - Redesigned and generated all 40 application vector icons with high-DPI anti-aliased geometry, distinct color coding, and semantic clarity.
