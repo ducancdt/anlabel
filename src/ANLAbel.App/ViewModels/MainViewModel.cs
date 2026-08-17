@@ -302,6 +302,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
                 OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
                 OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
+                OnPropertyChanged(nameof(BarcodePhysicalQuietZoneText));
                 OnPropertyChanged(nameof(SelectedObjectSizeFromX));
                 TryApplySizedFromXWidth(SelectedObject);
             }
@@ -340,6 +341,7 @@ public sealed class MainViewModel : ObservableObject
             TryApplySizedFromXWidth(item);
             OnPropertyChanged(nameof(SelectedObjectSizeFromX));
             OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
+            OnPropertyChanged(nameof(BarcodePhysicalQuietZoneText));
             OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
         }
     }
@@ -477,6 +479,14 @@ public sealed class MainViewModel : ObservableObject
         BarcodeCheckDigitPolicy.None,
         BarcodeCheckDigitPolicy.Auto,
         BarcodeCheckDigitPolicy.Verify
+    ];
+    public IReadOnlyList<Code39WideNarrowRatio> Code39WideNarrowRatioOptions { get; } =
+    [
+        Code39WideNarrowRatio.LegacyEngineDefault,
+        Code39WideNarrowRatio.Ratio2_0,
+        Code39WideNarrowRatio.Ratio2_2,
+        Code39WideNarrowRatio.Ratio2_5,
+        Code39WideNarrowRatio.Ratio3_0
     ];
     public IReadOnlyList<ImageRasterMode> ImageRasterModes { get; } = Enum.GetValues<ImageRasterMode>();
     public IReadOnlyList<TextAlignmentMode> TextAlignments { get; } = Enum.GetValues<TextAlignmentMode>();
@@ -631,6 +641,46 @@ public sealed class MainViewModel : ObservableObject
 
                 var mils = resolution.EffectiveModuleWidthMm / LinearBarcodeModuleContract.MillimetersPerInch * 1000.0;
                 return $"Effective X: {resolution.EffectiveModuleWidthMm:0.###} mm ({mils:0.#} mil) · {resolution.ModuleDots} dot(s) @ {resolution.Dpi} DPI";
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+    }
+
+    /// <summary>
+    /// P4.c: Physical quiet zone per side (mm) at current print DPI.
+    /// </summary>
+    public string BarcodePhysicalQuietZoneText
+    {
+        get
+        {
+            if (SelectedObject is not { } item
+                || item.Type != ObjectType.BarcodeCode128
+                || IsSquare2DCodeLike(item))
+            {
+                return string.Empty;
+            }
+
+            var printDpi = Template.PrinterProfile.Dpi > 0
+                ? Template.PrinterProfile.Dpi
+                : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
+            if (printDpi <= 0)
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                if (item.BarcodeModuleWidthMm > 0)
+                {
+                    var resolution = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, printDpi);
+                    var observedQzMm = Code39RatioContract.ObservedQuietZoneMmPerSide(item.QrQuietZoneModules, resolution);
+                    return $"{observedQzMm:0.##} mm ({item.QrQuietZoneModules} modules)";
+                }
+
+                return $"{item.QrQuietZoneModules} modules (legacy frame estimate)";
             }
             catch
             {
@@ -3531,6 +3581,7 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.QrDpi)
                 or nameof(LabelObject.BarcodeModuleWidthMm)
                 or nameof(LabelObject.BarcodeWidthMode)
+                or nameof(LabelObject.Code39WideNarrowRatio)
                 or nameof(LabelObject.WidthMm)
                 or nameof(LabelObject.Text)
                 or nameof(LabelObject.QrQuietZoneModules)
@@ -3543,6 +3594,7 @@ public sealed class MainViewModel : ObservableObject
 
                 OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
                 OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
+                OnPropertyChanged(nameof(BarcodePhysicalQuietZoneText));
                 OnPropertyChanged(nameof(SelectedObjectSizeFromX));
             }
         }

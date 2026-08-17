@@ -53,6 +53,7 @@ public sealed class PrintPreflightValidator
             ValidateBarcodeModuleSizeAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
             ValidateLinearBarcodeModuleAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
             ValidateBarcodeApplicationGeometry(item, issues);
+            ValidateCode39RatioAndQuietZone(item, printDpi, printDpiY ?? printDpi, issues);
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -684,8 +685,54 @@ public sealed class PrintPreflightValidator
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
             QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
+            Code39WideNarrowRatio = item.Code39WideNarrowRatio
         };
+    }
+
+    private static void ValidateCode39RatioAndQuietZone(
+        LabelObject item,
+        int? printDpiX,
+        int? printDpiY,
+        List<PrintPreflightIssue> issues)
+    {
+        if (item.Type is not ObjectType.BarcodeCode128 || item.BarcodeSymbology != BarcodeSymbology.Code39)
+        {
+            return;
+        }
+
+        var dpi = printDpiX.HasValue && printDpiX.Value > 0 ? printDpiX.Value : 300;
+        var effectiveX = item.BarcodeModuleWidthMm > 0
+            ? LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, dpi).EffectiveModuleWidthMm
+            : 0;
+
+        if (item.Code39WideNarrowRatio != Code39WideNarrowRatio.LegacyEngineDefault)
+        {
+            if (effectiveX > 0 && !Code39RatioContract.IsLegal(item.Code39WideNarrowRatio, effectiveX))
+            {
+                issues.Add(new PrintPreflightIssue(
+                    0,
+                    item.Name,
+                    item.Type.ToString(),
+                    $"Code 39 wide:narrow ratio 2.0:1 requires an effective X-dimension of at least {Code39RatioContract.Ratio2MinimumXmm:0.###} mm (current effective X is {effectiveX:0.###} mm at {dpi} DPI). Choose a ratio of 2.2:1 or higher, or increase the module width."));
+            }
+        }
+
+        if (effectiveX > 0)
+        {
+            var requiredQzMm = Code39RatioContract.RequiredQuietZoneMmPerSide(effectiveX);
+            var observedQzMm = Code39RatioContract.ObservedQuietZoneMmPerSide(
+                item.QrQuietZoneModules,
+                LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, dpi));
+            if (observedQzMm + 1e-6 < requiredQzMm)
+            {
+                issues.Add(new PrintPreflightIssue(
+                    0,
+                    item.Name,
+                    item.Type.ToString(),
+                    $"Code 39 quiet zone is {observedQzMm:0.##} mm per side ({item.QrQuietZoneModules} modules), which is below the required standard minimum of {requiredQzMm:0.##} mm (at least max(10X, 2.54 mm)). Increase quiet zone modules to at least {Math.Ceiling(requiredQzMm / effectiveX)}."));
+            }
+        }
     }
 
     private static void ValidateBarcodeApplicationGeometry(LabelObject item, List<PrintPreflightIssue> issues)

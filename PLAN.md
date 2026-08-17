@@ -1,5 +1,14 @@
 # ANLAbel Phase 1 Plan
 
+## Code 39 wide:narrow ratio & physical quiet zone (0.259)
+
+- Added Code 39 wide:narrow ratio selection (`Code39WideNarrowRatio`, `Code39RatioContract`) supporting `2.0:1`, `2.2:1`, `2.5:1`, `3.0:1`.
+- SizedFromX / render pipeline reweights Code 39 wide and narrow runs with exact ratio mathematics.
+- Preflight validation enforces USS-39 / ISO 16388 rules (Ratio 2.0:1 requires effective X >= 0.508 mm).
+- Added physical quiet zone readout (mm) at real print-plan DPI with fail-closed preflight against standard minimums (`max(10X, 2.54 mm)` per side).
+- Updated Barcode Properties panel in MainWindow with Code 39 ratio selector and physical quiet zone readout.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## GitHub release auto-update (0.258)
 
 - Added GitHub Releases auto-update checker and downloader (`AppUpdateService`, `GitHubReleaseParser`, `UpdateWindow`).

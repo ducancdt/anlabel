@@ -309,7 +309,7 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 ---
 
-### P4 — Ratio, density presentation, physical quiet zone — `[ ]`
+### P4 — Ratio, density presentation, physical quiet zone — `[x]` DONE (2026-08-17)
 
 **Outcome:** Linear codes that support wide/narrow ratio expose it safely; quiet zones are reportable as **physical mm** at current X (not only module counts).
 

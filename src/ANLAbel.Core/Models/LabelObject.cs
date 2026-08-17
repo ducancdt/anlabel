@@ -447,6 +447,24 @@ public sealed class LabelObject : ObservableObject
         }
     }
 
+    private Code39WideNarrowRatio _code39WideNarrowRatio = Code39WideNarrowRatio.LegacyEngineDefault;
+
+    /// <summary>
+    /// Authored wide:narrow ratio for Code 39. Default <see cref="Code39WideNarrowRatio.LegacyEngineDefault"/>
+    /// preserves historical ZXing behavior.
+    /// </summary>
+    public Code39WideNarrowRatio Code39WideNarrowRatio
+    {
+        get => _code39WideNarrowRatio;
+        set
+        {
+            var next = Enum.IsDefined(typeof(Code39WideNarrowRatio), value)
+                ? value
+                : Code39WideNarrowRatio.LegacyEngineDefault;
+            SetProperty(ref _code39WideNarrowRatio, next);
+        }
+    }
+
     /// <summary>
     /// Linear barcode horizontal sizing policy. Default <see cref="BarcodeWidthMode.FrameOwned"/>
     /// preserves legacy templates. <see cref="BarcodeWidthMode.SizedFromX"/> sets production

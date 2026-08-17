@@ -6,7 +6,7 @@
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:converters="clr-namespace:ANLAbel.App.Converters"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.258"
+        Title="ANLAbel - Label Designer v0.259"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="720" Width="1280"
         MinHeight="600" MinWidth="1024"
@@ -438,7 +438,7 @@
                         <TextBlock Text="Industrial label workspace" FontSize="10" Foreground="#B9CAE7"/>
                     </StackPanel>
                     <Border Margin="14,0,0,0" Padding="8,3" Background="#1E4D8F" BorderBrush="#5B8DD4" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock x:Name="BuildChannelText" Text="GPL-3.0 · v0.258" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                        <TextBlock x:Name="BuildChannelText" Text="GPL-3.0 · v0.259" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF"/>
                     </Border>
                     <Border Width="1" Height="28" Background="#31598F" Margin="12,0,8,0"/>
                     <Button Style="{StaticResource QuickAccessButton}" Click="New_Click" ToolTip="New label (Ctrl+N)" AutomationProperties.Name="New label" AutomationProperties.AutomationId="Shell.QuickAccess.New">
@@ -2097,6 +2097,22 @@
                                                           IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"
                                                           ToolTip="When unchecked, a validated trailing check digit is hidden in human-readable text only. The encoded symbol always uses the full payload."
                                                           Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Code 39 ratio" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding Code39WideNarrowRatioOptions}"
+                                                          SelectedItem="{Binding SelectedObject.Code39WideNarrowRatio, Mode=TwoWay}"
+                                                          ToolTip="Code 39 wide:narrow ratio. Default preserves legacy engine pattern. 2.0:1 is allowed when effective X &gt;= 0.508 mm (USS-39 / ISO 16388)."
+                                                          Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Quiet zone (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="{Binding BarcodePhysicalQuietZoneText}"
+                                                           Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,3,0,0"
+                                                           ToolTip="Physical quiet zone per side at print DPI: modules × effective X mm. Code 39 requires at least max(10X, 2.54 mm)."/>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">

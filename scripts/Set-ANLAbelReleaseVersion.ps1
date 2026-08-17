@@ -13,7 +13,7 @@ function Replace-Required([string]$relativePath, [string]$pattern, [string]$repl
     if (-not (Test-Path $path)) { return }
     $text = [IO.File]::ReadAllText($path)
     if (-not [regex]::IsMatch($text, $pattern)) {
-        if ($text.Contains($replacement, [StringComparison]::Ordinal)) { return }
+        if ($text.IndexOf($replacement, [StringComparison]::Ordinal) -ge 0) { return }
         throw "Expected version projection was not found: $relativePath"
     }
     $updated = [regex]::Replace($text, $pattern, $replacement)
