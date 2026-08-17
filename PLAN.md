@@ -1,5 +1,11 @@
 # ANLAbel Phase 1 Plan
 
+## GS1 AI registry growth & logistics standards (0.261)
+
+- Extended `Gs1AiRegistry` with standard supply-chain / logistics AIs: variants (20, 22), secondary serial/source (250, 251), monetary amounts & prices (390x, 391x, 392x, 393x), country codes & subdivisions (423, 427), NATO stock (7001), meat cuts (7002), potency (7004), asset & service IDs (8003 GRAI, 8004 GIAI, 8006 ITIP, 8018/8019 GSRN).
+- Fail-closed preflight validation for all newly added AI structures, lengths, and check digits.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## 2D industrial parity (QR & Data Matrix) (0.260)
 
 - Polished 2D barcode authoring terminology in Properties panel (`2D Mode`, `ECC level`, `Symbol version`, `Module size (px)`).

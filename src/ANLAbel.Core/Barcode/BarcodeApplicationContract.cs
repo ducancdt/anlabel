@@ -243,14 +243,24 @@ public static class BarcodeApplicationContract
             return;
         }
 
-        if (ai == "21")
+        if (ai == "20")
+        {
+            if (value.Length != 2 || !value.All(char.IsDigit))
+            {
+                errors.Add("GS1 AI 20 (product variant) requires exactly 2 numeric digits.");
+            }
+
+            return;
+        }
+
+        if (ai is "21" or "22")
         {
             if (value.Length <= 20 && !value.Any(char.IsControl))
             {
                 return;
             }
 
-            errors.Add("GS1 AI 21 (serial) must contain 1–20 printable characters.");
+            errors.Add($"GS1 AI {ai} must contain 1–20 printable characters.");
             return;
         }
 
@@ -266,7 +276,7 @@ public static class BarcodeApplicationContract
 
         // Additional industrial AIs used on manufacturing/warehouse labels.
         // This is an explicit ANLAbel production subset, not a full GS1 registry.
-        if (ai is "240" or "241")
+        if (ai is "240" or "241" or "250" or "251")
         {
             if (value.Length > 30 || value.Any(char.IsControl))
             {
@@ -324,11 +334,21 @@ public static class BarcodeApplicationContract
         // Country-of-origin/process fields are fixed numeric element strings,
         // but they are not in GS1's pre-defined-length table. The registry
         // therefore emits a separator when another element string follows.
-        if (ai is "422" or "424" or "426")
+        if (ai is "422" or "423" or "424" or "426")
         {
             if (value.Length != 3 || !value.All(char.IsDigit))
             {
                 errors.Add($"GS1 AI {ai} requires exactly 3 numeric country-code digits.");
+            }
+
+            return;
+        }
+
+        if (ai == "427")
+        {
+            if (value.Length is < 1 or > 3 || value.Any(char.IsControl))
+            {
+                errors.Add("GS1 AI 427 (country subdivision) must contain 1–3 printable characters.");
             }
 
             return;
@@ -363,6 +383,61 @@ public static class BarcodeApplicationContract
             return;
         }
 
+        // Monetary amounts and prices (390x, 391x, 392x, 393x)
+        if (ai.Length == 4
+            && (ai.StartsWith("390", StringComparison.Ordinal) || ai.StartsWith("392", StringComparison.Ordinal))
+            && char.IsDigit(ai[3]))
+        {
+            if (value.Length is < 1 or > 15 || !value.All(char.IsDigit))
+            {
+                errors.Add($"GS1 AI {ai} requires 1–15 numeric amount digits.");
+            }
+
+            return;
+        }
+
+        if (ai.Length == 4
+            && (ai.StartsWith("391", StringComparison.Ordinal) || ai.StartsWith("393", StringComparison.Ordinal))
+            && char.IsDigit(ai[3]))
+        {
+            if (value.Length is < 4 or > 18 || !value.All(char.IsDigit))
+            {
+                errors.Add($"GS1 AI {ai} requires 3 numeric ISO currency digits followed by 1–15 numeric amount digits.");
+            }
+
+            return;
+        }
+
+        if (ai == "7001")
+        {
+            if (value.Length != 13 || !value.All(char.IsDigit))
+            {
+                errors.Add("GS1 AI 7001 (NATO Stock Number) requires exactly 13 numeric digits.");
+            }
+
+            return;
+        }
+
+        if (ai == "7002")
+        {
+            if (value.Length is < 1 or > 30 || value.Any(char.IsControl))
+            {
+                errors.Add("GS1 AI 7002 (UN/ECE meat classification) must contain 1–30 printable characters.");
+            }
+
+            return;
+        }
+
+        if (ai == "7004")
+        {
+            if (value.Length is < 1 or > 4 || !value.All(char.IsDigit))
+            {
+                errors.Add("GS1 AI 7004 (active potency) requires 1–4 numeric digits.");
+            }
+
+            return;
+        }
+
         // Expiration date and time (YYMMDDhhmm) is fixed data length, but is
         // not pre-defined length; it therefore needs a separator before a
         // following element string.
@@ -378,6 +453,47 @@ public static class BarcodeApplicationContract
                 || minute > 59)
             {
                 errors.Add("GS1 AI 7003 requires a valid 10-digit expiration date/time (YYMMDDhhmm).");
+            }
+
+            return;
+        }
+
+        // Assets & Services identifiers (8003 GRAI, 8004 GIAI, 8006 ITIP, 8018/8019 GSRN)
+        if (ai == "8003")
+        {
+            if (value.Length is < 14 or > 30 || !value[..14].All(char.IsDigit) || !HasValidGs1CheckDigit(value[..14]) || value[14..].Any(char.IsControl))
+            {
+                errors.Add("GS1 AI 8003 (GRAI) requires 14 digits with a valid check digit, followed by up to 16 printable characters.");
+            }
+
+            return;
+        }
+
+        if (ai == "8004")
+        {
+            if (value.Length is < 1 or > 30 || value.Any(char.IsControl))
+            {
+                errors.Add("GS1 AI 8004 (GIAI) must contain 1–30 printable characters.");
+            }
+
+            return;
+        }
+
+        if (ai == "8006")
+        {
+            if (value.Length != 18 || !value.All(char.IsDigit) || !HasValidGs1CheckDigit(value[..14]))
+            {
+                errors.Add("GS1 AI 8006 (ITIP) requires exactly 18 numeric digits with a valid check digit on the first 14.");
+            }
+
+            return;
+        }
+
+        if (ai is "8018" or "8019")
+        {
+            if (value.Length != 18 || !value.All(char.IsDigit) || !HasValidGs1CheckDigit(value))
+            {
+                errors.Add($"GS1 AI {ai} (GSRN) requires exactly 18 numeric digits with a valid check digit.");
             }
 
             return;

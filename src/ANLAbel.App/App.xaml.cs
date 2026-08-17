@@ -91,20 +91,20 @@ public partial class App : Application
                 // phải hiện rõ còn bao lâu, không được gộp chung với "Đã kích hoạt" vĩnh viễn
                 // như trước, nếu không người dùng sẽ không biết key sắp hết hạn.
                 var daysLeft = Math.Max(0, (int)Math.Ceiling((expiresUtc - DateTimeOffset.UtcNow).TotalDays));
-                window.Title = $"ANLAbel - Label Designer v0.260 — Đã kích hoạt, còn {daysLeft} ngày (hết hạn {expiresUtc.ToLocalTime():dd/MM/yyyy})";
-                window.BuildChannelText.Text = $"LICENSED · còn {daysLeft} ngày · v0.260";
+                window.Title = $"ANLAbel - Label Designer v0.261 — Đã kích hoạt, còn {daysLeft} ngày (hết hạn {expiresUtc.ToLocalTime():dd/MM/yyyy})";
+                window.BuildChannelText.Text = $"LICENSED · còn {daysLeft} ngày · v0.261";
             }
             else
             {
-            window.Title = "ANLAbel - Label Designer v0.260 — Đã kích hoạt (vĩnh viễn)";
-            window.BuildChannelText.Text = "LICENSED · Vĩnh viễn · v0.260";
+            window.Title = "ANLAbel - Label Designer v0.261 — Đã kích hoạt (vĩnh viễn)";
+            window.BuildChannelText.Text = "LICENSED · Vĩnh viễn · v0.261";
             }
         }
         else
         {
             var days = Math.Max(1, (int)Math.Ceiling(result.Remaining.TotalDays));
-            window.Title = $"ANLAbel - Label Designer v0.260 — Dùng thử còn {days} ngày";
-            window.BuildChannelText.Text = "TRIAL 7 NGÀY · v0.260";
+            window.Title = $"ANLAbel - Label Designer v0.261 — Dùng thử còn {days} ngày";
+            window.BuildChannelText.Text = "TRIAL 7 NGÀY · v0.261";
         }
     }
 

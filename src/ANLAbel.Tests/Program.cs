@@ -8549,8 +8549,8 @@ static Task TestGs1IndustrialAiSubset()
     var ok = BarcodeApplicationContract.ValidateData(
         BarcodeApplicationProfile.Gs1,
         BarcodeSymbology.Code128,
-        "(01)09506000134352(3103)000250(10)BATCH1(91)LINE-7");
-    AssertEqual(0, ok.Count, "Industrial GS1 AI subset must accept GTIN+weight+lot+company-internal");
+        "(01)09506000134352(3103)000250(10)BATCH1(91)LINE-7(20)01(250)SN-9988(8004)ASSET-77(423)840(3902)1500");
+    AssertEqual(0, ok.Count, "Industrial GS1 AI subset must accept GTIN+weight+lot+variant+serial+asset+country+price");
 
     var badWeight = BarcodeApplicationContract.ValidateData(
         BarcodeApplicationProfile.Gs1,
@@ -8559,8 +8559,15 @@ static Task TestGs1IndustrialAiSubset()
     AssertEqual(true, badWeight.Any(message => message.Contains("6 numeric", StringComparison.OrdinalIgnoreCase)),
         "Fixed measure AIs must require six numeric digits");
 
+    var badVariant = BarcodeApplicationContract.ValidateData(
+        BarcodeApplicationProfile.Gs1,
+        BarcodeSymbology.Code128,
+        "(20)1");
+    AssertEqual(true, badVariant.Any(message => message.Contains("2 numeric", StringComparison.OrdinalIgnoreCase)),
+        "Product variant AI 20 must require exactly 2 digits");
+
     var normalizedOk = BarcodeApplicationContract.TryNormalizeGs1Data(
-        "(240)SKU-1(10)LOT-2",
+        "(240)SKU-1(10)LOT-2(250)SN-3",
         out var normalized,
         out var errors);
     AssertEqual(true, normalizedOk, "Variable industrial AIs must normalize");
