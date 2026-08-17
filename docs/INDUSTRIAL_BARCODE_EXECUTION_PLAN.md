@@ -341,7 +341,7 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 ---
 
-### P5 — 2D industrial parity (QR polish + Data Matrix UI) — `[ ]`
+### P5 — 2D industrial parity (QR polish + Data Matrix UI) — `[x]` DONE (2026-08-17)
 
 **Outcome:** Data Matrix gets first-class sizing/ECC controls analogous to QR where the engine supports them; QR UI copy aligns with industrial language (Symbol Version / Module).
 
