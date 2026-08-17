@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## App-wide modern vector icons & distinct semantic color coding (0.264)
+
+- Redesigned and generated all 40 application vector icons with high-DPI anti-aliased geometry, distinct color coding, and semantic clarity.
+- Eliminated dull inverse monochrome duplicates; organized functional domains by vibrant hues (Sapphire/Amber for Files, Coral/Emerald for Undo/Redo & History, Crimson for Delete, Obsidian/Cyan for Selection & Snapping, Royal Purple/Indigo for Text/Box, Emerald for Excel, Azure for Database, Obsidian/Blue for Thermal Printing, and Slate/Cyan for Settings).
+- Refined `IconImage` and button scaling styles with `HighQuality` bicubic filtering and `SnapsToDevicePixels`.
+- Added standalone `tools/IconGenerator` project for automated icon rendering.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## ITF-14 & linear barcode Bearer (guard) bars (0.263)
 
 - Added `BearerBarStyle` enum (`None`, `TopBottom`, `Frame`) and `BearerBarThicknessMm` to `LabelObject`, `LabelObjectCloner`, `SceneObjectSnapshot`, and `BarcodeRenderOptions`.
