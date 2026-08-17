@@ -1,6 +1,6 @@
 # ANLAbel — P3 barcode check-digit / HRI UI/UX specification
 
-**Status:** documentation-only, pre-implementation contract proposal (2026-08-13)
+**Status:** Code 39 software implementation (2026-08-14); runtime target-scale evidence pending
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P3
 **Competitive gap:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M7/M8
 **Handoff:** [`P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md`](P3_BARCODE_CHECK_DIGIT_UI_HANDOFF.md)
@@ -148,4 +148,4 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 - a new top-level Properties tab or a new Figma file;
 - any change to the protected Text/TextBox contract.
 
-Until the owner approves the symbology, payload convention, Figma reuse decision and runtime evidence owner, this file remains a UI/UX specification and P3 remains open.
+The owner approved the Code 39 payload convention and reuse of the existing Properties language on 2026-08-14. P3 remains open only for target-scale runtime/UIA evidence; physical verifier/native-printer claims remain out of scope.

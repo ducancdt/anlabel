@@ -22,5 +22,5 @@ public static class QrOptionLists
         .ToArray();
 
     public static IReadOnlyList<int> ModuleSizesPx { get; } = [3, 4, 5, 6, 8, 10, 12, 16, 20];
-    public static IReadOnlyList<int> QuietZoneModules { get; } = [0, 1, 2, 3, 4, 5, 6, 8];
+    public static IReadOnlyList<int> QuietZoneModules { get; } = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12];
 }

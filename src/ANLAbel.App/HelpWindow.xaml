@@ -4,7 +4,7 @@
         Title="ANLAbel - Help and User Guide"
         Height="700" Width="860"
         WindowStartupLocation="CenterOwner"
-        Background="#F8FAFC"
+        Background="{DynamicResource AppCanvasBrush}"
         FontFamily="Segoe UI"
         FontSize="13">
     <Grid>
@@ -16,7 +16,7 @@
         <!-- Left navigation -->
         <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0">
             <DockPanel>
-                <Border DockPanel.Dock="Top" Background="#0D237A" Padding="12,10">
+                <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="16,14">
                     <StackPanel>
                         <TextBlock x:Name="GuideTitle" Text="📖 User Guide" Foreground="White" FontWeight="Bold" FontSize="14"/>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">

@@ -62,6 +62,35 @@ public sealed class PrintLogService
     }
 
     /// <summary>
+    /// Returns redacted label-history summaries for a read-only activity projection.
+    /// Raw LabelContent and RowData deliberately never leave this service through this API.
+    /// </summary>
+    public Task<(IReadOnlyList<PrintLogSummary> Entries, IReadOnlyList<string> Diagnostics)> ReadSummariesAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                var rows = ReadAllRows(cancellationToken);
+                var summaries = rows.Select((row, index) => new PrintLogSummary(
+                    index + 1,
+                    ParsePrintedAt(row.ElementAtOrDefault(0)),
+                    row.ElementAtOrDefault(7) ?? string.Empty,
+                    row.ElementAtOrDefault(8) ?? string.Empty,
+                    row.ElementAtOrDefault(9) ?? string.Empty,
+                    row.ElementAtOrDefault(4) ?? string.Empty)).ToArray();
+                return ((IReadOnlyList<PrintLogSummary>)summaries, (IReadOnlyList<string>)Array.Empty<string>());
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
+            {
+                return ((IReadOnlyList<PrintLogSummary>)Array.Empty<PrintLogSummary>(), (IReadOnlyList<string>)[$"CSV label history could not be read: {ex.Message}"]);
+            }
+        }, cancellationToken);
+    }
+
+    private static DateTime? ParsePrintedAt(string? value) => DateTime.TryParse(value, out var parsed) ? parsed : null;
+
+    /// <summary>
     /// Reads the whole CSV log and writes a nicely formatted .xlsx report (bold header, light
     /// blue fill, auto-fit columns — the same look the old live-Excel log had). This is a rare,
     /// user-initiated action (a button click), not something that runs on every print, so using
@@ -245,3 +274,5 @@ public sealed class PrintLogService
         return fields;
     }
 }
+
+public sealed record PrintLogSummary(int RecordNumber, DateTime? PrintedAtLocal, string TemplateName, string PrinterName, string PrintMode, string Quantity);

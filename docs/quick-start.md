@@ -43,8 +43,10 @@ For the first physical test:
 
 Use the [print calibration checklist](print-calibration.md) for the full one-label measurement record, effective DPI/output-contract checks, queue evidence, and explicit hardware-verifier boundary. The [print-preview reliability plan](print-preview-reliability-plan.md) describes the software preflight and stale-data safeguards behind this workflow.
 
-## Getting help
-
 Use the [bug-report form](https://github.com/ducancdt/anlabel/issues/new?template=bug_report.yml) for reproducible defects. Include the printer model, driver version, DPI, media size, orientation, and whether the issue appears in Designer, Print Preview, physical output, or all three.
 
 Do not upload production data, customer names, credentials, or proprietary label templates.
+
+## Updates
+
+Check for newer releases directly inside ANLAbel from the Ribbon (**Help → Update**) or User Guide (**About → Check for Updates**). ANLAbel checks GitHub Releases, displays release highlights/changelogs, and downloads the latest setup installer automatically.

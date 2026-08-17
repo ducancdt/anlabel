@@ -1,13 +1,13 @@
 # ANLAbel — CC-P2 Print Queue Console UI/UX spec
 
-**Status:** design-only read-only console spec; host and command contract remain open (2026-08-13)
+**Status:** staged read-only M1 implemented; runtime UI smoke remains pending (2026-08-13)
 **Host decision:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Evidence contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Handoff:** [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md)
 **Concrete owner decision packet:** [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Printers `2:37`
 
-This spec defines the first **read-only** queue console. It maps the Figma Print Management shell to local Windows discovery, explicit saved-queue lookup and job-scoped spool evidence. It does not add a WPF window, queue commands, printer groups, license seats or a second recovery/dispatch owner.
+This spec defines the first **read-only** queue console. The staged `PrintQueueConsoleWindow` maps the Figma Print Management shell to local Windows discovery and explicit saved-queue lookup. It does not add queue commands, printer groups, license seats or a second recovery/dispatch owner.
 
 The concrete source/action boundary, current empty-list error gap, owner sign-off rows and M1 fixtures are recorded in [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md); this file remains the host-neutral UI behavior contract.
 
@@ -38,7 +38,7 @@ Metadata for `2:37` was rechecked read-only on 2026-08-13. The node names below 
 | `2:74` | Search text sample | Search affordance | Search only local fields; current `PrinterInfo` has no port/workstation field. |
 | `2:75`/`2:76` | Table header sample | Column-language reference | Do not invent queue counts/status fields absent from source. |
 | `2:77`–`2:79` | Example rows | Empty/example density only | Printer names, IPs, queue counts and error text are research samples. |
-| `2:80` | Footer control sample | Local count/filter summary reference | “Unlicensed” and workstation grouping require separate local evidence. |
+| `2:80` | Footer control sample | Local count/filter summary reference | “Unlicensed” is omitted by scope; workstation grouping requires separate local evidence. |
 
 No new Figma node is required for this read-only spec. Missing state questions follow the [Figma escalation protocol](figma-ui-handoff-template.md#figma-escalation-protocol).
 
@@ -128,7 +128,7 @@ Before implementation review closes P2:
 - discovery distinguishes empty from enumeration failure and preserves `Local`/`Connections` scope;
 - queue-level and job-level fields are visually distinct;
 - saved queue canonical mismatch, missing queue, stale refresh, no queues, one queue and multiple queues have fixtures;
-- search/filter cannot imply unavailable fields such as port/workstation or licensed seats;
+- search/filter cannot imply unavailable fields such as port/workstation; licensing/seat filters do not exist in this product scope;
 - Print Center, Printer Setup and History remain explicit deep-links;
 - any future command has capability/rejection/timeout/confirmation/durable-outcome tests before its button is enabled;
 - runtime screenshot/UI Automation covers `1024 x 600`, `100%`, `125%`, `150%`, keyboard/focus and scroll ownership;

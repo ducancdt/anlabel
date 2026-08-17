@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ANLAbel.Core.Enums;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Mvvm;
 
 namespace ANLAbel.Core.Models;
@@ -67,6 +70,16 @@ public sealed class LabelTemplate : ObservableObject
 
     public ObservableCollection<LabelObject> Objects { get; set; } = new();
 
+    /// <summary>
+    /// Authoring-only ruler guides. They are saved with the template and may
+    /// participate in designer snapping, but never become printable scene
+    /// nodes or affect rendered geometry.
+    /// </summary>
+    public ObservableCollection<LabelGuide> Guides { get; set; } = new();
+
+    /// <summary>Persisted typed-record transforms applied by the data workflow.</summary>
+    public ObservableCollection<DataTransformDefinition> DataTransforms { get; set; } = new();
+
     public PrinterProfile PrinterProfile
     {
         get => _printerProfile;
@@ -78,4 +91,12 @@ public sealed class LabelTemplate : ObservableObject
         get => _databaseConfig;
         set => SetProperty(ref _databaseConfig, value);
     }
+
+    /// <summary>
+    /// Forward-compatible template metadata owned by a newer feature or an
+    /// extension. Unknown members are retained on a load/save round trip
+    /// instead of being silently discarded by an older desktop build.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement> ExtensionData { get; set; } = new(StringComparer.Ordinal);
 }

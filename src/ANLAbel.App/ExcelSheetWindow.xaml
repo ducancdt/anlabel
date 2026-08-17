@@ -1,10 +1,10 @@
 <Window x:Class="ANLAbel.App.ExcelSheetWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Select Excel Sheet" Height="260" Width="340"
+        Title="Chọn trang tính Excel" Height="300" Width="380"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Background="#F8FAFC">
+        Background="{DynamicResource AppCanvasBrush}">
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -12,11 +12,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Sheet" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <StackPanel>
+            <TextBlock Text="Chọn trang tính" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Chọn sheet chứa dữ liệu để dùng cho mẫu tem." Foreground="{DynamicResource AppMutedBrush}" Margin="0,3,0,12"/>
+        </StackPanel>
         <ListBox x:Name="SheetsList" Grid.Row="1" Margin="0,0,0,14"/>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Cancel" Width="82" Margin="0,0,8,0" Padding="8,5" Click="Cancel_Click"/>
-            <Button Content="Import" Width="82" Padding="8,5" Click="Import_Click"/>
+            <Button Content="Hủy" Width="82" Margin="0,0,8,0" Padding="8,5" Click="Cancel_Click"/>
+            <Button Content="Nhập dữ liệu" Width="104" Padding="8,5" Click="Import_Click" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/>
         </StackPanel>
     </Grid>
 </Window>

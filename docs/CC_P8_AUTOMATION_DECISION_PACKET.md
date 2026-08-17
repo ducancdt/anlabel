@@ -1,6 +1,6 @@
 # CC-P8 local automation owner decision packet
 
-**Status:** documentation-only owner gate; no trigger runner, background service, web application, TCP listener, unattended-print capability, new Figma node or Text/TextBox change is authorized by this packet (2026-08-13)
+**Status:** local detect-only runner, explicit claim, UTF-8 header CSV preparation and configuration foundations implemented; no source move/quarantine, document binding, queue/print dispatch, web application, TCP listener, unattended-print capability, new Figma node or Text/TextBox change is authorized by this packet (2026-08-14)
 **Program index:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
 **Handoff:** [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md)
 **Specification:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
@@ -19,7 +19,14 @@ configured local root/pattern + explicit claim protocol
         -> durable accepted/blocked/quarantined outcome
 ```
 
-This packet is an owner-review gate. It does not add a trigger registry, watcher, lifecycle service, manifest fields, queue call, automatic retry or Figma edit. Existing Text/TextBox ownership, geometry, overflow and print parity remain protected.
+This packet remains an owner-review gate. The Core-only
+[`FileDropClaimContract.cs`](../src/ANLAbel.Core/Automation/FileDropClaimContract.cs)
+now supplies deterministic event identity and a fail-closed state graph for
+future hosts. `FileDropDetectionService` now provides an independent
+configured watcher that records only stable `Detected` evidence. It does not
+add a parser, source claim/move, lifecycle host, manifest fields, queue call,
+automatic retry or Figma edit. Existing
+Text/TextBox ownership, geometry, overflow and print parity remain protected.
 
 ## Decision summary
 
@@ -51,7 +58,10 @@ This packet is an owner-review gate. It does not add a trigger registry, watcher
 
 ## Proposed trigger and provenance contract
 
-Proposal only; D1-D7 must close before code or a Start button is authorized.
+The identity/state foundation and its local append-only fingerprint ledger are
+implemented and regression-tested. D1-D7 must still close before source move,
+document binding, manifest creation or any queue call is authorized. The
+detect-only Start button and CSV preparation do not consume a source or create a job.
 
 | Field/state | Source/owner to approve | Display rule |
 | --- | --- | --- |
@@ -77,7 +87,7 @@ Proposal only; D1-D7 must close before code or a Start button is authorized.
 | Stopping | New claims blocked and in-flight count | Wait; force-stop only by approved policy | No claimed file is abandoned without durable outcome. |
 | Error | Configuration, watcher, source, preflight, queue or audit reason | Repair and restart explicitly | No retry storm or hidden dispatch. |
 | File detected | Event ID, path-safe fingerprint, lock/debounce status | Claim after validation | Duplicate watcher events collapse to one identity. |
-| Claimed/preparing | Claim owner, source fingerprint, document/manifest progress | Cancel only through lifecycle owner | No second claim or concurrent dispatch for same fingerprint. |
+| Claimed/preparing | Claim owner, source fingerprint and parsed-record count | Cancel only through lifecycle owner | Rehash the source immediately before any future manifest/dispatch step; changed bytes become terminal. |
 | Blocked | Exact P4 policy, preflight, queue or output-contract reason | Repair source/config or open owner | No force-print or fallback queue. |
 | Dispatched/observed | Job ID, trigger/config/source/manifest fingerprints and queue evidence | Open History/Print Center | Never label physical output complete without verifier evidence. |
 | Quarantined | Source fingerprint, reason and destination | Inspect/move/delete with confirmation | Never silently discard the source. |
@@ -112,7 +122,10 @@ Proposed IDs require host approval:
 
 ## Fixture and regression packet
 
-These are proposed fixtures and gates, not tests added by this documentation-only change.
+The deterministic identity and fail-closed transition fixture is now covered by
+`file-drop claim contract preserves deterministic fail-closed states`. The
+remaining runtime fixtures below require the named owner decisions and are not
+implemented by the local detect/claim/CSV-preparation foundation.
 
 | Fixture | Expected result | Required evidence |
 | --- | --- | --- |
@@ -156,3 +169,33 @@ Record one owner, date and decision for every row. Blank rows keep CC-P8 open.
 | D8. Security/deferred protocols/closure | `TBD` | `TBD` | `TBD` |
 
 **Closure rule:** CC-P8 may move from deferred design review to implementation only after D1-D8 are filled, P1/P2/P5/P4 prerequisites are closed, one trigger/lifecycle owner and one dispatch spine are named, and claim/deduplication/restart/stop/policy/audit fixtures are converted into runtime and regression gates. Until then, CC-P8 remains a local trigger plan and not a shipped Automation host, web application or unattended printer.
+
+## Implemented software-only boundary (2026-08-14)
+
+The local configuration snapshot, hash-chained claim/lifecycle journals,
+redacted evidence console and Start/Stop detect-only watcher are implemented and
+covered by regression. A watcher event can only hash readable bytes and write a
+`Detected` event. Explicit review can claim fingerprint evidence; a claimed
+UTF-8 header CSV can be rehashed and parsed into in-memory records, with source
+change and parser errors recorded as terminal outcomes. This still cannot move
+or quarantine a source, select a document, choose a queue, create a manifest,
+run preflight or print.
+
+`Prepared` is deliberately not a trust boundary. A future manifest or dispatch
+implementation must rehash the source immediately before use; a mismatch from
+either `Claimed` or `Prepared` is durably terminal `ChangedAfterClaim`. This
+software-only gate is covered by the application regression suite and does not
+require a printer or operator.
+
+Prepared records can now also be checked against the exact configured template:
+the template's explicit `{Field}` bindings must all exist in every prepared
+record, and the configured document policy must pass first. This is a
+pre-dispatch readiness check only; it intentionally creates no manifest, queue
+request, print job, or durable raw-record copy.
+
+The following are not external-machine or human-test gates; they are product
+choices that must be supplied before dispatch code can be authored: supported
+input schema/parser, target document/revision binding, queue-selection policy,
+claim/archive/quarantine directories and timeout, policy mode (`Off` or
+`RequirePublished`), retention/redaction, and whether retry creates a new
+event. Until they are chosen, code must fail closed rather than invent defaults.

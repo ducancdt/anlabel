@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
+    <ProjectReference Include="..\ANLAbel.Core\ANLAbel.Core.csproj" />
   </ItemGroup>
 
 </Project>

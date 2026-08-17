@@ -1,6 +1,6 @@
 # P4 barcode ratio, density and physical quiet-zone UI handoff
 
-**Status:** pre-implementation handoff; design and contract review required (2026-08-13)
+**Status:** approved handoff; implementation pending Code 39 geometry seam (2026-08-14)
 **Parent spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P4
 **Competitive matrix:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M3/M4/M14
 **UI/UX specification:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md)
@@ -75,4 +75,4 @@ Required gates before P4 implementation closure:
 4. Approve reuse of `18:69`/`13:2` or provide a state-specific Figma node.
 5. Assign runtime screenshot/UI Automation ownership and regression fixture names.
 
-Until these decisions are recorded, P4 remains a design/contract handoff and not an implemented barcode feature.
+The decisions are recorded in the linked packet as of 2026-08-14. P4 remains an unimplemented barcode feature until its shared ratio-aware renderer/preflight contract and runtime evidence are complete.

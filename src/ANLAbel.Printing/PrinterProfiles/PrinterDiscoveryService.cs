@@ -3,12 +3,28 @@ using System.Printing;
 namespace ANLAbel.Printing.PrinterProfiles;
 
 /// <summary>
+/// Read-only Windows queue enumeration result. An empty row set and an
+/// enumeration failure are intentionally different operator states.
+/// </summary>
+public sealed record PrinterDiscoveryResult(
+    IReadOnlyList<PrinterInfo> Printers,
+    string ErrorMessage = "")
+{
+    public bool IsSuccess => string.IsNullOrWhiteSpace(ErrorMessage);
+}
+
+/// <summary>
 /// Lists Windows printers without attempting to read paper sizes from drivers.
 /// Paper sizes come from <see cref="StandardLabelSizes"/> catalog instead.
 /// </summary>
 public sealed class PrinterDiscoveryService
 {
     public IReadOnlyList<PrinterInfo> GetInstalledPrinters()
+    {
+        return DiscoverInstalledPrinters().Printers;
+    }
+
+    public PrinterDiscoveryResult DiscoverInstalledPrinters()
     {
         try
         {
@@ -20,15 +36,18 @@ public sealed class PrinterDiscoveryService
                 EnumeratedPrintQueueTypes.Connections
             });
 
-            return queues
+            var printers = queues
                 .Select(queue => CreatePrinterInfo(queue, defaultName))
                 .OrderByDescending(printer => printer.IsDefault)
                 .ThenBy(printer => printer.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ToArray();
+            return new PrinterDiscoveryResult(printers);
         }
-        catch
+        catch (Exception ex)
         {
-            return Array.Empty<PrinterInfo>();
+            return new PrinterDiscoveryResult(
+                Array.Empty<PrinterInfo>(),
+                $"Windows printer enumeration failed: {ex.Message}");
         }
     }
 

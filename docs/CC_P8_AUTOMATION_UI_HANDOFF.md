@@ -1,6 +1,6 @@
 # ANLAbel — CC-P8 Applications / Automation UI handoff
 
-**Status:** deferred roadmap slice; design/architecture review only (2026-08-13)
+**Status:** P8 M0 evidence console implemented; trigger runner/delivery remains deferred (2026-08-14)
 **Owning roadmap:** [`MASTER_PLAN.md`](../MASTER_PLAN.md), section `3. Applications / Automation`
 **Prerequisites:** CC-P1 Operations Overview, CC-P2 Print Queue, CC-P5 History, and CC-P4 document policy evidence must remain stable before an automation host is implemented.
 **Related handoffs:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md), [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md), [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md), [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md)
@@ -9,7 +9,11 @@
 **UI/UX content spec:** [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md)
 **Owner decision packet:** [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md)
 
-CC-P8 remains deferred until P1/P2/P5 evidence paths and P4 document policy are stable. Any future host must call the existing preflight -> manifest -> queue spine and write History; it cannot bypass the shared navigation/owner gate or introduce a second dispatch path.
+P8 M0 now provides a local, modeless evidence console for the durable fingerprint
+claim ledger. It deliberately reports Stopped/no-runner and offers only links to
+the existing History/Print Center owners. Any future runner must call the
+existing preflight -> manifest -> queue spine and write History; it cannot
+bypass the shared navigation/owner gate or introduce a second dispatch path.
 
 This handoff records the smallest safe direction for future local automation. It does not add a trigger runner, web form, cloud integration, background service, or Figma edit. Automation must call the same validated preflight, immutable manifest, explicit queue, and History path as manual Quick Print; it must never become a silent second dispatch stack.
 

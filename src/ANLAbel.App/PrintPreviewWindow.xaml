@@ -6,9 +6,10 @@
         Title="ANLAbel Print Preview" Height="760" Width="1200"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
-        Background="#D7D7D7">
+        Background="{DynamicResource AppCanvasBrush}">
     <Window.Resources>
         <local:BoolToCheckmarkConverter x:Key="BoolToCheckmarkConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -17,8 +18,8 @@
         </Grid.ColumnDefinitions>
 
         <DockPanel Grid.Column="0">
-            <Border DockPanel.Dock="Top" Background="#0D237A" Padding="10">
-                <TextBlock Text="{Binding PreviewTitle}" Foreground="White" FontWeight="SemiBold"/>
+            <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="16,12">
+                <TextBlock Text="{Binding PreviewTitle}" Foreground="White" FontSize="15" FontWeight="SemiBold"/>
             </Border>
             <DockPanel>
                 <Border DockPanel.Dock="Bottom" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" Padding="10">
@@ -37,7 +38,8 @@
                     </Grid>
                 </Border>
 
-                <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" MaxHeight="280">
+                <!-- The row list scrolls internally, so cap it to preserve the label preview on 720p displays. -->
+                <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" MaxHeight="220">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="10,6,10,3">
                         <TextBlock Text="Excel Data" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center"/>
@@ -78,10 +80,31 @@
                         <TextBlock Grid.Column="3" Text="Cp" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
                         <TextBlock Grid.Column="4" Text="🖶" FontSize="9" Margin="2,2" ToolTip="Printed this session"/>
                     </Grid>
-                    <!-- Row list using ItemsControl (crash-free: no DataTable/DataRowView/DataGrid internals) -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" MinHeight="80">
-                        <ItemsControl x:Name="TrackingList" Margin="6,0,6,4" FontSize="11">
-                            <ItemsControl.ItemTemplate>
+                    <!-- Virtualized row list: the outer preview panel may contain 10k source rows;
+                         never put an ItemsControl inside a ScrollViewer because that disables
+                         WPF item virtualization and creates every row visual eagerly. -->
+                    <ListBox x:Name="TrackingList"
+                             Margin="6,0,6,4"
+                             FontSize="11"
+                             MinHeight="80"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.CanContentScroll="True"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.ScrollUnit="Pixel">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Focusable" Value="False"/>
+                                <Setter Property="IsTabStop" Value="False"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:TrackingRowViewModel}">
                                     <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="0">
                                         <Grid>
@@ -119,7 +142,7 @@
                                                     Padding="0" Margin="1,0"
                                                     Click="CopiesDown_Click" Tag="{Binding SourceRowNumber}"/>
                                             <!-- Printed-this-session indicator -->
-                                            <TextBlock Grid.Column="6" Text="{Binding PrintedIndicatorText}" FontSize="9" Margin="2,0" ToolTip="Printed this session — printing again may duplicate a label"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding PrintedIndicatorText}" FontSize="9" Margin="2,0" ToolTip="Device-confirmed completion in this session — printing again may duplicate a label"/>
                                             <!-- Excel data preview -->
                                             <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0">
                                                 <TextBlock Text="{Binding Col1}" Margin="0,0,6,0"/>
@@ -130,9 +153,8 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                            </ListBox.ItemTemplate>
+                    </ListBox>
                 </DockPanel>
                 </Border>
 
@@ -161,10 +183,10 @@
             </DockPanel>
         </DockPanel>
 
-        <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#1B2B76" BorderThickness="1,0,0,0">
+        <Border Grid.Column="1" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1,0,0,0">
             <DockPanel LastChildFill="True">
-                <Border DockPanel.Dock="Top" Background="#142783" Padding="10,7">
-                    <TextBlock Text="Print Settings" Foreground="White" FontWeight="SemiBold"/>
+                <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="16,12">
+                    <TextBlock Text="Print Settings" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
                 </Border>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="14">
@@ -198,6 +220,31 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
+                            <Grid Margin="0,6,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <ProgressBar Height="6"
+                                                 Minimum="0"
+                                                 Maximum="100"
+                                                 Value="{Binding PreviewProgressPercent}"
+                                                 Visibility="{Binding IsPreviewBusy, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBlock Text="{Binding PreviewProgressText}"
+                                               FontSize="10"
+                                               Foreground="#475569"
+                                               TextWrapping="Wrap"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Content="Cancel"
+                                        Padding="7,3"
+                                        Margin="8,0,0,0"
+                                        Click="CancelPreview_Click"
+                                        IsEnabled="{Binding CanCancelPreview}"
+                                        Visibility="{Binding IsPreviewBusy, Converter={StaticResource BoolToVisibility}}"/>
+                            </Grid>
                             <Expander Header="Preflight issues" Margin="0,8,0,0">
                                 <Expander.Style>
                                     <Style TargetType="Expander">
@@ -310,7 +357,7 @@
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
                         <Button Content="Close" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Close_Click"/>
-                        <Button Content="Print" Width="96" Padding="8,5" Click="Print_Click"/>
+                        <Button Content="Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanPrint}"/>
                     </StackPanel>
                 </StackPanel>
                 </ScrollViewer>

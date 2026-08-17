@@ -1,6 +1,6 @@
 # ANLAbel — CC-P6 local Analytics UI handoff
 
-**Status:** roadmap/pre-implementation; read-only local analytics design review (2026-08-13)
+**Status:** M1 local analytics implemented; later metric/filter/export design remains pending (2026-08-13)
 **Owning roadmap:** [`MASTER_PLAN.md`](../MASTER_PLAN.md), section `6. Analytics`
 **Related handoffs:** [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md), [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md), [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md)
 **Protected contract:** [`AGENTS.md`](../AGENTS.md) remains authoritative for Text/TextBox behavior.
@@ -14,7 +14,7 @@ This handoff defines a local, read-only analytics slice over existing evidence. 
 
 ## 1. Product boundary
 
-The roadmap calls for dimensions such as Labels, Printer Groups, Users, Computers/Applications and Materials; charts for printed labels versus errors; date/printer/label filters; and a disclaimer separating software counters from verified physical labels. ANLAbel today has useful local evidence but no Analytics window:
+The roadmap calls for dimensions such as Labels, Printer Groups, Users, Computers/Applications and Materials; charts for printed labels versus errors; date/printer/label filters; and a disclaimer separating software counters from verified physical labels. ANLAbel now has a deliberately narrower M1 `AnalyticsWindow`; the following source inventory defines the boundary for later expansion:
 
 - human-facing append-only CSV rows for label-print history;
 - best-effort machine-readable print-operation JSONL;
@@ -136,4 +136,4 @@ Cloud telemetry, cost optimization, scheduled reports, user directory joins and 
 
 ## 9. Decision
 
-**Needs product/design review.** Figma `5:2` supplies chart/filter density, while current local evidence can support a read-only aggregate only if CSV rows, job events and best-effort traces remain distinguishable. The next safe step is to approve source precedence, units, timezone, privacy and host decisions; no analytics window, cloud telemetry, physical-output claim or Figma edit is authorized by this handoff.
+**M1 is implemented; expansion needs product/design review.** Figma `5:2` supplies chart/filter density, while local evidence can support deeper aggregation only if CSV rows, job events and best-effort traces remain distinguishable. The next safe step is to approve source precedence, units, timezone, privacy, filters and export decisions; cloud telemetry, physical-output claims and Figma edits remain out of scope.

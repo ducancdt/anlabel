@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ANLAbel.App/ANLAbel.App.csproj" />
-    <Project Path="src/ANLAbel.LicenseGenerator/ANLAbel.LicenseGenerator.csproj" />
     <Project Path="src/ANLAbel.Barcode/ANLAbel.Barcode.csproj" />
     <Project Path="src/ANLAbel.Core/ANLAbel.Core.csproj" />
     <Project Path="src/ANLAbel.Data/ANLAbel.Data.csproj" />

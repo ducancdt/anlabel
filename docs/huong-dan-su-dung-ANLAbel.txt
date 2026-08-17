@@ -111,6 +111,7 @@ Nhóm Zoom:
 
 Nhóm Help:
 - Help (F1) — Mở cửa sổ hướng dẫn sử dụng
+- Update — Kiểm tra và tải tự động bản cập nhật mới từ GitHub Releases
 
 ================================================================
 4. BẢNG THIẾT KẾ (CANVAS)

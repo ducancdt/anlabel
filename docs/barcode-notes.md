@@ -1,5 +1,8 @@
 # Barcode Notes
 
+Competitive object-model research (NiceLabel + BarTender → ANLAbel gap matrix):  
+**[BARCODE_NICELABEL_BARTENDER_RESEARCH.md](./BARCODE_NICELABEL_BARTENDER_RESEARCH.md)**
+
 Barcode was added in Phase 3 using `ZXing.Net`.
 
 The abstraction is `IBarcodeRenderer` in `ANLAbel.Barcode`.

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
 using ExcelDataReader;
 
 namespace ANLAbel.Data.Excel;
@@ -28,6 +29,7 @@ public sealed record ExcelSheetPreview(string SheetName, IReadOnlyList<ExcelPrev
 /// </summary>
 public sealed class ExcelDataService
 {
+    public const string CsvSheetName = "CSV";
     private static readonly TimeSpan DefaultNetworkTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -61,6 +63,16 @@ public sealed class ExcelDataService
     /// </summary>
     public async Task<IReadOnlyList<string>> GetSheetNamesAsync(string filePath, CancellationToken cancellationToken = default)
     {
+        if (IsCsvFile(filePath))
+        {
+            return await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                using var stream = OpenFileStream(filePath, cancellationToken);
+                return (IReadOnlyList<string>)new[] { CsvSheetName };
+            }, CancellationToken.None).WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+        }
+
         var readTask = Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -115,6 +127,16 @@ public sealed class ExcelDataService
     /// </summary>
     public async Task<IReadOnlyList<ExcelPreviewRow>> PreviewRowsAsync(string filePath, string sheetName, int maxRows = 15, CancellationToken cancellationToken = default)
     {
+        if (IsCsvFile(filePath))
+        {
+            EnsureCsvSheet(sheetName, filePath);
+            return await Task.Run(
+                () => (IReadOnlyList<ExcelPreviewRow>)ReadCsvRows(filePath, maxRows, cancellationToken)
+                    .Select((cells, index) => new ExcelPreviewRow(index + 1, cells))
+                    .ToArray(),
+                CancellationToken.None).WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+        }
+
         var readTask = Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -147,6 +169,12 @@ public sealed class ExcelDataService
     /// </summary>
     public async Task<IReadOnlyList<ExcelSheetPreview>> GetSheetsWithPreviewAsync(string filePath, int maxRows = 15, CancellationToken cancellationToken = default)
     {
+        if (IsCsvFile(filePath))
+        {
+            var rows = await PreviewRowsAsync(filePath, CsvSheetName, maxRows, cancellationToken);
+            return new[] { new ExcelSheetPreview(CsvSheetName, rows) };
+        }
+
         var readTask = Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -171,6 +199,12 @@ public sealed class ExcelDataService
     /// </summary>
     public IReadOnlyList<string> GetSheetNames(string filePath)
     {
+        if (IsCsvFile(filePath))
+        {
+            using var csvStream = OpenFileStream(filePath);
+            return new[] { CsvSheetName };
+        }
+
         using var stream = OpenFileStream(filePath);
         using var reader = OpenReader(stream, filePath);
         var names = new List<string>();
@@ -190,7 +224,9 @@ public sealed class ExcelDataService
         }
 
         var readTask = Task.Run(
-            () => LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken),
+            () => IsCsvFile(filePath)
+                ? LoadCsv(filePath, sheetName, headerRowIndex, cancellationToken)
+                : LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken),
             CancellationToken.None);
 
         return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
@@ -212,7 +248,6 @@ public sealed class ExcelDataService
 
         var table = new DataTable(sheetName);
         string[]? headerCells = null;
-        var dataRows = new List<string[]>();
         var rowNumber = 0;
         while (reader.Read())
         {
@@ -222,10 +257,36 @@ public sealed class ExcelDataService
             if (rowNumber == headerRowIndex)
             {
                 headerCells = cells;
+                var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                for (var column = 0; column < headerCells.Length; column++)
+                {
+                    var rawHeader = headerCells[column];
+                    var header = string.IsNullOrWhiteSpace(rawHeader) ? $"Column{column + 1}" : rawHeader;
+                    table.Columns.Add(MakeUniqueHeader(header, headers), typeof(string));
+                }
             }
             else if (rowNumber > headerRowIndex)
             {
-                dataRows.Add(cells);
+                // Materialize each record as it is read. Keeping every string[]
+                // until the end doubles peak memory for large workbooks, despite
+                // using a forward-only reader.
+                var dataRow = table.NewRow();
+                var hasValue = false;
+                for (var column = 0; column < table.Columns.Count; column++)
+                {
+                    var value = column < cells.Length ? cells[column] : string.Empty;
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        hasValue = true;
+                    }
+
+                    dataRow[column] = value;
+                }
+
+                if (hasValue)
+                {
+                    table.Rows.Add(dataRow);
+                }
             }
         }
 
@@ -245,39 +306,303 @@ public sealed class ExcelDataService
                 sheetName);
         }
 
-        var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var column = 0; column < headerCells.Length; column++)
+        return table;
+    }
+
+    private static DataTable LoadCsv(string filePath, string sheetName, int headerRowIndex, CancellationToken cancellationToken)
+    {
+        EnsureCsvSheet(sheetName, filePath);
+        var table = new DataTable(CsvSheetName);
+
+        string? headerRecord;
+        using (var headerStream = OpenFileStream(filePath, cancellationToken))
+        using (var headerReader = new StreamReader(headerStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true))
         {
-            var rawHeader = headerCells[column];
-            var header = string.IsNullOrWhiteSpace(rawHeader) ? $"Column{column + 1}" : rawHeader;
-            header = MakeUniqueHeader(header, headers);
-            table.Columns.Add(header, typeof(string));
+            headerRecord = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
         }
 
-        foreach (var rowCells in dataRows)
+        if (headerRecord is null)
+        {
+            return table;
+        }
+
+        var delimiter = DetectCsvDelimiter(headerRecord);
+        var rowNumber = 0;
+        var foundHeader = false;
+        using var stream = OpenFileStream(filePath, cancellationToken);
+        using var reader = new StreamReader(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true);
+        while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var dataRow = table.NewRow();
-            var hasValue = false;
-
-            for (var column = 0; column < table.Columns.Count; column++)
+            var record = ReadCsvRecord(reader, delimiter, filePath, cancellationToken, out var reachedEnd);
+            if (record is not null)
             {
-                var value = column < rowCells.Length ? rowCells[column] : string.Empty;
-                if (!string.IsNullOrEmpty(value))
+                rowNumber++;
+                var cells = record.Select(CleanCellText).ToArray();
+                if (rowNumber == headerRowIndex)
                 {
-                    hasValue = true;
+                    foundHeader = true;
+                    var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    for (var column = 0; column < cells.Length; column++)
+                    {
+                        var header = string.IsNullOrWhiteSpace(cells[column]) ? $"Column{column + 1}" : cells[column];
+                        table.Columns.Add(MakeUniqueHeader(header, headers), typeof(string));
+                    }
                 }
+                else if (rowNumber > headerRowIndex)
+                {
+                    var dataRow = table.NewRow();
+                    var hasValue = false;
+                    for (var column = 0; column < table.Columns.Count; column++)
+                    {
+                        var value = column < cells.Length ? cells[column] : string.Empty;
+                        hasValue |= !string.IsNullOrEmpty(value);
+                        dataRow[column] = value;
+                    }
 
-                dataRow[column] = value;
+                    if (hasValue)
+                    {
+                        table.Rows.Add(dataRow);
+                    }
+                }
             }
 
-            if (hasValue)
+            if (reachedEnd)
             {
-                table.Rows.Add(dataRow);
+                break;
             }
+        }
+
+        if (!foundHeader)
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.InvalidHeaderRow,
+                $"Header row {headerRowIndex} is outside the CSV data range (last row: {rowNumber}).",
+                filePath,
+                sheetName);
         }
 
         return table;
+    }
+
+    private static List<string[]> ReadCsvRows(string filePath, int? maxRows, CancellationToken cancellationToken)
+    {
+        var records = new List<string[]>();
+        string? headerRecord;
+        using (var headerStream = OpenFileStream(filePath, cancellationToken))
+        using (var headerReader = new StreamReader(headerStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true))
+        {
+            headerRecord = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
+        }
+
+        if (headerRecord is null)
+        {
+            return records;
+        }
+
+        var delimiter = DetectCsvDelimiter(headerRecord);
+        using var stream = OpenFileStream(filePath, cancellationToken);
+        using var reader = new StreamReader(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true);
+        while (maxRows is null || records.Count < maxRows.Value)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var record = ReadCsvRecord(reader, delimiter, filePath, cancellationToken, out var reachedEnd);
+            if (record is not null)
+            {
+                records.Add(record.Select(CleanCellText).ToArray());
+            }
+
+            if (reachedEnd)
+            {
+                break;
+            }
+        }
+
+        return records;
+    }
+
+    /// <summary>
+    /// Reads the first logical CSV record for delimiter discovery. A physical
+    /// <see cref="TextReader.ReadLine"/> is insufficient because CSV permits a
+    /// newline inside a quoted header cell.
+    /// </summary>
+    private static string? ReadCsvHeaderRecord(TextReader reader, string filePath, CancellationToken cancellationToken)
+    {
+        var header = new StringBuilder();
+        var quoted = false;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var next = reader.Read();
+            if (next < 0)
+            {
+                if (quoted)
+                {
+                    throw CreateInvalidCsvException(filePath, "The first CSV record has an unterminated quoted field.");
+                }
+
+                return header.Length == 0 ? null : header.ToString();
+            }
+
+            var current = (char)next;
+            if (current == '"')
+            {
+                header.Append(current);
+                if (quoted && reader.Peek() == '"')
+                {
+                    header.Append((char)reader.Read());
+                }
+                else
+                {
+                    quoted = !quoted;
+                }
+
+                continue;
+            }
+
+            if (!quoted && (current == '\r' || current == '\n'))
+            {
+                if (current == '\r' && reader.Peek() == '\n')
+                {
+                    reader.Read();
+                }
+
+                return header.ToString();
+            }
+
+            header.Append(current);
+        }
+    }
+
+    private static string[]? ReadCsvRecord(TextReader reader, char delimiter, string filePath, CancellationToken cancellationToken, out bool reachedEnd)
+    {
+        var cells = new List<string>();
+        var cell = new StringBuilder();
+        var quoted = false;
+        var any = false;
+        reachedEnd = false;
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var next = reader.Read();
+            if (next < 0)
+            {
+                reachedEnd = true;
+                if (quoted)
+                {
+                    throw CreateInvalidCsvException(filePath, "CSV data has an unterminated quoted field.");
+                }
+
+                if (!any && cell.Length == 0 && cells.Count == 0)
+                {
+                    return null;
+                }
+
+                cells.Add(cell.ToString());
+                return cells.ToArray();
+            }
+
+            any = true;
+            var current = (char)next;
+            if (current == '"')
+            {
+                if (quoted && reader.Peek() == '"')
+                {
+                    reader.Read();
+                    cell.Append('"');
+                }
+                else
+                {
+                    quoted = !quoted;
+                }
+
+                continue;
+            }
+
+            if (!quoted && current == delimiter)
+            {
+                cells.Add(cell.ToString());
+                cell.Clear();
+                continue;
+            }
+
+            if (!quoted && (current == '\r' || current == '\n'))
+            {
+                if (current == '\r' && reader.Peek() == '\n')
+                {
+                    reader.Read();
+                }
+
+                cells.Add(cell.ToString());
+                return cells.ToArray();
+            }
+
+            cell.Append(current);
+        }
+    }
+
+    private static ExcelDataReadException CreateInvalidCsvException(string filePath, string detail)
+        => new(
+            ExcelDataReadError.InvalidData,
+            $"CSV file '{Path.GetFileName(filePath)}' is invalid: {detail}",
+            filePath);
+
+    private static char DetectCsvDelimiter(string header)
+    {
+        // Locale-neutral CSV commonly uses one of these three delimiters. Delimiter
+        // selection happens before decoding rows so comma/semicolon/tab files all enter
+        // the same quoted-field parser below.
+        var comma = 0;
+        var semicolon = 0;
+        var tab = 0;
+        var quoted = false;
+        for (var index = 0; index < header.Length; index++)
+        {
+            var character = header[index];
+            if (character == '"')
+            {
+                if (quoted && index + 1 < header.Length && header[index + 1] == '"')
+                {
+                    index++;
+                }
+                else
+                {
+                    quoted = !quoted;
+                }
+
+                continue;
+            }
+
+            if (quoted)
+            {
+                continue;
+            }
+
+            switch (character)
+            {
+                case ',': comma++; break;
+                case ';': semicolon++; break;
+                case '\t': tab++; break;
+            }
+        }
+
+        var counts = new[] { (Delimiter: ',', Count: comma), (Delimiter: ';', Count: semicolon), (Delimiter: '\t', Count: tab) };
+        return counts.OrderByDescending(item => item.Count).First().Delimiter;
+    }
+
+    private static bool IsCsvFile(string filePath)
+        => string.Equals(Path.GetExtension(filePath), ".csv", StringComparison.OrdinalIgnoreCase);
+
+    private static void EnsureCsvSheet(string sheetName, string filePath)
+    {
+        if (!string.Equals(sheetName, CsvSheetName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.MissingSheet,
+                $"CSV data source '{Path.GetFileName(filePath)}' exposes one sheet named '{CsvSheetName}'.",
+                filePath,
+                sheetName);
+        }
     }
 
     private static List<ExcelPreviewRow> ReadPreviewRows(IExcelDataReader reader, int maxRows, CancellationToken cancellationToken)

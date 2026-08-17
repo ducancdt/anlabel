@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using ANLAbel.Core.Geometry;
 
@@ -8,6 +9,11 @@ namespace ANLAbel.App.Controls;
 
 public sealed class DesignerRuler : FrameworkElement
 {
+    public event EventHandler<RulerGuideDragEventArgs>? GuideDragStarted;
+    public event EventHandler<RulerGuideDragEventArgs>? GuideDragging;
+    public event EventHandler<RulerGuideDragEventArgs>? GuideDragCompleted;
+    public event EventHandler? GuideDragCanceled;
+
     public static readonly DependencyProperty LengthMmProperty =
         DependencyProperty.Register(nameof(LengthMm), typeof(double), typeof(DesignerRuler),
             new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
@@ -36,6 +42,66 @@ public sealed class DesignerRuler : FrameworkElement
     {
         get => (Orientation)GetValue(OrientationProperty);
         set => SetValue(OrientationProperty, value);
+    }
+
+    private bool _isDraggingGuide;
+
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        if (LengthMm <= 0 || Zoom <= 0)
+        {
+            base.OnMouseLeftButtonDown(e);
+            return;
+        }
+
+        _isDraggingGuide = true;
+        CaptureMouse();
+        Focus();
+        e.Handled = true;
+        GuideDragStarted?.Invoke(this, CreateGuideDragArgs(e.GetPosition(this)));
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        if (_isDraggingGuide && e.LeftButton == MouseButtonState.Pressed)
+        {
+            e.Handled = true;
+            GuideDragging?.Invoke(this, CreateGuideDragArgs(e.GetPosition(this)));
+        }
+
+        base.OnMouseMove(e);
+    }
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        if (_isDraggingGuide)
+        {
+            e.Handled = true;
+            _isDraggingGuide = false;
+            ReleaseMouseCapture();
+            GuideDragCompleted?.Invoke(this, CreateGuideDragArgs(e.GetPosition(this)));
+        }
+
+        base.OnMouseLeftButtonUp(e);
+    }
+
+    protected override void OnLostMouseCapture(MouseEventArgs e)
+    {
+        if (_isDraggingGuide)
+        {
+            _isDraggingGuide = false;
+            GuideDragCanceled?.Invoke(this, EventArgs.Empty);
+        }
+
+        base.OnLostMouseCapture(e);
+    }
+
+    private RulerGuideDragEventArgs CreateGuideDragArgs(Point point)
+    {
+        var positionDip = Orientation == Orientation.Horizontal ? point.X : point.Y;
+        var mmPerDip = MmConverter.DipToMm(1) / Math.Max(0.01, Zoom);
+        var positionMm = Math.Clamp(positionDip * mmPerDip, 0, Math.Max(0, LengthMm));
+        return new RulerGuideDragEventArgs(Orientation, positionMm);
     }
 
     protected override void OnRender(DrawingContext drawingContext)
@@ -122,4 +188,16 @@ public sealed class DesignerRuler : FrameworkElement
             brush,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
     }
+}
+
+public sealed class RulerGuideDragEventArgs : EventArgs
+{
+    public RulerGuideDragEventArgs(Orientation rulerOrientation, double positionMm)
+    {
+        RulerOrientation = rulerOrientation;
+        PositionMm = positionMm;
+    }
+
+    public Orientation RulerOrientation { get; }
+    public double PositionMm { get; }
 }

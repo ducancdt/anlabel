@@ -1,6 +1,6 @@
 # ANLAbel — CC-P4 Approval Workflow UI/UX spec
 
-**Status:** design-only document-state/policy spec; workflow store, actor policy and host remain open (2026-08-13)
+**Status:** fail-closed Core transition contract and local audit store implemented; actor policy, host and print policy remain open (2026-08-14)
 **Predecessor:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md)
 **Handoff:** [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md)
 **P5 separation contract:** [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md)
@@ -8,7 +8,15 @@
 **Owner decision packet:** [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Workflow `7:2`
 
-This spec maps the Figma Workflow research frame to a future local document-state surface. It does not add a workflow enum, transition store, permission model or Published print gate. Document approval remains distinct from P5 linked-reprint approval and from physical-output verification.
+This spec maps the Figma Workflow research frame to a future local document-state surface. `DocumentWorkflowContract` and `DocumentWorkflowStore` now supply the fail-closed graph, required comments and append-only local hash-chain audit; they do not add a permission model or Published print gate. Document approval remains distinct from P5 linked-reprint approval and from physical-output verification.
+
+Workflow audit uses a deterministic `<template>.workflow.jsonl` sidecar keyed by
+the normalized local template path. This preserves the versioned template
+envelope and avoids treating missing legacy metadata as Published.
+
+The software regression covers hash-change-to-Draft semantics and the P4 WPF
+Automation tree at `1024 × 600`. Manual scale/operability checks remain
+deferred external evidence under [`VERSIONING.md`](VERSIONING.md).
 
 ## 1. Operator outcome
 

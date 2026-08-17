@@ -33,13 +33,25 @@ public sealed class MmConverterRoundTripTests
         }
     }
 
+    [Fact]
+    public void PrinterDotsTreatZeroAsZeroAndKeepSignForSmallPositiveAndNegativeMoves()
+    {
+        Assert.Equal(0, MmConverter.MmToPrinterDots(0, 203));
+        Assert.True(MmConverter.MmToPrinterDots(0.2, 203) >= 1);
+        Assert.True(MmConverter.MmToPrinterDots(-0.2, 203) <= -1);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-203)]
     public void PrinterConversion_InvalidDpi_FailsFast(int dpi)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => MmConverter.MmToPrinterDots(10, dpi));
-        Assert.Throws<ArgumentOutOfRangeException>(() => MmConverter.PrinterDotsToMm(100, dpi));
+        var dotsEx = Assert.Throws<ArgumentOutOfRangeException>(() => MmConverter.MmToPrinterDots(10, dpi));
+        Assert.Equal("dpi", dotsEx.ParamName);
+        Assert.Contains("Printer DPI must be greater than zero", dotsEx.Message, StringComparison.Ordinal);
+        var mmEx = Assert.Throws<ArgumentOutOfRangeException>(() => MmConverter.PrinterDotsToMm(100, dpi));
+        Assert.Equal("dpi", mmEx.ParamName);
+        Assert.Contains("Printer DPI must be greater than zero", mmEx.Message, StringComparison.Ordinal);
     }
 
     private static readonly double[] RepresentativeDimensionsMm =

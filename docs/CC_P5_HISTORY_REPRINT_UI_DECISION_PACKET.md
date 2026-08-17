@@ -1,6 +1,6 @@
 # CC-P5 History + controlled reprint UI owner decision packet
 
-**Status:** documentation-only owner gate; no History host, runtime read-model merge, second reprint/dispatch stack, Figma write or Text/TextBox change is authorized (2026-08-13)
+**Status:** staged read-only History host/read-model implemented; no second reprint/dispatch stack, Figma write or Text/TextBox change is authorized (2026-08-13)
 **P5 handoff:** [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md)
 **P5 content spec:** [`CC_P5_HISTORY_REPRINT_UI_SPEC.md`](CC_P5_HISTORY_REPRINT_UI_SPEC.md)
 **Existing recovery/action owner:** [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md)
@@ -17,10 +17,9 @@ recovery owner. This packet closes the remaining owner gap for a future History 
 model: what is projected, which source wins, how unknown or corrupt evidence is shown, and how a
 selected row reaches controlled reprint without becoming a second dispatch surface.
 
-This packet is a decision record, not an implementation request. It keeps the current CSV shortcut,
-best-effort operation trace, hash-chained state store and Print Center action service as separate
-owners until the upstream host/read-model choice is approved. It does not add a History window,
-read API, navigation command, queue command, reprint button or Figma node.
+This packet remains the decision record. The current CSV shortcut, best-effort operation trace and
+hash-chained state store are now projected read-only by `PrintHistoryViewModel`; Print Center remains
+the sole action owner. The implementation adds no queue command, reprint button or Figma node.
 
 ## Decision summary
 

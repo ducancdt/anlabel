@@ -1,0 +1,93 @@
+<Window x:Class="ANLAbel.App.UpdateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cập nhật phần mềm ANLAbel"
+        Width="580" Height="500"
+        MinWidth="500" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        Background="#EEF2F6"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        AutomationProperties.AutomationId="Update.Dialog">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top banner -->
+        <Border Grid.Row="0" Background="#102A56" Padding="18,14" BorderBrush="#234A83" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Image Width="36" Height="36" Margin="0,0,14,0" Source="/ANLAbel.App;component/anlabel.ico"
+                       RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Cập nhật phần mềm ANLAbel" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    <TextBlock x:Name="BannerSubtitle" Text="Kiểm tra phiên bản mới từ GitHub Release" FontSize="11" Foreground="#B9CAE7" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,14">
+            <StackPanel>
+                <!-- Version Status Card -->
+                <Border Background="#FFFFFF" BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="6" Padding="14,12" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Phiên bản hiện tại: " FontWeight="SemiBold" Foreground="#475569"/>
+                                <TextBlock x:Name="CurrentVersionText" Text="v0.258" FontWeight="Bold" Foreground="#1E293B"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                                <TextBlock Text="Phiên bản mới nhất: " FontWeight="SemiBold" Foreground="#475569"/>
+                                <TextBlock x:Name="LatestVersionText" Text="Đang kiểm tra..." FontWeight="Bold" Foreground="#1464D2"/>
+                            </StackPanel>
+                            <TextBlock x:Name="ReleaseDateText" Text="" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" x:Name="StatusBadge" Background="#EAF3FF" BorderBrush="#B7D7FF" BorderThickness="1" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+                            <TextBlock x:Name="StatusBadgeText" Text="Đang kiểm tra" FontSize="11" FontWeight="SemiBold" Foreground="#1464D2"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Release Notes Card -->
+                <TextBlock Text="Nhật ký thay đổi (Release Notes):" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,6"/>
+                <Border Background="#FFFFFF" BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="6" Padding="12" MinHeight="140" MaxHeight="200">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="ReleaseNotesText" Text="Đang tải thông tin phát hành từ GitHub..." TextWrapping="Wrap" Foreground="#334155" FontSize="12" LineHeight="18"/>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Download Progress Card (Visible during download) -->
+                <StackPanel x:Name="DownloadProgressSection" Visibility="Collapsed" Margin="0,12,0,0">
+                    <DockPanel LastChildFill="False" Margin="0,0,0,4">
+                        <TextBlock x:Name="ProgressStatusText" Text="Đang tải bản cập nhật..." FontWeight="SemiBold" FontSize="12" Foreground="#1E293B" DockPanel.Dock="Left"/>
+                        <TextBlock x:Name="ProgressPercentText" Text="0%" FontWeight="Bold" FontSize="12" Foreground="#1464D2" DockPanel.Dock="Right"/>
+                    </DockPanel>
+                    <ProgressBar x:Name="DownloadProgressBar" Height="10" Minimum="0" Maximum="100" Value="0" Background="#E2E8F0" Foreground="#1464D2" BorderThickness="0"/>
+                    <TextBlock x:Name="ProgressDetailText" Text="" FontSize="11" Foreground="#64748B" Margin="0,4,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer Buttons -->
+        <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#D9E2EC" BorderThickness="0,1,0,0" Padding="16,10">
+            <DockPanel LastChildFill="False">
+                <Button x:Name="GitHubButton" Content="🌐 Xem trên GitHub" DockPanel.Dock="Left" Padding="12,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="GitHubButton_Click" Cursor="Hand"/>
+                <Button x:Name="CheckAgainButton" Content="🔄 Kiểm tra lại" DockPanel.Dock="Left" Margin="8,0,0,0" Padding="12,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="CheckAgainButton_Click" Cursor="Hand"/>
+
+                <Button x:Name="CloseButton" Content="Đóng" DockPanel.Dock="Right" Padding="14,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="CloseButton_Click" Cursor="Hand" Margin="8,0,0,0"/>
+                <Button x:Name="InstallButton" Content="⬇️ Tải và Cài đặt" DockPanel.Dock="Right" Padding="16,6" Background="#1464D2" Foreground="#FFFFFF" FontWeight="SemiBold" BorderBrush="#0F4EA8" Click="InstallButton_Click" Cursor="Hand" IsEnabled="False"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

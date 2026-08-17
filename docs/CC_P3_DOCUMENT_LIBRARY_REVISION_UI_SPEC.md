@@ -1,13 +1,13 @@
 # ANLAbel — CC-P3 Document Library + Revision UI/UX spec
 
-**Status:** design-only local browse/revision spec; host and workflow policy remain open (2026-08-13)
+**Status:** M1 local-root host implemented; richer browse/preview and workflow policy remain open (2026-08-13)
 **Host decision:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Handoff:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md)
 **Program route:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
 **Owner decision packet:** [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, Documents `3:2`
 
-This spec maps the Figma Documents / Storage shell to a local filesystem-first library, the existing embedded-template catalog and the existing revision/restore services. It does not create a browser, add check-out/ACL/workflow controls, or change protected Text/TextBox behavior.
+This spec maps the Figma Documents / Storage shell to a local filesystem-first library, the existing embedded-template catalog and the existing revision/restore services. `DocumentLibraryWindow` now provides the M1 local-root list, search, open and revision-owner route. It does not add check-out/ACL/workflow controls, or change protected Text/TextBox behavior.
 
 ## 1. Operator outcome
 

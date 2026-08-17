@@ -371,6 +371,10 @@ The next policy gate after P3 is the existing documentation-only [`CC_P4_APPROVA
 
 ## Definition of done for this handoff
 
+### Superseding execution decision (2026-08-13)
+
+The first Control Center slice is implemented and verified. [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) is the evidence log for the staged P1-only local Operations Overview. Software licensing, activation, entitlement and printer-seat accounting are excluded from CC-P1…P8; older references in this historical continuation log describe the preceding research/planning state and do not authorize those features. Figma Overview `2:2` remained read-only hierarchy evidence; runtime WPF and regression evidence closed P1.
+
 - [ ] A clean implementation checkpoint exists; this note is not evidence that the current dirty worktree is releasable.
 - [ ] `MASTER_PLAN.md`, `PLAN.md`, the reinvention execution plan and barcode documents agree on the current release snapshot.
 - [ ] Historical entries remain intact and future/open hardware claims stay explicitly non-claims.

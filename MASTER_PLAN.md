@@ -1,15 +1,139 @@
 # ANLAbel — Master Plan
 
+> **Hướng chiến lược mới (2026-08-09):** chương trình tái kiến trúc và nâng cấp lớn được quản lý tại [`docs/reinvention/README.md`](docs/reinvention/README.md). Bộ đó chứa benchmark NiceLabel/BarTender, audit codebase, kiến trúc đích, Designer Engine V2, UX system, execution plan, quality gates, rules, memory và ADR. Phần bắt điểm/căn hàng/căn baseline text và độ tin cậy tem công nghiệp được triển khai chi tiết tại [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md). Tài liệu này cùng `PLAN.md` tiếp tục được giữ làm lịch sử tiến hóa; không dùng các mô tả Phase 1 cũ để ghi đè quyết định mới mà không có ADR.
+
+> **Barcode / mã vạch công nghiệp (2026-08-12):** spine thực thi dài hạn (phase P0–P8, gate, non-claim) nằm tại [`docs/INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](docs/INDUSTRIAL_BARCODE_EXECUTION_PLAN.md). Gap matrix NiceLabel/BarTender: [`docs/BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](docs/BARCODE_NICELABEL_BARTENDER_RESEARCH.md). P0–P3 đã ship (X-dim, SizedFromX, HRI placement, check-digit policy + HRI hide); product display **v0.258**; shell icon collisions fixed (distinct bitmaps for Update Excel / Print history / Export Excel / Revisions). Không claim verifier phần cứng hay full GS1 certification.
+
+> **Control Center / LMS operations roadmap (2026-08-12):** large product-improvement plans derived from the NiceLabel Control Center user guide conversion — see [Control Center–driven large improvement plans](#control-center--lms-operations--large-improvement-plans-2026-08-12) below. Research sources: [`docs/NICELABEL_CONTROL_CENTER_USER_GUIDE.md`](docs/NICELABEL_CONTROL_CENTER_USER_GUIDE.md), UI crops in [`docs/assets/nicelabel-control-center/ui-screens/`](docs/assets/nicelabel-control-center/ui-screens/). Does **not** ship a multi-tenant web LMS in this roadmap wave; does **not** change the protected Text/TextBox industrial contract.
+
 Tai lieu nay la ban do tong quan, cap nhat theo tung dot lam viec lon. `PLAN.md` la nhat ky chi tiet tung buoc/tung phase da lam (giu nguyen, khong xoa). `agent.md` la quy dinh bat buoc cho agent. `docs/audit-2026-07-02.md` la bao cao audit chi tiet dot nay.
 
 ## San pham la gi
 
 ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan cong nghiep (Zebra, TSC, Godex, SATO, Argox, Honeywell, Intermec, Citizen, Toshiba TEC...), khong phai may in van phong. Kien truc WPF/.NET 8, MVVM, luu template `.anlabel` (JSON), binding du lieu tu Excel, ho tro barcode/QR/Data Matrix, print pipeline vector rieng cho driver may in tem.
 
-## Trang thai hien tai (2026-07-03)
+## Trang thai hien tai (2026-08-10)
 
-- Version hien thi trong app: `0.086`.
-- Build: `dotnet build ANLAbel.slnx --no-restore` PASS (0 warning, 0 error). Test: `ANLAbel.Tests` 51/51 PASS; `ANLAbel.UnitTests` 45/45 PASS (bao gom TC7 reliability). Smoke: app responsive, title `ANLAbel - Label Designer v0.086`.
+- v0.201 continuation: Properties `Content` now has an evidence-based Excel verification action instead of a passive filename line. The five-state contract (not linked/checking/verified/stale/failed) opens and validates the workbook/sheet/header, displays row/column/time evidence, invalidates success on disk changes and refreshes stale rows before re-verifying. Figma component `22:82` is the UI source; Text/TextBox sizing and print behavior are unchanged.
+- v0.181 continuation: bound-row scene/geometry parity is covered by a three-row fixture, text style edits now rebuild the designer text visual immediately, static text rendering now applies the same physical left-padding origin in preview/print as the designer, Preview effective PrintTicket/Capabilities preparation now runs on a dedicated STA before preflight, AutoFit text frames include authored physical edge padding, single-line dragging now uses the same object/grid snap, guide and stroke-hull clamp contract as other movable objects, interactive printing rejects accepting an unchanged Windows-default queue when no industrial queue is configured, Preview/Quick Print/Calibration now snapshot inputs and dispatch on a dedicated STA so a slow driver cannot freeze the WPF dispatcher or be double-submitted, Printer Setup restores the saved non-first standard stock after category repopulation (and keeps edited dimensions as explicit custom stock), and the release gate checks that app, help, title bars and commercial/trial installer metadata all advertise the same version. Current checks are 125 application and 284 xUnit; the detailed editor/industrial audit queue is recorded in `docs/reinvention/07-execution-plan.md` and physical-device certification remains open.
+- v0.180 continuation: fixed QR preflight now uses the selected version's exact UTF-8 byte-mode capacity from `QrCapacityTable`; area-based heuristics are gone, so version/correction-level overflow is blocked before spool. Current checks are 113 application and 284 xUnit; vendor SDK integration and physical-device certification remain open.
+- v0.179 continuation: production preflight now resolves each bound QR/DataMatrix row through the shared geometry contract and blocks rows whose required square frame exceeds the authored frame, preventing silent module compression before spool. Current checks are 112 application and 284 xUnit; vendor SDK integration and physical-device certification remain open.
+- v0.178 continuation: QR/DataMatrix geometry now resolves through one side-effect-free Core contract shared by the model, designer and bound-row ViewModel. Fixed/auto sizing, unresolved binding behavior, available label-space clamping and the 0.05 mm tolerance no longer have three independent implementations. Current checks are 111 application and 284 xUnit; vendor SDK integration and physical-device certification remain open.
+- v0.177 continuation: canceled move/resize gestures now reconcile the canvas extent after restoring their start geometry, so Escape/lost-capture cannot leave a stale workspace size or selection viewport. The v0.176 transform-only hot path remains in place. Current checks are 111 application and 279 xUnit; vendor SDK integration and physical-device certification remain open.
+- v0.176 continuation: transform-only canvas updates no longer serialize the full template, rerasterize barcode/image content or scan the whole canvas extent on every drag tick. Single/group moves and baseline transforms update only host position/line endpoints; extent recalculation is deferred to the gesture boundary. Explicit history transactions now skip per-tick JSON snapshots and capture only the start/final states. Current checks are 111 application and 279 xUnit; vendor SDK integration and physical-device certification remain open.
+- v0.175 continuation: the physical verifier adapter now has a finite timeout, caller-cancellation passthrough and single-channel busy guard. A timeout returns `adapter-timeout`, caller cancellation remains cancellation, and a non-cooperative vendor task keeps the channel busy until it actually completes; overlapping SDK calls are never allowed. Current checks are 111 application and 279 xUnit; vendor SDK integration and physical-device certification remain open.
+- v0.174 continuation: scanner/verifier SDK observations now pass through `PhysicalVerifierAdapterContract` into hash-only evidence, with adapter/version/device/correlation checks and barcode SHA-256 enforcement. `PhysicalVerifierAdapter` exposes a reusable async payload boundary; coordinator failures remain explicit, and requests with a thermal golden must match profile/raster/manifest fingerprints before hardware is called. Current checks are 111 application and 276 xUnit; vendor SDK and physical-device certification remain open.
+- v0.173 continuation: thermal raster golden bindings now require a complete queue/driver/driver-version/firmware/media/ribbon/calibration context plus exact raster fingerprint. The binding flows through `PrintRenderPlan`, preview-page metadata, `PrintJobResult`, manifest v2 and operation logs; manifest v1 remains readable for recovery. Current checks are 111 application and 270 xUnit; real SDK adapters and physical-device certification remain open.
+- v0.172 continuation: preview rasterization now returns a frozen bitmap together with a deterministic `RasterGoldenIdentity` captured on the STA worker (pixel dimensions, 300 DPI axes, stride, pixel format and exact bytes). The legacy image-only API remains compatible, while the preview cache carries the identity for each page so frame drift is observable without implying physical-output verification. Current checks are 111 application and 262 xUnit; real scanner/verifier SDKs, thermal-driver golden rasters and physical-device gates remain open.
+
+- v0.171 continuation: barcode-verifier expectations now bind symbology, application profile and normalized payload into a content fingerprint; ANSI/ISO grade scales have explicit minimum thresholds, while unknown/vendor grades and mismatches fail closed in the physical verifier coordinator. Current checks are 110 application and 262 xUnit; real scanner/verifier SDKs, thermal-driver golden rasters and physical-device gates remain open.
+- v0.170 continuation: the physical-verifier seam is now an injectable, hardware-neutral adapter contract with explicit fail-closed handling for invalid requests, null evidence, cancellation and adapter faults. A deterministic raster-golden identity binds algorithm revision, pixel dimensions, independent DPI axes, stride, pixel format and exact bytes, so preview/driver fixtures cannot compare the wrong device frame. Current checks are 110 application and 257 xUnit; real scanner/verifier SDKs, symbology/grade policy, thermal-driver golden rasters and physical-device gates remain open.
+- v0.169 continuation: physical completion now requires hash-verified scanner/barcode-verifier evidence bound to the exact print manifest, job ID and expected content fingerprint. Queue completion and operator visual inspection remain audit-only; lifecycle replay rejects tampered verification metadata. Current checks are 110 application and 250 xUnit; real verifier/scanner adapters, thermal raster and physical-device gates remain open.
+- v0.168 continuation: accepted submissions retain an immutable pre-dispatch queue snapshot and can resolve a driver-published job asynchronously off the UI thread for a bounded window. The before/after resolver still refuses ambiguous or unavailable evidence, while Preview and quick print now share the same delayed-identity path. Current checks are 110 application and 244 xUnit; verifier, thermal raster and physical-device gates remain open.
+- v0.167 continuation: spool-job attribution now uses a value-only before/after identity resolver. A newly visible job is correlated only when it is unique, or when one exact job-name match disambiguates concurrent submissions; missing snapshots and duplicate matches remain unknown instead of monitoring an unrelated job. Current checks are 110 application and 242 xUnit; delayed capture, verifier, thermal raster and physical-device gates remain open.
+- v0.166 continuation: Print Center/recovery now classifies offline, paper-out, user-intervention, blocked, paused, retained and driver-error queue states as terminal operator-decision evidence. No fault state is presented as a safe retry path; persisted queue-fault states receive the same fail-closed classification. Current checks are 110 application and 237 xUnit; verifier, thermal raster and physical-device gates remain open.
+- v0.165 continuation: the effective renderer now honors non-square printer DPI for barcode bitmaps, and legacy square-DPI renderers are resized nearest-neighbor to the exact device-dot frame. `PrintRenderPlan` and `EffectiveOutputContract` carry integer label/printable dot geometry so preview, preflight and dispatch share the same device evidence. Current checks are 110 application and 223 xUnit; queue/spooler, verifier and physical-device gates remain open.
+- v0.164 continuation: every replacement save and rollback now archives the exact prior bytes into a bounded `.revisions` folder, names snapshots with SHA-256 content hashes, and appends a durable JSONL audit event. The revision window lists validated archive snapshots and allows explicit rollback only from the managed backup or a parseable local archive. Current checks are 109 application and 220 xUnit; driver/raster parity, queue/spooler, verifier and physical-device gates remain open.
+- v0.163 continuation: revision history now shows a semantic primary-vs-backup diff with physical size, design/printer DPI, media/feed, queue, transform, object-count, guides, linked-data and document-hash evidence. Unsupported or invalid pairs remain non-comparable, so rollback review cannot hide schema or corruption risk. Current checks are 109 application and 220 xUnit; driver/raster parity, queue/spooler, verifier and physical-device gates remain open.
+- v0.162 continuation: the File ribbon now exposes a revision history window for the committed primary and managed `.bak`. Each entry is validated before display; invalid/future-schema backups are never offered for restore. An explicit rollback confirmation publishes the exact validated backup bytes atomically and moves the previous primary into the new backup slot. Current checks are 109 application and 220 xUnit; driver/raster parity, queue/spooler, verifier and physical-device gates remain open.
+- v0.161 continuation: project saves now rotate the previous committed revision into a durable same-directory `.bak` before the atomic primary rename. Opening a malformed primary explicitly reports the recovered source and forces Save As; corrupt backups surface a combined error, while future/unsupported schema files fail closed without downgrade or overwrite. A failed open leaves the current unsaved document untouched. Current checks are 108 application and 220 xUnit; upgrade/rollback, real pointer-capture traces, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.154 continuation: the opt-in canvas diagnostic overlay now renders pointer P95/max timing, sample count, normalized zoom and display scale from `PointerFrameTelemetry`. It refreshes only while enabled and remains outside the persisted/printable scene. Current checks are 101 application and 217 xUnit; real display-scale measurement, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.155 continuation: designer text rendering, overflow detection, baseline and optical-ink measurement now use the actual display `PixelsPerDip`; persisted auto-size remains model-independent at PPD 1.0 so monitor scaling cannot mutate label geometry. Current checks are 102 application and 217 xUnit; real display-scale traces, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.156 continuation: clicking a member already inside a multi-selection now changes the explicit key object without collapsing the selected group; arrange/baseline/optical commands retain deterministic key identity. Current checks are 103 application and 217 xUnit; pointer/display traces, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.157 continuation: line/rectangle/ellipse drawing endpoints now use the same object/guide/artboard/grid candidate selector and zoom-normalized hysteresis as move/resize; typed dimensions bypass snapping as exact input. Current checks are 104 application and 217 xUnit; pointer/display traces, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.158 continuation: resize handles now carry explicit handle/modifier semantics. Shift preserves the authored physical aspect ratio, Ctrl resizes around the original centre, and the same contract applies to single objects and multi-selection groups before snap/clamp. Current checks are 104 application and 220 xUnit; mouse-capture traces, display measurements, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.159 continuation: resize cancellation now snapshots and restores single-object geometry, while Thumb/canvas LostMouseCapture routes share one idempotent cancel path. A canceled resize cannot leave partial dimensions in the document or emit duplicate undo/cancel notifications. Current checks are 105 application and 220 xUnit; real pointer-capture traces, display measurements, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.160 continuation: `.anlabel` saves now use a versioned `{format,schemaVersion,template}` envelope; raw pre-envelope files migrate on load, future schema versions and malformed roots fail closed, and canceled writes leave the last committed file untouched. Current checks are 106 application and 220 xUnit; upgrade/rollback, real pointer-capture traces, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.153 continuation: `PointerFrameTelemetry` now records one bounded sample per drag preview frame with normalized zoom and display `PixelsPerDip`, and computes average/P95/max outside the pointer hot path. `LabelDesignerCanvas` exposes the telemetry without changing committed geometry or snap behavior. Current checks are 100 application and 217 xUnit; overlay pixel measurement, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.152 continuation: `TextSizingMode.ScaleWidth` keeps the authored font size and line height while applying a bounded horizontal scale (0.5 minimum) to fit fixed industrial text frames. The scale anchor follows left/center/right alignment, and shared ink bounds/identity keep designer, preview, print and preflight consistent. Current checks are 99 application and 214 xUnit; pointer telemetry, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.136 continuation: `PrintableAreaContract` validates finite positive imageable bounds and containment in the effective media; invalid driver geometry or unsupported DPI fails closed, while a missing imageable area remains explicitly unverified instead of being fabricated. Current checks are 88 application and 206 xUnit; queue/spooler, verifier and physical-device gates remain open.
+- v0.137 continuation: embedded images now carry a versioned `ImageRasterContract` (payload fingerprint, observed pixel dimensions and explicit `DriverManaged`/threshold/ordered-dither mode). The same WPF raster seam feeds designer, preview, print and preflight; image identity flows through immutable scene/plan/manifest/log metadata, stale dimensions fail closed, and deterministic monochrome output has parity fixtures. Current checks are 89 application and 209 xUnit; driver/thermal-raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.138 continuation: the designer canvas now treats zoom as a viewport refresh and normal object collection mutations as an incremental reconcile. Existing text/image/shape hosts, multi-selection and key-object identity survive zoom and add/remove/move operations; replacement with a stable object ID restores selection by contract. Current checks are 90 application and 209 xUnit; driver/thermal-raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.139 continuation: text objects now have persisted uniform inner padding in physical millimetres. One shared layout contract converts it to DIP and applies the same content width/height, origin, vertical offset, overflow and identity in designer, preview, print and preflight; the UI exposes a bounded 0–20 mm value. Current checks are 91 application and 209 xUnit; display-scale, driver/thermal-raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.140 continuation: text padding now supports independent left/right/top/bottom physical millimetre edges while retaining the uniform shorthand for legacy templates. The same edge-aware content rectangle drives wrapping, clipping, baseline/vertical alignment, optical bounds, preflight and scene identity; the Text Style card exposes both all-edge and per-edge controls. Current checks are 91 application and 209 xUnit; overflow policy expansion, display-scale, driver/thermal-raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.141 continuation: preview pages and raster snapshots can now consume the same effective queue/driver PrintRenderPlan used by dispatch. If a queue/ticket/imageable-area contract cannot be verified, preview remains available as design-only but preflight records a blocking contract issue; effective output identity, DPI and printable-area evidence are carried by preview metadata. Current checks are 91 application and 209 xUnit; display-scale, thermal-driver, verifier and physical-device gates remain open.
+- v0.142 continuation: fixed-frame Text and TextBox overflow now includes horizontal glyph-width checks after grapheme-safe wrapping, including the single-grapheme-wider-than-frame case. The shared detector feeds designer diagnostics, preview/print layout and production preflight with the same tolerance and identity; vertical overflow remains unchanged. Current checks are 91 application and 209 xUnit; explicit remediation modes, display-scale, thermal-driver, verifier and physical-device gates remain open.
+- v0.143 continuation: snap acquisition/release now comes from one zoom-normalized physical tolerance contract; invalid zoom values are bounded, exact acquire-boundary candidates are accepted, and the same policy is used for single, group and resize snap paths. Current checks are 91 application and 210 xUnit; display-scale visual measurement, driver/raster, verifier and physical-device gates remain open.
+- v0.144 continuation: compiled scene rendering now hydrates TextSizing, overflow policy and all physical text padding edges from the immutable snapshot. `TextOverflowMode.Error` remains the fail-closed default; explicit Clip/AllowOverflow choices are preserved through JSON, clone, scene hash, designer, preview, print and preflight. Current checks are 92 application and 210 xUnit; explicit ellipsis/shrink remediation, display-scale, driver/raster, verifier and physical-device gates remain open.
+- v0.145 continuation: prepared print jobs now revalidate the immutable document/output contract immediately before `PrintDocument`; any queue, effective-ticket, DPI, media, margin or evidence change fails closed before spool submission. `MatchesDispatchSnapshot` has regression coverage for design/output/evidence drift. Current checks are 92 application and 211 xUnit; queue/spooler fault adapters, driver/raster, verifier and physical-device gates remain open.
+- v0.146 continuation: group move hull calculation now consumes `TransformedBoundsContract` for rotated members, so snap/clamp/selection geometry agrees with the rendered 90°/270° object bounds. A STA canvas fixture covers transformed left/top/right/bottom hull edges. Current checks are 93 application and 211 xUnit; pointer telemetry, driver/raster, verifier and physical-device gates remain open.
+- v0.147 continuation: print preflight now consumes `TransformedBoundsContract` for rotated non-line objects, preventing an authored-in-bounds rectangle whose rendered hull crosses the design label from reaching dispatch. The rotated outside-label fixture is covered by the application regression matrix. Current checks are 93 application and 211 xUnit; pointer telemetry, driver/raster, verifier and physical-device gates remain open.
+- v0.148 continuation: line geometry now uses `LineBoundsContract` across designer group bounds, arrange, compiled-scene visual anchors and print preflight. Half the physical stroke width is included consistently, so a line that visually crosses the label edge cannot appear safe in the designer and fail only at print time. Current checks are 94 application and 214 xUnit; pointer telemetry, driver/raster, verifier and physical-device gates remain open.
+- v0.149 continuation: tracked quick print now resolves the saved named queue's effective PrintTicket before creating a manifest or recording `PreflightPassed`, validates scene/data against that same plan, and dispatches through the explicit queue with the expected output-contract hash. Approved reprints rebuild the effective physical contract before comparison; the missing-queue fixture proves no durable preparation event is written when the queue cannot be validated. Current checks are 95 application and 214 xUnit; pointer telemetry, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.150 continuation: bounded Text/TextBox objects now have an explicit `Ellipsis` overflow remediation. Regular WPF layout uses character ellipsis; explicit line-height layout trims by grapheme, caps physical line count and marks the final visible line. The same policy is persisted, cloned, hashed, rendered and accepted by preflight only when explicitly selected. Current checks are 96 application and 214 xUnit; shrink/scale remediation, pointer telemetry, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.151 continuation: `TextSizingMode.ShrinkFont` now keeps the authored frame fixed while resolving a bounded effective font size (minimum 4 pt) through the shared designer/preview/print/preflight layout path. Natural WPF line height now uses the measured per-line height when `FormattedText.LineHeight` is unavailable, so long text cannot pass a false vertical-fit check. Snap regression covers 0.25–4× zoom, priority and release hysteresis. Current checks are 98 application and 214 xUnit; ScaleWidth, pointer telemetry, driver/raster, verifier, queue/spooler and physical-device gates remain open.
+- v0.135 continuation: a spool-accepted result now states when the driver exposed no correlatable job identity and explicitly blocks an automatic retry; the preview tracking list marks a row printed only after a device-confirmed terminal outcome. Current checks are 88 application and 193 xUnit; imageable-area, queue/spooler, verifier and physical-device gates remain open.
+- v0.134 continuation: prepared dispatch now requires a verified effective PrintTicket hash as well as matching `OutputContractHash`; un-serializable driver tickets fail closed while direct calls without an expected preview hash remain compatible. Current checks are 87 application and 193 xUnit; imageable-area, queue/spooler, verifier and physical-device gates remain open.
+- v0.130 continuation: `TransformedBoundsContract` centralizes cardinal rotation bounds around the authored frame center. `LabelArrangeEngine` and canvas snap target/aggregate paths now share those bounds for rotated single/group alignment, spacing and resize targets; rotated source-handle resize mapping remains an explicit next gate. Current checks are 86 application and 174 xUnit; glyph-metrics, verifier and physical-device gates remain open.
+- v0.129 continuation: keyboard nudges now use 0.1 mm standard, 1 mm Shift/coarse and 0.01 mm Alt/fine through a pure physical contract. Pointer snap is bypassed for deterministic corrections; repeated keys share one undo gesture and Escape/focus loss restores exact geometry without moving arrow keys from property editors. Current checks are 86 application and 168 xUnit; display-scale, glyph-metrics, verifier and physical-device gates remain open.
+- v0.128 continuation: persistent ruler guides are now authoring metadata with stable IDs, physical-mm positions, lock/visibility and cancelable one-gesture edits. Horizontal/vertical ruler drags and the guide context menu add/lock/delete/clear guides; save/load preserves them, `DocumentHash` tracks them for history, and compiled `SceneHash` excludes them from printable output. Current checks are 85 application and 164 xUnit; ruler pixel, glyph-metrics, verifier and physical-device gates remain open.
+- v0.127 research continuation: the total plan now records DP-120..128 and IR-120..130 with explicit acceptance criteria for view-space hysteresis, transformed/group/resize snap, stable selection/key state, persistent guides, text metric policy, exact queue identity, evidence-level print outcomes, effective ticket/imageable bounds, device-dot/barcode verification, font/image/raster identity, stock/calibration, bounded 10k preview, durable recovery and redacted support bundles. This is a research/plan gate; physical printer/verifier evidence remains open.
+- v0.124 continuation: designer snapping now includes text first-baseline anchors for single and group moves, with the same zoom-stable acquire/release hysteresis as edge/center snapping. Text alignment adds a bounded Justify mode shared by designer/preview/print; resize Alt-bypass releases stale snap locks. Current checks are 82 application and 148 xUnit; hardware/verifier and full GS1 evidence remain open.
+- v0.125 continuation: designer snapping now has a physical-millimetre grid contract (0.25–20 mm, configurable from the canvas context menu) and equal-spacing candidates for single/group moves, with grid/spacing priority below semantic edge/center/baseline matches. The same grid step drives the visible grid and committed coordinates; Alt bypasses the snap path. Current checks are 83 application and 156 xUnit; optical glyph metrics, verifier and physical-printer evidence remain open.
+- v0.126 continuation: grid snap now works independently of object snap, transient guides show physical X/Y or equal-gap captions, and an explicit “Optical ink center” command aligns selected text by measured glyph geometry. `OpticalAlignmentContract` is platform-neutral; WPF `BuildGeometry` supplies the current ink bounds while frame/baseline alignment remain the production defaults. Current checks are 84 application and 160 xUnit; platform-neutral shaping, verifier and physical-printer evidence remain open.
+- v0.123 continuation: linear-barcode HRI is now a measured sub-layout contract shared by designer, preview, print and preflight. The symbol receives the same reduced height in every path; HRI uses the same WPF text metrics, gap and clipping rules; overflow and invalid font/frame combinations fail closed, while QR/Data Matrix retain their full symbol frame. Current checks were 81 application and 148 xUnit; complete GS1 AI registry, verifier, dither and physical-printer evidence remain open.
+- v0.122 continuation: barcode application profiles are now explicit and persisted (`General`, `Industrial`, `Gs1`). Quiet-zone/HRI geometry gates run in Core preflight; GS1 `(AI)value` data validates common check digits/field boundaries and is normalized to FNC1/group separators for the same ZXing renderer used by preview/print. Current checks were 80 application and 143 xUnit; inline HRI sub-layout was the next gate.
+
+- v0.113 continuation: text objects now expose persisted `AutoFit`/`FixedFrame` sizing. Fixed-frame text is clipped to its authored object bounds in designer/preview/print, overflow is a preflight error, and the sizing mode participates in clone and scene identity. Current checks are 73 application and 115 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.114 continuation: spool monitor regression fixtures now cover offline, paper/media unavailable, operator-intervention and spooler-reader fault states. Each is terminal queue evidence with `PhysicalOutputVerified=false`; the recovery contract remains explicit operator review with no automatic retry. Current checks are 73 application and 118 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.115 continuation: preflight now observes requested/resolved font family and per-row glyph coverage. A missing requested glyph is a blocking diagnostic (with code-point summary) so preview/print cannot silently diverge through OS fallback. Current checks are 74 application and 118 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.116 continuation: Print Preview now resolves the selected queue's effective PrintTicket before creating its immutable manifest. Preflight uses that effective DPI, the manifest carries the output-contract hash, driver media coercion is rejected when dimensions are reported, and dispatch fails closed if the driver contract changes after preview. `PrintContractGuard` keeps direct-print callers compatible while protecting prepared/reprint workflows. Current checks are 74 application and 125 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.117 continuation: font availability/fallback resolution now accepts an injectable catalog for deterministic install/remove fixtures, matches family names case-insensitively and preserves a stable installed spelling. The regression matrix covers combining marks, RTL Hebrew, CJK, emoji surrogate pairs and an unassigned scalar without splitting graphemes. Current checks are 75 application and 125 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.118 continuation: PreviewRasterizer rejects non-finite/non-positive dimensions before queueing, keeps the newest-request coalescing contract, and now has a 300-cycle long-soak regression covering STA-worker reuse, cancellation evidence, empty pending queue and private-memory growth. The local run measured 282 completed renders, 1 cancellation and 0.0 MB private-memory delta; this is software stress evidence, not proof on the baseline 4 GB workstation or a physical printer. Current checks are 75 application and 125 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.119 continuation: the designer rulers now mirror the artboard ScrollViewer's horizontal/vertical offsets after pan, zoom and canvas resize instead of maintaining independent scroll positions. `SpoolJobMonitor` also prioritizes an already-completed provider task before its deadline race, preserving the terminal queue observation for synchronous thermal-driver adapters. Five consecutive full xUnit runs stayed 125/125; the ruler implementation still needs visual ≤1 DIP evidence on representative display scales. Current checks remain 75 application and 125 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.120 continuation: embedded raster images now pass through a deterministic `ImageResolutionContract`. Production preflight rejects missing/corrupt payloads, encoded images over 64 MB and decoded images over 64 megapixels, then blocks source density below the effective X/Y printer grid derived from the resolved profile/ticket. Corrupt, undersampled and adequate PNG fixtures cover the gate. The app/help/installer metadata now reports v0.120. Current checks are 78 application and 130 xUnit; visual ruler measurements, driver coercion and physical-printer evidence remain open.
+- v0.121 continuation: vector barcode layout is now compiled by the platform-neutral `DeviceBarcodeLayout` seam. Dark runs, frame edges and independent X/Y coordinates are quantized once against the effective printer dot grid, then the WPF renderer only paints those runs. Golden layout tests cover 203/300/305/600/609 DPI and a 305×609 non-square profile; an app integration fixture proves the rendered geometry uses the same dot layout. Current checks are 79 application and 137 xUnit; 1-bpp/dither, verifier and physical-printer evidence remain open.
+- v0.112 continuation: Print Center now supports scanner-friendly exact job-ID lookup, partial search across printer/spool/queue/manifest evidence, F5 refresh, Escape focus reset and guarded Ctrl+Enter preview. Search is pure and order-preserving; no keyboard path dispatches or voids a job. Current checks are 72 application and 115 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.111 continuation: the recovery warning now opens a dedicated `PrintCenterWindow` with durable job/manifest/queue evidence and explicit Reconcile, Acknowledge, Void, Request reprint, Approve reprint and guarded Preview actions. It never retries or dispatches implicitly; approved previews continue to require the exact manifest before preparation. Current checks remain 72 application and 112 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.110 continuation: linked reprints now have a durable `ReprintApproved` action that requires the exact captured `PrintJobManifest`; `MainViewModel.DispatchApprovedPrintJobReprintAsync` rebuilds the current template/data manifest and refuses preparation when any path, queue, DPI, design hash, row count or row digest differs. The API remains explicit and never auto-dispatches after approval. Current checks are 72 application and 112 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- Precision/reliability checkpoint v0.117: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0117-2026-08-10).
+- Precision/reliability checkpoint v0.118: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0118-2026-08-10).
+- Precision/reliability checkpoint v0.119: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0119-2026-08-10).
+- Precision/reliability checkpoint v0.120: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0120-2026-08-10).
+- Precision/reliability checkpoint v0.121: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0121-2026-08-10).
+- Precision/reliability checkpoint v0.122: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0122-2026-08-10).
+- Precision/reliability checkpoint v0.123: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0123-2026-08-10).
+- Precision/reliability checkpoint v0.124: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0124-2026-08-10).
+- Precision/reliability checkpoint v0.125: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0125-2026-08-10).
+- Precision/reliability checkpoint v0.126: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0126-2026-08-10).
+- Precision/reliability research checkpoint v0.127: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#research-checkpoint-v0127-2026-08-10).
+- Precision/reliability implementation checkpoint v0.128: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0128-2026-08-10).
+- Precision/reliability implementation checkpoint v0.129: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0129-2026-08-10).
+- Precision/reliability implementation checkpoint v0.130: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0130-2026-08-10).
+- Precision/reliability implementation checkpoint v0.134: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0134-2026-08-10).
+- Precision/reliability implementation checkpoint v0.135: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0135-2026-08-10).
+- Precision/reliability implementation checkpoint v0.136: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0136-2026-08-10).
+- Precision/reliability implementation checkpoint v0.137: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0137-2026-08-10).
+- Precision/reliability implementation checkpoint v0.138: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0138-2026-08-10).
+- Precision/reliability implementation checkpoint v0.139: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0139-2026-08-10).
+- Precision/reliability implementation checkpoint v0.140: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0140-2026-08-10).
+- Precision/reliability implementation checkpoint v0.141: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0141-2026-08-10).
+- Precision/reliability implementation checkpoint v0.142: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0142-2026-08-10).
+- Precision/reliability implementation checkpoint v0.143: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0143-2026-08-10).
+- Precision/reliability implementation checkpoint v0.144: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0144-2026-08-10).
+- Precision/reliability implementation checkpoint v0.145: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0145-2026-08-10).
+- Precision/reliability implementation checkpoint v0.146: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0146-2026-08-10).
+- Precision/reliability implementation checkpoint v0.147: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0147-2026-08-10).
+- Precision/reliability implementation checkpoint v0.148: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0148-2026-08-10).
+- Precision/reliability implementation checkpoint v0.149: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0149-2026-08-10).
+- Precision/reliability implementation checkpoint v0.150: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0150-2026-08-10).
+- Precision/reliability implementation checkpoint v0.151: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0151-2026-08-10).
+- v0.109 continuation: `PrintJobManifest` creates an immutable, metadata-only identity for each dispatch. It canonicalizes template/path/mode/queue, dimensions/DPI, row order and all design/output hashes while hashing row payloads without retaining raw label values. Quick Print and Print Preview carry the manifest fingerprint through preparation, preflight, dispatch, queue observation, recovery candidates, operator reprint lineage and JSONL logs; the event store keeps v0.108 and older hash forms readable. Current checks are 72 application and 110 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.108 continuation: a deterministic `TextResourceContract` fingerprints requested font family, weight/style, direction, line-height and the documented Arial fallback policy. The fingerprint is carried through immutable snapshots, scene/preview/print plans, durable job transitions and JSONL operation logs; tests prove equivalent family spelling canonicalizes and resource changes invalidate the identity. Current checks are 72 application and 106 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.107 continuation: clipboard/duplicate cloning is now centralized in Core and copies every persisted object/style field, including text direction, vertical alignment, line height, barcode/HRI settings and embedded images. The canvas no longer owns a partial clone list; deep-copy regressions prove style/resource independence and preserve bound QR geometry across the type auto-size hook. Current checks are 72 application and 102 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.106 continuation: the editor now rechecks the saved named queue off the WPF dispatcher after startup, open/new/library load and printer selection. A missing queue appears as an actionable status-bar warning with a tooltip and a Printer Setup repair action; a stale lookup cannot overwrite a newer selection. One application regression covers the view-model warning contract. Current checks are 72 application and 100 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.105 continuation: `IPrinterQueueLookup` separates named-queue resolution from the WPF dialog, with a Windows adapter and an injectable missing-queue fixture. A saved queue that disappears now returns a failed result before any dialog/dispatch or default substitution. Current checks are 71 application and 100 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.104 continuation: explicit/direct print paths now reject a blank queue and never substitute the Windows default implicitly; queue-selection/driver exceptions are returned as a failed evidence result with an actionable message. Current checks are 70 application and 100 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.103 continuation: operator acknowledge/void/reprint-request actions now share the hash-chained print-job lineage. Void closes only the durable recovery state; acknowledge records review; reprint creates a linked `Created` child without preparation or dispatch. Legacy pre-lineage hashes remain readable; spooler-reader faults fail closed as `Unknown`. Current checks are 69 application and 100 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- v0.102 continuation: recovery review can re-query a captured queue identity with a bounded read-only monitor, append QueueObserved evidence and preserve the no-auto-retry/no-physical-verification contract. Current checks are 69 application and 93 xUnit; source product version remains v0.099 until a release-versioned build is intentionally prepared.
+- Chi tiết precision/reliability và backlog nghiên cứu: [`docs/reinvention/09-designer-precision-and-industrial-reliability.md`](docs/reinvention/09-designer-precision-and-industrial-reliability.md#implementation-checkpoint-v0110-2026-08-10). Các gate còn mở gồm Print Center/recovery UX chuyên dụng, fault fixture spooler restart/hot-unplug, parity font/glyph/resource platform-neutral, long-soak bộ nhớ và xác minh máy in vật lý.
+- v0.101 continuation: recovery replay classifies non-terminal print-job tails as queue reconciliation, explicit operator decision or event-log repair; MainWindow surfaces a read-only warning and never enables automatic retry. Current checks are 69 application and 88 xUnit; this is an internal reliability slice and the product version remains v0.099 until a release-versioned build is intentionally prepared. See docs/reinvention/07-execution-plan.md.
+- Job lifecycle continuation: `PrintJobStateMachine` + append-only `PrintJobStateStore` now persist sequenced/hash-chained transitions and refuse stale/invalid/corrupt-tail appends; Print Preview and quick print both persist bounded queue observations while keeping them distinct from physical completion.
+
+- Version hien thi trong app: `0.151`.
+- Build: `dotnet build ANLAbel.slnx -c Release` PASS (0 warning, 0 error). Test: `ANLAbel.Tests` 98/98 PASS; `ANLAbel.UnitTests` 214/214 PASS. Smoke: app responsive, title `ANLAbel - Label Designer v0.151`.
+- S0/R1/R2 implementation checkpoint: v0.097 print/design reliability remains in place; v0.098 adds deterministic selection-frame/key-object/canvas align, center/gap distribute, locked-selection diagnostics, primary-key outline, lazy preview metadata with an 8-page LRU bitmap cache, snap hysteresis, and atomic/versioned project/data-source persistence. v0.099 adds semantic snap priority for move/group/resize, cancelable/progressive async preflight/preview refresh, a virtualized/recycling tracking-row list for large batches, one shared text-bound policy for designer and print, explicit gesture transactions, a bounded preview raster pipeline with one reusable STA worker and newest-request coalescing, 10k burst telemetry plus a bounded-cache stress/cancellation regression, best-effort spool job identity capture, a cancellable queue-status monitor with Windows `PrintJobStatus` mapping and fake-reader timeout/identity tests, a bounded document-hash scene-compilation cache with 10k-request reuse evidence, a shared device-dot quantizer for barcode boundaries at square/non-square DPI, an immutable effective-output-contract fingerprint carried into the effective render plan and job log, a WPF-free immutable `DocumentSnapshot`/`SceneCompiler` geometry seam with order-stable hashes and diagnostics, a scene-identity bridge that carries document/scene hashes through preview pages, effective print jobs, and JSONL audit logs, and a compiled-scene presenter that renders the immutable snapshot while retaining an explicit legacy fallback for invalid/manual plans. The Core `TextLayoutContract` now owns deterministic newline/grapheme/bidi/line-height/vertical policy; WPF remains only the glyph measurement backend. Persisted Auto/LTR/RTL text direction, grapheme-safe wrapping, shared `TextLayoutMetrics` (line height, ink extent, baseline and vertical offset), and missing-font preflight/fallback diagnostics remain in the checkpoint. See [`docs/reinvention/07-execution-plan.md`](docs/reinvention/07-execution-plan.md#implementation-checkpoint-v099-2026-08-09).
+- v0.100 continuation: Current Row and All Rows quick print now poll the same bounded queue-monitor contract as Print Preview when a spool identity is available, persist `QueueObserved` under the durable job ID, and carry queue state/poll/timeout fields into the machine log. A dedicated application regression prevents the two print paths from drifting on status evidence; queue observations never claim physical output. See [`docs/reinvention/07-execution-plan.md`](docs/reinvention/07-execution-plan.md#implementation-checkpoint-v100-2026-08-09).
 - Doc Excel: `ExcelDataService` (ANLAbel.Data) dung `ExcelDataReader` (streaming, nhe RAM) thay cho `ClosedXML` (DOM day du, ton RAM) tu v0.083 — xem muc 35. Timeout cung 45s cho moi thao tac doc file cuc bo tu v0.084 (safety net, chua phai fix tan goc) — xem muc 36.
 - Print History: chuyen tu Excel-ghi-lai-toan-bo-moi-lan-in sang CSV append-only (O(1) moi lan in) tu v0.085 + nut "Export to Excel" rieng de xuat bao cao dep khi can — xem muc 37. Khong con tu dong mo Excel sau moi lan in.
 - **CANH BAO CHUA GIAI QUYET XONG**: mot may 4GB RAM cua chu du an van bao treo khi Import Excel ke ca sau khi doi thu vien doc Excel (v0.083) voi file NHO (<500 dong) — treo VINH VIEN vai phut, khong phai cham. Nguyen nhan that su CHUA XAC DINH DUOC, khong tai hien duoc trong moi truong nay. v0.084 chi them luoi an toan (timeout 45s) de tranh phai Task-Manager-kill, KHONG phai fix goc. Xem chi tiet dieu tra + huong lam tiep o muc 36.
@@ -23,7 +147,9 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 - `docs/designer-stability-plan.md` — plan sua bug object tu nhay vi tri/kich thuoc trong designer (nguyen nhan goc: duong render ghi nguoc vao model — text auto-fit, matrix ep vuong, QR auto-size deu mutate WidthMm/HeightMm khi ve lai/doi PreviewRow; 6 buoc sua, can duyet vi co thay doi UX auto-fit). Dot 1 da lam xong (muc 10 ben duoi).
 - `docs/print-preview-reliability-plan.md` — plan siet do tin cay In & Preview (preflight tung dong, kiem tra du lieu tuoi truoc khi in, test WYSIWYG 3 duong render, khop DPI barcode voi may in, bao cao lo in + chong trung tem). MOI 2026-07-02.
 - `docs/properties-panel-plan.md` — audit + sap xep lai Properties panel (them Position & Size X/Y/W/H mm, Shape Style, mau chu; gop 3 card binding trung lap; Formula Builder thanh Expander). MOI 2026-07-02.
+- `docs/industrial-panel-design.md` — hierarchy frequency-first hien hanh: Properties co tab that `Label` / `Layout` / `Advanced`; Label mac dinh day Content, TextBox behavior va typography len dau, geometry va arrange/layer o tab xa hon (Figma `18:69`, ap dung tu v0.200). Tai lieu nay thay the thu tu hien thi cu trong `docs/properties-panel-plan.md`.
 - `docs/database-manager-module-plan.md` — module quan ly database rieng (cua so `DatabaseManagerWindow` kieu NiceLabel Dynamic Data Manager), gom 4 dot: M1 go link Excel khoi template (✅ xong), M2 cua so quan ly trung tam (✅ xong), M3 usage tracking + don nguon mo coi (✅ xong), M4 tuy chon — copies-per-record, filter/sort (CHUA LAM, chi lam khi duoc yeu cau).
+- **Control Center / LMS operations (roadmap, 2026-08-12):** [section below](#control-center--lms-operations--large-improvement-plans-2026-08-12) — competitive UX plans from NiceLabel Control Center MD + `docs/assets/nicelabel-control-center/ui-screens/`; research guide [`docs/NICELABEL_CONTROL_CENTER_USER_GUIDE.md`](docs/NICELABEL_CONTROL_CENTER_USER_GUIDE.md).
 
 ## Da xong trong dot audit nay
 
@@ -292,3 +418,217 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 - [x] Cho template chon `DataSourceId` va fallback ve `FilePath` cu de giu tuong thich nguoc. Hoan tat v0.066.
 - [x] Them `FileSystemWatcher` debounce va badge "Data changed — Update". Hoan tat v0.065.
 - [x] Them UI chon `KeyField`; backend `KeyValue`/restore theo key da co. Hoan tat v0.064.
+
+---
+
+## Control Center / LMS operations — large improvement plans (2026-08-12)
+
+> **Research basis (not product claims):** full conversion of NiceLabel Control Center 2019 user guide → [`docs/NICELABEL_CONTROL_CENTER_USER_GUIDE.md`](docs/NICELABEL_CONTROL_CENTER_USER_GUIDE.md); UI page renders + embeds → [`docs/assets/nicelabel-control-center/ui-screens/`](docs/assets/nicelabel-control-center/ui-screens/); optional Figma shells → https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4.  
+> **Consistency:** stays under the reinvention spine ([`docs/reinvention/README.md`](docs/reinvention/README.md)) and industrial barcode plan ([`docs/INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](docs/INDUSTRIAL_BARCODE_EXECUTION_PLAN.md)). **Does not** change the protected Text/TextBox industrial contract (`PLAN.md` / Agents.md). **Does not** claim a shipped multi-tenant web LMS, live NiceLabel parity, or physical-printer certification.  
+> **Product stance:** ANLAbel remains a **desktop industrial label designer + local print reliability stack**. Control Center lessons drive **operator operations UX** and **document lifecycle** on that stack—not a rewrite into a browser-only EPM server.
+
+### Program phases (horizon)
+
+| Phase | Theme | Primary ANLAbel build surface | Outcome (roadmap, not shipped) |
+| --- | --- | --- | --- |
+| **CC-P1** | Operator console | `PrintCenterWindow`, spool/recovery, status bar | Single “operations home” for queue health, recent faults, license/seat summary, deep-links into History / Printers |
+| **CC-P2** | Print queue console | Print Management parity on local queues | Pause/resume/delete-in-queue, group by printer/workstation, status filters — still Windows-spooler based, fail-closed |
+| **CC-P3** | Document library + revision | `TemplateLibraryWindow`, `ProjectRevisionService`, `TemplateRevisionWindow` | Folder-like library, preview, check-in/out semantics, semantic revision diff already started in v0.162–0.164 |
+| **CC-P4** | Approval workflow | *new* domain on revision archive | Draft → Request approval → Approved → Published (optional delayed publish); no silent promote to production print |
+| **CC-P5** | History + controlled reprint | `PrintOperationLogService`, `PrintJobRecoveryService`, manifest lineage | Filterable activity, detail drawer, reprint only with exact manifest match (extends v0.110+) |
+| **CC-P6** | Analytics (read-only) | Aggregates over JSONL/CSV logs | Label / printer / user / station workload charts from local evidence only |
+| **CC-P7** | Admin shell (light) | `ActivationWindow`, prefs | Roles later; first: licenses, alerts config, log retention — not full AD multi-tenant |
+| **CC-P8** | Automation / Web print (future) | *not started* | Trigger list + start/stop only after P1–P5 solid; web print form is a separate product decision |
+
+Suggested build order for the app: **CC-P1 → CC-P2 → CC-P5 → CC-P3 → CC-P4 → CC-P6 → CC-P7 → CC-P8**.
+
+---
+
+### 1. Overview / operations dashboard
+
+**What NiceLabel Control Center shows**  
+Summary landing tab: server name/time, operational workstations in the last hour (recent prints, last print, recent errors), license seats used/total, recent errors (24h), product version for support. Primary nav shell (Overview · Documents · Applications · Printers · History · Analytics · Administration). Privileges can hide tabs when auth is on.
+
+**Image refs:** `docs/assets/nicelabel-control-center/ui-screens/page-054.png` (Overview field list), `page-055.png` (dashboard chrome + Documents intro), embeds `embed-p055-x1119-1257x422.png`, `embed-p055-x1127-1242x614.png`.
+
+**ANLAbel today (gap)**  
+- Partial: `PrintCenterWindow` recovery/reconcile, status-bar queue warnings, license via `ActivationWindow`, app version in title.  
+- Missing: unified “home” dashboard, workstation fleet view, license seat table on open, 24h error rollup, privileged nav shell for ops modules.
+
+**Large plan outcome (CC-P1)**  
+Ship an **Operations Overview** surface (WPF window or ribbon hub, not a web server) that:
+
+1. Aggregates last-N durable job transitions + queue observations (no physical-output claim).  
+2. Surfaces seat/license summary next to named-queue health.  
+3. Deep-links into Print Center, History, and Printer Setup.  
+4. Uses the same green industrial chrome vocabulary as Control Center research shells (Figma) for operator recognition—without copying trademarked assets.
+
+**Milestones:** M1 data cards from existing logs → M2 workstation/queue identity → M3 optional multi-user filter once admin exists.
+
+---
+
+### 2. Documents — storage, versioning, workflow
+
+**What NiceLabel shows**  
+Web Document Storage: folder tree, icon/list of label files, search, toolbar (edit/files/revision/workflow), label preview, check-out/check-in, revision history, compare revisions, folder permissions, production approval workflows (Draft → Request approval → Approved → Published / scheduled publish / Rejected).
+
+**Image refs:** `page-055.png`, `page-056.png`, `page-057.png` (if present), `page-058.png` (preview), `page-079.png`, `page-081.png` (check-out), `page-087.png`, `page-090.png` (workflow state diagram), embeds `embed-p057-x1169-1242x587.png`, `embed-p058-x1187-507x405.png`.
+
+**ANLAbel today (gap)**  
+- Partial: `TemplateLibraryWindow` + embedded templates; `ProjectRevisionService` / `.revisions` archive + `TemplateRevisionWindow` (semantic primary-vs-backup diff, rollback from validated bytes — v0.162–0.164).  
+- Missing: shared multi-user document storage, check-out locks, approval workflow states, folder ACLs, label-to-label visual compare of two production revisions as first-class product.
+
+**Large plan outcome (CC-P3 + CC-P4)**  
+
+**CC-P3 Document library**
+
+1. Promote Template Library into a **local document library** (folders under a configured root, still filesystem-first).  
+2. Thumbnail + metadata preview (reuse `LibraryThumbnailRenderer` / preview pipeline).  
+3. Bind revision UI to every open path, not only managed `.bak`.  
+4. Explicit check-out flag in project metadata (single-machine first; multi-user later).
+
+**CC-P4 Approval workflow**
+
+1. Persist workflow step on template envelope (Draft / InReview / Approved / Published / Rejected)—fail closed if print of non-Published is policy-on.  
+2. Operator actions: Request approval, Approve, Reject, Publish (optional schedule field only after durable store exists).  
+3. All transitions append audit events (same hash-chain discipline as print jobs).  
+4. **Non-goal this wave:** NiceLabel RemoteApp browser extension, multi-tier landscape sync servers.
+
+**Milestones:** library browse → revision everywhere → workflow enum + gate on production print → multi-user lock (later).
+
+---
+
+### 3. Applications / Automation
+
+**What NiceLabel shows**  
+Web Applications: share label solutions as web forms with login policy, printer restriction, print recording. Automation Manager: trigger list, start/stop, configs, filtered automation logs (timestamp / name / description / event level).
+
+**Image refs:** `page-103.png`, `page-105.png`, `page-112.png`, `page-114.png`, `page-119.png` (automation log chrome before Printers section).
+
+**ANLAbel today (gap)**  
+- Not shipped: web app designer, cloud integrations, automation trigger host.  
+- Related: Excel/data connectors, preview tracking, batch print—desktop only.
+
+**Large plan outcome (CC-P8 — deferred)**  
+
+1. **Do not** start Automation until CC-P1/P2/P5 evidence paths are stable (automation multiplies bad reprints).  
+2. When opened: a local **Automation panel** that hosts file/folder/TCP-style triggers calling the same preflight + manifest print path as Quick Print.  
+3. Web print form is a **separate product decision** (browser stack vs kiosk WPF)—record only as option B.  
+4. All automation prints must write History with trigger identity (no silent path around preflight).
+
+**Milestones:** design-only trigger model → single file-drop trigger → start/stop + log filter → web form decision ADR.
+
+---
+
+### 4. Printers / Print Management
+
+**What NiceLabel shows**  
+Real-time Print Management: left rail (licensed printers, all printers, printers with errors, printing now, ready, paused, custom groups), command strip (Pause / Resume / Delete documents in queue / Reserve / Unreserve), searchable table (printer name, documents in queue, status, workstation, port), bottom status (printer count, show unlicensed, view by workstation).
+
+**Image refs:** `page-119.png`, `page-120.png` (All Printers list + Zebra/Paxar rows), `page-125.png` (groups), embed `embed-p120-x2374-1249x528.png`.
+
+**ANLAbel today (gap)**  
+- Partial: Printer Setup, named-queue resolution (`IPrinterQueueLookup`), spool identity + `SpoolJobMonitor`, Print Center actions, industrial queue rejection of Windows default when unconfigured.  
+- Missing: multi-printer fleet console, custom printer groups, pause/resume/delete documents in queue as primary UX, licensed-seat list tied to printers.
+
+**Large plan outcome (CC-P2)**  
+
+1. Expand Print Center (or sibling **Print Management** view) into a **queue console** over discovered industrial queues.  
+2. Status taxonomy maps to existing fail-closed terminal states (offline, paper-out, user-intervention, blocked, paused, retained, driver-error — v0.166).  
+3. Operator commands only when the Windows spooler allows them; never invent success if the driver refuses.  
+4. Optional **printer groups** as local preferences (Facility A / Location 1) for filter only—not license enforcement.  
+5. Stay compatible with industrial barcode DPI/preflight spines when jobs are re-dispatched.
+
+**Milestones:** multi-queue table → status filters → command strip with evidence → groups → seat linkage display.
+
+---
+
+### 5. History / reprint
+
+**What NiceLabel shows**  
+History tab with filters, printing activities, activity details, reprint, errors, system events, alerts; job status vocabularies; reprint prerequisites.
+
+**Image refs:** `page-127.png`, `page-128.png`, `page-130.png`, embeds `embed-p127-x2550-1253x304.png`, `embed-p128-x2560-490x471.png`.
+
+**ANLAbel today (gap)**  
+- Strong foundation: append-only `PrintOperationLogService`, `PrintJobManifest` lineage, recovery classification, Request/Approve reprint with exact-manifest gate (v0.109–v0.112), CSV print history + export.  
+- Missing: full History **module UX** (filters for activity type, errors, system events), activity detail drawer at Control Center density, operator-friendly time-range search across all evidence stores.
+
+**Large plan outcome (CC-P5)**  
+
+1. Unify JSONL operation log + CSV print history + job state store under one **History browser** (read-only first).  
+2. Detail pane: manifest fingerprint, queue observations, design/output hashes, recovery actions (reuse Print Center commands—no second dispatch stack).  
+3. Reprint remains **explicit Approve → prepare → dispatch** with mismatch fail-closed.  
+4. Support export of redacted support bundles (already a reinvention gate) from History selection.
+
+**Milestones:** browser UI → filters → detail drawer → reprint deep-link → support-bundle selection.
+
+---
+
+### 6. Analytics
+
+**What NiceLabel shows**  
+Analytics dimensions: Labels, Printer Groups, Users, Computers/Applications, Materials; bar charts for printed labels vs errors; filters (date, printer group, label name, dimension); optimize workloads and cost narratives.
+
+**Image refs:** `page-136.png`, `page-137.png` (dual chart: printed vs errors), `page-141.png` (user workload), embeds `embed-p137-x2788-1246x887.png`, `embed-p137-x2793-1249x875.png`.
+
+**ANLAbel today (gap)**  
+- Not shipped as product UI. Raw evidence exists in logs/CSV (label counts, queue names, timestamps, errors).
+
+**Large plan outcome (CC-P6)**  
+
+1. **Read-only Analytics** window over local logs—no cloud telemetry required.  
+2. First charts: labels printed over time, errors/faults over time, top printers/queues, top templates.  
+3. Filters: date range, queue name, template path hash (not raw customer PII).  
+4. Explicit disclaimer: software counters from local evidence, not verified physical labels unless physical-verifier gate is green.
+
+**Milestones:** aggregate service → two charts → filters → export CSV summary.
+
+---
+
+### 7. Administration
+
+**What NiceLabel shows**  
+Authentication methods, access roles & permissions, application users/groups, versioning & workflow toggles, database replacements, global variables, alerts (SMTP/RSS/SMS), application server options, landscape sync, history log cleanup, **Licenses** (activate/upgrade/deactivate, printer seats).
+
+**Image refs:** `page-008.png` (licenses), `page-024.png`, `page-025.png` (roles), `page-031.png` (users), `page-040.png` (workflows admin).
+
+**ANLAbel today (gap)**  
+- Partial: commercial/trial activation (`ActivationWindow`), designer preferences file, history log files on disk.  
+- Missing: multi-user roles, groups, SMTP alerts, centralized license seat server, workflow admin panel, log retention scheduler UI.
+
+**Large plan outcome (CC-P7 — light admin)**  
+
+1. **Admin shell** grouping: License, Data sources, Log retention, Alerts (optional), Designer defaults.  
+2. License remains local key model first; “printer seats” display is informational from known queues—not a Control Center license server.  
+3. Log cleanup: schedule archive of JSONL/CSV with recovery path (mirror NiceLabel history cleanup idea, local only).  
+4. Roles/groups: only after single-user admin prefs prove useful; design permission matrix offline before coding.  
+5. Alerts: optional SMTP for queue-fault terminal states once Print Center classification is trusted.
+
+**Milestones:** Admin window shell → license + retention → optional SMTP → roles ADR.
+
+---
+
+### Cross-cutting rules for this program
+
+1. **Evidence over chrome:** every new ops screen must bind to durable job/log/revision evidence already used by print reliability—no decorative dashboards.  
+2. **Fail closed:** no automatic reprint, no default-queue substitution, no “physical verified” without the physical-verifier spine.  
+3. **Text/TextBox contract untouched** unless a future goal explicitly reopens it.  
+4. **Barcode industrial spine continues in parallel** (P0–P8); Print Management must not bypass X-dim / DPI / preflight.  
+5. **Image-traceable design:** Figma and UI crops under `docs/assets/nicelabel-control-center/ui-screens/` are the competitive reference; implementation is ANLAbel-native WPF.  
+6. **No web LMS claim:** on-prem browser Control Center is a research benchmark; shipping a full EPM web stack is out of scope until a separate ADR.
+
+### Source checklist (assets consulted for this write)
+
+| Module | Page / embed samples |
+| --- | --- |
+| Overview | `page-054.png`, `page-055.png`, `embed-p055-x1119-1257x422.png` |
+| Documents | `page-055.png`–`page-058.png`, `page-079.png`, `page-081.png`, `page-087.png`, `page-090.png` |
+| Applications | `page-103.png`, `page-105.png`, `page-112.png`, `page-114.png` |
+| Printers | `page-119.png`, `page-120.png`, `page-125.png`, `embed-p120-x2374-1249x528.png` |
+| History | `page-127.png`, `page-130.png`, `embed-p127-x2550-1253x304.png` |
+| Analytics | `page-136.png`, `page-137.png`, `page-141.png`, `embed-p137-x2788-1246x887.png` |
+| Administration | `page-008.png`, `page-024.png`, `page-025.png`, `page-031.png`, `page-040.png` |
+
+---
+

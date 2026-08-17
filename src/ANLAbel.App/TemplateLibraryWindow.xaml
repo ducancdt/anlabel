@@ -5,14 +5,14 @@
         Height="700" Width="1000"
         MinHeight="460" MinWidth="720"
         WindowStartupLocation="CenterOwner"
-        Background="#F1F5F9"
+        Background="{DynamicResource AppCanvasBrush}"
         FontFamily="Segoe UI" FontSize="13">
     <DockPanel>
         <!-- Header -->
-        <Border DockPanel.Dock="Top" Background="#0D237A" Padding="18,12">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="22,16">
             <StackPanel>
-                <TextBlock Text="📚 Thư viện tem nhãn công nghiệp" Foreground="White" FontSize="17" FontWeight="Bold"/>
-                <TextBlock Foreground="#C7D2FE" FontSize="12" Margin="0,3,0,0">Chọn một mẫu rồi nhấn “Dùng mẫu này” để mở vào màn thiết kế.</TextBlock>
+                <TextBlock Text="Thư viện tem nhãn" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Foreground="#DBEAFE" FontSize="12" Margin="0,4,0,0">Chọn một mẫu, xem trước và dùng ngay trong màn thiết kế.</TextBlock>
             </StackPanel>
         </Border>
 
@@ -21,8 +21,8 @@
             <DockPanel>
                 <TextBlock x:Name="CountText" VerticalAlignment="Center" Foreground="#64748B"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
-                    <Button x:Name="UseButton" Content="✓ Dùng mẫu này" Click="Use_Click" IsEnabled="False"
-                            Padding="16,8" Margin="0,0,8,0" Background="#1464D2" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
+                    <Button x:Name="UseButton" Content="Dùng mẫu này" Click="Use_Click" IsEnabled="False"
+                            Padding="16,8" Margin="0,0,8,0" Background="{DynamicResource AppPrimaryBrush}" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
                     <Button Content="Đóng" Click="Close_Click" Padding="16,8" Cursor="Hand"/>
                 </StackPanel>
             </DockPanel>

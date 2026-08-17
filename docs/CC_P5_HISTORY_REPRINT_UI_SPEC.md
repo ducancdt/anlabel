@@ -1,6 +1,6 @@
 # ANLAbel — CC-P5 History + controlled reprint UI/UX spec
 
-**Status:** design-only, provenance-first activity/detail spec; host and implementation remain open (2026-08-13)
+**Status:** staged read-only History host implemented; runtime scale smoke remains pending (2026-08-13)
 **Host decision:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
 **Evidence contract:** [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md)
 **Handoff:** [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md)
@@ -8,11 +8,11 @@
 **Concrete History owner packet:** [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research file](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, History `3:85`
 
-This spec maps the Figma History shell to a local, read-only projection over durable job state, supplemental operation JSONL and per-label CSV detail. It does not create a History window, merge files at runtime, expose raw label payloads, or add a second reprint/dispatch owner.
+This spec maps the Figma History shell to a local, read-only projection over durable job state, supplemental operation JSONL and per-label CSV detail. The staged `PrintHistoryWindow` implements that projection without exposing raw label payloads or adding a second reprint/dispatch owner.
 
 The existing WPF `PrintCenterWindow` remains the recovery/reprint action owner; its source-backed state and action gates are recorded in [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md). The future History surface must deep-link to that owner rather than copy its buttons or dispatch path.
 
-The remaining History/read-model ownership, provenance, privacy and closure decisions are recorded in [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md). This spec remains design-only until that packet and the upstream host gate are signed off.
+The remaining History/read-model expansion, privacy and runtime-scale closure decisions are recorded in [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md). The implemented M1 host remains limited to the stated local, provenance-preserving projection.
 
 ## 1. Operator outcome
 
@@ -39,7 +39,7 @@ Metadata for `3:85` was rechecked read-only on 2026-08-13. The node names and bo
 | `3:101` | `Frame`, `(16,176)`, `1248 x 600` | Activity table/detail owner | Read-only activity first; selection must not mutate logs. |
 | `3:102`/`3:103` | Header `1248 x 32`; Submitted, Type, Module, Workstation, User, Status, Details | Column-language reference | Do not populate Workstation/User from sample copy or infer a module identity. |
 | `3:104`–`3:108` | Example activity rows | Density/empty-state reference only | Example users, workstations, dates and statuses are not runtime fixtures. |
-| `3:109` | Activity details / Reprint / Errors tabs note | Deep-link/detail affordance | Metadata contains no concrete local child states; host and owner remain open. |
+| `3:109` | Activity details / Reprint / Errors tabs note | Deep-link/detail affordance | Metadata contains no concrete local child states; the implemented host keeps Print Center as the action owner. |
 
 No new Figma node is required for this spec. If a missing state needs design evidence, follow the [Figma escalation protocol](figma-ui-handoff-template.md#figma-escalation-protocol) and request the smallest state-specific reference.
 

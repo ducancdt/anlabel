@@ -4,6 +4,147 @@
              xmlns:local="clr-namespace:ANLAbel.App"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-         
+        <!-- Shared industrial desktop theme. MainWindow can override these keys for its ribbon-specific states. -->
+        <Color x:Key="ThemeInk">#1E293B</Color>
+        <Color x:Key="ThemeMuted">#64748B</Color>
+        <Color x:Key="ThemeBorder">#D9E2EC</Color>
+        <Color x:Key="ThemeCanvas">#EEF2F6</Color>
+        <Color x:Key="ThemeSurface">#FFFFFF</Color>
+        <Color x:Key="ThemeSurfaceSoft">#F8FAFC</Color>
+        <Color x:Key="ThemePrimary">#1464D2</Color>
+        <Color x:Key="ThemePrimaryDark">#0F4EA8</Color>
+        <Color x:Key="ThemePrimarySoft">#EAF3FF</Color>
+
+        <SolidColorBrush x:Key="ThemeInkBrush" Color="{StaticResource ThemeInk}"/>
+        <SolidColorBrush x:Key="ThemeMutedBrush" Color="{StaticResource ThemeMuted}"/>
+        <SolidColorBrush x:Key="ThemeBorderBrush" Color="{StaticResource ThemeBorder}"/>
+        <SolidColorBrush x:Key="ThemeCanvasBrush" Color="{StaticResource ThemeCanvas}"/>
+        <SolidColorBrush x:Key="ThemeSurfaceBrush" Color="{StaticResource ThemeSurface}"/>
+        <SolidColorBrush x:Key="ThemeSurfaceSoftBrush" Color="{StaticResource ThemeSurfaceSoft}"/>
+        <SolidColorBrush x:Key="ThemePrimaryBrush" Color="{StaticResource ThemePrimary}"/>
+        <SolidColorBrush x:Key="ThemePrimarySoftBrush" Color="{StaticResource ThemePrimarySoft}"/>
+
+        <!-- Window-level aliases: dialogs do not inherit MainWindow's local resource keys. -->
+        <SolidColorBrush x:Key="AppInkBrush" Color="{StaticResource ThemeInk}"/>
+        <SolidColorBrush x:Key="AppMutedBrush" Color="{StaticResource ThemeMuted}"/>
+        <SolidColorBrush x:Key="AppBorderBrush" Color="{StaticResource ThemeBorder}"/>
+        <SolidColorBrush x:Key="AppCanvasBrush" Color="{StaticResource ThemeCanvas}"/>
+        <SolidColorBrush x:Key="AppSurfaceBrush" Color="{StaticResource ThemeSurface}"/>
+        <SolidColorBrush x:Key="AppPrimaryBrush" Color="{StaticResource ThemePrimary}"/>
+
+        <Style TargetType="Window">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource ThemeInkBrush}"/>
+            <Setter Property="Background" Value="{StaticResource ThemeCanvasBrush}"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ThemeInkBrush}"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="Background" Value="{StaticResource ThemeSurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource ThemeInkBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonRoot" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonRoot" Property="Background" Value="{StaticResource ThemePrimarySoftBrush}"/>
+                                <Setter TargetName="ButtonRoot" Property="BorderBrush" Value="#A9CEFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonRoot" Property="Background" Value="#DCEBFF"/>
+                                <Setter TargetName="ButtonRoot" Property="BorderBrush" Value="{StaticResource ThemePrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.48"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="9,6"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="Background" Value="{StaticResource ThemeSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="Background" Value="{StaticResource ThemeSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="Expander">
+            <Setter Property="Margin" Value="0,6,0,0"/>
+            <Setter Property="Padding" Value="8"/>
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="{StaticResource ThemeSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="9,7"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource ThemeInkBrush}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource ThemePrimarySoftBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource ThemePrimaryBrush}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource ThemeSurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource ThemeSurfaceSoftBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource ThemeInkBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="8,7"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrush}"/>
+        </Style>
+
+        <Style TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </Application.Resources>
 </Application>

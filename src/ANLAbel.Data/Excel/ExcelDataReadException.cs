@@ -4,6 +4,7 @@ public enum ExcelDataReadError
 {
     MissingFile,
     InvalidWorkbook,
+    InvalidData,
     MissingSheet,
     InvalidHeaderRow
 }

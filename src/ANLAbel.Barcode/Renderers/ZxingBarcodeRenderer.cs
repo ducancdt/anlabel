@@ -1,4 +1,5 @@
 using ANLAbel.Barcode.Options;
+using ANLAbel.Core.Barcode;
 using ZXing;
 using ZXing.Common;
 using ZXing.Datamatrix.Encoder;
@@ -6,7 +7,7 @@ using ZXing.QrCode.Internal;
 
 namespace ANLAbel.Barcode.Renderers;
 
-public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
+public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRenderer
 {
     private const int MaxPixelCount = 25_000_000;
 
@@ -17,13 +18,44 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             throw new ArgumentException("Barcode data is empty or invalid.", nameof(data));
         }
 
-        data = NormalizeData(data, type);
         options ??= new BarcodeRenderOptions();
+        data = NormalizeData(data, type, options);
         var widthPixels = Math.Max(8, (int)Math.Round(widthMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
         var heightPixels = Math.Max(8, (int)Math.Round(heightMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
         ValidatePixelSize(widthPixels, heightPixels);
-        var matrix = new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));
-        return RenderMatrix(matrix);
+        return RenderEncoded(data, type, widthPixels, heightPixels, dpi, dpi, options);
+    }
+
+    public BarcodePixelImage RenderBarcode(
+        string data,
+        BarcodeType type,
+        double widthMm,
+        double heightMm,
+        int dpiX,
+        int dpiY,
+        BarcodeRenderOptions? options = null)
+    {
+        if (dpiX <= 0 || dpiY <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(dpiX), "Barcode DPI values must be positive.");
+        }
+
+        if (dpiX == dpiY)
+        {
+            return RenderBarcode(data, type, widthMm, heightMm, dpiX, options);
+        }
+
+        if (!ValidateData(data, type))
+        {
+            throw new ArgumentException("Barcode data is empty or invalid.", nameof(data));
+        }
+
+        options ??= new BarcodeRenderOptions();
+        data = NormalizeData(data, type, options);
+        var widthPixels = Math.Max(8, (int)Math.Round(widthMm / 25.4 * dpiX, MidpointRounding.AwayFromZero));
+        var heightPixels = Math.Max(8, (int)Math.Round(heightMm / 25.4 * dpiY, MidpointRounding.AwayFromZero));
+        ValidatePixelSize(widthPixels, heightPixels);
+        return RenderEncoded(data, type, widthPixels, heightPixels, dpiX, dpiY, options);
     }
 
     public bool ValidateData(string data, BarcodeType type)
@@ -62,11 +94,28 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
     /// instead of throwing, producing a barcode that scanners in standard mode read
     /// back garbled. Uppercase first so the data always maps onto the plain alphabet.
     /// </summary>
-    private static string NormalizeData(string data, BarcodeType type)
+    private static string NormalizeData(string data, BarcodeType type, BarcodeRenderOptions options)
     {
-        return type is BarcodeType.Code39 or BarcodeType.Codabar
+        var normalized = type is BarcodeType.Code39 or BarcodeType.Codabar
             ? data.ToUpperInvariant()
             : data;
+
+        if (!options.IsGs1)
+        {
+            return normalized;
+        }
+
+        if (type is not (BarcodeType.Code128 or BarcodeType.QRCode or BarcodeType.DataMatrix))
+        {
+            throw new ArgumentException("GS1 encoding is supported only for Code 128, QR Code, and Data Matrix.", nameof(type));
+        }
+
+        if (!BarcodeApplicationContract.TryNormalizeGs1Data(normalized, out var gs1Data, out var errors))
+        {
+            throw new ArgumentException(string.Join(" ", errors));
+        }
+
+        return gs1Data;
     }
 
     public string GetBarcodeInfo(string data, BarcodeType type)
@@ -110,13 +159,13 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             return null;
         }
 
-        data = NormalizeData(data, type);
         options ??= new BarcodeRenderOptions();
+        data = NormalizeData(data, type, options);
         var widthPixels = Math.Max(8, (int)Math.Round(widthMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
         var heightPixels = Math.Max(8, (int)Math.Round(heightMm / 25.4 * dpi, MidpointRounding.AwayFromZero));
         ValidatePixelSize(widthPixels, heightPixels);
 
-        var matrix = new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));
+        var matrix = EncodeMatrix(data, type, widthPixels, heightPixels, options);
 
         // Extract the first row of the BitMatrix as the barcode pattern
         var rowBits = new bool[matrix.Width];
@@ -125,7 +174,37 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             rowBits[x] = matrix[x, 0];
         }
 
+        // WidthModules here is the scaled pixel column count for drawing — not
+        // the logical module count. Use CountLinearModules for industrial math.
         return new BarcodeVectorData(matrix.Width, matrix.Height, rowBits);
+    }
+
+    /// <inheritdoc />
+    public int? CountLinearModules(string data, BarcodeType type, BarcodeRenderOptions? options = null)
+    {
+        if (!IsLinearBarcode(type) || !ValidateData(data, type))
+        {
+            return null;
+        }
+
+        options ??= new BarcodeRenderOptions();
+        try
+        {
+            data = NormalizeData(data, type, options);
+            // Request a 1×1 target so ZXing returns the unscaled pure module
+            // matrix (native column count including quiet-zone margin modules).
+            var matrix = EncodeMatrix(
+                data,
+                type,
+                1,
+                1,
+                options);
+            return matrix.Width > 0 ? matrix.Width : null;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return null;
+        }
     }
 
     private static bool IsLinearBarcode(BarcodeType type)
@@ -197,7 +276,106 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer
             hints[EncodeHintType.DATA_MATRIX_SHAPE] = SymbolShapeHint.FORCE_NONE;
         }
 
+        if (options.IsGs1)
+        {
+            hints[EncodeHintType.GS1_FORMAT] = true;
+        }
+
         return hints;
+    }
+
+    private static BarcodePixelImage RenderEncoded(
+        string data,
+        BarcodeType type,
+        int widthPixels,
+        int heightPixels,
+        int dpiX,
+        int dpiY,
+        BarcodeRenderOptions options)
+    {
+        // Square 2D (and PDF417 native-aspect): encode the module matrix once,
+        // then integer-scale so each module stays uniform. Independent
+        // ResizeNearest(frameW, frameH) would squash modules.
+        if (IsMatrixBarcode(type))
+        {
+            var native = EncodeMatrix(data, type, 1, 1, options);
+            var nativeImage = RenderMatrix(native);
+            var layout = MatrixSquareModuleFit.Fit(
+                nativeImage.WidthPixels,
+                nativeImage.HeightPixels,
+                widthPixels,
+                heightPixels,
+                dpiX,
+                dpiY);
+            return nativeImage.ScaleIntegerModules(layout.ModuleDotsX, layout.ModuleDotsY);
+        }
+
+        return RenderMatrix(EncodeMatrix(data, type, widthPixels, heightPixels, options));
+    }
+
+    private static bool IsMatrixBarcode(BarcodeType type)
+    {
+        return type is BarcodeType.QRCode
+            or BarcodeType.DataMatrix
+            or BarcodeType.Pdf417
+            or BarcodeType.Aztec;
+    }
+
+    private static BitMatrix EncodeMatrix(string data, BarcodeType type, int widthPixels, int heightPixels, BarcodeRenderOptions options)
+    {
+        if (type != BarcodeType.Code39 || options.Code39WideNarrowRatio == Core.Enums.Code39WideNarrowRatio.LegacyEngineDefault)
+        {
+            return new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));
+        }
+
+        var ratio = Core.Barcode.Code39RatioContract.ToValue(options.Code39WideNarrowRatio);
+        if (ratio is null)
+        {
+            throw new ArgumentException("Unsupported Code 39 wide:narrow ratio.");
+        }
+
+        // Classify wide/narrow elements from ZXing's native 1/2-unit matrix,
+        // never from a frame-scaled matrix where both runs may be many pixels.
+        var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options));
+        return RescaleCode39Runs(native, Math.Max(0, options.QuietZoneModules), ratio.Value, widthPixels, heightPixels);
+    }
+
+    private static BitMatrix RescaleCode39Runs(BitMatrix source, int quietZoneModules, double ratio, int targetWidth, int targetHeight)
+    {
+        var runs = new List<(bool Black, int Length)>();
+        var current = source[0, 0];
+        var length = 0;
+        for (var x = 0; x < source.Width; x++)
+        {
+            var bit = source[x, 0];
+            if (bit == current) { length++; continue; }
+            runs.Add((current, length));
+            current = bit;
+            length = 1;
+        }
+        runs.Add((current, length));
+
+        // ZXing Code 39 uses a 1/2 narrow/wide pattern. Preserve the two outer
+        // margins and reweight interior two-unit runs to the approved ratio.
+        var weights = runs.Select((run, index) =>
+            index == 0 || index == runs.Count - 1
+                ? Math.Max(0, quietZoneModules)
+                : run.Length >= 2 ? ratio : 1d).ToArray();
+        var total = weights.Sum();
+        var target = new BitMatrix(targetWidth, targetHeight);
+        var cursor = 0;
+        for (var index = 0; index < runs.Count; index++)
+        {
+            var next = index == runs.Count - 1
+                ? targetWidth
+                : (int)Math.Round((weights.Take(index + 1).Sum() / total) * targetWidth, MidpointRounding.AwayFromZero);
+            if (runs[index].Black && next > cursor)
+            {
+                target.setRegion(cursor, 0, next - cursor, targetHeight);
+            }
+            cursor = next;
+        }
+        return target;
     }
 
     private static ErrorCorrectionLevel ParseQrErrorCorrection(string value)

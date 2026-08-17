@@ -1,6 +1,6 @@
 # CC-P2 Print Queue Console UI/UX handoff
 
-**Status:** roadmap/pre-implementation; local printer discovery and single-queue evidence exist, but the fleet/queue console is not implemented or runtime-verified
+**Status:** M1 read-only queue console implemented; runtime UI smoke still pending
 **Parent plan:** [`MASTER_PLAN.md`](../MASTER_PLAN.md#control-center--lms-operations--large-improvement-plans-2026-08-12), section 4, CC-P2
 **Related CC-P1 handoff:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md)
 **Cross-surface handoff:** [`10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
@@ -13,7 +13,14 @@
 **Concrete owner decision packet:** [`CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md`](CC_P2_PRINT_QUEUE_UI_DECISION_PACKET.md)
 **Figma reference:** [NiceLabel Control Center research shell](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4), Page `0:1`, `CC / Printers — Print Management` node `2:37`
 
-This is a documentation handoff, not an authorization to modify the dirty implementation wave. The Figma shell is a visual and information-architecture reference only. It does not prove that ANLAbel has a multi-workstation service, licensed-printer seat accounting, printer-native controls, or physical-label verification.
+The M1 host is `PrintQueueConsoleWindow`, opened from the existing shell. The Figma shell remains a visual and information-architecture reference only. It does not prove that ANLAbel has a multi-workstation service, licensed-printer seat accounting, printer-native controls, or physical-label verification.
+
+## M1 implementation evidence
+
+- `PrinterDiscoveryService.DiscoverInstalledPrinters()` now returns a typed result so an enumeration failure is distinct from an empty Local/Connections list; the legacy list API remains compatible.
+- `PrintQueueConsoleViewModel` provides request-epoch refresh, Name/Driver search and evidence-only filters. A saved unavailable queue stays visible even when absent from discovery.
+- `PrintQueueConsoleWindow` exposes the `CC.P2.QueueConsole.*` UIA vocabulary, explicit Printer Setup/Print Center/History deep-links and a non-actionable command explanation.
+- Build completes with zero warnings/errors; unit tests pass 356/356 and the application regression runner passes including P2 empty-versus-failure, stale-refresh and no-command/no-licensing checks.
 
 CC-P2 consumes the P1 host/deep-link decision and supplies the read-only queue evidence reused by P5. Keep queue discovery, canonical identity and spool observation under one owner; the program index coordinates the dependency, while this handoff remains authoritative for P2 status taxonomy and acceptance details.
 
@@ -55,7 +62,7 @@ Read-only Figma metadata was checked on 2026-08-13 for node `2:37`, `1280 x 800`
 | `2:74` | Search sample | `(932, 116)` text row | Search by name/port/workstation only where those fields are actually observed. |
 | `2:75` / `2:76` | Table header | `(264, 152)`, `976 x 28` | Useful column language: printer name, documents in queue, status, workstation, port. Define local null/unknown values before implementing. |
 | `2:77`–`2:79` | Example rows | `ZEBRA GX430t`, `Paxar 676` samples | Research samples only; never copy printer names, IPs, queue counts or error text into product fixtures as live evidence. |
-| `2:80` | Footer controls | `(272, 744)` text row | Printer count and a local filter can be useful; `Show unlicensed printers` and `View by workstation` require an explicit local data/entitlement decision. |
+| `2:80` | Footer controls | `(272, 744)` text row | Printer count and local filters can be useful; `Show unlicensed printers` is omitted because licensing/entitlement is outside product scope, while workstation grouping requires a real local identity source. |
 
 The research source describes a multi-workstation Control Center domain and licensed-printer operations in [`NICELABEL_CONTROL_CENTER_USER_GUIDE.md`](NICELABEL_CONTROL_CENTER_USER_GUIDE.md) and the extracted Print Management section in [`_raw_extract.md#L3315`](assets/nicelabel-control-center/_raw_extract.md#L3315). Those passages explain the benchmark, not ANLAbel product capabilities. No Figma edit or new file is needed for this handoff: `2:37` already answers the shell question. A Figma frame remains design input, not runtime acceptance.
 
@@ -67,7 +74,7 @@ Keep CC-P2 vertical and local:
 2. **M1 — Status filters/search:** define a small local taxonomy (`Available`, `Printing`, `Paused`, `Offline`, `PaperOut`, `UserIntervention`, `Blocked`, `Retained`, `Error`, `Unknown`) and map each row to a safe next action. Do not claim a printer-level state when only a job-level observation exists.
 3. **M2 — Selection and deep-links:** route selected recovery evidence to Print Center, profile repair to Printer Setup and durable history to Print History. Keep one owner for each action.
 4. **M3 — Explicit command strip:** only after a command contract exists for Pause/Resume/Delete. Every command needs capability detection, confirmation where destructive, busy/timeout/error state, durable outcome and a no-physical-output disclaimer.
-5. **Later — Local groups/seat display:** groups may be local preference filters. Licensed-printer or seat linkage stays deferred until a real entitlement source exists; it must not be inferred from Figma.
+5. **Later — Local groups:** groups may be local preference filters. Licensed-printer and seat linkage are excluded rather than deferred.
 
 The first host decision is open: extend `PrintCenterWindow` with a read-only queue tab, add a sibling `PrintManagementWindow`, or expose a queue console from the CC-P1 overview. Do not create parallel authorities for queue identity or reprint lineage.
 

@@ -1,3 +1,5 @@
+using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
@@ -7,12 +9,14 @@ using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
+using ANLAbel.Core.Printing;
 using ANLAbel.Printing.RenderPipeline;
 
 namespace ANLAbel.Printing.PrinterProfiles;
 
 public sealed class PrintPreflightValidator
 {
+    private static readonly IQrCapacityProvider QrCapacityProvider = new QrCapacityTable();
     private readonly IBarcodeRenderer _barcodeRenderer;
 
     public PrintPreflightValidator()
@@ -25,18 +29,37 @@ public sealed class PrintPreflightValidator
         _barcodeRenderer = barcodeRenderer;
     }
 
-    public PrintPreflightResult Validate(LabelTemplate template, IReadOnlyList<IReadOnlyDictionary<string, string>?> rows, int? printDpi = null)
+    public PrintPreflightResult Validate(
+        LabelTemplate template,
+        IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        int? printDpi = null,
+        int? printDpiY = null,
+        CancellationToken cancellationToken = default,
+        IProgress<PrintPreflightProgress>? progress = null)
     {
         var issues = new List<PrintPreflightIssue>();
-        foreach (var item in template.Objects.Where(item => item.IsVisible))
+        var visibleItems = template.Objects.Where(item => item.IsVisible).ToArray();
+        var totalUnits = Math.Max(1, visibleItems.Length * Math.Max(1, rows.Count));
+        var completedUnits = 0;
+        var reportStride = Math.Max(1, totalUnits / 100);
+        progress?.Report(new PrintPreflightProgress(0, totalUnits));
+
+        foreach (var item in visibleItems)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             ValidateObjectWithinLabel(template, item, issues);
-            ValidateBarcodeModuleSizeAtPrintDpi(item, printDpi, issues);
+            ValidateTextFont(item, issues);
+            ValidateImage(item, printDpi, printDpiY ?? printDpi, issues);
+            ValidateBarcodeModuleSizeAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
+            ValidateLinearBarcodeModuleAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
+            ValidateBarcodeApplicationGeometry(item, issues);
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var row = rows[rowIndex];
                 ValidateBindingFieldsPresent(item, row, rowIndex, issues);
                 var data = ResolveExpression(item, row);
+                ValidateTextGlyphCoverage(item, data, rowIndex, issues);
 
                 switch (item.Type)
                 {
@@ -52,9 +75,16 @@ public sealed class PrintPreflightValidator
                         ValidateTextBox(item, data, rowIndex, issues);
                         break;
                 }
+
+                completedUnits++;
+                if (completedUnits % reportStride == 0)
+                {
+                    progress?.Report(new PrintPreflightProgress(completedUnits, totalUnits));
+                }
             }
         }
 
+        progress?.Report(new PrintPreflightProgress(totalUnits, totalUnits));
         return new PrintPreflightResult(issues);
     }
 
@@ -109,22 +139,106 @@ public sealed class PrintPreflightValidator
     /// the label. Row-independent (depends only on object config), so it is checked once
     /// per object rather than once per row.
     /// </summary>
-    private static void ValidateBarcodeModuleSizeAtPrintDpi(LabelObject item, int? printDpi, List<PrintPreflightIssue> issues)
+    private static void ValidateBarcodeModuleSizeAtPrintDpi(LabelObject item, int? printDpiX, int? printDpiY, List<PrintPreflightIssue> issues)
     {
-        if (printDpi is null || printDpi <= 0 || item.QrDpi <= 0 || !item.IsSquare2DCodeLike() || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+        if (printDpiX is null || printDpiX <= 0 || printDpiY is null || printDpiY <= 0 || item.QrDpi <= 0 || !item.IsSquare2DCodeLike() || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
         {
             return;
         }
 
-        var effectiveDots = item.QrModuleSizePx * (double)printDpi.Value / item.QrDpi;
-        if (effectiveDots < 2)
+        var effectiveDotsX = item.QrModuleSizePx * (double)printDpiX.Value / item.QrDpi;
+        var effectiveDotsY = item.QrModuleSizePx * (double)printDpiY.Value / item.QrDpi;
+        if (effectiveDotsX < 2 || effectiveDotsY < 2)
         {
             issues.Add(new PrintPreflightIssue(
                 0,
                 item.Name,
                 item.Type.ToString(),
-                $"Module is only ~{effectiveDots:0.#} dot(s) when printed at {printDpi} DPI — likely to fail scanning. Increase Module px, set QrDpi to match the printer, or use Auto size."));
+                $"Module is only ~{effectiveDotsX:0.#}×{effectiveDotsY:0.#} dot(s) when printed at {printDpiX}×{printDpiY} DPI — likely to fail scanning. Increase Module px, set QrDpi to match the printer, or use Auto size."));
         }
+    }
+
+    /// <summary>
+    /// Industrial 1D module (X-dimension) check at print-plan DPI. Uses the authored
+    /// <see cref="LabelObject.BarcodeModuleWidthMm"/> when set; otherwise estimates
+    /// module width from the object frame and the encoded module count. Sub-2-dot
+    /// modules and values below the industrial X floor are reported (not silently
+    /// stretched). Row-independent when X is authored; when derived, uses empty
+    /// data-free geometry only for fixed text samples via the vector encode.
+    /// </summary>
+    private void ValidateLinearBarcodeModuleAtPrintDpi(
+        LabelObject item,
+        int? printDpiX,
+        int? printDpiY,
+        List<PrintPreflightIssue> issues)
+    {
+        if (printDpiX is null || printDpiX <= 0 || printDpiY is null || printDpiY <= 0)
+        {
+            return;
+        }
+
+        if (item.Type is not ObjectType.BarcodeCode128 || item.IsSquare2DCodeLike())
+        {
+            return;
+        }
+
+        var dpi = Math.Min(printDpiX.Value, printDpiY.Value);
+        LinearBarcodeModuleResolution resolution;
+        try
+        {
+            if (item.BarcodeModuleWidthMm > 0)
+            {
+                resolution = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, dpi);
+            }
+            else
+            {
+                // Legacy: derive module from frame / pure logical module count.
+                // Do NOT use frame-scaled RenderBarcodeVector.WidthModules — that is
+                // pixel columns after stretch (~1 printer dot per column), which
+                // falsely fails every comfortable frame-owned 1D barcode.
+                var barcodeType = BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology);
+                if (!_barcodeRenderer.ValidateData(item.Text ?? string.Empty, barcodeType)
+                    && string.IsNullOrEmpty(item.BindingExpression))
+                {
+                    // Bound rows are validated per-row; static empty data cannot estimate modules.
+                    return;
+                }
+
+                var sample = string.IsNullOrEmpty(item.Text) ? "0" : item.Text;
+                if (!_barcodeRenderer.ValidateData(sample, barcodeType))
+                {
+                    return;
+                }
+
+                var options = CreateBarcodeRenderOptions(item);
+                var logicalModules = _barcodeRenderer.CountLinearModules(sample, barcodeType, options);
+                if (logicalModules is null or <= 0)
+                {
+                    return;
+                }
+
+                resolution = LinearBarcodeModuleContract.ResolveForObject(
+                    authoredModuleWidthMm: 0,
+                    frameWidthMm: item.WidthMm,
+                    totalModules: logicalModules.Value,
+                    dpi: dpi);
+            }
+        }
+        catch
+        {
+            return;
+        }
+
+        if (!resolution.HasIndustrialRisk)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            0,
+            item.Name,
+            item.Type.ToString(),
+            LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution)));
     }
 
     private static void ValidateObjectWithinLabel(LabelTemplate template, LabelObject item, List<PrintPreflightIssue> issues)
@@ -145,13 +259,210 @@ public sealed class PrintPreflightValidator
             $"Object extends outside the design label bounds ({template.WidthMm:0.##} x {template.HeightMm:0.##} mm). Move it inside the label so preview and print do not clip it."));
     }
 
+    private static void ValidateTextFont(LabelObject item, List<PrintPreflightIssue> issues)
+    {
+        if (item.Type is not (ObjectType.Text or ObjectType.TextBox)
+            || string.IsNullOrWhiteSpace(item.Style.FontFamily)
+            || TextBoxOverflowDetector.IsFontAvailable(item.Style.FontFamily))
+        {
+            return;
+        }
+
+        var requested = item.Style.FontFamily.Trim();
+        var fallback = TextBoxOverflowDetector.ResolveFontFamilyName(requested);
+        issues.Add(new PrintPreflightIssue(
+            0,
+            item.Name,
+            item.Type.ToString(),
+            $"Font '{requested}' is not installed on this machine. Preview and print will use '{fallback}', so install the font or choose an approved installed family before production printing."));
+    }
+
+    private static void ValidateImage(LabelObject item, int? printDpiX, int? printDpiY, List<PrintPreflightIssue> issues)
+    {
+        if (item.Type != ObjectType.Image)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(item.ImageDataBase64))
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                "Image has no embedded data. Replace the image before production printing."));
+            return;
+        }
+
+        if (!ImageRasterContract.IsSupported(item.ImageRasterMode))
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Image raster mode '{item.ImageRasterMode}' is not supported by this build. Choose DriverManaged or an approved monochrome mode before production printing."));
+            return;
+        }
+
+        byte[] bytes;
+        try
+        {
+            // Refuse obviously oversized payloads before WPF allocates a decoder
+            // buffer. Templates remain portable, but a corrupt/hostile image
+            // cannot freeze the preflight worker with an unbounded allocation.
+            const int maxEncodedBytes = 64 * 1024 * 1024;
+            const int maxBase64Characters = ((maxEncodedBytes + 2) / 3) * 4;
+            if (item.ImageDataBase64.Length > maxBase64Characters)
+            {
+                throw new InvalidDataException("embedded image payload is larger than 64 MB");
+            }
+            bytes = Convert.FromBase64String(item.ImageDataBase64);
+            if (bytes.Length == 0 || bytes.Length > maxEncodedBytes)
+            {
+                throw new InvalidDataException("embedded image payload is empty or larger than 64 MB");
+            }
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidDataException or ArgumentException)
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Image data is not a valid embedded bitmap ({ex.Message}). Reinsert the image before printing."));
+            return;
+        }
+
+        try
+        {
+            // Decode through the same versioned transform used by the designer
+            // and print presenter. This makes a monochrome/alpha policy an
+            // evidence-bearing contract instead of a driver-side surprise.
+            var bitmap = ImageRasterizer.Decode(item.ImageDataBase64, item.ImageRasterMode)
+                ?? throw new InvalidDataException("the configured raster policy could not decode the image");
+
+            // Decode dimensions are attacker-controlled even when the encoded
+            // payload is small (a highly-compressed PNG can otherwise allocate
+            // gigabytes on the preflight worker). Keep the production path
+            // bounded before measuring the image against the printer grid.
+            const long maxDecodedPixels = 64_000_000;
+            var decodedPixels = (long)bitmap.PixelWidth * bitmap.PixelHeight;
+            if (decodedPixels <= 0 || decodedPixels > maxDecodedPixels)
+            {
+                throw new InvalidDataException("decoded image is empty or larger than 64 megapixels");
+            }
+
+            if ((item.ImagePixelWidth > 0 && item.ImagePixelWidth != bitmap.PixelWidth)
+                || (item.ImagePixelHeight > 0 && item.ImagePixelHeight != bitmap.PixelHeight))
+            {
+                throw new InvalidDataException(
+                    $"stored source dimensions {item.ImagePixelWidth}x{item.ImagePixelHeight} do not match decoded {bitmap.PixelWidth}x{bitmap.PixelHeight}");
+            }
+
+            var payloadFingerprint = Convert.ToHexString(
+                SHA256.HashData(Encoding.UTF8.GetBytes(item.ImageDataBase64)));
+            var identity = ImageRasterContract.Describe(
+                payloadFingerprint,
+                item.ImageDataBase64.Length,
+                item.ImageRasterMode,
+                bitmap.PixelWidth,
+                bitmap.PixelHeight);
+            if (!identity.IsValid)
+            {
+                throw new InvalidDataException("image raster identity is incomplete");
+            }
+
+            var observation = ImageResolutionContract.Observe(
+                bitmap.PixelWidth,
+                bitmap.PixelHeight,
+                item.WidthMm,
+                item.HeightMm);
+            var dpiX = printDpiX.GetValueOrDefault();
+            var dpiY = printDpiY.GetValueOrDefault();
+            if (dpiX > 0
+                && dpiY > 0
+                && !observation.MeetsDeviceGrid(dpiX, dpiY))
+            {
+                issues.Add(new PrintPreflightIssue(
+                    0,
+                    item.Name,
+                    item.Type.ToString(),
+                    $"Image source density is only {observation.EffectivePpiX:0.#}×{observation.EffectivePpiY:0.#} PPI in its {item.WidthMm:0.##}×{item.HeightMm:0.##} mm frame, below the effective {dpiX}×{dpiY} DPI printer grid. Use a higher-resolution image or reduce the frame before production printing."));
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Image could not be decoded for printing ({ex.Message}). Reinsert the image before production printing."));
+        }
+    }
+
+    private static void ValidateTextGlyphCoverage(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)
+    {
+        if (item.Type is not (ObjectType.Text or ObjectType.TextBox))
+        {
+            return;
+        }
+
+        var observation = TextBoxOverflowDetector.ObserveFont(item, data);
+        // A missing family already has a template-level diagnostic. Do not
+        // duplicate it with glyphs measured against the deterministic fallback.
+        if (!observation.RequestedFamilyAvailable
+            || !observation.GlyphMapAvailable
+            || !observation.HasMissingGlyphs)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            rowIndex + 1,
+            item.Name,
+            item.Type.ToString(),
+            $"Font '{observation.RequestedFamily}' has no glyph(s) for {observation.MissingGlyphSummary}. Install a family covering this data or choose an approved font before production printing."));
+    }
+
     private static void ValidateTextWithinLabel(LabelTemplate template, LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)
     {
-        var text = TextBoxOverflowDetector.CreateFormattedText(item, string.IsNullOrEmpty(data) ? " " : data, System.Windows.Media.Brushes.Black);
-        var xDip = MmConverter.MmToDip(item.XMm) + 2;
-        var yDip = MmConverter.MmToDip(item.YMm) + Math.Max(0, (MmConverter.MmToDip(item.HeightMm) - text.Height) / 2);
-        var rightDip = xDip + text.WidthIncludingTrailingWhitespace;
-        var bottomDip = yDip + text.Height;
+        if (TextBoxOverflowDetector.ShouldConstrainToBox(item))
+        {
+            ValidateTextBox(item, data, rowIndex, issues);
+            return;
+        }
+
+        var value = string.IsNullOrEmpty(data) ? " " : data;
+        var widthDip = MmConverter.MmToDip(item.WidthMm);
+        var heightDip = MmConverter.MmToDip(item.HeightMm);
+        double textWidth;
+        double textHeight;
+        TextLayoutMetrics metrics;
+        if (TextBoxOverflowDetector.HasExplicitLineHeight(item))
+        {
+            var layout = TextBoxOverflowDetector.CreateTextLayout(item, value, widthDip, heightDip, constrainToBox: false, System.Windows.Media.Brushes.Black);
+            metrics = layout.Metrics;
+            textWidth = metrics.WidthDip;
+            textHeight = metrics.HeightDip;
+        }
+        else
+        {
+            var text = TextBoxOverflowDetector.CreateFormattedText(item, value, System.Windows.Media.Brushes.Black);
+            TextBoxOverflowDetector.ApplyLayoutBounds(text, item, widthDip, heightDip, constrainToBox: false);
+            metrics = TextBoxOverflowDetector.Measure(text, item, widthDip, heightDip, constrainToBox: false, sourceValue: value);
+            textWidth = text.WidthIncludingTrailingWhitespace;
+            textHeight = text.Height;
+        }
+
+        // Keep this check on the exact shared text policy used by the designer
+        // and print renderer: explicit center/right text is bounded to the
+        // alignment frame, while left-aligned static text remains auto-sized.
+        var contentWidth = TextBoxOverflowDetector.GetContentWidthDip(item, widthDip, constrainToBox: false);
+        var xDip = MmConverter.MmToDip(item.XMm) + Math.Max(0, (widthDip - contentWidth) / 2);
+        var yDip = MmConverter.MmToDip(item.YMm) + metrics.VerticalOffsetDip;
+        var rightDip = item.Style.Alignment == ANLAbel.Core.Enums.TextAlignmentMode.Left
+            ? xDip + textWidth
+            : xDip + contentWidth;
+        var bottomDip = yDip + textHeight;
         var labelWidthDip = MmConverter.MmToDip(template.WidthMm);
         var labelHeightDip = MmConverter.MmToDip(template.HeightMm);
         if (xDip >= 0 && yDip >= 0 && rightDip <= labelWidthDip && bottomDip <= labelHeightDip)
@@ -168,6 +479,29 @@ public sealed class PrintPreflightValidator
 
     private void ValidateBarcode(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)
     {
+        var applicationSymbology = GetEffectiveBarcodeSymbology(item);
+        var applicationErrors = BarcodeApplicationContract.ValidateData(
+            item.BarcodeApplicationProfile,
+            applicationSymbology,
+            data);
+        if (applicationErrors.Count > 0)
+        {
+            issues.Add(new PrintPreflightIssue(
+                rowIndex + 1,
+                item.Name,
+                item.Type.ToString(),
+                string.Join(" ", applicationErrors)));
+            return;
+        }
+
+        foreach (var checkDigitError in BarcodeCheckDigitContract.Validate(
+                     applicationSymbology,
+                     data,
+                     item.BarcodeCheckDigitPolicy))
+        {
+            issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), checkDigitError));
+        }
+
         var barcodeType = item.Type switch
         {
             ObjectType.QRCode => BarcodeType.QRCode,
@@ -182,24 +516,65 @@ public sealed class PrintPreflightValidator
             return;
         }
 
+        ValidateMatrixFrameForRow(item, data, rowIndex, issues);
+
         if (item.Type == ObjectType.QRCode && item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize)
         {
             var byteCount = Encoding.UTF8.GetByteCount(data);
-            var capacity = EstimateFixedQrCapacity(item.WidthMm, item.HeightMm, item.QrErrorCorrection);
-            if (byteCount > capacity)
+            var version = item.QrFixedVersion;
+            var capacity = QrVersionHelper.IsValidVersion(version)
+                ? QrCapacityProvider.GetByteModeCapacity(version, item.QrErrorCorrection)
+                : 0;
+            if (!QrVersionHelper.IsValidVersion(version)
+                || !QrCapacityProvider.CanEncodeByteMode(data, version, item.QrErrorCorrection))
             {
                 issues.Add(new PrintPreflightIssue(
                     rowIndex + 1,
                     item.Name,
                     item.Type.ToString(),
-                    $"Fixed QR capacity exceeded: {byteCount} bytes for {item.WidthMm:0.#}x{item.HeightMm:0.#} mm, capacity about {capacity}. Increase size or use Auto size."));
+                    $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size."));
             }
         }
     }
 
+    private static void ValidateMatrixFrameForRow(
+        LabelObject item,
+        string data,
+        int rowIndex,
+        List<PrintPreflightIssue> issues)
+    {
+        if (!item.IsSquare2DCodeLike())
+        {
+            return;
+        }
+
+        // Auto-size is an authoring aid, but a bound row must never silently
+        // shrink its modules into an undersized authored frame at print time.
+        // Resolve without max-size clamping so this remains a per-row blocking
+        // check rather than a second mutation of document geometry.
+        var requiredSizeMm = QrObjectGeometryContract.ResolveTargetSizeMm(item, data);
+        if (requiredSizeMm is null)
+        {
+            return;
+        }
+
+        var authoredSizeMm = Math.Min(item.WidthMm, item.HeightMm);
+        if (requiredSizeMm.Value <= authoredSizeMm + QrObjectGeometryContract.SizeToleranceMm)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            rowIndex + 1,
+            item.Name,
+            item.Type.ToString(),
+            $"2D barcode frame is too small for this row: requires at least {requiredSizeMm.Value:0.##} mm but the authored frame is {authoredSizeMm:0.##} mm. Increase the frame or choose a fixed module/version that fits."));
+    }
+
     private static void ValidateTextBox(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)
     {
-        if (TextBoxOverflowDetector.IsOverflowing(
+        if (TextBoxOverflowDetector.ShouldBlockOverflow(item)
+            && TextBoxOverflowDetector.IsOverflowing(
                 item,
                 data,
                 MmConverter.MmToDip(item.WidthMm),
@@ -209,7 +584,9 @@ public sealed class PrintPreflightValidator
                 rowIndex + 1,
                 item.Name,
                 item.Type.ToString(),
-                "Text box overflow. Increase object size or reduce text/font size."));
+                item.Type == ObjectType.Text
+                    ? "Fixed text frame overflow. Increase the frame or reduce text/font size."
+                    : "Text box overflow. Increase object size or reduce text/font size."));
         }
     }
 
@@ -220,9 +597,22 @@ public sealed class PrintPreflightValidator
             return "Check empty text, unsupported characters, or required length.";
         }
 
+        var hriLayout = BarcodeHriTextLayout.Measure(
+            type,
+            data,
+            item.WidthMm,
+            item.HeightMm,
+            item.BarcodeHriPlacement,
+            item.BarcodeTextFontSizePt);
+        if (!hriLayout.IsValid)
+        {
+            return hriLayout.ErrorMessage;
+        }
+
         try
         {
-            _barcodeRenderer.RenderBarcode(data, type, item.WidthMm, item.HeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
+            var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            _barcodeRenderer.RenderBarcode(data, type, item.WidthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
             return null;
         }
         catch (ArgumentException ex)
@@ -262,23 +652,30 @@ public sealed class PrintPreflightValidator
         {
             var endXMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.XMm + item.WidthMm : item.LineEndXMm;
             var endYMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.YMm + item.HeightMm : item.LineEndYMm;
-            var strokePaddingMm = item.Style.OutlineStyle == OutlineStyle.None ? 0 : Math.Max(0, item.Style.BorderThicknessMm) / 2;
+            var lineBounds = LineBoundsContract.GetBounds(
+                item.XMm,
+                item.YMm,
+                endXMm,
+                endYMm,
+                item.Style.OutlineStyle,
+                item.Style.BorderThicknessMm);
             return new RectMm(
-                Math.Min(item.XMm, endXMm) - strokePaddingMm,
-                Math.Min(item.YMm, endYMm) - strokePaddingMm,
-                Math.Max(item.XMm, endXMm) + strokePaddingMm,
-                Math.Max(item.YMm, endYMm) + strokePaddingMm);
+                lineBounds.Left,
+                lineBounds.Top,
+                lineBounds.Right,
+                lineBounds.Bottom);
         }
 
         var borderPaddingMm = item.Type is ObjectType.Rectangle or ObjectType.Ellipse
             && item.Style.OutlineStyle != OutlineStyle.None
             ? Math.Max(0, item.Style.BorderThicknessMm) / 2
             : 0;
+        var transformed = TransformedBoundsContract.GetBounds(item);
         return new RectMm(
-            item.XMm - borderPaddingMm,
-            item.YMm - borderPaddingMm,
-            item.XMm + item.WidthMm + borderPaddingMm,
-            item.YMm + item.HeightMm + borderPaddingMm);
+            transformed.Left - borderPaddingMm,
+            transformed.Top - borderPaddingMm,
+            transformed.Right + borderPaddingMm,
+            transformed.Bottom + borderPaddingMm);
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
@@ -286,25 +683,39 @@ public sealed class PrintPreflightValidator
         return new BarcodeRenderOptions
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules
+            QuietZoneModules = item.QrQuietZoneModules,
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
         };
     }
 
-    private static int EstimateFixedQrCapacity(double widthMm, double heightMm, QrErrorCorrection errorCorrection)
+    private static void ValidateBarcodeApplicationGeometry(LabelObject item, List<PrintPreflightIssue> issues)
     {
-        var safeSize = Math.Max(1, Math.Min(widthMm, heightMm));
-        var baseline = Math.Floor(safeSize * safeSize);
-        var factor = errorCorrection switch
+        if (item.Type is not (ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
+            || item.BarcodeApplicationProfile == BarcodeApplicationProfile.General)
         {
-            QrErrorCorrection.L => 1.15,
-            QrErrorCorrection.M => 1.0,
-            QrErrorCorrection.Q => 0.8,
-            QrErrorCorrection.H => 0.65,
-            _ => 1.0
+            return;
+        }
+
+        var errors = BarcodeApplicationContract.ValidateGeometry(
+            item.BarcodeApplicationProfile,
+            GetEffectiveBarcodeSymbology(item),
+            item.QrQuietZoneModules,
+            item.ShowBarcodeText,
+            item.BarcodeTextFontSizePt);
+        foreach (var error in errors)
+        {
+            issues.Add(new PrintPreflightIssue(0, item.Name, item.Type.ToString(), error));
+        }
+    }
+
+    private static BarcodeSymbology GetEffectiveBarcodeSymbology(LabelObject item)
+        => item.Type switch
+        {
+            ObjectType.QRCode => BarcodeSymbology.QRCode,
+            ObjectType.DataMatrix => BarcodeSymbology.DataMatrix,
+            _ => item.BarcodeSymbology
         };
 
-        return Math.Max(1, (int)Math.Floor(baseline * factor));
-    }
 }
 
 public sealed record PrintPreflightIssue(int RowNumber, string ObjectName, string ObjectType, string Message)
@@ -312,6 +723,18 @@ public sealed record PrintPreflightIssue(int RowNumber, string ObjectName, strin
     public string Summary => RowNumber <= 0
         ? $"Template, {ObjectName} ({ObjectType}): {Message}"
         : $"Row {RowNumber}, {ObjectName} ({ObjectType}): {Message}";
+}
+
+/// <summary>
+/// Progress for a potentially large preflight.  Units are object/row checks,
+/// not labels printed; this keeps the value deterministic even when a template
+/// contains both row-independent and row-dependent diagnostics.
+/// </summary>
+public sealed record PrintPreflightProgress(int CompletedUnits, int TotalUnits)
+{
+    public int Percent => TotalUnits <= 0
+        ? 100
+        : Math.Clamp((int)Math.Round(CompletedUnits * 100d / TotalUnits), 0, 100);
 }
 
 internal readonly record struct RectMm(double Left, double Top, double Right, double Bottom);
