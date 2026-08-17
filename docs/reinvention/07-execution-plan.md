@@ -28,7 +28,7 @@ L4  local file-drop on the same spine
 Do not add a parallel path. Fail closed on missing queue, stale data, or
 ambiguous print outcome.
 
-## Now (0.265)
+## Now (0.266)
 
 Public version $Version"
 Replace-Required 'docs/reinvention/MEMORY.md' 'Version: \d+\.\d+' . Fast loop is the everyday gate. Mutation stays at 90
