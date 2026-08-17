@@ -3,15 +3,15 @@
 [Setup]
 AppId={{5E638998-0D16-4AE0-9E8E-54D84FA26E4A}
 AppName=ANLAbel Trial - Label Designer
-AppVersion=0.264
+AppVersion=0.265
 AppPublisher=Duc An
 AppPublisherURL=https://github.com/ducancdt
 AppSupportURL=mailto:ducancdt@gmail.com
 DefaultDirName={localappdata}\Programs\ANLAbel Trial
 DefaultGroupName=ANLAbel Trial
 LicenseFile=..\LICENSE
-OutputDir=..\releases\ANLAbel-Trial-7-Day-v0.264
-OutputBaseFilename=ANLAbel-Trial-7-Day-v0.264-Setup-x64
+OutputDir=..\releases\ANLAbel-Trial-7-Day-v0.265
+OutputBaseFilename=ANLAbel-Trial-7-Day-v0.265-Setup-x64
 SetupIconFile=..\src\ANLAbel.App\anlabel.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -21,7 +21,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\ANLAbel.App.exe
 UninstallDisplayName=ANLAbel Trial 7 Day
-VersionInfoVersion=0.264.0.0
+VersionInfoVersion=0.265.0.0
 VersionInfoCompany=Duc An
 VersionInfoDescription=ANLAbel Trial - 7 Day
 VersionInfoCopyright=Copyright (c) Duc An
