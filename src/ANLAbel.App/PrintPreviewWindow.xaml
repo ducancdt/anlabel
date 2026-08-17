@@ -301,6 +301,19 @@
                         </StackPanel>
                     </Expander>
 
+                    <Expander Header="Print Method" IsExpanded="False" Margin="0,6,0,0">
+                        <StackPanel Margin="0,8,0,0">
+                            <TextBlock Text="Print Method" Foreground="#475569" FontSize="11"/>
+                            <ComboBox ItemsSource="{Binding PrintMethodOptions}"
+                                      SelectedValue="{Binding LabelTemplate.PrinterProfile.PrintMethod, Mode=TwoWay}"
+                                      SelectedValuePath="Value"
+                                      DisplayMemberPath="DisplayName"
+                                      Margin="0,4,0,4"
+                                      ToolTip="Application graphic (default): 100% designer parity vector/raster render. Printer native: direct thermal commands (fails closed if driver inactive)."/>
+                            <TextBlock Text="Application graphic ensures 100% parity with the designer preview." Foreground="#64748B" FontSize="10" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Expander>
+
                     <Expander Header="Calibration" IsExpanded="False" Margin="0,6,0,0">
                         <StackPanel Margin="0,8,0,0">
                             <Grid>

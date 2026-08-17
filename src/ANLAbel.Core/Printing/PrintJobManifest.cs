@@ -33,6 +33,8 @@ public sealed record PrintJobManifest(
     public const string PreviousContractVersion = "print-manifest-v2";
     public const string LegacyContractVersion = "print-manifest-v1";
     public string ImageRasterFingerprint { get; init; } = string.Empty;
+    public string PrintMethod { get; init; } = "ApplicationGraphic";
+    public bool NativeCommandsUsed { get; init; }
     /// <summary>
     /// Optional fingerprint of the thermal driver/firmware/media/calibration
     /// golden bound to this dispatch. Empty explicitly means no thermal golden
@@ -106,7 +108,9 @@ public sealed record PrintJobManifest(
         string outputContractHash = "",
         string imageRasterFingerprint = "",
         string thermalRasterGoldenFingerprint = "",
-        FileDropPreparedBatchIdentity? automationBatch = null)
+        FileDropPreparedBatchIdentity? automationBatch = null,
+        string printMethod = "ApplicationGraphic",
+        bool nativeCommandsUsed = false)
     {
         var rowList = rows?.ToArray() ?? Array.Empty<IReadOnlyDictionary<string, string>?>();
         var normalized = new PrintJobManifest(
@@ -134,7 +138,9 @@ public sealed record PrintJobManifest(
             AutomationTriggerId = NormalizeText(automationBatch?.TriggerId),
             AutomationConfigurationFingerprint = NormalizeFingerprint(automationBatch?.ConfigurationFingerprint),
             AutomationSourceFingerprint = NormalizeFingerprint(automationBatch?.SourceFingerprint),
-            AutomationPreparedBatchId = NormalizeFingerprint(automationBatch?.PreparedBatchId)
+            AutomationPreparedBatchId = NormalizeFingerprint(automationBatch?.PreparedBatchId),
+            PrintMethod = NormalizeText(printMethod),
+            NativeCommandsUsed = nativeCommandsUsed
         };
 
         return normalized with { Fingerprint = ComputeManifestFingerprint(normalized) };

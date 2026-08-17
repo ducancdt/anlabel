@@ -22,6 +22,7 @@ public sealed class PrinterProfile : ObservableObject
     private double _scaleY = 1;
     private double _physicalWidthMm;
     private double _physicalHeightMm;
+    private PrintMethod _printMethod = PrintMethod.ApplicationGraphic;
 
     public string PrinterName
     {
@@ -131,5 +132,14 @@ public sealed class PrinterProfile : ObservableObject
     {
         get => _physicalHeightMm;
         set => SetProperty(ref _physicalHeightMm, Math.Max(0, Math.Round(value, 2)));
+    }
+
+    /// <summary>
+    /// Print method: ApplicationGraphic (default vector/raster pipeline) or PrinterNative (vendor command stream).
+    /// </summary>
+    public PrintMethod PrintMethod
+    {
+        get => _printMethod;
+        set => SetProperty(ref _printMethod, value);
     }
 }

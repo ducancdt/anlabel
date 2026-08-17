@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Print method: Graphic vs Printer-native (0.262)
+
+- Added `PrintMethod` enum (`ApplicationGraphic`, `PrinterNative`) to `PrinterProfile`.
+- Manifest and machine-parseable `PrintOperationLogEntry` explicitly record `PrintMethod` and `NativeCommandsUsed` metadata without silent fallback.
+- Added Print Method setting to `PrintPreviewWindow` setup panel.
+- Preflight validation fails closed with actionable diagnostic when `PrinterNative` is selected without an active direct hardware command driver.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## GS1 AI registry growth & logistics standards (0.261)
 
 - Extended `Gs1AiRegistry` with standard supply-chain / logistics AIs: variants (20, 22), secondary serial/source (250, 251), monetary amounts & prices (390x, 391x, 392x, 393x), country codes & subdivisions (423, 427), NATO stock (7001), meat cuts (7002), potency (7004), asset & service IDs (8003 GRAI, 8004 GIAI, 8006 ITIP, 8018/8019 GSRN).

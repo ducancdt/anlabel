@@ -388,7 +388,7 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 ---
 
-### P7 — Print method: graphic vs printer-native (thermal) — `[ ]`
+### P7 — Print method: graphic vs printer-native (thermal) — `[x]` DONE (2026-08-17)
 
 **Outcome:** Explicit product choice between app-owned graphic barcode and optional vendor/native command path, without silent fallback.
 
