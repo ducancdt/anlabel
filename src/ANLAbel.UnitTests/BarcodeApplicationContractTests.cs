@@ -230,4 +230,40 @@ public sealed class BarcodeApplicationContractTests
         Assert.Empty(errors);
         Assert.Equal($"2530000000000000DOC-7{BarcodeApplicationContract.GroupSeparator}10LOT-1", normalized);
     }
+
+    [Fact]
+    public void Gs1ExtendedLogisticsAndAssetAisValidateCorrectly()
+    {
+        // AI (20) variant, AI (250) sec serial, AI (3902) amount, AI (8004) GIAI, AI (423) origin country
+        const string validPayload = "(20)01(250)SN-9988(3902)1250(423)840(8004)ASSET-4455";
+        var errors = BarcodeApplicationContract.ValidateData(
+            BarcodeApplicationProfile.Gs1,
+            BarcodeSymbology.DataMatrix,
+            validPayload);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Gs1ExtendedAisFailClosedOnMalformedStructure()
+    {
+        // AI 20 requires exactly 2 digits, AI 7001 requires 13 digits
+        var invalidVariantErrors = BarcodeApplicationContract.ValidateData(
+            BarcodeApplicationProfile.Gs1,
+            BarcodeSymbology.DataMatrix,
+            "(20)123");
+        Assert.Contains(invalidVariantErrors, e => e.Contains("GS1 AI 20 (product variant) requires exactly 2 numeric digits."));
+
+        var invalidNsnErrors = BarcodeApplicationContract.ValidateData(
+            BarcodeApplicationProfile.Gs1,
+            BarcodeSymbology.DataMatrix,
+            "(7001)12345");
+        Assert.Contains(invalidNsnErrors, e => e.Contains("GS1 AI 7001 (NATO Stock Number) requires exactly 13 numeric digits."));
+
+        var invalidPriceErrors = BarcodeApplicationContract.ValidateData(
+            BarcodeApplicationProfile.Gs1,
+            BarcodeSymbology.DataMatrix,
+            "(3912)US"); // Requires 3-digit ISO currency + amount digits
+        Assert.Contains(invalidPriceErrors, e => e.Contains("requires 3 numeric ISO currency digits followed by 1–15 numeric amount digits."));
+    }
 }

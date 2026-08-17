@@ -365,7 +365,7 @@ dotnet run --project src/ANLAbel.Tests --no-build
 
 ---
 
-### P6 — GS1 AI registry growth (still not certification) — `[ ]`
+### P6 — GS1 AI registry growth (still not certification) — `[x]` DONE (2026-08-17)
 
 **Outcome:** Broader industrial AI subset for common logistics labels; preflight remains fail-closed on invalid AI structure.
 

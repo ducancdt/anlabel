@@ -871,7 +871,7 @@ public partial class HelpWindow : Window
         ab.Children.Add(P("ANLAbel - " + (vi ? "Thiết kế Nhãn" : "Label Designer")));
         ab.Children.Add(P((vi ? "Tác giả: " : "Created by ") + "Duc An"));
         ab.Children.Add(P("Email: ducancdt@gmail.com"));
-        ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.260"));
+        ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.261"));
         var updateBtn = new Button
         {
             Content = vi ? "🔄 Kiểm tra bản cập nhật mới (GitHub)" : "🔄 Check for Updates (GitHub)",

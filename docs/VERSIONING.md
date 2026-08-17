@@ -1,6 +1,6 @@
 # Version
 
-`eng/Version.props` is the one public version. The current public version is `0.260`.
+`eng/Version.props` is the one public version. The current public version is `0.261`.
 
 Any user-visible code change increments `major.minor`, then
 `scripts/Set-ANLAbelReleaseVersion.ps1` plus remaining app/installer
