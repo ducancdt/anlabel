@@ -55,6 +55,7 @@ public sealed class PrintPreflightValidator
             ValidateLinearBarcodeModuleAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
             ValidateBarcodeApplicationGeometry(item, issues);
             ValidateCode39RatioAndQuietZone(item, printDpi, printDpiY ?? printDpi, issues);
+            ValidateBearerBars(item, issues);
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -687,8 +688,37 @@ public sealed class PrintPreflightValidator
             ErrorCorrection = item.QrErrorCorrection.ToString(),
             QuietZoneModules = item.QrQuietZoneModules,
             IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
-            Code39WideNarrowRatio = item.Code39WideNarrowRatio
+            Code39WideNarrowRatio = item.Code39WideNarrowRatio,
+            BearerBarStyle = item.BearerBarStyle,
+            BearerBarThicknessMm = item.BearerBarThicknessMm
         };
+    }
+
+    private static void ValidateBearerBars(LabelObject item, List<PrintPreflightIssue> issues)
+    {
+        if (item.BearerBarStyle == BearerBarStyle.None)
+        {
+            return;
+        }
+
+        if (item.IsSquare2DCodeLike())
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                "Bearer bars are only supported on 1D linear barcodes (such as ITF-14, Code 128, Code 39), not 2D matrix symbols. Set BearerBarStyle to None."));
+            return;
+        }
+
+        if (item.BearerBarThicknessMm < 0.2 || item.BearerBarThicknessMm > 5.0)
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Bearer bar thickness is {item.BearerBarThicknessMm:0.##} mm, outside the standard range of 0.2 to 5.0 mm."));
+        }
     }
 
     private static void ValidateCode39RatioAndQuietZone(

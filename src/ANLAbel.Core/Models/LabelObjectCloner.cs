@@ -41,6 +41,8 @@ public static class LabelObjectCloner
             BarcodeModuleWidthMm = source.BarcodeModuleWidthMm,
             BarcodeWidthMode = source.BarcodeWidthMode,
             Code39WideNarrowRatio = source.Code39WideNarrowRatio,
+            BearerBarStyle = source.BearerBarStyle,
+            BearerBarThicknessMm = source.BearerBarThicknessMm,
             Style = CloneStyle(source.Style),
             // Type is assigned after its dependent binding/QR fields so its
             // own auto-size hook sees the complete source configuration.

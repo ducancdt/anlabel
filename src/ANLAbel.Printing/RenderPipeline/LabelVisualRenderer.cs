@@ -177,6 +177,9 @@ public sealed class LabelVisualRenderer
             BarcodeHriShowCheckDigit = snapshot.BarcodeHriShowCheckDigit,
             BarcodeModuleWidthMm = snapshot.BarcodeModuleWidthMm,
             BarcodeWidthMode = snapshot.BarcodeWidthMode,
+            Code39WideNarrowRatio = snapshot.Code39WideNarrowRatio,
+            BearerBarStyle = snapshot.BearerBarStyle,
+            BearerBarThicknessMm = snapshot.BearerBarThicknessMm,
             ImageDataBase64 = snapshot.ImageDataBase64,
             ImageRasterMode = snapshot.ImageRasterMode,
             ImagePixelWidth = snapshot.ImagePixelWidth,
@@ -428,6 +431,7 @@ public sealed class LabelVisualRenderer
             if (vectorData is not null)
             {
                 DrawVectorBarcode(dc, vectorData, symbolRect, dpiX, dpiY);
+                DrawBearerBars(dc, item, symbolRect);
                 DrawHri(dc, data, item, hriLayout, objectRect);
                 return;
             }
@@ -474,6 +478,7 @@ public sealed class LabelVisualRenderer
             dc.PushGuidelineSet(guidelines);
             dc.DrawImage(source, dest);
             dc.Pop();
+            DrawBearerBars(dc, item, symbolRect);
             DrawHri(dc, data, item, hriLayout, objectRect);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -643,8 +648,41 @@ public sealed class LabelVisualRenderer
             ErrorCorrection = item.QrErrorCorrection.ToString(),
             QuietZoneModules = item.QrQuietZoneModules,
             IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
-            Code39WideNarrowRatio = item.Code39WideNarrowRatio
+            Code39WideNarrowRatio = item.Code39WideNarrowRatio,
+            BearerBarStyle = item.BearerBarStyle,
+            BearerBarThicknessMm = item.BearerBarThicknessMm
         };
+    }
+
+    private static void DrawBearerBars(DrawingContext dc, LabelObject item, Rect symbolRect)
+    {
+        if (item.BearerBarStyle == BearerBarStyle.None)
+        {
+            return;
+        }
+
+        var thicknessMm = item.BearerBarThicknessMm > 0 ? item.BearerBarThicknessMm : 1.0;
+        var thicknessDip = MmConverter.MmToDip(thicknessMm);
+        if (thicknessDip <= 0 || symbolRect.Width <= 0 || symbolRect.Height <= 0)
+        {
+            return;
+        }
+
+        var t = Math.Min(thicknessDip, symbolRect.Height / 3);
+
+        // Top horizontal bearer bar
+        dc.DrawRectangle(Brushes.Black, null, new Rect(symbolRect.Left, symbolRect.Top, symbolRect.Width, t));
+        // Bottom horizontal bearer bar
+        dc.DrawRectangle(Brushes.Black, null, new Rect(symbolRect.Left, Math.Max(symbolRect.Top, symbolRect.Bottom - t), symbolRect.Width, t));
+
+        if (item.BearerBarStyle == BearerBarStyle.Frame)
+        {
+            var tw = Math.Min(thicknessDip, symbolRect.Width / 4);
+            // Left vertical bearer bar
+            dc.DrawRectangle(Brushes.Black, null, new Rect(symbolRect.Left, symbolRect.Top, tw, symbolRect.Height));
+            // Right vertical bearer bar
+            dc.DrawRectangle(Brushes.Black, null, new Rect(Math.Max(symbolRect.Left, symbolRect.Right - tw), symbolRect.Top, tw, symbolRect.Height));
+        }
     }
 
     private static bool IsSquare2DCodeLike(LabelObject item)

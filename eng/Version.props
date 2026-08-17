@@ -2,7 +2,7 @@
   <!-- Canonical public ANLAbel release version. Update this file for every
        user-visible code release; the regression gate verifies all projections. -->
   <PropertyGroup>
-    <ANLAbelReleaseVersion>0.262</ANLAbelReleaseVersion>
+    <ANLAbelReleaseVersion>0.263</ANLAbelReleaseVersion>
     <Version>$(ANLAbelReleaseVersion)</Version>
     <AssemblyVersion>$(ANLAbelReleaseVersion).0.0</AssemblyVersion>
     <FileVersion>$(ANLAbelReleaseVersion).0.0</FileVersion>

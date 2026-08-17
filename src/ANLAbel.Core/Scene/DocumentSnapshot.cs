@@ -232,6 +232,8 @@ public sealed record SceneObjectSnapshot
     public double BarcodeModuleWidthMm { get; init; }
     public BarcodeWidthMode BarcodeWidthMode { get; init; }
     public Code39WideNarrowRatio Code39WideNarrowRatio { get; init; }
+    public BearerBarStyle BearerBarStyle { get; init; }
+    public double BearerBarThicknessMm { get; init; }
     /// <summary>
     /// Embedded image bytes are retained in the immutable render snapshot so a
     /// compiled presenter never has to read the mutable authoring object again.
@@ -285,6 +287,8 @@ public sealed record SceneObjectSnapshot
             BarcodeModuleWidthMm = item.BarcodeModuleWidthMm,
             BarcodeWidthMode = item.BarcodeWidthMode,
             Code39WideNarrowRatio = item.Code39WideNarrowRatio,
+            BearerBarStyle = item.BearerBarStyle,
+            BearerBarThicknessMm = item.BearerBarThicknessMm,
             ImageDataBase64 = imageData,
             ImageDataFingerprint = imageFingerprint,
             ImageDataLength = imageData.Length,
@@ -542,6 +546,8 @@ internal static class SceneHash
         Append(builder, item.BarcodeModuleWidthMm);
         Append(builder, item.BarcodeWidthMode.ToString());
         Append(builder, item.Code39WideNarrowRatio.ToString());
+        Append(builder, item.BearerBarStyle.ToString());
+        Append(builder, item.BearerBarThicknessMm);
         Append(builder, item.ImageDataFingerprint);
         Append(builder, item.ImageDataLength);
         Append(builder, item.ImageRasterMode.ToString());

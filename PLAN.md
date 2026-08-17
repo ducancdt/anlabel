@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## ITF-14 & linear barcode Bearer (guard) bars (0.263)
+
+- Added `BearerBarStyle` enum (`None`, `TopBottom`, `Frame`) and `BearerBarThicknessMm` to `LabelObject`, `LabelObjectCloner`, `SceneObjectSnapshot`, and `BarcodeRenderOptions`.
+- Vector and raster barcode renderers draw top/bottom and enclosing box frames for shipping container and master carton packaging barcodes.
+- Added Bearer Bars and Bearer thickness controls to barcode properties panel in `MainWindow.xaml`.
+- Preflight validation enforces linear-only restriction and thickness range (0.2–5.0 mm).
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## Print method: Graphic vs Printer-native (0.262)
 
 - Added `PrintMethod` enum (`ApplicationGraphic`, `PrinterNative`) to `PrinterProfile`.
