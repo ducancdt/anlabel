@@ -23,8 +23,8 @@ public partial class ExcelImportWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Import Excel workbook",
-            Filter = "Excel Workbook (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|All files (*.*)|*.*"
+            Title = "Import Excel or CSV data",
+            Filter = "Data files (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Excel Workbook (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|CSV files (*.csv)|*.csv|All files (*.*)|*.*"
         };
 
         if (dialog.ShowDialog(this) != true)

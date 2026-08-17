@@ -1,6 +1,6 @@
 # CC-P5 History + controlled reprint UI/UX handoff
 
-**Status:** roadmap/pre-implementation; append-only logs and guarded reprint services exist, but a unified History browser is not implemented or runtime-verified
+**Status:** staged provenance-first History browser implemented; runtime scale smoke remains pending
 **Parent plan:** [`MASTER_PLAN.md`](../MASTER_PLAN.md#control-center--lms-operations--large-improvement-plans-2026-08-12), section 5, CC-P5
 **Related CC-P1 handoff:** [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md)
 **Related CC-P2 handoff:** [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md)

@@ -1,15 +1,9 @@
 # Barcode object model: NiceLabel + BarTender → ANLAbel gap matrix
 
-**Research date:** 2026-08-11
-**Repo of record:** `H:\00_REPOS_PROJECTS\ANLABEL`
-**Scope:** Defining **barcode-object mechanics** (symbology, size/module/X-dimension, check digit, human-readable/HRI) — not a full symbology catalog rewrite, GS1 certification, or physical verifier campaign.
+**Research date:** 2026-08-11  
+**Repo of record:** `H:\00_REPOS_PROJECTS\ANLABEL`  
+**Scope:** Defining **barcode-object mechanics** (symbology, size/module/X-dimension, check digit, human-readable/HRI) — not a full symbology catalog rewrite, GS1 certification, or physical verifier campaign.  
 **Method:** Official product help only for competitors; ANLAbel status from shipped source inspection (paths listed below).
-
-**UI/UX coordination:** [`BARCODE_UI_UX_PROGRAM_INDEX.md`](BARCODE_UI_UX_PROGRAM_INDEX.md) coordinates the P3-P8 handoffs, source/action owners, read-only Figma nodes and runtime/non-claim gates; this matrix remains the competitive mechanic truth.
-
-## Current status cross-check (2026-08-13)
-
-The P1 and P2 software slices are now **Have** in the matrix: the current checkout passes the named logical-module, `SizedFromX`, legacy `FrameOwned`, and HRI placement gates. “Have” here means an implemented and regression-covered ANLAbel software path; it does not mean full NiceLabel/BarTender parity, hardware verifier grade, printer-native command support, or GS1 certification. The worktree remains dirty, so these results are not a release approval.
 
 ---
 
@@ -36,7 +30,7 @@ The P1 and P2 software slices are now **Have** in the matrix: the current checko
 
 ### Secondary (support only, not primary claims)
 
-- Seagull KB videos on HRI visibility per data source.
+- Seagull KB videos on HRI visibility per data source.  
 - In-repo: `docs/barcode-notes.md`, `docs/reinvention/01-competitive-benchmark.md`.
 
 ---
@@ -47,8 +41,8 @@ NiceLabel models a dedicated **barcode object** with property groups (double-cli
 
 ### 2.1 Symbology selection
 
-- **Barcode Type** selects the standard (default often Code 128).
-- Large catalog of 1D and 2D; details differ per standard (`Available Barcodes and Their Settings`).
+- **Barcode Type** selects the standard (default often Code 128).  
+- Large catalog of 1D and 2D; details differ per standard (`Available Barcodes and Their Settings`).  
 - Content must obey character set / length / AI rules for the chosen type.
 
 ### 2.2 Size / module (X-dimension)
@@ -88,8 +82,8 @@ HRI is backup when the symbol is damaged/unreadable.
 
 ### 2.5 Other (documented, lower priority for this matrix)
 
-- Bearer bar (fixed/variable thickness, vertical bars).
-- Details (quiet zones, inter-character gap, 2D EC/version, etc.).
+- Bearer bar (fixed/variable thickness, vertical bars).  
+- Details (quiet zones, inter-character gap, 2D EC/version, etc.).  
 - Position / relative position / lock / not printable.
 
 ---
@@ -100,8 +94,8 @@ BarTender uses **Barcode Properties** with dedicated pages.
 
 ### 3.1 Symbology selection
 
-- **Symbology** on **Symbology and Size** chooses the encoding scheme.
-- **Symbology Specific Options** panel is **dynamic** (empty if multi-select mixed types).
+- **Symbology** on **Symbology and Size** chooses the encoding scheme.  
+- **Symbology Specific Options** panel is **dynamic** (empty if multi-select mixed types).  
 - Examples: Code 128 → Check Digit (mandatory), Code Set, GS1-128, AI wizard; Code 39 → start/stop, check digit type; QR → Symbol Version, ECC, mask, etc.
 
 ### 3.2 Size / module (X-dimension)
@@ -118,9 +112,9 @@ QR fixed size is set via **Symbol Version** on Symbology and Size (not only by s
 
 ### 3.3 Check digit
 
-- Exposed per symbology under **Symbology Specific Options** (`Check Digit`, sometimes mandatory).
-- Code 128: check digit selected by default and **cannot be changed** (always on).
-- Code 39: optional check digit + check digit type.
+- Exposed per symbology under **Symbology Specific Options** (`Check Digit`, sometimes mandatory).  
+- Code 128: check digit selected by default and **cannot be changed** (always on).  
+- Code 39: optional check digit + check digit type.  
 - EAN/UPC: mandatory check digit; guard bars / supplements as related options.
 
 ### 3.4 Human readable (HRI)
@@ -141,12 +135,12 @@ QR fixed size is set via **Symbol Version** on Symbology and Size (not only by s
 
 Both products treat the following as first-class barcode object design:
 
-1. **Symbology** as a discrete choice with type-specific options.
-2. **X-dimension / module** as the physical unit of bar width (not only “stretch the picture”).
-3. **Symbol height** separate from X (linear codes).
-4. **Check digit policy** (auto / verify / mandatory / optional) per standard.
-5. **HRI** as optional interpretation with position, font, and check-digit display policy.
-6. Awareness that **custom HRI fonts / graphic barcodes** may disable printer-internal barcode commands.
+1. **Symbology** as a discrete choice with type-specific options.  
+2. **X-dimension / module** as the physical unit of bar width (not only “stretch the picture”).  
+3. **Symbol height** separate from X (linear codes).  
+4. **Check digit policy** (auto / verify / mandatory / optional) per standard.  
+5. **HRI** as optional interpretation with position, font, and check-digit display policy.  
+6. Awareness that **custom HRI fonts / graphic barcodes** may disable printer-internal barcode commands.  
 7. Deep **GS1 / AI** tooling (wizards, templates) for industrial logistics.
 
 ---
@@ -180,24 +174,24 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 | --- | --- | --- | --- | --- |
 | M1 | **Symbology selection** (large catalog, default Code 128) | `LabelObject.BarcodeSymbology` + grouped ComboBox in Properties; `ZxingBarcodeRenderer` map; tests for several 1D/2D | **Have** (subset of catalog) | Expand catalog only when engine + validation + UI exist; do not claim full BT/NL list |
 | M2 | **X-dimension** as explicit physical module width (mm/mil) for 1D | **Shipped:** `BarcodeModuleWidthMm` + quantize/preflight; **`BarcodeWidthMode.SizedFromX`** sets production width = effMm × pure logical modules (`CountLinearModules` / `LinearBarcodeProductionWidth`); default **FrameOwned** keeps legacy; Properties checkbox “Size width from X × modules”; mil readout via effective-module line | **Have** (authored X + optional size-from-X) | Optional: mil unit field; bar-height-only model field |
-| M3 | **Wide/narrow ratio** (Code 39 etc.) | Not exposed on model/UI; ZXing defaults | **Missing** | P4 review contract proposes a Code 39-first legal ratio policy; see [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md) before implementation |
-| M4 | **Density** (BarTender) | Not a separate property; density emerges from frame + engine | **Missing** | P4 keeps density read-only as a presentation of effective X/ratio, never a third independent control; see [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md) |
+| M3 | **Wide/narrow ratio** (Code 39 etc.) | Not exposed on model/UI; ZXing defaults | **Missing** | Optional per-symbology ratio property when 1D X-dim lands |
+| M4 | **Density** (BarTender) | Not a separate property; density emerges from frame + engine | **Missing** | Treat as presentation of X-dim/ratio, not a third independent control unless UI research demands it |
 | M5 | **Symbol height** independent of width (1D) | Object `HeightMm` / HRI strip reserves symbol height via `BarcodeHriLayoutContract` | **Partial** | Keep frame-owned height; document that height is frame-driven not “bar height only” unless HRI disabled |
 | M6 | **Printer-actual X preview** (NiceLabel “actual properties based on selected printer”) | **Shipped:** preflight + Properties warning + **`BarcodeEffectiveModuleReadoutText`** (mm / mil / dots @ plan DPI) from same `Resolve` path | **Have** | Optional polish of readout chrome only |
-| M7 | **Check digit include / auto / verify** | GS1 path validates GTIN check digit (`BarcodeApplicationContract`); no general Code 39 optional check-digit toggle; Code 128 check digit left to engine (mandatory in standards) | **Partial** | P3 review contract proposes a Code 39-first `None`/`Auto`/`Verify` policy; keep GS1 verify fail-closed. See [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before implementation. |
-| M8 | **Display check digit in HRI** (NL) / **Hide check digit** in HRI (BT) | HRI text = resolved payload string; no separate “show/hide check digit in HRI” flag | **Missing** | P3 review contract proposes a display-only HRI policy that cannot alter encoded modules. See [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md); implementation remains open. |
+| M7 | **Check digit include / auto / verify** | `BarcodeCheckDigitPolicy` None/Auto/Verify for Code 39 + ITF; preflight Verify fail-closed; GS1 GTIN via `BarcodeApplicationContract`; Code 128 engine-managed | **Have** (P3 2026-08-12) | Optional more symbologies later |
+| M8 | **Display check digit in HRI** (NL) / **Hide check digit** in HRI (BT) | `BarcodeHriShowCheckDigit` + `BarcodeCheckDigitContract.FormatHriText`; hide does not change encode modules | **Have** (P3 2026-08-12) | UPC split / start-stop chrome later |
 | M9 | **HRI presence** (none / above / below) | `BarcodeHriPlacement` enum (`None` / `Below` / `Above`) on shared `BarcodeHriLayoutContract`; legacy `ShowBarcodeText` maps on load | **Have** (P2 2026-08-12) | Optional horizontal offsets / UPC split later (M12) |
 | M10 | **HRI font + size** | `BarcodeTextFontSizePt`; Windows font path for graphic HRI | **Have** | Optional bold/italic later |
 | M11 | **HRI auto font scaling with barcode size** | Fixed point size unless user edits; no auto-scale with frame | **Missing** | Optional auto-scale HRI when frame resizes (must not mutate TextBox text contract) |
 | M12 | **HRI placement offsets / alignment** | Centered-in-strip style geometry; no horizontal/vertical offset fields | **Partial** | Add offsets only if production labels require retail-style UPC split |
 | M13 | **HRI per-data-source visibility** (BarTender) | Single data value per barcode object | **Missing** | N/A until multi-source barcode concatenation UI exists |
-| M14 | **Quiet zones** | `QrQuietZoneModules` + `BarcodeRenderOptions.QuietZoneModules`; GS1 profile raises linear QZ requirements | **Have** (module-count) | P4 review contract maps the logical value to physical mm from the shared effective X resolution; implementation remains open |
-| M15 | **GS1 / AI encoding** | `BarcodeApplicationProfile.Gs1`, strict `(AI)value` notation, FNC1 normalize, versioned AI registry subset, preflight | **Partial** (industrial subset, not full BT AI wizard) | Grow demanded AI classes with tests; review diagnostics-first [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) and [`P6_GS1_AI_UI_SPEC.md`](P6_GS1_AI_UI_SPEC.md); no claim of full GS1 certification |
-| M16 | **QR version / ECC / fixed module** | `QrSizingMode`, fixed version, `QrModuleSizePx`, capacity table, preflight blocks undersized frame | **Have** | Align naming with BT “Symbol Version” in UI copy; review [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md) before changing the card |
-| M17 | **Data Matrix size / EC** | Rendered via ZXing; less UI than QR and current EC/version fields are QR-named | **Partial** | Define renderer-supported DM size/EC semantics and standard-aware unavailable states; review [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) before implementation |
+| M14 | **Quiet zones** | `QrQuietZoneModules` + `BarcodeRenderOptions.QuietZoneModules`; GS1 profile raises linear QZ requirements | **Have** (module-count) | Map quiet zone to mm at X-dim for preflight “physical quiet zone” |
+| M15 | **GS1 / AI encoding** | `BarcodeApplicationProfile.Gs1`, FNC1 normalize, AI registry subset, preflight | **Partial** (industrial subset, not full BT AI wizard) | Grow AI registry; no claim of full GS1 certification |
+| M16 | **QR version / ECC / fixed module** | `QrSizingMode`, fixed version, `QrModuleSizePx`, capacity table, preflight blocks undersized frame | **Have** | Align naming with BT “Symbol Version” in UI copy |
+| M17 | **Data Matrix size / EC** | Rendered via ZXing; less UI than QR | **Partial** | Parity controls when industrial DM is priority |
 | M18 | **Bearer / guard bars** | Not first-class model | **Missing** | Defer unless ITF-14 retail is a target vertical |
-| M19 | **Print method: printer-native vs graphic** | App-owned raster/vector graphic path; no ZPL/EPL native barcode command emit; `PrintService` has no method/adapter contract | **Partial** (graphic only) | P7 review: [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) and [`P7_PRINT_METHOD_UI_SPEC.md`](P7_PRINT_METHOD_UI_SPEC.md); requires ADR + real printer-family pilot |
-| M20 | **Physical verifier / grade** | `BarcodeVerificationContract`, `PhysicalOutputVerificationEvidence`, adapter/coordinator timeout and busy seams, plus software tests; no device SDK or verifier UI | **Partial** / **open hardware** | P8 review: [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) and [`P8_PHYSICAL_VERIFIER_UI_SPEC.md`](P8_PHYSICAL_VERIFIER_UI_SPEC.md); real fixture/adapter evidence remains required |
+| M19 | **Print method: printer-native vs graphic** | App-owned raster/vector graphic path; no ZPL/EPL native barcode command emit | **Partial** (graphic only) | Open: vendor printer fonts / native barcode commands |
+| M20 | **Physical verifier / grade** | `BarcodeVerificationContract` / physical verifier tests exist as software contracts | **Partial** / **open hardware** | Hardware verifier remains open — do not claim complete |
 | M21 | **Engine swap** | `IBarcodeRenderer` abstraction; ZXing implementation | **Have** (seam) | Zint optional later |
 | M22 | **Designer / print DPI parity** | Plan DPI drives render; tests forbid using only object QrDpi for print | **Have** | Keep regression gates |
 
@@ -205,21 +199,21 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 
 | Path | Strong today | Weak vs NL/BT |
 | --- | --- | --- |
-| **1D** (Code 128/39, EAN/UPC family in engine) | Symbology list, HRI on/off + font pt + **None/Below/Above placement**, GS1 profile for logistics, quiet zone modules, shared HRI geometry, **authored X-dim mm + print-DPI quantize/preflight + opt-in `SizedFromX` width** | Wide/narrow **ratio**, check-digit UI, check digit in HRI, hardware grade |
-| **2D** (QR / DataMatrix) | Module px + quiet zone, QR sizing modes, capacity, undersized-frame preflight, ECC | DM UI parity; X-dim language in UI; native printer path; standard-aware control copy is specified in [`P5_2D_BARCODE_PARITY_UI_SPEC.md`](P5_2D_BARCODE_PARITY_UI_SPEC.md); print-method resolution remains P7 and is shared with 1D |
+| **1D** (Code 128/39, EAN/UPC family in engine) | Symbology list, HRI on/off + font pt, GS1 profile for logistics, quiet zone modules, shared HRI geometry, **authored X-dim mm + print-DPI quantize/preflight** | Auto-width from X×modules, wide/narrow **ratio**, check-digit UI, HRI above, check digit in HRI, hardware grade |
+| **2D** (QR / DataMatrix) | Module px + quiet zone, QR sizing modes, capacity, undersized-frame preflight, ECC | DM UI parity; X-dim language in UI; native printer path |
 
 ---
 
 ## 7. Deferred / open (not claimed complete)
 
-1. Full NiceLabel/BarTender symbology catalog and circular/postal variants.
-2. Thermal **printer-native** barcode commands (ZPL `^BC`, etc.) vs app graphic.
-3. Physical barcode **verifier hardware** grading workflows.
-4. BarTender-style multi-data-source HRI visibility and VB transforms.
-5. Full GS1 AI wizard / Barcode Syntax Resource complete registry (subset only today).
-6. Bearer bars, UPC split digits, start/stop in HRI as first-class UI.
-7. Optional polish of the continuous “actual X mils/dots on selected printer” readout; the shared effective-module line is already shipped in Properties and preflight.
-8. Automatic width mutation remains out of the default behavior: explicit `SizedFromX` width is shipped, while legacy `FrameOwned` continues to own the drawn frame when X is zero.
+1. Full NiceLabel/BarTender symbology catalog and circular/postal variants.  
+2. Thermal **printer-native** barcode commands (ZPL `^BC`, etc.) vs app graphic.  
+3. Physical barcode **verifier hardware** grading workflows.  
+4. BarTender-style multi-data-source HRI visibility and VB transforms.  
+5. Full GS1 AI wizard / Barcode Syntax Resource complete registry (subset only today).  
+6. Bearer bars, UPC split digits, start/stop in HRI as first-class UI.  
+7. Continuous “actual X mils/dots on selected printer” Properties readout (risk warning + quantize contract shipped; widget chrome still open).  
+8. Auto-size object width from authored X × module count (today frame still owns drawn width; X drives industrial preflight).
 
 ### Industrial policy (shipped software slice — 2026-08)
 
@@ -236,39 +230,23 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 
 ## 8. Recommended product sequencing
 
-P3 owner routing is consolidated in [`P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md`](P3_BARCODE_CHECK_DIGIT_DECISION_PACKET.md): complete the Code 39/ITF choice, `None`/`Auto`/`Verify` payload convention, HRI copy/default, persistence and runtime/Figma ownership before implementation. The packet is a recommendation and evidence checklist, not a claim that M7/M8 are shipped.
-
-P4 owner routing is consolidated in [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md): complete the ratio legal set, density/QZ convention, threshold source, legacy-X treatment and runtime/Figma ownership before implementation. M3/M4/M14 remain open; no ratio or physical-QZ behavior is claimed shipped by this note.
-
-P5 owner routing is consolidated in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md): preserve QR capacity/module behavior, probe Data Matrix size/EC support, and choose an explicit unsupported-control state before implementation. M16/M17 remain open; the shared QR-shaped card is not evidence of Data Matrix parity.
-
-P6 owner routing is consolidated in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md): approve the first demanded AI families, strict notation/binding behavior, visible `[FNC1]` boundaries, curated-versus-official registry provenance, separate geometry/preflight ownership and runtime evidence before implementation. M15 remains an incremental industrial subset, not a full GS1 wizard or certification claim.
-
-P7 owner routing is consolidated in [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md): approve the Graphic/Native model, capability-record scope, explicit fallback, output-contract/parity policy, method-sensitive manifest migration and real printer-family pilot before implementation. M19 remains ADR/pilot-gated; the current graphic path is the only evidenced dispatch method.
-
-P8 owner routing is consolidated in [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md): approve the job-level host, scanner/verifier methods and grade scales, manifest/content binding, adapter correlation/timeout/busy policy, completion gate, redaction/signature policy and real lab fixture before implementation. M20 remains hardware-gated; queue/preflight/golden evidence is not physical verification.
-
-**Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0–P2 software slices closed; P3 next).
-**P1 closure record:** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — retained for the logical-module and legacy-safety rationale; it is no longer an unstarted coding slice.
+**Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0 done; P1+ open).  
+**Next coding slice (P1 optimized):** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — logical module count first; do not treat ZXing scaled `WidthModules` as logical modules.
 
 Research-level summary (same order):
 
-1. ~~**1D X-dimension mm + device-dot quantize at print DPI**~~ **done (software slice M2/M6 / P0)**.
-2. ~~**P1** — auto frame width from X×modules + effective mils readout~~ **done as an opt-in software slice** (M2/M6; legacy `FrameOwned` preserved).
-3. ~~**P2** — HRI placement enum None/Below/Above on shared `BarcodeHriLayoutContract`~~ **done as a software slice** (M9).
-4. **P3** — Check-digit policy for Code 39/ITF + HRI show/hide check digit (M7/M8); review the [`P3_BARCODE_CHECK_DIGIT_UI_SPEC.md`](P3_BARCODE_CHECK_DIGIT_UI_SPEC.md) before coding.
-5. **P4** — ratio, density presentation and physical quiet-zone mm — review [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) and its spec before coding.
-6. **P5** — QR naming and Data Matrix UI parity — review [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) and its spec before coding.
-7. **P6** — GS1 AI subset growth and diagnostics-first UI — review [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) and its spec before coding.
-8. **P7** — print method: graphic versus printer-native — review [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) and its spec; remain ADR/pilot-gated and do not claim native support from a queue name or Figma shell.
-9. **P8** — physical verifier / grade — review [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) and its spec; keep the lab-first, hash-only and non-claim boundary until a real adapter returns accepted evidence.
+1. ~~**1D X-dimension mm + device-dot quantize at print DPI**~~ **done (software slice M2/M6 / P0)**.  
+2. **P1** — auto frame width from X×modules + effective mils readout (closes remaining M2/M6 software).  
+3. **P2** — HRI placement enum None/Below/Above on shared `BarcodeHriLayoutContract` (M9).  
+4. **P3** — Check-digit policy for Code 39/ITF + HRI show/hide check digit (M7/M8).  
+5. **P4+** — ratio, quiet-zone mm, DM UI, GS1 growth, native path, hardware verifier — see execution plan.
 
 ---
 
 ## 9. Relation to prior ANLAbel docs
 
-- **`docs/INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`** — **long-horizon execution spine** (ordered phases P0–P8, gates, non-claims). Use that file to implement multi-session barcode industrial work; this research file remains the competitive gap matrix (M1–M22).
-- `docs/barcode-notes.md` — implementation history (ZXing, DPI rules); this file is the **competitive object-model** research.
+- **`docs/INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`** — **long-horizon execution spine** (ordered phases P0–P8, gates, non-claims). Use that file to implement multi-session barcode industrial work; this research file remains the competitive gap matrix (M1–M22).  
+- `docs/barcode-notes.md` — implementation history (ZXing, DPI rules); this file is the **competitive object-model** research.  
 - `docs/reinvention/01-competitive-benchmark.md` — platform-level benchmark; barcode object depth is expanded **here**.
 
 ---

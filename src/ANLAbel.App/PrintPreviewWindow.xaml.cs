@@ -3,22 +3,26 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using ANLAbel.App.Services;
 using ANLAbel.App.ViewModels;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
+using ANLAbel.Core.Printing;
 using ANLAbel.Data.PrintLogs;
 using ANLAbel.Printing.PrinterProfiles;
+using ANLAbel.Printing.RenderPipeline;
 
 namespace ANLAbel.App;
 
@@ -30,8 +34,12 @@ public partial class PrintPreviewWindow : Window
     private readonly PrintService _printService;
     private readonly PrintLogService _printLogService;
     private readonly PrintOperationLogService _printOperationLogService = new();
+    private readonly PrintJobStateStore _printJobStateStore = new();
     private readonly PrinterDiscoveryService _printerDiscoveryService = new();
     private readonly string _templateFilePath;
+    private readonly string? _approvedReprintJobId;
+    private readonly PrintJobManifest? _approvedReprintManifest;
+    private readonly IReadOnlyList<IReadOnlyDictionary<string, string>?>? _preparedRows;
     private string _selectedPrinterName = string.Empty;
     private IReadOnlyDictionary<string, string>?[] _previewRows = Array.Empty<IReadOnlyDictionary<string, string>?>();
     private double _previewZoom = 1.0;
@@ -40,12 +48,33 @@ public partial class PrintPreviewWindow : Window
     private PrintPreflightResult _preflightResult = new(Array.Empty<PrintPreflightIssue>());
     private readonly List<TrackingRowViewModel> _trackingRows = new();
     private bool _isRefreshing;
-    private readonly DateTime? _excelKnownWriteTimeUtc;
+    private bool _isPreviewBusy;
+    private bool _isPrintBusy;
+    private int _previewProgressPercent;
+    private string _previewProgressText = string.Empty;
+    private CancellationTokenSource? _previewOperationCts;
+    private readonly FileSourceIdentity? _excelKnownSourceIdentity;
     private IReadOnlyDictionary<string, string>?[] _allRowsCache = Array.Empty<IReadOnlyDictionary<string, string>?>();
     private readonly DispatcherTimer _filterDebounceTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private const string AllColumnsFilterOption = "(All columns)";
+    private const int PreviewCacheCapacity = 8;
+    private readonly Dictionary<int, PreviewRasterResult> _previewImageCache = new();
+    private readonly LinkedList<int> _previewImageLru = new();
+    private PrintRenderPlan? _previewPlan;
+    private string _previewPlanPrinterName = string.Empty;
+    private PrintPreflightIssue? _previewPlanIssue;
 
-    public PrintPreviewWindow(LabelTemplate template, IReadOnlyDictionary<string, string>? currentRow, DataView? excelDataView, PrintService printService, PrintLogService printLogService, string templateFilePath)
+    public PrintPreviewWindow(
+        LabelTemplate template,
+        IReadOnlyDictionary<string, string>? currentRow,
+        DataView? excelDataView,
+        PrintService printService,
+        PrintLogService printLogService,
+        string templateFilePath,
+        string? approvedReprintJobId = null,
+        PrintJobManifest? approvedReprintManifest = null,
+        IReadOnlyList<IReadOnlyDictionary<string, string>?>? preparedRows = null,
+        FileSourceIdentity? excelSourceIdentity = null)
     {
         InitializeComponent();
         _template = template;
@@ -54,13 +83,20 @@ public partial class PrintPreviewWindow : Window
         var workArea = SystemParameters.WorkArea;
         Width = Math.Min(Width, workArea.Width);
         Height = Math.Min(Height, workArea.Height);
+        if (workArea.Width <= 1366 || workArea.Height <= 768)
+        {
+            WindowState = WindowState.Maximized;
+        }
         _currentRow = currentRow;
         _excelDataView = excelDataView;
         _printService = printService;
         _printLogService = printLogService;
         _templateFilePath = templateFilePath;
+        _approvedReprintJobId = string.IsNullOrWhiteSpace(approvedReprintJobId) ? null : approvedReprintJobId;
+        _approvedReprintManifest = approvedReprintManifest;
+        _preparedRows = preparedRows;
         _selectedPrinterName = template.PrinterProfile.PrinterName;
-        _excelKnownWriteTimeUtc = TryGetExcelWriteTimeUtc();
+        _excelKnownSourceIdentity = excelSourceIdentity ?? TryGetExcelSourceIdentity();
 
         // Restore saved printer preferences if no printer configured yet
         if (string.IsNullOrWhiteSpace(_selectedPrinterName))
@@ -83,6 +119,7 @@ public partial class PrintPreviewWindow : Window
             _filterDebounceTimer.Stop();
             RefreshPreviewPagesOnly();
         };
+        Closed += (_, _) => CancelPreviewOperation();
 
         try
         {
@@ -99,7 +136,17 @@ public partial class PrintPreviewWindow : Window
     public List<PrintPreviewPageViewModel> Pages { get; } = new();
     public PrintPreviewPageViewModel? CurrentPage => Pages.Count == 0 ? null : Pages[Math.Max(0, Math.Min(Pages.Count - 1, _currentPageIndex))];
     public string PrinterName => string.IsNullOrWhiteSpace(_selectedPrinterName) ? "(no printer selected)" : _selectedPrinterName;
-    public string LabelSizeText => $"Label: {_template.WidthMm:0.##} × {_template.HeightMm:0.##} mm | DPI: {_template.PrinterProfile.Dpi}";
+    public string LabelSizeText
+    {
+        get
+        {
+            var plan = _previewPlan;
+            var dpi = plan is { DpiX: > 0, DpiY: > 0 }
+                ? $"{plan.DpiX}×{plan.DpiY}"
+                : $"{_template.PrinterProfile.Dpi}";
+            return $"Label: {(plan?.LabelWidthMm ?? _template.WidthMm):0.##} × {(plan?.LabelHeightMm ?? _template.HeightMm):0.##} mm | DPI: {dpi}";
+        }
+    }
 
     /// <summary>
     /// Print-preview-reliability-plan Đợt 2 item 6: makes explicit that this preview is
@@ -112,11 +159,15 @@ public partial class PrintPreviewWindow : Window
         get
         {
             var profile = _template.PrinterProfile;
+            var plan = _previewPlan;
             var parts = new List<string>
             {
-                $"Plan: {profile.Dpi} DPI",
+                plan is null
+                    ? $"Plan: {profile.Dpi} DPI (design-only)"
+                    : $"Plan: {plan.DpiX}×{plan.DpiY} DPI{(plan.OutputContractTicketVerified ? string.Empty : " (design-only)")}",
                 $"offset {profile.OffsetXMm:0.##}/{profile.OffsetYMm:0.##} mm"
             };
+            parts.Add(plan?.PrintableAreaVerified == true ? "imageable area verified" : "imageable area unverified");
             if (profile.Rotated180)
             {
                 parts.Add("rotated 180°");
@@ -154,6 +205,12 @@ public partial class PrintPreviewWindow : Window
     public string PreflightIssuesSummary => _preflightResult.Issues.Count <= 8
         ? $"{_preflightResult.Issues.Count} issue(s) found."
         : $"Showing first 8 of {_preflightResult.Issues.Count} issue(s).";
+    public bool IsPreviewBusy => _isPreviewBusy;
+    public bool CanCancelPreview => _isPreviewBusy;
+    public int PreviewProgressPercent => _previewProgressPercent;
+    public string PreviewProgressText => _previewProgressText;
+    public bool IsPrintBusy => _isPrintBusy;
+    public bool CanPrint => CanBeginPrint(_isPrintBusy, _isPreviewBusy, _previewRows.Length);
     public double PreviewZoom
     {
         get => _previewZoom;
@@ -182,6 +239,10 @@ public partial class PrintPreviewWindow : Window
                 _template.PrinterProfile.PrinterName = _selectedPrinterName;
             }
 
+            _previewPlan = null;
+            _previewPlanPrinterName = string.Empty;
+            _previewPlanIssue = null;
+
             if (dialog.SelectedPaper is not null)
             {
                 var (widthMm, heightMm) = LabelGeometry.OrientSize(dialog.SelectedPaper.WidthMm, dialog.SelectedPaper.HeightMm, dialog.SelectedOrientation);
@@ -191,6 +252,9 @@ public partial class PrintPreviewWindow : Window
                 _template.PrinterProfile.LabelHeightMm = heightMm;
                 _template.PrinterProfile.PhysicalWidthMm = dialog.SelectedPaper.WidthMm;
                 _template.PrinterProfile.PhysicalHeightMm = dialog.SelectedPaper.HeightMm;
+                _template.PrinterProfile.PaperSizeSource = dialog.SelectedPaper.Source == PaperSizeSourceKind.UserCustom
+                    ? PaperSizeSource.Manual
+                    : PaperSizeSource.DriverAutomatic;
             }
 
             _template.PrinterProfile.Dpi = dialog.SelectedDpi;
@@ -201,20 +265,25 @@ public partial class PrintPreviewWindow : Window
 
     private async void Print_Click(object sender, RoutedEventArgs e)
     {
+        if (!CanBeginPrint(_isPrintBusy, _isPreviewBusy, _previewRows.Length))
+        {
+            return;
+        }
+
+        _isPrintBusy = true;
+        OnPropertyChanged();
+        var printJobId = string.Empty;
+        PrintJobManifest? manifest = null;
         try
         {
-            if (IsLinkedExcelDataStale())
+            if (_isPreviewBusy)
             {
-                var choice = MessageBox.Show(
-                    this,
-                    "The linked Excel file has changed since this preview was opened. Printing now may use outdated data.\n\nClose this window and click Update Excel to refresh, or continue printing with the data currently shown here?\n\nYes = print with the data shown here\nNo = cancel and go update first",
-                    "Excel data may be outdated",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-                if (choice != MessageBoxResult.Yes)
-                {
-                    return;
-                }
+                return;
+            }
+
+            if (TryBlockStaleLinkedExcelData())
+            {
+                return;
             }
 
             ApplyPrintSetup();
@@ -225,8 +294,35 @@ public partial class PrintPreviewWindow : Window
                 return;
             }
 
+            // Resolve the queue contract before creating the durable manifest.
+            // The design-time plan is useful for editing, but it cannot prove
+            // what a driver coerced (DPI/media/imageable area) for this queue.
+            // Keeping this effective plan through preparation makes approved
+            // reprints compare the same physical output contract as dispatch.
+            PrintRenderPlan effectivePlan;
+            try
+            {
+                effectivePlan = await _printService.CreateEffectivePlanAsync(_template, _selectedPrinterName ?? string.Empty);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    $"Print preparation stopped because the selected printer contract could not be validated.\n\n{ex.Message}",
+                    "Printer contract unavailable",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             // Đợt 4 item 11 — "chống trùng tem": warn before re-sending a row that was
             // already printed earlier in this same preview session.
+            // Keep the exact effective queue/driver plan for any preview
+            // refresh or rerender that follows this preparation step.
+            _previewPlan = effectivePlan;
+            _previewPlanPrinterName = _selectedPrinterName ?? string.Empty;
+            _previewPlanIssue = null;
+
             var alreadyPrintedRows = selected.Select(entry => entry.SourceRowNumber).Distinct()
                 .Where(rowNumber => _trackingRows.FirstOrDefault(r => r.SourceRowNumber == rowNumber)?.IsPrinted == true)
                 .OrderBy(n => n)
@@ -246,7 +342,7 @@ public partial class PrintPreviewWindow : Window
             }
 
             var rows = selected.Select(entry => entry.Row).ToArray();
-            var preflight = _printService.ValidateRows(_template, rows);
+            var preflight = await ValidateRowsForUiAsync(rows, "Checking selected labels", effectivePlan);
             var skippedSourceRows = Array.Empty<int>();
             if (!preflight.IsSuccess)
             {
@@ -298,7 +394,7 @@ public partial class PrintPreviewWindow : Window
                     return;
                 }
 
-                preflight = _printService.ValidateRows(_template, rows);
+                preflight = await ValidateRowsForUiAsync(rows, "Re-checking remaining labels", effectivePlan);
                 if (!preflight.IsSuccess)
                 {
                     _preflightResult = preflight;
@@ -308,35 +404,245 @@ public partial class PrintPreviewWindow : Window
                 }
             }
 
-            _printService.PrintRows(_template, rows, _selectedPrinterName, $"{_template.Name} preview print");
-            LogPrintOperation(rows.Length, success: true, errorMessage: string.Empty);
-            await WritePrintHistoryAsync(rows);
-
-            foreach (var sourceRowNumber in selected.Select(entry => entry.SourceRowNumber).Distinct())
+            // Preflight can take long enough for an upstream spreadsheet save to
+            // finish after the initial click-time check. Revalidate immediately
+            // before a job/manifest is created, so a stale source never crosses
+            // the durable dispatch boundary.
+            if (TryBlockStaleLinkedExcelData())
             {
-                var vm = _trackingRows.FirstOrDefault(r => r.SourceRowNumber == sourceRowNumber);
-                if (vm is not null)
+                return;
+            }
+
+            printJobId = _approvedReprintJobId ?? Guid.NewGuid().ToString("N");
+            manifest = PrintJobManifest.Create(
+                _template.Name,
+                _templateFilePath,
+                $"{_template.Name} preview print",
+                _selectedPrinterName ?? string.Empty,
+                _template.WidthMm,
+                _template.HeightMm,
+                effectivePlan.DpiX > 0 ? effectivePlan.DpiX : _template.PrinterProfile.Dpi,
+                effectivePlan.DpiY > 0 ? effectivePlan.DpiY : _template.PrinterProfile.Dpi,
+                rows.Length,
+                selected.Select(entry => entry.SourceRowNumber).Distinct().Count(),
+                rows,
+                effectivePlan.DocumentHash,
+                effectivePlan.TextResourceFingerprint,
+                effectivePlan.SceneHash,
+                effectivePlan.OutputContractHash,
+                imageRasterFingerprint: effectivePlan.ImageRasterFingerprint,
+                thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty);
+            if (_approvedReprintJobId is not null)
+            {
+                var recoverySnapshot = await _printJobStateStore.ReadRecoverySnapshotAsync();
+                var currentEvent = recoverySnapshot.LatestEvents.FirstOrDefault(item =>
+                    string.Equals(item.JobId, _approvedReprintJobId, StringComparison.Ordinal));
+                if (_approvedReprintManifest is null
+                    || !_approvedReprintManifest.IsFingerprintValid
+                    || recoverySnapshot.StoreDiagnostics.Count > 0
+                    || currentEvent is null
+                    || currentEvent.To != PrintJobLifecycleState.Created
+                    || currentEvent.OperatorAction != PrintJobOperatorAction.ReprintApproved
+                    || currentEvent.Manifest is null
+                    || !currentEvent.Manifest.IsFingerprintValid
+                    || !string.Equals(currentEvent.ManifestFingerprint, _approvedReprintManifest.Fingerprint, StringComparison.Ordinal)
+                    || !string.Equals(manifest.Fingerprint, _approvedReprintManifest.Fingerprint, StringComparison.Ordinal))
                 {
-                    vm.IsPrinted = true;
+                    MessageBox.Show(
+                        this,
+                        "Reprint blocked: the selected template, printer, DPI or data no longer matches the approved manifest.",
+                        "Manifest mismatch",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
                 }
             }
+            await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                printJobId,
+                PrintJobLifecycleState.Created,
+                PrintJobLifecycleState.Preparing,
+                DateTimeOffset.UtcNow,
+                "Print preview accepted the batch for preparation.",
+                PrinterName: _selectedPrinterName ?? string.Empty,
+                DocumentHash: effectivePlan.DocumentHash,
+                TextResourceFingerprint: effectivePlan.TextResourceFingerprint,
+                SceneHash: effectivePlan.SceneHash,
+                ManifestFingerprint: manifest.Fingerprint,
+                Manifest: manifest));
+            await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                printJobId,
+                PrintJobLifecycleState.Preparing,
+                PrintJobLifecycleState.PreflightPassed,
+                DateTimeOffset.UtcNow,
+                "Preflight passed for the selected rows.",
+                PrinterName: _selectedPrinterName ?? string.Empty,
+                DocumentHash: effectivePlan.DocumentHash,
+                TextResourceFingerprint: effectivePlan.TextResourceFingerprint,
+                SceneHash: effectivePlan.SceneHash,
+                ManifestFingerprint: manifest.Fingerprint,
+                Manifest: manifest));
+            await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                printJobId,
+                PrintJobLifecycleState.PreflightPassed,
+                PrintJobLifecycleState.Dispatching,
+                DateTimeOffset.UtcNow,
+                "Dispatching the validated batch to the selected queue.",
+                PrinterName: _selectedPrinterName ?? string.Empty,
+                DocumentHash: effectivePlan.DocumentHash,
+                TextResourceFingerprint: effectivePlan.TextResourceFingerprint,
+                SceneHash: effectivePlan.SceneHash,
+                ManifestFingerprint: manifest.Fingerprint,
+                Manifest: manifest));
+
+            var printResult = (await _printService.PrintRowsWithResultAsync(
+                    _template,
+                    rows,
+                    _selectedPrinterName ?? string.Empty,
+                    $"{_template.Name} preview print",
+                    expectedOutputContractHash: effectivePlan.OutputContractHash))
+                with { ManifestFingerprint = manifest.Fingerprint, Manifest = manifest };
+            printResult = await _printService.ResolveSpoolJobIdentityAsync(
+                printResult,
+                timeout: TimeSpan.FromSeconds(1),
+                pollInterval: TimeSpan.FromMilliseconds(100));
+            SpoolJobMonitorResult? spoolStatus = null;
+            if (printResult.IsAccepted && printResult.SpoolJobId is int)
+            {
+                // Queue polling is bounded and read-only. It gives the operator a
+                // useful spool/driver signal without delaying dispatch or claiming
+                // that a physical label was verified.
+                spoolStatus = await _printService.MonitorSpoolJobAsync(
+                    printResult,
+                    timeout: TimeSpan.FromSeconds(3),
+                    pollInterval: TimeSpan.FromMilliseconds(250));
+            }
+
+            var dispatchState = MapPrintResultToLifecycleState(printResult);
+            await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                printJobId,
+                PrintJobLifecycleState.Dispatching,
+                dispatchState,
+                DateTimeOffset.UtcNow,
+                printResult.UserFacingStatus,
+                PrinterName: printResult.PrinterName,
+                SpoolJobId: printResult.SpoolJobId,
+                DocumentHash: printResult.DocumentHash,
+                TextResourceFingerprint: printResult.TextResourceFingerprint,
+                SceneHash: printResult.SceneHash,
+                OutputContractHash: printResult.OutputContractHash,
+                ManifestFingerprint: printResult.ManifestFingerprint,
+                Manifest: printResult.Manifest,
+                PhysicalOutputVerified: printResult.IsPhysicalCompletionVerified));
+
+            if (spoolStatus is not null && dispatchState == PrintJobLifecycleState.SpoolAccepted)
+            {
+                await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                    printJobId,
+                    PrintJobLifecycleState.SpoolAccepted,
+                    PrintJobLifecycleState.QueueObserved,
+                    spoolStatus.FinalObservation.ObservedAtUtc ?? DateTimeOffset.UtcNow,
+                    spoolStatus.FinalObservation.Message,
+                    PrinterName: printResult.PrinterName,
+                    SpoolJobId: printResult.SpoolJobId,
+                    QueueState: spoolStatus.FinalObservation.State.ToString(),
+                    DocumentHash: printResult.DocumentHash,
+                    TextResourceFingerprint: printResult.TextResourceFingerprint,
+                    SceneHash: printResult.SceneHash,
+                    OutputContractHash: printResult.OutputContractHash,
+                    ManifestFingerprint: printResult.ManifestFingerprint,
+                    Manifest: printResult.Manifest));
+            }
+
+            LogPrintOperation(rows.Length, printResult, spoolStatus, printJobId);
+            if (!printResult.IsAccepted)
+            {
+                MessageBox.Show(this, printResult.UserFacingStatus, "Print not completed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Only a device-confirmed terminal outcome may mark rows as printed.
+            // Spool acceptance (even with a queue job id) is deliberately not
+            // enough evidence for the duplicate-label guard.
+            if (printResult.IsPhysicalCompletionVerified)
+            {
+                var confirmedRows = selected.Select(entry => entry.SourceRowNumber).ToHashSet();
+                foreach (var row in _trackingRows.Where(item => confirmedRows.Contains(item.SourceRowNumber)))
+                {
+                    row.IsPrinted = true;
+                }
+            }
+
+            var statusText = printResult.UserFacingStatus;
+            if (spoolStatus is not null)
+            {
+                statusText += $"\nQueue status: {spoolStatus.UserFacingStatus}";
+            }
+
+            await WritePrintHistoryAsync(rows, statusText);
 
             // Đợt 4 item 10 — batch report so the user knows exactly what happened,
             // not just "a print job was sent".
             var printedRowCount = selected.Select(entry => entry.SourceRowNumber).Distinct().Count();
-            var summary = $"Printed {rows.Length} label(s) from {printedRowCount} row(s).";
+            var summary = $"Submitted {rows.Length} label(s) from {printedRowCount} row(s) to {printResult.PrinterName}.\n\n{statusText}";
             if (skippedSourceRows.Length > 0)
             {
                 summary += $"\nSkipped {skippedSourceRows.Length} row(s) with preflight issues: Row {string.Join(", ", skippedSourceRows)}.";
             }
             summary += $"\n\nHistory: {_printLogService.LogFilePath}";
-            MessageBox.Show(this, summary, "Print complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, summary, "Print submitted", MessageBoxButton.OK, MessageBoxImage.Information);
+            OnPropertyChanged();
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is a normal operator action, not a failed print job.
+            if (!string.IsNullOrWhiteSpace(printJobId))
+            {
+                var currentState = _printJobStateStore.GetCurrentState(printJobId);
+                if (currentState is PrintJobLifecycleState current
+                    && PrintJobStateMachine.CanTransition(current, PrintJobLifecycleState.Cancelled))
+                {
+                    await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                        printJobId,
+                        current,
+                        PrintJobLifecycleState.Cancelled,
+                        DateTimeOffset.UtcNow,
+                        "Operator canceled the print operation.",
+                        PrinterName: _selectedPrinterName,
+                        ManifestFingerprint: manifest?.Fingerprint ?? string.Empty,
+                        Manifest: manifest));
+                }
+            }
+
+            _previewProgressText = "Print preflight canceled.";
             OnPropertyChanged();
         }
         catch (Exception ex)
         {
-            LogPrintOperation(0, success: false, ex.Message);
+            if (!string.IsNullOrWhiteSpace(printJobId))
+            {
+                var currentState = _printJobStateStore.GetCurrentState(printJobId);
+                if (currentState is PrintJobLifecycleState current
+                    && PrintJobStateMachine.CanTransition(current, PrintJobLifecycleState.Failed))
+                {
+                    await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                        printJobId,
+                        current,
+                        PrintJobLifecycleState.Failed,
+                        DateTimeOffset.UtcNow,
+                        ex.Message,
+                        PrinterName: _selectedPrinterName,
+                        ManifestFingerprint: manifest?.Fingerprint ?? string.Empty,
+                        Manifest: manifest));
+                }
+            }
+
+            LogPrintOperation(0, new PrintJobResult(PrintJobOutcome.Failed, _selectedPrinterName, $"{_template.Name} preview print", 0, ex.Message, ManifestFingerprint: manifest?.Fingerprint ?? string.Empty, Manifest: manifest), jobId: printJobId);
             MessageBox.Show(this, ex.Message, "Print failed", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _isPrintBusy = false;
+            OnPropertyChanged();
         }
     }
 
@@ -345,23 +651,78 @@ public partial class PrintPreviewWindow : Window
     /// separate from the human-facing print-history.csv written by
     /// <see cref="WritePrintHistoryAsync"/>.
     /// </summary>
-    private void LogPrintOperation(int labelsPrinted, bool success, string errorMessage)
+    private void LogPrintOperation(int labelsPrinted, PrintJobResult result, SpoolJobMonitorResult? spoolStatus = null, string jobId = "")
     {
         var entry = new PrintOperationLogEntry
         {
+            JobId = jobId,
             TemplateName = _template.Name,
             TemplateFilePath = _templateFilePath,
-            PrinterName = _selectedPrinterName,
+            PrinterName = string.IsNullOrWhiteSpace(result.PrinterName) ? _selectedPrinterName : result.PrinterName,
             LabelWidthMm = _template.PrinterProfile.LabelWidthMm,
             LabelHeightMm = _template.PrinterProfile.LabelHeightMm,
-            Dpi = _template.PrinterProfile.Dpi,
+            Dpi = result.DpiX > 0 ? result.DpiX : _template.PrinterProfile.Dpi,
+            DpiX = result.DpiX > 0 ? result.DpiX : _template.PrinterProfile.Dpi,
+            DpiY = result.DpiY > 0 ? result.DpiY : _template.PrinterProfile.Dpi,
             PrintMode = "Print Preview",
+            Outcome = result.Outcome.ToString(),
+            OutcomeEvidence = result.IsPhysicalCompletionVerified
+                ? "device-confirmed"
+                : result.OutputContractTicketVerified
+                    ? result.PrintableAreaVerified ? "effective-ticket-and-imageable-area; physical-output-unverified" : "effective-ticket; printable-area-unverified; physical-output-unverified"
+                    : "output-contract-ticket-unverified; physical-output-unverified",
+            SpoolJobId = result.SpoolJobId,
+            SpoolState = spoolStatus?.FinalObservation.State.ToString() ?? string.Empty,
+            SpoolStatusMessage = spoolStatus?.FinalObservation.Message ?? string.Empty,
+            SpoolStatusPollCount = spoolStatus?.PollCount ?? 0,
+            SpoolStatusTimedOut = spoolStatus?.TimedOut ?? false,
+            SpoolStatusObservedAtUtc = spoolStatus?.FinalObservation.ObservedAtUtc,
+            OutputContractHash = result.OutputContractHash,
+            OutputContractTicketVerified = result.OutputContractTicketVerified,
+            DocumentHash = result.DocumentHash,
+            TextResourceFingerprint = result.TextResourceFingerprint,
+            ImageRasterFingerprint = result.ImageRasterFingerprint,
+            ThermalRasterGoldenFingerprint = result.ThermalRasterGoldenFingerprint,
+            ManifestFingerprint = result.ManifestFingerprint,
+            Manifest = result.Manifest,
+            SupportEvidenceFingerprint = result.SupportEvidenceFingerprint,
+            SceneHash = result.SceneHash,
+            SceneCompilationVerified = result.SceneCompilationVerified,
             RowsSelected = _trackingRows.Count(r => r.IsSelected),
             LabelsPrinted = labelsPrinted,
-            Success = success,
-            ErrorMessage = errorMessage
+            Success = result.IsAccepted,
+            ErrorMessage = result.ErrorMessage
         };
         _ = _printOperationLogService.AppendAsync(entry);
+    }
+
+    private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
+    {
+        try
+        {
+            await _printJobStateStore.AppendAsync(transition).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // The state log is an audit/recovery aid, not a reason to block a
+            // validated print. Keep the operator path alive while exposing the
+            // failure in diagnostics for support.
+            System.Diagnostics.Debug.WriteLine($"Print job state log failed: {ex.Message}");
+        }
+    }
+
+    private static PrintJobLifecycleState MapPrintResultToLifecycleState(PrintJobResult result)
+    {
+        return result.Outcome switch
+        {
+            PrintJobOutcome.Cancelled => PrintJobLifecycleState.Cancelled,
+            PrintJobOutcome.Failed => PrintJobLifecycleState.Failed,
+            PrintJobOutcome.Unknown => PrintJobLifecycleState.Unknown,
+            PrintJobOutcome.Completed when result.IsPhysicalCompletionVerified => PrintJobLifecycleState.Completed,
+            PrintJobOutcome.SpoolAccepted => PrintJobLifecycleState.SpoolAccepted,
+            PrintJobOutcome.DeviceAcknowledged => PrintJobLifecycleState.SpoolAccepted,
+            _ => PrintJobLifecycleState.Unknown
+        };
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)
@@ -374,38 +735,41 @@ public partial class PrintPreviewWindow : Window
     /// Best-effort only — a missing/locked file must not block printing here (the
     /// preflight/print pipeline already handles the "no data" case separately).
     /// </summary>
-    private DateTime? TryGetExcelWriteTimeUtc()
+    private FileSourceIdentity? TryGetExcelSourceIdentity()
     {
-        var filePath = _template.DatabaseConfig.FilePath;
-        try
-        {
-            return !string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath) ? File.GetLastWriteTimeUtc(filePath) : null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return null;
-        }
+        return FileSourceIdentity.TryCapture(_template.DatabaseConfig.FilePath, out var identity)
+            ? identity
+            : null;
     }
 
     /// <summary>
-    /// Print-preview-reliability-plan R2: warns before printing if the linked Excel file
-    /// changed after this preview window captured its snapshot of the data, since the
-    /// rows shown/printed here would otherwise silently be stale.
+    /// Detects a source snapshot that no longer matches the linked Excel file.
+    /// Stale data is a hard print-preparation block; preview pages remain a visual
+    /// record of the captured snapshot only.
     /// </summary>
     private bool IsLinkedExcelDataStale()
     {
-        if (_excelKnownWriteTimeUtc is null)
+        return IsSourceSnapshotStale(_excelKnownSourceIdentity, TryGetExcelSourceIdentity());
+    }
+
+    private bool TryBlockStaleLinkedExcelData()
+    {
+        if (!IsLinkedExcelDataStale())
         {
             return false;
         }
 
-        var currentWriteTimeUtc = TryGetExcelWriteTimeUtc();
-        return currentWriteTimeUtc is not null && currentWriteTimeUtc != _excelKnownWriteTimeUtc;
+        MessageBox.Show(
+            this,
+            "The linked Excel file has changed since this preview was opened. Print preparation is blocked because the displayed rows may be outdated.\n\nClose this window, click Update Excel, then open Print Preview again.",
+            "Excel data changed",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+        return true;
     }
+
+    public static bool IsSourceSnapshotStale(FileSourceIdentity? knownIdentity, FileSourceIdentity? currentIdentity) =>
+        FileSourceIdentity.IsStale(knownIdentity, currentIdentity);
 
     private void PreviewScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -420,20 +784,32 @@ public partial class PrintPreviewWindow : Window
 
     private void PreviousPage_Click(object sender, RoutedEventArgs e)
     {
+        if (_isPreviewBusy)
+        {
+            return;
+        }
+
         if (_currentPageIndex > 0)
         {
             _currentPageIndex--;
             _pageInput = (_currentPageIndex + 1).ToString();
+            EnsureCurrentPreviewImage();
             OnPropertyChanged();
         }
     }
 
     private void NextPage_Click(object sender, RoutedEventArgs e)
     {
+        if (_isPreviewBusy)
+        {
+            return;
+        }
+
         if (_currentPageIndex < Pages.Count - 1)
         {
             _currentPageIndex++;
             _pageInput = (_currentPageIndex + 1).ToString();
+            EnsureCurrentPreviewImage();
             OnPropertyChanged();
         }
     }
@@ -444,12 +820,16 @@ public partial class PrintPreviewWindow : Window
         RefreshPreview();
     }
 
-    private void PrintCalibration_Click(object sender, RoutedEventArgs e)
+    private async void PrintCalibration_Click(object sender, RoutedEventArgs e)
     {
         try
         {
             ApplyPrintSetup();
-            _printService.PrintCalibration(_template);
+            var result = await _printService.PrintCalibrationWithResultAsync(_template);
+            if (!result.IsAccepted)
+            {
+                MessageBox.Show(this, result.UserFacingStatus, "Calibration not completed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
             OnPropertyChanged();
         }
         catch (Exception ex)
@@ -469,6 +849,11 @@ public partial class PrintPreviewWindow : Window
 
     private void PreflightIssue_Click(object sender, RoutedEventArgs e)
     {
+        if (_isPreviewBusy)
+        {
+            return;
+        }
+
         if (sender is not Button { Tag: int rowNumber })
         {
             return;
@@ -481,12 +866,13 @@ public partial class PrintPreviewWindow : Window
 
         _currentPageIndex = Math.Max(0, Math.Min(Pages.Count - 1, rowNumber - 1));
         _pageInput = (_currentPageIndex + 1).ToString();
+        EnsureCurrentPreviewImage();
         OnPropertyChanged();
     }
 
     private void PageInput_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter)
+        if (e.Key != Key.Enter || _isPreviewBusy)
         {
             return;
         }
@@ -495,6 +881,7 @@ public partial class PrintPreviewWindow : Window
         {
             _currentPageIndex = pageNumber - 1;
             _pageInput = pageNumber.ToString();
+            EnsureCurrentPreviewImage();
             OnPropertyChanged();
         }
     }
@@ -685,7 +1072,7 @@ public partial class PrintPreviewWindow : Window
 
     // ==================== Refresh logic ====================
 
-    private void RefreshPreview()
+    private void RefreshPreviewLegacy()
     {
         if (_isRefreshing)
         {
@@ -738,20 +1125,10 @@ public partial class PrintPreviewWindow : Window
             _previewRows = BuildExpandedRowsFromTracking();
 
             _preflightResult = _printService.ValidateRows(_template, _previewRows);
-            var previewPages = _printService.CreatePreviewPages(_template, _previewRows);
-            foreach (var page in previewPages)
-            {
-                Pages.Add(new PrintPreviewPageViewModel
-                {
-                    PageNumber = page.PageNumber,
-                    PreviewImage = RenderPreviewImage(page.Visual, page.WidthDip, page.HeightDip),
-                    Width = page.WidthDip,
-                    Height = page.HeightDip
-                });
-            }
-
+            BuildPreviewPageMetadata();
             _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
             _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
+            EnsureCurrentPreviewImage();
             OnPropertyChanged();
         }
         finally
@@ -764,7 +1141,7 @@ public partial class PrintPreviewWindow : Window
     /// Lightweight refresh: rebuilds preview pages from current tracking state.
     /// Does NOT touch _trackingRows or TrackingList.ItemsSource — safe to call from click handlers.
     /// </summary>
-    private void RefreshPreviewPagesOnly()
+    private void RefreshPreviewPagesOnlyLegacy()
     {
         if (_isRefreshing)
         {
@@ -779,20 +1156,10 @@ public partial class PrintPreviewWindow : Window
             _previewRows = BuildExpandedRowsFromTracking();
 
             _preflightResult = _printService.ValidateRows(_template, _previewRows);
-            var previewPages = _printService.CreatePreviewPages(_template, _previewRows);
-            foreach (var page in previewPages)
-            {
-                Pages.Add(new PrintPreviewPageViewModel
-                {
-                    PageNumber = page.PageNumber,
-                    PreviewImage = RenderPreviewImage(page.Visual, page.WidthDip, page.HeightDip),
-                    Width = page.WidthDip,
-                    Height = page.HeightDip
-                });
-            }
-
+            BuildPreviewPageMetadata();
             _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
             _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
+            EnsureCurrentPreviewImage();
             OnPropertyChanged();
         }
         finally
@@ -801,18 +1168,182 @@ public partial class PrintPreviewWindow : Window
         }
     }
 
+    /// <summary>
+    /// Materializes only page metadata.  Visuals and 300-DPI bitmaps are created
+    /// by EnsureCurrentPreviewImage for the current page and a small LRU cache.
+    /// This keeps large industrial batches bounded instead of allocating one
+    /// visual/bitmap per label during window construction.
+    /// </summary>
+    private void BuildPreviewPageMetadata()
+    {
+        Pages.Clear();
+        _previewImageCache.Clear();
+        _previewImageLru.Clear();
+
+        var plan = _previewPlan ?? _printService.CreateDesignPlan(_template);
+        var width = MmConverter.MmToDip(plan.LabelWidthMm);
+        var height = MmConverter.MmToDip(plan.LabelHeightMm);
+        Pages.AddRange(PrintPreviewPageViewModel.CreateMetadata(_previewRows.Length, width, height));
+    }
+
+    private void EnsureCurrentPreviewImage()
+    {
+        if (_isPreviewBusy || Pages.Count == 0 || _previewRows.Length == 0)
+        {
+            return;
+        }
+
+        var operation = BeginPreviewOperation("Rendering label preview");
+        _ = RenderCurrentPreviewImageAsync(operation);
+    }
+
+    private async Task RenderCurrentPreviewImageAsync(CancellationTokenSource operation)
+    {
+        var keepStatus = false;
+        try
+        {
+            await EnsureCurrentPreviewImageAsync(operation.Token, operation);
+            if (IsCurrentPreviewOperation(operation))
+            {
+                _previewProgressPercent = 100;
+                _previewProgressText = "Preview ready.";
+                OnPropertyChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            if (IsCurrentPreviewOperation(operation))
+            {
+                keepStatus = true;
+                _previewProgressText = "Preview render canceled.";
+                OnPropertyChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrentPreviewOperation(operation))
+            {
+                keepStatus = true;
+                _previewProgressText = $"Preview render failed: {ex.Message}";
+                OnPropertyChanged();
+            }
+        }
+        finally
+        {
+            EndPreviewOperation(operation, keepStatus);
+        }
+    }
+
+    private async Task EnsureCurrentPreviewImageAsync(
+        CancellationToken cancellationToken,
+        CancellationTokenSource? operation = null)
+    {
+        if (Pages.Count == 0 || _previewRows.Length == 0)
+        {
+            return;
+        }
+
+        var pageIndex = Math.Max(0, Math.Min(Pages.Count - 1, _currentPageIndex));
+        _currentPageIndex = pageIndex;
+        if (_previewImageCache.TryGetValue(pageIndex, out var cached))
+        {
+            TouchPreviewCache(pageIndex);
+            Pages[pageIndex].PreviewImage = cached.Image;
+            Pages[pageIndex].PreviewRasterIdentity = cached.RasterIdentity;
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var drawing = _printService.CreatePreviewDrawing(
+            _template,
+            _previewRows.ElementAtOrDefault(pageIndex),
+            _previewPlan);
+        var raster = await PreviewRasterizer.RenderSnapshotAsync(
+            drawing.Drawing,
+            drawing.WidthDip,
+            drawing.HeightDip,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (operation is not null && !IsCurrentPreviewOperation(operation))
+        {
+            return;
+        }
+
+        _previewImageCache[pageIndex] = raster;
+        _previewImageLru.AddLast(pageIndex);
+        if (pageIndex == _currentPageIndex)
+        {
+            Pages[pageIndex].PreviewImage = raster.Image;
+            Pages[pageIndex].PreviewRasterIdentity = raster.RasterIdentity;
+        }
+
+        while (_previewImageLru.Count > PreviewCacheCapacity)
+        {
+            var oldest = _previewImageLru.First;
+            if (oldest is null)
+            {
+                break;
+            }
+
+            _previewImageLru.RemoveFirst();
+            _previewImageCache.Remove(oldest.Value);
+            if (oldest.Value != _currentPageIndex && oldest.Value >= 0 && oldest.Value < Pages.Count)
+            {
+                Pages[oldest.Value].PreviewImage = null;
+                Pages[oldest.Value].PreviewRasterIdentity = null;
+            }
+        }
+    }
+
+    private void TouchPreviewCache(int pageIndex)
+    {
+        _previewImageLru.Remove(pageIndex);
+        _previewImageLru.AddLast(pageIndex);
+    }
+
     private IReadOnlyDictionary<string, string>?[] BuildExpandedRowsFromTracking()
     {
-        // Same selection/expansion rule as GetSelectedRowsWithSource() — kept as one
-        // routine so a future change to copy-expansion or null-row handling only needs
-        // to happen in one place instead of three near-identical loops.
-        return GetSelectedRowsWithSource().Select(entry => entry.Row).ToArray();
+        return BuildExpandedRowsFromTracking(_trackingRows, GetRows().ToArray());
+    }
+
+    private static IReadOnlyDictionary<string, string>?[] BuildExpandedRowsFromTracking(
+        IReadOnlyList<TrackingRowViewModel> trackingRows,
+        IReadOnlyList<IReadOnlyDictionary<string, string>?> allRows)
+    {
+        var result = new List<IReadOnlyDictionary<string, string>?>();
+        foreach (var vm in trackingRows)
+        {
+            if (!vm.IsSelected || vm.Copies <= 0)
+            {
+                continue;
+            }
+
+            var row = vm.SourceRowNumber > 0 && vm.SourceRowNumber <= allRows.Count
+                ? allRows[vm.SourceRowNumber - 1]
+                : null;
+            for (var copy = 0; copy < vm.Copies; copy++)
+            {
+                result.Add(row);
+            }
+        }
+
+        return result.ToArray();
     }
 
     // ==================== Data helpers ====================
 
     private IEnumerable<IReadOnlyDictionary<string, string>?> GetRows()
     {
+        if (_preparedRows is not null)
+        {
+            foreach (var row in _preparedRows)
+            {
+                yield return row;
+            }
+
+            yield break;
+        }
+
         if (_excelDataView is null || _excelDataView.Count == 0)
         {
             yield return _currentRow;
@@ -899,6 +1430,9 @@ public partial class PrintPreviewWindow : Window
         DataContext = this;
     }
 
+    private static bool CanBeginPrint(bool isPrintBusy, bool isPreviewBusy, int previewRowCount)
+        => !isPrintBusy && !isPreviewBusy && previewRowCount > 0;
+
     // ==================== Summary & formatting ====================
 
     private static string CreateRowSummary(IReadOnlyDictionary<string, string>? row)
@@ -955,21 +1489,9 @@ public partial class PrintPreviewWindow : Window
         return new string(value.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
     }
 
-    private static ImageSource RenderPreviewImage(Visual visual, double width, double height)
-    {
-        const double previewDpi = 300;
-        var scale = previewDpi / 96.0;
-        var pixelWidth = Math.Max(1, (int)Math.Ceiling(width * scale));
-        var pixelHeight = Math.Max(1, (int)Math.Ceiling(height * scale));
-        var target = new RenderTargetBitmap(pixelWidth, pixelHeight, previewDpi, previewDpi, PixelFormats.Pbgra32);
-        target.Render(visual);
-        target.Freeze();
-        return target;
-    }
-
     // ==================== Print history ====================
 
-    private PrintLogEntry CreatePrintLogEntry(IReadOnlyDictionary<string, string>? row, int labelCount, int labelIndex)
+    private PrintLogEntry CreatePrintLogEntry(IReadOnlyDictionary<string, string>? row, int labelCount, int labelIndex, string outcomeStatus)
     {
         return new PrintLogEntry
         {
@@ -991,7 +1513,7 @@ public partial class PrintPreviewWindow : Window
             Quantity = GetRowValue(row, "Qty", "Quantity", "SoLuong", "So Luong", "Số lượng"),
             LabelContent = CreateLabelContent(row),
             RowData = row is null ? string.Empty : string.Join("; ", row.Select(pair => $"{pair.Key}={pair.Value}")),
-            Notes = "Printed from Ctrl+P preview"
+            Notes = $"Submitted from Ctrl+P preview. {outcomeStatus}"
         };
     }
 
@@ -1024,11 +1546,11 @@ public partial class PrintPreviewWindow : Window
             : BindingExpressionEvaluator.Evaluate(expression, row);
     }
 
-    private async Task WritePrintHistoryAsync(IReadOnlyDictionary<string, string>?[] rows)
+    private async Task WritePrintHistoryAsync(IReadOnlyDictionary<string, string>?[] rows, string outcomeStatus)
     {
         try
         {
-            await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(row, rows.Length, index + 1)));
+            await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(row, rows.Length, index + 1, outcomeStatus)));
         }
         catch (IOException ex)
         {

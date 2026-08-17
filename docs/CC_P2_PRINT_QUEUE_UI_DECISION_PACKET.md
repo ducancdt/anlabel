@@ -1,6 +1,6 @@
 # CC-P2 Print Queue Console owner decision packet
 
-**Status:** documentation-only owner gate for the M1 read-only queue-visibility slice; no queue command, new host, Figma edit or Text/TextBox change is authorized (2026-08-13)
+**Status:** M1 read-only queue-visibility slice implemented; no queue command, Figma edit or Text/TextBox change is authorized (2026-08-13)
 **Program index:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
 **Upstream host/read-model gate:** [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md)
 **Host decision packet:** [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](CC_P1_P2_P5_HOST_DECISION_PACKET.md)
@@ -13,7 +13,7 @@
 
 ## Purpose and boundary
 
-The current checkout has source-backed local printer discovery, explicit saved-queue lookup and one-job spool observation. It has no fleet table, filter model or queue-command service. The upstream P1/P2/P5 gate already owns the host choice and cross-surface read model; this packet makes the concrete P2 M1 queue-visibility owner contract reviewable without selecting a host or creating a second queue/recovery authority.
+The current checkout has source-backed local printer discovery, explicit saved-queue lookup and one-job spool observation. M1 now adds a local read-only table/filter model in `PrintQueueConsoleWindow`; it still has no queue-command service. The upstream P1/P2/P5 gate owns the cross-surface read model and this packet records the concrete P2 boundary without creating a second queue/recovery authority.
 
 This packet covers:
 
@@ -99,7 +99,7 @@ Read-only metadata was rechecked on 2026-08-13 for the [NiceLabel Control Center
 | Node | Metadata | Safe reuse | Missing P2 proof |
 | --- | --- | --- | --- |
 | `2:37` | `CC / Printers — Print Management`, `1280 x 800` | Density and information-architecture reference only | No local host, source error or runtime scale proof |
-| `2:51` | Filter rail, `220 x 680` | Candidate filter grouping | Licensed/facility/location/paused labels have no local entitlement/source contract |
+| `2:51` | Filter rail, `220 x 680` | Candidate filter grouping | Licensed/seat labels are omitted by scope; facility/location/paused labels require a local source contract |
 | `2:72` | Main pane, `1000 x 680` | Candidate table/detail region | No queue/job scope, unknown/stale/permission state or WPF owner |
 | `2:73` | Pause/Resume/Delete/Reserve/Unreserve/Settings text | Record as deferred research vocabulary | No capability, confirmation, timeout or durable outcome contract |
 | `2:74` | Search by name, port and workstation text | Search-language reference | Current `PrinterInfo` does not supply port/workstation |

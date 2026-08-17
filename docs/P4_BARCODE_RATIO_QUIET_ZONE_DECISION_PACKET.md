@@ -1,7 +1,7 @@
 # P4 barcode ratio / density / physical quiet-zone owner decision packet
 
-**Status:** documentation-only decision packet; owner sign-off required before implementation
-**Date:** 2026-08-13
+**Status:** Code 39 software slice implemented; runtime scale evidence pending
+**Date:** 2026-08-14
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P4
 **UI/UX handoff:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md)
 **UI/UX specification:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_SPEC.md)
@@ -20,7 +20,15 @@ Approve or amend these six decisions before implementation:
 5. physical-QZ warning threshold/severity and legacy-X treatment;
 6. WPF/Figma/runtime evidence ownership.
 
-The recommended bounded option is **Code 39 first**, with a typed legal ratio policy, read-only density/effective-X presentation, and a per-side physical quiet-zone readout only after a renderer probe confirms the margin convention. This is a recommendation, not approval.
+The approved bounded option is **Code 39 first**, with a typed legal ratio policy, no independent density input, and a per-side physical quiet-zone readout. The existing ZXing writer does not expose a ratio input, so implementation must add a tested Code 39 geometry seam; a XAML-only selector is explicitly disallowed.
+
+## 1.1 Research record (2026-08-14)
+
+- ISO identifies ISO/IEC 16388:2023 as the current Code 39 symbology specification. Its public catalogue describes it as covering dimensions and tolerances.
+- The accessible USS-39 specification states that wide:narrow ratio is 2.0:1–3.0:1 when X is at least 0.508 mm, and 2.2:1–3.0:1 below that X; it requires a quiet zone of at least 10X or 2.54 mm, whichever is greater, on both leading and trailing sides.
+- ZXing's `Code39Writer` has no ratio encode hint. Therefore P4 must not present a ratio that does not reach the rendered vector.
+
+Sources: [ISO/IEC 16388:2023 catalogue](https://www.iso.org/es/contents/data/standard/07/77/77799.html), [USS-39 specification](https://www.expresscorp.com/wp-content/uploads/2023/02/USS-39.pdf), [ZXing Code39Writer](https://github.com/zxing/zxing/blob/master/core/src/main/java/com/google/zxing/oned/Code39Writer.java).
 
 ## 2. Source and evidence boundary
 
@@ -45,7 +53,7 @@ The recommended bounded option is **Code 39 first**, with a typed legal ratio po
 | ITF | Present in the catalog and relevant to industrial labels. | Ratio, bearer-bar and check-digit interactions are not represented; a generic Code 39 decision must not be copied to ITF. | Defer until its own legal set and fixtures exist. |
 | All linear standards | Broad apparent coverage. | Would expose no-op or incorrect controls for standards whose ratio is engine-owned or not supported by the current renderer. | Not ready for P4. |
 
-**Owner record:** `Selected symbology: ____________________`  **Owner/date:** ____________________
+**Owner record:** `Selected symbology: Code 39 only`  **Owner/date:** Product owner / 2026-08-14
 
 ### D2 — Ratio representation
 
@@ -57,7 +65,7 @@ The recommended bounded option is **Code 39 first**, with a typed legal ratio po
 
 The persisted value should be typed and per object, with a documented legacy-safe default that preserves the current engine behavior. Invalid values must fail closed or remain unapplied; never silently clamp to a different ratio.
 
-**Owner record:** `Representation and legal values approved/amended: ____________________`  **Owner/date:** ____________________
+**Owner record:** `Representation: named presets 2.2:1, 2.5:1, 3.0:1; 2.0:1 only when effective X is at least 0.508 mm; invalid states fail closed.`  **Owner/date:** Product owner / 2026-08-14
 
 ### D3 — Density and effective-X presentation
 
@@ -65,7 +73,7 @@ Recommend keeping density **read-only** and subordinate to the existing effectiv
 
 Safe default copy: `Derived density` plus a tooltip explaining that it is derived from the resolved X/ratio/symbol structure. If the renderer cannot provide a trustworthy ratio-aware density, show `Density unavailable` rather than a frame-derived guess.
 
-**Owner record:** `Density copy/units/formula approved or deferred: ____________________`  **Owner/date:** ____________________
+**Owner record:** `Density is deferred from the first code slice: show existing effective-X data only, never a third input or an unverified density calculation.`  **Owner/date:** Product owner / 2026-08-14
 
 ### D4 — Quiet-zone convention
 
@@ -80,7 +88,7 @@ The owner must choose one convention and use it everywhere:
 
 General profile remains `no profile minimum`; Industrial/GS1 linear profiles retain the existing required `10` logical modules. A physical value is a measurement/readout from the shared print plan, not certification.
 
-**Owner record:** `Side/total convention and renderer probe approved: ____________________`  **Owner/date:** ____________________
+**Owner record:** `Per side. Physical requirement is max(10 × effective X, 2.54 mm) per side for the Code 39 P4 slice; renderer geometry must carry the same margin convention.`  **Owner/date:** Product owner / 2026-08-14
 
 ### D5 — Threshold, severity and legacy X=0
 
@@ -91,7 +99,7 @@ General profile remains `no profile minimum`; Industrial/GS1 linear profiles ret
 | Below existing profile modules | Reuse `BarcodeApplicationContract`'s profile requirement and current fail-closed behavior. | Do not silently raise/lower modules or change GS1 policy. |
 | Physical QZ below a new threshold | Add a typed severity only after the owner names the threshold/source; show observed, required and repair action. | Do not invent ISO/ANSI grade or force `Print anyway`. |
 
-**Owner record:** `Threshold/source/severity and legacy label approved: ____________________`  **Owner/date:** ____________________
+**Owner record:** `Below the Code 39 physical minimum blocks print preflight; legacy X=0 remains unresolved and preserves existing geometry.`  **Owner/date:** Product owner / 2026-08-14
 
 ### D6 — UI, Figma and runtime ownership
 
@@ -103,7 +111,7 @@ General profile remains `no profile minimum`; Industrial/GS1 linear profiles ret
 | Runtime evidence | Capture supported, unsupported, invalid-ratio, legacy-X and GS1-low-QZ states at `1024 × 600`, `100%`, `125%`, `150%` (or document an exception). | Named screenshot/UIA owner, focus/keyboard/scroll result and artifact paths. |
 | Physical claim | Keep software readout, preflight, thermal-golden and verifier evidence separate. | No P4 approval may claim physical verification or printer certification. |
 
-**Owner record:** `WPF owner: __________  Figma route: reuse / state node  Runtime owner: __________  Date: __________`
+**Owner record:** `WPF owner: ANLAbel implementation  Figma route: reuse 18:69 shell only  Runtime owner: pending available Windows automation  Date: 2026-08-14`
 
 ## 4. Implementation-ready fixture matrix
 
@@ -117,7 +125,7 @@ These fixtures are required names/assertions, not authorization to code before D
 | `Physical_qz_per_side_matches_plan` | Explicit X, known DPI and QZ modules | Readout equals the approved side/total convention from the same quantized X used by preflight. |
 | `Legacy_frame_owned_qz_is_honest` | X = 0 / `FrameOwned` | Authored width/modules remain unchanged; UI does not label the frame-derived result as a verified physical measurement. |
 | `Industrial_qz_threshold_reuses_profile` | Industrial/GS1 linear profile | Required logical modules and severity match `BarcodeApplicationContract`; no silent reduction or certification claim. |
-| `SizedFromX_ratio_does_not_duplicate_width_owner` | Explicit `SizedFromX` | Production width follows the existing X × logical-module path once; ratio cannot create a second resize mutation. |
+| `SizedFromX_ratio_does_not_duplicate_width_owner` | Explicit `SizedFromX` | First Code 39 slice fails closed because the existing module-count seam is integer-only; it must not invent a fractional-ratio width. |
 | `BarcodeP4_clone_save_legacy_round_trip` | New and legacy objects | Ratio/physical-QZ fields round-trip after approval; missing fields preserve authored geometry and current quiet-zone semantics. |
 | `P4_non_linear_controls_are_not_actionable` | QR/Data Matrix/Aztec/PDF417 | Ratio/density controls are hidden/disabled with a reason; square-module/ECC paths are unchanged. |
 
@@ -139,11 +147,11 @@ P4 remains **not ready** when ratio values are invented in XAML, when per-side a
 
 | Decision | Owner | Date | Approved / amended | Evidence link |
 | --- | --- | --- | --- | --- |
-| D1 first ratio symbology/legal set |  |  |  |  |
-| D2 ratio representation |  |  |  |  |
-| D3 density copy/units/formula |  |  |  |  |
-| D4 quiet-zone side/total convention |  |  |  |  |
-| D5 threshold/severity/legacy X=0 |  |  |  |  |
-| D6 UI/Figma/runtime ownership |  |  |  |  |
+| D1 first ratio symbology/legal set | Product owner | 2026-08-14 | Code 39, conditional legal set | §1.1 |
+| D2 ratio representation | Product owner | 2026-08-14 | named presets; no silent clamp | §3 |
+| D3 density copy/units/formula | Product owner | 2026-08-14 | deferred; effective-X remains read-only | §3 |
+| D4 quiet-zone side/total convention | Product owner | 2026-08-14 | per side; max(10X, 2.54 mm) | §3 |
+| D5 threshold/severity/legacy X=0 | Product owner | 2026-08-14 | block below physical minimum; legacy unresolved | §3 |
+| D6 UI/Figma/runtime ownership | Product owner | 2026-08-14 | WPF reuse; runtime evidence pending automation | §3 |
 
 Until this table is completed, this packet is a review aid only. The next safe action is to obtain the standards/renderer probe and owner decisions; no Text/TextBox contract change is involved.

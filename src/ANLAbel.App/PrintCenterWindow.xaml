@@ -1,0 +1,107 @@
+<Window x:Class="ANLAbel.App.PrintCenterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ANLAbel - Print Center"
+        Width="1180"
+        Height="720"
+        MinWidth="900"
+        MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Background="#F8FAFC"
+        PreviewKeyDown="PrintCenterWindow_PreviewKeyDown"
+        Loaded="PrintCenterWindow_Loaded">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <Button x:Name="RefreshButton"
+                    DockPanel.Dock="Right"
+                    Content="Refresh"
+                    Padding="16,7"
+                    AutomationProperties.Name="Refresh print recovery"
+                    Click="RefreshButton_Click"/>
+            <StackPanel>
+                <TextBlock Text="Print Center / Recovery"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="#0F172A"/>
+                <TextBlock Text="Queue evidence and reprint decisions are recorded; no action retries automatically."
+                           Margin="0,4,0,0"
+                           Foreground="#475569"/>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <TextBlock Text="Scan or search job:" VerticalAlignment="Center" Foreground="#334155"/>
+                    <TextBox x:Name="FilterTextBox"
+                             Width="300"
+                             Margin="8,0,0,0"
+                             Padding="7,4"
+                             ToolTip="Scan a job ID, or search printer, spool, queue, or manifest"
+                             AutomationProperties.Name="Scan or search print job"
+                             TextChanged="FilterTextBox_TextChanged"/>
+                    <TextBlock x:Name="FilterSummaryText"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               Foreground="#64748B"
+                               Text="0 jobs"/>
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+
+        <DataGrid x:Name="JobsGrid"
+                  Grid.Row="1"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  SelectionMode="Single"
+                  SelectionUnit="FullRow"
+                  SelectionChanged="JobsGrid_SelectionChanged"
+                  HeadersVisibility="Column"
+                  Background="White"
+                  BorderBrush="#CBD5E1"
+                  BorderThickness="1">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Job" Binding="{Binding JobId}" Width="210"/>
+                <DataGridTextColumn Header="State" Binding="{Binding State}" Width="115"/>
+                <DataGridTextColumn Header="Action" Binding="{Binding OperatorAction}" Width="135"/>
+                <DataGridTextColumn Header="Printer" Binding="{Binding PrinterName}" Width="150"/>
+                <DataGridTextColumn Header="Spool" Binding="{Binding SpoolJobId}" Width="70"/>
+                <DataGridTextColumn Header="Queue" Binding="{Binding QueueState}" Width="105"/>
+                <DataGridTextColumn Header="Manifest" Binding="{Binding ManifestFingerprint}" Width="220"/>
+                <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="2"
+                Margin="0,12,0,0"
+                Padding="12"
+                Background="White"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="6">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="DetailsText"
+                           Text="Select a job to inspect its durable evidence."
+                           TextWrapping="Wrap"
+                           Foreground="#334155"
+                           MaxHeight="64"/>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button x:Name="ReconcileButton" Content="Reconcile queue" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Reconcile selected queue" Click="ReconcileButton_Click"/>
+                    <Button x:Name="AcknowledgeButton" Content="Acknowledge" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Acknowledge selected job" Click="AcknowledgeButton_Click"/>
+                    <Button x:Name="VoidButton" Content="Void" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Void selected job" Click="VoidButton_Click"/>
+                    <Button x:Name="RequestReprintButton" Content="Request reprint" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Request linked reprint" Click="RequestReprintButton_Click"/>
+                    <Button x:Name="ApproveButton" Content="Approve reprint" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Approve linked reprint" Click="ApproveButton_Click"/>
+                    <Button x:Name="PreviewButton" Content="Open approved preview" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Open approved preview" Click="PreviewButton_Click"/>
+                    <Button x:Name="ExportSupportButton" Content="Export support evidence" Padding="13,6" AutomationProperties.Name="Export redacted support evidence" Click="ExportSupportButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

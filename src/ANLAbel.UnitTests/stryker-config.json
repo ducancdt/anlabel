@@ -1,0 +1,40 @@
+{
+  "stryker-config": {
+    "project": "ANLAbel.Core.csproj",
+    "test-projects": [
+      "ANLAbel.UnitTests.csproj"
+    ],
+    "mutate": [
+      "Geometry/MmConverter.cs",
+      "Geometry/DeviceDotQuantizer.cs",
+      "Printing/EffectiveDpiContract.cs",
+      "Printing/PrintableAreaContract.cs",
+      "Printing/MediaDimensionContract.cs",
+      "Geometry/SnapToleranceContract.cs",
+      "Geometry/NudgeStepContract.cs",
+      "Geometry/SnapGridContract.cs",
+      "Geometry/SnapHysteresisState.cs",
+      "Geometry/SnapCandidateSelector.cs",
+      "Barcode/Code39RatioContract.cs",
+      "Printing/ImageResolutionContract.cs",
+      "Barcode/LinearBarcodeModuleContract.cs",
+      "Barcode/MatrixSquareModuleFit.cs",
+      "Barcode/BarcodeCheckDigitContract.cs",
+      "Barcode/BarcodeHriLayout.cs",
+      "Geometry/LineBoundsContract.cs",
+      "Geometry/LabelGuideContract.cs"
+    ],
+    "mutation-level": "Standard",
+    "break-on-initial-test-failure": true,
+    "reporters": [
+      "progress",
+      "json",
+      "markdown"
+    ],
+    "thresholds": {
+      "high": 90,
+      "low": 90,
+      "break": 90
+    }
+  }
+}

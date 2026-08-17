@@ -6,15 +6,18 @@
         MinHeight="320" MinWidth="440"
         WindowStartupLocation="CenterOwner"
         FontFamily="Segoe UI" FontSize="12"
-        Background="#EEF2F6">
+        Background="{DynamicResource AppCanvasBrush}">
     <Window.Resources>
         <SolidColorBrush x:Key="LineBrush" Color="#D9E2EC"/>
         <SolidColorBrush x:Key="MutedBrush" Color="#64748B"/>
     </Window.Resources>
     <DockPanel LastChildFill="True">
-        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,12">
-            <TextBlock TextWrapping="Wrap"
-                       Text="These shared data sources point to an Excel file that no longer exists and have not been used in the last 30 days. Tick the ones you want to remove from the registry."/>
+        <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="20,16">
+            <StackPanel>
+                <TextBlock Text="Dọn nguồn dữ liệu không còn dùng" Foreground="White" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock TextWrapping="Wrap" Foreground="#DBEAFE" Margin="0,4,0,0"
+                           Text="Các nguồn này trỏ tới tệp Excel không còn tồn tại và không được dùng trong 30 ngày qua. Chọn những nguồn cần xoá."/>
+            </StackPanel>
         </Border>
 
         <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="12">

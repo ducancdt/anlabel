@@ -14,12 +14,15 @@ using System.Windows.Media.Imaging;
 using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Core.Mvvm;
+using ANLAbel.Core.Printing;
+using ANLAbel.Core.Text;
 using ANLAbel.Data;
 using ANLAbel.Data.DataLogs;
 using ANLAbel.Data.Excel;
@@ -30,29 +33,30 @@ using ANLAbel.Printing.RenderPipeline;
 
 namespace ANLAbel.App.ViewModels;
 
+public enum ExcelLinkVerificationState
+{
+    NotLinked,
+    Checking,
+    Verified,
+    Stale,
+    Failed
+}
+
 public sealed class MainViewModel : ObservableObject
 {
-    private static readonly string[] PreferredIndustrialFonts =
-    [
-        "Arial",
-        "Arial Narrow",
-        "Bahnschrift",
-        "Calibri",
-        "Consolas",
-        "Courier New",
-        "Lucida Console",
-        "Segoe UI Semibold",
-        "Tahoma",
-        "Verdana"
-    ];
-
     private readonly IProjectFileService _projectFileService;
     private readonly ExcelDataService _excelDataService;
     private readonly PrintService _printService;
     private readonly PrinterDiscoveryService _printerDiscoveryService;
+    private readonly IPrinterQueueLookup _printerQueueLookup;
     private readonly PrintLogService _printLogService;
     private readonly DataOperationLogService _dataOperationLogService;
     private readonly PrintOperationLogService _printOperationLogService;
+    private readonly PrintJobStateStore _printJobStateStore = new();
+    private PrintJobRecoveryReport _printRecoveryReport = PrintJobRecoveryReport.Empty;
+    private PrinterQueueLookupResult _printerQueueStatus = PrinterQueueLookupResult.Missing(
+        string.Empty,
+        "No verified printer queue is selected.");
     private readonly DataSourceRegistry _dataSourceRegistry;
     private readonly IBarcodeRenderer _barcodeValidator = new ZxingBarcodeRenderer();
     private readonly QrCapacityTable _qrCapacityTable = new();
@@ -61,10 +65,15 @@ public sealed class MainViewModel : ObservableObject
     private readonly Stack<string> _redoStack = new();
     private System.Windows.Threading.DispatcherTimer? _debounceTimer;
     private bool _debounceActive;
+    private string _pendingPreChangeSnapshot = string.Empty;
     private string _pendingSnapshot = string.Empty;
+    private bool _explicitEditGestureActive;
+    private string _explicitEditGesturePreChangeSnapshot = string.Empty;
     private LabelTemplate _template = CreateDefaultTemplate();
     private LabelObject? _selectedObject;
     private DataView? _excelDataView;
+    private IDataConnector? _dataConnector;
+    private string _dataTransformError = string.Empty;
     private object? _selectedDataItem;
     private IReadOnlyDictionary<string, string>? _previewRow;
     private string? _selectedExcelField;
@@ -92,6 +101,11 @@ public sealed class MainViewModel : ObservableObject
     private readonly object _excelStaleDebounceLock = new();
     private System.Threading.Timer? _excelStaleDebounceTimer;
     private bool _isExcelDataStale;
+    private ExcelLinkVerificationState _excelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
+    private string _excelLinkVerificationFailureMessage = string.Empty;
+    private DateTime? _excelLinkVerifiedAtLocal;
+    private int _excelLinkVerifiedRowCount;
+    private int _excelLinkVerifiedColumnCount;
 
     private static readonly JsonSerializerOptions HistoryJsonOptions = new()
     {
@@ -104,12 +118,13 @@ public sealed class MainViewModel : ObservableObject
     {
     }
 
-    public MainViewModel(IProjectFileService projectFileService, ExcelDataService excelDataService, PrintService printService, PrinterDiscoveryService printerDiscoveryService, PrintLogService printLogService, DataOperationLogService? dataOperationLogService = null, DataSourceRegistry? dataSourceRegistry = null, PrintOperationLogService? printOperationLogService = null)
+    public MainViewModel(IProjectFileService projectFileService, ExcelDataService excelDataService, PrintService printService, PrinterDiscoveryService printerDiscoveryService, PrintLogService printLogService, DataOperationLogService? dataOperationLogService = null, DataSourceRegistry? dataSourceRegistry = null, PrintOperationLogService? printOperationLogService = null, IPrinterQueueLookup? printerQueueLookup = null)
     {
         _projectFileService = projectFileService;
         _excelDataService = excelDataService;
         _printService = printService;
         _printerDiscoveryService = printerDiscoveryService;
+        _printerQueueLookup = printerQueueLookup ?? new WindowsPrinterQueueLookup();
         _printLogService = printLogService;
         _printOperationLogService = printOperationLogService ?? new PrintOperationLogService();
         _dataOperationLogService = dataOperationLogService ?? new DataOperationLogService();
@@ -151,20 +166,21 @@ public sealed class MainViewModel : ObservableObject
         ZoomInCommand = new RelayCommand(() => Zoom = Math.Min(4, Zoom + 0.1));
         ZoomOutCommand = new RelayCommand(() => Zoom = Math.Max(0.25, Zoom - 0.1));
         NewTemplateCommand = new RelayCommand(parameter => NewTemplate(parameter as NewTemplateRequest));
-        RefreshExcelDataCommand = new RelayCommand(async () => await RefreshExcelDataAsync(), CanRefreshExcelData);
-        PrintCurrentRowCommand = new RelayCommand(PrintCurrentRow);
-        PrintAllRowsCommand = new RelayCommand(PrintAllRows, () => ExcelDataView is not null && ExcelDataView.Count > 0);
-        PrintCalibrationCommand = new RelayCommand(PrintCalibration);
+        RefreshExcelDataCommand = new AsyncRelayCommand(() => RefreshExcelDataAsync(), CanRefreshExcelData);
+        VerifyExcelLinkCommand = new AsyncRelayCommand(() => VerifyExcelLinkAsync());
+        PrintCurrentRowCommand = new AsyncRelayCommand(PrintCurrentRowAsync);
+        PrintAllRowsCommand = new AsyncRelayCommand(PrintAllRowsAsync, () => ExcelDataView is not null && ExcelDataView.Count > 0);
+        PrintCalibrationCommand = new AsyncRelayCommand(PrintCalibrationAsync);
         HideToolboxCommand = new RelayCommand(() => IsToolboxVisible = false);
         HidePropertiesCommand = new RelayCommand(() => IsPropertiesVisible = false);
         ShowAllPanelsCommand = new RelayCommand(ShowAllPanels);
         InsertFunctionFormulaCommand = new RelayCommand(parameter => InsertFunctionFormula(GetFormulaText(parameter)), _ => SelectedObject is not null);
         SelectBindingIssueCommand = new RelayCommand(parameter => SelectBindingIssue(parameter as BindingIssueSummary), parameter => parameter is BindingIssueSummary);
-        RelinkExcelCommand = new RelayCommand(async () => await RelinkExcelAsync(), () => HasLinkedExcelSource && IsExcelLinkBroken);
+        RelinkExcelCommand = new AsyncRelayCommand(() => RelinkExcelAsync(), () => HasLinkedExcelSource && IsExcelLinkBroken);
         AddCurrentAsDataSourceCommand = new RelayCommand(AddCurrentAsDataSource, () => HasLinkedExcelSource && !IsExcelLinkBroken);
-        UseDataSourceCommand = new RelayCommand(async parameter => { if (parameter is DataSource source) { await UseDataSourceAsync(source); } }, parameter => parameter is DataSource);
+        UseDataSourceCommand = new AsyncRelayCommand(async parameter => { if (parameter is DataSource source) { await UseDataSourceAsync(source); } }, parameter => parameter is DataSource);
         RemoveDataSourceCommand = new RelayCommand(parameter => RemoveDataSource(parameter as DataSource), parameter => parameter is DataSource);
-        RelinkDataSourceCommand = new RelayCommand(async parameter => { if (parameter is DataSource source) { await RelinkDataSourceAsync(source); } }, parameter => parameter is DataSource);
+        RelinkDataSourceCommand = new AsyncRelayCommand(async parameter => { if (parameter is DataSource source) { await RelinkDataSourceAsync(source); } }, parameter => parameter is DataSource);
         ObserveTemplate(Template);
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
     }
@@ -175,6 +191,7 @@ public sealed class MainViewModel : ObservableObject
         private set
         {
             var oldTemplate = _template;
+            NormalizeTextObjectPolicies(value);
             if (SetProperty(ref _template, value))
             {
                 UnobserveTemplate(oldTemplate);
@@ -182,8 +199,81 @@ public sealed class MainViewModel : ObservableObject
                 _lastTemplateSnapshot = CaptureTemplateSnapshot();
                 OnPropertyChanged(nameof(SelectedKeyFieldName));
                 OnPropertyChanged(nameof(SelectedCopiesFieldName));
+                OnPropertyChanged(nameof(DataTransforms));
             }
         }
+    }
+
+    public IEnumerable<DataTransformDefinition> DataTransforms => Template.DataTransforms;
+
+    public DataRecord? GetSelectedDataRecordForWorkspace()
+    {
+        if (SelectedDataItem is not DataRowView rowView)
+        {
+            return null;
+        }
+
+        return DataRecord.Create(rowView.Row.Table.Columns
+            .Cast<DataColumn>()
+            .Select(column => new KeyValuePair<string, string?>(column.ColumnName, rowView.Row[column]?.ToString())));
+    }
+
+    public void ReplaceDataTransforms(IEnumerable<DataTransformDefinition> definitions)
+    {
+        ArgumentNullException.ThrowIfNull(definitions);
+        BeginTemplateEditGesture();
+        Template.DataTransforms.Clear();
+        foreach (var definition in definitions)
+        {
+            Template.DataTransforms.Add(definition);
+        }
+
+        OnPropertyChanged(nameof(DataTransforms));
+        CommitTemplateEditGesture();
+    }
+
+    public bool TryBuildPrintPreviewRows(
+        out IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        out string error)
+    {
+        error = string.Empty;
+        if (ExcelDataView is null || ExcelDataView.Count == 0)
+        {
+            rows = new IReadOnlyDictionary<string, string>?[] { PreviewRow };
+            return true;
+        }
+
+        var prepared = new List<IReadOnlyDictionary<string, string>?>();
+        foreach (DataRowView rowView in ExcelDataView)
+        {
+            var row = CreatePreviewRow(rowView, out var rowError);
+            if (!string.IsNullOrWhiteSpace(rowError))
+            {
+                rows = Array.Empty<IReadOnlyDictionary<string, string>?>();
+                error = rowError;
+                return false;
+            }
+
+            prepared.Add(row);
+        }
+
+        rows = prepared;
+        return true;
+    }
+
+    public FileSourceIdentity? GetExcelDataSourceIdentity()
+    {
+        return FileSourceIdentity.TryCapture(Template.DatabaseConfig?.FilePath, out var identity)
+            ? identity
+            : null;
+    }
+
+    public async Task<HistorySnapshot> ReadPrintHistorySnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await _printJobStateStore.ReadRecoverySnapshotAsync(cancellationToken).ConfigureAwait(true);
+        var operations = await _printOperationLogService.ReadAllAsync(cancellationToken).ConfigureAwait(true);
+        var csv = await _printLogService.ReadSummariesAsync(cancellationToken).ConfigureAwait(true);
+        return new HistorySnapshot(state, operations.Entries, operations.Diagnostics, csv.Entries, csv.Diagnostics);
     }
 
     public LabelObject? SelectedObject
@@ -206,12 +296,65 @@ public sealed class MainViewModel : ObservableObject
                 ((RelayCommand)ReplaceSelectedImageCommand).RaiseCanExecuteChanged();
                 OnPropertyChanged(nameof(SelectedObjectTypeText));
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
+                OnPropertyChanged(nameof(SelectedObjectIconPath));
                 RaiseFormulaPreviewChanged();
                 OnPropertyChanged(nameof(BarcodeValidationMessage));
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
                 OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
+                OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
+                OnPropertyChanged(nameof(SelectedObjectSizeFromX));
+                TryApplySizedFromXWidth(SelectedObject);
             }
         }
+    }
+
+    /// <summary>
+    /// Properties checkbox: size linear barcode width from quantized X × logical modules.
+    /// Maps to <see cref="BarcodeWidthMode.SizedFromX"/> when checked.
+    /// </summary>
+    public bool SelectedObjectSizeFromX
+    {
+        get => SelectedObject is { } item
+            && item.BarcodeWidthMode == BarcodeWidthMode.SizedFromX;
+        set
+        {
+            if (SelectedObject is not { } item
+                || item.Type != ObjectType.BarcodeCode128
+                || item.IsSquare2DCodeLike())
+            {
+                return;
+            }
+
+            var mode = value ? BarcodeWidthMode.SizedFromX : BarcodeWidthMode.FrameOwned;
+            if (item.BarcodeWidthMode == mode)
+            {
+                return;
+            }
+
+            item.BarcodeWidthMode = mode;
+            if (value && item.BarcodeModuleWidthMm <= 0)
+            {
+                item.BarcodeModuleWidthMm = LinearBarcodeModuleContract.RecommendedDefaultXDimensionMm;
+            }
+
+            TryApplySizedFromXWidth(item);
+            OnPropertyChanged(nameof(SelectedObjectSizeFromX));
+            OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
+            OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
+        }
+    }
+
+    private void TryApplySizedFromXWidth(LabelObject? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        var planDpi = Template.PrinterProfile.Dpi > 0
+            ? Template.PrinterProfile.Dpi
+            : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
+        LinearBarcodeProductionWidth.TryApplySizedFromXWidth(item, _barcodeValidator, planDpi);
     }
 
     public DataView? ExcelDataView
@@ -222,12 +365,35 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _excelDataView, value))
             {
                 OnPropertyChanged(nameof(HasExcelData));
-                ((RelayCommand)PrintAllRowsCommand).RaiseCanExecuteChanged();
+                RaiseCommandCanExecuteChanged(PrintAllRowsCommand);
             }
         }
     }
 
     public bool HasExcelData => ExcelDataView is not null;
+    /// <summary>
+    /// Read-only typed view over the currently imported Excel/CSV data. The
+    /// existing DataView remains for WPF compatibility during the R4 migration.
+    /// </summary>
+    public IDataConnector? DataConnector
+    {
+        get => _dataConnector;
+        private set => SetProperty(ref _dataConnector, value);
+    }
+
+    public string DataTransformError
+    {
+        get => _dataTransformError;
+        private set
+        {
+            if (SetProperty(ref _dataTransformError, value))
+            {
+                OnPropertyChanged(nameof(HasDataTransformError));
+            }
+        }
+    }
+
+    public bool HasDataTransformError => !string.IsNullOrWhiteSpace(DataTransformError);
     public PrintService PrintService => _printService;
     public PrintLogService PrintLogService => _printLogService;
     public string PrintHistoryFilePath => _printLogService.LogFilePath;
@@ -293,13 +459,41 @@ public sealed class MainViewModel : ObservableObject
         new(BarcodeSymbology.Pdf417, "2D QR / Matrix", "PDF417")
     ];
     public IReadOnlyList<string> FontFamilies { get; } = GetIndustrialFontFamilies();
-    public IReadOnlyList<double> FontSizes { get; } = new double[] { 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32 };
+    public IReadOnlyList<double> FontSizes { get; } = TextStylePickerCatalog.StandardSizesPt;
     public IReadOnlyList<QrOptionItem<QrSizingMode>> QrSizingModeOptions { get; } = QrOptionLists.SizingModes;
     public IReadOnlyList<QrOptionItem<QrErrorCorrection>> QrErrorCorrectionOptions { get; } = QrOptionLists.ErrorCorrections;
     public IReadOnlyList<QrOptionItem<int>> QrVersionOptions { get; } = QrOptionLists.Versions;
     public IReadOnlyList<int> QrModuleSizePxOptions { get; } = QrOptionLists.ModuleSizesPx;
     public IReadOnlyList<int> QrQuietZoneModuleOptions { get; } = QrOptionLists.QuietZoneModules;
+    public IReadOnlyList<BarcodeApplicationProfile> BarcodeApplicationProfiles { get; } = Enum.GetValues<BarcodeApplicationProfile>();
+    public IReadOnlyList<BarcodeHriPlacement> BarcodeHriPlacementOptions { get; } =
+    [
+        BarcodeHriPlacement.None,
+        BarcodeHriPlacement.Below,
+        BarcodeHriPlacement.Above
+    ];
+    public IReadOnlyList<BarcodeCheckDigitPolicy> BarcodeCheckDigitPolicyOptions { get; } =
+    [
+        BarcodeCheckDigitPolicy.None,
+        BarcodeCheckDigitPolicy.Auto,
+        BarcodeCheckDigitPolicy.Verify
+    ];
+    public IReadOnlyList<ImageRasterMode> ImageRasterModes { get; } = Enum.GetValues<ImageRasterMode>();
     public IReadOnlyList<TextAlignmentMode> TextAlignments { get; } = Enum.GetValues<TextAlignmentMode>();
+    public IReadOnlyList<TextDirectionMode> TextDirections { get; } = Enum.GetValues<TextDirectionMode>();
+    public IReadOnlyList<TextSizingMode> TextBoxSizingModes { get; } =
+    [
+            TextSizingMode.FixedFrame,
+            TextSizingMode.ShrinkFont,
+        TextSizingMode.ScaleWidth
+    ];
+    public IReadOnlyList<TextOverflowMode> TextBoxOverflowModes { get; } =
+    [
+        TextOverflowMode.Error,
+        TextOverflowMode.Clip,
+        TextOverflowMode.Ellipsis
+    ];
+    public IReadOnlyList<TextVerticalAlignmentMode> TextVerticalAlignments { get; } = Enum.GetValues<TextVerticalAlignmentMode>();
     public IReadOnlyList<OutlineStyle> OutlineStyles { get; } = Enum.GetValues<OutlineStyle>();
     public IReadOnlyList<FillStyle> FillStyles { get; } = Enum.GetValues<FillStyle>();
     public IReadOnlyList<FormulaFunctionTemplate> FormulaFunctions { get; } =
@@ -317,6 +511,7 @@ public sealed class MainViewModel : ObservableObject
     public string FormulaBuilderPreviewValue => EvaluateFormulaBuilder().Value;
     public string FormulaBuilderPreviewErrors => string.Join(Environment.NewLine, EvaluateFormulaBuilder().Errors);
     public string BarcodeValidationMessage => ValidateSelectedBarcode();
+    public string BarcodeApplicationValidationMessage => ValidateSelectedBarcodeApplication();
 
     /// <summary>
     /// Warns when a fixed-size matrix barcode's module would print at less than ~2
@@ -330,25 +525,134 @@ public sealed class MainViewModel : ObservableObject
     {
         get
         {
-            if (SelectedObject is not { } item || !IsSquare2DCodeLike(item) || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+            if (SelectedObject is not { } item)
             {
                 return string.Empty;
             }
 
             // Match PrintService.CreatePlan's DPI resolution (PrinterProfile.Dpi first,
             // then Template.Dpi) so this Designer-side warning agrees with the DPI the
-            // preflight check (PrintPreflightValidator.ValidateBarcodeModuleSizeAtPrintDpi)
-            // will actually enforce at print time. Using Template.Dpi alone would disagree
-            // once PrinterProfile.Dpi is set independently (e.g. via the "Label printer
-            // setup..." dialog in Print Preview, which only updates PrinterProfile.Dpi).
-            var printDpi = Template.PrinterProfile.Dpi > 0 ? Template.PrinterProfile.Dpi : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
-            var effectiveDots = item.QrModuleSizePx * (double)printDpi / item.QrDpi;
-            return effectiveDots < 2
-                ? $"⚠ Module is only ~{effectiveDots:0.#} dot(s) at {printDpi} DPI — likely to fail scanning. Increase Module px or DPI."
-                : string.Empty;
+            // preflight check will actually enforce at print time.
+            var printDpi = Template.PrinterProfile.Dpi > 0
+                ? Template.PrinterProfile.Dpi
+                : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
+            if (printDpi <= 0)
+            {
+                return string.Empty;
+            }
+
+            // Matrix fixed module (existing policy).
+            if (IsSquare2DCodeLike(item) && item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize && item.QrDpi > 0)
+            {
+                var effectiveDots = item.QrModuleSizePx * (double)printDpi / item.QrDpi;
+                return effectiveDots < 2
+                    ? $"⚠ Module is only ~{effectiveDots:0.#} dot(s) at {printDpi} DPI — likely to fail scanning. Increase Module px or DPI."
+                    : string.Empty;
+            }
+
+            // Linear 1D: authored X-dimension (mm) quantized at print DPI.
+            if (item.Type == ObjectType.BarcodeCode128
+                && !IsSquare2DCodeLike(item)
+                && item.BarcodeModuleWidthMm > 0)
+            {
+                try
+                {
+                    var resolution = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, printDpi);
+                    var message = LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution);
+                    return string.IsNullOrEmpty(message) ? string.Empty : "⚠ " + message;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+
+            return string.Empty;
         }
     }
+
+    /// <summary>
+    /// P1.b: read-only industrial module readout for linear barcodes — same
+    /// <see cref="LinearBarcodeModuleContract.Resolve"/> math as preflight/warning.
+    /// Empty when no linear selection or DPI is unavailable.
+    /// </summary>
+    public string BarcodeEffectiveModuleReadoutText
+    {
+        get
+        {
+            if (SelectedObject is not { } item
+                || item.Type != ObjectType.BarcodeCode128
+                || IsSquare2DCodeLike(item))
+            {
+                return string.Empty;
+            }
+
+            var printDpi = Template.PrinterProfile.Dpi > 0
+                ? Template.PrinterProfile.Dpi
+                : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
+            if (printDpi <= 0)
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                LinearBarcodeModuleResolution resolution;
+                if (item.BarcodeModuleWidthMm > 0)
+                {
+                    resolution = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, printDpi);
+                }
+                else
+                {
+                    var sample = string.IsNullOrEmpty(item.Text) ? "0" : item.Text;
+                    var type = ANLAbel.App.Controls.BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology);
+                    if (!_barcodeValidator.ValidateData(sample, type))
+                    {
+                        return string.Empty;
+                    }
+
+                    var options = new BarcodeRenderOptions
+                    {
+                        QuietZoneModules = Math.Max(0, item.QrQuietZoneModules),
+                        IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
+                    };
+                    var modules = _barcodeValidator.CountLinearModules(sample, type, options);
+                    if (modules is null or <= 0 || item.WidthMm <= 0)
+                    {
+                        return string.Empty;
+                    }
+
+                    resolution = LinearBarcodeModuleContract.ResolveForObject(
+                        authoredModuleWidthMm: 0,
+                        frameWidthMm: item.WidthMm,
+                        totalModules: modules.Value,
+                        dpi: printDpi);
+                }
+
+                var mils = resolution.EffectiveModuleWidthMm / LinearBarcodeModuleContract.MillimetersPerInch * 1000.0;
+                return $"Effective X: {resolution.EffectiveModuleWidthMm:0.###} mm ({mils:0.#} mil) · {resolution.ModuleDots} dot(s) @ {resolution.Dpi} DPI";
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+    }
+
     public string TextBoxValidationMessage => ValidateSelectedTextBox();
+    public string SelectedObjectIconPath => SelectedObject?.Type switch
+    {
+        ObjectType.Text => "Icons/static_text.png",
+        ObjectType.TextBox => "Icons/text_box.png",
+        ObjectType.BarcodeCode128 => "Icons/barcode.png",
+        ObjectType.QRCode => "Icons/qr_code.png",
+        ObjectType.DataMatrix => "Icons/data_matrix.png",
+        ObjectType.Rectangle => "Icons/rectangle.png",
+        ObjectType.Ellipse => "Icons/ellipse.png",
+        ObjectType.Line => "Icons/line.png",
+        ObjectType.Image => "Icons/image.png",
+        _ => "Icons/cursor_select.png"
+    };
     public string SelectedObjectTypeText => SelectedObject?.Type switch
     {
         ObjectType.Text => "Text",
@@ -373,7 +677,7 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _isExcelLinkBroken, value))
             {
                 OnPropertyChanged(nameof(ExcelLinkStatusText));
-                ((RelayCommand)RelinkExcelCommand).RaiseCanExecuteChanged();
+                RaiseCommandCanExecuteChanged(RelinkExcelCommand);
             }
         }
     }
@@ -387,6 +691,57 @@ public sealed class MainViewModel : ObservableObject
     public string ExcelDataFreshnessText => HasLinkedExcelSource && !IsExcelLinkBroken && _excelDataReadAtLocal is not null
         ? $"Data read at {_excelDataReadAtLocal.Value:HH:mm:ss}"
         : string.Empty;
+    public ExcelLinkVerificationState ExcelLinkVerificationState
+    {
+        get => _excelLinkVerificationState;
+        private set
+        {
+            if (SetProperty(ref _excelLinkVerificationState, value))
+            {
+                OnPropertyChanged(nameof(ExcelLinkVerificationTitle));
+                OnPropertyChanged(nameof(ExcelLinkVerificationDetail));
+                OnPropertyChanged(nameof(ExcelLinkVerificationActionText));
+                OnPropertyChanged(nameof(ExcelLinkVerificationTrustText));
+            }
+        }
+    }
+
+    public string ExcelLinkVerificationTitle => ExcelLinkVerificationState switch
+    {
+        ExcelLinkVerificationState.Checking => "Checking Excel link...",
+        ExcelLinkVerificationState.Verified => "Excel link verified",
+        ExcelLinkVerificationState.Stale => "Excel changed after verification",
+        ExcelLinkVerificationState.Failed => "Excel verification failed",
+        _ => "Excel source not linked"
+    };
+
+    public string ExcelLinkVerificationDetail => ExcelLinkVerificationState switch
+    {
+        ExcelLinkVerificationState.Checking => "Opening workbook and validating the selected sheet.",
+        ExcelLinkVerificationState.Verified => $"{Path.GetFileName(Template.DatabaseConfig.FilePath)}  ·  Sheet: {Template.DatabaseConfig.SheetName}",
+        ExcelLinkVerificationState.Stale => "Loaded rows may no longer match the workbook.",
+        ExcelLinkVerificationState.Failed => string.IsNullOrWhiteSpace(_excelLinkVerificationFailureMessage)
+            ? "The file or selected sheet could not be validated."
+            : _excelLinkVerificationFailureMessage,
+        _ => "Link a workbook before using row data."
+    };
+
+    public string ExcelLinkVerificationActionText => ExcelLinkVerificationState switch
+    {
+        ExcelLinkVerificationState.Checking => "Checking...",
+        ExcelLinkVerificationState.Stale => "Update & verify",
+        ExcelLinkVerificationState.NotLinked => "Link Excel...",
+        _ => "Recheck Excel link"
+    };
+
+    public string ExcelLinkVerificationTrustText => ExcelLinkVerificationState switch
+    {
+        ExcelLinkVerificationState.Checking => "Please wait — printing remains blocked.",
+        ExcelLinkVerificationState.Verified => $"{_excelLinkVerifiedColumnCount} columns · {_excelLinkVerifiedRowCount} rows · checked {_excelLinkVerifiedAtLocal:HH:mm:ss}",
+        ExcelLinkVerificationState.Stale => "Printing remains blocked until the data is refreshed.",
+        ExcelLinkVerificationState.Failed => "Relink the workbook if its path or sheet changed.",
+        _ => "Checks file, sheet and header before use."
+    };
     public string CurrentExcelRowText => ExcelDataView is null || ExcelDataView.Count == 0 || SelectedDataItem is not DataRowView rowView
         ? "No Excel row selected"
         : $"Row {GetDataRowViewIndex(rowView) + 1} of {ExcelDataView.Count}";
@@ -404,6 +759,10 @@ public sealed class MainViewModel : ObservableObject
             if (SetProperty(ref _isExcelDataStale, value))
             {
                 OnPropertyChanged(nameof(ExcelStaleNoticeText));
+                if (value && HasLinkedExcelSource)
+                {
+                    ExcelLinkVerificationState = ExcelLinkVerificationState.Stale;
+                }
             }
         }
     }
@@ -603,6 +962,113 @@ public sealed class MainViewModel : ObservableObject
         set => SetProperty(ref _statusText, value);
     }
 
+    /// <summary>
+    /// Read-only availability evidence for the queue saved in the current
+    /// template. A missing named queue is a repair warning; it must never be
+    /// silently replaced with the Windows default queue.
+    /// </summary>
+    public PrinterQueueLookupResult PrinterQueueStatus
+    {
+        get => _printerQueueStatus;
+        private set
+        {
+            if (SetProperty(ref _printerQueueStatus, value))
+            {
+                OnPropertyChanged(nameof(HasPrinterQueueWarning));
+                OnPropertyChanged(nameof(PrinterQueueStatusText));
+                OnPropertyChanged(nameof(PrinterQueueStatusMessage));
+            }
+        }
+    }
+
+    public bool HasPrinterQueueWarning => !PrinterQueueStatus.IsAvailable;
+
+    public string PrinterDisplayName => string.IsNullOrWhiteSpace(Template.PrinterProfile.PrinterName)
+        ? "Not selected"
+        : Template.PrinterProfile.PrinterName;
+
+    public string PrinterQueueStatusText => PrinterQueueStatus.IsAvailable
+        ? string.Empty
+        : string.IsNullOrWhiteSpace(Template.PrinterProfile.PrinterName)
+            ? "Select a verified printer"
+            : "Printer unavailable";
+
+    public string PrinterQueueStatusMessage => PrinterQueueStatus.IsAvailable
+        ? string.Empty
+        : string.IsNullOrWhiteSpace(PrinterQueueStatus.ErrorMessage)
+            ? "The saved printer queue is unavailable. Open Printer Setup and choose a verified queue before printing."
+            : $"{PrinterQueueStatus.ErrorMessage} Open Printer Setup and choose a verified queue before printing.";
+
+    /// <summary>
+    /// Rechecks the saved queue off the WPF dispatcher. The result is applied
+    /// only if the template still refers to the same queue, so a slow lookup
+    /// cannot overwrite a newer printer selection.
+    /// </summary>
+    public async Task RefreshPrinterQueueStatusAsync(CancellationToken cancellationToken = default)
+    {
+        var requestedName = Template.PrinterProfile.PrinterName ?? string.Empty;
+        PrinterQueueLookupResult result;
+        try
+        {
+            result = await Task.Run(
+                () => string.IsNullOrWhiteSpace(requestedName)
+                    ? PrinterQueueLookupResult.Missing(
+                        requestedName,
+                        "No printer queue is selected. Choose a verified industrial printer before printing.")
+                    : _printerQueueLookup.Resolve(requestedName),
+                cancellationToken).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            result = PrinterQueueLookupResult.Missing(
+                requestedName,
+                $"Printer queue lookup failed: {ex.Message}");
+        }
+
+        if (!string.Equals(
+                Template.PrinterProfile.PrinterName ?? string.Empty,
+                requestedName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        PrinterQueueStatus = result;
+        if (!result.IsAvailable)
+        {
+            StatusText = $"Printer warning: {PrinterQueueStatusMessage}";
+        }
+    }
+
+    /// <summary>
+    /// Read-only recovery evidence loaded from the durable print-job event log.
+    /// A pending tail is a warning for reconciliation, never permission to retry.
+    /// </summary>
+    public PrintJobRecoveryReport PrintRecoveryReport
+    {
+        get => _printRecoveryReport;
+        private set
+        {
+            if (SetProperty(ref _printRecoveryReport, value))
+            {
+                OnPropertyChanged(nameof(HasPendingPrintRecovery));
+                OnPropertyChanged(nameof(PrintRecoveryStatusText));
+            }
+        }
+    }
+
+    public bool HasPendingPrintRecovery => PrintRecoveryReport.RequiresRepair || PrintRecoveryReport.HasPendingJobs;
+
+    public string PrintRecoveryStatusText => PrintRecoveryReport.RequiresRepair
+        ? "Review print event log"
+        : PrintRecoveryReport.HasPendingJobs
+            ? $"Review {PrintRecoveryReport.Candidates.Count} print job(s)"
+            : string.Empty;
+
     public bool IsToolboxVisible
     {
         get => _isToolboxVisible;
@@ -657,6 +1123,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ZoomOutCommand { get; }
     public ICommand NewTemplateCommand { get; }
     public ICommand RefreshExcelDataCommand { get; }
+    public ICommand VerifyExcelLinkCommand { get; }
     public ICommand PrintCurrentRowCommand { get; }
     public ICommand PrintAllRowsCommand { get; }
     public ICommand PrintCalibrationCommand { get; }
@@ -679,6 +1146,246 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<DataSource> DataSources { get; }
 
+    /// <summary>
+    /// Replays the latest valid event per job. This method is intentionally
+    /// explicit so startup/UI can refresh without coupling the event store to
+    /// dispatch or automatic retry behavior.
+    /// </summary>
+    public async Task RefreshPrintRecoveryAsync(CancellationToken cancellationToken = default)
+    {
+        PrintRecoveryReport = await PrintJobRecoveryService
+            .LoadAsync(_printJobStateStore, cancellationToken)
+            .ConfigureAwait(true);
+
+        if (PrintRecoveryReport.RequiresRepair || PrintRecoveryReport.HasPendingJobs)
+        {
+            StatusText = PrintRecoveryReport.UserFacingSummary;
+        }
+    }
+
+    /// <summary>
+    /// Re-queries one queue-backed recovery candidate. The operation only appends
+    /// a queue observation; it never marks physical output or authorizes retry.
+    /// </summary>
+    public async Task<PrintJobReconciliationResult> ReconcilePrintJobAsync(
+        string jobId,
+        CancellationToken cancellationToken = default)
+    {
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        var candidate = PrintRecoveryReport.Candidates
+            .FirstOrDefault(item => string.Equals(item.JobId, jobId, StringComparison.Ordinal));
+        if (candidate is null)
+        {
+            var missing = PrintJobRecoveryService.CreateInvalidResult(
+                jobId,
+                "The print job is no longer present in the valid recovery snapshot; refresh the report and do not retry automatically.");
+            StatusText = missing.Summary;
+            return missing;
+        }
+
+        var result = await PrintJobRecoveryService.ReconcileQueueAsync(
+            candidate,
+            new WindowsSpoolJobStatusReader(),
+            timeout: TimeSpan.FromSeconds(3),
+            pollInterval: TimeSpan.FromMilliseconds(250),
+            cancellationToken).ConfigureAwait(true);
+
+        if (result.QueueResult is not null)
+        {
+            var current = _printJobStateStore.GetCurrentState(candidate.JobId);
+            if (current is PrintJobLifecycleState currentState
+                && PrintJobStateMachine.CanTransition(currentState, PrintJobLifecycleState.QueueObserved))
+            {
+                await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                    candidate.JobId,
+                    currentState,
+                    PrintJobLifecycleState.QueueObserved,
+                    result.QueueResult.FinalObservation.ObservedAtUtc ?? DateTimeOffset.UtcNow,
+                    result.Summary,
+                    PrinterName: candidate.PrinterName,
+                    SpoolJobId: candidate.SpoolJobId,
+                    QueueState: result.QueueResult.FinalObservation.State.ToString(),
+                    DocumentHash: candidate.DocumentHash,
+                    SceneHash: candidate.SceneHash,
+                    OutputContractHash: candidate.OutputContractHash,
+                    ManifestFingerprint: candidate.ManifestFingerprint,
+                    Manifest: candidate.Manifest));
+            }
+        }
+
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        StatusText = result.Summary;
+        return result;
+    }
+
+    /// <summary>
+    /// Records that an operator reviewed an uncertain job. This is an audit-only
+    /// action; it does not mark output as printed and does not submit anything.
+    /// </summary>
+    public async Task<PrintJobOperatorActionResult> AcknowledgePrintJobAsync(
+        string jobId,
+        string reason = "Operator acknowledged the uncertain print job.",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await PrintJobOperatorActionService.AcknowledgeAsync(
+            _printJobStateStore,
+            jobId,
+            reason: reason,
+            cancellationToken: cancellationToken).ConfigureAwait(true);
+        LogOperatorAction(result);
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        StatusText = result.Summary;
+        return result;
+    }
+
+    /// <summary>
+    /// Voids an uncertain job in the durable lineage without sending a printer
+    /// cancellation command. The action is explicit and terminal for recovery.
+    /// </summary>
+    public async Task<PrintJobOperatorActionResult> VoidPrintJobAsync(
+        string jobId,
+        string reason = "Operator voided the uncertain print job.",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await PrintJobOperatorActionService.VoidAsync(
+            _printJobStateStore,
+            jobId,
+            reason: reason,
+            cancellationToken: cancellationToken).ConfigureAwait(true);
+        LogOperatorAction(result);
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        StatusText = result.Summary;
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a linked Created child for an explicitly requested reprint. It
+    /// never enters preparation or dispatch; the operator must start that flow
+    /// separately after reviewing the lineage.
+    /// </summary>
+    public async Task<PrintJobOperatorActionResult> RequestPrintJobReprintAsync(
+        string jobId,
+        string reason = "Operator requested an explicitly linked reprint.",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await PrintJobOperatorActionService.RequestReprintAsync(
+            _printJobStateStore,
+            jobId,
+            reason: reason,
+            cancellationToken: cancellationToken).ConfigureAwait(true);
+        LogOperatorAction(result);
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        StatusText = result.Summary;
+        return result;
+    }
+
+    /// <summary>
+    /// Approves a linked reprint only when the caller presents the exact
+    /// manifest captured on the Created child. This records approval but does
+    /// not dispatch anything.
+    /// </summary>
+    public async Task<PrintJobOperatorActionResult> ApprovePrintJobReprintAsync(
+        string childJobId,
+        PrintJobManifest expectedManifest,
+        string reason = "Operator approved the linked reprint after manifest review.",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await PrintJobOperatorActionService.ApproveReprintAsync(
+            _printJobStateStore,
+            childJobId,
+            expectedManifest,
+            reason: reason,
+            cancellationToken: cancellationToken).ConfigureAwait(true);
+        LogOperatorAction(result);
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        StatusText = result.Summary;
+        return result;
+    }
+
+    /// <summary>
+    /// Dispatches an already approved child with caller-supplied current rows.
+    /// The current template, queue, DPI and rows are rebuilt into a manifest and
+    /// must match the approved identity before the normal preparation path starts.
+    /// </summary>
+    public async Task<TrackedPrintResult> DispatchApprovedPrintJobReprintAsync(
+        string childJobId,
+        IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        int sourceRowCount,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        if (rows.Count == 0 || sourceRowCount <= 0)
+        {
+            throw new ArgumentException("An approved reprint requires at least one current row and a positive source-row count.", nameof(rows));
+        }
+
+        var current = await PrintJobOperatorActionService.ReadCurrentEventAsync(
+            _printJobStateStore,
+            childJobId,
+            cancellationToken).ConfigureAwait(true);
+        if (current.To != PrintJobLifecycleState.Created
+            || current.OperatorAction != PrintJobOperatorAction.ReprintApproved
+            || current.Manifest is null
+            || !current.Manifest.IsFingerprintValid)
+        {
+            throw new InvalidOperationException(
+                $"Reprint child '{childJobId}' is not approved with a complete immutable manifest; dispatch was blocked.");
+        }
+
+        var approvedManifest = current.Manifest;
+        if (rows.Count != approvedManifest.LabelCount
+            || sourceRowCount != approvedManifest.SourceRowCount)
+        {
+            throw new InvalidOperationException(
+                "Reprint dispatch was blocked because the current row/label counts do not match the approved manifest.");
+        }
+
+        var printerName = Template.PrinterProfile.PrinterName;
+        if (string.IsNullOrWhiteSpace(printerName))
+        {
+            throw new InvalidOperationException(
+                "Reprint dispatch was blocked because no verified printer queue is selected.");
+        }
+
+        // Reprint approval includes the physical output contract captured by
+        // preview/quick-print preparation. Rebuild that effective contract
+        // before comparing manifests; a design-only plan cannot prove that the
+        // same queue, media and DPI will be used again.
+        var effectivePlan = _printService.CreateEffectivePlan(Template, printerName);
+        var currentManifest = PrintJobManifest.Create(
+            Template.Name,
+            CurrentFilePath,
+            approvedManifest.PrintMode,
+            printerName,
+            Template.WidthMm,
+            Template.HeightMm,
+            effectivePlan.DpiX > 0 ? effectivePlan.DpiX : Template.PrinterProfile.Dpi,
+            effectivePlan.DpiY > 0 ? effectivePlan.DpiY : Template.PrinterProfile.Dpi,
+            rows.Count,
+            sourceRowCount,
+            rows,
+            effectivePlan.DocumentHash,
+            effectivePlan.TextResourceFingerprint,
+            effectivePlan.SceneHash,
+            effectivePlan.OutputContractHash,
+            imageRasterFingerprint: effectivePlan.ImageRasterFingerprint,
+            thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty);
+        if (!string.Equals(currentManifest.Fingerprint, approvedManifest.Fingerprint, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Reprint dispatch was blocked because the current template, printer, DPI or data no longer matches the approved manifest.");
+        }
+
+        var tracked = await DispatchTrackedPrintAsync(
+            rows,
+            approvedManifest.PrintMode,
+            existingJobId: childJobId,
+            approvedManifest: approvedManifest,
+            sourceRowCount: sourceRowCount).ConfigureAwait(true);
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        return tracked;
+    }
+
     private void ShowAllPanels()
     {
         IsToolboxVisible = true;
@@ -691,6 +1398,10 @@ public sealed class MainViewModel : ObservableObject
         request ??= new NewTemplateRequest("Untitled Label", 100, 50, 203);
         StopWatchingExcelFile();
         IsExcelDataStale = false;
+        ExcelDataView = null;
+        DataConnector = null;
+        ExcelHeaders.Clear();
+        SelectedDataItem = null;
         UnobserveTemplate(Template);
         Template = new LabelTemplate
         {
@@ -720,14 +1431,28 @@ public sealed class MainViewModel : ObservableObject
         StatusText = $"Saved: {Path.GetFileName(filePath)}";
     }
 
-    public async Task OpenAsync(string filePath)
+    public async Task<ProjectLoadResult> OpenAsync(string filePath)
     {
+        // Parse/recover before detaching the current document.  A corrupt or
+        // future-schema file must leave the operator's current work intact.
+        var loadResult = await _projectFileService.LoadWithRecoveryAsync(filePath);
         UnobserveTemplate(Template);
-        Template = await _projectFileService.LoadAsync(filePath);
+        Template = loadResult.Template;
         ResetHistory();
+        // Keep the selected path while linked Excel data is restored so
+        // relative data-source paths resolve beside the original document.
+        // A recovered primary is cleared only after that step; Save then
+        // opens Save As and cannot overwrite the damaged source by accident.
         CurrentFilePath = filePath;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
+        if (loadResult.RecoveredFromBackup)
+        {
+            CurrentFilePath = string.Empty;
+            StatusText = $"Recovered {Path.GetFileName(filePath)} from backup. Use Save As to create a new template.";
+        }
+
+        return loadResult;
     }
 
     /// <summary>
@@ -757,6 +1482,11 @@ public sealed class MainViewModel : ObservableObject
         return _printerDiscoveryService.GetInstalledPrinters();
     }
 
+    public PrinterDiscoveryResult DiscoverInstalledPrinters()
+    {
+        return _printerDiscoveryService.DiscoverInstalledPrinters();
+    }
+
     public void ApplyPrinterSelection(PrinterInfo printer, PrinterPaperInfo paper, int dpi, LabelOrientation orientation)
     {
         // OrientSize swaps dimensions for Landscape so the design canvas shows
@@ -771,7 +1501,9 @@ public sealed class MainViewModel : ObservableObject
         Template.PrinterProfile.PrinterName = printer.Name;
         Template.PrinterProfile.PaperName = paper.Name;
         Template.PrinterProfile.SettingsSource = PrinterSettingsSource.Label;
-        Template.PrinterProfile.PaperSizeSource = PaperSizeSource.DriverAutomatic;
+        Template.PrinterProfile.PaperSizeSource = paper.Source == PaperSizeSourceKind.UserCustom
+            ? PaperSizeSource.Manual
+            : PaperSizeSource.DriverAutomatic;
         Template.PrinterProfile.LabelWidthMm = widthMm;
         Template.PrinterProfile.LabelHeightMm = heightMm;
         // Store original physical dimensions (before orient swap) for the printer driver PageMediaSize
@@ -802,6 +1534,17 @@ public sealed class MainViewModel : ObservableObject
         }
 
         ExcelDataView = table.DefaultView;
+        DataConnector = new DataTableDataConnector(
+            new DataConnectorDescriptor(
+                string.IsNullOrWhiteSpace(Template.DatabaseConfig.DataSourceId) ? filePath : Template.DatabaseConfig.DataSourceId,
+                Path.GetFileName(filePath),
+                string.Equals(Path.GetExtension(filePath), ".csv", StringComparison.OrdinalIgnoreCase) ? "csv" : "excel",
+                SupportsPaging: true,
+                // This connector is an immutable import snapshot. The existing
+                // UI refresh command creates a replacement connector; it does
+                // not refresh this instance through IDataConnector.
+                SupportsRefresh: false),
+            table);
         ExcelHeaders.Clear();
         foreach (DataColumn column in table.Columns)
         {
@@ -846,6 +1589,7 @@ public sealed class MainViewModel : ObservableObject
         _excelDataSourceWriteTimeUtc = TryGetFileWriteTimeUtc(filePath);
         OnPropertyChanged(nameof(ExcelDataFreshnessText));
         IsExcelDataStale = false;
+        MarkExcelLinkVerified(table.Rows.Count, table.Columns.Count);
         StartWatchingExcelFile(filePath);
 
         var issueCount = GetBindingIssues().Count;
@@ -891,6 +1635,83 @@ public sealed class MainViewModel : ObservableObject
         }
 
         await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName, "Refresh");
+    }
+
+    /// <summary>
+    /// Performs an explicit trust check for the Properties panel. A green Verified
+    /// state is issued only after the workbook opens and the selected sheet/header
+    /// can be read. If the file changed since the current snapshot, verification
+    /// refreshes the rows first so the UI cannot certify stale print data.
+    /// </summary>
+    public async Task VerifyExcelLinkAsync(CancellationToken cancellationToken = default)
+    {
+        if (!HasLinkedExcelSource)
+        {
+            ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
+            StatusText = "No Excel database is linked yet";
+            return;
+        }
+
+        ExcelLinkVerificationState = ExcelLinkVerificationState.Checking;
+        _excelLinkVerificationFailureMessage = string.Empty;
+
+        try
+        {
+            var currentWriteTimeUtc = TryGetFileWriteTimeUtc(Template.DatabaseConfig.FilePath);
+            if (IsExcelDataStale || currentWriteTimeUtc != _excelDataSourceWriteTimeUtc)
+            {
+                await ImportExcelAsync(
+                    Template.DatabaseConfig.FilePath,
+                    Template.DatabaseConfig.SheetName,
+                    "Verify",
+                    cancellationToken);
+                IsExcelLinkBroken = false;
+                StatusText = $"Excel updated and verified: {LinkedExcelSourceText}";
+                return;
+            }
+
+            var result = await _excelDataService.TestConnectionAsync(
+                Template.DatabaseConfig.FilePath,
+                Template.DatabaseConfig.SheetName,
+                Template.DatabaseConfig.HeaderRowIndex,
+                cancellationToken);
+
+            if (!result.Ok)
+            {
+                MarkExcelLinkVerificationFailed(result.Message);
+                return;
+            }
+
+            IsExcelLinkBroken = false;
+            MarkExcelLinkVerified(ExcelDataView?.Count ?? 0, ExcelHeaders.Count);
+            StatusText = $"Excel link verified: {LinkedExcelSourceText}. {result.Message}";
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            MarkExcelLinkVerificationFailed(ex.Message);
+        }
+    }
+
+    private void MarkExcelLinkVerified(int rowCount, int columnCount)
+    {
+        _excelLinkVerifiedRowCount = rowCount;
+        _excelLinkVerifiedColumnCount = columnCount;
+        _excelLinkVerifiedAtLocal = DateTime.Now;
+        _excelLinkVerificationFailureMessage = string.Empty;
+        ExcelLinkVerificationState = ExcelLinkVerificationState.Verified;
+        OnPropertyChanged(nameof(ExcelLinkVerificationDetail));
+        OnPropertyChanged(nameof(ExcelLinkVerificationTrustText));
+    }
+
+    private void MarkExcelLinkVerificationFailed(string message)
+    {
+        _excelLinkVerificationFailureMessage = string.IsNullOrWhiteSpace(message)
+            ? "The workbook could not be validated."
+            : message;
+        IsExcelLinkBroken = !File.Exists(Template.DatabaseConfig.FilePath);
+        ExcelLinkVerificationState = ExcelLinkVerificationState.Failed;
+        OnPropertyChanged(nameof(ExcelLinkVerificationDetail));
+        StatusText = $"Excel verification failed: {_excelLinkVerificationFailureMessage}";
     }
 
     /// <summary>
@@ -1055,6 +1876,7 @@ public sealed class MainViewModel : ObservableObject
             StopWatchingExcelFile();
             IsExcelDataStale = false;
             IsExcelLinkBroken = false;
+            ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}";
             return;
         }
@@ -1082,6 +1904,7 @@ public sealed class MainViewModel : ObservableObject
             StopWatchingExcelFile();
             IsExcelDataStale = false;
             ExcelDataView = null;
+            DataConnector = null;
             PreviewRow = null;
             SelectedDataItem = null;
             ExcelHeaders.Clear();
@@ -1090,6 +1913,7 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(SelectedKeyFieldName));
             OnPropertyChanged(nameof(SelectedCopiesFieldName));
             IsExcelLinkBroken = true;
+            MarkExcelLinkVerificationFailed($"File not found: {Template.DatabaseConfig.FilePath}");
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Linked Excel file not found: {Template.DatabaseConfig.FilePath}";
             return;
         }
@@ -1111,11 +1935,13 @@ public sealed class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             ExcelDataView = null;
+            DataConnector = null;
             PreviewRow = null;
             SelectedDataItem = null;
             ExcelHeaders.Clear();
             OnPropertyChanged(nameof(CurrentExcelRowText));
             IsExcelLinkBroken = true;
+            MarkExcelLinkVerificationFailed(ex.Message);
             StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link could not be restored: {ex.Message}";
         }
     }
@@ -1128,7 +1954,7 @@ public sealed class MainViewModel : ObservableObject
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Locate Excel file",
-            Filter = "Excel Files (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|All Files (*.*)|*.*",
+            Filter = "Data Files (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|All Files (*.*)|*.*",
             FileName = Path.GetFileName(Template.DatabaseConfig.FilePath)
         };
 
@@ -1203,6 +2029,7 @@ public sealed class MainViewModel : ObservableObject
 
         StopWatchingExcelFile();
         ExcelDataView = null;
+        DataConnector = null;
         ExcelHeaders.Clear();
         SelectedDataItem = null;
         SelectedAvailableDatabaseField = null;
@@ -1211,6 +2038,7 @@ public sealed class MainViewModel : ObservableObject
         Template.DatabaseConfig = new DatabaseConfig();
         IsExcelLinkBroken = false;
         IsExcelDataStale = false;
+        ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
         _excelDataReadAtLocal = null;
         _excelDataSourceWriteTimeUtc = null;
 
@@ -1340,7 +2168,7 @@ public sealed class MainViewModel : ObservableObject
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Locate Excel file for shared data source",
-            Filter = "Excel Files (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|All Files (*.*)|*.*",
+            Filter = "Data Files (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|All Files (*.*)|*.*",
             FileName = Path.GetFileName(source.FilePath)
         };
 
@@ -1750,16 +2578,22 @@ public sealed class MainViewModel : ObservableObject
         ((RelayCommand)ClearDatabaseFieldsCommand).RaiseCanExecuteChanged();
         ((RelayCommand)AddExcelFieldCommand).RaiseCanExecuteChanged();
         ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
-        ((RelayCommand)RefreshExcelDataCommand).RaiseCanExecuteChanged();
+        RaiseCommandCanExecuteChanged(RefreshExcelDataCommand);
     }
 
-    private async void PrintCurrentRow()
+    private async Task PrintCurrentRowAsync()
     {
         try
         {
             if (IsExcelDataStale)
             {
                 StatusText = "Print blocked: the linked Excel file changed since it was last read. Click Update Excel first (or use Print Preview, which lets you confirm and print with the current data).";
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(DataTransformError))
+            {
+                StatusText = $"Print blocked: data transform error. {DataTransformError}";
                 return;
             }
 
@@ -1771,10 +2605,32 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            if (_printService.PrintRows(Template, rows, $"{Template.Name} label"))
+            var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} label");
+            var result = tracked.Result;
+            if (result.IsAccepted)
             {
-                StatusText = $"Print job sent: {rows.Length} label(s)";
-                await WritePrintLogAsync("Current row", rows, PreviewRow is null ? 0 : 1, rows.Length);
+                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                await WritePrintLogAsync(
+                    "Current row",
+                    rows,
+                    PreviewRow is null ? 0 : 1,
+                    rows.Length,
+                    result: result,
+                    jobId: tracked.JobId,
+                    spoolStatus: tracked.SpoolStatus);
+            }
+            else if (result.Outcome != PrintJobOutcome.Cancelled)
+            {
+                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                LogPrintOperation(
+                    "Current row",
+                    PreviewRow is null ? 0 : 1,
+                    0,
+                    success: false,
+                    errorMessage: result.ErrorMessage,
+                    result: result,
+                    jobId: tracked.JobId,
+                    spoolStatus: tracked.SpoolStatus);
             }
         }
         catch (Exception ex)
@@ -1784,7 +2640,7 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private async void PrintAllRows()
+    private async Task PrintAllRowsAsync()
     {
         try
         {
@@ -1800,12 +2656,25 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            var rows = ExpandRowsForCopies(ExcelDataView
-                .Cast<DataRowView>()
-                .Select(CreatePreviewRow)
-                .Where(row => row is not null)
-                .Cast<IReadOnlyDictionary<string, string>>()
-                .Cast<IReadOnlyDictionary<string, string>?>()).ToArray();
+            var transformedRows = new List<IReadOnlyDictionary<string, string>?>();
+            foreach (DataRowView rowView in ExcelDataView)
+            {
+                var row = CreatePreviewRow(rowView, out var transformError);
+                if (!string.IsNullOrWhiteSpace(transformError))
+                {
+                    DataTransformError = transformError;
+                    StatusText = $"Print blocked: data transform error. {transformError}";
+                    return;
+                }
+
+                if (row is not null)
+                {
+                    transformedRows.Add(row);
+                }
+            }
+
+            DataTransformError = string.Empty;
+            var rows = ExpandRowsForCopies(transformedRows).ToArray();
 
             var validationError = ValidatePrintableContent(rows);
             if (validationError is not null)
@@ -1814,10 +2683,32 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            if (_printService.PrintRows(Template, rows, $"{Template.Name} labels"))
+            var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} labels");
+            var result = tracked.Result;
+            if (result.IsAccepted)
             {
-                StatusText = $"Print job sent: {rows.Length} labels";
-                await WritePrintLogAsync("All rows", rows, ExcelDataView.Count, rows.Length);
+                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                await WritePrintLogAsync(
+                    "All rows",
+                    rows,
+                    ExcelDataView.Count,
+                    rows.Length,
+                    result: result,
+                    jobId: tracked.JobId,
+                    spoolStatus: tracked.SpoolStatus);
+            }
+            else if (result.Outcome != PrintJobOutcome.Cancelled)
+            {
+                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                LogPrintOperation(
+                    "All rows",
+                    ExcelDataView?.Count ?? 0,
+                    0,
+                    success: false,
+                    errorMessage: result.ErrorMessage,
+                    result: result,
+                    jobId: tracked.JobId,
+                    spoolStatus: tracked.SpoolStatus);
             }
         }
         catch (Exception ex)
@@ -1827,13 +2718,18 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void PrintCalibration()
+    private async Task PrintCalibrationAsync()
     {
         try
         {
-            if (_printService.PrintCalibration(Template))
+            var result = await _printService.PrintCalibrationWithResultAsync(Template);
+            if (result.IsAccepted)
             {
-                StatusText = "Calibration print job sent";
+                StatusText = result.UserFacingStatus;
+            }
+            else if (result.Outcome != PrintJobOutcome.Cancelled)
+            {
+                StatusText = result.UserFacingStatus;
             }
         }
         catch (Exception ex)
@@ -1854,23 +2750,54 @@ public sealed class MainViewModel : ObservableObject
             YMm = 5,
             WidthMm = 35,
             HeightMm = 10,
-            Style = { FontSizePt = 11, BorderThicknessMm = 0 }
+            Style =
+            {
+                FontSizePt = 11,
+                BorderThicknessMm = 0,
+                VerticalAlignment = TextVerticalAlignmentMode.Center,
+                TextSizing = TextSizingMode.AutoFit,
+                TextOverflow = TextOverflowMode.AllowOverflow
+            }
         });
     }
 
     private void AddTextBox()
     {
+        // User-owned frame: drag sets size; text reflows/clips inside. No
+        // content-owned AutoFit (object does not follow text). The initial
+        // frame is compact and label-aware so it does not waste or leave the
+        // bounds of small logistics labels.
+        var marginMm = Math.Clamp(Math.Min(Template.WidthMm, Template.HeightMm) * 0.04, 0.5, 2.0);
+        var availableWidthMm = Math.Max(1, Template.WidthMm - marginMm * 2);
+        var availableHeightMm = Math.Max(1, Template.HeightMm - marginMm * 2);
+        var widthMm = Math.Min(32, availableWidthMm);
+        var heightMm = Math.Min(6, availableHeightMm);
         AddObject(new LabelObject
         {
             Type = ObjectType.TextBox,
             Name = "Text Box",
-            Text = "Text box keeps content inside its bounds and wraps long lines.",
+            Text = "Text Box",
             BindingExpression = string.Empty,
-            XMm = 5,
-            YMm = 18,
-            WidthMm = 42,
-            HeightMm = 16,
-            Style = { FontSizePt = 9, BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+            XMm = marginMm,
+            YMm = marginMm,
+            WidthMm = widthMm,
+            HeightMm = heightMm,
+            Style =
+            {
+                FontSizePt = 9,
+                BorderThicknessMm = 0,
+                OutlineStyle = OutlineStyle.None,
+                VerticalAlignment = TextVerticalAlignmentMode.Center,
+                // Retains over 90% of a 20 x 6 mm frame as printable content.
+                // Tight (0 mm) remains available for true edge-to-edge text.
+                TextPaddingMm = 0.2,
+                TextSizing = TextSizingMode.FixedFrame,
+                TextOverflow = TextOverflowMode.Error,
+                TextFitMinimumFontSizePt = 4,
+                TextFitMaximumFontSizePt = 9,
+                TextFitMinimumScale = 0.5,
+                TextFitMaximumScale = 1.0
+            }
         });
     }
 
@@ -1894,7 +2821,18 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            SelectedObject.ImageDataBase64 = Convert.ToBase64String(File.ReadAllBytes(dialog.FileName));
+            var base64 = Convert.ToBase64String(File.ReadAllBytes(dialog.FileName));
+            SelectedObject.ImageDataBase64 = base64;
+            if (ImageRasterizer.TryGetPixelDimensions(base64, out var pixelWidth, out var pixelHeight))
+            {
+                SelectedObject.ImagePixelWidth = pixelWidth;
+                SelectedObject.ImagePixelHeight = pixelHeight;
+            }
+            else
+            {
+                SelectedObject.ImagePixelWidth = 0;
+                SelectedObject.ImagePixelHeight = 0;
+            }
             SelectedObject.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
             StatusText = $"Replaced image: {SelectedObject.Name}";
         }
@@ -1929,12 +2867,16 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var (widthMm, heightMm) = GetDefaultImageSizeMm(bytes);
+        var imageBase64 = Convert.ToBase64String(bytes);
+        ImageRasterizer.TryGetPixelDimensions(imageBase64, out var pixelWidth, out var pixelHeight);
 
         AddObject(new LabelObject
         {
             Type = ObjectType.Image,
             Name = Path.GetFileNameWithoutExtension(dialog.FileName),
-            ImageDataBase64 = Convert.ToBase64String(bytes),
+            ImageDataBase64 = imageBase64,
+            ImagePixelWidth = pixelWidth,
+            ImagePixelHeight = pixelHeight,
             XMm = 5,
             YMm = 5,
             WidthMm = widthMm,
@@ -2342,6 +3284,8 @@ public sealed class MainViewModel : ObservableObject
 
     private void Undo()
     {
+        CommitTemplateEditGesture();
+        CommitPendingHistory();
         if (_undoStack.Count == 0)
         {
             return;
@@ -2357,6 +3301,8 @@ public sealed class MainViewModel : ObservableObject
 
     private void Redo()
     {
+        CommitTemplateEditGesture();
+        CommitPendingHistory();
         if (_redoStack.Count == 0)
         {
             return;
@@ -2375,9 +3321,15 @@ public sealed class MainViewModel : ObservableObject
         template.PropertyChanged += TemplateOnPropertyChanged;
         template.PrinterProfile.PropertyChanged += PrinterProfileOnPropertyChanged;
         template.Objects.CollectionChanged += ObjectsOnCollectionChanged;
+        template.Guides.CollectionChanged += GuidesOnCollectionChanged;
         foreach (var item in template.Objects)
         {
             ObserveObject(item);
+        }
+
+        foreach (var guide in template.Guides)
+        {
+            ObserveGuide(guide);
         }
 
         RefreshObjectTreeBindingStates();
@@ -2388,14 +3340,21 @@ public sealed class MainViewModel : ObservableObject
         template.PropertyChanged -= TemplateOnPropertyChanged;
         template.PrinterProfile.PropertyChanged -= PrinterProfileOnPropertyChanged;
         template.Objects.CollectionChanged -= ObjectsOnCollectionChanged;
+        template.Guides.CollectionChanged -= GuidesOnCollectionChanged;
         foreach (var item in template.Objects)
         {
             UnobserveObject(item);
+        }
+
+        foreach (var guide in template.Guides)
+        {
+            UnobserveGuide(guide);
         }
     }
 
     private void ObserveObject(LabelObject item)
     {
+        NormalizeTextObjectPolicy(item);
         item.PropertyChanged -= ObjectOnPropertyChanged;
         item.Style.PropertyChanged -= ObjectStyleOnPropertyChanged;
         item.PropertyChanged += ObjectOnPropertyChanged;
@@ -2406,6 +3365,17 @@ public sealed class MainViewModel : ObservableObject
     {
         item.PropertyChanged -= ObjectOnPropertyChanged;
         item.Style.PropertyChanged -= ObjectStyleOnPropertyChanged;
+    }
+
+    private void ObserveGuide(LabelGuide guide)
+    {
+        guide.PropertyChanged -= GuideOnPropertyChanged;
+        guide.PropertyChanged += GuideOnPropertyChanged;
+    }
+
+    private void UnobserveGuide(LabelGuide guide)
+    {
+        guide.PropertyChanged -= GuideOnPropertyChanged;
     }
 
     private void TemplateOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -2431,6 +3401,12 @@ public sealed class MainViewModel : ObservableObject
             Template.HeightMm = Template.PrinterProfile.LabelHeightMm;
             Template.Orientation = LabelGeometry.ResolveOrientation(Template.WidthMm, Template.HeightMm);
             _syncingTemplatePrinterSize = false;
+        }
+
+        if (e.PropertyName == nameof(PrinterProfile.PrinterName))
+        {
+            OnPropertyChanged(nameof(PrinterDisplayName));
+            _ = RefreshPrinterQueueStatusAsync();
         }
 
         RecordTemplateChange();
@@ -2468,6 +3444,32 @@ public sealed class MainViewModel : ObservableObject
         RecordTemplateChange();
     }
 
+    private void GuidesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is not null)
+        {
+            foreach (var guide in e.OldItems.OfType<LabelGuide>())
+            {
+                UnobserveGuide(guide);
+            }
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var guide in e.NewItems.OfType<LabelGuide>())
+            {
+                ObserveGuide(guide);
+            }
+        }
+
+        RecordTemplateChange();
+    }
+
+    private void GuideOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        RecordTemplateChange();
+    }
+
     private void ObjectOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(LabelObject.HasBindingExpression)
@@ -2479,6 +3481,11 @@ public sealed class MainViewModel : ObservableObject
 
         if (sender is LabelObject changedObject)
         {
+            if (e.PropertyName == nameof(LabelObject.Type))
+            {
+                NormalizeTextObjectPolicy(changedObject);
+            }
+
             ApplyQrAutoSizeFromModel(changedObject, e.PropertyName);
         }
 
@@ -2494,6 +3501,18 @@ public sealed class MainViewModel : ObservableObject
             if (e.PropertyName is nameof(LabelObject.Text) or nameof(LabelObject.BindingExpression) or nameof(LabelObject.BarcodeSymbology) or nameof(LabelObject.Type))
             {
                 OnPropertyChanged(nameof(BarcodeValidationMessage));
+                OnPropertyChanged(nameof(BarcodeApplicationValidationMessage));
+            }
+
+            if (e.PropertyName is nameof(LabelObject.BarcodeApplicationProfile)
+                or nameof(LabelObject.QrQuietZoneModules)
+                or nameof(LabelObject.ShowBarcodeText)
+                or nameof(LabelObject.BarcodeHriPlacement)
+                or nameof(LabelObject.BarcodeTextFontSizePt)
+                or nameof(LabelObject.BarcodeCheckDigitPolicy)
+                or nameof(LabelObject.BarcodeHriShowCheckDigit))
+            {
+                OnPropertyChanged(nameof(BarcodeApplicationValidationMessage));
             }
 
             if (e.PropertyName is nameof(LabelObject.Text)
@@ -2509,9 +3528,22 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.BarcodeSymbology)
                 or nameof(LabelObject.QrSizingMode)
                 or nameof(LabelObject.QrModuleSizePx)
-                or nameof(LabelObject.QrDpi))
+                or nameof(LabelObject.QrDpi)
+                or nameof(LabelObject.BarcodeModuleWidthMm)
+                or nameof(LabelObject.BarcodeWidthMode)
+                or nameof(LabelObject.WidthMm)
+                or nameof(LabelObject.Text)
+                or nameof(LabelObject.QrQuietZoneModules)
+                or nameof(LabelObject.BarcodeApplicationProfile))
             {
+                if (e.PropertyName is not nameof(LabelObject.WidthMm))
+                {
+                    TryApplySizedFromXWidth(SelectedObject);
+                }
+
                 OnPropertyChanged(nameof(BarcodeModuleSizeWarningText));
+                OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
+                OnPropertyChanged(nameof(SelectedObjectSizeFromX));
             }
         }
 
@@ -2521,6 +3553,48 @@ public sealed class MainViewModel : ObservableObject
             or nameof(LabelObject.IsVisible))
         {
             RefreshObjectTreeBindingStates();
+        }
+    }
+
+    private static void NormalizeTextObjectPolicies(LabelTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        foreach (var item in template.Objects)
+        {
+            NormalizeTextObjectPolicy(item);
+        }
+    }
+
+    private static void NormalizeTextObjectPolicy(LabelObject item)
+    {
+        if (item.Type == ObjectType.Text)
+        {
+            // AutoFit: content grows the selection (NiceLabel Text default).
+            // FixedFrame on Text: user locked the selection by border-drag;
+            // glyphs still free-flow/compress via shared layout — never TextBox
+            // wrap/clip ownership (ShouldConstrainToBox stays false).
+            if (item.Style.TextSizing is not (TextSizingMode.AutoFit or TextSizingMode.FixedFrame))
+            {
+                item.Style.TextSizing = TextSizingMode.AutoFit;
+            }
+
+            item.Style.TextOverflow = TextOverflowMode.AllowOverflow;
+            return;
+        }
+
+        if (item.Type != ObjectType.TextBox)
+        {
+            return;
+        }
+
+        if (item.Style.TextSizing is TextSizingMode.AutoFit or TextSizingMode.AdjustHeight)
+        {
+            item.Style.TextSizing = TextSizingMode.FixedFrame;
+        }
+
+        if (item.Style.TextOverflow == TextOverflowMode.AllowOverflow)
+        {
+            item.Style.TextOverflow = TextOverflowMode.Error;
         }
     }
 
@@ -2542,24 +3616,19 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        var targetSizeMm = item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize
-            ? QrAutoSizeHelper.CalculateFixedSizeMm(item.QrFixedVersion, item.QrModuleSizePx, item.QrQuietZoneModules, item.QrDpi, GetAvailableQrSizeMm(item))
-            : QrAutoSizeHelper.CalculateRequiredSizeMm(
-                string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow),
-                item.WidthMm,
-                item.HeightMm,
-                item.QrErrorCorrection,
-                item.QrModuleSizePx,
-                item.QrQuietZoneModules,
-                item.QrDpi,
-                _qrCapacityTable,
-                GetAvailableQrSizeMm(item));
+        var targetSizeMm = QrObjectGeometryContract.ResolveTargetSizeMm(
+            item,
+            string.IsNullOrWhiteSpace(item.BindingExpression)
+                ? item.Text
+                : ResolveExpression(item.BindingExpression, PreviewRow),
+            GetAvailableQrSizeMm(item),
+            _qrCapacityTable);
         if (targetSizeMm is null)
         {
             return;
         }
 
-        if (Math.Abs(item.WidthMm - targetSizeMm.Value) <= 0.05 && Math.Abs(item.HeightMm - targetSizeMm.Value) <= 0.05)
+        if (!QrObjectGeometryContract.HasMeaningfulSizeDelta(item, targetSizeMm.Value))
         {
             return;
         }
@@ -2579,13 +3648,7 @@ public sealed class MainViewModel : ObservableObject
 
     private static bool IsSquare2DCodeLike(LabelObject item)
     {
-        return item.Type == ObjectType.QRCode
-            || item.Type == ObjectType.DataMatrix
-            || item.Type == ObjectType.BarcodeCode128
-                && item.BarcodeSymbology is BarcodeSymbology.QRCode
-                    or BarcodeSymbology.DataMatrix
-                    or BarcodeSymbology.Aztec
-                    or BarcodeSymbology.Pdf417;
+        return item.IsSquare2DCodeLike();
     }
 
     private double GetAvailableQrSizeMm(LabelObject item)
@@ -2616,15 +3679,71 @@ public sealed class MainViewModel : ObservableObject
             : $"Invalid {type} data. {renderError}";
     }
 
+    private string ValidateSelectedBarcodeApplication()
+    {
+        if (SelectedObject is not { Type: ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix } item)
+        {
+            return string.Empty;
+        }
+
+        var symbology = item.Type switch
+        {
+            ObjectType.QRCode => BarcodeSymbology.QRCode,
+            ObjectType.DataMatrix => BarcodeSymbology.DataMatrix,
+            _ => item.BarcodeSymbology
+        };
+        var geometryErrors = BarcodeApplicationContract.ValidateGeometry(
+            item.BarcodeApplicationProfile,
+            symbology,
+            item.QrQuietZoneModules,
+            item.ShowBarcodeText,
+            item.BarcodeTextFontSizePt);
+        var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
+        var dataErrors = BarcodeApplicationContract.ValidateData(item.BarcodeApplicationProfile, symbology, data);
+        var errors = geometryErrors.Concat(dataErrors).ToList();
+        var type = item.Type switch
+        {
+            ObjectType.QRCode => BarcodeType.QRCode,
+            ObjectType.DataMatrix => BarcodeType.DataMatrix,
+            _ => ANLAbel.App.Controls.BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
+        };
+        var hriLayout = BarcodeHriTextLayout.Measure(
+            type,
+            data,
+            item.WidthMm,
+            item.HeightMm,
+            item.BarcodeHriPlacement,
+            item.BarcodeTextFontSizePt);
+        if (!hriLayout.IsValid && hriLayout.ErrorMessage is not null)
+        {
+            errors.Add(hriLayout.ErrorMessage);
+        }
+
+        return string.Join(Environment.NewLine, errors);
+    }
+
     private string ValidateSelectedTextBox()
     {
-        if (SelectedObject is not { Type: ObjectType.TextBox } item)
+        if (SelectedObject is not { } item || item.Type is not (ObjectType.Text or ObjectType.TextBox))
+        {
+            return string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Style.FontFamily)
+            && !TextBoxOverflowDetector.IsFontAvailable(item.Style.FontFamily))
+        {
+            var fallback = TextBoxOverflowDetector.ResolveFontFamilyName(item.Style.FontFamily);
+            return $"Font '{item.Style.FontFamily}' is unavailable; preview/print use '{fallback}'. Install it or choose an installed family.";
+        }
+
+        if (item.Type != ObjectType.TextBox)
         {
             return string.Empty;
         }
 
         var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
-        return IsTextBoxOverflowing(item, data)
+        return TextBoxOverflowDetector.ShouldBlockOverflow(item)
+            && IsTextBoxOverflowing(item, data)
             ? "Text box overflow: increase the object size or reduce text/font size."
             : string.Empty;
     }
@@ -2678,7 +3797,8 @@ public sealed class MainViewModel : ObservableObject
             for (var i = 0; i < rows.Count; i++)
             {
                 var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, rows[i]);
-                if (IsTextBoxOverflowing(item, data))
+                if (TextBoxOverflowDetector.ShouldBlockOverflow(item)
+                    && IsTextBoxOverflowing(item, data))
                 {
                     return $"Print blocked: row {i + 1}, {item.Name} text overflows its text box. Increase object size or reduce text/font size.";
                 }
@@ -2704,9 +3824,22 @@ public sealed class MainViewModel : ObservableObject
             return "Check empty text, unsupported characters, or required length.";
         }
 
+        var hriLayout = BarcodeHriTextLayout.Measure(
+            type,
+            data,
+            item.WidthMm,
+            item.HeightMm,
+            item.BarcodeHriPlacement,
+            item.BarcodeTextFontSizePt);
+        if (!hriLayout.IsValid)
+        {
+            return hriLayout.ErrorMessage;
+        }
+
         try
         {
-            _barcodeValidator.RenderBarcode(data, type, item.WidthMm, item.HeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
+            var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            _barcodeValidator.RenderBarcode(data, type, item.WidthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
             return null;
         }
         catch (ArgumentException ex)
@@ -2728,7 +3861,8 @@ public sealed class MainViewModel : ObservableObject
         return new BarcodeRenderOptions
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules
+            QuietZoneModules = item.QrQuietZoneModules,
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
         };
     }
 
@@ -2967,6 +4101,16 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        // A canvas drag/resize/draw explicitly owns one history transaction.
+        // Property notifications during the gesture do not serialize the full
+        // template at every pointer tick.  CommitTemplateEditGesture captures
+        // the one final snapshot; cancel restores the one start snapshot.
+        // This keeps barcode/image-heavy drags off the JSON/history hot path.
+        if (_explicitEditGestureActive)
+        {
+            return;
+        }
+
         var currentSnapshot = CaptureTemplateSnapshot();
         if (currentSnapshot == _lastTemplateSnapshot)
         {
@@ -2976,14 +4120,17 @@ public sealed class MainViewModel : ObservableObject
         // Debounce: accumulate rapid changes into one undo step
         if (_debounceActive)
         {
-            // Already waiting for debounce timer, just update pending snapshot
+            // Extend the gesture window on every property tick.  A long drag
+            // must become one undo step, not several 300 ms fragments.
             _pendingSnapshot = currentSnapshot;
+            _debounceTimer?.Stop();
+            _debounceTimer?.Start();
             return;
         }
 
         // First change in a burst: save the pre-change state and start debounce
         _debounceActive = true;
-        var preChangeSnapshot = _lastTemplateSnapshot;
+        _pendingPreChangeSnapshot = _lastTemplateSnapshot;
         _pendingSnapshot = currentSnapshot;
         _lastTemplateSnapshot = currentSnapshot;
 
@@ -2993,29 +4140,115 @@ public sealed class MainViewModel : ObservableObject
         {
             Interval = TimeSpan.FromMilliseconds(300)
         };
-        _debounceTimer.Tick += (_, _) =>
-        {
-            _debounceTimer.Stop();
-            _debounceTimer = null;
-            _debounceActive = false;
-
-            // Push the pre-change snapshot (the state before the drag started)
-            if (!string.IsNullOrEmpty(preChangeSnapshot))
-            {
-                // Only push if it's different from current
-                var finalSnapshot = CaptureTemplateSnapshot();
-                if (preChangeSnapshot != finalSnapshot)
-                {
-                    _undoStack.Push(preChangeSnapshot);
-                    TrimUndoStack();
-                    _redoStack.Clear();
-                    _lastTemplateSnapshot = finalSnapshot;
-                }
-            }
-
-            RaiseHistoryCanExecuteChanged();
-        };
+        _debounceTimer.Tick += (_, _) => CommitPendingHistory();
         _debounceTimer.Start();
+    }
+
+    private void CommitPendingHistory()
+    {
+        if (!_debounceActive)
+        {
+            return;
+        }
+
+        _debounceTimer?.Stop();
+        _debounceTimer = null;
+        _debounceActive = false;
+
+        var preChangeSnapshot = _pendingPreChangeSnapshot;
+        var finalSnapshot = CaptureTemplateSnapshot();
+        _pendingPreChangeSnapshot = string.Empty;
+        _pendingSnapshot = string.Empty;
+
+        // Push the state before the gesture started, not an intermediate
+        // property tick.  This also makes Undo deterministic if invoked while
+        // the debounce timer is still pending.
+        if (!string.IsNullOrEmpty(preChangeSnapshot) && preChangeSnapshot != finalSnapshot)
+        {
+            _undoStack.Push(preChangeSnapshot);
+            TrimUndoStack();
+            _redoStack.Clear();
+            _lastTemplateSnapshot = finalSnapshot;
+        }
+
+        RaiseHistoryCanExecuteChanged();
+    }
+
+    private void CancelPendingHistory()
+    {
+        _debounceTimer?.Stop();
+        _debounceTimer = null;
+        _debounceActive = false;
+        _pendingPreChangeSnapshot = string.Empty;
+        _pendingSnapshot = string.Empty;
+    }
+
+    /// <summary>
+    /// Starts an explicit canvas gesture transaction. This is intentionally
+    /// public so the retained WPF canvas can bracket move/resize/draw sessions
+    /// without reaching into snapshot implementation details.
+    /// </summary>
+    public void BeginTemplateEditGesture()
+    {
+        if (_isRestoringHistory || _explicitEditGestureActive)
+        {
+            return;
+        }
+
+        CommitPendingHistory();
+        _explicitEditGesturePreChangeSnapshot = CaptureTemplateSnapshot();
+        _lastTemplateSnapshot = _explicitEditGesturePreChangeSnapshot;
+        _explicitEditGestureActive = true;
+    }
+
+    /// <summary>
+    /// Commits one explicit canvas gesture as one undo step, regardless of how
+    /// many property ticks the pointer generated.
+    /// </summary>
+    public void CommitTemplateEditGesture()
+    {
+        if (!_explicitEditGestureActive)
+        {
+            return;
+        }
+
+        var preChangeSnapshot = _explicitEditGesturePreChangeSnapshot;
+        var finalSnapshot = CaptureTemplateSnapshot();
+        _explicitEditGesturePreChangeSnapshot = string.Empty;
+        _explicitEditGestureActive = false;
+        if (!string.IsNullOrEmpty(preChangeSnapshot) && preChangeSnapshot != finalSnapshot)
+        {
+            _undoStack.Push(preChangeSnapshot);
+            TrimUndoStack();
+            _redoStack.Clear();
+        }
+
+        _lastTemplateSnapshot = finalSnapshot;
+        RaiseHistoryCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// Cancels a canvas gesture and restores the exact pre-gesture snapshot.
+    /// Capture loss/Esc therefore cannot leave a half-applied edit in history.
+    /// </summary>
+    public void CancelTemplateEditGesture()
+    {
+        if (!_explicitEditGestureActive)
+        {
+            return;
+        }
+
+        var preChangeSnapshot = _explicitEditGesturePreChangeSnapshot;
+        _explicitEditGesturePreChangeSnapshot = string.Empty;
+        _explicitEditGestureActive = false;
+        CancelPendingHistory();
+        if (!string.IsNullOrEmpty(preChangeSnapshot) && preChangeSnapshot != CaptureTemplateSnapshot())
+        {
+            RestoreTemplateSnapshot(preChangeSnapshot);
+        }
+
+        _lastTemplateSnapshot = CaptureTemplateSnapshot();
+        RaiseHistoryCanExecuteChanged();
     }
 
     private void RestoreTemplateSnapshot(string snapshot)
@@ -3050,6 +4283,9 @@ public sealed class MainViewModel : ObservableObject
 
     private void ResetHistory()
     {
+        _explicitEditGestureActive = false;
+        _explicitEditGesturePreChangeSnapshot = string.Empty;
+        CancelPendingHistory();
         _undoStack.Clear();
         _redoStack.Clear();
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
@@ -3060,6 +4296,19 @@ public sealed class MainViewModel : ObservableObject
     {
         ((RelayCommand)UndoCommand).RaiseCanExecuteChanged();
         ((RelayCommand)RedoCommand).RaiseCanExecuteChanged();
+    }
+
+    private static void RaiseCommandCanExecuteChanged(ICommand command)
+    {
+        switch (command)
+        {
+            case RelayCommand relay:
+                relay.RaiseCanExecuteChanged();
+                break;
+            case AsyncRelayCommand async:
+                async.RaiseCanExecuteChanged();
+                break;
+        }
     }
 
     private void TrimUndoStack()
@@ -3098,27 +4347,42 @@ public sealed class MainViewModel : ObservableObject
     }
 
     private static IReadOnlyList<string> GetIndustrialFontFamilies()
-    {
-        var installedFonts = Fonts.SystemFontFamilies.Select(font => font.Source).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var fonts = PreferredIndustrialFonts.Where(installedFonts.Contains).ToList();
-        if (fonts.Count == 0)
-        {
-            fonts.Add("Segoe UI");
-        }
+        => TextStylePickerCatalog.FilterInstalled(
+            Fonts.SystemFontFamilies.Select(font => font.Source));
 
-        return fonts;
+    private IReadOnlyDictionary<string, string>? CreatePreviewRow(object? item)
+    {
+        var row = CreatePreviewRow(item, out var error);
+        DataTransformError = error;
+        return row;
     }
 
-    private static IReadOnlyDictionary<string, string>? CreatePreviewRow(object? item)
+    private IReadOnlyDictionary<string, string>? CreatePreviewRow(object? item, out string error)
     {
+        error = string.Empty;
         if (item is not DataRowView rowView)
         {
             return null;
         }
 
-        return rowView.Row.Table.Columns
+        var source = rowView.Row.Table.Columns
             .Cast<DataColumn>()
             .ToDictionary(column => column.ColumnName, column => rowView.Row[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+        if (Template.DataTransforms.Count == 0)
+        {
+            return source;
+        }
+
+        var transformed = DataTransformPipeline.Evaluate(
+            DataRecord.Create(source.Select(pair => new KeyValuePair<string, string?>(pair.Key, pair.Value))),
+            Template.DataTransforms);
+        if (!transformed.IsValid)
+        {
+            error = string.Join(" ", transformed.Errors);
+            return source;
+        }
+
+        return transformed.Record.Values.ToDictionary(pair => pair.Key, pair => pair.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
     }
 
     private static int GetDataRowViewIndex(DataRowView rowView)
@@ -3165,13 +4429,239 @@ public sealed class MainViewModel : ObservableObject
         return Math.Min(999, Math.Max(1, PrintCopies));
     }
 
-    public async Task WritePrintLogAsync(string printMode, IEnumerable<IReadOnlyDictionary<string, string>?> rows, int rowCount, int labelCount, string notes = "")
+    private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(
+        IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        string description,
+        string? existingJobId = null,
+        PrintJobManifest? approvedManifest = null,
+        int? sourceRowCount = null)
     {
-        LogPrintOperation(printMode, rowCount, labelCount, success: true, errorMessage: string.Empty);
+        var jobId = string.IsNullOrWhiteSpace(existingJobId) ? Guid.NewGuid().ToString("N") : existingJobId;
+        var printerName = Template.PrinterProfile.PrinterName;
+        if (string.IsNullOrWhiteSpace(printerName))
+        {
+            throw new InvalidOperationException(
+                "Print preparation stopped because no verified printer queue is selected. Choose the industrial queue saved in the template before using quick print.");
+        }
+
+        // Quick print is a durable dispatch path, not a design-only preview.
+        // Resolve the queue's effective ticket first so the manifest and every
+        // lifecycle event carry the same DPI/media/imageable-area contract that
+        // the paginator will receive.  This also prevents the old overload that
+        // opened a second print dialog and could send to a different queue than
+        // the one named in the manifest.
+        var effectivePlan = _printService.CreateEffectivePlan(Template, printerName);
+        if (!effectivePlan.SceneCompilationVerified)
+        {
+            var detail = string.IsNullOrWhiteSpace(effectivePlan.SceneDiagnostics)
+                ? "the scene compiler did not produce a verified scene hash"
+                : effectivePlan.SceneDiagnostics;
+            throw new InvalidOperationException(
+                $"Print preparation stopped because the label design is invalid ({detail}). Fix the design and try again.");
+        }
+
+        var preflight = _printService.ValidateRows(Template, rows, effectivePlan);
+        if (!preflight.IsSuccess)
+        {
+            throw new InvalidOperationException(preflight.ToUserMessage());
+        }
+
+        var manifest = PrintJobManifest.Create(
+            Template.Name,
+            CurrentFilePath,
+            description,
+            printerName,
+            Template.WidthMm,
+            Template.HeightMm,
+            effectivePlan.DpiX > 0 ? effectivePlan.DpiX : Template.PrinterProfile.Dpi,
+            effectivePlan.DpiY > 0 ? effectivePlan.DpiY : Template.PrinterProfile.Dpi,
+            sourceRowCount ?? rows.Count,
+            rows.Count,
+            rows,
+            effectivePlan.DocumentHash,
+            effectivePlan.TextResourceFingerprint,
+            effectivePlan.SceneHash,
+            effectivePlan.OutputContractHash,
+            imageRasterFingerprint: effectivePlan.ImageRasterFingerprint,
+            thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty);
+        if (approvedManifest is not null
+            && !string.Equals(manifest.Fingerprint, approvedManifest.Fingerprint, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Print dispatch was blocked because the newly compiled inputs do not match the approved manifest.");
+        }
+        await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+            jobId,
+            PrintJobLifecycleState.Created,
+            PrintJobLifecycleState.Preparing,
+            DateTimeOffset.UtcNow,
+            "Main designer accepted the batch for preparation.",
+            PrinterName: printerName,
+            DocumentHash: effectivePlan.DocumentHash,
+            TextResourceFingerprint: effectivePlan.TextResourceFingerprint,
+            SceneHash: effectivePlan.SceneHash,
+            ManifestFingerprint: manifest.Fingerprint,
+            Manifest: manifest));
+        await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+            jobId,
+            PrintJobLifecycleState.Preparing,
+            PrintJobLifecycleState.PreflightPassed,
+            DateTimeOffset.UtcNow,
+            "Effective printer-ticket validation and row preflight passed for the batch.",
+            PrinterName: printerName,
+            DocumentHash: effectivePlan.DocumentHash,
+            TextResourceFingerprint: effectivePlan.TextResourceFingerprint,
+            SceneHash: effectivePlan.SceneHash,
+            OutputContractHash: effectivePlan.OutputContractHash,
+            ManifestFingerprint: manifest.Fingerprint,
+            Manifest: manifest));
+        await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+            jobId,
+            PrintJobLifecycleState.PreflightPassed,
+            PrintJobLifecycleState.Dispatching,
+            DateTimeOffset.UtcNow,
+            "Dispatching the validated batch.",
+            PrinterName: printerName,
+            DocumentHash: effectivePlan.DocumentHash,
+            TextResourceFingerprint: effectivePlan.TextResourceFingerprint,
+            SceneHash: effectivePlan.SceneHash,
+            OutputContractHash: effectivePlan.OutputContractHash,
+            ManifestFingerprint: manifest.Fingerprint,
+            Manifest: manifest));
+
+        PrintJobResult result;
+        try
+        {
+            result = await _printService.PrintRowsWithResultAsync(
+                Template,
+                rows,
+                printerName,
+                description,
+                expectedOutputContractHash: effectivePlan.OutputContractHash);
+            result = result with { ManifestFingerprint = manifest.Fingerprint, Manifest = manifest };
+            result = await _printService.ResolveSpoolJobIdentityAsync(
+                result,
+                timeout: TimeSpan.FromSeconds(1),
+                pollInterval: TimeSpan.FromMilliseconds(100));
+        }
+        catch (Exception ex)
+        {
+            var current = _printJobStateStore.GetCurrentState(jobId);
+            if (current is PrintJobLifecycleState currentState
+                && PrintJobStateMachine.CanTransition(currentState, PrintJobLifecycleState.Failed))
+            {
+                await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                    jobId,
+                    currentState,
+                    PrintJobLifecycleState.Failed,
+                    DateTimeOffset.UtcNow,
+                    ex.Message,
+                    PrinterName: printerName,
+                    ManifestFingerprint: manifest.Fingerprint,
+                    Manifest: manifest));
+            }
+
+            throw;
+        }
+
+        var targetState = result.Outcome switch
+        {
+            PrintJobOutcome.Cancelled => PrintJobLifecycleState.Cancelled,
+            PrintJobOutcome.Failed => PrintJobLifecycleState.Failed,
+            PrintJobOutcome.Unknown => PrintJobLifecycleState.Unknown,
+            PrintJobOutcome.Completed when result.IsPhysicalCompletionVerified => PrintJobLifecycleState.Completed,
+            PrintJobOutcome.SpoolAccepted or PrintJobOutcome.DeviceAcknowledged => PrintJobLifecycleState.SpoolAccepted,
+            _ => PrintJobLifecycleState.Unknown
+        };
+        await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+            jobId,
+            PrintJobLifecycleState.Dispatching,
+            targetState,
+            DateTimeOffset.UtcNow,
+            result.UserFacingStatus,
+            PrinterName: result.PrinterName,
+            SpoolJobId: result.SpoolJobId,
+            DocumentHash: result.DocumentHash,
+            TextResourceFingerprint: result.TextResourceFingerprint,
+            SceneHash: result.SceneHash,
+            OutputContractHash: result.OutputContractHash,
+            ManifestFingerprint: result.ManifestFingerprint,
+            Manifest: result.Manifest,
+            PhysicalOutputVerified: result.IsPhysicalCompletionVerified));
+
+        SpoolJobMonitorResult? spoolStatus = null;
+        if (result.IsAccepted && result.SpoolJobId is int)
+        {
+            // Quick-print used to stop at the submit return value. Observe the
+            // queue here as well as in Print Preview so both operator paths have
+            // the same bounded, truthful status semantics. This is read-only and
+            // never upgrades a queue observation to physical completion.
+            spoolStatus = await _printService.MonitorSpoolJobAsync(
+                result,
+                timeout: TimeSpan.FromSeconds(3),
+                pollInterval: TimeSpan.FromMilliseconds(250));
+
+            if (targetState == PrintJobLifecycleState.SpoolAccepted)
+            {
+                await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
+                    jobId,
+                    PrintJobLifecycleState.SpoolAccepted,
+                    PrintJobLifecycleState.QueueObserved,
+                    spoolStatus.FinalObservation.ObservedAtUtc ?? DateTimeOffset.UtcNow,
+                    spoolStatus.FinalObservation.Message,
+                    PrinterName: result.PrinterName,
+                    SpoolJobId: result.SpoolJobId,
+                    QueueState: spoolStatus.FinalObservation.State.ToString(),
+                    DocumentHash: result.DocumentHash,
+                    TextResourceFingerprint: result.TextResourceFingerprint,
+                    SceneHash: result.SceneHash,
+                    OutputContractHash: result.OutputContractHash,
+                    ManifestFingerprint: result.ManifestFingerprint,
+                    Manifest: result.Manifest));
+            }
+        }
+
+        return new TrackedPrintResult(jobId, result, spoolStatus);
+    }
+
+    private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
+    {
+        try
+        {
+            await _printJobStateStore.AppendAsync(transition).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Print job state log failed: {ex.Message}");
+        }
+    }
+
+    public async Task WritePrintLogAsync(
+        string printMode,
+        IEnumerable<IReadOnlyDictionary<string, string>?> rows,
+        int rowCount,
+        int labelCount,
+        string notes = "",
+        PrintJobResult? result = null,
+        string jobId = "",
+        SpoolJobMonitorResult? spoolStatus = null)
+    {
+        LogPrintOperation(
+            printMode,
+            rowCount,
+            labelCount,
+            success: result?.IsAccepted ?? true,
+            errorMessage: result?.ErrorMessage ?? string.Empty,
+            result: result,
+            jobId: jobId,
+            spoolStatus: spoolStatus);
+        var effectiveNotes = string.IsNullOrWhiteSpace(notes)
+            ? AppendQueueStatus(result?.UserFacingStatus ?? "Print submission recorded. Physical completion is not independently verified.", spoolStatus)
+            : notes;
         try
         {
             var printedAt = DateTime.Now;
-            var entries = rows.Select((row, index) => CreatePrintLogEntry(printMode, row, rowCount, labelCount, index + 1, printedAt, notes)).ToArray();
+            var entries = rows.Select((row, index) => CreatePrintLogEntry(printMode, row, rowCount, labelCount, index + 1, printedAt, effectiveNotes)).ToArray();
             await _printLogService.AppendManyAsync(entries);
         }
         catch (Exception ex)
@@ -3186,23 +4676,102 @@ public sealed class MainViewModel : ObservableObject
     /// machine-parseable JSON trace, never awaited and never allowed to affect the print
     /// job or the (already saved) human-facing history.
     /// </summary>
-    private void LogPrintOperation(string printMode, int rowsSelected, int labelsPrinted, bool success, string errorMessage)
+    private void LogPrintOperation(
+        string printMode,
+        int rowsSelected,
+        int labelsPrinted,
+        bool success,
+        string errorMessage,
+        PrintJobResult? result = null,
+        string jobId = "",
+        SpoolJobMonitorResult? spoolStatus = null)
     {
         var entry = new PrintOperationLogEntry
         {
+            JobId = jobId,
             TemplateName = Template.Name,
             TemplateFilePath = CurrentFilePath,
-            PrinterName = Template.PrinterProfile.PrinterName,
+            PrinterName = string.IsNullOrWhiteSpace(result?.PrinterName) ? Template.PrinterProfile.PrinterName : result.PrinterName,
             LabelWidthMm = Template.PrinterProfile.LabelWidthMm,
             LabelHeightMm = Template.PrinterProfile.LabelHeightMm,
-            Dpi = Template.PrinterProfile.Dpi,
+            Dpi = result?.DpiX > 0 ? result.DpiX : Template.PrinterProfile.Dpi,
+            DpiX = result?.DpiX > 0 ? result.DpiX : Template.PrinterProfile.Dpi,
+            DpiY = result?.DpiY > 0 ? result.DpiY : Template.PrinterProfile.Dpi,
             PrintMode = printMode,
+            Outcome = result?.Outcome.ToString() ?? (success ? PrintJobOutcome.SpoolAccepted.ToString() : PrintJobOutcome.Failed.ToString()),
+            OutcomeEvidence = result?.IsPhysicalCompletionVerified == true
+                ? "device-confirmed"
+                : result?.OutputContractTicketVerified == true
+                    ? result.PrintableAreaVerified ? "effective-ticket-and-imageable-area; physical-output-unverified" : "effective-ticket; printable-area-unverified; physical-output-unverified"
+                    : "output-contract-ticket-unverified; physical-output-unverified",
+            SpoolJobId = result?.SpoolJobId,
+            SpoolState = spoolStatus?.FinalObservation.State.ToString() ?? string.Empty,
+            SpoolStatusMessage = spoolStatus?.FinalObservation.Message ?? string.Empty,
+            SpoolStatusPollCount = spoolStatus?.PollCount ?? 0,
+            SpoolStatusTimedOut = spoolStatus?.TimedOut ?? false,
+            SpoolStatusObservedAtUtc = spoolStatus?.FinalObservation.ObservedAtUtc,
+            OutputContractHash = result?.OutputContractHash ?? string.Empty,
+            OutputContractTicketVerified = result?.OutputContractTicketVerified == true,
+            DocumentHash = result?.DocumentHash ?? string.Empty,
+            TextResourceFingerprint = result?.TextResourceFingerprint ?? string.Empty,
+            ImageRasterFingerprint = result?.ImageRasterFingerprint ?? string.Empty,
+            ThermalRasterGoldenFingerprint = result?.ThermalRasterGoldenFingerprint ?? string.Empty,
+            ManifestFingerprint = result?.ManifestFingerprint ?? string.Empty,
+            Manifest = result?.Manifest,
+            SupportEvidenceFingerprint = result?.SupportEvidenceFingerprint ?? string.Empty,
+            SceneHash = result?.SceneHash ?? string.Empty,
+            SceneCompilationVerified = result?.SceneCompilationVerified == true,
             RowsSelected = rowsSelected,
             LabelsPrinted = labelsPrinted,
             Success = success,
             ErrorMessage = errorMessage
         };
         _ = _printOperationLogService.AppendAsync(entry);
+    }
+
+    private void LogOperatorAction(PrintJobOperatorActionResult result)
+    {
+        var stateEvent = result.Event;
+        var entry = new PrintOperationLogEntry
+        {
+            JobId = result.JobId,
+            TimestampLocal = DateTime.Now,
+            TemplateName = Template.Name,
+            TemplateFilePath = CurrentFilePath,
+            PrinterName = stateEvent?.PrinterName ?? Template.PrinterProfile.PrinterName,
+            LabelWidthMm = Template.PrinterProfile.LabelWidthMm,
+            LabelHeightMm = Template.PrinterProfile.LabelHeightMm,
+            Dpi = Template.PrinterProfile.Dpi,
+            DpiX = Template.PrinterProfile.Dpi,
+            DpiY = Template.PrinterProfile.Dpi,
+            PrintMode = "OperatorRecovery",
+            Outcome = result.Action.ToString(),
+            OutcomeEvidence = "lineage-only; physical-output-unverified; automatic-retry-disabled",
+            SpoolJobId = stateEvent?.SpoolJobId,
+            SpoolState = stateEvent?.QueueState ?? string.Empty,
+            OutputContractHash = stateEvent?.OutputContractHash ?? string.Empty,
+            DocumentHash = stateEvent?.DocumentHash ?? string.Empty,
+            TextResourceFingerprint = stateEvent?.TextResourceFingerprint ?? string.Empty,
+            ManifestFingerprint = stateEvent?.ManifestFingerprint ?? string.Empty,
+            Manifest = stateEvent?.Manifest,
+            SceneHash = stateEvent?.SceneHash ?? string.Empty,
+            OperatorAction = result.Action.ToString(),
+            RelatedJobId = result.RelatedJobId,
+            OperatorActor = stateEvent?.Actor ?? string.Empty,
+            Success = result.Succeeded,
+            ErrorMessage = result.Succeeded ? string.Empty : result.Summary
+        };
+        _ = _printOperationLogService.AppendAsync(entry);
+    }
+
+    private static string AppendQueueStatus(string status, SpoolJobMonitorResult? spoolStatus)
+    {
+        if (spoolStatus is null)
+        {
+            return status;
+        }
+
+        return $"{status}\nQueue status: {spoolStatus.UserFacingStatus}";
     }
 
     private PrintLogEntry CreatePrintLogEntry(string printMode, IReadOnlyDictionary<string, string>? row, int rowCount, int labelCount, int labelIndex, DateTime printedAt, string notes)
@@ -3315,6 +4884,11 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 }
+
+public sealed record TrackedPrintResult(
+    string JobId,
+    PrintJobResult Result,
+    SpoolJobMonitorResult? SpoolStatus = null);
 
 public sealed record NewTemplateRequest(string Name, double WidthMm, double HeightMm, int Dpi);
 

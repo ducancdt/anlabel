@@ -61,8 +61,13 @@ public partial class PrinterSetupWindow : Window
             var match = StandardLabelSizes.All.FirstOrDefault(s => string.Equals(s.Name, effectivePaperName, StringComparison.OrdinalIgnoreCase));
             if (match is not null)
             {
-                SetSizeFromPaper(match);
                 SelectCategoryForPaper(match);
+                // CategoryBox_SelectionChanged repopulates the list and selects
+                // its first item. Restore the saved paper after that callback;
+                // otherwise reopening a non-first stock silently turns it into
+                // a custom paper even though the displayed dimensions are right.
+                PaperSizesList.SelectedItem = match;
+                SetSizeFromPaper(match);
             }
         }
 
@@ -130,8 +135,16 @@ public partial class PrinterSetupWindow : Window
         }
 
         SelectedPrinter = PrinterBox.SelectedItem as PrinterInfo;
-        SelectedPaper = PaperSizesList.SelectedItem as PrinterPaperInfo
-            ?? new PrinterPaperInfo { Name = "Custom", WidthMm = w, HeightMm = h, Source = PaperSizeSourceKind.UserCustom };
+        var listedPaper = PaperSizesList.SelectedItem as PrinterPaperInfo;
+        // A category/list selection is only a preset.  If the user edits either
+        // dimension after selecting it, preserve the edited dimensions as a
+        // first-class custom stock instead of silently restoring the preset.
+        var matchesListedPaper = listedPaper is not null
+            && Math.Abs(listedPaper.WidthMm - w) <= 0.005
+            && Math.Abs(listedPaper.HeightMm - h) <= 0.005;
+        SelectedPaper = matchesListedPaper
+            ? listedPaper
+            : new PrinterPaperInfo { Name = "Custom", WidthMm = w, HeightMm = h, Source = PaperSizeSourceKind.UserCustom };
         SelectedDpi = ReadDpi();
         SelectedOrientation = LandscapeRadio.IsChecked == true ? LabelOrientation.Landscape : LabelOrientation.Portrait;
 
@@ -168,7 +181,9 @@ public partial class PrinterSetupWindow : Window
         return dpi switch
         {
             300 => 1,
-            600 => 2,
+            305 => 2,
+            600 => 3,
+            609 => 4,
             _ => 0
         };
     }

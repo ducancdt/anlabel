@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -28,6 +29,10 @@ namespace ANLAbel.App.Controls;
 
 public sealed class LabelDesignerCanvas : Canvas
 {
+    public event EventHandler? EditGestureStarted;
+    public event EventHandler? EditGestureCompleted;
+    public event EventHandler? EditGestureCanceled;
+
     public static readonly DependencyProperty TemplateProperty =
         DependencyProperty.Register(nameof(Template), typeof(LabelTemplate), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(null, OnTemplateChanged));
@@ -56,22 +61,56 @@ public sealed class LabelDesignerCanvas : Canvas
         DependencyProperty.Register(nameof(IsSnapToObjectsEnabled), typeof(bool), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnSnapPreferenceChanged));
 
+    public static readonly DependencyProperty IsSnapToGridEnabledProperty =
+        DependencyProperty.Register(nameof(IsSnapToGridEnabled), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnGridPreferenceChanged));
+
+    public static readonly DependencyProperty GridStepMmProperty =
+        DependencyProperty.Register(nameof(GridStepMm), typeof(double), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(SnapGridContract.DefaultStepMm, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnGridPreferenceChanged));
+
     public static readonly DependencyProperty InteractionStatusTextProperty =
         DependencyProperty.Register(nameof(InteractionStatusText), typeof(string), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+    public static readonly DependencyProperty ShowPointerTelemetryProperty =
+        DependencyProperty.Register(nameof(ShowPointerTelemetry), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnPointerTelemetryVisibilityChanged));
 
     public static readonly RoutedCommand DeleteSelectionCommand = new(nameof(DeleteSelectionCommand), typeof(LabelDesignerCanvas));
 
     private readonly Dictionary<LabelObject, FrameworkElement> _objectElements = new();
     private readonly HashSet<LabelObject> _selectedObjects = new();
     private readonly HashSet<LabelObject> _matrixAutoSizingObjects = new();
+    private readonly HashSet<LabelObject> _textAutoSizingObjects = new();
     private readonly List<LabelObject> _clipboardObjects = new();
     private readonly Dictionary<LabelObject, (double X, double Y, double EndX, double EndY)> _groupDragStarts = new();
+    private readonly Dictionary<LabelObject, GroupResizeObjectSnapshot> _groupResizeStarts = new();
+    private readonly Dictionary<LabelObject, (double X, double Y, double EndX, double EndY)> _nudgeStarts = new();
+    /// <summary>
+    /// Bounded pointer-frame evidence for the current canvas instance. Record
+    /// calls happen only after a drag preview frame has updated its visual;
+    /// percentile snapshots are intentionally off the hot path.
+    /// </summary>
+    public PointerFrameTelemetry PointerTelemetry { get; } = new();
     private readonly IBarcodeRenderer _barcodeRenderer = new ZxingBarcodeRenderer();
     private readonly DesignerPreferencesService _designerPreferencesService = new();
     private readonly MenuItem _snapMenuItem;
+    private readonly MenuItem _snapGridMenuItem;
+    private readonly MenuItem _gridStepMenuItem;
+    private readonly MenuItem _pointerTelemetryMenuItem;
+    private readonly MenuItem _guidesMenuItem;
+    private readonly MenuItem _addVerticalGuideMenuItem;
+    private readonly MenuItem _addHorizontalGuideMenuItem;
+    private readonly MenuItem _toggleGuideLockMenuItem;
+    private readonly MenuItem _deleteGuideMenuItem;
+    private readonly MenuItem _clearGuidesMenuItem;
     private SelectionResizeAdorner? _selectionAdorner;
+    private SelectionResizeAdorner? _groupResizeAdorner;
+    private GroupResizeObjectSnapshot _singleResizeStart;
+    private bool _singleResizeActive;
     private LabelObject? _adornedObject;
+    private AdornerLayer? _groupResizeAdornerLayer;
     private Border? _marqueeElement;
     private Point _dragStart;
     private Point _marqueeStart;
@@ -82,15 +121,30 @@ public sealed class LabelDesignerCanvas : Canvas
     private LabelObject? _dragObject;
     private bool _isMarqueeSelecting;
     private LabelObject? _drawingObject;
+    private bool _nudgeGestureActive;
+    private System.Windows.Threading.DispatcherTimer? _nudgeGestureTimer;
     private Point _drawingStartMm;
     private Point _lastDrawingEndMm;
     private string _dimensionBuffer = string.Empty;
     private int _pasteCount;
 
-    // Alignment guide system
-    private const double SnapThresholdMm = 1.0;
+    // Alignment guide system. Interaction tolerance is expressed in screen DIP so
+    // snapping feels consistent at 25% and 400% zoom alike; document geometry stays mm.
+    private double SnapThresholdMm => SnapToleranceContract.AcquireToleranceMm(Zoom);
+    private double SnapReleaseThresholdMm => SnapToleranceContract.ReleaseToleranceMm(Zoom);
+    private readonly SnapHysteresisState _snapLockX = new();
+    private readonly SnapHysteresisState _snapLockY = new();
     private Line? _guideVertical;
     private Line? _guideHorizontal;
+    private Border? _guideVerticalLabel;
+    private Border? _guideHorizontalLabel;
+    private AlignmentSnapResult? _lastAlignmentSnap;
+    private readonly Dictionary<LabelGuide, (Line Line, Border Label)> _persistentGuideVisuals = new();
+    private LabelGuide? _contextGuide;
+    private Point _contextMenuPoint;
+    private LabelGuide? _draggedGuide;
+    private bool _createdGuideForDrag;
+    private double _draggedGuideStartPositionMm;
 
     public LabelDesignerCanvas()
     {
@@ -104,13 +158,63 @@ public sealed class LabelDesignerCanvas : Canvas
         MouseRightButtonUp += CanvasMouseButtonUp;
         LostMouseCapture += CanvasLostMouseCapture;
         KeyDown += CanvasKeyDown;
+        LostKeyboardFocus += CanvasLostKeyboardFocus;
         _snapMenuItem = new MenuItem
         {
             Header = "Snap to objects",
             IsCheckable = true
         };
         _snapMenuItem.Click += (_, _) => IsSnapToObjectsEnabled = _snapMenuItem.IsChecked;
-        ContextMenu = new ContextMenu { Items = { _snapMenuItem } };
+        _snapGridMenuItem = new MenuItem
+        {
+            Header = "Snap to grid",
+            IsCheckable = true
+        };
+        _snapGridMenuItem.Click += (_, _) => IsSnapToGridEnabled = _snapGridMenuItem.IsChecked;
+        _gridStepMenuItem = new MenuItem { Header = "Grid step" };
+        foreach (var step in new[] { 0.5, 1.0, 2.0, 5.0, 10.0 })
+        {
+            var stepItem = new MenuItem
+            {
+                Header = $"{step:0.##} mm",
+                IsCheckable = true,
+                Tag = step
+            };
+            stepItem.Click += (_, _) =>
+            {
+                if (stepItem.Tag is double selectedStep)
+                {
+                    GridStepMm = selectedStep;
+                    UpdateGridStepMenu();
+                }
+            };
+            _gridStepMenuItem.Items.Add(stepItem);
+        }
+        _pointerTelemetryMenuItem = new MenuItem
+        {
+            Header = "Show pointer performance",
+            IsCheckable = true,
+            ToolTip = "Show opt-in P95/max drag-frame telemetry on the canvas"
+        };
+        _pointerTelemetryMenuItem.Click += (_, _) => ShowPointerTelemetry = _pointerTelemetryMenuItem.IsChecked;
+        _guidesMenuItem = new MenuItem { Header = "Design guides" };
+        _addVerticalGuideMenuItem = new MenuItem { Header = "Add vertical guide here" };
+        _addHorizontalGuideMenuItem = new MenuItem { Header = "Add horizontal guide here" };
+        _toggleGuideLockMenuItem = new MenuItem { Header = "Lock selected guide" };
+        _deleteGuideMenuItem = new MenuItem { Header = "Delete selected guide" };
+        _clearGuidesMenuItem = new MenuItem { Header = "Clear all guides" };
+        _addVerticalGuideMenuItem.Click += (_, _) => AddGuideFromContext(LabelGuideOrientation.Vertical);
+        _addHorizontalGuideMenuItem.Click += (_, _) => AddGuideFromContext(LabelGuideOrientation.Horizontal);
+        _toggleGuideLockMenuItem.Click += (_, _) => ToggleContextGuideLock();
+        _deleteGuideMenuItem.Click += (_, _) => DeleteContextGuide();
+        _clearGuidesMenuItem.Click += (_, _) => ClearAllGuides();
+        _guidesMenuItem.Items.Add(_addVerticalGuideMenuItem);
+        _guidesMenuItem.Items.Add(_addHorizontalGuideMenuItem);
+        _guidesMenuItem.Items.Add(new Separator());
+        _guidesMenuItem.Items.Add(_toggleGuideLockMenuItem);
+        _guidesMenuItem.Items.Add(_deleteGuideMenuItem);
+        _guidesMenuItem.Items.Add(_clearGuidesMenuItem);
+        ContextMenu = new ContextMenu { Items = { _snapMenuItem, _snapGridMenuItem, _gridStepMenuItem, new Separator(), _pointerTelemetryMenuItem, _guidesMenuItem } };
         ContextMenuOpening += (_, e) =>
         {
             if (DrawingTool is not null)
@@ -120,9 +224,19 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             _snapMenuItem.IsChecked = IsSnapToObjectsEnabled;
+            _snapGridMenuItem.IsChecked = IsSnapToGridEnabled;
+            _pointerTelemetryMenuItem.IsChecked = ShowPointerTelemetry;
+            _gridStepMenuItem.IsEnabled = IsSnapToGridEnabled;
+            UpdateGridStepMenu();
+            _contextMenuPoint = Mouse.GetPosition(this);
+            _contextGuide = FindNearestGuideAtPoint(_contextMenuPoint, includeLocked: true);
+            UpdateGuideContextMenu();
         };
 
-        SetCurrentValue(IsSnapToObjectsEnabledProperty, _designerPreferencesService.Load().SnapToObjects);
+        var preferences = _designerPreferencesService.Load();
+        SetCurrentValue(IsSnapToObjectsEnabledProperty, preferences.SnapToObjects);
+        SetCurrentValue(IsSnapToGridEnabledProperty, preferences.SnapToGrid);
+        SetCurrentValue(GridStepMmProperty, SnapGridContract.NormalizeStep(preferences.GridStepMm));
         CommandBindings.Add(new CommandBinding(DeleteSelectionCommand, (_, e) =>
         {
             e.Handled = DeleteSelection();
@@ -171,10 +285,738 @@ public sealed class LabelDesignerCanvas : Canvas
         set => SetValue(IsSnapToObjectsEnabledProperty, value);
     }
 
+    public bool IsSnapToGridEnabled
+    {
+        get => (bool)GetValue(IsSnapToGridEnabledProperty);
+        set => SetValue(IsSnapToGridEnabledProperty, value);
+    }
+
+    public double GridStepMm
+    {
+        get => SnapGridContract.NormalizeStep((double)GetValue(GridStepMmProperty));
+        set => SetValue(GridStepMmProperty, SnapGridContract.NormalizeStep(value));
+    }
+
     public string InteractionStatusText
     {
         get => (string)GetValue(InteractionStatusTextProperty);
         set => SetValue(InteractionStatusTextProperty, value);
+    }
+
+    public bool ShowPointerTelemetry
+    {
+        get => (bool)GetValue(ShowPointerTelemetryProperty);
+        set => SetValue(ShowPointerTelemetryProperty, value);
+    }
+
+    /// <summary>
+    /// Number of objects in the canvas selection.  The WPF shell uses this to
+    /// decide whether arrange commands should be offered, while the canvas
+    /// remains the single owner of multi-selection state.
+    /// </summary>
+    public int SelectedObjectCount => _selectedObjects.Count;
+
+    /// <summary>
+    /// Makes one member of the current multi-selection the key object without
+    /// collapsing the selection.  This is intentionally separate from
+    /// <see cref="SelectedObject"/> so the pointer path and arrange commands
+    /// share one explicit key-object invariant.
+    /// </summary>
+    public bool SetKeyObject(LabelObject item)
+    {
+        if (Template is null
+            || item is null
+            || !_selectedObjects.Contains(item)
+            || !Template.Objects.Contains(item))
+        {
+            return false;
+        }
+
+        var changed = !ReferenceEquals(SelectedObject, item);
+        SelectedObject = item;
+        RefreshSelectionAdorner();
+        InvalidateVisual();
+        InteractionStatusText = changed
+            ? $"Key object: {item.Name}"
+            : $"Key object remains {item.Name}";
+        return true;
+    }
+
+    public void NotifyEditGestureStarted() => EditGestureStarted?.Invoke(this, EventArgs.Empty);
+    public void NotifyEditGestureCompleted()
+    {
+        // Transform previews intentionally defer this document-wide extent
+        // scan until the gesture boundary.  Otherwise every pointer tick
+        // walks the entire scene before the event can be committed.
+        UpdateCanvasExtent();
+        EditGestureCompleted?.Invoke(this, EventArgs.Empty);
+    }
+    public void NotifyEditGestureCanceled()
+    {
+        // A canceled drag/resize restores model coordinates before this
+        // notification. Recompute the workspace extent at the same gesture
+        // boundary as a successful commit so an overflowed object cannot leave
+        // a stale canvas size or selection viewport after Escape/lost capture.
+        UpdateCanvasExtent();
+        EditGestureCanceled?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool AlignSelectedObjects(LabelAlignmentMode alignment, LabelArrangeReferenceMode reference)
+    {
+        if (Template is null)
+        {
+            return false;
+        }
+
+        NotifyEditGestureStarted();
+        try
+        {
+            var result = LabelArrangeEngine.Align(
+                _selectedObjects.OrderBy(item => item.ZIndex).ThenBy(item => item.Id, StringComparer.Ordinal).ToArray(),
+                SelectedObject,
+                alignment,
+                reference,
+                Template.WidthMm,
+                Template.HeightMm);
+            var changed = ApplyArrangeResult(result, $"Aligned {alignment} ({reference})");
+            if (changed)
+            {
+                NotifyEditGestureCompleted();
+            }
+            else
+            {
+                NotifyEditGestureCanceled();
+            }
+
+            return changed;
+        }
+        catch
+        {
+            NotifyEditGestureCanceled();
+            throw;
+        }
+    }
+
+    public bool DistributeSelectedObjects(LabelDistributionMode distribution)
+    {
+        NotifyEditGestureStarted();
+        try
+        {
+            var result = LabelArrangeEngine.Distribute(
+                _selectedObjects.OrderBy(item => item.ZIndex).ThenBy(item => item.Id, StringComparer.Ordinal).ToArray(),
+                distribution);
+            var changed = ApplyArrangeResult(result, $"Distributed {distribution}");
+            if (changed)
+            {
+                NotifyEditGestureCompleted();
+            }
+            else
+            {
+                NotifyEditGestureCanceled();
+            }
+
+            return changed;
+        }
+        catch
+        {
+            NotifyEditGestureCanceled();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Aligns the first text baseline of the selected Text/TextBox objects to
+    /// the selected primary text object.  The metric and vertical offset are
+    /// measured through the same FormattedText/wrap path used by preview and
+    /// print, so this is not a visual-only approximation.
+    /// </summary>
+    public bool AlignSelectedTextBaselines()
+    {
+        var textItems = _selectedObjects
+            .Where(item => item.Type is ObjectType.Text or ObjectType.TextBox)
+            .OrderBy(item => item.ZIndex)
+            .ThenBy(item => item.Id, StringComparer.Ordinal)
+            .ToArray();
+        if (textItems.Length < 2)
+        {
+            InteractionStatusText = "Select at least two text objects for baseline alignment.";
+            return false;
+        }
+
+        if (textItems.Any(item => item.IsLocked || !item.IsVisible))
+        {
+            InteractionStatusText = "Unlock and show every selected text object before baseline alignment.";
+            return false;
+        }
+
+        var key = SelectedObject is not null && textItems.Contains(SelectedObject)
+            ? SelectedObject
+            : textItems[0];
+        var targetBaselineMm = GetTextBaselineMm(key);
+        NotifyEditGestureStarted();
+        var changed = 0;
+        foreach (var item in textItems)
+        {
+            if (ReferenceEquals(item, key))
+            {
+                continue;
+            }
+
+            var deltaY = targetBaselineMm - GetTextBaselineMm(item);
+            if (Math.Abs(deltaY) <= 0.004)
+            {
+                continue;
+            }
+
+            item.YMm += deltaY;
+            changed++;
+        }
+
+        if (changed == 0)
+        {
+            NotifyEditGestureCanceled();
+            InteractionStatusText = "Baseline alignment: already aligned.";
+            return false;
+        }
+
+        foreach (var item in textItems)
+        {
+            UpdateObjectTransformElement(item);
+        }
+
+        InvalidateVisual();
+        NotifyEditGestureCompleted();
+        InteractionStatusText = $"Baseline aligned to {key.Name}: {changed} object(s) changed.";
+        return true;
+    }
+
+    /// <summary>
+    /// Aligns selected text by the visible WPF glyph ink rather than by the
+    /// authored frame. This is deliberately an explicit command: frame and
+    /// baseline alignment remain the safe defaults for production labels.
+    /// </summary>
+    public bool AlignSelectedTextOptically(
+        OpticalAlignmentAxis axis = OpticalAlignmentAxis.Horizontal,
+        OpticalAlignmentAnchor anchor = OpticalAlignmentAnchor.Center)
+    {
+        var textItems = _selectedObjects
+            .Where(item => item.Type is ObjectType.Text or ObjectType.TextBox)
+            .OrderBy(item => item.ZIndex)
+            .ThenBy(item => item.Id, StringComparer.Ordinal)
+            .ToArray();
+        if (textItems.Length < 2)
+        {
+            InteractionStatusText = "Select at least two text objects for optical alignment.";
+            return false;
+        }
+
+        if (textItems.Any(item => item.IsLocked || !item.IsVisible))
+        {
+            InteractionStatusText = "Unlock and show every selected text object before optical alignment.";
+            return false;
+        }
+
+        var key = SelectedObject is not null && textItems.Contains(SelectedObject)
+            ? SelectedObject
+            : textItems[0];
+        var targetInk = GetTextInkBoundsMm(key);
+        if (targetInk is null)
+        {
+            InteractionStatusText = $"Optical alignment could not measure visible ink in {key.Name}.";
+            return false;
+        }
+
+        NotifyEditGestureStarted();
+        var changed = 0;
+        foreach (var item in textItems)
+        {
+            if (ReferenceEquals(item, key))
+            {
+                continue;
+            }
+
+            var sourceInk = GetTextInkBoundsMm(item);
+            if (sourceInk is null)
+            {
+                NotifyEditGestureCanceled();
+                InteractionStatusText = $"Optical alignment stopped: visible ink could not be measured in {item.Name}.";
+                return false;
+            }
+
+            var result = OpticalAlignmentContract.Align(sourceInk.Value, targetInk.Value, axis, anchor);
+            if (!result.Succeeded)
+            {
+                NotifyEditGestureCanceled();
+                InteractionStatusText = result.ErrorMessage ?? "Optical alignment failed closed.";
+                return false;
+            }
+
+            if (Math.Abs(result.DeltaX) <= 0.004 && Math.Abs(result.DeltaY) <= 0.004)
+            {
+                continue;
+            }
+
+            item.XMm += result.DeltaX;
+            item.YMm += result.DeltaY;
+            changed++;
+        }
+
+        if (changed == 0)
+        {
+            NotifyEditGestureCanceled();
+            InteractionStatusText = "Optical alignment: visible ink is already aligned.";
+            return false;
+        }
+
+        foreach (var item in textItems)
+        {
+            UpdateObjectElement(item);
+        }
+
+        InvalidateVisual();
+        NotifyEditGestureCompleted();
+        InteractionStatusText = $"Optical {anchor.ToString().ToLowerInvariant()} alignment to {key.Name}: {changed} object(s) changed.";
+        return true;
+    }
+
+    private OpticalBounds? GetTextInkBoundsMm(LabelObject item)
+    {
+        if (item.Type is not (ObjectType.Text or ObjectType.TextBox))
+        {
+            return null;
+        }
+
+        var widthDip = Math.Max(1, MmConverter.MmToDip(item.WidthMm));
+        var heightDip = Math.Max(1, MmConverter.MmToDip(item.HeightMm));
+        var pixelsPerDip = GetPixelsPerDip();
+        var value = string.IsNullOrEmpty(GetDisplayText(item)) ? " " : GetDisplayText(item);
+        var constrained = TextBoxOverflowDetector.ShouldConstrainToBox(item);
+        var originX = TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrained);
+        Rect ink;
+
+        if (item.Type == ObjectType.Text
+            || TextBoxOverflowDetector.HasExplicitLineHeight(item)
+            || TextBoxOverflowDetector.UsesShrinkFont(item)
+            || TextBoxOverflowDetector.UsesScaleWidth(item))
+        {
+            var layout = TextBoxOverflowDetector.CreateTextLayout(
+                item,
+                value,
+                widthDip,
+                heightDip,
+                constrained,
+                Brushes.Black,
+                pixelsPerDip);
+            ink = TextBoxOverflowDetector.GetInkBoundsDip(
+                layout,
+                new Point(originX, layout.Metrics.VerticalOffsetDip));
+        }
+        else
+        {
+            var displayValue = constrained
+                ? TextBoxOverflowDetector.WrapTextToBox(item, value, TextBoxOverflowDetector.GetContentWidthDip(item, widthDip, constrained), pixelsPerDip)
+                : value;
+            var formatted = TextBoxOverflowDetector.CreateFormattedText(item, displayValue, Brushes.Black, pixelsPerDip);
+            TextBoxOverflowDetector.ApplyLayoutBounds(formatted, item, widthDip, heightDip, constrained);
+            var metrics = TextBoxOverflowDetector.Measure(formatted, item, widthDip, heightDip, constrained, value, pixelsPerDip: pixelsPerDip);
+            ink = TextBoxOverflowDetector.GetInkBoundsDip(formatted, new Point(originX, metrics.VerticalOffsetDip));
+        }
+
+        if (constrained && !ink.IsEmpty)
+        {
+            ink.Intersect(new Rect(0, 0, widthDip, heightDip));
+        }
+
+        if (ink.IsEmpty
+            || !double.IsFinite(ink.Left)
+            || !double.IsFinite(ink.Top)
+            || !double.IsFinite(ink.Right)
+            || !double.IsFinite(ink.Bottom)
+            || ink.Width <= 0
+            || ink.Height <= 0)
+        {
+            return null;
+        }
+
+        return new OpticalBounds(
+            item.XMm + MmConverter.DipToMm(ink.Left),
+            item.YMm + MmConverter.DipToMm(ink.Top),
+            item.XMm + MmConverter.DipToMm(ink.Right),
+            item.YMm + MmConverter.DipToMm(ink.Bottom));
+    }
+
+    private double GetTextBaselineMm(LabelObject item)
+    {
+        var widthDip = MmConverter.MmToDip(item.WidthMm);
+        var heightDip = MmConverter.MmToDip(item.HeightMm);
+        var pixelsPerDip = GetPixelsPerDip();
+        var value = ResolveObjectData(item);
+        if (item.Type == ObjectType.Text
+            || TextBoxOverflowDetector.HasExplicitLineHeight(item)
+            || TextBoxOverflowDetector.UsesShrinkFont(item)
+            || TextBoxOverflowDetector.UsesScaleWidth(item))
+        {
+            var explicitLayout = TextBoxOverflowDetector.CreateTextLayout(
+                item,
+                value,
+                widthDip,
+                heightDip,
+                TextBoxOverflowDetector.ShouldConstrainToBox(item),
+                Brushes.Black,
+                pixelsPerDip);
+            return item.YMm + MmConverter.DipToMm(explicitLayout.Metrics.VerticalOffsetDip + explicitLayout.Metrics.BaselineDip);
+        }
+
+        var constrained = TextBoxOverflowDetector.ShouldConstrainToBox(item);
+        var displayValue = constrained
+            ? TextBoxOverflowDetector.WrapTextToBox(item, value, TextBoxOverflowDetector.GetContentWidthDip(item, widthDip, constrained), pixelsPerDip)
+            : value;
+        var formatted = TextBoxOverflowDetector.CreateFormattedText(item, displayValue, Brushes.Black, pixelsPerDip);
+        TextBoxOverflowDetector.ApplyLayoutBounds(formatted, item, widthDip, heightDip, constrained);
+        var metrics = TextBoxOverflowDetector.Measure(formatted, item, widthDip, heightDip, constrained, value, pixelsPerDip: pixelsPerDip);
+        return item.YMm + MmConverter.DipToMm(metrics.VerticalOffsetDip + metrics.BaselineDip);
+    }
+
+    private bool ApplyArrangeResult(LabelArrangeResult result, string action)
+    {
+        if (!result.Succeeded)
+        {
+            InteractionStatusText = result.ErrorMessage ?? "Arrange operation could not be applied.";
+            return false;
+        }
+
+        if (!result.Changed)
+        {
+            InteractionStatusText = $"{action}: already aligned.";
+            return false;
+        }
+
+        foreach (var item in _selectedObjects)
+        {
+            UpdateObjectElement(item);
+        }
+
+        InvalidateVisual();
+        InteractionStatusText = $"{action}: {result.AffectedCount} object(s) changed.";
+        return true;
+    }
+
+    /// <summary>
+    /// Starts an authoring-only ruler guide gesture. A nearby unlocked guide is
+    /// moved; otherwise a new guide is created at the ruler position. The
+    /// caller must finish with <see cref="CompleteGuideDrag"/> or
+    /// <see cref="CancelGuideDrag"/> so the operation remains one undo step.
+    /// </summary>
+    public bool BeginGuideDrag(LabelGuideOrientation orientation, double positionMm)
+    {
+        if (Template is null || !Enum.IsDefined(orientation))
+        {
+            return false;
+        }
+
+        var widthMm = Template.WidthMm;
+        var heightMm = Template.HeightMm;
+        var clamped = LabelGuideContract.ClampPosition(positionMm, orientation, widthMm, heightMm);
+        var existing = LabelGuideContract.FindNearest(
+            Template.Guides,
+            orientation,
+            clamped,
+            Zoom,
+            widthMm,
+            heightMm,
+            includeLocked: true);
+        if (existing?.IsLocked == true)
+        {
+            InteractionStatusText = "The selected guide is locked. Unlock it from the Design guides menu before moving it.";
+            return false;
+        }
+
+        NotifyEditGestureStarted();
+        _draggedGuide = existing;
+        _createdGuideForDrag = existing is null;
+        if (_draggedGuide is null)
+        {
+            _draggedGuide = new LabelGuide
+            {
+                Orientation = orientation,
+                PositionMm = clamped
+            };
+            Template.Guides.Add(_draggedGuide);
+        }
+
+        _draggedGuideStartPositionMm = _draggedGuide.PositionMm;
+        UpdateGuideDrag(clamped);
+        InteractionStatusText = $"Moving {orientation.ToString().ToLowerInvariant()} guide at {clamped:0.###} mm.";
+        return true;
+    }
+
+    public void UpdateGuideDrag(double positionMm)
+    {
+        if (Template is null || _draggedGuide is null)
+        {
+            return;
+        }
+
+        var clamped = LabelGuideContract.ClampPosition(
+            positionMm,
+            _draggedGuide.Orientation,
+            Template.WidthMm,
+            Template.HeightMm);
+        _draggedGuide.PositionMm = clamped;
+        UpdatePersistentGuideVisual(_draggedGuide);
+        InvalidateVisual();
+    }
+
+    public void CompleteGuideDrag(double positionMm)
+    {
+        if (_draggedGuide is null)
+        {
+            return;
+        }
+
+        UpdateGuideDrag(positionMm);
+        var guide = _draggedGuide;
+        var changed = Math.Abs(guide.PositionMm - _draggedGuideStartPositionMm) > 0.0001 || _createdGuideForDrag;
+        _draggedGuide = null;
+        _createdGuideForDrag = false;
+        if (changed)
+        {
+            NotifyEditGestureCompleted();
+            InteractionStatusText = $"Guide saved at {guide.PositionMm:0.###} mm.";
+        }
+        else
+        {
+            NotifyEditGestureCanceled();
+        }
+    }
+
+    public void CancelGuideDrag()
+    {
+        if (_draggedGuide is null)
+        {
+            return;
+        }
+
+        var guide = _draggedGuide;
+        if (_createdGuideForDrag)
+        {
+            Template?.Guides.Remove(guide);
+        }
+        else
+        {
+            guide.PositionMm = _draggedGuideStartPositionMm;
+        }
+
+        _draggedGuide = null;
+        _createdGuideForDrag = false;
+        NotifyEditGestureCanceled();
+        InteractionStatusText = "Guide move cancelled.";
+    }
+
+    private void CreatePersistentGuideVisual(LabelGuide guide)
+    {
+        if (_persistentGuideVisuals.ContainsKey(guide))
+        {
+            UpdatePersistentGuideVisual(guide);
+            return;
+        }
+
+        var line = new Line
+        {
+            StrokeThickness = 1.2,
+            StrokeDashArray = new DoubleCollection { 4, 3 },
+            IsHitTestVisible = false
+        };
+        var label = new Border
+        {
+            Padding = new Thickness(4, 1, 4, 1),
+            CornerRadius = new CornerRadius(3),
+            BorderThickness = new Thickness(1),
+            IsHitTestVisible = false,
+            Child = new TextBlock { FontSize = 10, FontWeight = FontWeights.SemiBold }
+        };
+        SetZIndex(line, int.MaxValue - 3);
+        SetZIndex(label, int.MaxValue - 2);
+        Children.Add(line);
+        Children.Add(label);
+        _persistentGuideVisuals[guide] = (line, label);
+        UpdatePersistentGuideVisual(guide);
+    }
+
+    private void UpdatePersistentGuideVisual(LabelGuide guide)
+    {
+        if (Template is null || !_persistentGuideVisuals.TryGetValue(guide, out var visuals))
+        {
+            return;
+        }
+
+        var widthDip = MmToDip(Template.WidthMm);
+        var heightDip = MmToDip(Template.HeightMm);
+        var positionMm = LabelGuideContract.ClampPosition(
+            guide.PositionMm,
+            guide.Orientation,
+            Template.WidthMm,
+            Template.HeightMm);
+        var positionDip = MmToDip(positionMm);
+        var visibility = guide.IsVisible ? Visibility.Visible : Visibility.Collapsed;
+        var accent = guide.IsLocked
+            ? Color.FromRgb(100, 116, 139)
+            : Color.FromRgb(234, 88, 12);
+        visuals.Line.Stroke = new SolidColorBrush(accent);
+        visuals.Line.Visibility = visibility;
+        visuals.Label.Visibility = visibility;
+
+        if (guide.Orientation == LabelGuideOrientation.Vertical)
+        {
+            visuals.Line.X1 = positionDip;
+            visuals.Line.X2 = positionDip;
+            visuals.Line.Y1 = 0;
+            visuals.Line.Y2 = heightDip;
+            SetLeft(visuals.Label, Math.Max(0, Math.Min(Math.Max(0, widthDip - 140), positionDip + 4)));
+            SetTop(visuals.Label, 4);
+            UpdatePersistentGuideLabel(visuals.Label, $"Guide X {positionMm:0.###} mm", accent);
+        }
+        else
+        {
+            visuals.Line.X1 = 0;
+            visuals.Line.X2 = widthDip;
+            visuals.Line.Y1 = positionDip;
+            visuals.Line.Y2 = positionDip;
+            SetLeft(visuals.Label, 4);
+            SetTop(visuals.Label, Math.Max(0, Math.Min(Math.Max(0, heightDip - 28), positionDip + 4)));
+            UpdatePersistentGuideLabel(visuals.Label, $"Guide Y {positionMm:0.###} mm", accent);
+        }
+    }
+
+    private static void UpdatePersistentGuideLabel(Border label, string text, Color accent)
+    {
+        if (label.Child is TextBlock textBlock)
+        {
+            textBlock.Text = text;
+            textBlock.Foreground = new SolidColorBrush(Colors.White);
+        }
+
+        label.Background = new SolidColorBrush(Color.FromArgb(235, accent.R, accent.G, accent.B));
+        label.BorderBrush = new SolidColorBrush(accent);
+    }
+
+    private LabelGuide? FindNearestGuideAtPoint(Point point, bool includeLocked)
+    {
+        if (Template is null)
+        {
+            return null;
+        }
+
+        var xMm = DipToMm(point.X);
+        var yMm = DipToMm(point.Y);
+        var vertical = LabelGuideContract.FindNearest(
+            Template.Guides,
+            LabelGuideOrientation.Vertical,
+            xMm,
+            Zoom,
+            Template.WidthMm,
+            Template.HeightMm,
+            includeLocked);
+        var horizontal = LabelGuideContract.FindNearest(
+            Template.Guides,
+            LabelGuideOrientation.Horizontal,
+            yMm,
+            Zoom,
+            Template.WidthMm,
+            Template.HeightMm,
+            includeLocked);
+        if (vertical is null)
+        {
+            return horizontal;
+        }
+
+        if (horizontal is null)
+        {
+            return vertical;
+        }
+
+        return Math.Abs(vertical.PositionMm - xMm) <= Math.Abs(horizontal.PositionMm - yMm)
+            ? vertical
+            : horizontal;
+    }
+
+    private void AddGuideFromContext(LabelGuideOrientation orientation)
+    {
+        if (Template is null)
+        {
+            return;
+        }
+
+        var positionMm = orientation == LabelGuideOrientation.Vertical
+            ? DipToMm(_contextMenuPoint.X)
+            : DipToMm(_contextMenuPoint.Y);
+        var guide = new LabelGuide
+        {
+            Orientation = orientation,
+            PositionMm = LabelGuideContract.ClampPosition(positionMm, orientation, Template.WidthMm, Template.HeightMm)
+        };
+        NotifyEditGestureStarted();
+        Template.Guides.Add(guide);
+        NotifyEditGestureCompleted();
+        InteractionStatusText = $"Added {orientation.ToString().ToLowerInvariant()} guide at {guide.PositionMm:0.###} mm.";
+    }
+
+    private void ToggleContextGuideLock()
+    {
+        if (_contextGuide is null)
+        {
+            return;
+        }
+
+        NotifyEditGestureStarted();
+        _contextGuide.IsLocked = !_contextGuide.IsLocked;
+        NotifyEditGestureCompleted();
+        InteractionStatusText = _contextGuide.IsLocked ? "Guide locked." : "Guide unlocked.";
+    }
+
+    private void DeleteContextGuide()
+    {
+        if (_contextGuide is null || _contextGuide.IsLocked || Template is null)
+        {
+            return;
+        }
+
+        NotifyEditGestureStarted();
+        Template.Guides.Remove(_contextGuide);
+        NotifyEditGestureCompleted();
+        InteractionStatusText = "Guide deleted.";
+        _contextGuide = null;
+    }
+
+    private void ClearAllGuides()
+    {
+        if (Template is null || Template.Guides.Count == 0)
+        {
+            return;
+        }
+
+        NotifyEditGestureStarted();
+        var removable = Template.Guides.Where(guide => !guide.IsLocked).ToArray();
+        foreach (var guide in removable)
+        {
+            Template.Guides.Remove(guide);
+        }
+
+        NotifyEditGestureCompleted();
+        InteractionStatusText = removable.Length == 0
+            ? "All guides are locked."
+            : $"Removed {removable.Length} guide(s).";
+    }
+
+    private void UpdateGuideContextMenu()
+    {
+        var hasGuide = _contextGuide is not null;
+        _toggleGuideLockMenuItem.IsEnabled = hasGuide;
+        _deleteGuideMenuItem.IsEnabled = hasGuide && !_contextGuide!.IsLocked;
+        _toggleGuideLockMenuItem.Header = hasGuide && _contextGuide!.IsLocked
+            ? "Unlock selected guide"
+            : "Lock selected guide";
+        _clearGuidesMenuItem.IsEnabled = Template?.Guides.Any(guide => !guide.IsLocked) == true;
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -189,7 +1031,7 @@ public sealed class LabelDesignerCanvas : Canvas
         var height = MmToDip(Template.HeightMm);
         dc.DrawRectangle(Brushes.White, new Pen(new SolidColorBrush(Color.FromRgb(148, 163, 184)), 1), new Rect(0, 0, width, height));
 
-        var gridStep = MmToDip(1);
+        var gridStep = MmToDip(SnapGridContract.NormalizeStep(GridStepMm));
         var gridPen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 0.6);
         for (var x = gridStep; x < width; x += gridStep)
         {
@@ -203,10 +1045,63 @@ public sealed class LabelDesignerCanvas : Canvas
 
         DrawGroupSelection(dc);
         DrawObjectErrors(dc);
+        DrawPointerTelemetryOverlay(dc);
+    }
+
+    private void DrawPointerTelemetryOverlay(DrawingContext dc)
+    {
+        if (!ShowPointerTelemetry)
+        {
+            return;
+        }
+
+        var snapshot = PointerTelemetry.Snapshot();
+        var pixelsPerDip = GetPixelsPerDip();
+        var zoom = SnapToleranceContract.NormalizeZoom(Zoom);
+        var text = snapshot.HasSamples
+            ? $"Pointer P95 {snapshot.P95Milliseconds:0.0} ms · max {snapshot.MaximumMilliseconds:0.0} ms · "
+                + $"{snapshot.SampleCount}/{PointerTelemetry.Capacity} · zoom {zoom * 100:0}% · display {pixelsPerDip:0.##}x"
+            : $"Pointer performance: waiting for drag sample · zoom {zoom * 100:0}% · display {pixelsPerDip:0.##}x";
+        var formatted = new FormattedText(
+            text,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface(
+                new FontFamily("Segoe UI"),
+                FontStyles.Normal,
+                FontWeights.SemiBold,
+                FontStretches.Normal),
+            11,
+            Brushes.White,
+            pixelsPerDip);
+        var bounds = new Rect(4, 4, formatted.Width + 14, formatted.Height + 8);
+        var background = new SolidColorBrush(Color.FromArgb(224, 15, 23, 42));
+        background.Freeze();
+        dc.DrawRoundedRectangle(background, null, bounds, 4, 4);
+        dc.DrawText(formatted, new Point(bounds.Left + 7, bounds.Top + 4));
     }
 
     private void Rebuild()
     {
+        if (Template is not null)
+        {
+            UnobserveGuides(Template);
+        }
+
+        var previousSelectedItems = _selectedObjects.ToHashSet();
+        var previousSelectedIds = _selectedObjects
+            .Select(item => item.Id)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+        var previousPrimary = SelectedObject;
+
+        RemoveAllSelectionAdorners();
+        foreach (var oldItem in _objectElements.Keys.ToArray())
+        {
+            oldItem.PropertyChanged -= ObjectOnPropertyChanged;
+            oldItem.Style.PropertyChanged -= StyleOnPropertyChanged;
+        }
+
         Children.Clear();
         _objectElements.Clear();
         _selectedObjects.Clear();
@@ -215,7 +1110,11 @@ public sealed class LabelDesignerCanvas : Canvas
         _isMarqueeSelecting = false;
         _guideVertical = null;
         _guideHorizontal = null;
-        RemoveSelectionAdorner();
+        _guideVerticalLabel = null;
+        _guideHorizontalLabel = null;
+        _lastAlignmentSnap = null;
+        _persistentGuideVisuals.Clear();
+        RemoveAllSelectionAdorners();
 
         if (Template is null)
         {
@@ -231,12 +1130,33 @@ public sealed class LabelDesignerCanvas : Canvas
 
         foreach (var item in Template.Objects.OrderBy(item => item.ZIndex))
         {
-            item.PropertyChanged -= ObjectOnPropertyChanged;
-            item.Style.PropertyChanged -= StyleOnPropertyChanged;
             item.PropertyChanged += ObjectOnPropertyChanged;
             item.Style.PropertyChanged += StyleOnPropertyChanged;
             AddObjectElement(item);
         }
+
+        foreach (var item in Template.Objects)
+        {
+            if (previousSelectedItems.Contains(item)
+                || (!string.IsNullOrWhiteSpace(item.Id) && previousSelectedIds.Contains(item.Id)))
+            {
+                _selectedObjects.Add(item);
+            }
+        }
+
+        ObserveGuides(Template);
+        foreach (var guide in Template.Guides)
+        {
+            CreatePersistentGuideVisual(guide);
+        }
+
+        var restoredPrimary = Template.Objects.FirstOrDefault(item => ReferenceEquals(item, previousPrimary))
+            ?? Template.Objects.FirstOrDefault(item => !string.IsNullOrWhiteSpace(previousPrimary?.Id)
+                && string.Equals(item.Id, previousPrimary.Id, StringComparison.Ordinal));
+        SelectedObject = restoredPrimary is not null && _selectedObjects.Contains(restoredPrimary)
+            ? restoredPrimary
+            : _selectedObjects.FirstOrDefault();
+        RefreshSelectionAdorner();
 
         InvalidateVisual();
     }
@@ -248,23 +1168,52 @@ public sealed class LabelDesignerCanvas : Canvas
         element.PreviewMouseLeftButtonDown += (sender, e) =>
         {
             Focus();
+            CommitNudgeGesture();
             if (DrawingTool is not null)
             {
                 return;
             }
 
             e.Handled = true;
-            SelectedObject = item;
-            if (!_selectedObjects.Contains(item))
+            var modifiers = Keyboard.Modifiers;
+            var isToggle = (modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+            var isAdditive = (modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != ModifierKeys.None;
+            if (isToggle && _selectedObjects.Contains(item))
+            {
+                _selectedObjects.Remove(item);
+                SelectedObject = _selectedObjects.LastOrDefault();
+                RefreshSelectionAdorner();
+                InvalidateVisual();
+                return;
+            }
+
+            // Clicking a member that is already in a multi-selection changes
+            // the key object while retaining every selected peer.  Without
+            // this branch a normal click cleared the group, making key-object
+            // align/distribute commands impossible to use predictably.
+            var preserveSelectionAsKey = !isAdditive
+                && _selectedObjects.Count > 1
+                && _selectedObjects.Contains(item);
+            if (!preserveSelectionAsKey && !isAdditive)
             {
                 _selectedObjects.Clear();
+            }
+
+            if (!_selectedObjects.Contains(item))
+            {
                 _selectedObjects.Add(item);
             }
 
-            if (_selectedObjects.Count > 1)
+            if (preserveSelectionAsKey)
             {
-                RemoveSelectionAdorner();
+                SetKeyObject(item);
             }
+            else
+            {
+                SelectedObject = item;
+            }
+
+            RefreshSelectionAdorner();
 
             if (item.IsLocked)
             {
@@ -277,7 +1226,9 @@ public sealed class LabelDesignerCanvas : Canvas
             _startYMm = item.YMm;
             _startLineEndXMm = item.LineEndXMm;
             _startLineEndYMm = item.LineEndYMm;
+            ClearSnapLocks();
             CaptureGroupDragStarts();
+            NotifyEditGestureStarted();
             ((FrameworkElement)sender).CaptureMouse();
         };
         element.PreviewMouseMove += (sender, e) =>
@@ -287,6 +1238,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 return;
             }
 
+            var frameStart = Stopwatch.GetTimestamp();
             var current = e.GetPosition(this);
             var deltaXMm = DipToMm(current.X - _dragStart.X);
             var deltaYMm = DipToMm(current.Y - _dragStart.Y);
@@ -296,18 +1248,8 @@ public sealed class LabelDesignerCanvas : Canvas
             }
             else if (item.Type == ObjectType.Line)
             {
-                var endXMm = _startLineEndXMm == 0 && _startLineEndYMm == 0 ? _startXMm + item.WidthMm : _startLineEndXMm;
-                var endYMm = _startLineEndXMm == 0 && _startLineEndYMm == 0 ? _startYMm + item.HeightMm : _startLineEndYMm;
-                var minX = Math.Min(_startXMm, endXMm);
-                var maxX = Math.Max(_startXMm, endXMm);
-                var minY = Math.Min(_startYMm, endYMm);
-                var maxY = Math.Max(_startYMm, endYMm);
-                var clampedDeltaX = Math.Max(-minX, Math.Min(Template!.WidthMm - maxX, deltaXMm));
-                var clampedDeltaY = Math.Max(-minY, Math.Min(Template!.HeightMm - maxY, deltaYMm));
-                item.XMm = _startXMm + clampedDeltaX;
-                item.YMm = _startYMm + clampedDeltaY;
-                item.LineEndXMm = endXMm + clampedDeltaX;
-                item.LineEndYMm = endYMm + clampedDeltaY;
+                var snap = MoveSingleLine(item, deltaXMm, deltaYMm);
+                ShowAlignmentGuides(snap);
             }
             else
             {
@@ -317,11 +1259,11 @@ public sealed class LabelDesignerCanvas : Canvas
                 // Alignment guide: compute snap position against other objects
                 // Hold Alt to temporarily disable snapping
                 var snap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
-                if (IsSnapToObjectsEnabled
+                if ((IsSnapToObjectsEnabled || IsSnapToGridEnabled)
                     && !Keyboard.IsKeyDown(Key.LeftAlt)
                     && !Keyboard.IsKeyDown(Key.RightAlt))
                 {
-                    snap = ComputeAlignmentSnap(item, proposedX, proposedY);
+                    snap = ComputePriorityAlignmentSnap(item, proposedX, proposedY);
                     if (snap.SnapX is not null)
                     {
                         proposedX = snap.SnapX.Value;
@@ -330,6 +1272,10 @@ public sealed class LabelDesignerCanvas : Canvas
                     {
                         proposedY = snap.SnapY.Value;
                     }
+                }
+                else
+                {
+                    ClearSnapLocks();
                 }
 
                 // Clamp all 4 sides (consistent with group drag behavior)
@@ -340,12 +1286,25 @@ public sealed class LabelDesignerCanvas : Canvas
                 ShowAlignmentGuides(snap);
             }
 
-            UpdateObjectElement(item);
+            UpdateObjectTransformElement(item);
+            PointerTelemetry.Record(
+                Stopwatch.GetElapsedTime(frameStart),
+                Zoom,
+                GetPixelsPerDip());
+            if (ShowPointerTelemetry)
+            {
+                InvalidateVisual();
+            }
         };
         element.PreviewMouseLeftButtonUp += (sender, _) =>
         {
+            if (_dragObject == item)
+            {
+                NotifyEditGestureCompleted();
+            }
             _dragObject = null;
             _groupDragStarts.Clear();
+            ClearSnapLocks();
             HideAlignmentGuides();
             ((FrameworkElement)sender).ReleaseMouseCapture();
         };
@@ -380,12 +1339,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 Background = Brushes.White,
                 BorderBrush = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Child = new Image
-                {
-                    Stretch = Stretch.Fill,
-                    SnapsToDevicePixels = true,
-                    UseLayoutRounding = true
-                }
+                Child = CreateBarcodePanel()
             },
             ObjectType.Image => new Border
             {
@@ -402,6 +1356,93 @@ public sealed class LabelDesignerCanvas : Canvas
             _ => new Border()
         };
     }
+
+    private static Grid CreateBarcodePanel()
+    {
+        var panel = new Grid();
+        panel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var image = new Image
+        {
+            Stretch = Stretch.Uniform,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            SnapsToDevicePixels = true,
+            UseLayoutRounding = true
+        };
+        Grid.SetRow(image, 0);
+
+        var hri = new TextBlock
+        {
+            Visibility = Visibility.Collapsed,
+            TextAlignment = TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.NoWrap,
+            Foreground = Brushes.Black
+        };
+        Grid.SetRow(hri, 1);
+
+        panel.Children.Add(image);
+        panel.Children.Add(hri);
+        return panel;
+    }
+
+    private void UpdateObjectTransformElement(LabelObject item)
+    {
+        if (!_objectElements.TryGetValue(item, out var element))
+        {
+            return;
+        }
+
+        if (element is Line line)
+        {
+            var endXMm = item.LineEndXMm == 0 && item.LineEndYMm == 0
+                ? item.XMm + item.WidthMm
+                : item.LineEndXMm;
+            var endYMm = item.LineEndXMm == 0 && item.LineEndYMm == 0
+                ? item.YMm + item.HeightMm
+                : item.LineEndYMm;
+            var minXMm = Math.Min(item.XMm, endXMm);
+            var minYMm = Math.Min(item.YMm, endYMm);
+            var lineWidth = MmToDip(Math.Abs(endXMm - item.XMm));
+            var lineHeight = MmToDip(Math.Abs(endYMm - item.YMm));
+            var strokeThickness = item.Style.OutlineStyle == OutlineStyle.None
+                ? 0
+                : Math.Max(1, MmToDip(item.Style.BorderThicknessMm));
+            var strokePadding = Math.Ceiling(strokeThickness / 2) + 2;
+            SetLeft(element, MmToDip(minXMm) - strokePadding);
+            SetTop(element, MmToDip(minYMm) - strokePadding);
+            line.X1 = MmToDip(item.XMm - minXMm) + strokePadding;
+            line.Y1 = MmToDip(item.YMm - minYMm) + strokePadding;
+            line.X2 = MmToDip(endXMm - minXMm) + strokePadding;
+            line.Y2 = MmToDip(endYMm - minYMm) + strokePadding;
+            element.Width = Math.Max(1, lineWidth) + strokePadding * 2;
+            element.Height = Math.Max(1, lineHeight) + strokePadding * 2;
+        }
+        else
+        {
+            SetLeft(element, MmToDip(item.XMm));
+            SetTop(element, MmToDip(item.YMm));
+        }
+
+        element.InvalidateArrange();
+        element.InvalidateVisual();
+    }
+
+    private static bool IsTransformOnlyProperty(string? propertyName)
+    {
+        return propertyName is nameof(LabelObject.XMm)
+            or nameof(LabelObject.YMm)
+            or nameof(LabelObject.LineEndXMm)
+            or nameof(LabelObject.LineEndYMm);
+    }
+
+    private bool IsTransformGestureActive
+        => _dragObject is not null
+            || _singleResizeActive
+            || _groupResizeAdorner?.IsResizeActive == true;
 
     private void UpdateObjectElement(LabelObject item)
     {
@@ -481,7 +1522,11 @@ public sealed class LabelDesignerCanvas : Canvas
             {
                 var objectError = GetObjectError(item);
                 border.BorderBrush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
-                border.BorderThickness = item.Type == ObjectType.TextBox || item.Style.OutlineStyle == OutlineStyle.None
+                // TextBox: never draw a permanent outline stroke (viền line).
+                // Selection adorners still show when selected. Other objects
+                // honor OutlineStyle as usual.
+                border.BorderThickness = item.Type == ObjectType.TextBox
+                    || item.Style.OutlineStyle == OutlineStyle.None
                     ? new Thickness(0)
                     : new Thickness(Math.Max(0, MmToDip(item.Style.BorderThicknessMm)));
                 border.ToolTip = objectError;
@@ -491,28 +1536,37 @@ public sealed class LabelDesignerCanvas : Canvas
 
                     if (border.Child is VisualPreviewHost textHost && item.Type == ObjectType.Text)
                     {
-                        border.ClipToBounds = false;
-                        border.Clip = null;
-                        FitTextObjectToContent(item, ref width, ref height);
-                        textHost.Width = Math.Max(1, width);
-                    textHost.Height = Math.Max(1, height);
-                    textHost.PreviewVisual = CreateTextVisual(item, width, height);
-                }
-                else if (border.Child is VisualPreviewHost textBoxHost)
+                        // Always clip free Text to the object frame so border-drag
+                        // WYSIWYG matches the selection (glyphs scale inside via
+                        // CreateTextVisual frame-fit; they must not spill at full size).
+                        var frameW = Math.Max(1, width);
+                        var frameH = Math.Max(1, height);
+                        border.ClipToBounds = true;
+                        border.Clip = new RectangleGeometry(new Rect(0, 0, frameW, frameH));
+                        textHost.Width = frameW;
+                        textHost.Height = frameH;
+                        textHost.PreviewVisual = CreateTextVisual(item, width, height);
+                    }
+                else if (border.Child is VisualPreviewHost textBoxHost && item.Type == ObjectType.TextBox)
                 {
+                    // Object bounds hug text after AutoFit; still clip so glyphs
+                    // never paint outside the (tight) object frame.
+                    var frameW = Math.Max(1, width);
+                    var frameH = Math.Max(1, height);
                     border.ClipToBounds = true;
-                    border.Clip = new RectangleGeometry(new Rect(0, 0, Math.Max(1, width), Math.Max(1, height)));
-                    textBoxHost.Width = Math.Max(1, width);
-                    textBoxHost.Height = Math.Max(1, height);
+                    border.Clip = new RectangleGeometry(new Rect(0, 0, frameW, frameH));
+                    textBoxHost.Width = frameW;
+                    textBoxHost.Height = frameH;
                     textBoxHost.PreviewVisual = CreateTextBoxVisual(item, width, height);
                 }
                 else if (border.Child is Image image && item.Type == ObjectType.Image)
                 {
                     image.Source = CreatePictureImageSource(item);
                 }
-                else if (border.Child is Image barcodeImage)
+                else if (border.Child is Grid barcodePanel
+                    && item.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
                 {
-                    barcodeImage.Source = CreateBarcodeImageSource(item);
+                    UpdateBarcodePanel(item, barcodePanel);
                 }
             }
 
@@ -531,6 +1585,13 @@ public sealed class LabelDesignerCanvas : Canvas
             _selectionAdorner?.InvalidateVisual();
         }
 
+        if (_groupResizeAdorner is not null && _selectedObjects.Contains(item))
+        {
+            _groupResizeAdorner.InvalidateMeasure();
+            _groupResizeAdorner.InvalidateArrange();
+            _groupResizeAdorner.InvalidateVisual();
+        }
+
         if (ReferenceEquals(item, SelectedObject) && _selectedObjects.Count <= 1)
         {
             ShowSelectionAdorner(item);
@@ -541,6 +1602,18 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         if (sender is LabelObject item)
         {
+            // Text owns its measured bounds.  Rendering must not resize the visual element,
+            // otherwise the selection frame and printed layout can diverge.
+            // Content-owned AutoFit is only for static Text. TextBox frame is
+            // user-owned (drag/properties): WidthMm/HeightMm changes reflow
+            // wrap/clip via UpdateObjectElement so text stays fit to the frame.
+            if (ShouldApplyTextAutoSize(e.PropertyName)
+                && ShouldAutoSizeTextObject(item)
+                && !_textAutoSizingObjects.Contains(item))
+            {
+                TryFitTextObjectToContent(item);
+            }
+
             // Matrix auto-fit: run when user explicitly changes barcode properties (not during render).
             // This is the only place where WidthMm/HeightMm should change due to auto-sizing.
             if (ShouldApplyMatrixAutoSize(e.PropertyName) && IsMatrixBarcode(item) && !_matrixAutoSizingObjects.Contains(item))
@@ -580,8 +1653,19 @@ public sealed class LabelDesignerCanvas : Canvas
                 }
             }
 
-            UpdateObjectElement(item);
-            UpdateCanvasExtent();
+            if (IsTransformOnlyProperty(e.PropertyName))
+            {
+                UpdateObjectTransformElement(item);
+            }
+            else
+            {
+                UpdateObjectElement(item);
+            }
+
+            if (!IsTransformGestureActive)
+            {
+                UpdateCanvasExtent();
+            }
         }
 
         InvalidateVisual();
@@ -667,6 +1751,17 @@ public sealed class LabelDesignerCanvas : Canvas
         var item = _objectElements.Keys.FirstOrDefault(candidate => ReferenceEquals(candidate.Style, sender));
         if (item is not null)
         {
+            if (ShouldAutoSizeTextObject(item)
+                && !_textAutoSizingObjects.Contains(item))
+            {
+                TryFitTextObjectToContent(item);
+            }
+
+            // Style edits (font, alignment, padding, overflow policy, colors)
+            // change the rendered text visual, not just its host position. The
+            // transform-only path is reserved for X/Y/line-endpoint hot ticks;
+            // using it here leaves the canvas showing stale text until a later
+            // unrelated rebuild/zoom. TextBox size edits reflow here too.
             UpdateObjectElement(item);
         }
     }
@@ -679,6 +1774,13 @@ public sealed class LabelDesignerCanvas : Canvas
     private double DipToMm(double dip)
     {
         return MmConverter.DipToMm(dip / Zoom);
+    }
+
+    private double GetPixelsPerDip()
+    {
+        return IsLoaded
+            ? PointerFrameTelemetry.NormalizePixelsPerDip(VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            : 1.0;
     }
 
     private static void ApplyObjectRotation(FrameworkElement element, LabelObject item)
@@ -718,13 +1820,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private static bool IsMatrixBarcode(LabelObject item)
     {
-        return item.Type == ObjectType.QRCode
-            || item.Type == ObjectType.DataMatrix
-            || item.Type == ObjectType.BarcodeCode128
-                && item.BarcodeSymbology is BarcodeSymbology.QRCode
-                    or BarcodeSymbology.DataMatrix
-                    or BarcodeSymbology.Aztec
-                    or BarcodeSymbology.Pdf417;
+        return item.IsSquare2DCodeLike();
     }
 
     private static bool IsAutoSizedMatrixBarcode(LabelObject item)
@@ -746,16 +1842,29 @@ public sealed class LabelDesignerCanvas : Canvas
             or nameof(LabelObject.QrDpi);
     }
 
+    private static bool ShouldApplyTextAutoSize(string? propertyName)
+    {
+        // Static Text only. TextBox width/height changes reflow via
+        // UpdateObjectElement without mutating model size from content.
+        return propertyName is nameof(LabelObject.Text)
+            or nameof(LabelObject.BindingExpression)
+            or nameof(LabelObject.Type);
+    }
+
     private static void OnTemplateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (e.OldValue is LabelTemplate oldTemplate)
         {
             oldTemplate.Objects.CollectionChanged -= ((LabelDesignerCanvas)d).ObjectsOnCollectionChanged;
+            oldTemplate.Guides.CollectionChanged -= ((LabelDesignerCanvas)d).GuidesOnCollectionChanged;
+            ((LabelDesignerCanvas)d).UnobserveGuides(oldTemplate);
         }
 
         if (e.NewValue is LabelTemplate newTemplate)
         {
             newTemplate.Objects.CollectionChanged += ((LabelDesignerCanvas)d).ObjectsOnCollectionChanged;
+            newTemplate.Guides.CollectionChanged += ((LabelDesignerCanvas)d).GuidesOnCollectionChanged;
+            ((LabelDesignerCanvas)d).ObserveGuides(newTemplate);
         }
 
         ((LabelDesignerCanvas)d).Rebuild();
@@ -763,7 +1872,170 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private void ObjectsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        Rebuild();
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is not null)
+        {
+            foreach (var item in e.NewItems.OfType<LabelObject>()
+                         .Where(ShouldAutoSizeTextObject))
+            {
+                TryFitTextObjectToContent(item);
+            }
+        }
+
+        ReconcileObjectCollection(e);
+    }
+
+    /// <summary>
+    /// Reconciles collection mutations without rebuilding every WPF visual.
+    /// Reset/template replacement still takes the explicit rebuild path, but
+    /// normal add/remove/replace/move operations retain existing image/text
+    /// hosts, selection IDs and active key-object identity.
+    /// </summary>
+    private void ReconcileObjectCollection(NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            Rebuild();
+            return;
+        }
+
+        var selectedIds = _selectedObjects
+            .Select(item => item.Id)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+
+        RemoveAllSelectionAdorners();
+
+        if (e.OldItems is not null
+            && e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Replace)
+        {
+            foreach (var oldItem in e.OldItems.OfType<LabelObject>())
+            {
+                oldItem.PropertyChanged -= ObjectOnPropertyChanged;
+                oldItem.Style.PropertyChanged -= StyleOnPropertyChanged;
+                if (_objectElements.Remove(oldItem, out var element))
+                {
+                    Children.Remove(element);
+                }
+
+                _selectedObjects.Remove(oldItem);
+                if (ReferenceEquals(SelectedObject, oldItem))
+                {
+                    SelectedObject = null;
+                }
+            }
+        }
+
+        if (e.NewItems is not null
+            && e.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Replace)
+        {
+            foreach (var newItem in e.NewItems.OfType<LabelObject>())
+            {
+                newItem.PropertyChanged -= ObjectOnPropertyChanged;
+                newItem.PropertyChanged += ObjectOnPropertyChanged;
+                newItem.Style.PropertyChanged -= StyleOnPropertyChanged;
+                newItem.Style.PropertyChanged += StyleOnPropertyChanged;
+                AddObjectElement(newItem);
+            }
+        }
+
+        // A replace with a stable ID is a common undo/load path. Restore the
+        // old selection by ID rather than forcing the user to reselect it.
+        if (e.Action == NotifyCollectionChangedAction.Replace && e.NewItems is not null)
+        {
+            foreach (var newItem in e.NewItems.OfType<LabelObject>())
+            {
+                if (!string.IsNullOrWhiteSpace(newItem.Id)
+                    && selectedIds.Contains(newItem.Id))
+                {
+                    _selectedObjects.Add(newItem);
+                    SelectedObject = newItem;
+                }
+            }
+        }
+
+        foreach (var item in _objectElements.Keys.ToArray())
+        {
+            UpdateObjectElement(item);
+        }
+
+        if (SelectedObject is null && _selectedObjects.Count > 0)
+        {
+            SelectedObject = _selectedObjects.LastOrDefault();
+        }
+
+        UpdateCanvasExtent();
+        RefreshSelectionAdorner();
+        InvalidateVisual();
+    }
+
+    private void GuidesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems is not null)
+        {
+            foreach (var guide in e.OldItems.OfType<LabelGuide>())
+            {
+                UnobserveGuide(guide);
+                if (_persistentGuideVisuals.TryGetValue(guide, out var visuals))
+                {
+                    Children.Remove(visuals.Line);
+                    Children.Remove(visuals.Label);
+                    _persistentGuideVisuals.Remove(guide);
+                }
+            }
+        }
+
+        if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            Rebuild();
+            return;
+        }
+
+        if (e.NewItems is not null)
+        {
+            foreach (var guide in e.NewItems.OfType<LabelGuide>())
+            {
+                ObserveGuide(guide);
+                CreatePersistentGuideVisual(guide);
+            }
+        }
+
+        InvalidateVisual();
+    }
+
+    private void ObserveGuides(LabelTemplate template)
+    {
+        foreach (var guide in template.Guides)
+        {
+            ObserveGuide(guide);
+        }
+    }
+
+    private void UnobserveGuides(LabelTemplate template)
+    {
+        foreach (var guide in template.Guides)
+        {
+            UnobserveGuide(guide);
+        }
+    }
+
+    private void ObserveGuide(LabelGuide guide)
+    {
+        guide.PropertyChanged -= PersistentGuideOnPropertyChanged;
+        guide.PropertyChanged += PersistentGuideOnPropertyChanged;
+    }
+
+    private void UnobserveGuide(LabelGuide guide)
+    {
+        guide.PropertyChanged -= PersistentGuideOnPropertyChanged;
+    }
+
+    private void PersistentGuideOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is LabelGuide guide)
+        {
+            UpdatePersistentGuideVisual(guide);
+            InvalidateVisual();
+        }
     }
 
     private static void OnSelectedObjectChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -776,17 +2048,78 @@ public sealed class LabelDesignerCanvas : Canvas
 
         if (e.NewValue is LabelObject newObject)
         {
+            // SelectedObject is two-way bound to the shell view model.  A
+            // command-driven selection can therefore arrive without passing
+            // through the pointer handlers that normally populate the
+            // internal multi-selection set.  Add a genuinely new key object
+            // as a single selection; pointer-driven additive selection already
+            // contains it and is left intact.
+            if (!canvas._selectedObjects.Contains(newObject))
+            {
+                canvas._selectedObjects.Clear();
+                canvas._selectedObjects.Add(newObject);
+            }
             canvas.UpdateObjectElement(newObject);
+            canvas.RefreshSelectionAdorner();
+        }
+        else if (canvas._selectedObjects.Count == 0)
+        {
+            canvas.RemoveAllSelectionAdorners();
         }
         else
         {
-            canvas.RemoveSelectionAdorner();
+            // Collection reconciliation can briefly clear the key property
+            // while other selected objects remain.  Keep that set alive until
+            // the replacement key is restored instead of dropping the group.
+            canvas.RefreshSelectionAdorner();
         }
     }
 
     private static void OnZoomChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        ((LabelDesignerCanvas)d).Rebuild();
+        ((LabelDesignerCanvas)d).RefreshForZoom();
+    }
+
+    private static void OnPointerTelemetryVisibilityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var canvas = (LabelDesignerCanvas)d;
+        canvas._pointerTelemetryMenuItem.IsChecked = (bool)e.NewValue;
+        canvas.InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Zoom is a viewport concern, not a document/scene mutation. Reposition
+    /// existing visuals and adorners in-place so a zoom slider cannot lose the
+    /// current multi-selection, key object, mouse gesture or image/text host.
+    /// </summary>
+    private void RefreshForZoom()
+    {
+        UpdateCanvasExtent();
+        foreach (var item in _objectElements.Keys.ToArray())
+        {
+            UpdateObjectElement(item);
+        }
+
+        if (Template is not null)
+        {
+            foreach (var guide in Template.Guides)
+            {
+                UpdatePersistentGuideVisual(guide);
+            }
+        }
+
+        if (_lastAlignmentSnap is AlignmentSnapResult snap)
+        {
+            ShowAlignmentGuides(snap);
+        }
+
+        _selectionAdorner?.InvalidateMeasure();
+        _selectionAdorner?.InvalidateArrange();
+        _selectionAdorner?.InvalidateVisual();
+        _groupResizeAdorner?.InvalidateMeasure();
+        _groupResizeAdorner?.InvalidateArrange();
+        _groupResizeAdorner?.InvalidateVisual();
+        InvalidateVisual();
     }
 
     private static void OnPreviewRowChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -808,6 +2141,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         canvas.Focus();
+        canvas._selectedObjects.Clear();
         canvas.SelectedObject = null;
         canvas.RemoveSelectionAdorner();
         canvas.Cursor = Cursors.Cross;
@@ -824,7 +2158,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         try
         {
-            canvas._designerPreferencesService.Save(new DesignerPreferences { SnapToObjects = enabled });
+            canvas.SaveDesignerPreferences();
         }
         catch (IOException)
         {
@@ -836,9 +2170,62 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
+    private static void OnGridPreferenceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var canvas = (LabelDesignerCanvas)d;
+        if (e.Property == GridStepMmProperty)
+        {
+            var normalized = SnapGridContract.NormalizeStep((double)e.NewValue);
+            if (Math.Abs(normalized - (double)e.NewValue) > 0.0001)
+            {
+                canvas.SetCurrentValue(GridStepMmProperty, normalized);
+            }
+        }
+
+        canvas._snapGridMenuItem.IsChecked = canvas.IsSnapToGridEnabled;
+        canvas._gridStepMenuItem.IsEnabled = canvas.IsSnapToGridEnabled;
+        canvas.UpdateGridStepMenu();
+        canvas.InvalidateVisual();
+        canvas.InteractionStatusText = canvas.IsSnapToGridEnabled
+            ? $"Snap to {canvas.GridStepMm:0.##} mm grid enabled (hold Alt to bypass)"
+            : "Snap to grid disabled";
+        try
+        {
+            canvas.SaveDesignerPreferences();
+        }
+        catch (IOException)
+        {
+            canvas.InteractionStatusText += " — preference could not be saved";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            canvas.InteractionStatusText += " — preference could not be saved";
+        }
+    }
+
+    private void SaveDesignerPreferences()
+    {
+        _designerPreferencesService.Save(new DesignerPreferences
+        {
+            SnapToObjects = IsSnapToObjectsEnabled,
+            SnapToGrid = IsSnapToGridEnabled,
+            GridStepMm = GridStepMm
+        });
+    }
+
+    private void UpdateGridStepMenu()
+    {
+        foreach (var item in _gridStepMenuItem.Items.OfType<MenuItem>())
+        {
+            item.IsChecked = item.Tag is double step
+                && Math.Abs(step - GridStepMm) < 0.0001;
+        }
+    }
+
     private void CanvasMouseButtonDown(object sender, MouseButtonEventArgs e)
     {
         Focus();
+        CommitNudgeGesture();
         if (DrawingTool is ObjectType.Line or ObjectType.Rectangle or ObjectType.Ellipse)
         {
             if (_drawingObject is null)
@@ -915,7 +2302,9 @@ public sealed class LabelDesignerCanvas : Canvas
 
             _dragObject = null;
             _groupDragStarts.Clear();
+            ClearSnapLocks();
             HideAlignmentGuides();
+            NotifyEditGestureCanceled();
         }
 
         if (_isMarqueeSelecting)
@@ -927,6 +2316,16 @@ public sealed class LabelDesignerCanvas : Canvas
                 _marqueeElement = null;
             }
         }
+
+        if (_drawingObject is not null)
+        {
+            CancelDrawingObject();
+        }
+
+        // Resize thumbs own mouse capture and report both successful and
+        // canceled gestures through DragCompleted. LostMouseCapture also
+        // bubbles here on an ordinary mouse-up, so canceling a resize from
+        // this canvas event would restore its start frame after every drag.
     }
 
     private void CanvasKeyDown(object sender, KeyEventArgs e)
@@ -949,15 +2348,29 @@ public sealed class LabelDesignerCanvas : Canvas
 
                 _dragObject = null;
                 _groupDragStarts.Clear();
+                ClearSnapLocks();
                 HideAlignmentGuides();
+                NotifyEditGestureCanceled();
+                ReleaseMouseCapture();
                 e.Handled = true;
                 return;
             }
 
-            if (e.Key == Key.Delete && DeleteSelection())
+            if (e.Key == Key.Escape && _nudgeGestureActive)
             {
+                CancelNudgeGesture();
                 e.Handled = true;
                 return;
+            }
+
+            if (e.Key == Key.Delete)
+            {
+                CancelNudgeGesture();
+                if (DeleteSelection())
+                {
+                    e.Handled = true;
+                    return;
+                }
             }
 
             if (TryMoveSelectionWithArrowKey(e.Key, Keyboard.Modifiers))
@@ -968,12 +2381,14 @@ public sealed class LabelDesignerCanvas : Canvas
 
             if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.C)
             {
+                CommitNudgeGesture();
                 e.Handled = CopySelection();
                 return;
             }
 
             if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
             {
+                CommitNudgeGesture();
                 e.Handled = PasteSelection();
             }
 
@@ -1032,7 +2447,8 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
-        _drawingStartMm = SnapToGridMm(dipPoint);
+        ClearSnapLocks();
+        _drawingStartMm = SnapDrawingPoint(dipPoint);
         _lastDrawingEndMm = _drawingStartMm;
         _dimensionBuffer = string.Empty;
         UpdateCommandText();
@@ -1073,6 +2489,7 @@ public sealed class LabelDesignerCanvas : Canvas
         };
 
         _drawingObject.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
+        NotifyEditGestureStarted();
         Template.Objects.Add(_drawingObject);
         SelectedObject = _drawingObject;
         CaptureMouse();
@@ -1086,7 +2503,7 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
-        var endMm = SnapToGridMm(dipPoint);
+        var endMm = SnapDrawingPoint(dipPoint);
         _lastDrawingEndMm = endMm;
         if (_drawingObject.Type == ObjectType.Line)
         {
@@ -1114,24 +2531,34 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         SelectedObject = _drawingObject;
+        NotifyEditGestureCompleted();
         _drawingObject = null;
         _dimensionBuffer = string.Empty;
         DrawingCommandText = string.Empty;
         DrawingTool = null;
+        ClearSnapLocks();
+        HideAlignmentGuides();
         ReleaseMouseCapture();
         Cursor = Cursors.Arrow;
     }
 
     private void CancelDrawingObject()
     {
+        var hadDrawingObject = _drawingObject is not null;
         if (_drawingObject is not null && Template is not null)
         {
             Template.Objects.Remove(_drawingObject);
         }
 
         _drawingObject = null;
+        if (hadDrawingObject)
+        {
+            NotifyEditGestureCanceled();
+        }
         _dimensionBuffer = string.Empty;
         DrawingCommandText = string.Empty;
+        ClearSnapLocks();
+        HideAlignmentGuides();
         ReleaseMouseCapture();
         Cursor = Cursors.Arrow;
     }
@@ -1145,7 +2572,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         SelectedObject = null;
         _selectedObjects.Clear();
-        RemoveSelectionAdorner();
+        RemoveAllSelectionAdorners();
         _marqueeStart = start;
         _isMarqueeSelecting = true;
         _marqueeElement = new Border
@@ -1201,7 +2628,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         foreach (var pair in _objectElements)
         {
-            if (selectionRect.IntersectsWith(GetObjectBounds(pair.Key)))
+            if (pair.Key.IsVisible && selectionRect.IntersectsWith(GetObjectBounds(pair.Key)))
             {
                 _selectedObjects.Add(pair.Key);
             }
@@ -1215,10 +2642,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         SelectedObject = _selectedObjects.OrderByDescending(item => item.ZIndex).First();
-        if (_selectedObjects.Count > 1)
-        {
-            RemoveSelectionAdorner();
-        }
+        RefreshSelectionAdorner();
 
         Focus();
         InvalidateVisual();
@@ -1236,10 +2660,11 @@ public sealed class LabelDesignerCanvas : Canvas
         {
             DashStyle = DashStyles.Dash
         };
+        var keyPen = new Pen(new SolidColorBrush(Color.FromRgb(15, 23, 42)), 2.0);
 
         foreach (var item in _selectedObjects)
         {
-            dc.DrawRectangle(fill, pen, InflateRect(GetObjectBounds(item), 3));
+            dc.DrawRectangle(fill, ReferenceEquals(item, SelectedObject) && _selectedObjects.Count > 1 ? keyPen : pen, InflateRect(GetObjectBounds(item), 3));
         }
     }
 
@@ -1258,7 +2683,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         _selectedObjects.Clear();
         SelectedObject = null;
-        RemoveSelectionAdorner();
+        RemoveAllSelectionAdorners();
         InvalidateVisual();
         return true;
     }
@@ -1274,7 +2699,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         _clipboardObjects.Clear();
-        _clipboardObjects.AddRange(items.Select(CloneObject));
+        _clipboardObjects.AddRange(items.Select(LabelObjectCloner.Clone));
         _pasteCount = 0;
         return true;
     }
@@ -1288,7 +2713,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         _pasteCount++;
         var offset = Math.Min(20, 3 * _pasteCount);
-        var pasted = _clipboardObjects.Select(item => CloneObject(item)).ToArray();
+        var pasted = _clipboardObjects.Select(LabelObjectCloner.Clone).ToArray();
         var bounds = GetObjectsBoundsMm(pasted);
         var deltaX = Math.Max(-bounds.Left, Math.Min(Template.WidthMm - bounds.Right, offset));
         var deltaY = Math.Max(-bounds.Top, Math.Min(Template.HeightMm - bounds.Bottom, offset));
@@ -1306,60 +2731,10 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         SelectedObject = pasted.LastOrDefault();
-        if (_selectedObjects.Count > 1)
-        {
-            RemoveSelectionAdorner();
-        }
-        else if (SelectedObject is not null)
-        {
-            ShowSelectionAdorner(SelectedObject);
-        }
+        RefreshSelectionAdorner();
 
         InvalidateVisual();
         return true;
-    }
-
-    private static LabelObject CloneObject(LabelObject source)
-    {
-        return new LabelObject
-        {
-            Id = Guid.NewGuid().ToString("N"),
-            Type = source.Type,
-            Name = source.Name,
-            XMm = source.XMm,
-            YMm = source.YMm,
-            WidthMm = source.WidthMm,
-            HeightMm = source.HeightMm,
-            LineEndXMm = source.LineEndXMm,
-            LineEndYMm = source.LineEndYMm,
-            Rotation = source.Rotation,
-            ZIndex = source.ZIndex,
-            IsLocked = source.IsLocked,
-            IsVisible = source.IsVisible,
-            BindingExpression = source.BindingExpression,
-            Text = source.Text,
-            BarcodeSymbology = source.BarcodeSymbology,
-            Style = CloneStyle(source.Style)
-        };
-    }
-
-    private static ObjectStyle CloneStyle(ObjectStyle source)
-    {
-        return new ObjectStyle
-        {
-            FontFamily = source.FontFamily,
-            FontSizePt = source.FontSizePt,
-            Bold = source.Bold,
-            Italic = source.Italic,
-            Underline = source.Underline,
-            Alignment = source.Alignment,
-            BorderThicknessMm = source.BorderThicknessMm,
-            OutlineStyle = source.OutlineStyle,
-            FillStyle = source.FillStyle,
-            CornerRadiusMm = source.CornerRadiusMm,
-            FillColor = source.FillColor,
-            StrokeColor = source.StrokeColor
-        };
     }
 
     private static string CreateCopyName(string name)
@@ -1400,58 +2775,220 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         if (item.Type == ObjectType.Line)
         {
-            var endXMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.XMm + item.WidthMm : item.LineEndXMm;
-            var endYMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.YMm + item.HeightMm : item.LineEndYMm;
+            var lineBounds = LineBoundsContract.GetBounds(item);
             return new Rect(
-                new Point(Math.Min(item.XMm, endXMm), Math.Min(item.YMm, endYMm)),
-                new Point(Math.Max(item.XMm, endXMm), Math.Max(item.YMm, endYMm)));
+                new Point(lineBounds.Left, lineBounds.Top),
+                new Point(lineBounds.Right, lineBounds.Bottom));
         }
 
-        return new Rect(item.XMm, item.YMm, item.WidthMm, item.HeightMm);
+        var transformed = TransformedBoundsContract.GetBounds(item);
+        return new Rect(
+            transformed.Left,
+            transformed.Top,
+            transformed.Width,
+            transformed.Height);
     }
 
     private bool TryMoveSelectionWithArrowKey(Key key, ModifierKeys modifiers)
     {
-        if (Template is null || _selectedObjects.Count == 0)
+        var direction = key switch
+        {
+            Key.Left => NudgeDirection.Left,
+            Key.Up => NudgeDirection.Up,
+            Key.Right => NudgeDirection.Right,
+            Key.Down => NudgeDirection.Down,
+            _ => (NudgeDirection?)null
+        };
+        if (direction is null)
         {
             return false;
         }
 
-        var stepMm = (modifiers & ModifierKeys.Shift) == ModifierKeys.Shift ? 10 : 1;
-        var deltaX = 0d;
-        var deltaY = 0d;
-        switch (key)
+        var mode = (modifiers & ModifierKeys.Alt) == ModifierKeys.Alt
+            ? NudgeStepMode.Fine
+            : (modifiers & ModifierKeys.Shift) == ModifierKeys.Shift
+                ? NudgeStepMode.Coarse
+                : NudgeStepMode.Standard;
+        return NudgeSelectedObjects(direction.Value, mode);
+    }
+
+    /// <summary>
+    /// Applies one physical-mm keyboard nudge. Repeated calls within the idle
+    /// window share one history transaction; unlike pointer movement, keyboard
+    /// nudges do not acquire object/grid snap candidates.
+    /// </summary>
+    public bool NudgeSelectedObjects(NudgeDirection direction, NudgeStepMode mode)
+    {
+        var selectedItems = GetKeyboardSelection();
+        if (Template is null || selectedItems.Count == 0)
         {
-            case Key.Left:
-                deltaX = -stepMm;
-                break;
-            case Key.Right:
-                deltaX = stepMm;
-                break;
-            case Key.Up:
-                deltaY = -stepMm;
-                break;
-            case Key.Down:
-                deltaY = stepMm;
-                break;
-            default:
-                return false;
+            return false;
         }
 
-        CaptureGroupDragStarts();
-        MoveSelectedGroup(deltaX, deltaY);
+        if (!selectedItems.Any(item => !item.IsLocked))
+        {
+            InteractionStatusText = "Unlock at least one selected object before nudging.";
+            return false;
+        }
+
+        if (!_nudgeGestureActive)
+        {
+            _nudgeStarts.Clear();
+            foreach (var item in selectedItems.Where(item => !item.IsLocked))
+            {
+                _nudgeStarts[item] = CaptureObjectPosition(item);
+            }
+
+            _nudgeGestureActive = true;
+            NotifyEditGestureStarted();
+        }
+
+        var before = _selectedObjects
+            .Where(item => !item.IsLocked)
+            .ToDictionary(item => item, CaptureObjectPosition);
+        if (before.Count == 0)
+        {
+            before = selectedItems
+                .Where(item => !item.IsLocked)
+                .ToDictionary(item => item, CaptureObjectPosition);
+        }
+        var (deltaX, deltaY) = NudgeStepContract.ResolveDelta(direction, mode);
+        CaptureGroupDragStarts(selectedItems);
+        MoveSelectedGroup(deltaX, deltaY, allowSnap: false);
         _groupDragStarts.Clear();
+        ClearSnapLocks();
+        HideAlignmentGuides();
         InvalidateVisual();
-        InteractionStatusText = _selectedObjects.Count == 1
-            ? $"{_selectedObjects.First().Name}: X {_selectedObjects.First().XMm:0.##} mm, Y {_selectedObjects.First().YMm:0.##} mm (nudge {stepMm:0.##} mm)"
-            : $"Moved {_selectedObjects.Count} objects by {stepMm:0.##} mm";
+
+        var changed = before.Any(pair => HasPositionChanged(pair.Key, pair.Value));
+        if (!changed)
+        {
+            RestartNudgeGestureTimer();
+            return false;
+        }
+
+        var stepMm = NudgeStepContract.ResolveStepMm(mode);
+        InteractionStatusText = selectedItems.Count == 1
+            ? $"{selectedItems[0].Name}: X {selectedItems[0].XMm:0.##} mm, Y {selectedItems[0].YMm:0.##} mm (nudge {stepMm:0.##} mm)"
+            : $"Moved {selectedItems.Count} objects by {stepMm:0.##} mm";
+        RestartNudgeGestureTimer();
         return true;
     }
 
-    private void CaptureGroupDragStarts()
+    public void CommitNudgeGesture()
+    {
+        if (!_nudgeGestureActive)
+        {
+            return;
+        }
+
+        StopNudgeGestureTimer();
+        _nudgeGestureActive = false;
+        _nudgeStarts.Clear();
+        _groupDragStarts.Clear();
+        NotifyEditGestureCompleted();
+    }
+
+    public void CancelNudgeGesture()
+    {
+        if (!_nudgeGestureActive)
+        {
+            return;
+        }
+
+        StopNudgeGestureTimer();
+        foreach (var pair in _nudgeStarts)
+        {
+            RestoreObjectPosition(pair.Key, pair.Value);
+            UpdateObjectElement(pair.Key);
+        }
+
+        _nudgeGestureActive = false;
+        _nudgeStarts.Clear();
+        _groupDragStarts.Clear();
+        ClearSnapLocks();
+        HideAlignmentGuides();
+        InvalidateVisual();
+        NotifyEditGestureCanceled();
+        InteractionStatusText = "Keyboard nudge cancelled.";
+    }
+
+    private void RestartNudgeGestureTimer()
+    {
+        _nudgeGestureTimer ??= new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(300)
+        };
+        _nudgeGestureTimer.Stop();
+        _nudgeGestureTimer.Tick -= NudgeGestureTimerOnTick;
+        _nudgeGestureTimer.Tick += NudgeGestureTimerOnTick;
+        _nudgeGestureTimer.Start();
+    }
+
+    private void StopNudgeGestureTimer()
+    {
+        if (_nudgeGestureTimer is null)
+        {
+            return;
+        }
+
+        _nudgeGestureTimer.Stop();
+        _nudgeGestureTimer.Tick -= NudgeGestureTimerOnTick;
+        _nudgeGestureTimer = null;
+    }
+
+    private void NudgeGestureTimerOnTick(object? sender, EventArgs e)
+    {
+        CommitNudgeGesture();
+    }
+
+    private void CanvasLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        // A property editor or another window must never inherit a half-open
+        // nudge transaction. Restore the exact pre-nudge geometry instead.
+        CancelNudgeGesture();
+    }
+
+    private static (double X, double Y, double EndX, double EndY) CaptureObjectPosition(LabelObject item)
+    {
+        // Preserve the raw endpoint fields so cancelling a nudge does not
+        // materialize implicit line endpoints into the serialized template.
+        return (item.XMm, item.YMm, item.LineEndXMm, item.LineEndYMm);
+    }
+
+    private static bool HasPositionChanged(LabelObject item, (double X, double Y, double EndX, double EndY) start)
+    {
+        return Math.Abs(item.XMm - start.X) > 0.000001
+            || Math.Abs(item.YMm - start.Y) > 0.000001
+            || item.Type == ObjectType.Line &&
+                (Math.Abs(item.LineEndXMm - start.EndX) > 0.000001
+                 || Math.Abs(item.LineEndYMm - start.EndY) > 0.000001);
+    }
+
+    private static void RestoreObjectPosition(LabelObject item, (double X, double Y, double EndX, double EndY) position)
+    {
+        item.XMm = position.X;
+        item.YMm = position.Y;
+        if (item.Type == ObjectType.Line)
+        {
+            item.LineEndXMm = position.EndX;
+            item.LineEndYMm = position.EndY;
+        }
+    }
+
+    private IReadOnlyList<LabelObject> GetKeyboardSelection()
+    {
+        return _selectedObjects.Count > 0
+            ? _selectedObjects.ToArray()
+            : SelectedObject is not null
+                ? new[] { SelectedObject }
+                : Array.Empty<LabelObject>();
+    }
+
+    private void CaptureGroupDragStarts(IEnumerable<LabelObject>? selection = null)
     {
         _groupDragStarts.Clear();
-        foreach (var selected in _selectedObjects.Where(item => !item.IsLocked))
+        foreach (var selected in (selection ?? _selectedObjects).Where(item => !item.IsLocked))
         {
             var endXMm = selected.LineEndXMm == 0 && selected.LineEndYMm == 0 ? selected.XMm + selected.WidthMm : selected.LineEndXMm;
             var endYMm = selected.LineEndXMm == 0 && selected.LineEndYMm == 0 ? selected.YMm + selected.HeightMm : selected.LineEndYMm;
@@ -1459,11 +2996,78 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
-    private void MoveSelectedGroup(double deltaXMm, double deltaYMm)
+    private AlignmentSnapResult MoveSingleLine(LabelObject item, double deltaXMm, double deltaYMm)
+    {
+        if (Template is null)
+        {
+            return new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        }
+
+        var endXMm = _startLineEndXMm == 0 && _startLineEndYMm == 0
+            ? _startXMm + item.WidthMm
+            : _startLineEndXMm;
+        var endYMm = _startLineEndXMm == 0 && _startLineEndYMm == 0
+            ? _startYMm + item.HeightMm
+            : _startLineEndYMm;
+        var proposedX = _startXMm + deltaXMm;
+        var proposedY = _startYMm + deltaYMm;
+
+        // Lines participate in the same object/grid snap contract as every
+        // other movable object. The old path only translated endpoints, so a
+        // line could never acquire an edge, center, spacing, or grid target.
+        var snap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        if ((IsSnapToObjectsEnabled || IsSnapToGridEnabled)
+            && !Keyboard.IsKeyDown(Key.LeftAlt)
+            && !Keyboard.IsKeyDown(Key.RightAlt))
+        {
+            snap = ComputePriorityAlignmentSnap(item, proposedX, proposedY);
+            proposedX = snap.SnapX ?? proposedX;
+            proposedY = snap.SnapY ?? proposedY;
+        }
+        else
+        {
+            ClearSnapLocks();
+        }
+
+        // Clamp the visible stroke hull, not just the mathematical endpoints,
+        // so a thick line cannot be dragged half outside the label.
+        var lineBounds = LineBoundsContract.GetBounds(
+            _startXMm,
+            _startYMm,
+            endXMm,
+            endYMm,
+            item.Style.OutlineStyle,
+            item.Style.BorderThicknessMm);
+        var requestedDeltaX = proposedX - _startXMm;
+        var requestedDeltaY = proposedY - _startYMm;
+        var clampedDeltaX = Math.Max(-lineBounds.Left, Math.Min(Template.WidthMm - lineBounds.Right, requestedDeltaX));
+        var clampedDeltaY = Math.Max(-lineBounds.Top, Math.Min(Template.HeightMm - lineBounds.Bottom, requestedDeltaY));
+        item.XMm = _startXMm + clampedDeltaX;
+        item.YMm = _startYMm + clampedDeltaY;
+        item.LineEndXMm = endXMm + clampedDeltaX;
+        item.LineEndYMm = endYMm + clampedDeltaY;
+        return snap;
+    }
+
+    private void MoveSelectedGroup(double deltaXMm, double deltaYMm, bool allowSnap = true)
     {
         if (Template is null || _groupDragStarts.Count == 0)
         {
             return;
+        }
+
+        var snap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        if (allowSnap && (IsSnapToObjectsEnabled || IsSnapToGridEnabled)
+            && !Keyboard.IsKeyDown(Key.LeftAlt)
+            && !Keyboard.IsKeyDown(Key.RightAlt))
+        {
+            snap = ComputePriorityGroupAlignmentSnap(deltaXMm, deltaYMm);
+            deltaXMm += snap.SnapX ?? 0;
+            deltaYMm += snap.SnapY ?? 0;
+        }
+        else
+        {
+            ClearSnapLocks();
         }
 
         var bounds = GetGroupBoundsMm();
@@ -1482,8 +3086,80 @@ public sealed class LabelDesignerCanvas : Canvas
                 item.LineEndYMm = start.EndY + clampedDeltaY;
             }
 
-            UpdateObjectElement(item);
+            UpdateObjectTransformElement(item);
         }
+
+        if (snap.SnapX is not null || snap.SnapY is not null)
+        {
+            ShowAlignmentGuides(snap);
+        }
+        else
+        {
+            HideAlignmentGuides();
+        }
+    }
+
+    private AlignmentSnapResult ComputeGroupAlignmentSnapLegacy(double proposedDeltaXMm, double proposedDeltaYMm)
+    {
+        if (Template is null || _groupDragStarts.Count == 0)
+        {
+            return new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        }
+
+        var bounds = GetGroupBoundsMm();
+        var left = bounds.Left + proposedDeltaXMm;
+        var right = bounds.Right + proposedDeltaXMm;
+        var centerX = (left + right) / 2;
+        var top = bounds.Top + proposedDeltaYMm;
+        var bottom = bounds.Bottom + proposedDeltaYMm;
+        var centerY = (top + bottom) / 2;
+        var selected = _groupDragStarts.Keys.ToHashSet();
+        var snapX = (double?)null;
+        var snapY = (double?)null;
+        var bestDistX = double.MaxValue;
+        var bestDistY = double.MaxValue;
+        var guideX = new List<double>();
+        var guideY = new List<double>();
+
+        foreach (var other in Template.Objects.Where(item => item.IsVisible && !selected.Contains(item)))
+        {
+            var otherBounds = GetObjectBoundsMm(other);
+            var otherCenterX = (otherBounds.Left + otherBounds.Right) / 2;
+            var otherCenterY = (otherBounds.Top + otherBounds.Bottom) / 2;
+            foreach (var source in new[] { left, right, centerX })
+            {
+                CheckSnap(source, otherBounds.Left, SnapThresholdMm, ref bestDistX, ref snapX, guideX, otherBounds.Left);
+                CheckSnap(source, otherBounds.Right, SnapThresholdMm, ref bestDistX, ref snapX, guideX, otherBounds.Right);
+                CheckSnap(source, otherCenterX, SnapThresholdMm, ref bestDistX, ref snapX, guideX, otherCenterX);
+            }
+
+            foreach (var source in new[] { top, bottom, centerY })
+            {
+                CheckSnap(source, otherBounds.Top, SnapThresholdMm, ref bestDistY, ref snapY, guideY, otherBounds.Top);
+                CheckSnap(source, otherBounds.Bottom, SnapThresholdMm, ref bestDistY, ref snapY, guideY, otherBounds.Bottom);
+                CheckSnap(source, otherCenterY, SnapThresholdMm, ref bestDistY, ref snapY, guideY, otherCenterY);
+            }
+        }
+
+        CheckSnap(centerX, Template.WidthMm / 2, SnapThresholdMm, ref bestDistX, ref snapX, guideX, Template.WidthMm / 2);
+        CheckSnap(centerY, Template.HeightMm / 2, SnapThresholdMm, ref bestDistY, ref snapY, guideY, Template.HeightMm / 2);
+        var resolvedTargetX = ResolveSnapTarget(
+            SnapPathKind.GroupMove,
+            proposedDeltaXMm,
+            snapX is null ? null : proposedDeltaXMm + snapX.Value,
+            _snapLockX,
+            guideX);
+        var resolvedTargetY = ResolveSnapTarget(
+            SnapPathKind.GroupMove,
+            proposedDeltaYMm,
+            snapY is null ? null : proposedDeltaYMm + snapY.Value,
+            _snapLockY,
+            guideY);
+        return new AlignmentSnapResult(
+            resolvedTargetX is null ? null : resolvedTargetX.Value - proposedDeltaXMm,
+            resolvedTargetY is null ? null : resolvedTargetY.Value - proposedDeltaYMm,
+            guideX,
+            guideY);
     }
 
     private Rect GetGroupBoundsMm()
@@ -1499,17 +3175,35 @@ public sealed class LabelDesignerCanvas : Canvas
             var start = pair.Value;
             if (item.Type == ObjectType.Line)
             {
-                left = Math.Min(left, Math.Min(start.X, start.EndX));
-                top = Math.Min(top, Math.Min(start.Y, start.EndY));
-                right = Math.Max(right, Math.Max(start.X, start.EndX));
-                bottom = Math.Max(bottom, Math.Max(start.Y, start.EndY));
+                var lineBounds = LineBoundsContract.GetBounds(
+                    start.X,
+                    start.Y,
+                    start.EndX,
+                    start.EndY,
+                    item.Style.OutlineStyle,
+                    item.Style.BorderThicknessMm);
+                left = Math.Min(left, lineBounds.Left);
+                top = Math.Min(top, lineBounds.Top);
+                right = Math.Max(right, lineBounds.Right);
+                bottom = Math.Max(bottom, lineBounds.Bottom);
             }
             else
             {
-                left = Math.Min(left, start.X);
-                top = Math.Min(top, start.Y);
-                right = Math.Max(right, start.X + item.WidthMm);
-                bottom = Math.Max(bottom, start.Y + item.HeightMm);
+                // Group move/snap/clamp must use the same transformed bounds
+                // as selection arrange, resize and preflight.  Using the
+                // authored width/height here makes a 90/270-degree object
+                // report the wrong hull and can snap the whole group to a
+                // target that the rendered selection does not occupy.
+                var transformed = TransformedBoundsContract.GetBounds(
+                    start.X,
+                    start.Y,
+                    item.WidthMm,
+                    item.HeightMm,
+                    item.Rotation);
+                left = Math.Min(left, transformed.Left);
+                top = Math.Min(top, transformed.Top);
+                right = Math.Max(right, transformed.Right);
+                bottom = Math.Max(bottom, transformed.Bottom);
             }
         }
 
@@ -1520,16 +3214,20 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         if (item.Type == ObjectType.Line)
         {
-            var endXMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.XMm + item.WidthMm : item.LineEndXMm;
-            var endYMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.YMm + item.HeightMm : item.LineEndYMm;
-            var left = MmToDip(Math.Min(item.XMm, endXMm));
-            var top = MmToDip(Math.Min(item.YMm, endYMm));
-            var right = MmToDip(Math.Max(item.XMm, endXMm));
-            var bottom = MmToDip(Math.Max(item.YMm, endYMm));
-            return new Rect(new Point(left, top), new Point(right, bottom));
+            var bounds = LineBoundsContract.GetBounds(item);
+            return new Rect(
+                MmToDip(bounds.Left),
+                MmToDip(bounds.Top),
+                Math.Max(0, MmToDip(bounds.Width)),
+                Math.Max(0, MmToDip(bounds.Height)));
         }
 
-        return new Rect(MmToDip(item.XMm), MmToDip(item.YMm), MmToDip(item.WidthMm), MmToDip(item.HeightMm));
+        var transformed = TransformedBoundsContract.GetBounds(item);
+        return new Rect(
+            MmToDip(transformed.Left),
+            MmToDip(transformed.Top),
+            Math.Max(0, MmToDip(transformed.Width)),
+            Math.Max(0, MmToDip(transformed.Height)));
     }
 
     private static Rect InflateRect(Rect rect, double amount)
@@ -1667,11 +3365,136 @@ public sealed class LabelDesignerCanvas : Canvas
             return new Point();
         }
 
-        var xMm = Math.Round(DipToMm(dipPoint.X));
-        var yMm = Math.Round(DipToMm(dipPoint.Y));
+        var step = SnapGridContract.NormalizeStep(GridStepMm);
+        var xMm = SnapGridContract.Snap(DipToMm(dipPoint.X), step);
+        var yMm = SnapGridContract.Snap(DipToMm(dipPoint.Y), step);
         return new Point(
             Math.Max(0, Math.Min(Template.WidthMm, xMm)),
             Math.Max(0, Math.Min(Template.HeightMm, yMm)));
+    }
+
+    /// <summary>
+    /// Resolves a drawing endpoint through the same semantic candidate,
+    /// tolerance and hysteresis policy used by move/resize.  Drawing used to
+    /// consult only the grid, which made a freshly created line/rectangle miss
+    /// an existing edge, center or persistent ruler guide by a few pixels.
+    /// Typed dimensions still bypass this method deliberately: numeric input
+    /// is an exact authoring instruction, not a pointer gesture.
+    /// </summary>
+    private Point SnapDrawingPoint(Point dipPoint)
+    {
+        if (Template is null)
+        {
+            return new Point();
+        }
+
+        var raw = new Point(DipToMm(dipPoint.X), DipToMm(dipPoint.Y));
+        var bypass = Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt);
+        if (bypass || (!IsSnapToObjectsEnabled && !IsSnapToGridEnabled))
+        {
+            ClearSnapLocks();
+            HideAlignmentGuides();
+            return ClampMm(raw);
+        }
+
+        var xCandidates = new List<SnapCandidate>();
+        var yCandidates = new List<SnapCandidate>();
+
+        void AddCandidate(
+            List<SnapCandidate> target,
+            double source,
+            double position,
+            int priority,
+            string stableKey,
+            string? caption = null)
+        {
+            if (!double.IsFinite(position))
+            {
+                return;
+            }
+
+            target.Add(new SnapCandidate(
+                source,
+                position,
+                Math.Abs(source - position),
+                priority,
+                stableKey,
+                caption));
+        }
+
+        if (IsSnapToObjectsEnabled)
+        {
+            foreach (var other in Template.Objects.Where(item =>
+                         item.IsVisible && !ReferenceEquals(item, _drawingObject)))
+            {
+                var bounds = GetObjectBoundsMm(other);
+                var stableKey = GetSnapStableKey(other);
+                AddCandidate(xCandidates, raw.X, bounds.Left, 80, $"{stableKey}:draw:x:leading");
+                AddCandidate(xCandidates, raw.X, (bounds.Left + bounds.Right) / 2, 65, $"{stableKey}:draw:x:center");
+                AddCandidate(xCandidates, raw.X, bounds.Right, 80, $"{stableKey}:draw:x:trailing");
+                AddCandidate(yCandidates, raw.Y, bounds.Top, 80, $"{stableKey}:draw:y:leading");
+                AddCandidate(yCandidates, raw.Y, (bounds.Top + bounds.Bottom) / 2, 65, $"{stableKey}:draw:y:center");
+                AddCandidate(yCandidates, raw.Y, bounds.Bottom, 80, $"{stableKey}:draw:y:trailing");
+            }
+
+            AddCandidate(xCandidates, raw.X, 0, 90, "canvas:edge:draw:x:leading", "artboard edge");
+            AddCandidate(xCandidates, raw.X, Template.WidthMm / 2, 90, "canvas:center:draw:x", "artboard center");
+            AddCandidate(xCandidates, raw.X, Template.WidthMm, 90, "canvas:edge:draw:x:trailing", "artboard edge");
+            AddCandidate(yCandidates, raw.Y, 0, 90, "canvas:edge:draw:y:leading", "artboard edge");
+            AddCandidate(yCandidates, raw.Y, Template.HeightMm / 2, 90, "canvas:center:draw:y", "artboard center");
+            AddCandidate(yCandidates, raw.Y, Template.HeightMm, 90, "canvas:edge:draw:y:trailing", "artboard edge");
+
+            foreach (var guide in Template.Guides.Where(item => item.IsVisible))
+            {
+                if (guide.Orientation == LabelGuideOrientation.Vertical)
+                {
+                    AddCandidate(xCandidates, raw.X, guide.PositionMm, 105, $"guide:{guide.Id}:draw:x", "guide");
+                }
+                else
+                {
+                    AddCandidate(yCandidates, raw.Y, guide.PositionMm, 105, $"guide:{guide.Id}:draw:y", "guide");
+                }
+            }
+        }
+
+        if (IsSnapToGridEnabled
+            && SnapGridContract.TrySnap(raw.X, GridStepMm, SnapThresholdMm, out var gridX))
+        {
+            AddCandidate(xCandidates, raw.X, gridX, 30, $"grid:draw:x:{gridX:0.###}", $"grid {gridX:0.##} mm");
+        }
+
+        if (IsSnapToGridEnabled
+            && SnapGridContract.TrySnap(raw.Y, GridStepMm, SnapThresholdMm, out var gridY))
+        {
+            AddCandidate(yCandidates, raw.Y, gridY, 30, $"grid:draw:y:{gridY:0.###}", $"grid {gridY:0.##} mm");
+        }
+
+        var winnerX = ChoosePathSnap(SnapPathKind.Draw, xCandidates);
+        var winnerY = ChoosePathSnap(SnapPathKind.Draw, yCandidates);
+        var guidesX = GetWinningGuides(xCandidates, winnerX);
+        var guidesY = GetWinningGuides(yCandidates, winnerY);
+        var resolvedX = ResolveSnapTarget(
+            SnapPathKind.Draw,
+            raw.X,
+            winnerX is SnapCandidate x ? (double?)(raw.X + x.Delta) : null,
+            _snapLockX,
+            guidesX);
+        var resolvedY = ResolveSnapTarget(
+            SnapPathKind.Draw,
+            raw.Y,
+            winnerY is SnapCandidate y ? (double?)(raw.Y + y.Delta) : null,
+            _snapLockY,
+            guidesY);
+
+        var snap = new AlignmentSnapResult(
+            resolvedX,
+            resolvedY,
+            guidesX,
+            guidesY,
+            GetSnapCaption(winnerX),
+            GetSnapCaption(winnerY));
+        ShowAlignmentGuides(snap);
+        return ClampMm(new Point(resolvedX ?? raw.X, resolvedY ?? raw.Y));
     }
 
     private string GetDisplayText(LabelObject item)
@@ -1690,52 +3513,163 @@ public sealed class LabelDesignerCanvas : Canvas
             item,
             GetDisplayText(item),
             widthDip,
-            heightDip);
+            heightDip,
+            GetPixelsPerDip());
     }
 
     private DrawingVisual CreateTextVisual(LabelObject item, double widthDip, double heightDip)
     {
+        // Free Text: measure natural glyphs on an unlimited frame, then force
+        // HorizontalScale/VerticalScale so border-drag shrink always compresses
+        // glyphs into the object frame (shared DrawTextLayout path with print).
         var visual = new DrawingVisual();
         using var dc = visual.RenderOpen();
-        const double previewPixelsPerDip = 1.0;
+        var previewPixelsPerDip = GetPixelsPerDip();
         var renderScale = Math.Max(0.01, Zoom);
         var previewWidthDip = Math.Max(1, widthDip / renderScale);
         var previewHeightDip = Math.Max(1, heightDip / renderScale);
         var displayText = string.IsNullOrEmpty(GetDisplayText(item)) ? " " : GetDisplayText(item);
-        var text = TextBoxOverflowDetector.CreateFormattedText(
+        var brush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
+        var constrained = TextBoxOverflowDetector.ShouldConstrainToBox(item);
+        const double naturalProbeDip = 10000;
+
+        // Natural ink (no frame compress) — used to force designer scale even if
+        // the framed CreateTextLayout path missed a compress case.
+        var natural = TextBoxOverflowDetector.CreateTextLayout(
             item,
             displayText,
-            ParseBrush(item.Style.StrokeColor, Brushes.Black),
+            naturalProbeDip,
+            naturalProbeDip,
+            constrainToBox: false,
+            brush,
             previewPixelsPerDip);
-        text.MaxTextWidth = previewWidthDip;
-        text.MaxTextHeight = previewHeightDip;
-        var x = 2.0;
-        var y = Math.Max(0, (previewHeightDip - text.Height) / 2.0);
+        var naturalWidth = Math.Max(0.01, natural.Metrics.WidthDip);
+        var naturalHeight = Math.Max(0.01, natural.Metrics.HeightDip);
+        var contentWidth = TextBoxOverflowDetector.GetContentWidthDip(item, previewWidthDip, constrainToBox: false);
+        var contentHeight = TextBoxOverflowDetector.GetContentHeightDip(item, previewHeightDip, constrainToBox: false);
+        var fit = TextBoxOverflowDetector.ResolveTextFrameFitScale(
+            naturalWidth,
+            naturalHeight,
+            contentWidth,
+            contentHeight,
+            natural.Metrics.LineHeightDip);
+
+        // Framed layout for print-parity metrics (may also compress).
+        var layout = TextBoxOverflowDetector.CreateTextLayout(
+            item,
+            displayText,
+            previewWidthDip,
+            previewHeightDip,
+            constrainToBox: constrained,
+            brush,
+            previewPixelsPerDip);
+
+        // Use the stronger compress of framed metrics vs natural-vs-frame fit.
+        // Draw natural lines (full glyph runs) with forced scales so MaxTextWidth
+        // on a tight frame cannot leave full-size glyphs unscaled.
+        var scaleX = Math.Min(layout.Metrics.HorizontalScale, fit.ScaleX);
+        var scaleY = Math.Min(layout.Metrics.VerticalScale, fit.ScaleY);
+        scaleX = Math.Clamp(double.IsFinite(scaleX) ? scaleX : 1.0, 0.01, 1.0);
+        scaleY = Math.Clamp(double.IsFinite(scaleY) ? scaleY : 1.0, 0.01, 1.0);
+        var scaledHeight = naturalHeight * scaleY;
+        var verticalOffset = TextBoxOverflowDetector.ResolveVerticalOffset(
+            item,
+            scaledHeight,
+            previewHeightDip,
+            constrainToBox: false);
+        var drawLayout = new TextLayoutResult
+        {
+            Lines = natural.Lines,
+            Metrics = natural.Metrics with
+            {
+                WidthDip = naturalWidth * scaleX,
+                HeightDip = scaledHeight,
+                ContentWidthDip = contentWidth,
+                VerticalOffsetDip = verticalOffset,
+                HorizontalScale = scaleX,
+                VerticalScale = scaleY,
+                HorizontalScaleAnchorFraction = layout.Metrics.HorizontalScaleAnchorFraction,
+                EffectiveFontSizePt = layout.Metrics.EffectiveFontSizePt,
+                InkExtentDip = natural.Metrics.InkExtentDip * scaleY,
+                BaselineDip = natural.Metrics.BaselineDip * scaleY
+            }
+        };
+
         dc.PushTransform(new ScaleTransform(renderScale, renderScale));
-        dc.DrawText(text, new Point(x, y));
+        // Always clip free Text to the object frame (AutoFit frame ≈ natural so
+        // clip is a no-op; after shrink, glyphs must not paint outside handles).
+        dc.PushClip(new RectangleGeometry(new Rect(0, 0, previewWidthDip, previewHeightDip)));
+        TextBoxOverflowDetector.DrawTextLayout(
+            dc,
+            drawLayout,
+            new Point(
+                TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrainToBox: false),
+                verticalOffset));
+        dc.Pop();
         dc.Pop();
         return visual;
     }
 
     private DrawingVisual CreateTextBoxVisual(LabelObject item, double widthDip, double heightDip)
     {
+        // TextBox is always constrained to the user-owned frame (drag/properties).
+        // Layout must reflow to the current width/height every UpdateObjectElement
+        // call so glyphs and object bounds stay fit together during resize.
         var visual = new DrawingVisual();
         using var dc = visual.RenderOpen();
-        const double previewPixelsPerDip = 1.0;
+        var previewPixelsPerDip = GetPixelsPerDip();
         var renderScale = Math.Max(0.01, Zoom);
         var previewWidthDip = Math.Max(1, widthDip / renderScale);
         var previewHeightDip = Math.Max(1, heightDip / renderScale);
-        var wrapped = TextBoxOverflowDetector.WrapTextToBox(item, GetDisplayText(item), previewWidthDip, previewPixelsPerDip);
+        var brush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
+        const bool constrained = true;
+        var originX = TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrained);
+        if (TextBoxOverflowDetector.HasExplicitLineHeight(item) || TextBoxOverflowDetector.UsesShrinkFont(item) || TextBoxOverflowDetector.UsesScaleWidth(item))
+        {
+            var layout = TextBoxOverflowDetector.CreateTextLayout(
+                item,
+                GetDisplayText(item),
+                previewWidthDip,
+                previewHeightDip,
+                constrainToBox: constrained,
+                brush,
+                previewPixelsPerDip);
+            dc.PushTransform(new ScaleTransform(renderScale, renderScale));
+            dc.PushClip(new RectangleGeometry(new Rect(0, 0, previewWidthDip, previewHeightDip)));
+            TextBoxOverflowDetector.DrawTextLayout(
+                dc,
+                layout,
+                new Point(originX, layout.Metrics.VerticalOffsetDip));
+            dc.Pop();
+            dc.Pop();
+            return visual;
+        }
+
+        var displayText = GetDisplayText(item);
+        var wrapped = TextBoxOverflowDetector.WrapTextToBox(
+            item,
+            displayText,
+            TextBoxOverflowDetector.GetContentWidthDip(item, previewWidthDip, constrained),
+            previewPixelsPerDip);
         var text = TextBoxOverflowDetector.CreateFormattedText(
             item,
             wrapped,
-            ParseBrush(item.Style.StrokeColor, Brushes.Black),
+            brush,
             previewPixelsPerDip);
-        text.MaxTextWidth = previewWidthDip;
-        text.MaxTextHeight = previewHeightDip;
+        TextBoxOverflowDetector.ApplyLayoutBounds(text, item, previewWidthDip, previewHeightDip, constrained);
+        var metrics = TextBoxOverflowDetector.Measure(
+            text,
+            item,
+            previewWidthDip,
+            previewHeightDip,
+            constrained,
+            sourceValue: displayText,
+            pixelsPerDip: previewPixelsPerDip);
         dc.PushTransform(new ScaleTransform(renderScale, renderScale));
         dc.PushClip(new RectangleGeometry(new Rect(0, 0, previewWidthDip, previewHeightDip)));
-        dc.DrawText(text, new Point(0, 0));
+        // Origin must include left padding so text stays inside the frame when
+        // the user drags width/height — not Point(0,…) which shifted glyphs out.
+        dc.DrawText(text, new Point(originX, metrics.VerticalOffsetDip));
         dc.Pop();
         dc.Pop();
         return visual;
@@ -1745,7 +3679,12 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         return item.Type switch
         {
-            ObjectType.TextBox when IsTextBoxOverflowing(item, MmConverter.MmToDip(item.WidthMm), MmConverter.MmToDip(item.HeightMm)) =>
+            ObjectType.Text when TextBoxOverflowDetector.ShouldBlockOverflow(item)
+                && TextBoxOverflowDetector.ShouldConstrainToBox(item)
+                && IsTextBoxOverflowing(item, MmConverter.MmToDip(item.WidthMm), MmConverter.MmToDip(item.HeightMm)) =>
+                "Text exceeds the fixed text frame. Increase the frame or reduce text/font size.",
+            ObjectType.TextBox when TextBoxOverflowDetector.ShouldBlockOverflow(item)
+                && IsTextBoxOverflowing(item, MmConverter.MmToDip(item.WidthMm), MmConverter.MmToDip(item.HeightMm)) =>
                 "Text exceeds this text box. Increase the object size or reduce text/font size.",
             ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix => GetBarcodeError(item),
             _ => null
@@ -1769,7 +3708,23 @@ public sealed class LabelDesignerCanvas : Canvas
 
         try
         {
-            _barcodeRenderer.RenderBarcode(data, type, item.WidthMm, item.HeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
+            var planDpi = ResolvePrintPlanDpi(item);
+            var productionWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(
+                item, _barcodeRenderer, planDpi, data);
+            var hriLayout = BarcodeHriTextLayout.Measure(
+                type,
+                data,
+                productionWidthMm,
+                item.HeightMm,
+                item.BarcodeHriPlacement,
+                item.BarcodeTextFontSizePt);
+            if (!hriLayout.IsValid)
+            {
+                return hriLayout.ErrorMessage;
+            }
+
+            var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
             return null;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -1778,38 +3733,130 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
-    private void FitTextObjectToContent(LabelObject item, ref double width, ref double height)
+    private void TryFitTextObjectToContent(LabelObject item)
     {
-        // VISUAL-ONLY fit: compute the visual size for rendering without mutating WidthMm/HeightMm.
-        // The model keeps its user-set dimensions. If text overflows, it renders larger (Text) or clips (TextBox).
-        if (Template is null)
+        // Static Text only. TextBox must never rewrite size from content — the
+        // operator sets the frame by drag; text reflows inside that frame.
+        if (!ShouldAutoSizeTextObject(item) || _textAutoSizingObjects.Contains(item))
         {
             return;
         }
 
         var displayText = string.IsNullOrEmpty(GetDisplayText(item)) ? " " : GetDisplayText(item);
-        var text = TextBoxOverflowDetector.CreateFormattedText(
+        var (fitWidthMm, fitHeightMm) = TextBoxOverflowDetector.MeasureAutoFitFrameMm(
             item,
             displayText,
-            Brushes.Black,
-            1.0);
+            pixelsPerDip: 1.0);
 
-        var minSizeMm = 1.0;
-        var fitWidthMm = MmConverter.DipToMm(Math.Ceiling(text.WidthIncludingTrailingWhitespace))
-            + MmConverter.DipToMm(4)   // 2 left + 2 right DIP padding (matches CreateTextVisual x=2)
-            + 0.6;                     // extra mm padding
-        var fitHeightMm = MmConverter.DipToMm(Math.Ceiling(text.Height)) + 0.6;
+        _textAutoSizingObjects.Add(item);
+        try
+        {
+            if (item.Type == ObjectType.Text
+                && Math.Abs(item.WidthMm - fitWidthMm) > 0.005)
+            {
+                item.WidthMm = fitWidthMm;
+            }
 
-        fitWidthMm = Math.Max(minSizeMm, fitWidthMm);
-        fitHeightMm = Math.Max(minSizeMm, fitHeightMm);
-
-        // Do NOT clamp to template bounds or mutate item.WidthMm/HeightMm.
-        // Text can render larger than the model size — this is intentional for designer preview.
-        width = MmToDip(fitWidthMm);
-        height = MmToDip(fitHeightMm);
+            if (Math.Abs(item.HeightMm - fitHeightMm) > 0.005)
+            {
+                item.HeightMm = fitHeightMm;
+            }
+        }
+        finally
+        {
+            _textAutoSizingObjects.Remove(item);
+        }
     }
 
-    private ImageSource? CreateBarcodeImageSource(LabelObject item)
+    private static bool ShouldAutoSizeTextObject(LabelObject item)
+        => item.Type == ObjectType.Text && item.Style.TextSizing == TextSizingMode.AutoFit;
+
+    private void UpdateBarcodePanel(LabelObject item, Grid panel)
+    {
+        var image = panel.Children.OfType<Image>().FirstOrDefault();
+        var hri = panel.Children.OfType<TextBlock>().FirstOrDefault();
+        if (image is null || hri is null)
+        {
+            return;
+        }
+
+        var data = ResolveObjectData(item);
+        var type = item.Type switch
+        {
+            ObjectType.QRCode => BarcodeType.QRCode,
+            ObjectType.DataMatrix => BarcodeType.DataMatrix,
+            _ => BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
+        };
+        var planDpi = ResolvePrintPlanDpi(item);
+        var productionWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(
+            item, _barcodeRenderer, planDpi, data);
+        var hriLayout = BarcodeHriTextLayout.Measure(
+            type,
+            data,
+            productionWidthMm,
+            item.HeightMm,
+            item.BarcodeHriPlacement,
+            item.BarcodeTextFontSizePt);
+
+        image.Stretch = item.IsSquare2DCodeLike() || item.Type is ObjectType.QRCode or ObjectType.DataMatrix
+            ? Stretch.Uniform
+            : Stretch.Fill;
+        image.HorizontalAlignment = HorizontalAlignment.Center;
+        image.VerticalAlignment = VerticalAlignment.Center;
+        image.Source = CreateBarcodeImageSource(item, hriLayout, productionWidthMm);
+        if (hriLayout.IsEnabled && hriLayout.IsValid)
+        {
+            // Match print contract: Above puts HRI in row 0; Below keeps HRI under the bars.
+            if (panel.RowDefinitions.Count >= 2)
+            {
+                if (hriLayout.Placement == Core.Enums.BarcodeHriPlacement.Above)
+                {
+                    panel.RowDefinitions[0].Height = GridLength.Auto;
+                    panel.RowDefinitions[1].Height = new GridLength(1, GridUnitType.Star);
+                    Grid.SetRow(hri, 0);
+                    Grid.SetRow(image, 1);
+                }
+                else
+                {
+                    panel.RowDefinitions[0].Height = new GridLength(1, GridUnitType.Star);
+                    panel.RowDefinitions[1].Height = GridLength.Auto;
+                    Grid.SetRow(image, 0);
+                    Grid.SetRow(hri, 1);
+                }
+            }
+
+            var symbology = item.Type switch
+            {
+                ObjectType.QRCode => BarcodeSymbology.QRCode,
+                ObjectType.DataMatrix => BarcodeSymbology.DataMatrix,
+                _ => item.BarcodeSymbology
+            };
+            hri.Text = BarcodeCheckDigitContract.FormatHriText(
+                symbology,
+                data,
+                item.BarcodeCheckDigitPolicy,
+                item.BarcodeHriShowCheckDigit);
+            hri.FontSize = item.BarcodeTextFontSizePt;
+            hri.Height = MmToDip(hriLayout.HriHeightMm);
+            hri.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            if (panel.RowDefinitions.Count >= 2)
+            {
+                panel.RowDefinitions[0].Height = new GridLength(1, GridUnitType.Star);
+                panel.RowDefinitions[1].Height = GridLength.Auto;
+                Grid.SetRow(image, 0);
+                Grid.SetRow(hri, 1);
+            }
+
+            hri.Text = string.Empty;
+            hri.Height = 0;
+            hri.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private ImageSource? CreateBarcodeImageSource(LabelObject item, BarcodeHriLayout? measuredLayout = null, double? productionWidthMm = null)
     {
         var data = ResolveObjectData(item);
         var type = item.Type switch
@@ -1826,7 +3873,23 @@ public sealed class LabelDesignerCanvas : Canvas
 
         try
         {
-            var pixels = _barcodeRenderer.RenderBarcode(data, type, item.WidthMm, item.HeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
+            var planDpi = ResolvePrintPlanDpi(item);
+            var widthMm = productionWidthMm
+                ?? LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, _barcodeRenderer, planDpi, data);
+            var hriLayout = measuredLayout ?? BarcodeHriTextLayout.Measure(
+                type,
+                data,
+                widthMm,
+                item.HeightMm,
+                item.BarcodeHriPlacement,
+                item.BarcodeTextFontSizePt);
+            if (!hriLayout.IsValid)
+            {
+                return null;
+            }
+
+            var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            var pixels = _barcodeRenderer.RenderBarcode(data, type, widthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
             var source = BitmapSource.Create(
                 pixels.WidthPixels,
                 pixels.HeightPixels,
@@ -1859,27 +3922,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private static ImageSource? CreatePictureImageSource(LabelObject item)
     {
-        if (string.IsNullOrWhiteSpace(item.ImageDataBase64))
-        {
-            return null;
-        }
-
-        try
-        {
-            var bytes = Convert.FromBase64String(item.ImageDataBase64);
-            using var stream = new MemoryStream(bytes);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.StreamSource = stream;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
-        catch
-        {
-            return null;
-        }
+        return ImageRasterizer.Decode(item.ImageDataBase64, item.ImageRasterMode);
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
@@ -1887,8 +3930,29 @@ public sealed class LabelDesignerCanvas : Canvas
         return new BarcodeRenderOptions
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules
+            QuietZoneModules = item.QrQuietZoneModules,
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
         };
+    }
+
+    /// <summary>
+    /// Same DPI priority as preflight / MainViewModel SizedFromX apply:
+    /// PrinterProfile.Dpi → Template.Dpi → object QrDpi → 203.
+    /// SizedFromX production width must not use design-only QrDpi alone.
+    /// </summary>
+    private int ResolvePrintPlanDpi(LabelObject item)
+    {
+        if (Template?.PrinterProfile is { Dpi: > 0 } profile)
+        {
+            return profile.Dpi;
+        }
+
+        if (Template is { Dpi: > 0 })
+        {
+            return Template.Dpi;
+        }
+
+        return item.QrDpi > 0 ? item.QrDpi : 203;
     }
 
     private bool TryApplyMatrixAutoSize(LabelObject item)
@@ -1898,23 +3962,16 @@ public sealed class LabelDesignerCanvas : Canvas
             return false;
         }
 
-        var fitSizeMm = item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize
-            ? QrAutoSizeHelper.CalculateFixedSizeMm(item.QrFixedVersion, item.QrModuleSizePx, item.QrQuietZoneModules, item.QrDpi, GetAvailableQrSizeMm(item))
-            : QrAutoSizeHelper.CalculateRequiredSizeMm(
-                ResolveObjectData(item),
-                item.WidthMm,
-                item.HeightMm,
-                item.QrErrorCorrection,
-                item.QrModuleSizePx,
-                item.QrQuietZoneModules,
-                item.QrDpi,
-                maxSizeMm: GetAvailableQrSizeMm(item));
+        var fitSizeMm = QrObjectGeometryContract.ResolveTargetSizeMm(
+            item,
+            ResolveObjectData(item),
+            GetAvailableQrSizeMm(item));
         if (fitSizeMm is null)
         {
             return false;
         }
 
-        if (Math.Abs(item.WidthMm - fitSizeMm.Value) <= 0.05 && Math.Abs(item.HeightMm - fitSizeMm.Value) <= 0.05)
+        if (!QrObjectGeometryContract.HasMeaningfulSizeDelta(item, fitSizeMm.Value))
         {
             return false;
         }
@@ -1991,17 +4048,233 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         _selectionAdorner = new SelectionResizeAdorner(element);
+        _selectionAdorner.ResizeStarted += (_, _) =>
+        {
+            CommitNudgeGesture();
+            _singleResizeStart = CaptureGroupResizeSnapshot(item);
+            _singleResizeActive = true;
+            ClearSnapLocks();
+            NotifyEditGestureStarted();
+        };
+        _selectionAdorner.ResizeCompleted += (_, _) =>
+        {
+            _singleResizeActive = false;
+            ClearSnapLocks();
+            HideAlignmentGuides();
+            NotifyEditGestureCompleted();
+        };
+        _selectionAdorner.ResizeCanceled += (_, _) =>
+        {
+            RestoreSingleResizeStart(item);
+            _singleResizeActive = false;
+            ClearSnapLocks();
+            HideAlignmentGuides();
+            NotifyEditGestureCanceled();
+        };
         _selectionAdorner.ResizeRequested += (_, delta) => ResizeSelectedObject(item, delta);
         _adornedObject = item;
         layer.Add(_selectionAdorner);
     }
 
+    private void RefreshSelectionAdorner()
+    {
+        RemoveAllSelectionAdorners();
+        if (_selectedObjects.Count == 1 && SelectedObject is not null)
+        {
+            ShowSelectionAdorner(SelectedObject);
+        }
+        else if (_selectedObjects.Count > 1)
+        {
+            var resizeItems = GetResizeSelection();
+            if (resizeItems.Count > 1)
+            {
+                ShowGroupResizeAdorner();
+            }
+            else if (resizeItems.Count == 1)
+            {
+                ShowSelectionAdorner(resizeItems[0]);
+            }
+        }
+    }
+
+    private void ShowGroupResizeAdorner()
+    {
+        var resizeItems = GetResizeSelection();
+        if (resizeItems.Count < 2 || Template is null)
+        {
+            RemoveGroupResizeAdorner();
+            return;
+        }
+
+        var layer = AdornerLayer.GetAdornerLayer(this)
+            ?? resizeItems.Select(item => _objectElements.TryGetValue(item, out var element)
+                ? AdornerLayer.GetAdornerLayer(element)
+                : null).FirstOrDefault(candidate => candidate is not null);
+        if (layer is null)
+        {
+            return;
+        }
+
+        RemoveGroupResizeAdorner();
+        _groupResizeStarts.Clear();
+        foreach (var item in resizeItems)
+        {
+            _groupResizeStarts[item] = CaptureGroupResizeSnapshot(item);
+        }
+
+        _groupResizeAdorner = new SelectionResizeAdorner(this, GetSelectedGroupBoundsDip);
+        _groupResizeAdorner.ResizeStarted += (_, _) =>
+        {
+            CommitNudgeGesture();
+            CaptureGroupResizeStarts();
+            ClearSnapLocks();
+            NotifyEditGestureStarted();
+        };
+        _groupResizeAdorner.ResizeCompleted += (_, _) =>
+        {
+            _groupResizeStarts.Clear();
+            ClearSnapLocks();
+            HideAlignmentGuides();
+            NotifyEditGestureCompleted();
+        };
+        _groupResizeAdorner.ResizeCanceled += (_, _) =>
+        {
+            RestoreGroupResizeStarts();
+            _groupResizeStarts.Clear();
+            ClearSnapLocks();
+            HideAlignmentGuides();
+            NotifyEditGestureCanceled();
+        };
+        _groupResizeAdorner.ResizeRequested += (_, delta) => ResizeSelectedGroup(delta);
+        _groupResizeAdornerLayer = layer;
+        layer.Add(_groupResizeAdorner);
+    }
+
+    private void CaptureGroupResizeStarts()
+    {
+        _groupResizeStarts.Clear();
+        foreach (var item in GetResizeSelection())
+        {
+            _groupResizeStarts[item] = CaptureGroupResizeSnapshot(item);
+        }
+    }
+
+    private IReadOnlyList<LabelObject> GetResizeSelection()
+    {
+        return _selectedObjects
+            .Where(item => item.IsVisible && !item.IsLocked)
+            .OrderBy(item => item.ZIndex)
+            .ThenBy(item => item.Id, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private Rect GetSelectedGroupBoundsDip()
+    {
+        var bounds = GetSelectedGroupBoundsMm();
+        return new Rect(
+            MmToDip(bounds.Left),
+            MmToDip(bounds.Top),
+            Math.Max(0, MmToDip(bounds.Width)),
+            Math.Max(0, MmToDip(bounds.Height)));
+    }
+
+    private Rect GetSelectedGroupBoundsMm()
+    {
+        var items = GetResizeSelection();
+        if (items.Count == 0)
+        {
+            return Rect.Empty;
+        }
+
+        var bounds = items.Select(GetObjectBoundsMm).ToArray();
+        return new Rect(
+            new Point(bounds.Min(item => item.Left), bounds.Min(item => item.Top)),
+            new Point(bounds.Max(item => item.Right), bounds.Max(item => item.Bottom)));
+    }
+
+    private static GroupResizeObjectSnapshot CaptureGroupResizeSnapshot(LabelObject item)
+    {
+        var endXMm = item.LineEndXMm == 0 && item.LineEndYMm == 0
+            ? item.XMm + item.WidthMm
+            : item.LineEndXMm;
+        var endYMm = item.LineEndXMm == 0 && item.LineEndYMm == 0
+            ? item.YMm + item.HeightMm
+            : item.LineEndYMm;
+        return new GroupResizeObjectSnapshot(
+            item.XMm,
+            item.YMm,
+            item.WidthMm,
+            item.HeightMm,
+            endXMm,
+            endYMm,
+            item.Rotation);
+    }
+
+    private void RestoreGroupResizeStarts()
+    {
+        foreach (var pair in _groupResizeStarts)
+        {
+            var item = pair.Key;
+            var start = pair.Value;
+            item.XMm = start.XMm;
+            item.YMm = start.YMm;
+            item.WidthMm = start.WidthMm;
+            item.HeightMm = start.HeightMm;
+            if (item.Type == ObjectType.Line)
+            {
+                item.LineEndXMm = start.EndXMm;
+                item.LineEndYMm = start.EndYMm;
+            }
+
+            UpdateObjectElement(item);
+        }
+
+        InvalidateVisual();
+        _groupResizeAdorner?.InvalidateMeasure();
+        _groupResizeAdorner?.InvalidateArrange();
+        _groupResizeAdorner?.InvalidateVisual();
+    }
+
+    private void RestoreSingleResizeStart(LabelObject item)
+    {
+        if (!_singleResizeActive)
+        {
+            return;
+        }
+
+        var start = _singleResizeStart;
+
+        item.XMm = start.XMm;
+        item.YMm = start.YMm;
+        item.WidthMm = start.WidthMm;
+        item.HeightMm = start.HeightMm;
+        if (item.Type == ObjectType.Line)
+        {
+            item.LineEndXMm = start.EndXMm;
+            item.LineEndYMm = start.EndYMm;
+        }
+
+        UpdateObjectElement(item);
+        InvalidateVisual();
+        _selectionAdorner?.InvalidateMeasure();
+        _selectionAdorner?.InvalidateArrange();
+        _selectionAdorner?.InvalidateVisual();
+    }
+
+    private void RemoveAllSelectionAdorners()
+    {
+        RemoveSelectionAdorner();
+        RemoveGroupResizeAdorner();
+    }
+
     private void RemoveSelectionAdorner()
     {
+        _selectionAdorner?.CancelResize();
         if (_selectionAdorner is null || _adornedObject is null)
         {
             _selectionAdorner = null;
             _adornedObject = null;
+            _singleResizeActive = false;
             return;
         }
 
@@ -2012,6 +4285,333 @@ public sealed class LabelDesignerCanvas : Canvas
 
         _selectionAdorner = null;
         _adornedObject = null;
+        _singleResizeActive = false;
+    }
+
+    private void RemoveGroupResizeAdorner()
+    {
+        if (_groupResizeAdorner is not null)
+        {
+            _groupResizeAdorner.CancelResize();
+            _groupResizeAdornerLayer?.Remove(_groupResizeAdorner);
+            AdornerLayer.GetAdornerLayer(this)?.Remove(_groupResizeAdorner);
+        }
+
+        _groupResizeAdorner = null;
+        _groupResizeAdornerLayer = null;
+        _groupResizeStarts.Clear();
+    }
+
+    private void ResizeSelectedGroup(ResizeDelta delta)
+    {
+        if (Template is null || _groupResizeStarts.Count < 2)
+        {
+            return;
+        }
+
+        var source = GetGroupResizeSourceBounds();
+        var deltaXMm = DipToMm(delta.DeltaX);
+        var deltaYMm = DipToMm(delta.DeltaY);
+        var deltaWidthMm = DipToMm(delta.DeltaWidth);
+        var deltaHeightMm = DipToMm(delta.DeltaHeight);
+        if (!GroupResizeGeometryContract.TryResize(
+                source,
+                deltaXMm,
+                deltaYMm,
+                deltaWidthMm,
+                deltaHeightMm,
+                minimumWidthMm: 1,
+                minimumHeightMm: 1,
+                out var target))
+        {
+            return;
+        }
+
+        var modifierFlags = GetResizeModifierFlags(delta);
+        if (modifierFlags != ResizeModifierFlags.None)
+        {
+            target = ResizeModifierContract.Apply(
+                source,
+                target,
+                delta.Handle,
+                modifierFlags,
+                minimumWidthMm: 1,
+                minimumHeightMm: 1);
+        }
+
+        target = GroupResizeGeometryContract.ClampToCanvas(
+            target,
+            Template.WidthMm,
+            Template.HeightMm,
+            minimumWidthMm: 1,
+            minimumHeightMm: 1);
+
+        var resizeSnap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        if ((IsSnapToObjectsEnabled || IsSnapToGridEnabled)
+            && !delta.DisableSnapping
+            && !Keyboard.IsKeyDown(Key.LeftAlt)
+            && !Keyboard.IsKeyDown(Key.RightAlt))
+        {
+            var selected = _groupResizeStarts.Keys.ToHashSet();
+            var movesLeft = Math.Abs(deltaXMm) > 0.0001 && Math.Abs(deltaWidthMm) > 0.0001;
+            var movesTop = Math.Abs(deltaYMm) > 0.0001 && Math.Abs(deltaHeightMm) > 0.0001;
+            if (movesLeft || Math.Abs(deltaWidthMm) > 0.0001)
+            {
+                var leading = movesLeft;
+                var edge = leading ? target.XMm : target.RightMm;
+                var sourceAnchor = leading ? SnapAnchorKind.Leading : SnapAnchorKind.Trailing;
+                var edgeSnap = ComputePriorityGroupResizeEdgeSnap(edge, horizontal: true, sourceAnchor, selected);
+                if (edgeSnap.Delta is not null)
+                {
+                    target = ShiftGroupResizeEdge(target, horizontal: true, leading, edgeSnap.Delta.Value);
+                    resizeSnap = resizeSnap with
+                    {
+                        SnapX = edgeSnap.Delta,
+                        GuideXPositions = edgeSnap.Guides
+                    };
+                }
+            }
+
+            if (movesTop || Math.Abs(deltaHeightMm) > 0.0001)
+            {
+                var leading = movesTop;
+                var edge = leading ? target.YMm : target.BottomMm;
+                var sourceAnchor = leading ? SnapAnchorKind.Leading : SnapAnchorKind.Trailing;
+                var edgeSnap = ComputePriorityGroupResizeEdgeSnap(edge, horizontal: false, sourceAnchor, selected);
+                if (edgeSnap.Delta is not null)
+                {
+                    target = ShiftGroupResizeEdge(target, horizontal: false, leading, edgeSnap.Delta.Value);
+                    resizeSnap = resizeSnap with
+                    {
+                        SnapY = edgeSnap.Delta,
+                        GuideYPositions = edgeSnap.Guides
+                    };
+                }
+            }
+        }
+        else
+        {
+            ClearSnapLocks();
+        }
+
+        // Snapping is a visual aid, while an explicit modifier is an
+        // authoring invariant.  Re-apply the invariant after an edge target
+        // is chosen so a snapped group cannot silently lose its aspect ratio
+        // or centre anchor.  Any guide that no longer describes the final
+        // frame is removed below rather than showing stale alignment.
+        if (modifierFlags != ResizeModifierFlags.None)
+        {
+            var adjusted = ResizeModifierContract.Apply(
+                source,
+                target,
+                delta.Handle,
+                modifierFlags,
+                minimumWidthMm: 1,
+                minimumHeightMm: 1);
+            if (!FramesEqual(target, adjusted))
+            {
+                resizeSnap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+            }
+
+            target = adjusted;
+        }
+
+        target = GroupResizeGeometryContract.ClampToCanvas(
+            target,
+            Template.WidthMm,
+            Template.HeightMm,
+            minimumWidthMm: 1,
+            minimumHeightMm: 1);
+        var transform = new GroupResizeTransform(source, target);
+        foreach (var pair in _groupResizeStarts)
+        {
+            ApplyGroupResizeTransform(pair.Key, pair.Value, source, transform);
+        }
+
+        InvalidateVisual();
+        _groupResizeAdorner?.InvalidateMeasure();
+        _groupResizeAdorner?.InvalidateArrange();
+        _groupResizeAdorner?.InvalidateVisual();
+        if (resizeSnap.SnapX is not null || resizeSnap.SnapY is not null)
+        {
+            ShowAlignmentGuides(resizeSnap);
+        }
+        else
+        {
+            HideAlignmentGuides();
+        }
+    }
+
+    private GroupResizeFrame GetGroupResizeSourceBounds()
+    {
+        var bounds = _groupResizeStarts
+            .Select(pair => GetGroupResizeSnapshotBounds(pair.Key, pair.Value))
+            .ToArray();
+        return new GroupResizeFrame(
+            bounds.Min(item => item.Left),
+            bounds.Min(item => item.Top),
+            bounds.Max(item => item.Right) - bounds.Min(item => item.Left),
+            bounds.Max(item => item.Bottom) - bounds.Min(item => item.Top));
+    }
+
+    private static LabelLayoutBounds GetGroupResizeSnapshotBounds(
+        LabelObject item,
+        GroupResizeObjectSnapshot snapshot)
+    {
+        if (item.Type == ObjectType.Line)
+        {
+            return LineBoundsContract.GetBounds(
+                snapshot.XMm,
+                snapshot.YMm,
+                snapshot.EndXMm,
+                snapshot.EndYMm,
+                item.Style.OutlineStyle,
+                item.Style.BorderThicknessMm);
+        }
+
+        return TransformedBoundsContract.GetBounds(
+            snapshot.XMm,
+            snapshot.YMm,
+            snapshot.WidthMm,
+            snapshot.HeightMm,
+            snapshot.Rotation);
+    }
+
+    private static GroupResizeFrame ShiftGroupResizeEdge(
+        GroupResizeFrame frame,
+        bool horizontal,
+        bool leading,
+        double delta)
+    {
+        if (!double.IsFinite(delta))
+        {
+            return frame;
+        }
+
+        if (horizontal)
+        {
+            var width = leading ? frame.WidthMm - delta : frame.WidthMm + delta;
+            return width < 1
+                ? frame
+                : leading
+                    ? frame with { XMm = frame.XMm + delta, WidthMm = width }
+                    : frame with { WidthMm = width };
+        }
+
+        var height = leading ? frame.HeightMm - delta : frame.HeightMm + delta;
+        return height < 1
+            ? frame
+            : leading
+                ? frame with { YMm = frame.YMm + delta, HeightMm = height }
+                : frame with { HeightMm = height };
+    }
+
+    private static void ApplyGroupResizeTransform(
+        LabelObject item,
+        GroupResizeObjectSnapshot snapshot,
+        GroupResizeFrame source,
+        GroupResizeTransform transform)
+    {
+        if (item.Type == ObjectType.Line)
+        {
+            item.XMm = transform.MapX(snapshot.XMm);
+            item.YMm = transform.MapY(snapshot.YMm);
+            item.LineEndXMm = transform.MapX(snapshot.EndXMm);
+            item.LineEndYMm = transform.MapY(snapshot.EndYMm);
+            item.WidthMm = Math.Max(0.5, Math.Abs(item.LineEndXMm - item.XMm));
+            item.HeightMm = Math.Max(0.5, Math.Abs(item.LineEndYMm - item.YMm));
+            return;
+        }
+
+        var bounds = TransformedBoundsContract.GetBounds(
+            snapshot.XMm,
+            snapshot.YMm,
+            snapshot.WidthMm,
+            snapshot.HeightMm,
+            snapshot.Rotation);
+        var transformed = GroupResizeGeometryContract.MapBounds(transform, bounds);
+        var authored = GroupResizeGeometryContract.ToAuthoredFrame(transformed, snapshot.Rotation);
+        if (item.Type == ObjectType.Text
+            && item.Style.TextSizing == TextSizingMode.AutoFit
+            && (Math.Abs(authored.WidthMm - snapshot.WidthMm) > 0.01
+                || Math.Abs(authored.HeightMm - snapshot.HeightMm) > 0.01))
+        {
+            item.Style.TextSizing = TextSizingMode.FixedFrame;
+        }
+
+        item.XMm = authored.XMm;
+        item.YMm = authored.YMm;
+        item.WidthMm = authored.WidthMm;
+        item.HeightMm = authored.HeightMm;
+    }
+
+    private (double? Delta, List<double> Guides) ComputePriorityGroupResizeEdgeSnap(
+        double edge,
+        bool horizontal,
+        SnapAnchorKind sourceAnchor,
+        IReadOnlySet<LabelObject> selected)
+    {
+        var candidates = new List<SnapCandidate>();
+        if (IsSnapToObjectsEnabled)
+        {
+            foreach (var other in Template!.Objects.Where(item => !selected.Contains(item) && item.IsVisible))
+            {
+                var bounds = GetObjectBoundsMm(other);
+                var targets = horizontal
+                    ? new[]
+                    {
+                        (SnapAnchorKind.Leading, bounds.Left),
+                        (SnapAnchorKind.Center, (bounds.Left + bounds.Right) / 2),
+                        (SnapAnchorKind.Trailing, bounds.Right)
+                    }
+                    : new[]
+                    {
+                        (SnapAnchorKind.Leading, bounds.Top),
+                        (SnapAnchorKind.Center, (bounds.Top + bounds.Bottom) / 2),
+                        (SnapAnchorKind.Trailing, bounds.Bottom)
+                    };
+                var stableKey = GetSnapStableKey(other);
+                foreach (var target in targets)
+                {
+                    candidates.Add(new SnapCandidate(
+                        edge,
+                        target.Item2,
+                        Math.Abs(edge - target.Item2),
+                        GetSnapPriority(sourceAnchor, target.Item1),
+                        $"{stableKey}:group-resize:{(horizontal ? 'x' : 'y')}:{sourceAnchor}:{target.Item1}"));
+                }
+            }
+
+            var canvasTarget = horizontal ? Template.WidthMm / 2 : Template.HeightMm / 2;
+            candidates.Add(new SnapCandidate(
+                edge,
+                canvasTarget,
+                Math.Abs(edge - canvasTarget),
+                90,
+                $"canvas:center:group-resize:{(horizontal ? 'x' : 'y')}"));
+        }
+
+        if (IsSnapToGridEnabled
+            && SnapGridContract.TrySnap(edge, GridStepMm, SnapThresholdMm, out var gridTarget))
+        {
+            candidates.Add(new SnapCandidate(
+                edge,
+                gridTarget,
+                Math.Abs(edge - gridTarget),
+                GetSnapPriority(sourceAnchor, SnapAnchorKind.Grid),
+                $"grid:group-resize:{(horizontal ? 'x' : 'y')}:{gridTarget:0.###}"));
+        }
+
+        var winner = ChoosePathSnap(SnapPathKind.Resize, candidates);
+        var guides = GetWinningGuides(candidates, winner);
+        var state = horizontal ? _snapLockX : _snapLockY;
+        var resolvedTarget = ResolveSnapTarget(
+            SnapPathKind.Resize,
+            edge,
+            winner is SnapCandidate selectedWinner ? (double?)(edge + selectedWinner.Delta) : null,
+            state,
+            guides);
+        return (resolvedTarget is null ? null : resolvedTarget.Value - edge, guides);
     }
 
     private void ResizeSelectedObject(LabelObject item, ResizeDelta delta)
@@ -2054,6 +4654,146 @@ public sealed class LabelDesignerCanvas : Canvas
             newHeight = Template.HeightMm - newY;
         }
 
+        var modifierFlags = GetResizeModifierFlags(delta);
+        if (modifierFlags != ResizeModifierFlags.None)
+        {
+            var adjusted = ResizeModifierContract.Apply(
+                new ResizeFrame(item.XMm, item.YMm, item.WidthMm, item.HeightMm),
+                new ResizeFrame(newX, newY, newWidth, newHeight),
+                delta.Handle,
+                modifierFlags,
+                minimumWidthMm: minSizeMm,
+                minimumHeightMm: minSizeMm);
+            newX = adjusted.XMm;
+            newY = adjusted.YMm;
+            newWidth = adjusted.WidthMm;
+            newHeight = adjusted.HeightMm;
+        }
+
+        var resizeSnap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        if ((IsSnapToObjectsEnabled || IsSnapToGridEnabled)
+            && !delta.DisableSnapping
+            && !Keyboard.IsKeyDown(Key.LeftAlt)
+            && !Keyboard.IsKeyDown(Key.RightAlt))
+        {
+            var movingLeft = Math.Abs(deltaXMm) > 0.0001;
+            var movingTop = Math.Abs(deltaYMm) > 0.0001;
+            var frame = new ResizeFrame(newX, newY, newWidth, newHeight);
+            if (movingLeft || Math.Abs(deltaWidthMm) > 0.0001)
+            {
+                var localEdge = movingLeft ? ResizeEdge.Left : ResizeEdge.Right;
+                var worldEdge = ResizeGeometryContract.MapToWorldEdge(item.Rotation, localEdge);
+                var horizontal = worldEdge is TransformedBoundsEdge.Left or TransformedBoundsEdge.Right;
+                var edge = ResizeGeometryContract.GetWorldEdgePosition(frame, item.Rotation, localEdge);
+                var sourceAnchor = worldEdge is TransformedBoundsEdge.Left or TransformedBoundsEdge.Top
+                    ? SnapAnchorKind.Leading
+                    : SnapAnchorKind.Trailing;
+                var edgeSnap = ComputePriorityResizeEdgeSnap(item, edge, horizontal, sourceAnchor);
+                if (edgeSnap.Delta is not null)
+                {
+                    frame = ResizeGeometryContract.ApplyWorldEdgeSnap(
+                        frame,
+                        item.Rotation,
+                        localEdge,
+                        edge + edgeSnap.Delta.Value,
+                        minSizeMm);
+
+                    resizeSnap = horizontal
+                        ? resizeSnap with
+                        {
+                            SnapX = edgeSnap.Delta,
+                            GuideXPositions = edgeSnap.Guides
+                        }
+                        : resizeSnap with
+                        {
+                            SnapY = edgeSnap.Delta,
+                            GuideYPositions = edgeSnap.Guides
+                        };
+                }
+            }
+
+            if (movingTop || Math.Abs(deltaHeightMm) > 0.0001)
+            {
+                var localEdge = movingTop ? ResizeEdge.Top : ResizeEdge.Bottom;
+                var worldEdge = ResizeGeometryContract.MapToWorldEdge(item.Rotation, localEdge);
+                var horizontal = worldEdge is TransformedBoundsEdge.Left or TransformedBoundsEdge.Right;
+                var edge = ResizeGeometryContract.GetWorldEdgePosition(frame, item.Rotation, localEdge);
+                var sourceAnchor = worldEdge is TransformedBoundsEdge.Left or TransformedBoundsEdge.Top
+                    ? SnapAnchorKind.Leading
+                    : SnapAnchorKind.Trailing;
+                var edgeSnap = ComputePriorityResizeEdgeSnap(item, edge, horizontal, sourceAnchor);
+                if (edgeSnap.Delta is not null)
+                {
+                    frame = ResizeGeometryContract.ApplyWorldEdgeSnap(
+                        frame,
+                        item.Rotation,
+                        localEdge,
+                        edge + edgeSnap.Delta.Value,
+                        minSizeMm);
+
+                    resizeSnap = horizontal
+                        ? resizeSnap with
+                        {
+                            SnapX = edgeSnap.Delta,
+                            GuideXPositions = edgeSnap.Guides
+                        }
+                        : resizeSnap with
+                        {
+                            SnapY = edgeSnap.Delta,
+                            GuideYPositions = edgeSnap.Guides
+                        };
+                }
+            }
+
+            newX = frame.XMm;
+            newY = frame.YMm;
+            newWidth = frame.WidthMm;
+            newHeight = frame.HeightMm;
+        }
+
+        else
+        {
+            // A temporary Alt bypass must also release the previous target;
+            // otherwise the hysteresis lock could reappear on the next tick.
+            ClearSnapLocks();
+        }
+
+        if (modifierFlags != ResizeModifierFlags.None)
+        {
+            var adjusted = ResizeModifierContract.Apply(
+                new ResizeFrame(item.XMm, item.YMm, item.WidthMm, item.HeightMm),
+                new ResizeFrame(newX, newY, newWidth, newHeight),
+                delta.Handle,
+                modifierFlags,
+                minimumWidthMm: minSizeMm,
+                minimumHeightMm: minSizeMm);
+            if (!FramesEqual(new ResizeFrame(newX, newY, newWidth, newHeight), adjusted))
+            {
+                resizeSnap = new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+            }
+
+            newX = adjusted.XMm;
+            newY = adjusted.YMm;
+            newWidth = adjusted.WidthMm;
+            newHeight = adjusted.HeightMm;
+        }
+
+        newX = Math.Max(0, Math.Min(Template.WidthMm - minSizeMm, newX));
+        newY = Math.Max(0, Math.Min(Template.HeightMm - minSizeMm, newY));
+        newWidth = Math.Max(minSizeMm, Math.Min(Template.WidthMm - newX, newWidth));
+        newHeight = Math.Max(minSizeMm, Math.Min(Template.HeightMm - newY, newHeight));
+
+        // Free Text: NiceLabel does not allow manual Text size edits (size follows
+        // font). ANLAbel allows border-drag WYSIWYG: lock the selection frame so
+        // AutoFit cannot re-expand it, and glyph frame-fit compress tracks the
+        // border (shared CreateTextLayout path). Still not TextBox ownership.
+        if (item.Type == ObjectType.Text
+            && item.Style.TextSizing == TextSizingMode.AutoFit
+            && (Math.Abs(newWidth - item.WidthMm) > 0.01 || Math.Abs(newHeight - item.HeightMm) > 0.01))
+        {
+            item.Style.TextSizing = TextSizingMode.FixedFrame;
+        }
+
         item.XMm = newX;
         item.YMm = newY;
         item.WidthMm = newWidth;
@@ -2061,13 +4801,627 @@ public sealed class LabelDesignerCanvas : Canvas
         UpdateObjectElement(item);
         _selectionAdorner?.InvalidateArrange();
         _selectionAdorner?.InvalidateVisual();
+        if (resizeSnap.SnapX is not null || resizeSnap.SnapY is not null)
+        {
+            ShowAlignmentGuides(resizeSnap);
+        }
+        else
+        {
+            HideAlignmentGuides();
+        }
+    }
+
+    private static ResizeModifierFlags GetResizeModifierFlags(ResizeDelta delta)
+    {
+        var flags = ResizeModifierFlags.None;
+        if (delta.PreserveAspectRatio)
+        {
+            flags |= ResizeModifierFlags.PreserveAspectRatio;
+        }
+
+        if (delta.ResizeFromCenter)
+        {
+            flags |= ResizeModifierFlags.ResizeFromCenter;
+        }
+
+        return flags;
+    }
+
+    private static bool FramesEqual(ResizeFrame left, ResizeFrame right)
+    {
+        return Math.Abs(left.XMm - right.XMm) <= 0.000001
+            && Math.Abs(left.YMm - right.YMm) <= 0.000001
+            && Math.Abs(left.WidthMm - right.WidthMm) <= 0.000001
+            && Math.Abs(left.HeightMm - right.HeightMm) <= 0.000001;
+    }
+
+    private static bool FramesEqual(GroupResizeFrame left, GroupResizeFrame right)
+    {
+        return Math.Abs(left.XMm - right.XMm) <= 0.000001
+            && Math.Abs(left.YMm - right.YMm) <= 0.000001
+            && Math.Abs(left.WidthMm - right.WidthMm) <= 0.000001
+            && Math.Abs(left.HeightMm - right.HeightMm) <= 0.000001;
+    }
+
+    private (double? Delta, List<double> Guides) ComputePriorityResizeEdgeSnap(LabelObject dragged, double edge, bool horizontal, SnapAnchorKind sourceAnchor)
+    {
+        var candidates = new List<SnapCandidate>();
+        if (IsSnapToObjectsEnabled)
+        {
+            foreach (var other in Template!.Objects.Where(item => !ReferenceEquals(item, dragged) && item.IsVisible))
+            {
+                var bounds = GetObjectBoundsMm(other);
+                var targets = horizontal
+                    ? new[]
+                    {
+                        (SnapAnchorKind.Leading, bounds.Left),
+                        (SnapAnchorKind.Center, (bounds.Left + bounds.Right) / 2),
+                        (SnapAnchorKind.Trailing, bounds.Right)
+                    }
+                    : new[]
+                    {
+                        (SnapAnchorKind.Leading, bounds.Top),
+                        (SnapAnchorKind.Center, (bounds.Top + bounds.Bottom) / 2),
+                        (SnapAnchorKind.Trailing, bounds.Bottom)
+                    };
+                var stableKey = GetSnapStableKey(other);
+                foreach (var target in targets)
+                {
+                    candidates.Add(new SnapCandidate(
+                        edge,
+                        target.Item2,
+                        Math.Abs(edge - target.Item2),
+                        GetSnapPriority(sourceAnchor, target.Item1),
+                        $"{stableKey}:resize:{(horizontal ? 'x' : 'y')}:{sourceAnchor}:{target.Item1}"));
+                }
+            }
+
+            var canvasTarget = horizontal ? Template!.WidthMm / 2 : Template.HeightMm / 2;
+            candidates.Add(new SnapCandidate(edge, canvasTarget, Math.Abs(edge - canvasTarget), 90, $"canvas:center:resize:{(horizontal ? 'x' : 'y')}"));
+        }
+        if (IsSnapToGridEnabled
+            && SnapGridContract.TrySnap(edge, GridStepMm, SnapThresholdMm, out var gridTarget))
+        {
+            candidates.Add(new SnapCandidate(
+                edge,
+                gridTarget,
+                Math.Abs(edge - gridTarget),
+                GetSnapPriority(sourceAnchor, SnapAnchorKind.Grid),
+                $"grid:resize:{(horizontal ? 'x' : 'y')}:{gridTarget:0.###}"));
+        }
+        var winner = ChoosePathSnap(SnapPathKind.Resize, candidates);
+        var guides = GetWinningGuides(candidates, winner);
+        var state = horizontal ? _snapLockX : _snapLockY;
+        var resolvedTarget = ResolveSnapTarget(
+            SnapPathKind.Resize,
+            edge,
+            winner is SnapCandidate selected ? (double?)(edge + selected.Delta) : null,
+            state,
+            guides);
+        return (resolvedTarget is null ? null : resolvedTarget.Value - edge, guides);
+    }
+
+    private (double? Delta, List<double> Guides) ComputeResizeEdgeSnapLegacy(LabelObject dragged, double edge, bool horizontal)
+    {
+        var bestDistance = double.MaxValue;
+        var bestDelta = (double?)null;
+        var guides = new List<double>();
+        foreach (var other in Template!.Objects.Where(item => !ReferenceEquals(item, dragged) && item.IsVisible))
+        {
+            var bounds = GetObjectBoundsMm(other);
+            var targets = horizontal
+                ? new[] { bounds.Left, bounds.Right, (bounds.Left + bounds.Right) / 2 }
+                : new[] { bounds.Top, bounds.Bottom, (bounds.Top + bounds.Bottom) / 2 };
+            foreach (var target in targets)
+            {
+                CheckSnap(edge, target, SnapThresholdMm, ref bestDistance, ref bestDelta, guides, target);
+            }
+        }
+
+        var canvasTarget = horizontal ? Template!.WidthMm / 2 : Template.HeightMm / 2;
+        CheckSnap(edge, canvasTarget, SnapThresholdMm, ref bestDistance, ref bestDelta, guides, canvasTarget);
+        var state = horizontal ? _snapLockX : _snapLockY;
+        var resolvedTarget = ResolveSnapTarget(
+            SnapPathKind.Resize,
+            edge,
+            bestDelta is null ? null : edge + bestDelta.Value,
+            state,
+            guides);
+        return (resolvedTarget is null ? null : resolvedTarget.Value - edge, guides);
     }
 
     // ==================== Alignment Guide System ====================
 
-    private readonly record struct AlignmentSnapResult(double? SnapX, double? SnapY, List<double> GuideXPositions, List<double> GuideYPositions);
+    private readonly record struct AlignmentSnapResult(
+        double? SnapX,
+        double? SnapY,
+        List<double> GuideXPositions,
+        List<double> GuideYPositions,
+        string? XCaption = null,
+        string? YCaption = null);
 
-    private AlignmentSnapResult ComputeAlignmentSnap(LabelObject dragged, double proposedXMm, double proposedYMm)
+    private enum SnapAnchorKind
+    {
+        Leading,
+        Center,
+        Trailing,
+        Baseline,
+        Grid,
+        Spacing
+    }
+
+    private static int GetSnapPriority(SnapAnchorKind source, SnapAnchorKind target)
+    {
+        if (source == SnapAnchorKind.Spacing || target == SnapAnchorKind.Spacing)
+        {
+            return 40;
+        }
+
+        if (source == SnapAnchorKind.Grid || target == SnapAnchorKind.Grid)
+        {
+            return 30;
+        }
+
+        if (source == SnapAnchorKind.Baseline || target == SnapAnchorKind.Baseline)
+        {
+            return source == SnapAnchorKind.Baseline && target == SnapAnchorKind.Baseline
+                ? 110
+                : 55;
+        }
+
+        if (source == target)
+        {
+            return 85;
+        }
+
+        if (source is SnapAnchorKind.Leading or SnapAnchorKind.Trailing
+            && target is SnapAnchorKind.Leading or SnapAnchorKind.Trailing)
+        {
+            return 80;
+        }
+
+        return 65;
+    }
+
+    private string GetSnapStableKey(LabelObject item)
+    {
+        var index = Template?.Objects.IndexOf(item) ?? -1;
+        return $"{item.Id}|{item.Name}|{index:D6}";
+    }
+
+    private static bool SupportsBaselineSnap(LabelObject item)
+    {
+        return item.Type is ObjectType.Text or ObjectType.TextBox;
+    }
+
+    private void AddBaselineSource(List<(SnapAnchorKind Kind, double Position)> anchors, LabelObject item, double proposedY)
+    {
+        if (!SupportsBaselineSnap(item))
+        {
+            return;
+        }
+
+        var baselineOffset = GetTextBaselineMm(item) - item.YMm;
+        if (double.IsFinite(baselineOffset))
+        {
+            anchors.Add((SnapAnchorKind.Baseline, proposedY + baselineOffset));
+        }
+    }
+
+    private void AddBaselineTarget(List<(SnapAnchorKind Kind, double Position)> anchors, LabelObject item)
+    {
+        if (!SupportsBaselineSnap(item))
+        {
+            return;
+        }
+
+        var baseline = GetTextBaselineMm(item);
+        if (double.IsFinite(baseline))
+        {
+            anchors.Add((SnapAnchorKind.Baseline, baseline));
+        }
+    }
+
+    private void AddGridCandidates(
+        List<SnapCandidate> xCandidates,
+        List<SnapCandidate> yCandidates,
+        IEnumerable<(SnapAnchorKind Kind, double Position)> sourceX,
+        IEnumerable<(SnapAnchorKind Kind, double Position)> sourceY,
+        string stablePrefix)
+    {
+        if (!IsSnapToGridEnabled)
+        {
+            return;
+        }
+
+        foreach (var source in sourceX)
+        {
+            if (SnapGridContract.TrySnap(source.Position, GridStepMm, SnapThresholdMm, out var target))
+            {
+                xCandidates.Add(new SnapCandidate(
+                    source.Position,
+                    target,
+                    Math.Abs(target - source.Position),
+                    GetSnapPriority(source.Kind, SnapAnchorKind.Grid),
+                    $"{stablePrefix}:grid:x:{source.Kind}:{target:0.###}",
+                    $"grid {target:0.##} mm"));
+            }
+        }
+
+        foreach (var source in sourceY)
+        {
+            if (SnapGridContract.TrySnap(source.Position, GridStepMm, SnapThresholdMm, out var target))
+            {
+                yCandidates.Add(new SnapCandidate(
+                    source.Position,
+                    target,
+                    Math.Abs(target - source.Position),
+                    GetSnapPriority(source.Kind, SnapAnchorKind.Grid),
+                    $"{stablePrefix}:grid:y:{source.Kind}:{target:0.###}",
+                    $"grid {target:0.##} mm"));
+            }
+        }
+    }
+
+    private void AddSmartSpacingCandidates(
+        List<SnapCandidate> xCandidates,
+        List<SnapCandidate> yCandidates,
+        double proposedLeft,
+        double proposedRight,
+        double proposedTop,
+        double proposedBottom,
+        double objectWidth,
+        double objectHeight,
+        IReadOnlySet<LabelObject> moving,
+        string stablePrefix)
+    {
+        if (Template is null)
+        {
+            return;
+        }
+
+        var intervalsX = Template.Objects
+            .Where(item => item.IsVisible && !moving.Contains(item))
+            .Select(item =>
+            {
+                var bounds = GetObjectBoundsMm(item);
+                return new SpacingInterval(bounds.Left, bounds.Right, GetSnapStableKey(item));
+            });
+        foreach (var gap in SmartSpacingContract.GetAdjacentGaps(intervalsX))
+        {
+            foreach (var targetLeading in SmartSpacingContract.CandidateLeadingPositions(objectWidth, gap))
+            {
+                xCandidates.Add(new SnapCandidate(
+                    proposedLeft,
+                    targetLeading,
+                    Math.Abs(targetLeading - proposedLeft),
+                    GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
+                    $"{stablePrefix}:spacing:x:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
+                    $"gap {gap.Gap:0.##} mm"));
+                xCandidates.Add(new SnapCandidate(
+                    proposedRight,
+                    targetLeading + objectWidth,
+                    Math.Abs(targetLeading + objectWidth - proposedRight),
+                    GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
+                    $"{stablePrefix}:spacing:x-trailing:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
+                    $"gap {gap.Gap:0.##} mm"));
+            }
+        }
+
+        var intervalsY = Template.Objects
+            .Where(item => item.IsVisible && !moving.Contains(item))
+            .Select(item =>
+            {
+                var bounds = GetObjectBoundsMm(item);
+                return new SpacingInterval(bounds.Top, bounds.Bottom, GetSnapStableKey(item));
+            });
+        foreach (var gap in SmartSpacingContract.GetAdjacentGaps(intervalsY))
+        {
+            foreach (var targetLeading in SmartSpacingContract.CandidateLeadingPositions(objectHeight, gap))
+            {
+                yCandidates.Add(new SnapCandidate(
+                    proposedTop,
+                    targetLeading,
+                    Math.Abs(targetLeading - proposedTop),
+                    GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
+                    $"{stablePrefix}:spacing:y:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
+                    $"gap {gap.Gap:0.##} mm"));
+                yCandidates.Add(new SnapCandidate(
+                    proposedBottom,
+                    targetLeading + objectHeight,
+                    Math.Abs(targetLeading + objectHeight - proposedBottom),
+                    GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
+                    $"{stablePrefix}:spacing:y-trailing:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
+                    $"gap {gap.Gap:0.##} mm"));
+            }
+        }
+    }
+
+    private static List<double> GetWinningGuides(IEnumerable<SnapCandidate> candidates, SnapCandidate? winner)
+    {
+        if (winner is not SnapCandidate selected)
+        {
+            return new List<double>();
+        }
+
+        return candidates
+            .Where(candidate => candidate.Priority == selected.Priority
+                && Math.Abs(candidate.Distance - selected.Distance) < 0.01)
+            .Select(candidate => candidate.TargetPosition)
+            .Distinct()
+            .ToList();
+    }
+
+    private static string? GetSnapCaption(SnapCandidate? candidate)
+    {
+        if (candidate is not SnapCandidate selected)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(selected.Label))
+        {
+            return selected.Label;
+        }
+
+        var key = selected.StableKey ?? string.Empty;
+        if (key.Contains("Baseline", StringComparison.OrdinalIgnoreCase))
+        {
+            return "baseline";
+        }
+
+        if (key.Contains("canvas:center", StringComparison.OrdinalIgnoreCase))
+        {
+            return "canvas center";
+        }
+
+        if (key.Contains(":Center", StringComparison.OrdinalIgnoreCase))
+        {
+            return "center";
+        }
+
+        if (key.Contains(":Leading", StringComparison.OrdinalIgnoreCase)
+            || key.Contains(":Trailing", StringComparison.OrdinalIgnoreCase))
+        {
+            return "edge";
+        }
+
+        return null;
+    }
+
+    private AlignmentSnapResult ComputePriorityAlignmentSnap(LabelObject dragged, double proposedXMm, double proposedYMm)
+    {
+        if (Template is null)
+        {
+            return new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        }
+
+        var xCandidates = new List<SnapCandidate>();
+        var yCandidates = new List<SnapCandidate>();
+        var draggedBounds = GetObjectBoundsMm(dragged);
+        var sourceX = new[]
+        {
+            (SnapAnchorKind.Leading, proposedXMm + (draggedBounds.Left - dragged.XMm)),
+            (SnapAnchorKind.Center, proposedXMm + ((draggedBounds.Left + draggedBounds.Right) / 2 - dragged.XMm)),
+            (SnapAnchorKind.Trailing, proposedXMm + (draggedBounds.Right - dragged.XMm))
+        };
+        var sourceY = new List<(SnapAnchorKind Kind, double Position)>
+        {
+            (SnapAnchorKind.Leading, proposedYMm + (draggedBounds.Top - dragged.YMm)),
+            (SnapAnchorKind.Center, proposedYMm + ((draggedBounds.Top + draggedBounds.Bottom) / 2 - dragged.YMm)),
+            (SnapAnchorKind.Trailing, proposedYMm + (draggedBounds.Bottom - dragged.YMm))
+        };
+        AddBaselineSource(sourceY, dragged, proposedYMm);
+
+        if (IsSnapToObjectsEnabled)
+        {
+            foreach (var other in Template.Objects.Where(item => !ReferenceEquals(item, dragged) && item.IsVisible))
+            {
+                var bounds = GetObjectBoundsMm(other);
+                var stableKey = GetSnapStableKey(other);
+                var targetsX = new[]
+                {
+                    (SnapAnchorKind.Leading, bounds.Left),
+                    (SnapAnchorKind.Center, (bounds.Left + bounds.Right) / 2),
+                    (SnapAnchorKind.Trailing, bounds.Right)
+                };
+                var targetsY = new List<(SnapAnchorKind Kind, double Position)>
+                {
+                    (SnapAnchorKind.Leading, bounds.Top),
+                    (SnapAnchorKind.Center, (bounds.Top + bounds.Bottom) / 2),
+                    (SnapAnchorKind.Trailing, bounds.Bottom)
+                };
+                AddBaselineTarget(targetsY, other);
+
+                foreach (var source in sourceX)
+                {
+                    foreach (var target in targetsX)
+                    {
+                        var distance = Math.Abs(source.Item2 - target.Item2);
+                        xCandidates.Add(new SnapCandidate(
+                            source.Item2,
+                            target.Item2,
+                            distance,
+                            GetSnapPriority(source.Item1, target.Item1),
+                            $"{stableKey}:x:{source.Item1}:{target.Item1}"));
+                    }
+                }
+
+                foreach (var source in sourceY)
+                {
+                    foreach (var target in targetsY)
+                    {
+                        var distance = Math.Abs(source.Item2 - target.Item2);
+                        yCandidates.Add(new SnapCandidate(
+                            source.Item2,
+                            target.Item2,
+                            distance,
+                            GetSnapPriority(source.Item1, target.Item1),
+                            $"{stableKey}:y:{source.Item1}:{target.Item1}"));
+                    }
+                }
+            }
+        }
+
+        AddGridCandidates(xCandidates, yCandidates, sourceX, sourceY, $"{GetSnapStableKey(dragged)}:single");
+        if (IsSnapToObjectsEnabled)
+        {
+            AddSmartSpacingCandidates(
+                xCandidates,
+                yCandidates,
+                sourceX.First(source => source.Item1 == SnapAnchorKind.Leading).Item2,
+                sourceX.First(source => source.Item1 == SnapAnchorKind.Trailing).Item2,
+                sourceY.First(source => source.Item1 == SnapAnchorKind.Leading).Position,
+                sourceY.First(source => source.Item1 == SnapAnchorKind.Trailing).Position,
+                draggedBounds.Width,
+                draggedBounds.Height,
+                new HashSet<LabelObject> { dragged },
+                $"{GetSnapStableKey(dragged)}:single");
+        }
+
+        if (IsSnapToObjectsEnabled)
+        {
+            var canvasCenterX = Template.WidthMm / 2;
+            var canvasCenterY = Template.HeightMm / 2;
+            var centerSourceX = sourceX.First(source => source.Item1 == SnapAnchorKind.Center).Item2;
+            var centerSourceY = sourceY.First(source => source.Item1 == SnapAnchorKind.Center).Item2;
+            xCandidates.Add(new SnapCandidate(centerSourceX, canvasCenterX, Math.Abs(centerSourceX - canvasCenterX), 90, "canvas:center:x"));
+            yCandidates.Add(new SnapCandidate(centerSourceY, canvasCenterY, Math.Abs(centerSourceY - canvasCenterY), 90, "canvas:center:y"));
+        }
+
+        var winnerX = ChoosePathSnap(SnapPathKind.SingleMove, xCandidates);
+        var winnerY = ChoosePathSnap(SnapPathKind.SingleMove, yCandidates);
+        var guideXPositions = GetWinningGuides(xCandidates, winnerX);
+        var guideYPositions = GetWinningGuides(yCandidates, winnerY);
+        var finalSnapX = winnerX is SnapCandidate x ? (double?)(proposedXMm + x.Delta) : null;
+        var finalSnapY = winnerY is SnapCandidate y ? (double?)(proposedYMm + y.Delta) : null;
+        finalSnapX = ResolveSnapTarget(SnapPathKind.SingleMove, proposedXMm, finalSnapX, _snapLockX, guideXPositions);
+        finalSnapY = ResolveSnapTarget(SnapPathKind.SingleMove, proposedYMm, finalSnapY, _snapLockY, guideYPositions);
+        return new AlignmentSnapResult(
+            finalSnapX,
+            finalSnapY,
+            guideXPositions,
+            guideYPositions,
+            GetSnapCaption(winnerX),
+            GetSnapCaption(winnerY));
+    }
+
+    private AlignmentSnapResult ComputePriorityGroupAlignmentSnap(double proposedDeltaXMm, double proposedDeltaYMm)
+    {
+        if (Template is null || _groupDragStarts.Count == 0)
+        {
+            return new AlignmentSnapResult(null, null, new List<double>(), new List<double>());
+        }
+
+        var bounds = GetGroupBoundsMm();
+        var sourceX = new[]
+        {
+            (SnapAnchorKind.Leading, bounds.Left + proposedDeltaXMm),
+            (SnapAnchorKind.Center, (bounds.Left + bounds.Right) / 2 + proposedDeltaXMm),
+            (SnapAnchorKind.Trailing, bounds.Right + proposedDeltaXMm)
+        };
+        var selected = _groupDragStarts.Keys.ToHashSet();
+        var sourceY = new List<(SnapAnchorKind Kind, double Position)>
+        {
+            (SnapAnchorKind.Leading, bounds.Top + proposedDeltaYMm),
+            (SnapAnchorKind.Center, (bounds.Top + bounds.Bottom) / 2 + proposedDeltaYMm),
+            (SnapAnchorKind.Trailing, bounds.Bottom + proposedDeltaYMm)
+        };
+        foreach (var pair in _groupDragStarts)
+        {
+            AddBaselineSource(sourceY, pair.Key, pair.Value.Y + proposedDeltaYMm);
+        }
+        var xCandidates = new List<SnapCandidate>();
+        var yCandidates = new List<SnapCandidate>();
+
+        if (IsSnapToObjectsEnabled)
+        {
+            foreach (var other in Template.Objects.Where(item => item.IsVisible && !selected.Contains(item)))
+            {
+                var otherBounds = GetObjectBoundsMm(other);
+                var stableKey = GetSnapStableKey(other);
+                var targetsX = new[]
+                {
+                    (SnapAnchorKind.Leading, otherBounds.Left),
+                    (SnapAnchorKind.Center, (otherBounds.Left + otherBounds.Right) / 2),
+                    (SnapAnchorKind.Trailing, otherBounds.Right)
+                };
+                var targetsY = new List<(SnapAnchorKind Kind, double Position)>
+                {
+                    (SnapAnchorKind.Leading, otherBounds.Top),
+                    (SnapAnchorKind.Center, (otherBounds.Top + otherBounds.Bottom) / 2),
+                    (SnapAnchorKind.Trailing, otherBounds.Bottom)
+                };
+                AddBaselineTarget(targetsY, other);
+                foreach (var source in sourceX)
+                {
+                    foreach (var target in targetsX)
+                    {
+                        xCandidates.Add(new SnapCandidate(source.Item2, target.Item2, Math.Abs(source.Item2 - target.Item2), GetSnapPriority(source.Item1, target.Item1), $"{stableKey}:group:x:{source.Item1}:{target.Item1}"));
+                    }
+                }
+                foreach (var source in sourceY)
+                {
+                    foreach (var target in targetsY)
+                    {
+                        yCandidates.Add(new SnapCandidate(source.Item2, target.Item2, Math.Abs(source.Item2 - target.Item2), GetSnapPriority(source.Item1, target.Item1), $"{stableKey}:group:y:{source.Item1}:{target.Item1}"));
+                    }
+                }
+            }
+        }
+
+        AddGridCandidates(xCandidates, yCandidates, sourceX, sourceY, "group");
+        if (IsSnapToObjectsEnabled)
+        {
+            AddSmartSpacingCandidates(
+                xCandidates,
+                yCandidates,
+                sourceX.First(source => source.Item1 == SnapAnchorKind.Leading).Item2,
+                sourceX.First(source => source.Item1 == SnapAnchorKind.Trailing).Item2,
+                sourceY.First(source => source.Item1 == SnapAnchorKind.Leading).Position,
+                sourceY.First(source => source.Item1 == SnapAnchorKind.Trailing).Position,
+                bounds.Width,
+                bounds.Height,
+                selected,
+                "group");
+        }
+
+        if (IsSnapToObjectsEnabled)
+        {
+            var canvasCenterX = Template.WidthMm / 2;
+            var canvasCenterY = Template.HeightMm / 2;
+            var groupCenterX = (bounds.Left + bounds.Right) / 2 + proposedDeltaXMm;
+            var groupCenterY = (bounds.Top + bounds.Bottom) / 2 + proposedDeltaYMm;
+            xCandidates.Add(new SnapCandidate(groupCenterX, canvasCenterX, Math.Abs(groupCenterX - canvasCenterX), 90, "canvas:center:group:x"));
+            yCandidates.Add(new SnapCandidate(groupCenterY, canvasCenterY, Math.Abs(groupCenterY - canvasCenterY), 90, "canvas:center:group:y"));
+        }
+
+        var winnerX = ChoosePathSnap(SnapPathKind.GroupMove, xCandidates);
+        var winnerY = ChoosePathSnap(SnapPathKind.GroupMove, yCandidates);
+        var guidesX = GetWinningGuides(xCandidates, winnerX);
+        var guidesY = GetWinningGuides(yCandidates, winnerY);
+        var targetX = ResolveSnapTarget(
+            SnapPathKind.GroupMove,
+            proposedDeltaXMm,
+            winnerX is SnapCandidate x ? proposedDeltaXMm + x.Delta : null,
+            _snapLockX,
+            guidesX);
+        var targetY = ResolveSnapTarget(
+            SnapPathKind.GroupMove,
+            proposedDeltaYMm,
+            winnerY is SnapCandidate y ? proposedDeltaYMm + y.Delta : null,
+            _snapLockY,
+            guidesY);
+        return new AlignmentSnapResult(
+            targetX is null ? null : targetX.Value - proposedDeltaXMm,
+            targetY is null ? null : targetY.Value - proposedDeltaYMm,
+            guidesX,
+            guidesY,
+            GetSnapCaption(winnerX),
+            GetSnapCaption(winnerY));
+    }
+
+    private AlignmentSnapResult ComputeAlignmentSnapLegacy(LabelObject dragged, double proposedXMm, double proposedYMm)
     {
         if (Template is null)
         {
@@ -2158,7 +5512,46 @@ public sealed class LabelDesignerCanvas : Canvas
             finalSnapY = proposedYMm + snapY.Value;
         }
 
+        finalSnapX = ResolveSnapTarget(SnapPathKind.SingleMove, proposedXMm, finalSnapX, _snapLockX, guideXPositions);
+        finalSnapY = ResolveSnapTarget(SnapPathKind.SingleMove, proposedYMm, finalSnapY, _snapLockY, guideYPositions);
+
         return new AlignmentSnapResult(finalSnapX, finalSnapY, guideXPositions, guideYPositions);
+    }
+
+    /// <summary>
+    /// Every interactive snap ranking path must enter the shared matrix so
+    /// single/group/resize/draw cannot invent a second acquire budget.
+    /// </summary>
+    private SnapCandidate? ChoosePathSnap(SnapPathKind pathKind, IEnumerable<SnapCandidate> candidates)
+        => SnapPathMatrixContract.Choose(pathKind, Zoom, candidates);
+
+    private double? ResolveSnapTarget(
+        SnapPathKind pathKind,
+        double proposedPosition,
+        double? candidateTarget,
+        SnapHysteresisState state,
+        List<double> guides,
+        bool bypassSnap = false)
+    {
+        var resolved = SnapPathMatrixContract.ApplyHysteresis(
+            pathKind,
+            Zoom,
+            state,
+            proposedPosition,
+            candidateTarget,
+            bypassSnap);
+        if (resolved is not null && guides.Count == 0)
+        {
+            guides.Add(resolved.Value);
+        }
+
+        return resolved;
+    }
+
+    private void ClearSnapLocks()
+    {
+        _snapLockX.Reset();
+        _snapLockY.Reset();
     }
 
     private static void CheckSnap(double dragEdge, double otherEdge, double threshold,
@@ -2185,6 +5578,8 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
+        _lastAlignmentSnap = snap;
+
         var labelHeightDip = MmToDip(Template.HeightMm);
         var labelWidthDip = MmToDip(Template.WidthMm);
 
@@ -2210,12 +5605,27 @@ public sealed class LabelDesignerCanvas : Canvas
             _guideVertical.X2 = guideXDip;
             _guideVertical.Y2 = labelHeightDip;
             _guideVertical.Visibility = Visibility.Visible;
+
+            if (_guideVerticalLabel is null)
+            {
+                _guideVerticalLabel = CreateGuideLabel();
+                Children.Add(_guideVerticalLabel);
+            }
+            var verticalText = FormatGuideLabel("X", snap.GuideXPositions[0], snap.XCaption);
+            UpdateGuideLabel(_guideVerticalLabel, verticalText);
+            Canvas.SetLeft(_guideVerticalLabel, Math.Max(0, Math.Min(labelWidthDip - 120, guideXDip + 4)));
+            Canvas.SetTop(_guideVerticalLabel, 4);
+            _guideVerticalLabel.Visibility = Visibility.Visible;
         }
         else
         {
             if (_guideVertical is not null)
             {
                 _guideVertical.Visibility = Visibility.Collapsed;
+            }
+            if (_guideVerticalLabel is not null)
+            {
+                _guideVerticalLabel.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2241,6 +5651,17 @@ public sealed class LabelDesignerCanvas : Canvas
             _guideHorizontal.X2 = labelWidthDip;
             _guideHorizontal.Y2 = guideYDip;
             _guideHorizontal.Visibility = Visibility.Visible;
+
+            if (_guideHorizontalLabel is null)
+            {
+                _guideHorizontalLabel = CreateGuideLabel();
+                Children.Add(_guideHorizontalLabel);
+            }
+            var horizontalText = FormatGuideLabel("Y", snap.GuideYPositions[0], snap.YCaption);
+            UpdateGuideLabel(_guideHorizontalLabel, horizontalText);
+            Canvas.SetLeft(_guideHorizontalLabel, 4);
+            Canvas.SetTop(_guideHorizontalLabel, Math.Max(0, Math.Min(labelHeightDip - 28, guideYDip + 4)));
+            _guideHorizontalLabel.Visibility = Visibility.Visible;
         }
         else
         {
@@ -2248,11 +5669,60 @@ public sealed class LabelDesignerCanvas : Canvas
             {
                 _guideHorizontal.Visibility = Visibility.Collapsed;
             }
+            if (_guideHorizontalLabel is not null)
+            {
+                _guideHorizontalLabel.Visibility = Visibility.Collapsed;
+            }
         }
+    }
+
+    private static Border CreateGuideLabel()
+    {
+        var label = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(235, 37, 99, 235)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(29, 78, 216)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(3),
+            Padding = new Thickness(4, 1, 4, 1),
+            IsHitTestVisible = false,
+            Child = new TextBlock
+            {
+                Foreground = Brushes.White,
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold
+            }
+        };
+        SetZIndex(label, int.MaxValue);
+        return label;
+    }
+
+    private static void UpdateGuideLabel(Border label, string text)
+    {
+        if (label.Child is TextBlock textBlock)
+        {
+            textBlock.Text = text;
+        }
+
+        var isSpacing = text.StartsWith("gap ", StringComparison.OrdinalIgnoreCase);
+        label.Background = isSpacing
+            ? new SolidColorBrush(Color.FromArgb(235, 5, 150, 105))
+            : new SolidColorBrush(Color.FromArgb(235, 37, 99, 235));
+        label.BorderBrush = isSpacing
+            ? new SolidColorBrush(Color.FromRgb(4, 120, 87))
+            : new SolidColorBrush(Color.FromRgb(29, 78, 216));
+    }
+
+    private static string FormatGuideLabel(string axis, double positionMm, string? caption)
+    {
+        return string.IsNullOrWhiteSpace(caption)
+            ? $"{axis} {positionMm:0.##} mm"
+            : $"{caption} · {axis} {positionMm:0.##} mm";
     }
 
     private void HideAlignmentGuides()
     {
+        _lastAlignmentSnap = null;
         if (_guideVertical is not null)
         {
             _guideVertical.Visibility = Visibility.Collapsed;
@@ -2261,9 +5731,26 @@ public sealed class LabelDesignerCanvas : Canvas
         {
             _guideHorizontal.Visibility = Visibility.Collapsed;
         }
+        if (_guideVerticalLabel is not null)
+        {
+            _guideVerticalLabel.Visibility = Visibility.Collapsed;
+        }
+        if (_guideHorizontalLabel is not null)
+        {
+            _guideHorizontalLabel.Visibility = Visibility.Collapsed;
+        }
     }
 
     // ==================== End Alignment Guide System ====================
+
+    private readonly record struct GroupResizeObjectSnapshot(
+        double XMm,
+        double YMm,
+        double WidthMm,
+        double HeightMm,
+        double EndXMm,
+        double EndYMm,
+        int Rotation);
 
     private sealed class StrokeHitTestRectangleElement : Grid
     {

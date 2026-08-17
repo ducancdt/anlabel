@@ -1,6 +1,6 @@
 # ANLAbel — CC-P8 Applications / Automation UI/UX spec
 
-**Status:** deferred, design-only local file-drop trigger spec; prerequisites, host and delivery semantics remain open (2026-08-13)
+**Status:** P8 M0 local evidence console implemented; file-drop runner and delivery semantics remain open (2026-08-14)
 **Prerequisites:** P1/P2/P5 evidence paths and P4 document policy must remain stable
 **Handoff:** [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md)
 **Program route:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
@@ -126,4 +126,6 @@ Before implementation review closes P8:
 - Figma sample apps, user/printer counts and Automation labels never become local runtime data without evidence;
 - protected Text/TextBox behavior and print/recovery contracts remain untouched.
 
-Until these prerequisites and gates close, this file is a UI/UX specification, not a shipped Automation host or trigger runner.
+The M0 evidence console is shipped with explicit no-runner/no-dispatch wording
+and stable local automation IDs. Until the remaining prerequisites and gates
+close, it is not a trigger runner.

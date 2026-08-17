@@ -23,10 +23,9 @@ public sealed class TrackingRowViewModel : INotifyPropertyChanged
     public string CopiesDisplay => _copies.ToString();
 
     /// <summary>
-    /// True once this row has been sent to the printer during the current Print Preview
-    /// session (print-preview-reliability-plan Đợt 4 item 11 — "chống trùng tem"). Reset
-    /// each time the preview is rebuilt/reopened; this is a same-session duplicate guard,
-    /// not a persistent cross-session record.
+    /// True only when a print backend provides evidence of physical/device completion
+    /// during the current Print Preview session. A Windows spooler acknowledgement is
+    /// deliberately not enough to set this flag.
     /// </summary>
     public bool IsPrinted
     {

@@ -1,6 +1,6 @@
 # ANLAbel — P4 barcode ratio, density and physical quiet-zone UI/UX specification
 
-**Status:** documentation-only, pre-implementation UI/UX contract (2026-08-13)
+**Status:** Code 39 software/UI slice implemented; runtime scale evidence pending (2026-08-14)
 **Execution spine:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) §P4
 **Handoff:** [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md)
 **Research gap:** [`BARCODE_NICELABEL_BARTENDER_RESEARCH.md`](BARCODE_NICELABEL_BARTENDER_RESEARCH.md) M3/M4/M14
@@ -77,7 +77,7 @@ For QR/Data Matrix/Aztec/PDF417, the ratio/density group is hidden or disabled w
 | QZ below minimum | Observed mm/modules, required threshold, severity and repair hint | Increase QZ/X or deliberately change profile | No silent shrink, fallback or “Print anyway” |
 | GS1 profile | Profile name, QZ basis and application validation state | Repair geometry/data | Never claim full GS1 certification |
 | Ratio changed with `FrameOwned` | Derived symbol geometry changes; authored frame remains unchanged | Inspect preview and accept explicit geometry | Do not auto-resize authored object |
-| Ratio changed with `SizedFromX` | Production width resolves from effective X × logical modules under existing policy | Inspect width/readout and preview | Keep legacy/default behavior isolated |
+| Ratio changed with `SizedFromX` | First Code 39 slice blocks preflight with an explicit integer-module-count limitation | Restore `FrameOwned` or legacy ratio | Do not derive a fractional-ratio production width from an integer-only module count |
 
 ## 6. Interaction and persistence rules
 
@@ -148,4 +148,4 @@ dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build
 - a new Figma frame solely to satisfy this document;
 - any Text/TextBox ownership, sizing, wrapping, clipping, padding, resize or print-contract change.
 
-Until the owner confirms the first symbology, ratio/value convention, QZ side/total convention, warning threshold and runtime evidence owner, P4 remains a UI/UX specification.
+The owner approved the Code 39-first boundary on 2026-08-14. P4 remains unimplemented until a ratio-aware geometry seam supplies renderer, designer, preview and print with the same Code 39 result; runtime evidence remains pending Windows automation.

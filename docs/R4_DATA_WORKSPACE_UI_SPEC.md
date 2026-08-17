@@ -1,6 +1,6 @@
 # ANLAbel — R4 Data Workspace authoring and diagnostics UI/UX specification
 
-**Status:** documentation-only, pre-implementation vertical-slice contract (2026-08-13)
+**Status:** M1 draft-transform window implemented; target-scale external evidence remains deferred (2026-08-13)
 **Parent plan:** [`reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) §R4.4
 **Next-slice evidence:** [`reinvention/07-execution-plan.md`](reinvention/07-execution-plan.md) v0.211
 **Handoff:** [`R4_DATA_WORKSPACE_UI_HANDOFF.md`](R4_DATA_WORKSPACE_UI_HANDOFF.md)
@@ -8,7 +8,20 @@
 **Concrete owner decision packet:** [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](R4_DATA_WORKSPACE_UI_DECISION_PACKET.md)
 **Figma reference:** panels file `kqyNBI0DgRHnPzJTDBIui5`, Data shell `9:2`
 
-This specification turns the next R4 product slice into a reviewable operator contract: author one derived field, inspect its sample value and lineage, and repair diagnostics before preview or print. It does not implement a transform editor, add a connector, change the legacy binding language, or change any Text/TextBox behavior.
+This specification turns the next R4 product slice into a reviewable operator contract: author one derived field, inspect its sample value and lineage, and repair diagnostics before preview or print. `DataWorkspaceWindow` implements the bounded M1 draft editor using the Core pipeline. It does not add a connector, change the legacy binding language, or change any Text/TextBox behavior.
+
+Invalid committed transforms now clear the preview-row projection rather than
+returning raw source fields as if transformation had succeeded; print already
+blocks that same state.
+
+Apply brackets the replacement collection with the existing template edit
+transaction, so one valid draft application is one undoable document mutation.
+
+The custom regression now instantiates the WPF host on an STA thread and
+verifies its Data Workspace AutomationIds in the visual/logical tree at
+`1024 × 600`. Manual 125%/150% visual inspection remains deferred external
+evidence under [`VERSIONING.md`](VERSIONING.md), not a reason to block the
+software slice.
 
 The concrete owner boundary, current WPF evidence, raw-fallback risk, proposed UIA IDs and D1-D10 sign-off rows are recorded in [`R4_DATA_WORKSPACE_UI_DECISION_PACKET.md`](R4_DATA_WORKSPACE_UI_DECISION_PACKET.md); this specification remains the host-neutral behavior contract.
 

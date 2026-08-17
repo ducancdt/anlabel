@@ -18,7 +18,7 @@ ANLAbel currently has four different evidence shapes. “Unified” means a read
 | Human label history | `PrintLogService` → `PrintLogEntry` in append-only `print-history.csv` | Per-label/detail and user export source; not lifecycle authority and not a one-to-one job ledger | `PrintedAt` is local `DateTime` without an offset | Missing/empty/parse-failed CSV is a source diagnostic; do not synthesize a job outcome from row count. |
 | Current named queue | `IPrinterQueueLookup` → `PrinterQueueLookupResult`; `PrinterDiscoveryService` → `PrinterInfo` | Live saved-queue identity/availability and installed queue discovery for P1/P2 | Refresh completion time supplied by the future projection; source result has no timestamp today | Missing, renamed, inaccessible or canonical-mismatch queue remains unavailable; never substitute the Windows default. |
 
-Activation/entitlement is a separate P1 local service (`TrialLicenseService`/`ActivationWindow`) and is not part of the P5 history join. It may be displayed as a separate card with its own source and refresh status.
+Software licensing, activation and entitlement are outside the Control Center product scope. Existing Trial/Commercial release mechanics remain untouched and are not projected into P1/P2/P5.
 
 ## 2. Canonical projection fields
 
@@ -55,8 +55,8 @@ The future projection should expose these fields even when a value is unknown. E
 
 | Surface | Allowed projection | Must not claim |
 | --- | --- | --- |
-| P1 Operations Overview | Counts of non-terminal recovery candidates, store diagnostics, current saved-queue availability/age, recent terminal software events and separate local activation status; each card includes source and refresh basis | 24-hour/server fleet totals, license seats from Figma, physical output, automatic retry or a hidden queue fallback |
-| P2 Print Queue Console | Installed queue rows (`PrinterInfo`), canonical saved-queue lookup, queue/job observations with state taxonomy and timestamps; unknown/error rows remain visible | Printer-level health from one job observation, licensed-seat enforcement, printer-native completion or command capability without a new contract |
+| P1 Operations Overview | Counts of non-terminal recovery candidates, store diagnostics, current saved-queue availability/age and recent terminal software events; each card includes source and refresh basis | 24-hour/server fleet totals without a defined source, licensing/activation/seat data, physical output, automatic retry or a hidden queue fallback |
+| P2 Print Queue Console | Installed queue rows (`PrinterInfo`), canonical saved-queue lookup, queue/job observations with state taxonomy and timestamps; unknown/error rows remain visible | Printer-level health from one job observation, licensing/seat enforcement, printer-native completion or command capability without a new contract |
 | P5 History | Job-level activity table/detail over state events plus supplemental operation entries; linked per-label CSV detail/export; explicit Request → Approve → Prepare → Dispatch deep-link | A flattened all-success counter, raw label payloads in the table, row-level implicit dispatch, or physical completion from software evidence |
 
 P6 aggregation must consume this projection without creating a second source of truth. The owner gate [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md) defines the separate label-row/job/event units, source conflict rules, timezone/privacy boundaries and read-only deep-link/export contract.

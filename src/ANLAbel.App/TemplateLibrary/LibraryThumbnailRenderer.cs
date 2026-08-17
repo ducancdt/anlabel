@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Models;
+using ANLAbel.Printing.RenderPipeline;
 
 namespace ANLAbel.App.TemplateLibrary;
 
@@ -100,10 +101,10 @@ public static partial class LibraryThumbnailRenderer
             return;
         }
 
-        var typeface = new Typeface(new FontFamily(string.IsNullOrWhiteSpace(st.FontFamily) ? "Arial" : st.FontFamily),
+        var typeface = new Typeface(new FontFamily(TextBoxOverflowDetector.ResolveFontFamilyName(st.FontFamily)),
             st.Italic ? FontStyles.Italic : FontStyles.Normal,
             st.Bold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal);
-        var ft = new FormattedText(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+        var ft = new FormattedText(value, CultureInfo.CurrentCulture, TextBoxOverflowDetector.ResolveFlowDirection(st.TextDirection, value),
             typeface, px, Ink, 1.0)
         {
             MaxTextWidth = Math.Max(2, maxW),

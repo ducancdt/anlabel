@@ -4,5 +4,6 @@ public enum TextAlignmentMode
 {
     Left,
     Center,
-    Right
+    Right,
+    Justify
 }

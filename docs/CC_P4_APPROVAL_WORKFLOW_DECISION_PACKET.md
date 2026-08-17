@@ -1,6 +1,6 @@
 # CC-P4 approval workflow owner decision packet
 
-**Status:** documentation-only owner gate; no workflow enum, transition store, permissions model, Published print gate, new Figma node or Text/TextBox change is authorized by this packet (2026-08-13)
+**Status:** Core transition graph, local sidecar audit and publication-policy evaluator implemented; permissions model, policy configuration/print-path integration, new Figma node and Text/TextBox change remain open (2026-08-14)
 **Program index:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
 **Handoff:** [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md)
 **Specification:** [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md)
@@ -20,7 +20,14 @@ validated local revision + exact document hash
         -> revalidate state + hash before output
 ```
 
-The packet is a review gate. It does not add a state property, mutate the project envelope, block printing, add identity/roles, create a local browser, or edit Figma. Existing Text/TextBox ownership, geometry, overflow and designer/preview/print parity remain protected.
+The packet remains a review gate for policy integration. The pure
+`DocumentWorkflowContract` provides the state vocabulary and fail-closed graph;
+`DocumentWorkflowStore` records a hash-chained local sidecar audit keyed to the
+saved document path/hash; and `DocumentWorkflowPrintPolicy` evaluates Off versus
+RequirePublished fail-closed. No policy configuration is wired into preview,
+prepare or dispatch yet, and no identity/roles, local browser or Figma edit is
+implied. Existing Text/TextBox ownership, geometry, overflow and
+designer/preview/print parity remain protected.
 
 **Current dependency note:** P3 owns validated local document identity and one revision/restore path;
 P4 may compose a future document policy only after that identity is stable. P5 linked-reprint
@@ -187,4 +194,7 @@ Record one owner, date and decision for every row. Blank rows keep CC-P4 open.
 | D7. Scheduling/roles/destructive edges | `TBD` | `TBD` | `TBD` |
 | D8. Runtime/Figma/regression owners | `TBD` | `TBD` | `TBD` |
 
-**Closure rule:** CC-P4 may move from design review to implementation only after D1-D8 are filled, one transition store/host is named, legacy and policy behavior are explicit, and transition/audit/stale-hash/preview-prepare-dispatch fixtures are converted into runtime and regression gates. Until then, CC-P4 remains a document-policy plan and not a shipped approval workflow or Published print gate.
+**Closure rule:** The local transition host/store and pure policy evaluator are
+implemented. Print-path enforcement remains open until the policy mode,
+configuration owner and explicit preview/prepare/dispatch integration are
+chosen and covered by fixtures. Until then, P4 is not a Published print gate.

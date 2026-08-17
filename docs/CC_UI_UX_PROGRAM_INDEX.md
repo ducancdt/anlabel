@@ -1,6 +1,12 @@
 # ANLAbel — Control Center UI/UX program index
 
-**Status:** documentation coordination index; no UI implementation or Figma edit is authorized (2026-08-13)
+> **Archived coordination index.** This file preserves the origin of existing
+> local WPF surfaces but is no longer an execution roadmap. The authoritative
+> product boundary is [`LOCAL_LABEL_PRODUCT_CONTRACT.md`](LOCAL_LABEL_PRODUCT_CONTRACT.md):
+> local label features only, no web/cloud/login/sync/remote modules, no owner
+> sign-off gates, and every future UI change must be performed with `@figma`.
+
+**Status:** local read-only/navigation slices P1/P2/P3/P5/P6/P7 implemented; P4/P8 remain policy-gated (2026-08-13)
 **Roadmap source:** [`MASTER_PLAN.md`](../MASTER_PLAN.md), Control Center / LMS / Operations large improvement plans
 **Execution checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification boundary:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
@@ -32,16 +38,28 @@ This index is the cross-surface map for the CC-P1…P8 Markdown handoffs. It pre
 
 | Slice | Product surface | Current evidence | Figma route | Status / next gate |
 | --- | --- | --- | --- | --- |
-| CC-P1 | Operations Overview | `PrintCenterWindow`, queue status, activation and history entry points exist separately; no unified overview. | [Overview `2:2`](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4) (`1280 × 800`) | [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md) · choose host, local cards/time window, runtime evidence. |
+| CC-P1 | Operations Overview | `PrintCenterWindow`, queue status and history entry points exist separately; staged overview implementation selected. | [Overview `2:2`](https://www.figma.com/design/asnGsLMxceJWb3HlfaE3q4) (`1280 × 800`) | [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) · implement queue/recovery snapshot, host and runtime evidence. |
 | CC-P2 | Print Queue Console | Queue discovery, named-queue lookup and one-job spool observation; no fleet table or command service. | Printers `2:37` (`1280 × 800`) | [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](CC_P2_PRINT_QUEUE_UI_HANDOFF.md) · approve read-only host/status taxonomy; defer mutations. |
 | CC-P5 | History + controlled reprint | CSV per-label history, best-effort operation JSONL, hash-chained job state, Print Center/reprint guard. | History `3:85` (`1280 × 800`) | [`CC_P5_HISTORY_REPRINT_UI_HANDOFF.md`](CC_P5_HISTORY_REPRINT_UI_HANDOFF.md) + [`CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md`](CC_P5_HISTORY_REPRINT_UI_DECISION_PACKET.md) + [`CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md`](CC_P5_PRINT_CENTER_RECOVERY_UI_DECISION_PACKET.md) · define read model/provenance/time/privacy while keeping the existing recovery action owner. |
 | CC-P3 | Document Library + Revision | Embedded gallery plus primary/`.bak`/`.revisions` inspection, semantic diff and validated restore; no local-root browser. | Documents `3:2` (`1280 × 800`) | [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) · choose root/host/preview/revision entry points. |
 | CC-P4 | Approval Workflow | Versioned envelope and print preflight exist; no document state enum, transition store, actor policy or Published gate. | Workflow `7:2` (`1280 × 800`) | [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md) · approve migration/audit/policy contract; separate from P5 reprint approval. |
 | CC-P6 | Local Analytics | CSV/JSONL/state evidence exists; no cross-source aggregate or Analytics window. | Analytics `5:2` (`1280 × 800`) | [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md) · approve units/source precedence/timezone/redaction; read-only only. |
-| CC-P7 | Administration (light) | Local activation, designer/printer preferences, data-source registry/cleanup and local logs; no multi-user admin service. | Administration `5:41` (`1280 × 800`) | [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](CC_P7_ADMINISTRATION_UI_HANDOFF.md) · choose thin local host and retention/recovery/privacy rules. |
+| CC-P7 | Local Maintenance | Designer/printer preferences, data-source registry/cleanup and local logs; no licensing or multi-user admin service. | Administration `5:41` (`1280 × 800`) | [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](CC_P7_ADMINISTRATION_UI_HANDOFF.md) · choose thin local host and retention/recovery/privacy rules after P1/P2/P5. |
 | CC-P8 | Applications / Automation | Excel freshness watcher and manual manifest/preflight/queue path; no trigger host. | Applications `7:88` (`1280 × 800`); History destination `3:101` | [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md) · deferred; approve one local file-drop contract before implementation. |
 
 All rows are roadmap/design evidence, not release approval. “Current evidence” means source/test artifacts observed in the checkout; it does not imply runtime click-through, physical printer completion, cloud parity or multi-user identity.
+
+### Implementation correction (2026-08-13)
+
+The table above records the original planning baseline. The implemented local
+slices are CC-P1 Operations Overview, CC-P2 Print Queue Console, CC-P3 Document
+Library, CC-P5 Print History, CC-P6 Local Analytics and CC-P7 Local Maintenance.
+Their hosts preserve existing action owners and are covered by the custom
+regression suite. CC-P4 Approval Workflow remains blocked on a durable
+state/audit/actor-policy decision; CC-P8 Automation remains blocked on an
+approved file-drop claim, lifecycle, delivery and policy contract.
+
+**Product scope decision:** software licensing, activation, entitlement and printer-seat accounting are not ANLAbel Control Center features. NiceLabel research references may describe them as competitor facts, but no CC slice may create a card, filter, admin category, read model or milestone for them. Existing release/trial mechanics remain outside this program.
 
 ## 2. Dependency and ownership order
 
@@ -68,11 +86,11 @@ The upstream handoffs now carry this routing note directly: [`CC_P1_OPERATIONS_O
 
 The shared evidence projection is specified in [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](CC_P1_P2_P5_READ_MODEL_CONTRACT.md): state-store lineage is authoritative, operation JSONL is supplemental, CSV remains per-label detail/export, and live queue lookup stays separate from historical job state.
 
-The upstream implementation gate is [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md); it consolidates host selection, one read-model owner, queue identity, P1/P2/P5 scope, Print Center action ownership, navigation/accessibility and target-scale verification. It is documentation-only and does not authorize a host or WPF navigation change.
+The upstream execution gate is [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md). The host choice is now fixed to a staged P1-only `OperationsOverviewWindow`; the gate supplies the ordered source/UI/test runbook and no longer waits on blank owner rows.
 
 The first concrete UI/UX content spec is [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md); it maps Figma Overview `2:2` to a host-neutral WPF wireframe, responsive behavior, proposed AutomationIds and P1 state gates without authorizing implementation.
 
-The concrete P1 source/action gate is [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md); it preserves the upstream host choice and existing Printer Setup, Print Center and History owners.
+The concrete P1 decisions are recorded in [`CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md`](CC_P1_OPERATIONS_OVERVIEW_UI_DECISION_PACKET.md): explicit queue evidence, durable recovery diagnostics, existing action owners, no licensing surface and no physical-output inference.
 
 The first P2 UI contract is [`CC_P2_PRINT_QUEUE_UI_SPEC.md`](CC_P2_PRINT_QUEUE_UI_SPEC.md); it maps Figma Printers `2:37` to a host-neutral, read-only queue table/detail wireframe, local source-to-row rules, responsive behavior and proposed AutomationIds without authorizing a queue window or commands.
 
@@ -86,7 +104,7 @@ The concrete History/read-model owner boundary is bounded by [`CC_P5_HISTORY_REP
 
 The next downstream gate after P5 is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md); it owns local-root/Built-in document identity, validated open/preview, one revision/restore path and the boundary before CC-P4 workflow policy. P3 reuses Figma Documents `3:2` read-only and does not authorize a browser or Figma write.
 
-CC-P4 is the next policy gate after P3: [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) composes a future document-state/audit policy over the validated revision/hash and existing preflight/dispatch owners. It must remain separate from P5 `ReprintApproved`, and Figma Workflow `7:2` remains vocabulary/density reference only.
+CC-P4 now has a local document-state host, hash-chained sidecar audit and pure policy evaluator after P3: [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md) keeps the remaining print-path composition separate from P5 `ReprintApproved`; Figma Workflow `7:2` remains vocabulary/density reference only.
 
 The first P3 UI contract is [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_SPEC.md); it maps Figma Documents `3:2` to local-root/built-in browse, validated file metadata, revision inspection and guarded restore without authorizing workflow, check-out or ACL controls.
 
@@ -94,19 +112,19 @@ The P3 owner gate is [`CC_P3_DOCUMENT_LIBRARY_REVISION_DECISION_PACKET.md`](CC_P
 
 The first P4 UI contract is [`CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md`](CC_P4_APPROVAL_WORKFLOW_UI_SPEC.md); it maps Figma Workflow `7:2` to candidate document states, actor/audit evidence and a policy-on print boundary without authorizing a workflow store, permissions model or Published gate.
 
-The P4 owner gate is [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md); it records the state graph, envelope/migration choice, exact revision/hash coverage, actor/audit ownership, policy-on print composition, host/action boundary and runtime/Figma fixtures. It is documentation-only and does not authorize a workflow or Published print gate.
+The P4 owner gate is [`CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md`](CC_P4_APPROVAL_WORKFLOW_DECISION_PACKET.md); it records implemented local transitions/audit/policy evaluation and the remaining envelope/migration, actor, configuration and print-path fixtures. It does not authorize a Published print gate.
 
 The first P6 UI contract is [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md); it maps Figma Analytics `5:2` to source-backed local aggregates, explicit label/job/event units, partial-source states, safe filters and P5 deep-links without authorizing telemetry or physical-output claims.
 
 The P6 owner gate is [`CC_P6_ANALYTICS_DECISION_PACKET.md`](CC_P6_ANALYTICS_DECISION_PACKET.md); it records metric units, source precedence/conflicts, timezone boundaries, dimension/privacy policy, verifier disclaimer, host/export ownership and runtime/Figma fixtures. It is documentation-only and does not authorize an Analytics window or second log.
 
-The first P7 UI contract is [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md); it maps Figma Administration `5:41` to local activation, preferences, data-source maintenance, evidence links and retention-preview boundaries without authorizing roles, users, sync or server-license semantics.
+The first P7 UI contract is [`CC_P7_ADMINISTRATION_UI_SPEC.md`](CC_P7_ADMINISTRATION_UI_SPEC.md); it maps Figma Administration `5:41` to local preferences, data-source maintenance, evidence links and retention-preview boundaries. Licensing/activation, roles, users, sync and server semantics are excluded.
 
-The P7 owner gate is [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md); it records thin-host/action ownership, activation status, preferences, registry/cleanup, evidence/retention, privacy/security and unsupported-category boundaries plus runtime/Figma fixtures. It is documentation-only and does not authorize a server-admin surface or destructive retention.
+The P7 owner gate is [`CC_P7_ADMINISTRATION_DECISION_PACKET.md`](CC_P7_ADMINISTRATION_DECISION_PACKET.md); it records thin-host/action ownership, preferences, registry/cleanup, evidence/retention, privacy/security and unsupported-category boundaries. Licensing/activation is not a deferred category; it is out of product scope.
 
-The first P8 UI contract is [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md); it maps Figma Applications `7:88` to a deferred local file-drop trigger, lifecycle/claim/provenance states and P5 deep-links without authorizing a trigger runner, TCP/web host or unattended dispatch.
+The first P8 UI contract is [`CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md`](CC_P8_APPLICATIONS_AUTOMATION_UI_SPEC.md); it maps Figma Applications `7:88` to the implemented local configuration/evidence/lifecycle and file-drop preparation host. It does not authorize TCP/web or unattended dispatch.
 
-The P8 owner gate is [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md); it records the first-trigger prerequisite, host/lifecycle owner, claim/deduplication protocol, configuration/provenance schema, shared print spine/policy gate, recovery/retry, History/privacy and deferred security boundaries. It is documentation-only and does not authorize an Automation host or trigger runner.
+The P8 owner gate is [`CC_P8_AUTOMATION_DECISION_PACKET.md`](CC_P8_AUTOMATION_DECISION_PACKET.md); it records implemented configuration, detection, claim/deduplication, source verification, CSV preparation and lifecycle evidence, alongside the remaining shared print spine/policy, History/privacy and security boundaries. It does not authorize unattended dispatch.
 
 The downstream handoffs carry the same boundary: [`CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md`](CC_P3_DOCUMENT_LIBRARY_REVISION_UI_HANDOFF.md) owns local revision access, [`CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md`](CC_P4_APPROVAL_WORKFLOW_UI_HANDOFF.md) owns document policy/audit, [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md) owns read-only aggregation, [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](CC_P7_ADMINISTRATION_UI_HANDOFF.md) owns local settings/retention links, and [`CC_P8_AUTOMATION_UI_HANDOFF.md`](CC_P8_AUTOMATION_UI_HANDOFF.md) owns the deferred trigger contract. None may create a second action or dispatch authority.
 
@@ -117,7 +135,7 @@ The downstream handoffs carry the same boundary: [`CC_P3_DOCUMENT_LIBRARY_REVISI
 | `TemplateLibraryService` / `ProjectRevisionService` | P3, P4, P7 links | A second revision/archive or silent materialization path. |
 | Document workflow store (future) | P3/P4, print policy | Print-job approval store or best-effort operation JSONL. |
 | Local CSV/JSONL/state read model (future) | P5, P6, P1 | A flattened “all successful” counter. |
-| Activation/preferences/registry services | P1/P7 | Figma server seats, roles, users or sync semantics. |
+| Preferences/registry/cleanup services | P7 | Figma server roles, users, licensing, activation or sync semantics. |
 | Manual preflight → manifest → queue dispatch | P8 | Trigger-specific low-level printer calls or automatic retry. |
 
 ## 3. Figma node map and evidence boundary
@@ -126,13 +144,13 @@ All metadata below was checked read-only in Control Center file key `asnGsLMxceJ
 
 | Node | Name / role | Key measured regions | Missing states that require WPF evidence |
 | --- | --- | --- | --- |
-| `2:2` | CC / Overview | Overview shell `1280 × 800`; workstation/license/error card hierarchy | Local evidence health, empty/error, queue/activation failure and deep-link behavior. |
+| `2:2` | CC / Overview | Overview shell `1280 × 800`; context/summary/error card hierarchy | Local evidence health, empty/error, queue/recovery refresh and deep-link behavior; license card intentionally omitted. |
 | `2:37` | CC / Printers — Print Management | Filter rail `2:51` `220 × 680`; main pane `2:72` `1000 × 680` | Capability/command outcomes, unavailable queue, stale/ambiguous spool state. |
 | `3:2` | CC / Documents — Storage | Toolbar `3:16`; folder rail `3:19` `240 × 620`; file pane `3:29` `980 × 620` | Selected detail, invalid file, diff, restore, dirty edit and check-out state. |
 | `7:2` | CC / Documents — Workflow | Sidebar `7:23` `220 × 229`; workflow main `7:37`; action row `7:59`; history `7:69` | Unknown/migrated state, permission/audit failure, stale revision and policy-blocked print. |
 | `3:85` | CC / History | Filter bar `3:99` `1248 × 56`; activity frame `3:101` `1248 × 600` | Three-source merge/provenance, corrupt tail, local time, privacy and controlled reprint detail. |
 | `5:2` | CC / Analytics | Chart `5:16` `820 × 520`; filters `5:31` `400 × 520` | Source health, partial data, no-match, units/tooltips, export and physical-verifier disclaimer. |
-| `5:41` | CC / Administration | Sidebar `5:55` `240 × 680`; role table `5:69` `980 × 680` | Local activation/preferences/registry/retention and unsupported server-category states. |
+| `5:41` | CC / Administration | Sidebar `5:55` `240 × 680`; role table `5:69` `980 × 680` | Local preferences/registry/retention and unsupported server-category states; licensing/activation excluded. |
 | `7:88` | CC / Applications — Web Apps | Automation sidebar `7:109`–`7:123`; web-app main `7:124` `1060 × 380` | Trigger configuration/detail, claim/deduplication, stop/restart, quarantine and security states. |
 | `3:101` | History destination for automation | Submitted/type/module/workstation/user/status rows `3:102`–`3:109` | Trigger identity/privacy/retention and explicit job linkage. |
 
@@ -145,7 +163,7 @@ These gates apply to every CC slice and must be attached to the owning handoff b
 | Gate | Required evidence | Non-claim |
 | --- | --- | --- |
 | Source truth | Named service/file, field provenance, stale/partial/corrupt behavior and timestamp basis | UI chrome or sample Figma rows are not live data. |
-| Action ownership | One command owner for queue, history/reprint, revision, workflow, data source, activation and export | No second dispatch/reprint/archive/retention stack. |
+| Action ownership | One command owner for queue, history/reprint, revision, workflow, data source and export | No second dispatch/reprint/archive/retention stack. Licensing/activation is outside the program. |
 | Runtime | Screenshot or UI Automation at `1024 × 600`, `100%`, `125%`, `150%` (or explicit environment exception) | Figma dimensions alone do not prove WPF reachability, clipping or keyboard behavior. |
 | Accessibility | Stable AutomationIds/names, keyboard path, focus order, disabled/error copy and intentional scroll owner | A visual match at one scale is insufficient. |
 | Data safety | Dirty/invalid/future-schema/permission/audit failure and cancellation paths are explicit and non-destructive | “Exists”, “queued”, “completed” or “logged” is not automatically “safe” or “physical.” |
@@ -190,4 +208,4 @@ Before any slice closes, the host gate must name the navigation owner, disabled/
 
 ## 7. Current decision
 
-**Program is mapped; all slices remain open until their individual gates close.** The Markdown handoffs and Figma metadata now cover the roadmap’s CC-P1…P8 surfaces without authorizing code or design edits. The next implementation decision should select one upstream slice (P1/P2/P5) and attach runtime evidence before moving to downstream P3/P4/P6/P7/P8 work.
+**CC-P1 is selected for implementation.** Build the staged local Operations Overview from [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md), attach runtime evidence, then continue P2 and P5. Downstream P3/P4/P6/P7/P8 remain sequenced; no additional P1 planning packet is required.

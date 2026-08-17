@@ -871,7 +871,20 @@ public partial class HelpWindow : Window
         ab.Children.Add(P("ANLAbel - " + (vi ? "Thiết kế Nhãn" : "Label Designer")));
         ab.Children.Add(P((vi ? "Tác giả: " : "Created by ") + "Duc An"));
         ab.Children.Add(P("Email: ducancdt@gmail.com"));
-        ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.053"));
+        ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.258"));
+        var updateBtn = new Button
+        {
+            Content = vi ? "🔄 Kiểm tra bản cập nhật mới (GitHub)" : "🔄 Check for Updates (GitHub)",
+            Padding = new Thickness(12, 6, 12, 6),
+            Margin = new Thickness(0, 8, 0, 14),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Background = Hex("#1464D2"),
+            Foreground = Brushes.White,
+            FontWeight = FontWeights.SemiBold,
+            Cursor = System.Windows.Input.Cursors.Hand
+        };
+        updateBtn.Click += (_, _) => new UpdateWindow { Owner = this }.ShowDialog();
+        ab.Children.Add(updateBtn);
         ab.Children.Add(H2(vi ? "Bản quyền" : "Copyright"));
         ab.Children.Add(P("Copyright © 2024–2026 Duc An."));
         ab.Children.Add(P(vi

@@ -1,4 +1,3 @@
-using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -19,6 +18,7 @@ using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
+using ANLAbel.Core.Scene;
 
 namespace ANLAbel.Printing.RenderPipeline;
 
@@ -66,9 +66,22 @@ public sealed class LabelVisualRenderer
         dc.PushClip(new RectangleGeometry(clipRect));
         PushOutputTransforms(dc, labelRect, plan);
 
-        foreach (var item in template.Objects.Where(item => item.IsVisible).OrderBy(item => item.ZIndex))
+        var dpiX = plan.DpiX > 0 ? plan.DpiX : plan.Dpi;
+        var dpiY = plan.DpiY > 0 ? plan.DpiY : plan.Dpi;
+        var compiled = plan.CompiledScene;
+        var canUseCompiledScene = plan.SceneCompilationVerified
+            && compiled is { Succeeded: true }
+            && compiled.Snapshot.Objects.Length == compiled.Nodes.Length;
+        if (canUseCompiledScene)
         {
-            DrawObject(dc, item, row, plan.Dpi, labelWidthMm, labelHeightMm);
+            RenderCompiledScene(dc, compiled!, row, dpiX, dpiY, labelWidthMm, labelHeightMm);
+        }
+        else
+        {
+            foreach (var item in template.Objects.Where(item => item.IsVisible).OrderBy(item => item.ZIndex))
+            {
+                DrawObject(dc, item, row, dpiX, dpiY, labelWidthMm, labelHeightMm);
+            }
         }
 
         PopOutputTransforms(dc, plan);
@@ -107,29 +120,149 @@ public sealed class LabelVisualRenderer
         return visual;
     }
 
-    private void DrawObject(DrawingContext dc, LabelObject item, IReadOnlyDictionary<string, string>? row, int dpi, double labelWidthMm, double labelHeightMm)
+    private void RenderCompiledScene(
+        DrawingContext dc,
+        SceneCompilationResult compiled,
+        IReadOnlyDictionary<string, string>? row,
+        int dpiX,
+        int dpiY,
+        double labelWidthMm,
+        double labelHeightMm)
     {
-        var rect = new Rect(
-            MmConverter.MmToDip(item.XMm),
-            MmConverter.MmToDip(item.YMm),
-            MmConverter.MmToDip(item.WidthMm),
-            MmConverter.MmToDip(item.HeightMm));
+        var snapshots = compiled.Snapshot.Objects
+            .ToDictionary(item => item.Id, StringComparer.Ordinal);
+        foreach (var node in compiled.Nodes
+                     .Where(item => item.IsVisible)
+                     .OrderBy(item => item.ZIndex)
+                     .ThenBy(item => item.Id, StringComparer.Ordinal))
+        {
+            if (!snapshots.TryGetValue(node.Id, out var snapshot))
+            {
+                continue;
+            }
 
-        var needsRotation = item.Rotation != 0 && item.Type != ObjectType.Line;
+            var item = CreateRenderObject(snapshot);
+            DrawObject(dc, item, row, dpiX, dpiY, labelWidthMm, labelHeightMm, node);
+        }
+    }
+
+    private static LabelObject CreateRenderObject(SceneObjectSnapshot snapshot)
+    {
+        // Set data/style first because LabelObject's QR convenience setters may
+        // auto-size; restore the compiled geometry last so the presenter cannot
+        // drift from the immutable scene bounds.
+        var item = new LabelObject
+        {
+            Id = snapshot.Id,
+            Name = snapshot.Name,
+            Type = snapshot.Type,
+            BindingExpression = snapshot.BindingExpression,
+            Text = snapshot.Text,
+            BarcodeSymbology = snapshot.BarcodeSymbology,
+            BarcodeApplicationProfile = snapshot.BarcodeApplicationProfile,
+            QrSizingMode = snapshot.QrSizingMode,
+            QrErrorCorrection = snapshot.QrErrorCorrection,
+            QrFixedVersion = snapshot.QrFixedVersion,
+            QrModuleSizePx = snapshot.QrModuleSizePx,
+            QrQuietZoneModules = snapshot.QrQuietZoneModules,
+            QrDpi = snapshot.QrDpi,
+            ShowBarcodeText = snapshot.ShowBarcodeText,
+            // Legacy snapshots may only carry ShowBarcodeText; map true+None → Below.
+            BarcodeHriPlacement = snapshot.BarcodeHriPlacement == Core.Enums.BarcodeHriPlacement.None
+                && snapshot.ShowBarcodeText
+                    ? Core.Enums.BarcodeHriPlacement.Below
+                    : snapshot.BarcodeHriPlacement,
+            BarcodeTextFontSizePt = snapshot.BarcodeTextFontSizePt,
+            BarcodeCheckDigitPolicy = snapshot.BarcodeCheckDigitPolicy,
+            BarcodeHriShowCheckDigit = snapshot.BarcodeHriShowCheckDigit,
+            BarcodeModuleWidthMm = snapshot.BarcodeModuleWidthMm,
+            BarcodeWidthMode = snapshot.BarcodeWidthMode,
+            ImageDataBase64 = snapshot.ImageDataBase64,
+            ImageRasterMode = snapshot.ImageRasterMode,
+            ImagePixelWidth = snapshot.ImagePixelWidth,
+            ImagePixelHeight = snapshot.ImagePixelHeight,
+            Style = new ObjectStyle
+            {
+                FontFamily = snapshot.Style.FontFamily,
+                FontSizePt = snapshot.Style.FontSizePt,
+                LineHeightPt = snapshot.Style.LineHeightPt,
+                Bold = snapshot.Style.Bold,
+                Italic = snapshot.Style.Italic,
+                Underline = snapshot.Style.Underline,
+                Alignment = snapshot.Style.Alignment,
+                TextDirection = snapshot.Style.TextDirection,
+                TextSizing = snapshot.Style.TextSizing,
+                TextOverflow = snapshot.Style.TextOverflow,
+                TextFitMinimumFontSizePt = snapshot.Style.TextFitMinimumFontSizePt,
+                TextFitMaximumFontSizePt = snapshot.Style.TextFitMaximumFontSizePt,
+                TextFitMinimumScale = snapshot.Style.TextFitMinimumScale,
+                TextFitMaximumScale = snapshot.Style.TextFitMaximumScale,
+                VerticalAlignment = snapshot.Style.VerticalAlignment,
+                TextPaddingMm = snapshot.Style.TextPaddingMm,
+                TextPaddingLeftMm = snapshot.Style.TextPaddingLeftMm,
+                TextPaddingRightMm = snapshot.Style.TextPaddingRightMm,
+                TextPaddingTopMm = snapshot.Style.TextPaddingTopMm,
+                TextPaddingBottomMm = snapshot.Style.TextPaddingBottomMm,
+                BorderThicknessMm = snapshot.Style.BorderThicknessMm,
+                OutlineStyle = snapshot.Style.OutlineStyle,
+                FillStyle = snapshot.Style.FillStyle,
+                CornerRadiusMm = snapshot.Style.CornerRadiusMm,
+                FillColor = snapshot.Style.FillColor,
+                StrokeColor = snapshot.Style.StrokeColor
+            },
+            IsLocked = snapshot.IsLocked,
+            IsVisible = snapshot.IsVisible,
+            ZIndex = snapshot.ZIndex
+        };
+
+        item.XMm = snapshot.XMm;
+        item.YMm = snapshot.YMm;
+        item.LineEndXMm = snapshot.LineEndXMm;
+        item.LineEndYMm = snapshot.LineEndYMm;
+        item.Rotation = snapshot.Rotation;
+        item.WidthMm = snapshot.WidthMm;
+        item.HeightMm = snapshot.HeightMm;
+        return item;
+    }
+
+    private void DrawObject(
+        DrawingContext dc,
+        LabelObject item,
+        IReadOnlyDictionary<string, string>? row,
+        int dpiX,
+        int dpiY,
+        double labelWidthMm,
+        double labelHeightMm,
+        CompiledSceneNode? compiledNode = null)
+    {
+        var layoutBounds = compiledNode?.LayoutBoundsMm;
+        var xMm = layoutBounds?.LeftMm ?? item.XMm;
+        var yMm = layoutBounds?.TopMm ?? item.YMm;
+        var widthMm = layoutBounds?.WidthMm ?? item.WidthMm;
+        var heightMm = layoutBounds?.HeightMm ?? item.HeightMm;
+        var objectType = compiledNode?.Type ?? item.Type;
+        var rotation = compiledNode?.Rotation ?? item.Rotation;
+        var rect = new Rect(
+            MmConverter.MmToDip(xMm),
+            MmConverter.MmToDip(yMm),
+            MmConverter.MmToDip(widthMm),
+            MmConverter.MmToDip(heightMm));
+
+        var needsRotation = rotation != 0 && objectType != ObjectType.Line;
         if (needsRotation)
         {
             var centerX = rect.Left + rect.Width / 2;
             var centerY = rect.Top + rect.Height / 2;
-            dc.PushTransform(new RotateTransform(item.Rotation, centerX, centerY));
+            dc.PushTransform(new RotateTransform(rotation, centerX, centerY));
         }
 
-        switch (item.Type)
+        switch (objectType)
         {
             case ObjectType.Text:
-                DrawTextObject(dc, item, rect, row, false);
+                DrawTextObject(dc, item, rect, row, constrainToBox: false);
                 break;
             case ObjectType.TextBox:
-                DrawTextObject(dc, item, rect, row, true);
+                DrawTextObject(dc, item, rect, row, constrainToBox: true);
                 break;
             case ObjectType.Rectangle:
                 dc.DrawRoundedRectangle(
@@ -148,21 +281,23 @@ public sealed class LabelVisualRenderer
                     rect.Height / 2);
                 break;
             case ObjectType.Line:
-                var lineEndXMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.XMm + item.WidthMm : item.LineEndXMm;
-                var lineEndYMm = item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.YMm + item.HeightMm : item.LineEndYMm;
+                var lineStart = compiledNode?.LineStartMm ?? new ScenePoint(item.XMm, item.YMm);
+                var lineEnd = compiledNode?.LineEndMm ?? new ScenePoint(
+                    item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.XMm + item.WidthMm : item.LineEndXMm,
+                    item.LineEndXMm == 0 && item.LineEndYMm == 0 ? item.YMm + item.HeightMm : item.LineEndYMm);
                 var linePen = CreateOutlinePen(item);
                 if (linePen is not null)
                 {
                     dc.DrawLine(
                         linePen,
-                        new Point(MmConverter.MmToDip(item.XMm), MmConverter.MmToDip(item.YMm)),
-                        new Point(MmConverter.MmToDip(lineEndXMm), MmConverter.MmToDip(lineEndYMm)));
+                        new Point(MmConverter.MmToDip(lineStart.XMm), MmConverter.MmToDip(lineStart.YMm)),
+                        new Point(MmConverter.MmToDip(lineEnd.XMm), MmConverter.MmToDip(lineEnd.YMm)));
                 }
                 break;
             case ObjectType.BarcodeCode128:
             case ObjectType.QRCode:
             case ObjectType.DataMatrix:
-                DrawBarcode(dc, item, rect, row, dpi, labelWidthMm, labelHeightMm);
+                DrawBarcode(dc, item, rect, row, dpiX, dpiY, labelWidthMm, labelHeightMm);
                 break;
             case ObjectType.Image:
                 DrawImage(dc, item, rect);
@@ -178,37 +313,55 @@ public sealed class LabelVisualRenderer
     private void DrawTextObject(DrawingContext dc, LabelObject item, Rect rect, IReadOnlyDictionary<string, string>? row, bool constrainToBox)
     {
         var value = ResolveData(item, row);
-        var displayValue = constrainToBox
-            ? TextBoxOverflowDetector.WrapTextToBox(item, value, Math.Max(1, rect.Width - TextBoxOverflowDetector.HorizontalPaddingDip * 2))
-            : value;
-        var text = TextBoxOverflowDetector.CreateFormattedText(item, displayValue, ParseBrush(item.Style.StrokeColor, Brushes.Black));
-
-        if (!constrainToBox)
+        var brush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
+        // Shared layout path for Text and TextBox (including free-Text frame-fit
+        // compress) so designer preview and print share the same scale outcome.
+        if (!constrainToBox
+            || TextBoxOverflowDetector.HasExplicitLineHeight(item)
+            || TextBoxOverflowDetector.UsesShrinkFont(item)
+            || TextBoxOverflowDetector.UsesScaleWidth(item)
+            || TextBoxOverflowDetector.UsesTextFrameFitCompress(item))
         {
-            var x = rect.Left + 2;
-            var y = rect.Top + Math.Max(0, (rect.Height - text.Height) / 2);
-            dc.DrawText(text, new Point(x, y));
+            var layout = TextBoxOverflowDetector.CreateTextLayout(item, value, rect.Width, rect.Height, constrainToBox, brush);
+            if (!constrainToBox)
+            {
+                TextBoxOverflowDetector.DrawTextLayout(dc, layout, new Point(rect.Left + TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrainToBox), rect.Top + layout.Metrics.VerticalOffsetDip));
+                return;
+            }
+
+            dc.PushClip(new RectangleGeometry(rect));
+            TextBoxOverflowDetector.DrawTextLayout(dc, layout, new Point(rect.Left + TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrainToBox), rect.Top + layout.Metrics.VerticalOffsetDip));
+            dc.Pop();
+            if (layout.Metrics.IsOverflowing && TextBoxOverflowDetector.ShouldBlockOverflow(item))
+            {
+                DrawErrorFrame(dc, rect, "Text overflow");
+            }
+
             return;
         }
 
+        var displayValue = TextBoxOverflowDetector.WrapTextToBox(item, value, TextBoxOverflowDetector.GetContentWidthDip(item, rect.Width, constrainToBox));
+        var text = TextBoxOverflowDetector.CreateFormattedText(item, displayValue, brush);
+        TextBoxOverflowDetector.ApplyLayoutBounds(text, item, rect.Width, rect.Height, constrainToBox);
+        var metrics = TextBoxOverflowDetector.Measure(text, item, rect.Width, rect.Height, constrainToBox, value);
+
         var contentRect = new Rect(
-            rect.Left + TextBoxOverflowDetector.HorizontalPaddingDip,
+            rect.Left + TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrainToBox),
             rect.Top,
-            Math.Max(1, rect.Width - TextBoxOverflowDetector.HorizontalPaddingDip * 2),
+            TextBoxOverflowDetector.GetContentWidthDip(item, rect.Width, constrainToBox),
             Math.Max(1, rect.Height));
         var overflow = TextBoxOverflowDetector.IsOverflowing(item, value, rect.Width, rect.Height);
-        text.MaxTextWidth = contentRect.Width;
-        text.MaxTextHeight = Math.Max(1, rect.Height);
         dc.PushClip(new RectangleGeometry(rect));
-        dc.DrawText(text, contentRect.TopLeft);
+        var textY = contentRect.Top + metrics.VerticalOffsetDip;
+        dc.DrawText(text, new Point(contentRect.Left, textY));
         dc.Pop();
-        if (overflow)
+        if (overflow && TextBoxOverflowDetector.ShouldBlockOverflow(item))
         {
             DrawErrorFrame(dc, rect, "Text overflow");
         }
     }
 
-    private void DrawBarcode(DrawingContext dc, LabelObject item, Rect rect, IReadOnlyDictionary<string, string>? row, int dpi, double labelWidthMm, double labelHeightMm)
+    private void DrawBarcode(DrawingContext dc, LabelObject item, Rect rect, IReadOnlyDictionary<string, string>? row, int dpiX, int dpiY, double labelWidthMm, double labelHeightMm)
     {
         var data = ResolveData(item, row);
         var type = item.Type switch
@@ -225,60 +378,114 @@ public sealed class LabelVisualRenderer
             return;
         }
 
+        // Print-preview-reliability-plan R5: plan DPI first for module geometry.
+        var barcodeDpi = dpiX > 0 ? dpiX : item.QrDpi;
+        // P1.a: SizedFromX production width (effMm × logical modules) shared with designer.
+        var productionWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(
+            item,
+            _barcodeRenderer,
+            barcodeDpi > 0 ? barcodeDpi : 203,
+            data);
+        var productionWidthDip = MmConverter.MmToDip(productionWidthMm);
+        var objectRect = rect;
+        if (Math.Abs(productionWidthDip - rect.Width) > 0.01)
+        {
+            objectRect = new Rect(rect.Left, rect.Top, Math.Max(1, productionWidthDip), rect.Height);
+        }
+
+        var hriLayout = BarcodeHriTextLayout.Measure(
+            type,
+            data,
+            productionWidthMm,
+            MmConverter.DipToMm(objectRect.Height),
+            item.BarcodeHriPlacement,
+            item.BarcodeTextFontSizePt);
+        if (!hriLayout.IsValid)
+        {
+            DrawErrorFrame(dc, objectRect, hriLayout.ErrorMessage ?? "HRI cannot be laid out");
+            return;
+        }
+
         // No QR auto-size in print renderer — render at model size to stay aligned with linked text
 
         try
         {
-            var widthMm = MmConverter.DipToMm(rect.Width);
-            var heightMm = MmConverter.DipToMm(rect.Height);
-            // Print-preview-reliability-plan R5/item 8 (2026-07-03, confirmed with project
-            // owner): prioritize the plan's real print DPI over the object's own QrDpi, so
-            // module dots are sized correctly for the physical printer. This intentionally
-            // reopens a prior WYSIWYG tradeoff — the Designer canvas still renders barcodes
-            // at the object's own QrDpi (unaffected by any PrintRenderPlan), so Preview/Print
-            // may now show a different module size than the Designer when QrDpi does not
-            // match the configured print DPI. `PrintPreflightValidator` warns before printing
-            // when this mismatch would shrink the module below ~2 physical dots.
-            var barcodeDpi = dpi > 0 ? dpi : item.QrDpi;
+            var symbolRect = hriLayout.IsEnabled
+                ? new Rect(
+                    objectRect.Left,
+                    objectRect.Top + MmConverter.MmToDip(hriLayout.SymbolTopMm),
+                    objectRect.Width,
+                    MmConverter.MmToDip(hriLayout.SymbolHeightMm))
+                : objectRect;
+            var widthMm = MmConverter.DipToMm(symbolRect.Width);
+            var heightMm = MmConverter.DipToMm(symbolRect.Height);
 
             // Try vector rendering for 1D barcodes — eliminates all rasterization/interpolation
             // artifacts ("crease/wrinkle" effect) by drawing sharp vector rectangles.
-            // Barcode fills the entire object rect. Text below is handled by a separate
-            // Linked Text object (ShowBarcodeText is ignored in print/preview renderer
-            // because inline text splitting causes misalignment between barcode and text).
+            // The shared HRI layout reserves a deterministic strip below linear bars;
+            // the symbol itself is never stretched into that text area.
             var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
             if (vectorData is not null)
             {
-                DrawVectorBarcode(dc, vectorData, rect, barcodeDpi);
+                DrawVectorBarcode(dc, vectorData, symbolRect, dpiX, dpiY);
+                DrawHri(dc, data, item, hriLayout, objectRect);
                 return;
             }
 
             // Fallback to bitmap for 2D codes (QR, DataMatrix, PDF417, Aztec)
-            var pixels = _barcodeRenderer.RenderBarcode(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
-            var source = BitmapSource.Create(pixels.WidthPixels, pixels.HeightPixels, barcodeDpi, barcodeDpi, PixelFormats.Bgra32, null, pixels.BgraPixels, pixels.Stride);
+            var renderOptions = CreateBarcodeRenderOptions(item);
+            var pixels = _barcodeRenderer is INonSquareBarcodeRenderer nonSquareRenderer
+                && dpiX > 0
+                && dpiY > 0
+                ? nonSquareRenderer.RenderBarcode(data, type, widthMm, heightMm, dpiX, dpiY, renderOptions)
+                : _barcodeRenderer.RenderBarcode(data, type, widthMm, heightMm, barcodeDpi, renderOptions);
+            var isSquareMatrix = type is BarcodeType.QRCode or BarcodeType.DataMatrix or BarcodeType.Aztec;
+            var isMatrix = isSquareMatrix || type == BarcodeType.Pdf417;
+            if (dpiX > 0 && dpiY > 0 && !isMatrix)
+            {
+                // Linear-fallback / PDF417 bitmaps that only expose one DPI still
+                // need an explicit device-dot frame. Square 2D already used
+                // MatrixSquareModuleFit — a second independent resize would squash modules.
+                var targetWidthDots = Math.Max(1, MmConverter.MmToPrinterDots(widthMm, dpiX));
+                var targetHeightDots = Math.Max(1, MmConverter.MmToPrinterDots(heightMm, dpiY));
+                pixels = pixels.ResizeNearest(targetWidthDots, targetHeightDots);
+            }
+            var paintDpiX = dpiX > 0 ? dpiX : barcodeDpi;
+            var paintDpiY = dpiY > 0 ? dpiY : barcodeDpi;
+            var source = BitmapSource.Create(pixels.WidthPixels, pixels.HeightPixels, paintDpiX, paintDpiY, PixelFormats.Bgra32, null, pixels.BgraPixels, pixels.Stride);
             source.Freeze();
 
-            // Draw the barcode at its natural DIP size to prevent WPF scaling artifacts.
-            var naturalWidthDip = pixels.WidthPixels * 96.0 / barcodeDpi;
-            var naturalHeightDip = pixels.HeightPixels * 96.0 / barcodeDpi;
+            var destWidth = pixels.WidthPixels * 96.0 / paintDpiX;
+            var destHeight = pixels.HeightPixels * 96.0 / paintDpiY;
+            if (isSquareMatrix)
+            {
+                destWidth = Math.Min(destWidth, symbolRect.Width);
+                destHeight = Math.Min(destHeight, symbolRect.Height);
+            }
 
+            var dest = new Rect(
+                symbolRect.Left + Math.Max(0, (symbolRect.Width - destWidth) / 2),
+                symbolRect.Top + Math.Max(0, (symbolRect.Height - destHeight) / 2),
+                destWidth,
+                destHeight);
             var guidelines = new GuidelineSet(
-                new[] { rect.Left, rect.Left + naturalWidthDip },
-                new[] { rect.Top, rect.Top + naturalHeightDip });
+                new[] { dest.Left, dest.Right },
+                new[] { dest.Top, dest.Bottom });
             dc.PushGuidelineSet(guidelines);
-            dc.DrawImage(source, new Rect(rect.Left, rect.Top, naturalWidthDip, naturalHeightDip));
+            dc.DrawImage(source, dest);
             dc.Pop();
+            DrawHri(dc, data, item, hriLayout, objectRect);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            dc.DrawRectangle(Brushes.White, new Pen(Brushes.Red, 1), rect);
-            DrawErrorFrame(dc, rect, "Barcode cannot be rendered");
+            dc.DrawRectangle(Brushes.White, new Pen(Brushes.Red, 1), objectRect);
+            DrawErrorFrame(dc, objectRect, "Barcode cannot be rendered");
         }
     }
 
     private void DrawImage(DrawingContext dc, LabelObject item, Rect rect)
     {
-        var source = DecodeImage(item.ImageDataBase64);
+        var source = ImageRasterizer.Decode(item.ImageDataBase64, item.ImageRasterMode);
         if (source is null)
         {
             DrawErrorFrame(dc, rect, "No image");
@@ -296,79 +503,72 @@ public sealed class LabelVisualRenderer
         dc.DrawImage(source, drawRect);
     }
 
-    private static BitmapImage? DecodeImage(string base64)
+    private static void DrawHri(
+        DrawingContext dc,
+        string value,
+        LabelObject item,
+        BarcodeHriLayout layout,
+        Rect frame)
     {
-        if (string.IsNullOrWhiteSpace(base64))
+        if (!layout.IsEnabled || !layout.IsValid)
         {
-            return null;
+            return;
         }
 
-        try
+        var symbology = item.Type switch
         {
-            var bytes = Convert.FromBase64String(base64);
-            using var stream = new MemoryStream(bytes);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.StreamSource = stream;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
-        catch
-        {
-            return null;
-        }
+            ObjectType.QRCode => BarcodeSymbology.QRCode,
+            ObjectType.DataMatrix => BarcodeSymbology.DataMatrix,
+            _ => item.BarcodeSymbology
+        };
+        var hriValue = BarcodeCheckDigitContract.FormatHriText(
+            symbology,
+            value,
+            item.BarcodeCheckDigitPolicy,
+            item.BarcodeHriShowCheckDigit);
+        var fontSizePt = item.BarcodeTextFontSizePt;
+        var text = BarcodeHriTextLayout.CreateText(hriValue, fontSizePt, Brushes.Black);
+        var hriTopDip = frame.Top + MmConverter.MmToDip(layout.HriTopMm);
+        var hriHeightDip = MmConverter.MmToDip(layout.HriHeightMm);
+        text.MaxTextWidth = frame.Width;
+        text.MaxTextHeight = hriHeightDip;
+        text.TextAlignment = TextAlignment.Center;
+        var y = hriTopDip + Math.Max(0, (hriHeightDip - text.Height) / 2);
+        dc.PushClip(new RectangleGeometry(new Rect(frame.Left, hriTopDip, frame.Width, hriHeightDip)));
+        dc.DrawText(text, new Point(frame.Left, y));
+        dc.Pop();
     }
 
-    private static void DrawVectorBarcode(DrawingContext dc, BarcodeVectorData vectorData, Rect rect, int dpi)
+    private static void DrawVectorBarcode(DrawingContext dc, BarcodeVectorData vectorData, Rect rect, int dpiX, int dpiY)
     {
-        // Draw each barcode module as a pixel-snapped rectangle.
-        // Avoid ScaleTransform because fractional DIP widths cause anti-aliased
-        // bar edges that create "crease/wrinkle" artifacts when printed.
-        // Instead, compute each bar's position directly in target coordinates,
-        // snapping to whole printer-pixel boundaries.
-        var totalModules = vectorData.WidthModules;
-        if (totalModules <= 0)
-            return;
-
-        // Snap left/right edges to whole pixels so no white space appears at barcode ends
-        var snappedLeft = Math.Round(rect.Left);
-        var snappedRight = Math.Round(rect.Left + rect.Width);
-        var snappedTop = Math.Round(rect.Top);
-        var snappedBottom = Math.Round(rect.Top + rect.Height);
+        // Keep all printer-grid decisions in the platform-neutral layout seam.
+        // WPF only paints the already-quantized runs; it never rounds DIP
+        // widths independently, which would reintroduce DPI-dependent drift.
+        var layout = DeviceBarcodeLayout.Create(
+            rect.Left,
+            rect.Top,
+            rect.Width,
+            rect.Height,
+            dpiX,
+            dpiY,
+            vectorData.WidthModules,
+            vectorData.RowBits);
+        var snappedLeft = DeviceDotQuantizer.DotsToDip(layout.LeftDot, dpiX);
+        var snappedRight = DeviceDotQuantizer.DotsToDip(layout.LeftDot + layout.WidthDots, dpiX);
+        var snappedTop = DeviceDotQuantizer.DotsToDip(layout.TopDot, dpiY);
+        var snappedBottom = DeviceDotQuantizer.DotsToDip(layout.TopDot + layout.HeightDots, dpiY);
         var guidelines = new GuidelineSet(
             new[] { snappedLeft, snappedRight },
             new[] { snappedTop, snappedBottom });
         dc.PushGuidelineSet(guidelines);
 
         var brush = Brushes.Black;
-        var targetWidth = snappedRight - snappedLeft;
-        var barHeight = snappedBottom - snappedTop;
-        var i = 0;
-
-        while (i < totalModules)
+        var barHeight = DeviceDotQuantizer.DotsToDip(layout.HeightDots, dpiY);
+        foreach (var run in layout.DarkRuns)
         {
-            if (vectorData.RowBits[i])
-            {
-                // Find the end of this contiguous dark run
-                var startModule = i;
-                while (i < totalModules && vectorData.RowBits[i])
-                    i++;
-
-                // Compute pixel-snapped positions in target rect
-                var leftPx = Math.Round(startModule * targetWidth / totalModules);
-                var rightPx = Math.Round(i * targetWidth / totalModules);
-                var barWidth = rightPx - leftPx;
-                if (barWidth < 1.0)
-                    barWidth = 1.0; // minimum one DIP to remain visible
-
-                dc.DrawRectangle(brush, null, new Rect(snappedLeft + leftPx, snappedTop, barWidth, barHeight));
-            }
-            else
-            {
-                i++;
-            }
+            var leftDip = DeviceDotQuantizer.DotsToDip(layout.LeftDot + run.StartDot, dpiX);
+            var barWidth = DeviceDotQuantizer.DotsToDip(run.WidthDots, dpiX);
+            dc.DrawRectangle(brush, null, new Rect(leftDip, snappedTop, barWidth, barHeight));
         }
 
         dc.Pop(); // Pop GuidelineSet
@@ -441,7 +641,8 @@ public sealed class LabelVisualRenderer
         return new BarcodeRenderOptions
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules
+            QuietZoneModules = item.QrQuietZoneModules,
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
         };
     }
 

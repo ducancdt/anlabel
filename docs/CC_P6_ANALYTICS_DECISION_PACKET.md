@@ -1,6 +1,6 @@
 # CC-P6 local analytics owner decision packet
 
-**Status:** documentation-only owner gate; no Analytics window, second log, cloud telemetry, physical-label counter, export authority or Text/TextBox change is authorized by this packet (2026-08-13)
+**Status:** M1 local Analytics host implemented; second log, cloud telemetry, physical-label counter, export authority and Text/TextBox change remain excluded (2026-08-13)
 **Program index:** [`CC_UI_UX_PROGRAM_INDEX.md`](CC_UI_UX_PROGRAM_INDEX.md)
 **Handoff:** [`CC_P6_ANALYTICS_UI_HANDOFF.md`](CC_P6_ANALYTICS_UI_HANDOFF.md)
 **Specification:** [`CC_P6_ANALYTICS_UI_SPEC.md`](CC_P6_ANALYTICS_UI_SPEC.md)
@@ -20,7 +20,7 @@ CSV label rows + operation trace + durable job state
         -> read-only deep-link to P5 History
 ```
 
-This packet is a design-review gate. It does not add a second log, mutate jobs, retry/reprint, delete history, create cloud telemetry, infer users/materials/printer groups, or claim physical output. Text/TextBox ownership, sizing, wrapping, clipping, padding, overflow and print parity remain protected.
+The implemented M1 host follows this packet for source-separated counters, source health and the physical-output disclaimer. It does not add a second log, mutate jobs, retry/reprint, delete history, create cloud telemetry, infer users/materials/printer groups, or claim physical output. Text/TextBox ownership, sizing, wrapping, clipping, padding, overflow and print parity remain protected.
 
 ## Decision summary
 

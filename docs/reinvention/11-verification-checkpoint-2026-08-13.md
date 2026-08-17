@@ -12,10 +12,10 @@
 
 | Evidence | Result | Boundary |
 | --- | --- | --- |
-| Display/source version | `0.202` in the current app project, shell title/build-channel text, and public Commercial/Trial installer metadata | The private License Master installer intentionally remains `1.0.0`; version parity is not a signed release artifact while those source/installer files are dirty. |
+| Display/source version | `0.258` is canonical in `eng/Version.props` and projected to app metadata, shell title/build-channel text, Help and public Commercial/Trial installer metadata | The private License Master installer intentionally remains `1.0.0`; version parity is source/build evidence, not a signed release artifact while those source/installer files are dirty. |
 | `dotnet build ANLAbel.slnx --no-restore --nologo -v quiet -p:UseSharedCompilation=false -nodeReuse:false` | PASS · 0 warnings · 0 errors | Compile evidence for the current checkout. |
 | `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -v quiet` | PASS · 356/356 | Unit/contract evidence; no physical-device claim. |
-| `dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build` | PASS · exit 0; 157 registered checks in the current runner | Application regression evidence. Named P1/P2 barcode gates and the protected Text/TextBox regression names are present in the runner; this is not a hardware smoke test. |
+| `dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build` | PASS · exit 0; 158 registered checks in the current runner | Application regression evidence, including the Operations Overview stale-refresh/scope gate. Named P1/P2 barcode gates and the protected Text/TextBox regression names are present in the runner; this is not a hardware smoke test. |
 | Repository-local Markdown link audit | PASS · 57 Markdown files, 209 relative links checked, 0 broken paths | Relative paths/assets only; external URLs still require network/source review. |
 | Worktree ownership | OPEN · broad dirty implementation wave and untracked research/code/assets remain | This checkpoint must not be used to stage or release those files. |
 
@@ -179,7 +179,7 @@ The next R4 Data Workspace UI slice has the same boundary: Figma `9:2` supplies 
 
 Database Manager has a separate evidence boundary: the current WPF `DatabaseManagerWindow`/`DataSourceCleanupWindow` code exists, but the recorded plan says the click-through has not been manually verified and Figma Page `0:1` has no Manager frame. The state matrix and owner gate are recorded in [`DATABASE_MANAGER_UI_HANDOFF.md`](../DATABASE_MANAGER_UI_HANDOFF.md).
 
-CC-P1 has the same documentation-only boundary: the current WPF `PrintCenterWindow` provides durable recovery actions, while queue status, activation and print-history entry points remain separate. Read-only Control Center metadata supplies Overview `2:2` plus future Printers `2:37` and History `3:85`, but no local Operations Overview exists yet. The proposed state matrix, local-evidence/non-claim rules and host-surface decision are recorded in [`CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_HANDOFF.md); no implementation or Figma edit is implied.
+CC-P1 is now implemented as a staged local `OperationsOverviewWindow`. It projects explicit saved-queue evidence plus durable recovery candidates/diagnostics, rejects stale refresh epochs and deep-links to the existing Printer Setup, Print Center and Print History owners. Licensing is excluded. Runtime/UIA smoke at the 1040 x 700 default window and post-change build/unit/application suites passed; Figma Overview `2:2` remained a read-only hierarchy reference.
 
 CC-P2 is also documentation-only: read-only metadata for Printers `2:37` supplies the filter/table/command shell, while the current WPF has no multi-queue console or Pause/Resume/Delete command service. The M1 read-only scope, state taxonomy and command deferral are recorded in [`CC_P2_PRINT_QUEUE_UI_HANDOFF.md`](../CC_P2_PRINT_QUEUE_UI_HANDOFF.md); no implementation, queue mutation or Figma edit is implied.
 
@@ -193,19 +193,19 @@ CC-P8 is documentation-only and deferred: Applications `7:88` supplies a Web App
 
 CC-P6 is documentation-only: Analytics `5:2` supplies chart/filter reference regions, while current local evidence remains split across per-label CSV, best-effort operation JSONL and hash-chained job state; no cross-source aggregate or Analytics UI exists. The unit/provenance/timezone/redaction matrix and software-counter boundary are recorded in [`CC_P6_ANALYTICS_UI_HANDOFF.md`](../CC_P6_ANALYTICS_UI_HANDOFF.md); no cloud telemetry, physical-output claim, implementation or Figma edit is implied.
 
-CC-P7 is documentation-only: Administration `5:41` supplies server-admin categories and sample role table, while current source supports local activation/DPAPI state, designer/printer preferences, versioned data-source registry/cleanup and local evidence files but no multi-user admin service. The thin-local-host, retention/recovery/privacy matrix is recorded in [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](../CC_P7_ADMINISTRATION_UI_HANDOFF.md); no roles, users, sync, SMTP, license-seat server, workflow admin, implementation or Figma edit is implied.
+CC-P7 is documentation-only and renamed Local Maintenance: Administration `5:41` supplies hierarchy references only, while the product scope is limited to local preferences, versioned data-source registry/cleanup, evidence links and retention preview/recovery. Licensing, activation, roles/users, sync, SMTP, workflow administration and server categories are excluded. See [`CC_P7_ADMINISTRATION_UI_HANDOFF.md`](../CC_P7_ADMINISTRATION_UI_HANDOFF.md).
 
-The cross-surface [`CC_UI_UX_PROGRAM_INDEX.md`](../CC_UI_UX_PROGRAM_INDEX.md) is also documentation-only. It links all CC-P1 through CC-P8 handoffs, preserves the dependency order, records one action owner per slice and maps the read-only Figma nodes listed above; it does not create a runtime Control Center, change WPF behavior or edit the Figma file.
+The cross-surface [`CC_UI_UX_PROGRAM_INDEX.md`](../CC_UI_UX_PROGRAM_INDEX.md) coordinates CC-P1 through CC-P8, preserves the dependency order, records one action owner per slice and maps the read-only Figma nodes listed above. CC-P1 is the implemented staged window; P2-P8 remain separate follow-up scopes.
 
-Its shared host/navigation gate records the existing `Shell.*` WPF regions and `PrintCenterWindow` action owner, but leaves the host choice and proposed `CC.*` AutomationIds open until runtime evidence exists.
+Its shared host/navigation gate now records the staged P1 window, existing `Shell.*` regions, `PrintCenterWindow` action owner and verified `CC.P1.Overview.*` AutomationIds.
 
 The P1/P2/P5 handoffs now link back to this program boundary and state their dependency ownership; this is documentation coordination only and does not close any runtime, UI Automation, print or physical-verifier gate.
 
-The documentation-only [`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PACKET.md) consolidates the open host choice and Figma evidence boundary; no host, WPF navigation or Figma frame has been selected or edited.
+[`CC_P1_P2_P5_HOST_DECISION_PACKET.md`](../CC_P1_P2_P5_HOST_DECISION_PACKET.md) records the selected staged P1 host and the read-only Figma evidence boundary. No permanent multi-module Control Center shell or Figma edit was created.
 
 The documentation-only [`CC_P1_P2_P5_READ_MODEL_CONTRACT.md`](../CC_P1_P2_P5_READ_MODEL_CONTRACT.md) records current source authority and merge rules; it does not claim a runtime projection, UI, print result or physical verification.
 
-The documentation-only [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) is the upstream readiness gate after the host/read-model contracts. It consolidates one host choice, one projection/action owner, queue identity, P1/P2/P5 scope, navigation/accessibility and runtime/Figma evidence; it does not authorize a WPF host or navigation change.
+[`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md) is the executed P1 runbook and evidence log. P2 Queue and P5 History remain follow-up slices under the same action/source ownership boundaries.
 
 The documentation-only [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](../R4_DATA_SURFACES_OWNER_DECISION_PACKET.md) is the next non-CC data-surface owner gate. It consolidates one shared source/connector identity, separate Data Workspace and Database Manager hosts, transform draft/commit semantics, Manager async/mutation safety, read-only Figma reuse and target-scale runtime fixtures; it does not authorize a transform editor, registry rewrite, new Manager frame, Figma write or Text/TextBox change.
 
@@ -251,13 +251,49 @@ The next policy gate after P3 is the existing documentation-only [`CC_P4_APPROVA
 
 **Superseding docs-only Markdown audit after the P3-to-P4 workflow routing update (2026-08-13):** `114` Markdown files, `1352` relative links/assets checked, and `0` broken paths. The `114`/`1340` figures above are the preceding P5-to-P3 routing baseline; external URLs remain outside this local-path check.
 
-The documentation-only [`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) records the Figma `2:2` mapping and responsive/UI Automation gates; no WPF host or Figma frame has been implemented or edited.
+**Superseding Markdown audit after the CC-P1 implementation (2026-08-13):** `114` Markdown files, `1252` repository-relative Markdown destinations checked by the current normalized-path audit, and `0` broken paths. External URLs and heading-anchor validity remain outside this local-path check.
+
+[`CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md`](../CC_P1_OPERATIONS_OVERVIEW_UI_SPEC.md) is now implemented by the staged P1 WPF host. Runtime/UIA evidence closed the first layout and deep-link gate; Figma `2:2` remained read-only and was not edited.
 
 The handoff template's Figma escalation protocol is documentation-only: it requires a concrete missing state, read-only node metadata and runtime closure evidence before any future design connection is treated as actionable.
 
 The downstream P3/P4/P6/P7/P8 handoffs now link to the same boundary and preserve one owner per operation; their design/review and deferred statuses remain open.
 
 ## Release gates still open
+
+### Software-only continuation (v0.212)
+
+Public version metadata is now canonicalized in `eng/Version.props`; the
+application regression checks source projections and the compiled assembly
+metadata. R4 Data Workspace M1 adds atomic draft transforms, Core-owned
+sample/lineage validation, no raw preview fallback on invalid transforms, undo
+coverage and a `1024 × 600` WPF Automation tree gate. Physical/device,
+display-scale visual and operator-usability checks remain deferred external
+evidence as defined in [`../VERSIONING.md`](../VERSIONING.md).
+
+### Local Workflow host (v0.213)
+
+P4 now has a local, modeless Workflow host for a saved template. Its Draft,
+In Review, Approved, Published and Rejected transitions are validated by the
+Core contract and recorded in a separate, hash-chained sidecar audit. A changed
+document hash starts a new Draft revision; an invalid audit tail blocks further
+changes. The host has a `1024 x 600` WPF Automation tree regression gate and
+does not add a print, queue or unattended-dispatch action. Physical output and
+operator review remain deferred external evidence under
+[`../VERSIONING.md`](../VERSIONING.md).
+
+### Local Automation evidence console (v0.214)
+
+P8 now has a modeless local evidence console for the durable fingerprint claim
+ledger. It surfaces an explicit Stopped/no-runner status, configuration boundary
+and redacted event summary, with deep links to the existing History and Print
+Center owners. It has no watcher, source consumption, queue call or automatic
+print path. A `1024 x 600` WPF Automation-tree regression gates the host;
+hardware, operator and unattended-dispatch evidence remains deferred.
+
+### Superseding execution boundary (2026-08-13)
+
+CC-P1 is implemented as a staged local `OperationsOverviewWindow` with queue/recovery evidence and deep-links to existing owners. Licensing/activation/entitlement/seat features are excluded from the Control Center product scope. The authoritative implementation evidence is [`CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md`](../CC_P1_P2_P5_IMPLEMENTATION_GATE_PACKET.md); older activation-card and blank-owner rows in this historical checkpoint are superseded.
 
 - clean implementation ownership and a fresh post-commit rerun of the commands above;
 - physical verifier/grade evidence, printer-native command evidence, full GS1/catalog parity and physical-label evidence;

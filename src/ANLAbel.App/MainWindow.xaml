@@ -2,12 +2,14 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ANLAbel.App.Controls"
+        xmlns:viewModels="clr-namespace:ANLAbel.App.ViewModels"
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
+        xmlns:converters="clr-namespace:ANLAbel.App.Converters"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.086"
+        Title="ANLAbel - Label Designer v0.258"
         Icon="/ANLAbel.App;component/anlabel.ico"
-        Height="800" Width="1440"
-        MinHeight="430" MinWidth="720"
+        Height="720" Width="1280"
+        MinHeight="600" MinWidth="1024"
         Background="#EEF2F6"
         FontFamily="Segoe UI"
         FontSize="13"
@@ -17,6 +19,7 @@
         UseLayoutRounding="True">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <converters:EnumEqualsConverter x:Key="EnumEquals"/>
         <controls:BoolToGridLengthConverter x:Key="BoolToGridLength"/>
         <CollectionViewSource x:Key="GroupedBarcodeSymbologies" Source="{Binding BarcodeSymbologyOptions}">
             <CollectionViewSource.GroupDescriptions>
@@ -114,8 +117,8 @@
         </Style>
 
         <Style x:Key="IconImage" TargetType="Image">
-            <Setter Property="Width" Value="18"/>
-            <Setter Property="Height" Value="18"/>
+            <Setter Property="Width" Value="17"/>
+            <Setter Property="Height" Value="17"/>
             <Setter Property="Stretch" Value="Uniform"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,0,0,2"/>
@@ -136,27 +139,96 @@
 
         <Style x:Key="RibbonButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="MinWidth" Value="56"/>
-            <Setter Property="Height" Value="64"/>
-            <Setter Property="Padding" Value="7,5"/>
+            <Setter Property="Height" Value="68"/>
+            <Setter Property="Padding" Value="5,3"/>
             <Setter Property="Margin" Value="1,0"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#FFFFFF"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
+        <!-- Ribbon captions are scaled by the containing Viewbox. Fractional glyph metrics and
+             an explicit line box prevent descenders from being clipped at 125%/150% display scale. -->
+        <Style x:Key="RibbonPrimaryCaption" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="LineHeight" Value="15"/>
+            <Setter Property="LineStackingStrategy" Value="BlockLineHeight"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+        </Style>
+
+        <Style x:Key="RibbonSecondaryCaption" TargetType="TextBlock" BasedOn="{StaticResource RibbonPrimaryCaption}">
+            <Setter Property="Foreground" Value="{StaticResource AppMutedBrush}"/>
+        </Style>
+
         <Style x:Key="RibbonGroupLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#94A3B8"/>
-            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="Foreground" Value="#52647D"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,0,0,0"/>
         </Style>
 
-        <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Height" Value="62"/>
-            <Setter Property="Margin" Value="4"/>
+        <Style x:Key="QuickAccessButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
             <Setter Property="Padding" Value="6"/>
+            <Setter Property="Margin" Value="3,0,0,0"/>
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#5B8DD4"/>
+        </Style>
+
+        <Style x:Key="RibbonSecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="92"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#E5EAF1"/>
+        </Style>
+
+        <Style x:Key="RibbonToggleButton" TargetType="ToggleButton">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Padding" Value="5,4"/>
+            <Setter Property="Margin" Value="1,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#E5EAF1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="ToggleRoot" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ToggleRoot" Property="Background" Value="#EAF3FF"/>
+                                <Setter TargetName="ToggleRoot" Property="BorderBrush" Value="#A9CEFF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ToggleRoot" Property="Background" Value="#DCEBFF"/>
+                                <Setter TargetName="ToggleRoot" Property="BorderBrush" Value="#1464D2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Padding" Value="5"/>
             <Setter Property="Background" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#DFE8F2"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -210,6 +282,26 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ExcelVerificationButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}">
+                    <Setter Property="Background" Value="#EAF4FF"/><Setter Property="BorderBrush" Value="#8CC5FF"/><Setter Property="Foreground" Value="#1267C4"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}">
+                    <Setter Property="Background" Value="#ECFDF3"/><Setter Property="BorderBrush" Value="#86D8A2"/><Setter Property="Foreground" Value="#15803D"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}">
+                    <Setter Property="Background" Value="#FFF7E6"/><Setter Property="BorderBrush" Value="#F3C56B"/><Setter Property="Foreground" Value="#A15C00"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}">
+                    <Setter Property="Background" Value="#FFF1F0"/><Setter Property="BorderBrush" Value="#F3A7A1"/><Setter Property="Foreground" Value="#B42318"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="PanelCard" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource AppPanelBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
@@ -253,6 +345,55 @@
             <Setter Property="MinHeight" Value="26"/>
         </Style>
 
+        <Style x:Key="FontToolbarCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="MinHeight" Value="26"/>
+            <Setter Property="Padding" Value="4,1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="AlignIconRadio" TargetType="RadioButton">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Focusable" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Width="24" Height="24">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#DCEBFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FontStyleIcon" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#16304A"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#DCEBFF"/>
+                    <Setter Property="Foreground" Value="#1464D2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style TargetType="TreeView">
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -280,58 +421,76 @@
     </Window.Resources>
 
     <DockPanel LastChildFill="True">
-        <Border DockPanel.Dock="Top" Height="40" Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-            <Grid Margin="16,0">
+        <!-- Shell regions map: docs/NICELABEL_DESIGNER_SHELL_RESEARCH.md + Figma Full Shell v1 -->
+        <Border DockPanel.Dock="Top" Height="52" Background="#102A56" BorderBrush="#234A83" BorderThickness="0,0,0,1"
+                AutomationProperties.AutomationId="Shell.QuickAccess"
+                AutomationProperties.Name="Quick access">
+            <Grid Margin="18,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Width="24" Height="24" Margin="0,0,10,0" Source="/ANLAbel.App;component/anlabel.ico"
+                    <Image Width="30" Height="30" Margin="0,0,11,0" Source="/ANLAbel.App;component/anlabel.ico"
                            RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
-                    <TextBlock Text="ANLAbel - Label Designer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <Border Margin="10,0,0,0" Padding="7,2" Background="#EAF3FF" BorderBrush="{StaticResource AppBlueBrush}" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock x:Name="BuildChannelText" Text="GPL-3.0 · v0.086" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="ANLAbel" FontSize="17" FontWeight="Bold" Foreground="#FFFFFF"/>
+                        <TextBlock Text="Industrial label workspace" FontSize="10" Foreground="#B9CAE7"/>
+                    </StackPanel>
+                    <Border Margin="14,0,0,0" Padding="8,3" Background="#1E4D8F" BorderBrush="#5B8DD4" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
+                        <TextBlock x:Name="BuildChannelText" Text="GPL-3.0 · v0.258" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF"/>
                     </Border>
+                    <Border Width="1" Height="28" Background="#31598F" Margin="12,0,8,0"/>
+                    <Button Style="{StaticResource QuickAccessButton}" Click="New_Click" ToolTip="New label (Ctrl+N)" AutomationProperties.Name="New label" AutomationProperties.AutomationId="Shell.QuickAccess.New">
+                        <Image Source="Icons/new.png" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Click="Open_Click" ToolTip="Open label (Ctrl+O)" AutomationProperties.Name="Open label" AutomationProperties.AutomationId="Shell.QuickAccess.Open">
+                        <Image Source="Icons/open.png" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Click="Save_Click" ToolTip="Save label (Ctrl+S)" AutomationProperties.Name="Save label" AutomationProperties.AutomationId="Shell.QuickAccess.Save">
+                        <Image Source="Icons/save.png" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding UndoCommand}" ToolTip="Undo (Ctrl+Z)" AutomationProperties.Name="Undo" AutomationProperties.AutomationId="Shell.QuickAccess.Undo">
+                        <Image Source="Icons/undo.png" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding RedoCommand}" ToolTip="Redo (Ctrl+Y)" AutomationProperties.Name="Redo" AutomationProperties.AutomationId="Shell.QuickAccess.Redo">
+                        <Image Source="Icons/redo.png" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Click="RevisionHistory_Click" ToolTip="Template revisions and backups" AutomationProperties.Name="Template revisions" AutomationProperties.AutomationId="Shell.QuickAccess.Revisions">
+                        <Image Source="Icons/revisions.png" Stretch="Uniform"/>
+                    </Button>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="ActivationButton" Content="Kích hoạt" Visibility="Collapsed" Padding="12,4" Margin="0,0,16,0"/>
-                    <Image Style="{StaticResource SmallIconImage}" Source="Icons/printer_setup.png" Width="18" Height="18" Margin="0,0,7,0"/>
-                    <TextBlock Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=Printer not selected, FallbackValue=Printer not selected}" FontWeight="SemiBold" Foreground="#334155" Margin="0,0,24,0"/>
-                    <Image Style="{StaticResource SmallIconImage}" Source="Icons/table.png" Width="18" Height="18" Margin="0,0,7,0"/>
-                    <TextBlock FontWeight="SemiBold" Foreground="#334155">
+                    <Border Background="#F8FAFC" BorderBrush="#5B8DD4" BorderThickness="1" CornerRadius="5" Padding="9,4" Margin="0,0,10,0"
+                            ToolTip="Selected industrial printer queue (status)"
+                            AutomationProperties.AutomationId="Shell.QuickAccess.PrinterStatus">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Style="{StaticResource SmallIconImage}" Source="Icons/printer_status.png" Width="17" Height="17" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=Printer not selected, FallbackValue=Printer not selected}" FontWeight="SemiBold" Foreground="#173B72"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#173B72" BorderBrush="#31598F" BorderThickness="1" CornerRadius="5" Padding="9,4">
+                    <TextBlock FontWeight="SemiBold" Foreground="#E8F0FD">
                         <Run Text="Paper: "/>
                         <Run Text="{Binding Template.WidthMm, StringFormat={}{0:0.##}}"/>
                         <Run Text=" x "/>
                         <Run Text="{Binding Template.HeightMm, StringFormat={}{0:0.##}}"/>
                         <Run Text=" mm"/>
                     </TextBlock>
+                    </Border>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="6,3">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <Border DockPanel.Dock="Top" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="8,5"
+                AutomationProperties.AutomationId="Shell.Ribbon"
+                AutomationProperties.Name="Ribbon">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Click="New_Click">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/new.png"/><TextBlock Text="New" TextAlignment="Center"/><TextBlock Text="Ctrl+N" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="Open_Click">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/open.png"/><TextBlock Text="Open" TextAlignment="Center"/><TextBlock Text="Ctrl+O" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="Save_Click">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/save.png"/><TextBlock Text="Save" TextAlignment="Center"/><TextBlock Text="Ctrl+S" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="File"/>
-                    </StackPanel>
-
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="Mở thư viện mẫu tem có sẵn">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="Templates" TextAlignment="Center"/></StackPanel>
+                        <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="Mở thư viện mẫu tem có sẵn" AutomationProperties.Name="Templates" AutomationProperties.AutomationId="Shell.Ribbon.Templates">
+                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="Templates" Style="{StaticResource RibbonPrimaryCaption}"/></StackPanel>
                         </Button>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Library"/>
                     </StackPanel>
@@ -339,24 +498,11 @@
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding UndoCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/undo.png"/><TextBlock Text="Undo" TextAlignment="Center"/><TextBlock Text="Ctrl+Z" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Click="ImportExcel_Click" AutomationProperties.Name="Import Excel" AutomationProperties.AutomationId="Shell.Ribbon.ImportExcel">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="Import" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Excel" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding RedoCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/redo.png"/><TextBlock Text="Redo" TextAlignment="Center"/><TextBlock Text="Ctrl+Y" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Edit"/>
-                    </StackPanel>
-
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Click="ImportExcel_Click">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="Import" TextAlignment="Center"/><TextBlock Text="Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Reload data from the linked Excel file and sheet">
-                                <StackPanel><TextBlock Text="↻" FontSize="16" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Update" TextAlignment="Center"/><TextBlock Text="Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Reload data from the linked Excel file and sheet" AutomationProperties.Name="Update Excel" AutomationProperties.AutomationId="Shell.Ribbon.UpdateExcel">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/update_excel.png"/><TextBlock Text="Update" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Excel" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
                         </StackPanel>
                         <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Data"/>
@@ -365,97 +511,140 @@
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Click="PrinterSetup_Click">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/printer_setup.png"/><TextBlock Text="Printer" TextAlignment="Center"/><TextBlock Text="Setup" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Click="PrinterSetup_Click" AutomationProperties.Name="Printer Setup" AutomationProperties.AutomationId="Shell.Ribbon.PrinterSetup">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/printer_setup.png"/><TextBlock Text="Printer" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Setup" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="PrintPreview_Click">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="Preview" TextAlignment="Center"/><TextBlock Text="Ctrl+P" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Click="PrintPreview_Click" AutomationProperties.Name="Preview" AutomationProperties.AutomationId="Shell.Ribbon.Preview">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="Preview" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Ctrl+P" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintCurrentRowCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_current.png"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="Current" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintCurrentRowCommand}" AutomationProperties.Name="Print Current" AutomationProperties.AutomationId="Shell.Ribbon.PrintCurrent">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_current.png"/><TextBlock Text="Print" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Current" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintAllRowsCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_all_rows.png"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="All Rows" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="PrintHistory_Click" ToolTip="Open the print history CSV log (fast to write, keeps growing forever without slowing down)">
-                                <StackPanel><TextBlock Text="H" FontSize="16" FontWeight="Bold" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Print" TextAlignment="Center"/><TextBlock Text="History" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="ExportPrintHistory_Click" ToolTip="Export the print history log to a nicely formatted Excel report">
-                                <StackPanel><TextBlock Text="X" FontSize="16" FontWeight="Bold" Height="18" Margin="0,0,0,2" TextAlignment="Center" VerticalAlignment="Center"/><TextBlock Text="Export" TextAlignment="Center"/><TextBlock Text="to Excel" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintCalibrationCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/test_print.png"/><TextBlock Text="Test" TextAlignment="Center"/><TextBlock Text="Print" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                            </Button>
+                            <StackPanel Margin="3,0,0,0">
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintAllRowsCommand}" ToolTip="Print every imported row" AutomationProperties.Name="Print all rows" AutomationProperties.AutomationId="Shell.Ribbon.PrintAllRows">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_all_rows.png" Margin="0,0,6,0"/><TextBlock Text="Print all rows" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintHistory_Click" ToolTip="Open the append-only print history" AutomationProperties.Name="Print history" AutomationProperties.AutomationId="Shell.Ribbon.PrintHistory">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_history.png" Margin="0,0,6,0"/><TextBlock Text="Print history" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="ExportPrintHistory_Click" ToolTip="Export print history to Excel" AutomationProperties.Name="Export Excel" AutomationProperties.AutomationId="Shell.Ribbon.ExportExcel">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/export_excel.png" Margin="0,0,6,0"/><TextBlock Text="Export Excel" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintCalibrationCommand}" ToolTip="Print a calibration label" AutomationProperties.Name="Test print" AutomationProperties.AutomationId="Shell.Ribbon.TestPrint">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/test_print.png" Margin="0,0,6,0"/><TextBlock Text="Test print" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Printer"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Print &amp; Output"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="Panels" TextAlignment="Center"/><TextBlock Text="restore" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}" AutomationProperties.Name="Panels restore" AutomationProperties.AutomationId="Shell.Ribbon.Panels">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="Panels" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="restore" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <ToggleButton Width="72" Height="64" Margin="1,0" Padding="7,5"
+                            <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="58"
                                           IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToObjectsEnabled, Mode=TwoWay}"
                                           AutomationProperties.Name="Snap to objects"
+                                          AutomationProperties.AutomationId="Shell.Ribbon.SnapObjects"
                                           ToolTip="Snap object edges and centers while dragging. Hold Alt to bypass temporarily.">
+                                <ToggleButton.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <Trigger Property="FontSize" Value="18">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Resources>
                                 <StackPanel>
-                                    <TextBlock Text="â‡„" FontSize="18" Height="20" TextAlignment="Center"/>
-                                    <TextBlock Text="Snap" TextAlignment="Center"/>
-                                    <TextBlock Text="objects" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                    <Image Style="{StaticResource IconImage}" Source="Icons/snap_objects.png"/>
+                                    <TextBlock Text="Objects" FontSize="10" TextAlignment="Center"/>
+                                    <TextBlock Text="snap" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                </StackPanel>
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="62"
+                                          IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToGridEnabled, Mode=TwoWay}"
+                                          AutomationProperties.Name="Snap to grid"
+                                          AutomationProperties.AutomationId="Shell.Ribbon.SnapGrid"
+                                          ToolTip="Snap object edges to the configured physical grid step. Drag from a ruler to create a persistent guide; right-click the canvas to lock/delete guides or choose the step; hold Alt to bypass temporarily.">
+                                <StackPanel>
+                                    <Image Style="{StaticResource IconImage}" Source="Icons/snap_grid.png"/>
+                                    <TextBlock Text="Grid" FontSize="10" TextAlignment="Center"/>
+                                    <TextBlock Text="snap" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
                                 </StackPanel>
                             </ToggleButton>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="View"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Workspace"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Command="controls:LabelDesignerCanvas.DeleteSelectionCommand">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/delete_selection.png"/><TextBlock Text="Delete" TextAlignment="Center"/><TextBlock Text="Selection" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
+                        <Button Style="{StaticResource RibbonButton}" Command="controls:LabelDesignerCanvas.DeleteSelectionCommand" AutomationProperties.Name="Delete Selection" AutomationProperties.AutomationId="Shell.Ribbon.DeleteSelection">
+                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/delete_selection.png"/><TextBlock Text="Delete" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Selection" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                         </Button>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Edit object"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Selection"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Click="Help_Click">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="Help" TextAlignment="Center"/><TextBlock Text="F1" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/></StackPanel>
-                        </Button>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Help"/>
-                    </StackPanel>
-
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel VerticalAlignment="Top">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,12,0,0">
-                            <Button Command="{Binding ZoomOutCommand}" Width="38" Height="38" Padding="6">
-                                <Image Source="Icons/zoom_minus.png" Stretch="Uniform"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource RibbonButton}" Click="Help_Click" AutomationProperties.Name="Help" AutomationProperties.AutomationId="Shell.Ribbon.Help">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="Help" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="F1" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
                             </Button>
-                            <Border Width="58" Height="38" Margin="6,0" Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6">
-                                <TextBlock Text="{Binding ZoomPercent, StringFormat={}{0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                            </Border>
-                            <Button Command="{Binding ZoomInCommand}" Width="38" Height="38" Padding="6">
-                                <Image Source="Icons/zoom_plus.png" Stretch="Uniform"/>
+                            <Button Style="{StaticResource RibbonButton}" Click="CheckUpdates_Click" ToolTip="Kiểm tra bản cập nhật mới từ GitHub Releases" AutomationProperties.Name="Check for Updates" AutomationProperties.AutomationId="Shell.Ribbon.CheckUpdates">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/app_update.png"/><TextBlock Text="Update" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="GitHub" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
                             </Button>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Zoom"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Help"/>
                     </StackPanel>
                 </StackPanel>
-            </ScrollViewer>
+            </Viewbox>
         </Border>
 
-        <Border DockPanel.Dock="Bottom" Height="30" Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+        <Border DockPanel.Dock="Bottom" Height="34" Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0"
+                AutomationProperties.AutomationId="Shell.Status"
+                AutomationProperties.Name="Printer and status bar">
             <Grid Margin="18,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock FontWeight="SemiBold" Foreground="#173B72" VerticalAlignment="Center" Margin="0,0,14,0"
+                               MaxWidth="220" TextTrimming="CharacterEllipsis">
+                        <Run Text="Printer: "/>
+                        <Run Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=—, FallbackValue=—}"/>
+                    </TextBlock>
+                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
+                    <Button Click="PrinterQueueWarning_Click"
+                            Visibility="{Binding HasPrinterQueueWarning, Converter={StaticResource BoolToVisibility}}"
+                            Margin="12,0,0,0"
+                            Padding="7,2"
+                            Background="#FEF2F2"
+                            BorderBrush="#FCA5A5"
+                            Foreground="#B91C1C"
+                            ToolTip="{Binding PrinterQueueStatusMessage}">
+                        <TextBlock Text="{Binding PrinterQueueStatusText}" FontWeight="SemiBold"/>
+                    </Button>
+                    <Button Click="ReviewPrintRecovery_Click"
+                            Visibility="{Binding HasPendingPrintRecovery, Converter={StaticResource BoolToVisibility}}"
+                            Margin="12,0,0,0"
+                            Padding="7,2"
+                            Background="#FFF7ED"
+                            BorderBrush="#FDBA74"
+                            Foreground="#9A3412"
+                            ToolTip="Review uncertain print jobs; automatic retry is disabled">
+                        <TextBlock Text="{Binding PrintRecoveryStatusText}" FontWeight="SemiBold"/>
+                    </Button>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.AutomationId="Shell.Status.Zoom">
                     <TextBlock Text="{Binding ZoomPercent, StringFormat=Zoom: {0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/zoom_minus.png"/>
-                    <Slider Width="132" Minimum="0.25" Maximum="4" SmallChange="0.1" LargeChange="0.25" Value="{Binding Zoom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="8,0"/>
+                    <Slider Width="132" Minimum="0.25" Maximum="4" SmallChange="0.1" LargeChange="0.25" Value="{Binding Zoom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="8,0" AutomationProperties.Name="Zoom" AutomationProperties.AutomationId="Shell.Status.ZoomSlider"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/zoom_plus.png"/>
                 </StackPanel>
             </Grid>
@@ -473,24 +662,28 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{Binding IsToolboxVisible, Converter={StaticResource BoolToGridLength}, ConverterParameter=294}"/>
+                <ColumnDefinition Width="{Binding IsToolboxVisible, Converter={StaticResource BoolToGridLength}, ConverterParameter=268}"/>
                 <ColumnDefinition Width="{Binding IsToolboxVisible, Converter={StaticResource BoolToGridLength}, ConverterParameter=6}"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="{Binding IsPropertiesVisible, Converter={StaticResource BoolToGridLength}, ConverterParameter=6}"/>
                 <ColumnDefinition Width="{Binding IsPropertiesVisible, Converter={StaticResource BoolToGridLength}, ConverterParameter=280}"/>
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Margin="12,12,0,12" Style="{StaticResource PanelCard}" Visibility="{Binding IsToolboxVisible, Converter={StaticResource BoolToVisibility}}">
+            <Border Grid.Column="0" Margin="12,12,0,12" Style="{StaticResource PanelCard}" Visibility="{Binding IsToolboxVisible, Converter={StaticResource BoolToVisibility}}"
+                    AutomationProperties.AutomationId="Shell.LeftColumn"
+                    AutomationProperties.Name="Objects and workspace">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="42"/>
-                        <RowDefinition Height="318" MinHeight="260"/>
+                        <RowDefinition Height="286" MinHeight="220"/>
                         <RowDefinition Height="6"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <Border Grid.Row="0" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="12,0">
+                    <Border Grid.Row="0" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="12,0"
+                            AutomationProperties.AutomationId="Shell.Toolbox"
+                            AutomationProperties.Name="Insert objects">
                         <DockPanel>
-                            <TextBlock Text="Tools / Data" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="Insert objects" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HideToolboxCommand}" ToolTip="Hide toolbox">
                                 <Image Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
                             </Button>
@@ -546,20 +739,68 @@
                                   ResizeBehavior="PreviousAndNext"
                                   ShowsPreview="True"/>
 
-                    <Border Grid.Row="3" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0" MinHeight="160">
+                    <Border Grid.Row="3" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0" MinHeight="160"
+                            AutomationProperties.AutomationId="Shell.Workspace"
+                            AutomationProperties.Name="Workspace Layers and Data">
                         <DockPanel>
                             <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                                 <DockPanel>
-                                    <TextBlock Text="Objects / Data Sources" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Workspace" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     <Image DockPanel.Dock="Right" Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
                                 </DockPanel>
                             </Border>
-                            <TabControl BorderThickness="0" Padding="6">
-                                <TabItem Header="Data Sources">
+                            <TabControl BorderThickness="0" Padding="6" SelectedIndex="1">
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="Icons/panels.png" Width="15" Height="15" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Layers"/>
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="4,8">
+                                            <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                                                <TreeView>
+                                                    <TreeViewItem IsExpanded="True">
+                                                        <TreeViewItem.Header>
+                                                            <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Template" FontWeight="SemiBold"/></StackPanel>
+                                                        </TreeViewItem.Header>
+                                                        <TreeViewItem Header="{Binding Template.Name}"/>
+                                                        <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
+                                                        <TreeViewItem Header="{Binding Template.HeightMm, StringFormat={}{0:0.##} mm}"/>
+                                                    </TreeViewItem>
+                                                </TreeView>
+                                            </Border>
+                                            <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="Objects" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="2,0,0,6"/>
+                                                    <TreeView ItemsSource="{Binding Template.Objects}">
+                                                        <TreeView.ItemTemplate>
+                                                            <HierarchicalDataTemplate>
+                                                                <StackPanel Margin="0,2">
+                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                                    <TextBlock Text="{Binding Type}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                                    <TextBlock Text="{Binding BindingStateDisplayText}" FontSize="10" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                            </HierarchicalDataTemplate>
+                                                        </TreeView.ItemTemplate>
+                                                    </TreeView>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="Icons/database.png" Width="15" Height="15" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Data"/>
+                                        </StackPanel>
+                                    </TabItem.Header>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel Margin="4,8">
-                                    <TreeView Padding="0,0,0,8">
-                                        <TreeViewItem IsExpanded="True">
+                                    <TreeView Padding="0,0,0,8" Visibility="Collapsed">
+                                        <TreeViewItem IsExpanded="True" Visibility="Collapsed">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Template"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -567,7 +808,7 @@
                                             <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
                                             <TreeViewItem Header="{Binding Template.HeightMm, StringFormat={}{0:0.##} mm}"/>
                                         </TreeViewItem>
-                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.Objects}">
+                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.Objects}" Visibility="Collapsed">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><Image Source="Icons/panels.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Objects"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -623,18 +864,77 @@
                                             </TreeViewItem.Header>
                                             <TreeViewItem Header="{Binding LinkedExcelSourceText}"/>
                                             <TextBlock Text="{Binding ExcelDataFreshnessText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" Margin="4,0,4,2" TextWrapping="Wrap"/>
-                                            <TextBlock Text="{Binding ExcelLinkStatusText}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap"/>
+                                             <TextBlock Text="{Binding ExcelLinkStatusText}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap"/>
+                                             <TextBlock Text="{Binding DataTransformError}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding HasDataTransformError, Converter={StaticResource BoolToVisibility}}"/>
                                             <Button Content="🔗 Relink Excel..." Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
                                             <TextBlock Text="{Binding ExcelStaleNoticeText}" Foreground="#B45309" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
                                             <Button Content="↻ Update Excel" Command="{Binding RefreshExcelDataCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
                                             <Button Content="⛔ Unlink Excel" Click="UnlinkExcel_Click" Margin="4,2" Padding="6,2" HorizontalAlignment="Left"
                                                     ToolTip="Remove the Excel link from this template. Object bindings are kept — import Excel again to resume printing."
                                                     Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}"/>
-                                            <TreeViewItem Header="{Binding CurrentExcelRowText}"/>
-                                        </TreeViewItem>
+                                             <TreeViewItem Header="{Binding CurrentExcelRowText}"/>
+                                             <TreeViewItem Header="Transforms" IsExpanded="False" Visibility="Collapsed">
+                                                 <ItemsControl ItemsSource="{Binding DataTransforms}">
+                                                     <ItemsControl.ItemTemplate>
+                                                         <DataTemplate>
+                                                             <TextBlock Margin="4,1" FontSize="10.5" TextWrapping="Wrap">
+                                                                 <Run Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                                 <Run Text=" = "/>
+                                                                 <Run Text="{Binding Formula}"/>
+                                                             </TextBlock>
+                                                         </DataTemplate>
+                                                     </ItemsControl.ItemTemplate>
+                                                 </ItemsControl>
+                                             </TreeViewItem>
+                                         </TreeViewItem>
                                     </TreeView>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8">
-                                        <TextBlock Text="Use Import Excel on the top ribbon to choose a workbook and manage label fields." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                    <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                                            Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                                <Image Source="Icons/database.png" Width="18" Height="18" Margin="0,0,7,0"/>
+                                                <TextBlock Text="Current data" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding LinkedExcelSourceText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding LinkedExcelSourceText}"/>
+                                            <TextBlock Text="{Binding CurrentExcelRowText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding ExcelDataFreshnessText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding ExcelLinkStatusText}" FontSize="10.5" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            <WrapPanel Margin="0,7,0,0">
+                                                <Button Content="Relink Excel..." Command="{Binding RelinkExcelCommand}" Padding="7,3" Margin="0,0,5,5"
+                                                        Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
+                                                <Button Content="Update Excel" Command="{Binding RefreshExcelDataCommand}" Padding="7,3" Margin="0,0,5,5"/>
+                                                <Button Content="Unlink" Click="UnlinkExcel_Click" Padding="7,3" Margin="0,0,0,5"
+                                                        ToolTip="Remove the Excel link while keeping object bindings."/>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#F8FAFC"/>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <Image Source="Icons/database.png" Width="22" Height="22" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                                <StackPanel>
+                                                    <TextBlock Text="No data linked" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Import Excel or CSV to preview rows and bind object fields." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <Button Click="ImportExcel_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="{StaticResource AppBlueBrush}" Foreground="#FFFFFF" BorderBrush="{StaticResource AppBlueBrush}">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="⊞" FontSize="16" Foreground="#FFFFFF" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Import Excel / CSV" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
                                             Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
@@ -657,6 +957,8 @@
                                                       IsReadOnly="True"/>
                                         </StackPanel>
                                     </Border>
+                                    <Expander Header="Data settings · Tracking, copies, transforms &amp; sources" IsExpanded="False" Margin="0,8,0,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}">
+                                    <StackPanel>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
                                             Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel>
@@ -692,7 +994,36 @@
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="Binding Issues" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Transforms" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Calculated fields run before preview and print." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"/>
+                                            <ItemsControl ItemsSource="{Binding DataTransforms}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Margin="0,1" FontSize="10.5" TextWrapping="Wrap">
+                                                            <Run Text="{Binding Name}" FontWeight="SemiBold"/><Run Text=" = "/><Run Text="{Binding Formula}"/>
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                    </StackPanel>
+                                    </Expander>
+                                    <Border BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#F0FDF4"/>
+                                                <Setter Property="BorderBrush" Value="#86EFAC"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasBindingIssues}" Value="True">
+                                                        <Setter Property="Background" Value="#FEF2F2"/>
+                                                        <Setter Property="BorderBrush" Value="#FCA5A5"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel>
+                                            <TextBlock Text="Binding checks" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             <TextBlock Text="{Binding BindingIssuesSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                             <ItemsControl ItemsSource="{Binding BindingIssues}" Margin="0,8,0,0">
                                                 <ItemsControl.ItemTemplate>
@@ -725,7 +1056,9 @@
 
             <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Visibility="{Binding IsToolboxVisible, Converter={StaticResource BoolToVisibility}}"/>
 
-            <Grid Grid.Column="2" Background="{StaticResource AppWorkspaceBrush}" Margin="0,12,0,0">
+            <Grid Grid.Column="2" Background="{StaticResource AppWorkspaceBrush}" Margin="0,12,0,0"
+                  AutomationProperties.AutomationId="Shell.Canvas"
+                  AutomationProperties.Name="Design surface">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="26"/>
                     <RowDefinition Height="*"/>
@@ -738,18 +1071,32 @@
                     <TextBlock Text="mm" FontSize="11" Foreground="{StaticResource AppMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="1" Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Focusable="False" IsHitTestVisible="False">
+                        <ScrollViewer x:Name="HorizontalRulerScrollViewer"
+                                  HorizontalScrollBarVisibility="Hidden"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False">
                         <Grid Margin="92,0,120,0" HorizontalAlignment="Left">
                             <controls:DesignerRuler LengthMm="{Binding Template.WidthMm}" Zoom="{Binding Zoom}" Orientation="Horizontal"
-                                                    Width="{Binding ElementName=DesignerCanvas, Path=ActualWidth}" Height="26"/>
+                                                    Width="{Binding ElementName=DesignerCanvas, Path=ActualWidth}" Height="26"
+                                                    GuideDragStarted="Ruler_GuideDragStarted"
+                                                    GuideDragging="Ruler_GuideDragging"
+                                                    GuideDragCompleted="Ruler_GuideDragCompleted"
+                                                    GuideDragCanceled="Ruler_GuideDragCanceled"/>
                         </Grid>
                     </ScrollViewer>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="0" Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,1,0">
-                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden" Focusable="False" IsHitTestVisible="False">
+                    <ScrollViewer x:Name="VerticalRulerScrollViewer"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  Focusable="False">
                         <Grid Margin="0,72,0,100" VerticalAlignment="Top">
                             <controls:DesignerRuler LengthMm="{Binding Template.HeightMm}" Zoom="{Binding Zoom}" Orientation="Vertical"
-                                                    Width="38" Height="{Binding ElementName=DesignerCanvas, Path=ActualHeight}"/>
+                                                    Width="38" Height="{Binding ElementName=DesignerCanvas, Path=ActualHeight}"
+                                                    GuideDragStarted="Ruler_GuideDragStarted"
+                                                    GuideDragging="Ruler_GuideDragging"
+                                                    GuideDragCompleted="Ruler_GuideDragCompleted"
+                                                    GuideDragCanceled="Ruler_GuideDragCanceled"/>
                         </Grid>
                     </ScrollViewer>
                 </Border>
@@ -758,6 +1105,7 @@
                               Grid.Row="1" Grid.Column="1"
                               HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Auto"
+                              ScrollChanged="DesignerScrollViewer_ScrollChanged"
                               PreviewMouseWheel="DesignerScrollViewer_PreviewMouseWheel"
                               Background="{StaticResource AppWorkspaceBrush}">
                     <Grid Margin="92,72,120,100">
@@ -769,6 +1117,7 @@
                                                           DrawingTool="{Binding DrawingTool, Mode=TwoWay}"
                                                           DrawingCommandText="{Binding DrawingCommandText, Mode=TwoWay}"
                                                           InteractionStatusText="{Binding StatusText, Mode=TwoWay}"
+                                                          SizeChanged="DesignerCanvas_SizeChanged"
                                                           Zoom="{Binding Zoom}"/>
                         </Border>
                     </Grid>
@@ -777,30 +1126,23 @@
 
             <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Visibility="{Binding IsPropertiesVisible, Converter={StaticResource BoolToVisibility}}"/>
 
-            <Border Grid.Column="4" Margin="0,12,12,12" Style="{StaticResource PanelCard}" Visibility="{Binding IsPropertiesVisible, Converter={StaticResource BoolToVisibility}}">
+            <Border Grid.Column="4" Margin="0,12,12,12" Style="{StaticResource PanelCard}" Visibility="{Binding IsPropertiesVisible, Converter={StaticResource BoolToVisibility}}"
+                    AutomationProperties.AutomationId="Shell.Properties"
+                    AutomationProperties.Name="Object Properties">
                 <DockPanel LastChildFill="True">
                     <Border DockPanel.Dock="Top" Height="42" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="14,0">
                         <DockPanel>
-                            <TextBlock Text="Properties" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Object Properties" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Border Margin="8,0,0,0" Padding="6,2" CornerRadius="4" Background="#EAF3FF" BorderBrush="#9BC4F5" BorderThickness="1" VerticalAlignment="Center"
+                                        ToolTip="NiceLabel pins Object Properties with F4; ANLAbel keeps this docked panel always available.">
+                                    <TextBlock Text="docked" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                </Border>
+                            </StackPanel>
                             <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HidePropertiesCommand}" ToolTip="Hide properties">
                                 <Image Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
                             </Button>
                         </DockPanel>
-                    </Border>
-
-                    <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="12,8" Background="#FFFFFF">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="32"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="32"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding ZoomPercent, StringFormat=Zoom: {0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Content="-" Command="{Binding ZoomOutCommand}" Width="26" Height="26" Padding="0"/>
-                            <Slider Grid.Column="2" Minimum="0.25" Maximum="4" SmallChange="0.1" LargeChange="0.25" Value="{Binding Zoom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="8,0" VerticalAlignment="Center"/>
-                            <Button Grid.Column="3" Content="+" Command="{Binding ZoomInCommand}" Width="26" Height="26" Padding="0"/>
-                        </Grid>
                     </Border>
 
                     <Grid>
@@ -815,10 +1157,54 @@
                                     </Style.Triggers>
                                 </Style>
                             </Grid.Style>
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="240">
-                                <Image Source="Icons/cursor_select.png" Width="64" Height="64" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                                <TextBlock Text="No object selected" FontWeight="SemiBold" FontSize="15" TextAlignment="Center"/>
-                                <TextBlock Text="Select an object on the canvas to view and edit its properties." Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <StackPanel VerticalAlignment="Top" Margin="12">
+                                <Border Background="#EAF3FF" BorderBrush="#9BC4F5" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="32" Height="32" CornerRadius="5" Background="#FFFFFF" BorderBrush="#BFDBFE" BorderThickness="1" VerticalAlignment="Top">
+                                            <Image Source="Icons/cursor_select.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <TextBlock Text="No object selected" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Select an object to edit position, content and style." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Image Source="Icons/folder.png" Width="18" Height="18" Margin="0,0,7,0"/>
+                                            <TextBlock Text="Document" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                        </StackPanel>
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Label size" Foreground="{StaticResource AppMutedBrush}"/>
+                                            <TextBlock Grid.Column="1" HorizontalAlignment="Right" FontWeight="SemiBold">
+                                                <Run Text="{Binding Template.WidthMm, StringFormat={}{0:0.##}}"/><Run Text=" × "/><Run Text="{Binding Template.HeightMm, StringFormat={}{0:0.##}}"/><Run Text=" mm"/>
+                                            </TextBlock>
+                                        </Grid>
+                                        <Grid Margin="0,5,0,2">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Printer" Foreground="{StaticResource AppMutedBrush}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding PrinterDisplayName}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#B45309" TextTrimming="CharacterEllipsis" MaxWidth="142"/>
+                                        </Grid>
+                                        <Grid Margin="0,5,0,8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Data" Foreground="{StaticResource AppMutedBrush}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding LinkedExcelSourceText}" HorizontalAlignment="Right" FontSize="10.5" FontWeight="SemiBold" Foreground="#475569" TextTrimming="CharacterEllipsis" MaxWidth="142"/>
+                                        </Grid>
+                                        <Button Click="PrinterSetup_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="#EAF3FF" BorderBrush="#5B8DD4" Foreground="{StaticResource AppBlueDarkBrush}">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Image Source="Icons/printer_setup.png" Width="16" Height="16" Margin="0,0,7,0"/>
+                                                <TextBlock Text="Label &amp; printer setup" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Grid>
 
@@ -850,15 +1236,84 @@
                                 </StackPanel.Style>
 
                                 <Border Background="#EAF3FF" BorderBrush="#9BC4F5" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="0,0,0,5">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding SelectedObjectTypeText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                        <TextBlock Text="{Binding SelectedObjectSummaryText}" FontSize="10.5" Foreground="#475569" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="26" Height="26" CornerRadius="4" Background="#FFFFFF" BorderBrush="#BFDBFE" BorderThickness="1" VerticalAlignment="Top">
+                                            <Image Source="{Binding SelectedObjectIconPath}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="7,0,0,0">
+                                            <TextBlock Text="{Binding SelectedObjectTypeText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="{Binding SelectedObjectSummaryText}" FontSize="10.5" Foreground="#475569" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Border>
 
-                                <Border Style="{StaticResource PropCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Position &amp; Size (mm)" Style="{StaticResource PropTitle}"/>
+                                <TabControl x:Name="PropertiesModeTabs"
+                                            SelectedIndex="0"
+                                            Height="38"
+                                            Margin="0,0,0,6"
+                                            Padding="0"
+                                            BorderThickness="0"
+                                            Background="Transparent"
+                                            AutomationProperties.Name="Properties sections">
+                                    <TabItem AutomationProperties.Name="Label and text properties">
+                                        <TabItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Icons/static_text.png" Width="14" Height="14" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Label"/>
+                                            </StackPanel>
+                                        </TabItem.Header>
+                                    </TabItem>
+                                    <TabItem AutomationProperties.Name="Layout properties">
+                                        <TabItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Icons/panels.png" Width="14" Height="14" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Layout"/>
+                                            </StackPanel>
+                                        </TabItem.Header>
+                                    </TabItem>
+                                    <TabItem AutomationProperties.Name="Advanced object properties">
+                                        <TabItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="Icons/settings.png" Width="14" Height="14" Margin="0,0,5,0"/>
+                                                <TextBlock Text="Advanced"/>
+                                            </StackPanel>
+                                        </TabItem.Header>
+                                    </TabItem>
+                                </TabControl>
+
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="1">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                <Border Style="{StaticResource PropCard}" Background="#F8FAFC">
+                                    <Expander IsExpanded="True" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}">
+                                        <Expander.Header>
+                                            <StackPanel>
+                                                <TextBlock Text="Position &amp; size" FontWeight="SemiBold"/>
+                                                <TextBlock FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0:0.##}, {1:0.##} · {2:0.##} × {3:0.##} mm">
+                                                            <Binding Path="SelectedObject.XMm"/>
+                                                            <Binding Path="SelectedObject.YMm"/>
+                                                            <Binding Path="SelectedObject.WidthMm"/>
+                                                            <Binding Path="SelectedObject.HeightMm"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Expander.Header>
+                                        <StackPanel Margin="0,6,0,0">
                                         <StackPanel>
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel">
@@ -927,18 +1382,61 @@
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
-                                    </StackPanel>
+                                        </StackPanel>
+                                    </Expander>
                                 </Border>
+                                </StackPanel>
 
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="2">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
                                 <Border Style="{StaticResource PropCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Transform &amp; Arrange" Style="{StaticResource PropTitle}"/>
+                                    <Expander IsExpanded="True" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}">
+                                    <Expander.Header>
+                                        <StackPanel>
+                                            <TextBlock Text="Advanced" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Rotate · align · arrange · layer" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <StackPanel Margin="0,6,0,0">
                                         <TextBlock Text="{Binding SelectedObject.Rotation, StringFormat=Rotation (current: {0}°)}" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <UniformGrid Columns="4" Margin="0,0,0,2">
                                             <Button Content="0°" Command="{Binding SetRotationCommand}" CommandParameter="0" Padding="4,5" FontSize="11" Margin="0,0,2,0"/>
                                             <Button Content="90°" Command="{Binding SetRotationCommand}" CommandParameter="90" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
                                             <Button Content="180°" Command="{Binding SetRotationCommand}" CommandParameter="180" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
                                             <Button Content="270°" Command="{Binding SetRotationCommand}" CommandParameter="270" Padding="4,5" FontSize="11" Margin="2,0,0,0"/>
+                                        </UniformGrid>
+                                        <TextBlock Text="Align reference" Style="{StaticResource PropLabel}" Margin="0,6,0,1"/>
+                                        <ComboBox x:Name="ArrangeReferenceCombo" SelectedIndex="0" Margin="0,0,0,4">
+                                            <ComboBoxItem Content="Selection frame" Tag="SelectionBounds"/>
+                                            <ComboBoxItem Content="Key object (selected)" Tag="KeyObject"/>
+                                            <ComboBoxItem Content="Label artboard" Tag="Canvas"/>
+                                        </ComboBox>
+                                        <TextBlock Text="Align objects" Style="{StaticResource PropLabel}"/>
+                                        <UniformGrid Columns="3" Margin="0,0,0,3">
+                                            <Button Content="Left" Tag="Left" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="0,0,2,0"/>
+                                            <Button Content="Center" Tag="HorizontalCenter" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="1,0,1,0"/>
+                                            <Button Content="Right" Tag="Right" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="2,0,0,0"/>
+                                            <Button Content="Top" Tag="Top" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="0,2,2,0"/>
+                                            <Button Content="Middle" Tag="VerticalCenter" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="1,2,1,0"/>
+                                            <Button Content="Bottom" Tag="Bottom" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="2,2,0,0"/>
+                                        </UniformGrid>
+                                        <Button Content="Align text baselines" Click="ArrangeBaseline_Click" Padding="3,4" FontSize="10" Margin="0,0,0,3" ToolTip="Align the first baseline of the selected Text/TextBox objects to the selected key text object"/>
+                                        <Button Content="Optical ink center" Click="ArrangeOptical_Click" Padding="3,4" FontSize="10" Margin="0,0,0,3" ToolTip="Explicitly align the visible glyph ink center; this is different from frame or baseline alignment"/>
+                                        <TextBlock Text="Distribute (3+ objects)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <UniformGrid Columns="2" Margin="0,0,0,4">
+                                            <Button Content="Centers horizontal" Tag="HorizontalCenters" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="0,0,2,0"/>
+                                            <Button Content="Centers vertical" Tag="VerticalCenters" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="2,0,0,0"/>
+                                            <Button Content="Gaps horizontal" Tag="HorizontalGaps" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="0,2,2,0"/>
+                                            <Button Content="Gaps vertical" Tag="VerticalGaps" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="2,2,0,0"/>
                                         </UniformGrid>
                                         <TextBlock Text="Layer order" Style="{StaticResource PropLabel}"/>
                                         <Grid Margin="0,0,0,4">
@@ -956,12 +1454,81 @@
                                             <CheckBox Content="Locked" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </StackPanel>
+                                    </Expander>
                                 </Border>
+                                </StackPanel>
 
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
                                 <Border Style="{StaticResource PropCard}">
                                     <StackPanel>
                                         <TextBlock Text="Content" Style="{StaticResource PropTitle}"/>
-                                        <TextBlock Text="{Binding LinkedExcelSourceText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="0,0,0,2"/>
+                                        <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,0,0,7">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#F1F5F9"/>
+                                                    <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}">
+                                                            <Setter Property="Background" Value="#EAF4FF"/><Setter Property="BorderBrush" Value="#8CC5FF"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}">
+                                                            <Setter Property="Background" Value="#ECFDF3"/><Setter Property="BorderBrush" Value="#86D8A2"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}">
+                                                            <Setter Property="Background" Value="#FFF7E6"/><Setter Property="BorderBrush" Value="#F3C56B"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}">
+                                                            <Setter Property="Background" Value="#FFF1F0"/><Setter Property="BorderBrush" Value="#F3A7A1"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                    <Border Width="24" Height="24" CornerRadius="5" Background="#FFFFFF" VerticalAlignment="Top">
+                                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="Bold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock"><Setter Property="Text" Value="↗"/><Setter Property="Foreground" Value="#64748B"/><Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Text" Value="↻"/><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Text" Value="✓"/><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Text" Value="!"/><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Text" Value="×"/><Setter Property="Foreground" Value="#B42318"/></DataTrigger>
+                                                                </Style.Triggers></Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding ExcelLinkVerificationTitle}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap">
+                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#64748B"/><Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Foreground" Value="#B42318"/></DataTrigger>
+                                                            </Style.Triggers></Style></TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding ExcelLinkVerificationDetail}" Foreground="#4B5C72" FontSize="10" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Button Content="{Binding ExcelLinkVerificationActionText}" Click="ImportExcel_Click">
+                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ExcelVerificationButton}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                                </Button>
+                                                <Button Content="{Binding ExcelLinkVerificationActionText}" Command="{Binding VerifyExcelLinkCommand}">
+                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ExcelVerificationButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                                </Button>
+                                                <TextBlock Text="{Binding ExcelLinkVerificationTrustText}" Foreground="#66758A" FontSize="9.5" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                            </StackPanel>
+                                        </Border>
                                         <TextBlock Text="Source" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <ComboBox x:Name="ContentSourceComboBox" SelectionChanged="ContentSourceComboBox_SelectionChanged" SelectedIndex="0" Margin="0,0,0,2">
                                             <ComboBoxItem Content="Text" Tag="Static"/>
@@ -1090,32 +1657,332 @@
                                     </Border.Style>
                                     <StackPanel>
                                         <TextBlock Text="Text Style" Style="{StaticResource PropTitle}"/>
+                                        <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="4" Padding="7,5" Margin="0,0,0,6">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <Image Width="16" Height="16" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Source" Value="Icons/static_text.png"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
+                                                                    <Setter Property="Source" Value="Icons/text_box.png"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                                <TextBlock Grid.Column="1" FontSize="10.5" Foreground="#0C4A6E" TextWrapping="Wrap">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="Free Text follows its content and may extend horizontally. Use Text Box when print content must stay inside a fixed area."/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
+                                                                    <Setter Property="Text" Value="Bounded Text Box: drag or enter Width/Height to design the frame. Text wraps or fits inside and never changes or prints outside that frame."/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Border>
                                         <TextBlock Text="Font" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
-                                        <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}" Margin="0,0,0,2"/>
-                                        <Grid>
+                                        <DockPanel LastChildFill="True" Margin="0,0,0,4">
+                                            <Border DockPanel.Dock="Right"
+                                                    Height="24"
+                                                    BorderBrush="#C7D2DE"
+                                                    BorderThickness="1"
+                                                    CornerRadius="3"
+                                                    ClipToBounds="True"
+                                                    Margin="4,0,0,0"
+                                                    AutomationProperties.AutomationId="Properties.TextStyle.IconGroup">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ToggleButton Style="{StaticResource FontStyleIcon}"
+                                                                  IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}"
+                                                                  AutomationProperties.AutomationId="Properties.TextStyle.Bold"
+                                                                  AutomationProperties.Name="Bold"
+                                                                  ToolTip="Bold">
+                                                        <TextBlock Text="B" FontWeight="Bold" FontSize="11"/>
+                                                    </ToggleButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <ToggleButton Style="{StaticResource FontStyleIcon}"
+                                                                  IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}"
+                                                                  AutomationProperties.AutomationId="Properties.TextStyle.Italic"
+                                                                  AutomationProperties.Name="Italic"
+                                                                  ToolTip="Italic">
+                                                        <TextBlock Text="I" FontStyle="Italic" FontSize="11"/>
+                                                    </ToggleButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <ToggleButton Style="{StaticResource FontStyleIcon}"
+                                                                  IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}"
+                                                                  AutomationProperties.AutomationId="Properties.TextStyle.Underline"
+                                                                  AutomationProperties.Name="Underline"
+                                                                  ToolTip="Underline">
+                                                        <TextBlock Text="U" TextDecorations="Underline" FontSize="11"/>
+                                                    </ToggleButton>
+                                                </StackPanel>
+                                            </Border>
+                                            <ComboBox x:Name="FontSizeCombo"
+                                                      DockPanel.Dock="Right"
+                                                      Width="46"
+                                                      Margin="4,0,0,0"
+                                                      Style="{StaticResource FontToolbarCombo}"
+                                                      IsEditable="True"
+                                                      IsTextSearchEnabled="True"
+                                                      ItemsSource="{Binding FontSizes}"
+                                                      SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
+                                                      LostFocus="FontSizeCombo_LostFocus"
+                                                      KeyDown="FontSizeCombo_KeyDown"
+                                                      AutomationProperties.AutomationId="Properties.TextStyle.FontSize"
+                                                      AutomationProperties.Name="Font size"
+                                                      ToolTip="Type a size in points, like Excel, or pick a standard size."/>
+                                            <ComboBox Style="{StaticResource FontToolbarCombo}"
+                                                      IsEditable="True"
+                                                      IsTextSearchEnabled="True"
+                                                      StaysOpenOnEdit="False"
+                                                      ItemsSource="{Binding FontFamilies}"
+                                                      SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
+                                                      AutomationProperties.AutomationId="Properties.TextStyle.FontFamily"
+                                                      AutomationProperties.Name="Font family"
+                                                      ToolTip="Licensed Windows and open fonts only. Unlicensed machine fonts are not listed.">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="13"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </DockPanel>
+                                        <StackPanel>
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="Fit inside frame" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                            <ComboBox ItemsSource="{Binding TextBoxSizingModes}"
+                                                      SelectedItem="{Binding SelectedObject.Style.TextSizing, Mode=TwoWay}"
+                                                      ToolTip="All modes preserve the Width/Height you design: wrap at authored font, fit by point size, or fit by horizontal font scaling." Margin="0,0,0,3">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock>
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="Wrap in fixed frame"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ShrinkFont}"><Setter Property="Text" Value="Reduce font size to fit"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ScaleWidth}"><Setter Property="Text" Value="Fit by scaling font width"/></DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Text="When content is too tall" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                            <ComboBox ItemsSource="{Binding TextBoxOverflowModes}"
+                                                      SelectedItem="{Binding SelectedObject.Style.TextOverflow, Mode=TwoWay}"
+                                                      ToolTip="Block print is safest. Clip hides excess content. Ellipsis marks the final visible line. TextBox never allows glyphs outside its frame." Margin="0,0,0,3">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock>
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="Block print and warn"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextOverflowMode.Clip}"><Setter Property="Text" Value="Ignore excessive content (discard)"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextOverflowMode.Ellipsis}"><Setter Property="Text" Value="End with ellipsis (ANLAbel)"/></DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Grid Margin="0,1,0,3">
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SelectedObject.Style.TextSizing}" Value="{x:Static enums:TextSizingMode.ShrinkFont}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Minimum font (pt)" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMinimumFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Maximum font (pt)" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMaximumFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="0 uses the authored font size for older templates." KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid Margin="0,1,0,3">
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SelectedObject.Style.TextSizing}" Value="{x:Static enums:TextSizingMode.ScaleWidth}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Minimum scale" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMinimumScale, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="0.5 means 50% width." KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Maximum scale" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMaximumScale, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="1 is 100%; values above 1 allow stretching." KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                        <TextBlock Text="Align" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True"
+                                                    AutomationProperties.AutomationId="Properties.TextStyle.AlignHorizontal">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignLeft"
+                                                                 AutomationProperties.Name="Align left" ToolTip="Align left">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Center}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignCenter"
+                                                                 AutomationProperties.Name="Align center" ToolTip="Align center">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Right}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignRight"
+                                                                 AutomationProperties.Name="Align right" ToolTip="Align right">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Right"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignJustify"
+                                                                 AutomationProperties.Name="Justify" ToolTip="Justify">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True" Margin="6,0,0,0"
+                                                    AutomationProperties.AutomationId="Properties.TextStyle.AlignVertical">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Top}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignTop"
+                                                                 AutomationProperties.Name="Align top" ToolTip="Align top">
+                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Top">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Center}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignMiddle"
+                                                                 AutomationProperties.Name="Align middle" ToolTip="Align middle">
+                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Center">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Bottom}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignBottom"
+                                                                 AutomationProperties.Name="Align bottom" ToolTip="Align bottom">
+                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Bottom">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="Direction" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <ComboBox ItemsSource="{Binding TextDirections}" SelectedItem="{Binding SelectedObject.Style.TextDirection, Mode=TwoWay}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="Line height (pt; 0 = Auto)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBox Text="{Binding SelectedObject.Style.LineHeightPt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                 ToolTip="Use 0 for the font's natural line height, or enter a minimum line box height in points."
+                                                 KeyDown="PositionSizeTextBox_KeyDown" Margin="0,0,0,3"/>
+                                        <StackPanel>
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                        <TextBlock Text="Inner padding (mm)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBox Text="{Binding SelectedObject.Style.TextPaddingMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                 ToolTip="Uniform physical inset applied to the text content in designer, preview, print and preflight. Range: 0–20 mm."
+                                                 KeyDown="PositionSizeTextBox_KeyDown" Margin="0,0,0,3"/>
+                                        <UniformGrid Columns="3" Margin="0,1,0,3">
+                                            <Button Content="Tight 0" Tag="0" Click="TextPaddingPreset_Click" ToolTip="Use the whole frame; best for very small labels." Margin="0,0,2,0" Padding="3,2"/>
+                                            <Button Content="Compact .2" Tag="0.2" Click="TextPaddingPreset_Click" ToolTip="Small safety inset; default for new Text Boxes." Margin="1,0" Padding="3,2"/>
+                                            <Button Content="Comfort 1" Tag="1" Click="TextPaddingPreset_Click" ToolTip="Larger inset for roomy labels." Margin="2,0,0,0" Padding="3,2"/>
+                                        </UniformGrid>
+                                        <TextBlock Text="Edge override L / R / T / B (mm)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <Grid Margin="0,0,0,3">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
+                                                <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
+                                                <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition/>
-                                                <RowDefinition/>
-                                            </Grid.RowDefinitions>
                                             <StackPanel>
-                                                <TextBlock Text="Size" Style="{StaticResource PropLabel}"/>
-                                                <ComboBox ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}" Margin="0,2,0,5"/>
+                                                <TextBlock Text="L" Style="{StaticResource PropLabel}"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingLeftMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Left padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Align" Style="{StaticResource PropLabel}"/>
-                                                <ComboBox ItemsSource="{Binding TextAlignments}" SelectedItem="{Binding SelectedObject.Style.Alignment, Mode=TwoWay}" Margin="0,2,0,5"/>
+                                                <TextBlock Text="R" Style="{StaticResource PropLabel}"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingRightMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Right padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
-                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,2,0,0">
-                                                <CheckBox Content="Bold" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                                <CheckBox Content="Italic" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                                <CheckBox Content="Underline" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock Text="T" Style="{StaticResource PropLabel}"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingTopMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Top padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="6">
+                                                <TextBlock Text="B" Style="{StaticResource PropLabel}"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingBottomMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Bottom padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
                                         </Grid>
+                                        </StackPanel>
                                         <TextBlock Text="Color" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
@@ -1189,6 +2056,66 @@
                                             <StackPanel Grid.Row="1"><TextBlock Text="QR mode" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
                                             <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="EC level" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
                                         </Grid>
+                                        <TextBlock Text="Application profile" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
+                                        <ComboBox ItemsSource="{Binding BarcodeApplicationProfiles}"
+                                                  SelectedItem="{Binding SelectedObject.BarcodeApplicationProfile, Mode=TwoWay}"
+                                                  ToolTip="General keeps legacy authoring rules; Industrial and GS1 enable fail-closed production preflight."
+                                                  Margin="0,1,0,2"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Quiet zone (modules)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding QrQuietZoneModuleOptions}"
+                                                          SelectedItem="{Binding SelectedObject.QrQuietZoneModules, Mode=TwoWay}"
+                                                          Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="HRI placement" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding BarcodeHriPlacementOptions}"
+                                                          SelectedItem="{Binding SelectedObject.BarcodeHriPlacement, Mode=TwoWay}"
+                                                          ToolTip="None = full frame for bars. Below = legacy strip under symbol. Above = strip over symbol. Linear barcodes only; QR/Data Matrix keep the full symbol frame."
+                                                          Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="HRI size (pt)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="2" Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" Width="58" HorizontalAlignment="Left"/>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Check digit" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}"
+                                                          SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
+                                                          ToolTip="Code 39 / ITF only. None = no requirement. Auto = accept with or without trailing check. Verify = preflight fails closed if check digit is missing or wrong. Code 128 ignores this."
+                                                          Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="HRI check digit" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <CheckBox Content="Show in HRI"
+                                                          IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"
+                                                          ToolTip="When unchecked, a validated trailing check digit is hidden in human-readable text only. The encoded symbol always uses the full payload."
+                                                          Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="X-dim (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
+                                                       ToolTip="1D module (X-dimension) in millimetres. 0 = legacy (estimate from frame). Print quantizes to whole printer dots at plan DPI."/>
+                                            <TextBox Grid.Column="2"
+                                                     Text="{Binding SelectedObject.BarcodeModuleWidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                     Width="58" HorizontalAlignment="Left"
+                                                     ToolTip="Industrial X-dimension. Typical thermal: 0.25–0.40 mm. 0 keeps legacy frame-derived sizing. Bar height uses object height minus HRI strip."/>
+                                        </Grid>
+                                        <CheckBox Content="Size width from X × modules"
+                                                  IsChecked="{Binding SelectedObjectSizeFromX, Mode=TwoWay}"
+                                                  Margin="0,4,0,0" FontSize="11"
+                                                  ToolTip="When checked and X-dim &gt; 0, object width = quantized effective X × pure logical module count at print DPI. Unchecked = legacy frame-owned width."/>
+                                        <TextBlock Text="{Binding BarcodeEffectiveModuleReadoutText}"
+                                                   Foreground="{StaticResource AppMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0"
+                                                   ToolTip="Effective module at the print-plan DPI (same quantize path as preflight). mil = mm/25.4×1000."/>
+                                        <TextBlock Text="{Binding BarcodeApplicationValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
                                         <!-- Linked text & DPI: compact single row -->
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -1225,9 +2152,15 @@
                                     <StackPanel>
                                         <TextBlock Text="Image" Style="{StaticResource PropTitle}"/>
                                         <Button Content="Choose image..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4"/>
+                                        <TextBlock Text="Raster policy" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <ComboBox ItemsSource="{Binding ImageRasterModes}"
+                                                  SelectedItem="{Binding SelectedObject.ImageRasterMode, Mode=TwoWay}"
+                                                  Margin="0,0,0,3"
+                                                  ToolTip="DriverManaged keeps colour/alpha for the printer driver; monochrome modes use the same deterministic transform in the designer, preview and print."/>
                                         <TextBlock Text="Aspect ratio is preserved and the picture is centered inside its frame." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
+                                </StackPanel>
 
                             </StackPanel>
                         </ScrollViewer>

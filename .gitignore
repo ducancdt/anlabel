@@ -11,6 +11,7 @@ project.lock.json
 
 ## Build output & distribution
 TestOutput/
+StrykerOutput/
 dist/
 releases/
 publish_out/

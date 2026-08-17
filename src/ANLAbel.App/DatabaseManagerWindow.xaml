@@ -6,7 +6,7 @@
         MinHeight="480" MinWidth="760"
         WindowStartupLocation="CenterOwner"
         FontFamily="Segoe UI" FontSize="12"
-        Background="#EEF2F6">
+        Background="{DynamicResource AppCanvasBrush}">
     <Window.Resources>
         <SolidColorBrush x:Key="LineBrush" Color="#D9E2EC"/>
         <SolidColorBrush x:Key="MutedBrush" Color="#64748B"/>
@@ -17,10 +17,10 @@
         </Style>
     </Window.Resources>
     <DockPanel LastChildFill="True">
-        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="20,16">
             <StackPanel>
-                <TextBlock Text="Database Manager" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="Manage Excel data sources shared across templates: add, test, edit, relink, or remove." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <TextBlock Text="Quản lý nguồn dữ liệu" Foreground="White" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Thêm, kiểm tra, liên kết lại hoặc xoá nguồn Excel được chia sẻ giữa các mẫu tem." Foreground="#DBEAFE" TextWrapping="Wrap" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
 
@@ -42,7 +42,7 @@
                     <StackPanel DockPanel.Dock="Top">
                         <TextBlock Text="Shared data sources" FontWeight="SemiBold"/>
                         <TextBlock Text="Reuse one Excel file/sheet across multiple templates." FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                        <Button Content="+ Save current template's Excel link" Command="{Binding AddCurrentAsDataSourceCommand}" Padding="6,4" Margin="0,0,0,8" HorizontalContentAlignment="Left"/>
+                        <Button Content="+ Lưu liên kết Excel của mẫu đang mở" Command="{Binding AddCurrentAsDataSourceCommand}" Padding="8,6" Margin="0,0,0,8" HorizontalContentAlignment="Left" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/>
                     </StackPanel>
                     <Button DockPanel.Dock="Bottom" Content="Clean up..." Click="CleanUp_Click" Margin="0,8,0,0"
                             ToolTip="Find and remove shared sources whose Excel file is missing and unused for 30+ days"/>

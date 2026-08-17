@@ -1,20 +1,20 @@
 <Window x:Class="ANLAbel.App.ExcelImportWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Import Excel / Database Fields"
+        Title="Import Data File / Database Fields"
         Height="640" Width="760"
         MinHeight="560" MinWidth="680"
         WindowStartupLocation="CenterOwner"
-        Background="#EEF2F6">
+        Background="{DynamicResource AppCanvasBrush}">
     <Window.Resources>
         <SolidColorBrush x:Key="LineBrush" Color="#D9E2EC"/>
         <SolidColorBrush x:Key="MutedBrush" Color="#64748B"/>
     </Window.Resources>
     <DockPanel LastChildFill="True">
-        <Border DockPanel.Dock="Top" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="20,16">
             <StackPanel>
-                <TextBlock Text="Import Excel / Database Fields" FontSize="17" FontWeight="SemiBold"/>
-                <TextBlock Text="Choose an Excel file, select a sheet, then decide which fields are allowed for label design and functions." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                <TextBlock Text="Nhập dữ liệu Excel" Foreground="White" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Chọn tệp Excel, trang tính và các trường sẽ dùng trong thiết kế tem." Foreground="#DBEAFE" TextWrapping="Wrap" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
 
@@ -45,11 +45,11 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.ColumnSpan="3">
-                        <TextBlock Text="Excel file" FontWeight="SemiBold"/>
-                        <TextBlock Text="Pick any .xlsx/.xlsm file from your computer." FontSize="12" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="Data file" FontWeight="SemiBold"/>
+                        <TextBlock Text="Pick any .xlsx, .xlsm or .csv file from your computer." FontSize="12" Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
                     <TextBox x:Name="FilePathTextBox" Grid.Row="2" Text="{Binding Template.DatabaseConfig.FilePath, Mode=OneWay}" IsReadOnly="True" MinHeight="32" Padding="8,5"/>
-                    <Button Grid.Row="2" Grid.Column="2" Content="Browse..." Width="104" Click="Browse_Click"/>
+                    <Button Grid.Row="2" Grid.Column="2" Content="Chọn tệp..." Width="104" Click="Browse_Click" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/>
                 </Grid>
             </Border>
 
