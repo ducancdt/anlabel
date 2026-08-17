@@ -39,6 +39,8 @@ public sealed class LabelObject : ObservableObject
     /// <summary>0 = legacy: derive module width from frame / module count.</summary>
     private double _barcodeModuleWidthMm;
     private BarcodeWidthMode _barcodeWidthMode = BarcodeWidthMode.FrameOwned;
+    private BearerBarStyle _bearerBarStyle = BearerBarStyle.None;
+    private double _bearerBarThicknessMm = 1.0;
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
     private string _bindingStateDisplayText = string.Empty;
@@ -474,6 +476,35 @@ public sealed class LabelObject : ObservableObject
     {
         get => _barcodeWidthMode;
         set => SetProperty(ref _barcodeWidthMode, value);
+    }
+
+    /// <summary>
+    /// Bearer (guard) bar style for packaging and shipping container linear barcodes (e.g. ITF-14).
+    /// </summary>
+    public BearerBarStyle BearerBarStyle
+    {
+        get => _bearerBarStyle;
+        set
+        {
+            var next = Enum.IsDefined(typeof(BearerBarStyle), value)
+                ? value
+                : BearerBarStyle.None;
+            SetProperty(ref _bearerBarStyle, next);
+        }
+    }
+
+    /// <summary>
+    /// Bearer bar thickness in millimeters. Default is 1.0 mm (clamped to 0.1 - 10 mm).
+    /// </summary>
+    public double BearerBarThicknessMm
+    {
+        get => _bearerBarThicknessMm;
+        set
+        {
+            var normalized = double.IsFinite(value) ? Math.Clamp(value, 0.1, 10.0) : 1.0;
+            normalized = Math.Round(normalized, 2, MidpointRounding.AwayFromZero);
+            SetProperty(ref _bearerBarThicknessMm, normalized);
+        }
     }
 
     private static int NormalizeRotation(int value)

@@ -14,4 +14,6 @@ public sealed class BarcodeRenderOptions
     /// </summary>
     public bool IsGs1 { get; init; }
     public Code39WideNarrowRatio Code39WideNarrowRatio { get; init; } = Code39WideNarrowRatio.LegacyEngineDefault;
+    public BearerBarStyle BearerBarStyle { get; init; } = BearerBarStyle.None;
+    public double BearerBarThicknessMm { get; init; } = 1.0;
 }

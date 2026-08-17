@@ -145,6 +145,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("linear barcode width follows quantized X-dim when SizedFromX", TestLinearBarcodeWidthFollowsQuantizedXDim),
     ("code 39 wide narrow ratio and physical quiet zone preflight", TestCode39RatioAndQuietZonePreflight),
     ("print method configuration and preflight fails closed for unconfigured native", TestPrintMethodConfigurationAndPreflight),
+    ("itf packaging linear barcode bearer bars preflight and layout", TestItfBearerBarsPreflightAndLayout),
     ("compiled scene print uses SizedFromX production width", TestCompiledScenePrintUsesSizedFromXWidth),
     ("legacy frame-owned width not auto-sized when X is zero", TestLegacyFrameOwnedWidthNotAutoSized),
     ("print preflight blocks missing bound field", TestPrintPreflightBlocksMissingField),
@@ -7988,6 +7989,59 @@ static Task TestPrintMethodConfigurationAndPreflight()
     // 3. Manifest records PrintMethod
     var manifest = PrintJobManifest.Create("Test", "test.anlabel", "Print Preview", "Zebra ZD420", 100, 50, 300, 300, 1, 0, null, printMethod: "ApplicationGraphic");
     AssertEqual("ApplicationGraphic", manifest.PrintMethod, "Manifest must record PrintMethod");
+
+    return Task.CompletedTask;
+}
+
+static Task TestItfBearerBarsPreflightAndLayout()
+{
+    var validator = new PrintPreflightValidator(new ZxingBarcodeRenderer());
+
+    // 1. Standard ITF-14 with TopBottom and Frame bearer bars passes preflight
+    var templateValid = new LabelTemplate
+    {
+        WidthMm = 120,
+        HeightMm = 60,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "ITF_Carton",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.ITF,
+                Text = "12345678901231",
+                WidthMm = 80,
+                HeightMm = 35,
+                BearerBarStyle = BearerBarStyle.TopBottom,
+                BearerBarThicknessMm = 1.0
+            }
+        ]
+    };
+    var resultValid = validator.Validate(templateValid, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(0, resultValid.Issues.Count, "Valid ITF-14 TopBottom bearer bars must pass preflight");
+
+    // 2. Bearer bars on 2D matrix symbols must fail closed in preflight
+    var templateInvalid2D = new LabelTemplate
+    {
+        WidthMm = 50,
+        HeightMm = 50,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "QR_Invalid",
+                Type = ObjectType.QRCode,
+                Text = "INVALID",
+                WidthMm = 30,
+                HeightMm = 30,
+                BearerBarStyle = BearerBarStyle.Frame
+            }
+        ]
+    };
+    var resultInvalid2D = validator.Validate(templateInvalid2D, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, resultInvalid2D.Issues.Any(i => i.Message.Contains("Bearer bars are only supported on 1D linear barcodes")), "2D matrix code with BearerBarStyle must fail preflight");
 
     return Task.CompletedTask;
 }

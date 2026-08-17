@@ -488,6 +488,12 @@ public sealed class MainViewModel : ObservableObject
         Code39WideNarrowRatio.Ratio2_5,
         Code39WideNarrowRatio.Ratio3_0
     ];
+    public IReadOnlyList<BearerBarStyle> BearerBarStyleOptions { get; } =
+    [
+        BearerBarStyle.None,
+        BearerBarStyle.TopBottom,
+        BearerBarStyle.Frame
+    ];
     public IReadOnlyList<ImageRasterMode> ImageRasterModes { get; } = Enum.GetValues<ImageRasterMode>();
     public IReadOnlyList<TextAlignmentMode> TextAlignments { get; } = Enum.GetValues<TextAlignmentMode>();
     public IReadOnlyList<TextDirectionMode> TextDirections { get; } = Enum.GetValues<TextDirectionMode>();
@@ -3582,6 +3588,8 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.BarcodeModuleWidthMm)
                 or nameof(LabelObject.BarcodeWidthMode)
                 or nameof(LabelObject.Code39WideNarrowRatio)
+                or nameof(LabelObject.BearerBarStyle)
+                or nameof(LabelObject.BearerBarThicknessMm)
                 or nameof(LabelObject.WidthMm)
                 or nameof(LabelObject.Text)
                 or nameof(LabelObject.QrQuietZoneModules)

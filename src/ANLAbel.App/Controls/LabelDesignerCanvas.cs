@@ -3931,7 +3931,10 @@ public sealed class LabelDesignerCanvas : Canvas
         {
             ErrorCorrection = item.QrErrorCorrection.ToString(),
             QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
+            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
+            Code39WideNarrowRatio = item.Code39WideNarrowRatio,
+            BearerBarStyle = item.BearerBarStyle,
+            BearerBarThicknessMm = item.BearerBarThicknessMm
         };
     }
 

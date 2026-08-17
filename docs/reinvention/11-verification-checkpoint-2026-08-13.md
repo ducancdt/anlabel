@@ -12,7 +12,7 @@
 
 | Evidence | Result | Boundary |
 | --- | --- | --- |
-| Display/source version | `0.262` is canonical in `eng/Version.props` and projected to app metadata, shell title/build-channel text, Help and public Commercial/Trial installer metadata | The private License Master installer intentionally remains `1.0.0`; version parity is source/build evidence, not a signed release artifact while those source/installer files are dirty. |
+| Display/source version | `0.263` is canonical in `eng/Version.props` and projected to app metadata, shell title/build-channel text, Help and public Commercial/Trial installer metadata | The private License Master installer intentionally remains `1.0.0`; version parity is source/build evidence, not a signed release artifact while those source/installer files are dirty. |
 | `dotnet build ANLAbel.slnx --no-restore --nologo -v quiet -p:UseSharedCompilation=false -nodeReuse:false` | PASS · 0 warnings · 0 errors | Compile evidence for the current checkout. |
 | `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -v quiet` | PASS · 356/356 | Unit/contract evidence; no physical-device claim. |
 | `dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build` | PASS · exit 0; 158 registered checks in the current runner | Application regression evidence, including the Operations Overview stale-refresh/scope gate. Named P1/P2 barcode gates and the protected Text/TextBox regression names are present in the runner; this is not a hardware smoke test. |
