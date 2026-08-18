@@ -28,12 +28,13 @@ L4  local file-drop on the same spine
 Do not add a parallel path. Fail closed on missing queue, stale data, or
 ambiguous print outcome.
 
-## Now (0.266)
+## Now (0.276)
 
-Public version $Version"
-Replace-Required 'docs/reinvention/MEMORY.md' 'Version: \d+\.\d+' . Fast loop is the everyday gate. Mutation stays at 90
-on the existing label-safety list. Header/1024, Control Center, and C: clones
-are closed.
+Public version `0.276`. Printer/paper stock, authored DPI, document queue
+identity, and print scale fail closed
+([`PRINT_PRINTER_PAPER_FAIL_CLOSED.md`](../PRINT_PRINTER_PAPER_FAIL_CLOSED.md)).
+Fast loop is the everyday gate. Mutation stays at 90 on the existing
+label-safety list. Header/1024, Control Center, and C: clones are closed.
 
 **Next increment:** protect compactness, basics, and stability. Do not open
 new product surfaces. If label-safety code changes, add at most one existing

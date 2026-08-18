@@ -43,6 +43,9 @@ public sealed class PrintPreflightValidator
         var completedUnits = 0;
         var reportStride = Math.Max(1, totalUnits / 100);
         progress?.Report(new PrintPreflightProgress(0, totalUnits));
+        ValidateLabelStock(template, issues);
+        ValidatePrintDpi(template, issues);
+        ValidatePrintScale(template, issues);
         ValidatePrintMethod(template, issues);
 
         foreach (var item in visibleItems)
@@ -764,6 +767,60 @@ public sealed class PrintPreflightValidator
                     $"Code 39 quiet zone is {observedQzMm:0.##} mm per side ({item.QrQuietZoneModules} modules), which is below the required standard minimum of {requiredQzMm:0.##} mm (at least max(10X, 2.54 mm)). Increase quiet zone modules to at least {Math.Ceiling(requiredQzMm / effectiveX)}."));
             }
         }
+    }
+
+    private static void ValidateLabelStock(LabelTemplate template, List<PrintPreflightIssue> issues)
+    {
+        var decision = LabelStockContract.Evaluate(
+            template.WidthMm,
+            template.HeightMm,
+            template.PrinterProfile.PhysicalWidthMm,
+            template.PrinterProfile.PhysicalHeightMm,
+            template.PrinterProfile.PaperName);
+        if (decision.IsAllowed)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            0,
+            "Template",
+            "LabelStock",
+            decision.Diagnostic));
+    }
+
+    private static void ValidatePrintDpi(LabelTemplate template, List<PrintPreflightIssue> issues)
+    {
+        var decision = IndustrialPrintDpiContract.Evaluate(
+            template.PrinterProfile.Dpi,
+            template.Dpi);
+        if (decision.IsAllowed)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            0,
+            "Template",
+            "PrintDpi",
+            decision.Diagnostic));
+    }
+
+    private static void ValidatePrintScale(LabelTemplate template, List<PrintPreflightIssue> issues)
+    {
+        var decision = PrintScaleContract.Evaluate(
+            template.PrinterProfile.ScaleX,
+            template.PrinterProfile.ScaleY);
+        if (decision.IsAllowed)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            0,
+            "Template",
+            "PrintScale",
+            decision.Diagnostic));
     }
 
     private static void ValidatePrintMethod(LabelTemplate template, List<PrintPreflightIssue> issues)

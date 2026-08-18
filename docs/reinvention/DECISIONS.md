@@ -48,6 +48,16 @@ Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 - Consequences: Guides/captions remain transient unless explicitly authored; preview/print cannot silently mutate authoring geometry; new metric backends must pass parity fixtures before replacing the adapter.
 - Evidence required: zoom/scale/hysteresis, group/resize/rotation, mixed-font/RTL/diacritic/multiline text and one-gesture undo/redo fixtures.
 
+### ADR-020 - Operator label stock, not office paper or driver lists
+
+- Status: Accepted
+- Date: 2026-08-18
+- Context: Industrial queues do not expose a trustworthy paper-size list (`DEVMODE` / `DC_PAPERSIZE` previously returned swapped or mistyped sizes). Mixing A4/Letter into `StandardLabelSizes`, stamping catalog picks as `DriverAutomatic`, and selecting `printers[0]` (Windows default) made khổ giấy and printer choice fail open.
+- Decision: Keep the millimetre catalog + typed custom size. Treat both as `PaperSizeSource.Manual`. Reject A4/A3/Letter/Legal as thermal stock in `LabelStockContract` and preflight. Resolve a named queue only; never auto-select the default. Do not reopen driver paper enumeration.
+- Alternatives: Read `PageMediaSizeCapability` / `DeviceCapabilitiesW` (rejected; rule 11). Keep A4 in the shipping list (rejected; office-tray mental model).
+- Consequences: Existing templates that already store A4 physical stock fail closed at preflight until the operator picks a die size. Legacy `DriverAutomatic` values remain loadable and are not rewritten on open.
+- Evidence required: `LabelStockContract` unit tests on the real public methods, `PrintService.ValidateRows` blocking office stock, catalog contains no office sheet, `ResolveNamedQueue` returns null for a blank name.
+
 ## Mẫu ADR mới
 
 ```markdown

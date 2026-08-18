@@ -1545,11 +1545,31 @@ public sealed class MainViewModel : ObservableObject
 
     public void ApplyPrinterSelection(PrinterInfo printer, PrinterPaperInfo paper, int dpi, LabelOrientation orientation)
     {
+        ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(paper);
+
         // OrientSize swaps dimensions for Landscape so the design canvas shows
         // the label in landscape view (like NiceLabel). The physical paper dimensions
         // are sent to the printer driver via PageMediaSize — no PageOrientation is set,
         // so the driver prints content on the exact physical dimensions without rotation.
         var (widthMm, heightMm) = LabelGeometry.OrientSize(paper.WidthMm, paper.HeightMm, orientation);
+        var stock = LabelStockContract.Evaluate(
+            widthMm,
+            heightMm,
+            paper.WidthMm,
+            paper.HeightMm,
+            paper.Name);
+        if (!stock.IsAllowed)
+        {
+            throw new InvalidOperationException(stock.Diagnostic);
+        }
+
+        var dpiDecision = IndustrialPrintDpiContract.Evaluate(dpi, dpi);
+        if (!dpiDecision.IsAllowed)
+        {
+            throw new InvalidOperationException(dpiDecision.Diagnostic);
+        }
+
         Template.WidthMm = widthMm;
         Template.HeightMm = heightMm;
         Template.Dpi = dpi;
@@ -1557,9 +1577,7 @@ public sealed class MainViewModel : ObservableObject
         Template.PrinterProfile.PrinterName = printer.Name;
         Template.PrinterProfile.PaperName = paper.Name;
         Template.PrinterProfile.SettingsSource = PrinterSettingsSource.Label;
-        Template.PrinterProfile.PaperSizeSource = paper.Source == PaperSizeSourceKind.UserCustom
-            ? PaperSizeSource.Manual
-            : PaperSizeSource.DriverAutomatic;
+        Template.PrinterProfile.PaperSizeSource = LabelStockContract.SourceForOperatorStock();
         Template.PrinterProfile.LabelWidthMm = widthMm;
         Template.PrinterProfile.LabelHeightMm = heightMm;
         // Store original physical dimensions (before orient swap) for the printer driver PageMediaSize
@@ -3810,14 +3828,19 @@ public sealed class MainViewModel : ObservableObject
 
     public string? ValidatePrintPreviewContent()
     {
-        var rows = ExcelDataView is null || ExcelDataView.Count == 0
-            ? new IReadOnlyDictionary<string, string>?[] { PreviewRow }
-            : ExcelDataView
-                .Cast<DataRowView>()
-                .Select(CreatePreviewRow)
-                .Cast<IReadOnlyDictionary<string, string>?>()
-                .ToArray();
-        return ValidatePrintableContent(rows);
+        try
+        {
+            if (!TryBuildPrintPreviewRows(out var rows, out var transformError))
+            {
+                return $"Print Preview is blocked: data transform error. {transformError}";
+            }
+
+            return ValidatePrintableContent(rows);
+        }
+        catch (Exception ex)
+        {
+            return $"Print Preview is blocked: {ex.Message}";
+        }
     }
 
     private string? ValidatePrintableContent(IReadOnlyList<IReadOnlyDictionary<string, string>?> rows)
@@ -4425,9 +4448,16 @@ public sealed class MainViewModel : ObservableObject
             return null;
         }
 
-        var source = rowView.Row.Table.Columns
+        var dataRow = rowView.Row;
+        if (dataRow.RowState is DataRowState.Deleted or DataRowState.Detached)
+        {
+            error = "A linked Excel/CSV row is no longer available.";
+            return null;
+        }
+
+        var source = dataRow.Table.Columns
             .Cast<DataColumn>()
-            .ToDictionary(column => column.ColumnName, column => rowView.Row[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(column => column.ColumnName, column => dataRow[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase);
         if (Template.DataTransforms.Count == 0)
         {
             return source;

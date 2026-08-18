@@ -1023,14 +1023,26 @@ public partial class MainWindow : Window
 
     private void OpenPrintPreview()
     {
-        var validationError = _viewModel.ValidatePrintPreviewContent();
-        if (validationError is not null)
+        try
         {
-            MessageBox.Show(this, validationError, "Preview blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+            var validationError = _viewModel.ValidatePrintPreviewContent();
+            if (validationError is not null)
+            {
+                MessageBox.Show(this, validationError, "Preview blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-        OpenPrintPreviewDialog();
+            OpenPrintPreviewDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"Print Preview could not be opened. {ex.Message}",
+                "Preview unavailable",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private void OpenPrintPreviewDialog(string? approvedReprintJobId = null, PrintJobManifest? approvedReprintManifest = null)
@@ -1086,7 +1098,13 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var dialog = new PrinterSetupWindow(printers) { Owner = this };
+            var profile = _viewModel.Template.PrinterProfile;
+            var dialog = new PrinterSetupWindow(
+                printers,
+                profile.PrinterName,
+                profile.PaperName,
+                _viewModel.Template.Orientation,
+                profile.Dpi > 0 ? profile.Dpi : _viewModel.Template.Dpi) { Owner = this };
             if (dialog.ShowDialog() == true && dialog.SelectedPrinter is not null && dialog.SelectedPaper is not null)
             {
                 _viewModel.ApplyPrinterSelection(dialog.SelectedPrinter, dialog.SelectedPaper, dialog.SelectedDpi, dialog.SelectedOrientation);

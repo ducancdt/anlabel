@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using ANLAbel.App.Services;
 using ANLAbel.Core.Enums;
+using ANLAbel.Core.Printing;
 using ANLAbel.Printing.PrinterProfiles;
 
 namespace ANLAbel.App;
@@ -17,20 +18,18 @@ public partial class PrinterSetupWindow : Window
         InitializeComponent();
         _printers = printers;
 
-        // Load saved preferences
+        // Paper name may use a last-used hint when the document has none.
+        // Queue, DPI, and orientation always come from the document. Preferences
+        // are not a printer and 203/Portrait are authored values, not unset.
         var prefs = _prefsService.Load();
-
-        // Use saved prefs as defaults if caller didn't provide specific values
-        var effectivePrinterName = !string.IsNullOrWhiteSpace(initialPrinterName)
-            ? initialPrinterName
-            : prefs.PrinterName;
-        var effectivePaperName = !string.IsNullOrWhiteSpace(initialPaperName)
-            ? initialPaperName
-            : prefs.PaperName;
-        var effectiveDpi = initialDpi != 203 ? initialDpi : prefs.Dpi;
-        var effectiveOrientation = initialOrientation != LabelOrientation.Portrait
-            ? initialOrientation
-            : (prefs.Orientation == "Landscape" ? LabelOrientation.Landscape : LabelOrientation.Portrait);
+        var effectivePrinterName = DocumentPrinterIdentityContract.QueueNameFromDocument(
+            initialPrinterName,
+            prefs.PrinterName);
+        var effectivePaperName = DocumentPrinterIdentityContract.PaperNameFromDocumentOrHint(
+            initialPaperName,
+            prefs.PaperName);
+        var effectiveDpi = initialDpi;
+        var effectiveOrientation = initialOrientation;
 
         CategoryBox.ItemsSource = StandardLabelSizes.Categories;
 
@@ -46,11 +45,7 @@ public partial class PrinterSetupWindow : Window
         }
 
         PrinterBox.ItemsSource = printers;
-        PrinterBox.SelectedItem = printers.FirstOrDefault(p => string.Equals(p.Name, effectivePrinterName, StringComparison.OrdinalIgnoreCase));
-        if (PrinterBox.SelectedItem is null && printers.Count > 0)
-        {
-            PrinterBox.SelectedIndex = 0;
-        }
+        PrinterBox.SelectedItem = PrinterDiscoveryService.ResolveNamedQueue(printers, effectivePrinterName);
 
         DpiBox.SelectedIndex = GetDpiIndex(effectiveDpi);
         PortraitRadio.IsChecked = effectiveOrientation == LabelOrientation.Portrait;
@@ -131,6 +126,26 @@ public partial class PrinterSetupWindow : Window
         if (!double.TryParse(WidthBox.Text, out var w) || w <= 0 || !double.TryParse(HeightBox.Text, out var h) || h <= 0)
         {
             MessageBox.Show(this, "Please enter valid label width and height in mm.", "Printer setup", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var listedPreview = PaperSizesList.SelectedItem as PrinterPaperInfo;
+        var previewName = listedPreview is not null
+            && Math.Abs(listedPreview.WidthMm - w) <= 0.005
+            && Math.Abs(listedPreview.HeightMm - h) <= 0.005
+            ? listedPreview.Name
+            : "Custom";
+        var stock = LabelStockContract.Evaluate(w, h, w, h, previewName);
+        if (!stock.IsAllowed)
+        {
+            MessageBox.Show(this, stock.Diagnostic, "Printer setup", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var dpiDecision = IndustrialPrintDpiContract.Evaluate(ReadDpi(), ReadDpi());
+        if (!dpiDecision.IsAllowed)
+        {
+            MessageBox.Show(this, dpiDecision.Diagnostic, "Printer setup", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
