@@ -24,6 +24,22 @@ public sealed class PrinterDiscoveryService
         return DiscoverInstalledPrinters().Printers;
     }
 
+    /// <summary>
+    /// Returns the named queue or null. Never falls back to
+    /// <c>printers[0]</c> / the Windows default marker.
+    /// </summary>
+    public static PrinterInfo? ResolveNamedQueue(IReadOnlyList<PrinterInfo> printers, string? requestedName)
+    {
+        ArgumentNullException.ThrowIfNull(printers);
+        if (string.IsNullOrWhiteSpace(requestedName))
+        {
+            return null;
+        }
+
+        return printers.FirstOrDefault(printer =>
+            string.Equals(printer.Name, requestedName, StringComparison.OrdinalIgnoreCase));
+    }
+
     public PrinterDiscoveryResult DiscoverInstalledPrinters()
     {
         try

@@ -229,7 +229,7 @@
                                     <ProgressBar Height="6"
                                                  Minimum="0"
                                                  Maximum="100"
-                                                 Value="{Binding PreviewProgressPercent}"
+                                                 Value="{Binding PreviewProgressPercent, Mode=OneWay}"
                                                  Visibility="{Binding IsPreviewBusy, Converter={StaticResource BoolToVisibility}}"/>
                                     <TextBlock Text="{Binding PreviewProgressText}"
                                                FontSize="10"

@@ -95,23 +95,9 @@ public partial class PrintPreviewWindow : Window
         _approvedReprintJobId = string.IsNullOrWhiteSpace(approvedReprintJobId) ? null : approvedReprintJobId;
         _approvedReprintManifest = approvedReprintManifest;
         _preparedRows = preparedRows;
-        _selectedPrinterName = template.PrinterProfile.PrinterName;
+        _selectedPrinterName = DocumentPrinterIdentityContract.QueueNameFromDocument(
+            template.PrinterProfile.PrinterName) ?? string.Empty;
         _excelKnownSourceIdentity = excelSourceIdentity ?? TryGetExcelSourceIdentity();
-
-        // Restore saved printer preferences if no printer configured yet
-        if (string.IsNullOrWhiteSpace(_selectedPrinterName))
-        {
-            var prefs = new PrinterPreferencesService().Load();
-            if (!string.IsNullOrWhiteSpace(prefs.PrinterName))
-            {
-                _selectedPrinterName = prefs.PrinterName;
-                template.PrinterProfile.PrinterName = prefs.PrinterName;
-            }
-            if (prefs.Dpi > 0)
-            {
-                template.PrinterProfile.Dpi = prefs.Dpi;
-            }
-        }
 
         DataContext = this;
         _filterDebounceTimer.Tick += (_, _) =>
@@ -235,7 +221,12 @@ public partial class PrintPreviewWindow : Window
             return;
         }
 
-        var dialog = new PrinterSetupWindow(printers, _selectedPrinterName, null, _template.Orientation, _template.PrinterProfile.Dpi) { Owner = this };
+        var dialog = new PrinterSetupWindow(
+            printers,
+            _selectedPrinterName,
+            _template.PrinterProfile.PaperName,
+            _template.Orientation,
+            _template.PrinterProfile.Dpi) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
             if (dialog.SelectedPrinter is not null)
@@ -251,15 +242,25 @@ public partial class PrintPreviewWindow : Window
             if (dialog.SelectedPaper is not null)
             {
                 var (widthMm, heightMm) = LabelGeometry.OrientSize(dialog.SelectedPaper.WidthMm, dialog.SelectedPaper.HeightMm, dialog.SelectedOrientation);
+                var stock = LabelStockContract.Evaluate(
+                    widthMm,
+                    heightMm,
+                    dialog.SelectedPaper.WidthMm,
+                    dialog.SelectedPaper.HeightMm,
+                    dialog.SelectedPaper.Name);
+                if (!stock.IsAllowed)
+                {
+                    MessageBox.Show(this, stock.Diagnostic, "Printer setup", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 _template.WidthMm = widthMm;
                 _template.HeightMm = heightMm;
                 _template.PrinterProfile.LabelWidthMm = widthMm;
                 _template.PrinterProfile.LabelHeightMm = heightMm;
                 _template.PrinterProfile.PhysicalWidthMm = dialog.SelectedPaper.WidthMm;
                 _template.PrinterProfile.PhysicalHeightMm = dialog.SelectedPaper.HeightMm;
-                _template.PrinterProfile.PaperSizeSource = dialog.SelectedPaper.Source == PaperSizeSourceKind.UserCustom
-                    ? PaperSizeSource.Manual
-                    : PaperSizeSource.DriverAutomatic;
+                _template.PrinterProfile.PaperSizeSource = LabelStockContract.SourceForOperatorStock();
             }
 
             _template.PrinterProfile.Dpi = dialog.SelectedDpi;
@@ -1433,6 +1434,12 @@ public partial class PrintPreviewWindow : Window
 
     private void OnPropertyChanged()
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(OnPropertyChanged);
+            return;
+        }
+
         DataContext = null;
         DataContext = this;
     }

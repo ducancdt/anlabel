@@ -117,46 +117,60 @@ public partial class PrintPreviewWindow
                 CreatePreviewProgress(operation, description));
             preflight = MergePreviewPlanIssue(preflight, planResolution.Issue);
             operation.Token.ThrowIfCancellationRequested();
+
+            // CreateEffectivePlanAsync / ValidateRowsAsync resume on the
+            // threadpool when the window was opened before a
+            // DispatcherSynchronizationContext exists (ctor + first Ctrl+P).
+            // Apply every first-refresh UI mutation inside this callback —
+            // do not continue after an empty hop and touch controls there.
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (!IsCurrentPreviewOperation(operation))
+                {
+                    return;
+                }
+
+                if (refreshedAllRows is not null && refreshedTrackingRows is not null && refreshedExcelColumns is not null)
+                {
+                    _allRowsCache = refreshedAllRows;
+                    _trackingRows.Clear();
+                    _trackingRows.AddRange(refreshedTrackingRows);
+                    TrackingList.ItemsSource = _trackingRows;
+                    RowFilterColumnCombo.ItemsSource = new[] { AllColumnsFilterOption }.Concat(refreshedExcelColumns).ToList();
+                    RowFilterColumnCombo.SelectedIndex = 0;
+                    RowFilterBox.Text = string.Empty;
+                    FilterMatchCountText.Visibility = Visibility.Collapsed;
+                }
+
+                _previewRows = rows;
+                _previewPlan = planResolution.Plan;
+                _previewPlanPrinterName = _selectedPrinterName ?? string.Empty;
+                _previewPlanIssue = planResolution.Issue;
+                _preflightResult = preflight;
+                BuildPreviewPageMetadata();
+                _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
+                _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
+            });
+
+            operation.Token.ThrowIfCancellationRequested();
             if (!IsCurrentPreviewOperation(operation))
             {
                 return;
             }
 
-            if (refreshedAllRows is not null && refreshedTrackingRows is not null && refreshedExcelColumns is not null)
-            {
-                _allRowsCache = refreshedAllRows;
-                _trackingRows.Clear();
-                _trackingRows.AddRange(refreshedTrackingRows);
-                TrackingList.ItemsSource = _trackingRows;
-                RowFilterColumnCombo.ItemsSource = new[] { AllColumnsFilterOption }.Concat(refreshedExcelColumns).ToList();
-                RowFilterColumnCombo.SelectedIndex = 0;
-                RowFilterBox.Text = string.Empty;
-                FilterMatchCountText.Visibility = Visibility.Collapsed;
-            }
-
-            _previewRows = rows;
-            _previewPlan = planResolution.Plan;
-            _previewPlanPrinterName = _selectedPrinterName ?? string.Empty;
-            _previewPlanIssue = planResolution.Issue;
-            _preflightResult = preflight;
-            BuildPreviewPageMetadata();
-            _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
-            _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
-
-            // Let the dispatcher process Cancel before the one current-page
-            // bitmap is rasterized.  No batch of bitmaps is built here.
-            await Dispatcher.Yield(DispatcherPriority.Background);
-            operation.Token.ThrowIfCancellationRequested();
             await EnsureCurrentPreviewImageAsync(operation.Token, operation);
-            OnPropertyChanged();
+            await Dispatcher.InvokeAsync(OnPropertyChanged);
         }
         catch (OperationCanceledException)
         {
             if (IsCurrentPreviewOperation(operation))
             {
                 keepStatus = true;
-                _previewProgressText = "Preview update canceled.";
-                OnPropertyChanged();
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    _previewProgressText = "Preview update canceled.";
+                    OnPropertyChanged();
+                });
             }
         }
         catch (Exception ex)
@@ -164,14 +178,17 @@ public partial class PrintPreviewWindow
             if (IsCurrentPreviewOperation(operation))
             {
                 keepStatus = true;
-                _previewProgressText = $"Preview update failed: {ex.Message}";
-                OnPropertyChanged();
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    _previewProgressText = $"Preview update failed: {ex.Message}";
+                    OnPropertyChanged();
+                });
                 System.Diagnostics.Debug.WriteLine($"Preview refresh error: {ex}");
             }
         }
         finally
         {
-            EndPreviewOperation(operation, keepStatus);
+            await Dispatcher.InvokeAsync(() => EndPreviewOperation(operation, keepStatus));
         }
     }
 
@@ -199,11 +216,12 @@ public partial class PrintPreviewWindow
 
         try
         {
-            // Printer APIs can block while a driver responds. Keep that work
-            // off the dispatcher so large-label preview refreshes remain
-            // cancelable and the window stays responsive.
-            var effectivePlan = await Task.Run(
-                () => _printService.CreateEffectivePlan(_template, _selectedPrinterName),
+            // PrintQueue/PrintTicket are STA COM. Task.Run is MTA and can
+            // native-abort the process on industrial drivers. Use the same
+            // dedicated-STA helper as print dispatch.
+            var effectivePlan = await _printService.CreateEffectivePlanAsync(
+                _template,
+                _selectedPrinterName,
                 cancellationToken);
             return new PreviewPlanResolution(effectivePlan, null);
         }
@@ -241,24 +259,35 @@ public partial class PrintPreviewWindow
 
     private IProgress<PrintPreflightProgress> CreatePreviewProgress(CancellationTokenSource operation, string description)
     {
-        // Construct Progress<T> on the dispatcher thread so status updates are
-        // marshaled back before they touch WPF/DataContext.
-        return new Progress<PrintPreflightProgress>(value =>
+        // Progress may be raised from a worker. Always hop to this window's
+        // dispatcher before touching DataContext.
+        return new Progress<PrintPreflightProgress>(value => ApplyPreviewProgress(operation, description, value));
+    }
+
+    private void ApplyPreviewProgress(
+        CancellationTokenSource operation,
+        string description,
+        PrintPreflightProgress value)
+    {
+        if (!Dispatcher.CheckAccess())
         {
-            if (!IsCurrentPreviewOperation(operation))
-            {
-                return;
-            }
+            _ = Dispatcher.BeginInvoke(() => ApplyPreviewProgress(operation, description, value));
+            return;
+        }
 
-            if (value.Percent == _previewProgressPercent && value.CompletedUnits != value.TotalUnits)
-            {
-                return;
-            }
+        if (!IsCurrentPreviewOperation(operation))
+        {
+            return;
+        }
 
-            _previewProgressPercent = value.Percent;
-            _previewProgressText = $"{description}: {value.Percent}%";
-            OnPropertyChanged();
-        });
+        if (value.Percent == _previewProgressPercent && value.CompletedUnits != value.TotalUnits)
+        {
+            return;
+        }
+
+        _previewProgressPercent = value.Percent;
+        _previewProgressText = $"{description}: {value.Percent}%";
+        OnPropertyChanged();
     }
 
     private CancellationTokenSource BeginPreviewOperation(string description)

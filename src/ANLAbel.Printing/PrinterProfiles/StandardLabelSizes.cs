@@ -87,7 +87,6 @@ public static class StandardLabelSizes
             ("104 × 159 mm (Zebra 4×6\")", 104, 159),
             ("152 × 203 mm (6×8\")", 152, 203),
             ("100 × 200 mm", 100, 200),
-            ("A4 210 × 297 mm", 210, 297),
         });
 
         // Jewelry / small product labels

@@ -109,6 +109,18 @@ var tests = new (string Name, Func<Task> Run)[]
     ("text box has no outline stroke by default", TestTextBoxHasNoOutlineStroke),
     ("fixed frame text box reports overflow without rewriting size", TestFixedFrameTextBoxOverflowKeepsSize),
     ("printer setup preserves a saved standard stock selection", TestPrinterSetupPreservesSavedStock),
+    ("print preflight blocks office sheet stock", TestPrintPreflightBlocksOfficeSheetStock),
+    ("apply printer selection stores operator stock as manual", TestApplyPrinterSelectionStoresOperatorStock),
+    ("standard catalog has no office sheet", TestStandardCatalogHasNoOfficeSheet),
+    ("named queue resolve does not pick the Windows default", TestNamedQueueResolveDoesNotPickDefault),
+    ("apply printer selection does not mutate blocked stock", TestApplyPrinterSelectionDoesNotMutateBlockedStock),
+    ("print preflight blocks office print dpi", TestPrintPreflightBlocksOfficePrintDpi),
+    ("catalog die sizes stay inside industrial stock bounds", TestCatalogDieSizesStayInsideIndustrialBounds),
+    ("preview does not copy preference printer onto the document", TestPreviewDoesNotCopyPreferencePrinterOntoDocument),
+    ("printer setup does not select a queue when the document has none", TestPrinterSetupDoesNotSelectQueueWhenDocumentHasNone),
+    ("main window printer setup opens on the document queue", TestMainWindowPrinterSetupOpensOnDocumentQueue),
+    ("print preflight blocks fit-to-page scale", TestPrintPreflightBlocksFitToPageScale),
+    ("preview printer setup opens on the document paper", TestPreviewPrinterSetupOpensOnDocumentPaper),
     ("text layout identity records display pixels-per-DIP", TestTextLayoutRecordsDisplayScale),
     ("print preflight validation", TestPrintPreflightValidation),
     ("print preflight reports missing text font", TestPrintPreflightReportsMissingFont),
@@ -169,6 +181,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("calibration dispatch honors pre-start cancellation", TestCalibrationDispatchCancellation),
     ("effective print-plan preparation honors pre-start cancellation", TestEffectivePlanPreparationCancellation),
     ("print preview busy gate blocks duplicate dispatch", TestPrintPreviewBusyGate),
+    ("ctrl+p preview open does not crash the process", TestCtrlPPreviewOpenDoesNotCrash),
     ("missing named printer queue fails closed through lookup seam", TestMissingNamedPrinterQueueFailsClosed),
     ("quick print does not record preflight before queue preparation", TestQuickPrintPreflightOrdering),
     ("view model warns when saved printer queue disappears", TestViewModelShowsMissingPrinterWarning),
@@ -198,6 +211,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("gs1 industrial AI subset validates weight and variable fields", TestGs1IndustrialAiSubset),
     ("main shell regions match NiceLabel map AutomationIds", TestMainShellRegionsMatchNiceLabelMap),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
+    ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales)
 };
 
@@ -4969,6 +4983,326 @@ static Task TestPrinterSetupPreservesSavedStock()
     return Task.CompletedTask;
 }
 
+static Task TestPrintPreflightBlocksOfficeSheetStock()
+{
+    var blocked = new LabelTemplate { Name = "Office sheet", WidthMm = 50, HeightMm = 30, Dpi = 203 };
+    blocked.PrinterProfile.PhysicalWidthMm = 210;
+    blocked.PrinterProfile.PhysicalHeightMm = 297;
+    blocked.PrinterProfile.PaperName = "A4 210 × 297 mm";
+    var blockedResult = new PrintService().ValidateRows(
+        blocked,
+        new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(false, blockedResult.IsSuccess, "Office-sheet physical stock must fail closed before dispatch");
+    AssertEqual(
+        true,
+        blockedResult.Issues.Any(issue => issue.Message.Contains("office sheets", StringComparison.OrdinalIgnoreCase)),
+        "Preflight must name the office-sheet policy: " + blockedResult.ToUserMessage(3));
+
+    var allowed = new LabelTemplate { Name = "Die", WidthMm = 50, HeightMm = 30, Dpi = 203 };
+    allowed.PrinterProfile.PhysicalWidthMm = 50;
+    allowed.PrinterProfile.PhysicalHeightMm = 30;
+    var allowedResult = new PrintService().ValidateRows(
+        allowed,
+        new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(true, allowedResult.IsSuccess, "Matching millimetre die stock must still pass stock preflight");
+    return Task.CompletedTask;
+}
+
+static Task TestApplyPrinterSelectionStoresOperatorStock()
+{
+    var vm = new MainViewModel();
+    var printer = new PrinterInfo { Name = "Zebra ZT411" };
+    var paper = StandardLabelSizes.All.First(item =>
+        Math.Abs(item.WidthMm - 50) < 0.001 && Math.Abs(item.HeightMm - 20) < 0.001);
+    vm.ApplyPrinterSelection(printer, paper, 203, LabelOrientation.Portrait);
+
+    AssertEqual(LabelStockContract.SourceForOperatorStock(), vm.Template.PrinterProfile.PaperSizeSource,
+        "Catalog stock must be stored as operator stock, not DriverAutomatic");
+    AssertEqual(PaperSizeSource.Manual, vm.Template.PrinterProfile.PaperSizeSource,
+        "Operator stock must remain Manual");
+    AssertEqual(paper.WidthMm, vm.Template.PrinterProfile.PhysicalWidthMm,
+        "Physical width must stay the unswapped catalog die");
+    AssertEqual(paper.HeightMm, vm.Template.PrinterProfile.PhysicalHeightMm,
+        "Physical height must stay the unswapped catalog die");
+    AssertEqual("Zebra ZT411", vm.Template.PrinterProfile.PrinterName,
+        "ApplyPrinterSelection must keep the named queue");
+    return Task.CompletedTask;
+}
+
+static Task TestStandardCatalogHasNoOfficeSheet()
+{
+    foreach (var item in StandardLabelSizes.All)
+    {
+        AssertEqual(false, LabelStockContract.IsOfficeSheet(item.WidthMm, item.HeightMm),
+            item.Name + " must not be an office sheet");
+        AssertEqual(false, LabelStockContract.NameClaimsOfficeSheet(item.Name),
+            item.Name + " must not claim an A4 full sheet");
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestNamedQueueResolveDoesNotPickDefault()
+{
+    var printers = new[]
+    {
+        new PrinterInfo { Name = "Windows Default", IsDefault = true },
+        new PrinterInfo { Name = "Zebra ZT411", IsDefault = false }
+    };
+
+    AssertEqual(true, PrinterDiscoveryService.ResolveNamedQueue(printers, null) is null,
+        "A blank request must not resolve to the Windows default");
+    AssertEqual(true, PrinterDiscoveryService.ResolveNamedQueue(printers, "   ") is null,
+        "Whitespace must not resolve to printers[0]");
+    AssertEqual("Zebra ZT411", PrinterDiscoveryService.ResolveNamedQueue(printers, "Zebra ZT411")?.Name,
+        "A named industrial queue must resolve exactly");
+    AssertEqual(true, PrinterDiscoveryService.ResolveNamedQueue(printers, "Missing Queue") is null,
+        "A missing name must fail closed instead of picking the default");
+    return Task.CompletedTask;
+}
+
+static Task TestApplyPrinterSelectionDoesNotMutateBlockedStock()
+{
+    var vm = new MainViewModel();
+    var originalWidth = vm.Template.WidthMm;
+    var originalHeight = vm.Template.HeightMm;
+    var originalDpi = vm.Template.PrinterProfile.Dpi;
+    var originalSource = vm.Template.PrinterProfile.PaperSizeSource;
+    var printer = new PrinterInfo { Name = "Zebra ZT411" };
+    Exception? stockFailure = null;
+    try
+    {
+        vm.ApplyPrinterSelection(
+            printer,
+            new PrinterPaperInfo { Name = "A4 210 × 297 mm", WidthMm = 210, HeightMm = 297 },
+            203,
+            LabelOrientation.Portrait);
+    }
+    catch (InvalidOperationException ex)
+    {
+        stockFailure = ex;
+    }
+
+    AssertEqual(true, stockFailure is not null, "Office-sheet apply must throw before writing the template");
+    AssertEqual(true, stockFailure!.Message.Contains("office sheets", StringComparison.OrdinalIgnoreCase),
+        "The apply error must come from LabelStockContract: " + stockFailure.Message);
+    AssertEqual(originalWidth, vm.Template.WidthMm, "Blocked stock must not change label width");
+    AssertEqual(originalHeight, vm.Template.HeightMm, "Blocked stock must not change label height");
+    AssertEqual(originalSource, vm.Template.PrinterProfile.PaperSizeSource, "Blocked stock must not rewrite PaperSizeSource");
+
+    Exception? dpiFailure = null;
+    try
+    {
+        vm.ApplyPrinterSelection(
+            printer,
+            new PrinterPaperInfo { Name = "50 × 20 mm", WidthMm = 50, HeightMm = 20 },
+            96,
+            LabelOrientation.Portrait);
+    }
+    catch (InvalidOperationException ex)
+    {
+        dpiFailure = ex;
+    }
+
+    AssertEqual(true, dpiFailure is not null, "Office DPI apply must throw before writing the template");
+    AssertEqual(true, dpiFailure!.Message.Contains("office/screen", StringComparison.OrdinalIgnoreCase),
+        "The apply error must come from IndustrialPrintDpiContract: " + dpiFailure.Message);
+    AssertEqual(originalWidth, vm.Template.WidthMm, "Blocked DPI must not change label width");
+    AssertEqual(originalDpi, vm.Template.PrinterProfile.Dpi, "Blocked DPI must not change the profile DPI");
+    return Task.CompletedTask;
+}
+
+static Task TestPrintPreflightBlocksOfficePrintDpi()
+{
+    var template = new LabelTemplate { Name = "Office DPI", WidthMm = 50, HeightMm = 30, Dpi = 96 };
+    template.PrinterProfile.Dpi = 96;
+    template.PrinterProfile.PhysicalWidthMm = 50;
+    template.PrinterProfile.PhysicalHeightMm = 30;
+    var result = new PrintService().ValidateRows(
+        template,
+        new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(false, result.IsSuccess, "Office/screen DPI must fail closed at preflight");
+    AssertEqual(
+        true,
+        result.Issues.Any(issue => issue.Message.Contains("office/screen", StringComparison.OrdinalIgnoreCase)),
+        "Preflight must name the office DPI policy: " + result.ToUserMessage(3));
+    return Task.CompletedTask;
+}
+
+static Task TestCatalogDieSizesStayInsideIndustrialBounds()
+{
+    foreach (var item in StandardLabelSizes.All)
+    {
+        var decision = LabelStockContract.Evaluate(item.WidthMm, item.HeightMm, item.WidthMm, item.HeightMm, item.Name);
+        AssertEqual(true, decision.IsAllowed,
+            item.Name + " must remain accepted industrial stock: " + decision.Diagnostic);
+        AssertEqual(true, IndustrialPrintDpiContract.Evaluate(203, 203).IsAllowed,
+            "Catalog apply still uses an industrial DPI");
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestPreviewDoesNotCopyPreferencePrinterOntoDocument()
+{
+    var template = new LabelTemplate { Name = "No queue", WidthMm = 50, HeightMm = 30, Dpi = 203 };
+    template.PrinterProfile.PrinterName = string.Empty;
+    template.PrinterProfile.Dpi = 203;
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var window = new PrintPreviewWindow(
+                template,
+                null,
+                null,
+                new PrintService(),
+                new PrintLogService(),
+                string.Empty);
+            AssertEqual(string.Empty, template.PrinterProfile.PrinterName,
+                "Opening Preview must not write a preference or default printer onto the document");
+            AssertEqual(203, template.PrinterProfile.Dpi,
+                "Opening Preview must not overwrite authored DPI from preferences");
+            window.Close();
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    var previewSource = File.ReadAllText(
+        Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"));
+    AssertEqual(true, previewSource.Contains("DocumentPrinterIdentityContract.QueueNameFromDocument", StringComparison.Ordinal),
+        "Preview must resolve the queue from the document identity contract");
+    AssertEqual(false, previewSource.Contains("prefs.PrinterName", StringComparison.Ordinal),
+        "Preview must not copy preference printer names onto the template");
+    return Task.CompletedTask;
+}
+
+static Task TestPrinterSetupDoesNotSelectQueueWhenDocumentHasNone()
+{
+    Exception? failure = null;
+    PrinterInfo? selected = null;
+    PrinterInfo? named = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var printers = new[]
+            {
+                new PrinterInfo { Name = "Windows Default", IsDefault = true },
+                new PrinterInfo { Name = "Zebra ZT411", IsDefault = false }
+            };
+            var empty = new PrinterSetupWindow(printers, initialPrinterName: null);
+            var boxField = typeof(PrinterSetupWindow).GetField(
+                "PrinterBox",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            AssertEqual(true, boxField is not null, "Printer setup must expose the queue combo");
+            selected = (boxField!.GetValue(empty) as ComboBox)?.SelectedItem as PrinterInfo;
+            empty.Close();
+
+            var restored = new PrinterSetupWindow(printers, initialPrinterName: "Zebra ZT411");
+            named = (boxField.GetValue(restored) as ComboBox)?.SelectedItem as PrinterInfo;
+            restored.Close();
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    AssertEqual(true, selected is null,
+        "A document without a named queue must not pre-select the Windows default");
+    AssertEqual("Zebra ZT411", named?.Name,
+        "A document named queue must still restore in Printer Setup");
+
+    var setupSource = File.ReadAllText(
+        Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "PrinterSetupWindow.xaml.cs"));
+    AssertEqual(true, setupSource.Contains("DocumentPrinterIdentityContract.QueueNameFromDocument", StringComparison.Ordinal),
+        "Printer Setup must resolve the combo through the document identity contract");
+    return Task.CompletedTask;
+}
+
+static Task TestMainWindowPrinterSetupOpensOnDocumentQueue()
+{
+    var source = File.ReadAllText(
+        Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml.cs"));
+    AssertEqual(true, source.Contains("new PrinterSetupWindow(", StringComparison.Ordinal),
+        "Main window must still open Printer Setup");
+    AssertEqual(true, source.Contains("profile.PrinterName", StringComparison.Ordinal),
+        "Main window Printer Setup must open on the document named queue");
+    AssertEqual(true, source.Contains("profile.PaperName", StringComparison.Ordinal),
+        "Main window Printer Setup must open on the document paper name");
+    AssertEqual(false, source.Contains("new PrinterSetupWindow(printers) { Owner = this }", StringComparison.Ordinal),
+        "Main window must not open Printer Setup without the document identity");
+    return Task.CompletedTask;
+}
+
+static Task TestPrintPreflightBlocksFitToPageScale()
+{
+    var template = new LabelTemplate { Name = "Fit to page", WidthMm = 50, HeightMm = 30, Dpi = 203 };
+    template.PrinterProfile.PhysicalWidthMm = 50;
+    template.PrinterProfile.PhysicalHeightMm = 30;
+    template.PrinterProfile.ScaleX = 0.25;
+    template.PrinterProfile.ScaleY = 0.25;
+    var blocked = new PrintService().ValidateRows(
+        template,
+        new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(false, blocked.IsSuccess, "Fit-to-page scale must fail closed at preflight");
+    AssertEqual(
+        true,
+        blocked.Issues.Any(issue => issue.Message.Contains("fit-to-page", StringComparison.OrdinalIgnoreCase)),
+        "Preflight must name the scale policy: " + blocked.ToUserMessage(3));
+
+    template.PrinterProfile.ScaleX = 1;
+    template.PrinterProfile.ScaleY = 0;
+    var incomplete = new PrintService().ValidateRows(
+        template,
+        new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(false, incomplete.IsSuccess, "A single unset scale axis must fail closed");
+    AssertEqual(
+        true,
+        incomplete.Issues.Any(issue => issue.Message.Contains("incomplete", StringComparison.OrdinalIgnoreCase)),
+        "Preflight must name the incomplete scale: " + incomplete.ToUserMessage(3));
+
+    template.PrinterProfile.ScaleX = 1;
+    template.PrinterProfile.ScaleY = 1;
+    var allowed = new PrintService().ValidateRows(
+        template,
+        new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(true, allowed.IsSuccess, "Identity print scale must still pass");
+    return Task.CompletedTask;
+}
+
+static Task TestPreviewPrinterSetupOpensOnDocumentPaper()
+{
+    var source = File.ReadAllText(
+        Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"));
+    AssertEqual(true, source.Contains("new PrinterSetupWindow(", StringComparison.Ordinal),
+        "Preview must still open Printer Setup");
+    AssertEqual(true, source.Contains("PrinterProfile.PaperName", StringComparison.Ordinal),
+        "Preview Printer Setup must open on the document paper name");
+    AssertEqual(false, source.Contains("PrinterSetupWindow(printers, _selectedPrinterName, null,", StringComparison.Ordinal),
+        "Preview must not pass a null paper name that lets preferences replace the document stock");
+    return Task.CompletedTask;
+}
+
 static Task TestTextLayoutRecordsDisplayScale()
 {
     Exception? failure = null;
@@ -6270,6 +6604,155 @@ static Task TestPrintPreviewBusyGate()
     AssertEqual(false, blockedByPreview, "Print Preview must reject printing while preview raster work is running");
     AssertEqual(false, blockedWithoutRows, "Print Preview must reject dispatch with no rows");
     return Task.CompletedTask;
+}
+
+static async Task TestCtrlPPreviewOpenDoesNotCrash()
+{
+    var vm = new MainViewModel();
+    string? emptyValidation = null;
+    Exception? emptyThrew = null;
+    try
+    {
+        emptyValidation = vm.ValidatePrintPreviewContent();
+    }
+    catch (Exception ex)
+    {
+        emptyThrew = ex;
+    }
+
+    AssertEqual(true, emptyThrew is null, "ValidatePrintPreviewContent must not throw on an empty template: " + emptyThrew);
+    AssertEqual(true, vm.TryBuildPrintPreviewRows(out var rows, out var buildError),
+        "An empty template must still build a preview row: " + buildError);
+
+    Exception? ctorFailure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var window = new PrintPreviewWindow(
+                vm.Template,
+                vm.PreviewRow,
+                vm.ExcelDataView,
+                vm.PrintService,
+                vm.PrintLogService,
+                vm.CurrentFilePath,
+                preparedRows: rows,
+                excelSourceIdentity: vm.GetExcelDataSourceIdentity());
+            window.Close();
+        }
+        catch (Exception ex)
+        {
+            ctorFailure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    AssertEqual(true, ctorFailure is null, "PrintPreviewWindow ctor must not crash: " + ctorFailure);
+
+    Exception? namedQueueFailure = null;
+    var namedQueueThread = new Thread(() =>
+    {
+        try
+        {
+            vm.Template.PrinterProfile.PrinterName = "CtrlP-Named-Queue";
+            var isolatedPrint = new PrintService(queueLookup: new MissingPrinterQueueLookup());
+            var window = new PrintPreviewWindow(
+                vm.Template,
+                vm.PreviewRow,
+                vm.ExcelDataView,
+                isolatedPrint,
+                vm.PrintLogService,
+                vm.CurrentFilePath,
+                preparedRows: rows,
+                excelSourceIdentity: vm.GetExcelDataSourceIdentity());
+            var until = DateTime.UtcNow.AddSeconds(2);
+            while (DateTime.UtcNow < until)
+            {
+                var frame = new System.Windows.Threading.DispatcherFrame();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                    System.Windows.Threading.DispatcherPriority.Background,
+                    new Action(() => frame.Continue = false));
+                System.Windows.Threading.Dispatcher.PushFrame(frame);
+            }
+
+            if (window.PreviewProgressText.Contains("calling thread cannot access", StringComparison.OrdinalIgnoreCase)
+                || window.PreviewProgressText.Contains("The calling thread", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "First refresh mutated preview controls off the dispatcher: " + window.PreviewProgressText);
+            }
+
+            if (window.Pages.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "First refresh must publish preview pages on the dispatcher. Status: " + window.PreviewProgressText);
+            }
+
+            var previewSource = File.ReadAllText(
+                Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "PrintPreviewWindow.Async.cs"));
+            if (!previewSource.Contains("CreateEffectivePlanAsync", StringComparison.Ordinal)
+                || previewSource.Contains("Task.Run(", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Preview must prepare the printer contract on the dedicated STA path, not Task.Run/MTA.");
+            }
+
+            if (previewSource.Contains("HopToPreviewDispatcherAsync", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Preview must not resume after an empty dispatcher hop.");
+            }
+
+            var itemsSourceAt = previewSource.IndexOf("TrackingList.ItemsSource", StringComparison.Ordinal);
+            var invokeAt = itemsSourceAt < 0
+                ? -1
+                : previewSource.LastIndexOf("Dispatcher.InvokeAsync", itemsSourceAt, StringComparison.Ordinal);
+            if (itemsSourceAt < 0 || invokeAt < 0)
+            {
+                throw new InvalidOperationException(
+                    "First-refresh TrackingList.ItemsSource must be assigned inside Dispatcher.InvokeAsync.");
+            }
+
+            window.Close();
+        }
+        catch (Exception ex)
+        {
+            namedQueueFailure = ex;
+        }
+    });
+    namedQueueThread.SetApartmentState(ApartmentState.STA);
+    namedQueueThread.Start();
+    namedQueueThread.Join();
+    AssertEqual(true, namedQueueFailure is null,
+        "Ctrl+P first refresh with a named queue must not crash: " + namedQueueFailure);
+
+    var dir = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"ctrlp-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(dir);
+    var csvPath = Path.Combine(dir, "rows.csv");
+    await File.WriteAllTextAsync(csvPath, "PartNo\nPN-CRASH\n");
+    await vm.ImportExcelAsync(csvPath, ExcelDataService.CsvSheetName);
+    AssertEqual(true, vm.SelectedDataItem is DataRowView, "Setup: import must select a data row");
+    var imported = (DataRowView)vm.SelectedDataItem!;
+    imported.Row.AcceptChanges();
+    imported.Row.Delete();
+    vm.ExcelDataView!.RowStateFilter = DataViewRowState.Deleted;
+
+    string? deletedValidation = null;
+    Exception? deletedThrew = null;
+    try
+    {
+        deletedValidation = vm.ValidatePrintPreviewContent();
+    }
+    catch (Exception ex)
+    {
+        deletedThrew = ex;
+    }
+
+    AssertEqual(true, deletedThrew is null,
+        "Ctrl+P validation must not throw when a linked row was deleted: " + deletedThrew);
+    AssertEqual(true, !string.IsNullOrWhiteSpace(deletedValidation),
+        "A deleted Excel row must block Preview instead of crashing");
+    try { Directory.Delete(dir, true); } catch { }
 }
 
 static Task TestMissingNamedPrinterQueueFailsClosed()
@@ -8794,6 +9277,24 @@ static string[] RequiredHeaderAutomationIds() =>
     "Shell.Ribbon.DeleteSelection",
     "Shell.Ribbon.Help"
 ];
+
+static Task TestDesignerIconSourcesExist()
+{
+    var root = FindRepositoryRoot();
+    var xamlPath = Path.Combine(root, "src", "ANLAbel.App", "MainWindow.xaml");
+    var xaml = File.ReadAllText(xamlPath);
+    var icons = System.Text.RegularExpressions.Regex.Matches(xaml, @"Icons/[^""]+\.png")
+        .Select(m => m.Value.Replace('/', Path.DirectorySeparatorChar))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    AssertEqual(true, icons.Length > 0, "Designer XAML must reference Icons/*.png rasters");
+    foreach (var rel in icons)
+    {
+        var path = Path.Combine(root, "src", "ANLAbel.App", rel);
+        AssertEqual(true, File.Exists(path), "Shipped XAML must reference an existing icon raster: " + rel);
+    }
+    return Task.CompletedTask;
+}
 
 static Task TestDesignerHeaderCommandsAreUnique()
 {
