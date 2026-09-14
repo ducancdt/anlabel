@@ -97,6 +97,38 @@ public sealed class ResizeGeometryContractTests
         Assert.Equal(source.YMm, adjusted.YMm, 6);
     }
 
+    [Theory]
+    [InlineData(double.PositiveInfinity, 20, 30, 10)]
+    [InlineData(10, double.NegativeInfinity, 30, 10)]
+    [InlineData(10, 20, double.PositiveInfinity, 10)]
+    [InlineData(10, 20, 30, double.PositiveInfinity)]
+    public void NonFiniteFrameFieldLeavesFrameUnchanged(
+        double xMm,
+        double yMm,
+        double widthMm,
+        double heightMm)
+    {
+        var frame = new ResizeFrame(xMm, yMm, widthMm, heightMm);
+
+        var adjusted = ResizeGeometryContract.ApplyWorldEdgeSnap(frame, 90, ResizeEdge.Left, 5);
+
+        Assert.Equal(frame, adjusted);
+    }
+
+    [Fact]
+    public void NonFiniteTargetLeavesFrameUnchanged()
+    {
+        var frame = new ResizeFrame(10, 20, 30, 10);
+
+        var adjusted = ResizeGeometryContract.ApplyWorldEdgeSnap(
+            frame,
+            0,
+            ResizeEdge.Right,
+            double.PositiveInfinity);
+
+        Assert.Equal(frame, adjusted);
+    }
+
     [Fact]
     public void GroupShiftResizeUsesTheSameAspectContract()
     {

@@ -1,5 +1,20 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds ResizeGeometryContract (0.270)
+
+- Blocking mutate list adds `Geometry/ResizeGeometryContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `ResizeGeometryContract` scored `91.18%` of its tested mutants. The lone
+  unreachable derivative guard (`!IsFinite(derivative) || |derivative| <= 1e-6`)
+  is marked with a `// Stryker disable once` note: for finite frames the mapped
+  world edge always tracks the dragged dimension, so the derivative is finite and
+  its magnitude is exactly 1.
+- Tests cover cardinal edge→world mapping at 0/90/180/270, opposite-edge
+  preservation on rotated Left/Right snaps, zero-rotation bottom anchor, aspect
+  and center resize modifiers, group aspect parity, and fail-closed no-op when the
+  target position or any frame field is non-finite. Text/TextBox industrial
+  contract, canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds SmartSpacingContract (0.269)
 
 - Blocking mutate list adds `Geometry/SmartSpacingContract.cs` on top of the

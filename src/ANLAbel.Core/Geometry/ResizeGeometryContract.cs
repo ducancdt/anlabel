@@ -103,6 +103,9 @@ public static class ResizeGeometryContract
         var probeFrame = SetDimensionPreservingOpposite(frame, localEdge, probeValue);
         var probeEdge = GetWorldEdgePosition(probeFrame, rotation, localEdge);
         var derivative = (probeEdge - currentEdge) / DerivativeProbeMm;
+        // Stryker disable once Logical, Equality : defensive guard is unreachable for
+        // finite frames — the mapped world edge always tracks the dragged dimension,
+        // so derivative is finite and |derivative| == 1 here.
         if (!double.IsFinite(derivative) || Math.Abs(derivative) <= 0.000001)
         {
             return frame;
