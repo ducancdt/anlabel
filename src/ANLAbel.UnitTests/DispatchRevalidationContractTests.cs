@@ -41,6 +41,9 @@ public sealed class DispatchRevalidationContractTests
 
         Assert.False(result.SubmissionAllowed);
         Assert.Contains("dpi", result.ChangedFields);
+        // A named field already covers the fingerprint drift; the catch-all must
+        // not add the generic marker.
+        Assert.DoesNotContain("output-contract-fingerprint", result.ChangedFields);
         Assert.StartsWith(DispatchRevalidationContract.BlockDiagnosticPrefix, result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("dpi", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("no label was submitted", result.Diagnostic, StringComparison.OrdinalIgnoreCase);
@@ -60,8 +63,22 @@ public sealed class DispatchRevalidationContractTests
 
         Assert.Contains("media", mediaResult.ChangedFields);
         Assert.Contains("imageable-area", imageableResult.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", mediaResult.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", imageableResult.ChangedFields);
         Assert.False(mediaResult.SubmissionAllowed);
         Assert.False(imageableResult.SubmissionAllowed);
+    }
+
+    [Fact]
+    public void ImageableOriginDriftIsNamed()
+    {
+        var prepared = NewContract();
+        var final = prepared with { PrintableOriginXDots = prepared.PrintableOriginXDots + 2 };
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", final, true, prepared.Fingerprint);
+
+        Assert.Contains("imageable-area", result.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", result.ChangedFields);
     }
 
     [Fact]
@@ -134,6 +151,254 @@ public sealed class DispatchRevalidationContractTests
         Assert.False(result.SubmissionAllowed);
         Assert.StartsWith(DispatchRevalidationContract.BlockDiagnosticPrefix, result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("no label was submitted", result.Diagnostic, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DocumentHashDriftBlocksWithNamedField()
+    {
+        var prepared = NewContract();
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc-1", prepared, true, "doc-2", prepared, true, prepared.Fingerprint);
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("document-hash", result.ChangedFields);
+    }
+
+    [Fact]
+    public void MissingOutputContractBlocksAndShortCircuits()
+    {
+        var prepared = NewContract();
+
+        var noFinal = DispatchRevalidationContract.Evaluate(
+            "doc-1", prepared, true, "doc-1", null, true, prepared.Fingerprint);
+        var noPrepared = DispatchRevalidationContract.Evaluate(
+            "doc-1", null, true, "doc-1", prepared, true, prepared.Fingerprint);
+
+        Assert.False(noFinal.SubmissionAllowed);
+        Assert.Contains("output-contract-missing", noFinal.ChangedFields);
+        Assert.False(noPrepared.SubmissionAllowed);
+        Assert.Contains("output-contract-missing", noPrepared.ChangedFields);
+    }
+
+    [Fact]
+    public void RequestedAndEffectiveTicketDriftAreNamedSeparately()
+    {
+        var prepared = NewContract();
+        var requested = prepared with { RequestedTicketHash = "requested-b" };
+        var effective = prepared with { EffectiveTicketHash = "effective-b" };
+
+        var requestedResult = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", requested, true, prepared.Fingerprint);
+        var effectiveResult = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", effective, true, prepared.Fingerprint);
+
+        Assert.Contains("requested-ticket", requestedResult.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", requestedResult.ChangedFields);
+        Assert.Contains("effective-ticket", effectiveResult.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", effectiveResult.ChangedFields);
+    }
+
+    [Fact]
+    public void QueueNameDriftIsNamed()
+    {
+        var prepared = NewContract();
+        var final = prepared with { PrinterName = "Different-Queue" };
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", final, true, prepared.Fingerprint);
+
+        Assert.Contains("queue-name", result.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", result.ChangedFields);
+    }
+
+    [Fact]
+    public void TicketEvidenceWithFingerprintDriftDoesNotDoubleCountFingerprint()
+    {
+        // Fingerprint drifts (offset) AND the ticket-evidence bit flips: the
+        // catch-all must defer to the named ticket-evidence field.
+        var prepared = NewContract();
+        var final = prepared with { OffsetXMm = 7 };
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", final, finalTicketVerified: false, prepared.Fingerprint);
+
+        Assert.Contains("ticket-evidence", result.ChangedFields);
+        Assert.DoesNotContain("output-contract-fingerprint", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintOnlyDriftFallsBackToTheCatchAllField()
+    {
+        // OffsetX is part of the fingerprint but not any named field check, so
+        // the catch-all must surface it as output-contract-fingerprint.
+        var prepared = NewContract();
+        var final = prepared with { OffsetXMm = 5 };
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", final, true, prepared.Fingerprint);
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("output-contract-fingerprint", result.ChangedFields);
+        Assert.DoesNotContain("dpi", result.ChangedFields);
+        Assert.DoesNotContain("media", result.ChangedFields);
+    }
+
+    [Fact]
+    public void ExpectationMismatchIsTheOnlyChangeWhenContractsAreOtherwiseStable()
+    {
+        var prepared = NewContract();
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc-1", prepared, true, "doc-1", prepared, true,
+            expectedOutputContractHash: "unexpected-hash");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("prepared-expectation", result.ChangedFields);
+    }
+
+    [Fact]
+    public void NanMediaFieldCountsAsDrift()
+    {
+        var prepared = NewContract();
+        var final = prepared with { LabelWidthMm = double.NaN };
+
+        Assert.Contains("media", DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", final, true, prepared.Fingerprint).ChangedFields);
+    }
+
+    [Fact]
+    public void BlockedFieldsAreDistinctAndSortedAscending()
+    {
+        var prepared = NewContract();
+        var final = prepared with { DpiX = 300, LabelWidthMm = prepared.LabelWidthMm + 1 };
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", prepared, true, "doc", final, true, prepared.Fingerprint);
+
+        var fields = result.ChangedFields;
+        Assert.Contains("dpi", fields);
+        Assert.Contains("media", fields);
+        // Ascending ordinal order: "dpi" precedes "media".
+        Assert.True(
+            fields.ToList().IndexOf("dpi") < fields.ToList().IndexOf("media"));
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesDocumentHashDrift()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", "output-1", true, "doc-2", "output-1", true, "output-1");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("document-hash", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesMissingOutputHash()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", "output-1", true, "doc-1", "   ", true, "output-1");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("output-contract-fingerprint", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesTicketEvidenceFlip()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", "output-1", true, "doc-1", "output-1", false, "output-1");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("ticket-evidence", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesExpectationMismatch()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", "output-1", true, "doc-1", "output-1", true,
+            expectedOutputContractHash: "wrong");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("prepared-expectation", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesDispatchSnapshotWhenNoFieldChanged()
+    {
+        // Unverified tickets fail the snapshot with every explicit field equal,
+        // so the residual reason is the generic dispatch-snapshot marker.
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", "output-1", false, "doc-1", "output-1", false);
+
+        Assert.Contains("dispatch-snapshot", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperAllowPathReportsAllowedAndEmptyDiagnostic()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", "output-1", true, "doc-1", "output-1", true, "output-1");
+
+        Assert.True(result.Allowed);
+        Assert.True(result.SubmissionAllowed);
+        Assert.Equal(string.Empty, result.Diagnostic);
+    }
+
+    [Fact]
+    public void NullPreparedDocumentHashBlocks()
+    {
+        var prepared = NewContract();
+        var result = DispatchRevalidationContract.Evaluate(
+            null, prepared, true, "doc", prepared, true, prepared.Fingerprint);
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("document-hash", result.ChangedFields);
+    }
+
+    [Fact]
+    public void ExpectationGateHonoursFinalTicketValidationBit()
+    {
+        // finalTicketVerified is false but the validation bit is true (NewContract
+        // carries an effective ticket); the expectation gate must AND them, so the
+        // expectation still fails closed.
+        var contract = NewContract();
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", contract, false, "doc", contract, false,
+            expectedOutputContractHash: contract.Fingerprint);
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("prepared-expectation", result.ChangedFields);
+    }
+
+    [Fact]
+    public void UnvalidatedTicketBlocksViaDispatchSnapshotEvenWithVerifiedFlagSet()
+    {
+        // Both verified flags are true but the output was never ticket-validated
+        // (empty effective ticket), so the dispatch snapshot must fail closed.
+        var contract = NewContract() with { EffectiveTicketHash = "" };
+        var result = DispatchRevalidationContract.Evaluate(
+            "doc", contract, true, "doc", contract, true,
+            expectedOutputContractHash: null);
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("dispatch-snapshot", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesNullPreparedDocument()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            null, "output-1", true, "doc-1", "output-1", true, "output-1");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("document-hash", result.ChangedFields);
+    }
+
+    [Fact]
+    public void FingerprintHelperNamesNullPreparedOutput()
+    {
+        var result = DispatchRevalidationContract.EvaluateFingerprints(
+            "doc-1", null, true, "doc-1", "output-1", true, "output-1");
+
+        Assert.False(result.SubmissionAllowed);
+        Assert.Contains("output-contract-fingerprint", result.ChangedFields);
     }
 
     private static EffectiveOutputContract NewContract() => new()

@@ -1,5 +1,26 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds DispatchRevalidationContract (0.274)
+
+- Blocking mutate list adds `Printing/DispatchRevalidationContract.cs` on top of
+  the existing label-safety set; thresholds stay `high/low/break = 90`.
+- `DispatchRevalidationContract` scored `92.44%` of its tested mutants. The
+  survivors are equivalent: the `else if` fingerprint catch-all is dead
+  (`changes.Count == 0` cannot hold once a named field is present), the two
+  dispatch-snapshot ticket-`&&` flips are only observable when both arguments
+  change together (a lone flip leaves the snapshot failing), the `"unknown"`
+  empty-field label is unreachable because `Block` is only called with at least
+  one change, and the `NearlyEqual` `<=`/`<` split needs a delta of exactly
+  `1e-9`.
+- Tests cover the stable-allow path, every named drift (document-hash, dpi,
+  media, imageable-area incl. origin, requested/effective ticket, queue-name,
+  ticket-evidence), missing-output short-circuit, the fingerprint catch-all
+  asserting named fields suppress the generic marker, expectation and
+  dispatch-snapshot fail-closed (including the validation-bit AND), NaN media
+  drift, distinct ascending field ordering, and the `EvaluateFingerprints`
+  document/output/ticket/expectation/snapshot/allow branches. Text/TextBox
+  industrial contract, canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds GroupResizeGeometryContract (0.273)
 
 - Blocking mutate list adds `Geometry/GroupResizeGeometryContract.cs` on top of
