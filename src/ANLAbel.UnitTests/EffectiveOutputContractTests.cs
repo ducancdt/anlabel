@@ -44,6 +44,27 @@ public sealed class EffectiveOutputContractTests
         Assert.Contains(EffectiveOutputContract.ContractVersion, contract.CanonicalForm(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void CanonicalFormPinsEveryFieldSeparatorAndFlag()
+    {
+        var canonical = NewContract().CanonicalForm();
+
+        Assert.Equal(
+            "effective-output-contract/v1|Queue-A|requested|effective|203|305|0|0|0|0|0|0|100|50|2|1|0.1|-0.2|1|1|Gap|TopToBottom|0|2|3|370|180|1",
+            canonical);
+    }
+
+    [Fact]
+    public void DefaultContractLeavesTheTextIdentityFieldsEmpty()
+    {
+        // Version then three empty string fields (printer/requested/effective),
+        // pinning the string.Empty init defaults.
+        Assert.StartsWith(
+            "effective-output-contract/v1||||0",
+            new EffectiveOutputContract().CanonicalForm(),
+            StringComparison.Ordinal);
+    }
+
     private static EffectiveOutputContract NewContract() => new()
     {
         PrinterName = "Queue-A",

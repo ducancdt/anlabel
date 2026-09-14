@@ -1,5 +1,19 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds EffectiveOutputContract (0.277)
+
+- Blocking mutate list adds `Printing/EffectiveOutputContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `EffectiveOutputContract` scored `92.31%` of its tested mutants. The lone
+  survivor is the equivalent `Number` format `"R"` → empty: on .NET Core the
+  round-trip and general formats render identical text for the contract's
+  values.
+- Tests assert the exact 28-field canonical form (pinning every `|` separator,
+  the ordinal-invariant number formatting, both `1`/`0` flags and the version
+  literal), the empty text-identity defaults, locale independence and
+  DPI/printable-bounds fingerprint drift. Text/TextBox industrial contract,
+  canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds TemplateExtensionContract (0.276)
 
 - Blocking mutate list adds `Models/TemplateExtensionContract.cs` on top of the
