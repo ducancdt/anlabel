@@ -27,7 +27,8 @@
       "Geometry/OpticalAlignmentContract.cs",
       "Geometry/SmartSpacingContract.cs",
       "Geometry/ResizeGeometryContract.cs",
-      "Geometry/SnapPathMatrixContract.cs"
+      "Geometry/SnapPathMatrixContract.cs",
+      "Barcode/QrObjectGeometryContract.cs"
     ],
     "mutation-level": "Standard",
     "break-on-initial-test-failure": true,

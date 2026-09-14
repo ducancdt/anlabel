@@ -71,6 +71,37 @@ public sealed class QrObjectGeometryContractTests
     }
 
     [Fact]
+    public void NullItemFailsClosedOnBothEntryPoints()
+    {
+        Assert.Throws<ArgumentNullException>(
+            () => QrObjectGeometryContract.ResolveTargetSizeMm(null!, "x"));
+        Assert.Throws<ArgumentNullException>(
+            () => QrObjectGeometryContract.HasMeaningfulSizeDelta(null!, 10));
+    }
+
+    [Fact]
+    public void NonFiniteTargetIsAlwaysAMeaningfulDelta()
+    {
+        // Width/height already match numerically, so only the finiteness guard
+        // can flag the NaN target as meaningful.
+        var item = new LabelObject { Type = ObjectType.QRCode, WidthMm = 10, HeightMm = 10 };
+
+        Assert.True(QrObjectGeometryContract.HasMeaningfulSizeDelta(item, double.NaN));
+    }
+
+    [Fact]
+    public void ZeroOrNegativeTargetIsAlwaysAMeaningfulDelta()
+    {
+        // Frame equals the target numerically (0), so only the `<= 0` guard can
+        // flag it — pinning the `<= 0` vs `< 0` boundary.
+        var collapsed = new LabelObject { Type = ObjectType.QRCode, WidthMm = 0, HeightMm = 0 };
+        Assert.True(QrObjectGeometryContract.HasMeaningfulSizeDelta(collapsed, 0));
+
+        var sized = new LabelObject { Type = ObjectType.QRCode, WidthMm = 10, HeightMm = 10 };
+        Assert.True(QrObjectGeometryContract.HasMeaningfulSizeDelta(sized, -3));
+    }
+
+    [Fact]
     public void NonSquareObjectNeverReceivesMatrixGeometry()
     {
         var item = new LabelObject

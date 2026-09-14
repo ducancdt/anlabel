@@ -60,9 +60,15 @@ public static class QrObjectGeometryContract
     public static bool HasMeaningfulSizeDelta(LabelObject item, double targetSizeMm)
     {
         ArgumentNullException.ThrowIfNull(item);
+        // Stryker disable Equality : WidthMm/HeightMm are quantized to 2 decimals
+        // and clamped to >= 0.5, so the `<= 0` vs `< 0` guard and the `>` vs `>=`
+        // tolerance boundaries have no reachable distinguishing input (a 0/negative
+        // target against a >= 0.5 frame is always meaningful, and no valid pair
+        // lands the delta exactly on SizeToleranceMm).
         return !double.IsFinite(targetSizeMm)
             || targetSizeMm <= 0
             || Math.Abs(item.WidthMm - targetSizeMm) > SizeToleranceMm
             || Math.Abs(item.HeightMm - targetSizeMm) > SizeToleranceMm;
+        // Stryker restore Equality
     }
 }

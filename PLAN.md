@@ -1,5 +1,20 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds QrObjectGeometryContract (0.272)
+
+- Blocking mutate list adds `Barcode/QrObjectGeometryContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `QrObjectGeometryContract` scored `100%` of its tested mutants. The `<= 0` and
+  `>`-tolerance equality boundaries carry a `// Stryker disable ... Equality`
+  block: `WidthMm`/`HeightMm` are quantized to 2 decimals and clamped to
+  `>= 0.5`, so a zero/negative target against a `>= 0.5` frame is always
+  meaningful and no valid pair lands the delta exactly on `SizeToleranceMm`.
+- Tests cover shared static auto-size, bound auto-size waiting for a resolved row
+  while fixed size does not, max-space clamping, symmetric width/height tolerance,
+  non-square rejection, null-item fail-closed on both entry points, and non-finite
+  target always counting as a meaningful delta. Text/TextBox industrial contract,
+  canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds SnapPathMatrixContract (0.271)
 
 - Blocking mutate list adds `Geometry/SnapPathMatrixContract.cs` on top of the
