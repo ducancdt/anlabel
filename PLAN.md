@@ -1,5 +1,16 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds TemplateExtensionContract (0.276)
+
+- Blocking mutate list adds `Models/TemplateExtensionContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `TemplateExtensionContract` scored `100%` of its tested mutants. A golden
+  SHA-256 over the canonical form `a={x:"hi",y:1,};b=[true,false,null,];n=3.5;`
+  pins every separator, the ordinal key/member sort, array order preservation and
+  each explicit value-kind literal (object, array, string, true, false, null and
+  the raw-number default), while null/empty inputs assert the empty fingerprint.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds PrintContractGuard (0.275)
 
 - Blocking mutate list adds `Printing/PrintContractGuard.cs` on top of the
