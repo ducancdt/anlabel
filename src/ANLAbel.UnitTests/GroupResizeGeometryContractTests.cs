@@ -93,6 +93,221 @@ public sealed class GroupResizeGeometryContractTests
     }
 
     [Theory]
+    [InlineData(double.NaN, 0, 10, 10, false)]
+    [InlineData(0, double.PositiveInfinity, 10, 10, false)]
+    [InlineData(0, 0, double.NaN, 10, false)]
+    [InlineData(0, 0, 10, double.NegativeInfinity, false)]
+    [InlineData(0, 0, 0, 10, false)]
+    [InlineData(0, 0, 10, 0, false)]
+    [InlineData(0, 0, 10, 10, true)]
+    public void IsValidRejectsNonFiniteAndNonPositiveFrames(
+        double xMm,
+        double yMm,
+        double widthMm,
+        double heightMm,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            GroupResizeGeometryContract.IsValid(new GroupResizeFrame(xMm, yMm, widthMm, heightMm)));
+    }
+
+    [Fact]
+    public void ZeroSizedSourceYieldsIdentityScale()
+    {
+        var transform = new GroupResizeTransform(
+            new GroupResizeFrame(0, 0, 0, 0),
+            new GroupResizeFrame(0, 0, 50, 40));
+
+        Assert.Equal(1, transform.ScaleX, 6);
+        Assert.Equal(1, transform.ScaleY, 6);
+    }
+
+    [Fact]
+    public void TryResizeFailsClosedOnInvalidSource()
+    {
+        var ok = GroupResizeGeometryContract.TryResize(
+            new GroupResizeFrame(0, 0, 0, 10),
+            1, 1, 1, 1, 1, 1,
+            out var target);
+
+        Assert.False(ok);
+        Assert.Equal(default, target);
+    }
+
+    [Theory]
+    [InlineData(double.NaN, 0, 0, 0)]
+    [InlineData(0, double.PositiveInfinity, 0, 0)]
+    [InlineData(0, 0, double.NaN, 0)]
+    [InlineData(0, 0, 0, double.NegativeInfinity)]
+    public void TryResizeFailsClosedOnNonFiniteDelta(
+        double deltaXMm,
+        double deltaYMm,
+        double deltaWidthMm,
+        double deltaHeightMm)
+    {
+        var ok = GroupResizeGeometryContract.TryResize(
+            new GroupResizeFrame(10, 20, 40, 20),
+            deltaXMm, deltaYMm, deltaWidthMm, deltaHeightMm,
+            minimumWidthMm: 1,
+            minimumHeightMm: 1,
+            out var target);
+
+        Assert.False(ok);
+        Assert.Equal(default, target);
+    }
+
+    [Fact]
+    public void NonFiniteMinimumSizeFallsBackToTinyFloor()
+    {
+        var ok = GroupResizeGeometryContract.TryResize(
+            new GroupResizeFrame(10, 20, 40, 20),
+            deltaXMm: 100,
+            deltaYMm: 0,
+            deltaWidthMm: -100,
+            deltaHeightMm: 0,
+            minimumWidthMm: double.NaN,
+            minimumHeightMm: 1,
+            out var target);
+
+        Assert.True(ok);
+        Assert.Equal(0.001, target.WidthMm, 6);
+    }
+
+    [Fact]
+    public void NonFiniteMinimumHeightFallsBackToTinyFloor()
+    {
+        var ok = GroupResizeGeometryContract.TryResize(
+            new GroupResizeFrame(10, 20, 40, 20),
+            deltaXMm: 0,
+            deltaYMm: 100,
+            deltaWidthMm: 0,
+            deltaHeightMm: -100,
+            minimumWidthMm: 1,
+            minimumHeightMm: double.NaN,
+            out var target);
+
+        Assert.True(ok);
+        Assert.Equal(0.001, target.HeightMm, 6);
+    }
+
+    [Fact]
+    public void HeightMinimumKeepsMovingEdgeFromCrossingAnchor()
+    {
+        var source = new GroupResizeFrame(10, 20, 40, 20);
+
+        var ok = GroupResizeGeometryContract.TryResize(
+            source,
+            deltaXMm: 0,
+            deltaYMm: 100,
+            deltaWidthMm: 0,
+            deltaHeightMm: -100,
+            minimumWidthMm: 1,
+            minimumHeightMm: 5,
+            out var target);
+
+        Assert.True(ok);
+        Assert.Equal(source.BottomMm, target.BottomMm, 6);
+        Assert.Equal(5, target.HeightMm, 6);
+        Assert.Equal(35, target.YMm, 6);
+    }
+
+    [Fact]
+    public void ShrinkFromRightKeepsLeftAnchorWhenClampedToMinimum()
+    {
+        var source = new GroupResizeFrame(10, 20, 40, 20);
+
+        var ok = GroupResizeGeometryContract.TryResize(
+            source,
+            deltaXMm: 0,
+            deltaYMm: 0,
+            deltaWidthMm: -100,
+            deltaHeightMm: 0,
+            minimumWidthMm: 5,
+            minimumHeightMm: 1,
+            out var target);
+
+        Assert.True(ok);
+        Assert.Equal(source.XMm, target.XMm, 6);
+        Assert.Equal(5, target.WidthMm, 6);
+    }
+
+    [Fact]
+    public void ShrinkFromBottomKeepsTopAnchorWhenClampedToMinimum()
+    {
+        var source = new GroupResizeFrame(10, 20, 40, 20);
+
+        var ok = GroupResizeGeometryContract.TryResize(
+            source,
+            deltaXMm: 0,
+            deltaYMm: 0,
+            deltaWidthMm: 0,
+            deltaHeightMm: -100,
+            minimumWidthMm: 1,
+            minimumHeightMm: 5,
+            out var target);
+
+        Assert.True(ok);
+        Assert.Equal(source.YMm, target.YMm, 6);
+        Assert.Equal(5, target.HeightMm, 6);
+    }
+
+    [Fact]
+    public void ClampReturnsFrameUnchangedForInvalidOrNonFiniteCanvas()
+    {
+        var frame = new GroupResizeFrame(5, 5, 20, 10);
+
+        Assert.Equal(frame, GroupResizeGeometryContract.ClampToCanvas(frame, double.NaN, 40));
+        Assert.Equal(
+            new GroupResizeFrame(0, 0, 0, 10),
+            GroupResizeGeometryContract.ClampToCanvas(new GroupResizeFrame(0, 0, 0, 10), 50, 40));
+    }
+
+    [Fact]
+    public void ClampFillsCanvasWhenFrameIsLargerThanArtboard()
+    {
+        var clamped = GroupResizeGeometryContract.ClampToCanvas(
+            new GroupResizeFrame(5, 5, 100, 80),
+            canvasWidthMm: 50,
+            canvasHeightMm: 40);
+
+        Assert.Equal(0, clamped.XMm, 6);
+        Assert.Equal(0, clamped.YMm, 6);
+        Assert.Equal(50, clamped.WidthMm, 6);
+        Assert.Equal(40, clamped.HeightMm, 6);
+    }
+
+    [Fact]
+    public void ClampShiftsOverflowingRightAndBottomEdgesInside()
+    {
+        var clamped = GroupResizeGeometryContract.ClampToCanvas(
+            new GroupResizeFrame(90, 95, 20, 10),
+            canvasWidthMm: 100,
+            canvasHeightMm: 100);
+
+        Assert.Equal(80, clamped.XMm, 6);
+        Assert.Equal(90, clamped.YMm, 6);
+        Assert.Equal(20, clamped.WidthMm, 6);
+        Assert.Equal(10, clamped.HeightMm, 6);
+    }
+
+    [Fact]
+    public void ClampEnforcesMinimumSizeAndPullsFrameBackInside()
+    {
+        var clamped = GroupResizeGeometryContract.ClampToCanvas(
+            new GroupResizeFrame(2, 2, 3, 3),
+            canvasWidthMm: 5,
+            canvasHeightMm: 5,
+            minimumWidthMm: 4,
+            minimumHeightMm: 4);
+
+        Assert.Equal(4, clamped.WidthMm, 6);
+        Assert.Equal(4, clamped.HeightMm, 6);
+        Assert.Equal(1, clamped.XMm, 6);
+        Assert.Equal(1, clamped.YMm, 6);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(90)]
     [InlineData(180)]

@@ -28,7 +28,8 @@
       "Geometry/SmartSpacingContract.cs",
       "Geometry/ResizeGeometryContract.cs",
       "Geometry/SnapPathMatrixContract.cs",
-      "Barcode/QrObjectGeometryContract.cs"
+      "Barcode/QrObjectGeometryContract.cs",
+      "Geometry/GroupResizeGeometryContract.cs"
     ],
     "mutation-level": "Standard",
     "break-on-initial-test-failure": true,

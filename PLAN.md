@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds GroupResizeGeometryContract (0.273)
+
+- Blocking mutate list adds `Geometry/GroupResizeGeometryContract.cs` on top of
+  the existing label-safety set; thresholds stay `high/low/break = 90`.
+- `GroupResizeGeometryContract` scored `90.41%` of its tested mutants. The
+  survivors are equivalent exact-boundary flips: `<`/`<=` and `>`/`>=` on the
+  canvas-edge, minimum-size and moves-threshold comparisons all collapse to the
+  same clamp because hitting the boundary exactly is a no-op (right==left+min,
+  edge==canvas, |delta|==1e-6).
+- Tests cover corner/opposite-edge resize and mapping, minimum-size clamping on
+  every moving edge, non-finite minimum fallback to the 0.001 floor on both axes,
+  fail-closed invalid source and non-finite deltas, `IsValid` non-finite/non-
+  positive rejection, zero-sized-source identity scale, and `ClampToCanvas`
+  fill/shift/minimum-pullback/invalid-canvas paths. Text/TextBox industrial
+  contract, canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds QrObjectGeometryContract (0.272)
 
 - Blocking mutate list adds `Barcode/QrObjectGeometryContract.cs` on top of the
