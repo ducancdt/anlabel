@@ -1,5 +1,33 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds OpticalAlignmentContract (0.268)
+
+- Blocking mutate list adds `Geometry/OpticalAlignmentContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `OpticalAlignmentContract` scored `91.67%` of its tested mutants (44 killed,
+  3 survived). The survivors are the equivalent non-finite delta guard that
+  `HasInk` already forecloses (finite ink can never produce a non-finite
+  translation) plus an equivalent boundary compare.
+- Tests cover center/leading/trailing anchors on both axes, single-axis
+  isolation (horizontal and vertical never move the other axis), unknown
+  axis/anchor fail-closed, source and target ink-absence fail-closed, non-finite
+  ink bounds fail-closed and the strict `> MinimumExtentMm` width/height ink
+  gate. Text/TextBox industrial contract, canvas layout, and print pipeline
+  unchanged.
+
+## Mutation scope adds TransformedBoundsContract (0.267)
+
+- Blocking mutate list adds `Geometry/TransformedBoundsContract.cs` to the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `TransformedBoundsContract` scored `97.37%` of its tested mutants (37 killed,
+  1 survived). The lone survivor is an equivalent boundary/arithmetic mutant on
+  the extent clamp that still collapses to the authored origin.
+- Tests cover cardinal rotation about the authored frame center, the 90/270
+  width/height swap, non-finite fail-closed NaN bounds per axis, negative extent
+  clamp to zero, full `NormalizeRotation` cardinal snapping and fail-closed
+  off-axis normalization. Text/TextBox industrial contract, canvas layout, and
+  print pipeline unchanged.
+
 ## Pure industrial uniform vector icons & pixel-perfect geometry (0.266)
 
 - Rewrote all 40 application icons using 100% pure mathematical vector geometry (replacing string-based text rendering to guarantee zero font-metric distortion or alignment drift).

@@ -22,7 +22,9 @@
       "Barcode/BarcodeCheckDigitContract.cs",
       "Barcode/BarcodeHriLayout.cs",
       "Geometry/LineBoundsContract.cs",
-      "Geometry/LabelGuideContract.cs"
+      "Geometry/LabelGuideContract.cs",
+      "Geometry/TransformedBoundsContract.cs",
+      "Geometry/OpticalAlignmentContract.cs"
     ],
     "mutation-level": "Standard",
     "break-on-initial-test-failure": true,
