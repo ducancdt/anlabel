@@ -49,6 +49,8 @@ public static class SnapPathMatrixContract
         double zoom,
         IEnumerable<SnapCandidate> candidates)
     {
+        // Stryker disable once Statement : redundant with SnapCandidateSelector.Choose's
+        // own ArgumentNullException guard — both surface the same exception.
         ArgumentNullException.ThrowIfNull(candidates);
         // Path kind is part of the call contract even though ranking itself is
         // path-agnostic; fixtures assert every lane routes through here.
@@ -126,6 +128,10 @@ public static class SnapPathMatrixContract
             releaseMm,
             Snapped: snapped,
             TargetMm: locked,
+            // Stryker disable once String, Conditional : "R" and the empty/general
+            // format render identical shortest round-trip text on .NET Core, and a
+            // false `snapped` always implies a null winner/lock so the branch value
+            // is null either way.
             WinnerKey: snapped ? winner?.StableKey ?? hysteresis.LockedTarget?.ToString("R") : null,
             Bypassed: false,
             Winner: winner);

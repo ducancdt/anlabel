@@ -1,5 +1,23 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds SnapPathMatrixContract (0.271)
+
+- Blocking mutate list adds `Geometry/SnapPathMatrixContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `SnapPathMatrixContract` scored `96.00%` of its tested mutants. Two equivalent
+  mutants carry `// Stryker disable once` notes: the `Choose` null guard is
+  redundant with `SnapCandidateSelector`'s own guard, and the locked-target `"R"`
+  format plus the `snapped ? ... : null` branch render null/identical text
+  because a false `snapped` always implies a null winner and lock.
+- Tests cover the exact acquire boundary holding the same winner across the zoom
+  ladder on every path, semantic priority over closer distance, release-window
+  hysteresis hold-then-release with the locked-target key fallback, Alt bypass
+  leaving hysteresis idle, opposite-zoom DIP equivalence, null-argument
+  fail-closed on `Resolve`/`Choose`/`ApplyHysteresis`/`SameWinnerAcrossZooms`
+  (including bypass paths), empty ladder, and unstable ladders from missing or
+  differing winner keys. Text/TextBox industrial contract, canvas layout, and
+  print pipeline unchanged.
+
 ## Mutation scope adds ResizeGeometryContract (0.270)
 
 - Blocking mutate list adds `Geometry/ResizeGeometryContract.cs` on top of the

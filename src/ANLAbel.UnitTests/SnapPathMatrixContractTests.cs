@@ -76,6 +76,8 @@ public sealed class SnapPathMatrixContractTests
             proposedPositionMm: 10 + SnapPathMatrixContract.ReleaseToleranceMm(1) * 0.5);
         Assert.True(held.Snapped);
         Assert.Equal(10, held.TargetMm);
+        // No live winner while held: the key must fall back to the locked target.
+        Assert.Equal("10", held.WinnerKey);
 
         var released = SnapPathMatrixContract.Resolve(
             SnapPathKind.Resize,
@@ -104,6 +106,103 @@ public sealed class SnapPathMatrixContractTests
         Assert.Null(decision.TargetMm);
         Assert.Null(hysteresis.LockedTarget);
         Assert.Equal(2, decision.NormalizedZoom);
+    }
+
+    [Fact]
+    public void ResolveGuardsNullCandidatesEvenWhenBypassing()
+    {
+        Assert.Throws<ArgumentNullException>(() => SnapPathMatrixContract.Resolve(
+            SnapPathKind.SingleMove,
+            zoom: 1,
+            candidates: null!,
+            new SnapHysteresisState(),
+            proposedPositionMm: 0,
+            bypassSnap: true));
+    }
+
+    [Fact]
+    public void ResolveGuardsNullHysteresisEvenWhenBypassing()
+    {
+        Assert.Throws<ArgumentNullException>(() => SnapPathMatrixContract.Resolve(
+            SnapPathKind.SingleMove,
+            zoom: 1,
+            candidates: Array.Empty<SnapCandidate>(),
+            hysteresis: null!,
+            proposedPositionMm: 0,
+            bypassSnap: true));
+    }
+
+    [Fact]
+    public void ApplyHysteresisGuardsNullState()
+    {
+        Assert.Throws<ArgumentNullException>(() => SnapPathMatrixContract.ApplyHysteresis(
+            SnapPathKind.SingleMove,
+            zoom: 1,
+            hysteresis: null!,
+            proposedPositionMm: 0,
+            candidateTargetMm: 0));
+    }
+
+    [Fact]
+    public void ChooseGuardsNullCandidates()
+    {
+        Assert.Throws<ArgumentNullException>(() => SnapPathMatrixContract.Choose(
+            SnapPathKind.SingleMove,
+            zoom: 1,
+            candidates: null!));
+    }
+
+    [Fact]
+    public void SameWinnerAcrossZoomsGuardsNullArguments()
+    {
+        Assert.Throws<ArgumentNullException>(() => SnapPathMatrixContract.SameWinnerAcrossZooms(
+            SnapPathKind.SingleMove,
+            zooms: null!,
+            _ => Array.Empty<SnapCandidate>(),
+            proposedPositionMm: 0));
+
+        Assert.Throws<ArgumentNullException>(() => SnapPathMatrixContract.SameWinnerAcrossZooms(
+            SnapPathKind.SingleMove,
+            SnapPathMatrixContract.SoftwareZoomLadder,
+            candidatesForZoom: null!,
+            proposedPositionMm: 0));
+    }
+
+    [Fact]
+    public void SameWinnerAcrossZoomsEmptyLadderFailsClosed()
+    {
+        Assert.False(SnapPathMatrixContract.SameWinnerAcrossZooms(
+            SnapPathKind.SingleMove,
+            Array.Empty<double>(),
+            _ => new[] { new SnapCandidate(0, 0, 0, Priority: 80, StableKey: "x") },
+            proposedPositionMm: 0));
+    }
+
+    [Fact]
+    public void SameWinnerAcrossZoomsFailsWhenAnyZoomHasNoWinner()
+    {
+        // First zoom has an in-tolerance winner, second has none → not stable.
+        Assert.False(SnapPathMatrixContract.SameWinnerAcrossZooms(
+            SnapPathKind.SingleMove,
+            new[] { 1.0, 2.0 },
+            zoom => zoom == 1.0
+                ? new[] { new SnapCandidate(0, 0, 0, Priority: 80, StableKey: "edge") }
+                : Array.Empty<SnapCandidate>(),
+            proposedPositionMm: 0));
+    }
+
+    [Fact]
+    public void DifferentWinnerKeyAcrossZoomsIsNotStable()
+    {
+        // Both zooms lock a winner but on different keys → the ladder is unstable
+        // and the first key must remain the reference (kills `??=` → `=`).
+        Assert.False(SnapPathMatrixContract.SameWinnerAcrossZooms(
+            SnapPathKind.SingleMove,
+            new[] { 1.0, 2.0 },
+            zoom => zoom == 1.0
+                ? new[] { new SnapCandidate(0, 0, 0, Priority: 80, StableKey: "a") }
+                : new[] { new SnapCandidate(0, 0, 0, Priority: 80, StableKey: "b") },
+            proposedPositionMm: 0));
     }
 
     [Fact]

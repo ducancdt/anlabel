@@ -26,7 +26,8 @@
       "Geometry/TransformedBoundsContract.cs",
       "Geometry/OpticalAlignmentContract.cs",
       "Geometry/SmartSpacingContract.cs",
-      "Geometry/ResizeGeometryContract.cs"
+      "Geometry/ResizeGeometryContract.cs",
+      "Geometry/SnapPathMatrixContract.cs"
     ],
     "mutation-level": "Standard",
     "break-on-initial-test-failure": true,
