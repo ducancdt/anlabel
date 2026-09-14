@@ -24,7 +24,8 @@
       "Geometry/LineBoundsContract.cs",
       "Geometry/LabelGuideContract.cs",
       "Geometry/TransformedBoundsContract.cs",
-      "Geometry/OpticalAlignmentContract.cs"
+      "Geometry/OpticalAlignmentContract.cs",
+      "Geometry/SmartSpacingContract.cs"
     ],
     "mutation-level": "Standard",
     "break-on-initial-test-failure": true,

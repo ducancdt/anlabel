@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds SmartSpacingContract (0.269)
+
+- Blocking mutate list adds `Geometry/SmartSpacingContract.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `SmartSpacingContract` scored `90.24%` of its tested mutants. The 4 survivors
+  are equivalent: `ThrowIfNull` vs `Enumerable.Where`'s own null guard (both
+  throw `ArgumentNullException`), the `List` capacity `-1`/`+1` hint, the second
+  overlap tie-break `ThenBy(Trailing)` (keep-furthest already fixes the anchor)
+  and the `< -EpsilonMm` boundary no double input can hit exactly.
+- Tests cover adjacent-gap ordering, overlapping/nested run collapse, furthest
+  and equal trailing anchor retention, StableKey ordinal tie-break, zero-length
+  anchor intervals, non-finite/half-infinite/inverted interval drop, sub-epsilon
+  touch clamp, null fail-closed, `AfterTrailing` propagation and CandidateLeading
+  fail-closed on bad size or non-finite gap fields. Text/TextBox industrial
+  contract, canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds OpticalAlignmentContract (0.268)
 
 - Blocking mutate list adds `Geometry/OpticalAlignmentContract.cs` on top of the
