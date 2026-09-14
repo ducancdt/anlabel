@@ -30,7 +30,8 @@
       "Geometry/SnapPathMatrixContract.cs",
       "Barcode/QrObjectGeometryContract.cs",
       "Geometry/GroupResizeGeometryContract.cs",
-      "Printing/DispatchRevalidationContract.cs"
+      "Printing/DispatchRevalidationContract.cs",
+      "Printing/PrintContractGuard.cs"
     ],
     "mutation-level": "Standard",
     "break-on-initial-test-failure": true,

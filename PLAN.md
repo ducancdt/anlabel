@@ -1,5 +1,16 @@
 # ANLAbel Phase 1 Plan
 
+## Mutation scope adds PrintContractGuard (0.275)
+
+- Blocking mutate list adds `Printing/PrintContractGuard.cs` on top of the
+  existing label-safety set; thresholds stay `high/low/break = 90`.
+- `PrintContractGuard` scored `100%` of its tested mutants with the existing
+  `PrintContractGuardTests` — the empty-expectation compatibility path, the
+  trimmed/case-insensitive hash equality, the verified-ticket evidence gate and
+  the eight-condition dispatch-snapshot (document/output non-empty, equality and
+  both verified) were already fully pinned, so no new tests were needed.
+- Text/TextBox industrial contract, canvas layout, and print pipeline unchanged.
+
 ## Mutation scope adds DispatchRevalidationContract (0.274)
 
 - Blocking mutate list adds `Printing/DispatchRevalidationContract.cs` on top of
