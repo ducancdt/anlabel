@@ -1,7 +1,7 @@
 <Window x:Class="ANLAbel.App.DatabaseManagerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Database Manager"
+        Title="Quản lý cơ sở dữ liệu"
         Height="620" Width="900"
         MinHeight="480" MinWidth="760"
         WindowStartupLocation="CenterOwner"
@@ -26,7 +26,7 @@
 
         <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="12">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Close" Width="96" Height="32" IsCancel="True" Click="Close_Click"/>
+                <Button Content="Đóng" Width="96" Height="32" IsCancel="True" Click="Close_Click"/>
             </StackPanel>
         </Border>
 
@@ -40,29 +40,29 @@
             <Border Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="10">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top">
-                        <TextBlock Text="Shared data sources" FontWeight="SemiBold"/>
-                        <TextBlock Text="Reuse one Excel file/sheet across multiple templates." FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                        <TextBlock Text="Nguồn dữ liệu dùng chung" FontWeight="SemiBold"/>
+                        <TextBlock Text="Dùng lại một tệp/trang Excel cho nhiều mẫu tem." FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,8"/>
                         <Button Content="+ Lưu liên kết Excel của mẫu đang mở" Command="{Binding AddCurrentAsDataSourceCommand}" Padding="8,6" Margin="0,0,0,8" HorizontalContentAlignment="Left" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/>
                     </StackPanel>
-                    <Button DockPanel.Dock="Bottom" Content="Clean up..." Click="CleanUp_Click" Margin="0,8,0,0"
-                            ToolTip="Find and remove shared sources whose Excel file is missing and unused for 30+ days"/>
+                    <Button DockPanel.Dock="Bottom" Content="Dọn dẹp..." Click="CleanUp_Click" Margin="0,8,0,0"
+                            ToolTip="Tìm và xóa nguồn dùng chung có tệp Excel bị thiếu và không dùng quá 30 ngày"/>
                     <ListBox x:Name="SourceListBox" ItemsSource="{Binding DataSources}" DisplayMemberPath="DisplayName" SelectionChanged="SourceListBox_SelectionChanged"/>
                 </DockPanel>
             </Border>
 
             <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
                 <Grid>
-                    <TextBlock Text="Select a data source on the left, or add the current template's Excel link, to manage it here."
+                    <TextBlock Text="Chọn một nguồn dữ liệu bên trái, hoặc thêm liên kết Excel của mẫu tem hiện tại, để quản lý ở đây."
                                Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" VerticalAlignment="Top"
                                Visibility="{Binding IsChecked, ElementName=NoSelectionMarker, Converter={StaticResource BoolToVisibility}}"/>
                     <CheckBox x:Name="NoSelectionMarker" Visibility="Collapsed" IsChecked="True"/>
 
                     <ScrollViewer x:Name="DetailPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel>
-                            <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Tên" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="NameTextBox" LostFocus="NameTextBox_LostFocus"/>
 
-                            <TextBlock Text="Excel file" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Tệp Excel" Style="{StaticResource FieldLabel}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -70,10 +70,10 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBox x:Name="FilePathTextBox" IsReadOnly="True"/>
-                                <Button Grid.Column="2" Content="Relink..." Width="90" Click="Relink_Click"/>
+                                <Button Grid.Column="2" Content="Liên kết lại..." Width="90" Click="Relink_Click"/>
                             </Grid>
 
-                            <TextBlock Text="Sheet" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Trang tính" Style="{StaticResource FieldLabel}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -81,15 +81,15 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <ComboBox x:Name="SheetComboBox" IsEditable="True" SelectionChanged="SheetComboBox_SelectionChanged" LostFocus="SheetComboBox_LostFocus"/>
-                                <Button Grid.Column="2" Content="Load sheets" Width="90" Click="LoadSheets_Click"/>
+                                <Button Grid.Column="2" Content="Nạp trang tính" Width="90" Click="LoadSheets_Click"/>
                             </Grid>
 
-                            <TextBlock Text="Header row" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="Dòng tiêu đề" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="HeaderRowTextBox" Width="80" HorizontalAlignment="Left" LostFocus="HeaderRowTextBox_LostFocus"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button Content="Test Connection" Padding="8,4" Click="TestConnection_Click" Margin="0,0,8,0"/>
-                                <Button Content="Preview data..." Padding="8,4" Click="PreviewData_Click" Margin="0,0,8,0"/>
+                                <Button Content="Kiểm tra kết nối" Padding="8,4" Click="TestConnection_Click" Margin="0,0,8,0"/>
+                                <Button Content="Xem trước dữ liệu..." Padding="8,4" Click="PreviewData_Click" Margin="0,0,8,0"/>
                             </StackPanel>
                             <TextBlock x:Name="TestResultText" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="11.5"/>
 
@@ -98,14 +98,14 @@
 
                             <Border Background="#F8FAFC" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,16,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="Used by the currently open template" FontWeight="SemiBold" FontSize="11.5"/>
+                                    <TextBlock Text="Đang được mẫu tem mở dùng" FontWeight="SemiBold" FontSize="11.5"/>
                                     <TextBlock x:Name="UsedByCurrentTemplateText" FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                 </StackPanel>
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button Content="Use for current template" Padding="8,4" Click="UseForCurrentTemplate_Click" Margin="0,0,8,0"/>
-                                <Button Content="Remove..." Padding="8,4" Click="Remove_Click" Foreground="#B91C1C"/>
+                                <Button Content="Dùng cho mẫu tem hiện tại" Padding="8,4" Click="UseForCurrentTemplate_Click" Margin="0,0,8,0"/>
+                                <Button Content="Xóa..." Padding="8,4" Click="Remove_Click" Foreground="#B91C1C"/>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>

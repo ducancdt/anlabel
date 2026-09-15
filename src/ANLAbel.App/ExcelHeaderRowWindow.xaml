@@ -20,8 +20,8 @@
         <DataGrid x:Name="PreviewGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
                   SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False" HeadersVisibility="Column">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Row" Binding="{Binding RowNumber}" Width="50"/>
-                <DataGridTextColumn Header="Content" Binding="{Binding PreviewText}" Width="*"/>
+                <DataGridTextColumn Header="Dòng" Binding="{Binding RowNumber}" Width="50"/>
+                <DataGridTextColumn Header="Nội dung" Binding="{Binding PreviewText}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
 

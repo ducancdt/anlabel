@@ -1,7 +1,7 @@
 <Window x:Class="ANLAbel.App.TemplateRevisionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ANLAbel - Template revisions"
+        Title="ANLAbel - Phiên bản mẫu tem"
         Height="520" Width="980"
         MinHeight="420" MinWidth="760"
         WindowStartupLocation="CenterOwner"
@@ -10,8 +10,8 @@
     <DockPanel>
         <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="20,14">
             <StackPanel>
-                <TextBlock Text="Template revisions and recovery" Foreground="White" FontSize="19" FontWeight="SemiBold"/>
-                <TextBlock Text="Review the current primary, recovery backup and bounded archived snapshots before restoring anything."
+                <TextBlock Text="Phiên bản mẫu tem và phục hồi" Foreground="White" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Xem bản chính hiện tại, bản sao lưu phục hồi và các ảnh lưu trữ giới hạn trước khi khôi phục."
                            Foreground="#DBEAFE" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
@@ -20,10 +20,10 @@
             <DockPanel>
                 <TextBlock x:Name="StatusText" Foreground="#64748B" VerticalAlignment="Center" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
-                    <Button x:Name="RefreshButton" Content="Refresh" Click="Refresh_Click" Padding="14,7" Margin="0,0,8,0"/>
-                    <Button x:Name="RestoreButton" Content="Restore selected revision" Click="Restore_Click"
+                    <Button x:Name="RefreshButton" Content="Làm mới" Click="Refresh_Click" Padding="14,7" Margin="0,0,8,0"/>
+                    <Button x:Name="RestoreButton" Content="Khôi phục phiên bản đã chọn" Click="Restore_Click"
                             Padding="14,7" Margin="0,0,8,0" Background="#B45309" Foreground="White" IsEnabled="False"/>
-                    <Button Content="Close" Click="Close_Click" Padding="14,7" IsCancel="True"/>
+                    <Button Content="Đóng" Click="Close_Click" Padding="14,7" IsCancel="True"/>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -34,20 +34,20 @@
                   CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal" BorderBrush="#D9E2EC" Background="White">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Revision" Binding="{Binding KindText}" Width="150"/>
-                <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="130"/>
-                <DataGridTextColumn Header="Template name" Binding="{Binding TemplateName}" Width="180"/>
-                <DataGridTextColumn Header="Last write (local)" Binding="{Binding LastWriteText}" Width="155"/>
-                <DataGridTextColumn Header="Size" Binding="{Binding SizeText}" Width="85"/>
-                <DataGridTextColumn Header="Hash (prefix)" Binding="{Binding DocumentHashText}" Width="105"/>
-                <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="260"/>
-                <DataGridTextColumn Header="Diagnostic" Binding="{Binding Diagnostic}" Width="*"/>
+                <DataGridTextColumn Header="Phiên bản" Binding="{Binding KindText}" Width="150"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusText}" Width="130"/>
+                <DataGridTextColumn Header="Tên mẫu tem" Binding="{Binding TemplateName}" Width="180"/>
+                <DataGridTextColumn Header="Ghi lần cuối (cục bộ)" Binding="{Binding LastWriteText}" Width="155"/>
+                <DataGridTextColumn Header="Kích cỡ" Binding="{Binding SizeText}" Width="85"/>
+                <DataGridTextColumn Header="Mã băm (tiền tố)" Binding="{Binding DocumentHashText}" Width="105"/>
+                <DataGridTextColumn Header="Đường dẫn" Binding="{Binding Path}" Width="260"/>
+                <DataGridTextColumn Header="Chẩn đoán" Binding="{Binding Diagnostic}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
 
         <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="14,9">
             <StackPanel>
-                <TextBlock Text="Primary vs backup diff and revision audit" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,4"/>
+                <TextBlock Text="So sánh bản chính với bản sao lưu và kiểm toán phiên bản" FontWeight="SemiBold" Foreground="#0F172A" Margin="0,0,0,4"/>
                 <TextBox x:Name="DiffTextBox" IsReadOnly="True" IsTabStop="False" BorderThickness="0" Background="Transparent"
                          Foreground="#475569" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"/>
             </StackPanel>

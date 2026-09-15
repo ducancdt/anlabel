@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ANLAbel.App"
         xmlns:vm="clr-namespace:ANLAbel.App.ViewModels"
-        Title="ANLAbel Print Preview" Height="760" Width="1200"
+        Title="ANLAbel Xem trước khi in" Height="760" Width="1200"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Background="{DynamicResource AppCanvasBrush}">
@@ -18,8 +18,21 @@
         </Grid.ColumnDefinitions>
 
         <DockPanel Grid.Column="0">
-            <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="16,12">
-                <TextBlock Text="{Binding PreviewTitle}" Foreground="White" FontSize="15" FontWeight="SemiBold"/>
+            <Border DockPanel.Dock="Top" Background="#1464D2" Padding="16,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding PreviewTitle}" Foreground="White" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="Dòng Excel · kiểm tra mã vạch · mỗi lần nạp một tem" Foreground="#E5F0FF" FontSize="10.5" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <Border Grid.Column="1" Padding="10,5" CornerRadius="8" Background="#CFF7D3" VerticalAlignment="Center"
+                            Visibility="{Binding CanPrint, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="Sẵn sàng — đã kiểm chứng" Foreground="#02542D" FontSize="11" FontWeight="SemiBold"/>
+                    </Border>
+                </Grid>
             </Border>
             <DockPanel>
                 <Border DockPanel.Dock="Bottom" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" Padding="10">
@@ -30,10 +43,10 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding CurrentRowSummary}" TextWrapping="Wrap" Foreground="#334155" VerticalAlignment="Center"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="◀" Width="36" Click="PreviousPage_Click" ToolTip="Previous label"/>
+                            <Button Content="◀" Width="36" Click="PreviousPage_Click" ToolTip="Tem trước"/>
                             <TextBox Text="{Binding PageInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="52" TextAlignment="Center" KeyDown="PageInput_KeyDown"/>
                             <TextBlock Text="{Binding PageStatusText}" VerticalAlignment="Center" Margin="6,0,8,0"/>
-                            <Button Content="▶" Width="36" Click="NextPage_Click" ToolTip="Next label"/>
+                            <Button Content="▶" Width="36" Click="NextPage_Click" ToolTip="Tem sau"/>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -42,7 +55,7 @@
                 <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" MaxHeight="220">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="10,6,10,3">
-                        <TextBlock Text="Excel Data" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center"/>
+                        <TextBlock Text="Dữ liệu Excel" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center"/>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedRowsText}" Foreground="#475569" FontSize="10" VerticalAlignment="Center"/>
                     </DockPanel>
                     <!-- Row filter: find rows by value (e.g. a product code) among many rows and
@@ -56,12 +69,12 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="🔎" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="11"/>
                         <TextBox Grid.Column="1" x:Name="RowFilterBox" VerticalAlignment="Center" FontSize="11" Padding="4,3"
-                                 ToolTip="Type a value (e.g. a product code) to find matching rows. Matching rows are auto-selected for printing; the rest are deselected."
+                                 ToolTip="Nhập một giá trị (ví dụ mã sản phẩm) để tìm dòng khớp. Dòng khớp được tự chọn để in; phần còn lại bị bỏ chọn."
                                  TextChanged="RowFilterBox_TextChanged" PreviewKeyDown="RowFilterBox_PreviewKeyDown"/>
                         <ComboBox Grid.Column="2" x:Name="RowFilterColumnCombo" Margin="6,0,0,0" FontSize="11" VerticalAlignment="Center"
-                                  ToolTip="Limit the search to one column (default: all columns)"
+                                  ToolTip="Giới hạn tìm trong một cột (mặc định: mọi cột)"
                                   SelectionChanged="RowFilterColumnCombo_SelectionChanged"/>
-                        <Button Grid.Column="3" Content="✕" Width="22" Margin="4,0,0,0" ToolTip="Clear filter (select all rows again)" Click="ClearRowFilter_Click"/>
+                        <Button Grid.Column="3" Content="✕" Width="22" Margin="4,0,0,0" ToolTip="Xóa bộ lọc (chọn lại mọi dòng)" Click="ClearRowFilter_Click"/>
                     </Grid>
                     <TextBlock DockPanel.Dock="Top" x:Name="FilterMatchCountText" Margin="10,0,10,4" FontSize="10" Foreground="#0F4C81" FontWeight="SemiBold" Visibility="Collapsed"/>
                     <!-- Header row -->
@@ -74,11 +87,11 @@
                             <ColumnDefinition Width="18"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Content="☑ All" FontWeight="SemiBold" FontSize="9" Background="Transparent" BorderThickness="0" Margin="2,0" Click="SelectAllToggle_Click"/>
-                        <TextBlock Grid.Column="1" Text="Pg#" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
-                        <TextBlock Grid.Column="2" Text="Row" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
-                        <TextBlock Grid.Column="3" Text="Cp" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
-                        <TextBlock Grid.Column="4" Text="🖶" FontSize="9" Margin="2,2" ToolTip="Printed this session"/>
+                        <Button Grid.Column="0" Content="☑ Tất cả" FontWeight="SemiBold" FontSize="9" Background="Transparent" BorderThickness="0" Margin="2,0" Click="SelectAllToggle_Click"/>
+                        <TextBlock Grid.Column="1" Text="Trang" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
+                        <TextBlock Grid.Column="2" Text="Dòng" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
+                        <TextBlock Grid.Column="3" Text="Bản" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
+                        <TextBlock Grid.Column="4" Text="🖶" FontSize="9" Margin="2,2" ToolTip="Đã in trong phiên này"/>
                     </Grid>
                     <!-- Virtualized row list: the outer preview panel may contain 10k source rows;
                          never put an ItemsControl inside a ScrollViewer because that disables
@@ -142,7 +155,7 @@
                                                     Padding="0" Margin="1,0"
                                                     Click="CopiesDown_Click" Tag="{Binding SourceRowNumber}"/>
                                             <!-- Printed-this-session indicator -->
-                                            <TextBlock Grid.Column="6" Text="{Binding PrintedIndicatorText}" FontSize="9" Margin="2,0" ToolTip="Device-confirmed completion in this session — printing again may duplicate a label"/>
+                                            <TextBlock Grid.Column="6" Text="{Binding PrintedIndicatorText}" FontSize="9" Margin="2,0" ToolTip="Thiết bị xác nhận hoàn tất trong phiên này — in lại có thể trùng tem"/>
                                             <!-- Excel data preview -->
                                             <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0">
                                                 <TextBlock Text="{Binding Col1}" Margin="0,0,6,0"/>
@@ -161,6 +174,7 @@
                 <ScrollViewer x:Name="PreviewScrollViewer"
                               HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Auto"
+                              Background="#EEF2F6"
                               PreviewMouseWheel="PreviewScrollViewer_PreviewMouseWheel">
                     <Grid Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Grid.LayoutTransform>
@@ -168,7 +182,10 @@
                         </Grid.LayoutTransform>
                         <StackPanel HorizontalAlignment="Center">
                             <TextBlock Text="{Binding PageStatusText}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                            <Border Background="White" BorderBrush="#8B95A3" BorderThickness="1" Padding="0">
+                            <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" Padding="0">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="4" Opacity="0.18" Color="#0F172A"/>
+                                </Border.Effect>
                                 <Grid Width="{Binding CurrentPage.Width}" Height="{Binding CurrentPage.Height}">
                                     <Image Source="{Binding CurrentPage.PreviewImage}"
                                            Width="{Binding CurrentPage.Width}"
@@ -185,35 +202,63 @@
 
         <Border Grid.Column="1" Background="{DynamicResource AppSurfaceBrush}" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1,0,0,0">
             <DockPanel LastChildFill="True">
-                <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="16,12">
-                    <TextBlock Text="Print Settings" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                <Border DockPanel.Dock="Top" Background="#1464D2" Padding="16,10">
+                    <TextBlock Text="Cài đặt in" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
                 </Border>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="14">
-                    <TextBlock Text="Printer" FontWeight="SemiBold"/>
+                    <TextBlock Text="Máy in" FontWeight="SemiBold"/>
                     <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="#F8FAFC" Padding="8" Margin="0,4,0,8">
                         <StackPanel>
                             <TextBlock Text="{Binding PrinterName}" TextWrapping="Wrap" Foreground="#0F172A" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding LabelSizeText}" Foreground="#475569" Margin="0,4,0,0"/>
                             <TextBlock Text="{Binding PrintPlanSummaryText}" Foreground="#475569" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding PreviewTrustStatusText}" FontSize="11" FontWeight="SemiBold" Margin="0,4,0,0" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#475569"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PreviewTrustLevel}" Value="EffectiveReady">
+                                                <Setter Property="Foreground" Value="#067647"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding PreviewTrustLevel}" Value="EffectiveBlocked">
+                                                <Setter Property="Foreground" Value="#B42318"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding PreviewTrustLevel}" Value="EffectiveUnverified">
+                                                <Setter Property="Foreground" Value="#92400E"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="{Binding PrinterStatusText}" TextWrapping="Wrap" Foreground="#475569" FontSize="11" Margin="0,6,0,0"
+                                       AutomationProperties.AutomationId="PrintPreview.PrinterStatus"/>
                         </StackPanel>
                     </Border>
 
-                    <Button Content="Label size and printer setup..." Padding="8,6" Margin="0,0,0,12" Click="LabelPrinterSetup_Click"/>
+                    <Button Content="Kích thước tem và cài đặt máy in..." AutomationProperties.AutomationId="PrintPreview.OpenPrinterSetup" Padding="8,6" Margin="0,0,0,12" Click="LabelPrinterSetup_Click"/>
+
+                    <Border Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Cài đặt phiên in" FontWeight="SemiBold" Foreground="#1E3A5F"/>
+                            <TextBlock Text="Thay đổi trong cửa sổ này chỉ ảnh hưởng phiên in này. Lưu tường minh nếu muốn thành mặc định của tem." TextWrapping="Wrap" Foreground="#36536D" FontSize="10.5" Margin="0,3,0,7"/>
+                            <Button Content="Lưu cài đặt in hiện tại vào tem" AutomationProperties.AutomationId="PrintPreview.SaveSettingsToLabel" Padding="8,5" HorizontalAlignment="Left" Click="SavePrintSettingsToLabel_Click"/>
+                        </StackPanel>
+                    </Border>
 
                     <Border Height="1" Background="#E2E8F0" Margin="0,0,0,12"/>
 
-                    <TextBlock Text="Print mode" FontWeight="SemiBold"/>
-                    <TextBlock Text="Use checkboxes in the Excel Data table to select rows to print." TextWrapping="Wrap" Foreground="#526070" Margin="0,4,0,10"/>
+                    <TextBlock Text="Chế độ in" FontWeight="SemiBold"/>
+                    <TextBlock Text="Dùng ô chọn trong bảng Dữ liệu Excel để chọn dòng cần in." TextWrapping="Wrap" Foreground="#526070" Margin="0,4,0,10"/>
 
                     <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="#F8FAFC" Padding="8" Margin="0,0,0,12">
                         <StackPanel>
-                            <TextBlock Text="{Binding PreflightStatusText}" TextWrapping="Wrap">
+                            <TextBlock Text="{Binding PreflightStatusText}" TextWrapping="Wrap" AutomationProperties.AutomationId="PrintPreview.ContentStatus">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="#0F4C81"/>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding HasPreflightIssues}" Value="True">
+                                            <DataTrigger Binding="{Binding HasBlockingPreflightIssues}" Value="True">
                                                 <Setter Property="Foreground" Value="#B42318"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -238,14 +283,14 @@
                                                Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Button Grid.Column="1"
-                                        Content="Cancel"
+                                        Content="Hủy"
                                         Padding="7,3"
                                         Margin="8,0,0,0"
                                         Click="CancelPreview_Click"
                                         IsEnabled="{Binding CanCancelPreview}"
                                         Visibility="{Binding IsPreviewBusy, Converter={StaticResource BoolToVisibility}}"/>
                             </Grid>
-                            <Expander Header="Preflight issues" Margin="0,8,0,0">
+                            <Expander Header="Vấn đề nội dung" Margin="0,8,0,0">
                                 <Expander.Style>
                                     <Style TargetType="Expander">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -259,28 +304,31 @@
                                 </Expander.Style>
                                 <StackPanel Margin="0,8,0,0">
                                     <TextBlock Text="{Binding PreflightIssuesSummary}" Foreground="#475569" FontSize="11" Margin="0,0,0,6"/>
+                                    <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
                                     <ItemsControl ItemsSource="{Binding PreflightIssues}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Button HorizontalContentAlignment="Stretch"
                                                         Padding="8,6"
                                                         Margin="0,0,0,6"
-                                                        Tag="{Binding RowNumber}"
+                                                        Tag="{Binding LabelNumber}"
+                                                        IsEnabled="{Binding CanNavigate}"
                                                         Click="PreflightIssue_Click">
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" FontSize="11"/>
-                                                        <TextBlock Text="Go to this label" Foreground="#475569" FontSize="11" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="{Binding NavigationText}" Foreground="#475569" FontSize="11" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                    </ScrollViewer>
                                 </StackPanel>
                             </Expander>
                         </StackPanel>
                     </Border>
 
-                    <Expander Header="Label Setup" IsExpanded="False" Margin="0,12,0,0">
+                    <Expander Header="Thiết lập tem" IsExpanded="False" Margin="0,12,0,0">
                         <StackPanel Margin="0,8,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -289,32 +337,31 @@
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <TextBlock Text="Label W (mm)"/>
+                                    <TextBlock Text="Rộng tem (mm)"/>
                                     <TextBox Text="{Binding LabelTemplate.WidthMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Label H (mm)"/>
+                                    <TextBlock Text="Cao tem (mm)"/>
                                     <TextBox Text="{Binding LabelTemplate.HeightMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
                                 </StackPanel>
                             </Grid>
-                            <Button Content="Apply label size" HorizontalAlignment="Right" Padding="8,5" Margin="0,4,0,0" Click="ApplyPrintSetup_Click"/>
+                            <Button Content="Áp dụng kích thước tem" AutomationProperties.AutomationId="PrintPreview.ApplySetup" HorizontalAlignment="Right" Padding="8,5" Margin="0,4,0,0" Click="ApplyPrintSetup_Click"/>
                         </StackPanel>
                     </Expander>
 
-                    <Expander Header="Print Method" IsExpanded="False" Margin="0,6,0,0">
+                    <Expander Header="Phương pháp in" IsExpanded="False" Margin="0,6,0,0">
                         <StackPanel Margin="0,8,0,0">
-                            <TextBlock Text="Print Method" Foreground="#475569" FontSize="11"/>
+                            <TextBlock Text="Phương pháp in" Foreground="#475569" FontSize="11"/>
                             <ComboBox ItemsSource="{Binding PrintMethodOptions}"
                                       SelectedValue="{Binding LabelTemplate.PrinterProfile.PrintMethod, Mode=TwoWay}"
-                                      SelectedValuePath="Value"
+                                      SelectedValuePath="Method"
                                       DisplayMemberPath="DisplayName"
-                                      Margin="0,4,0,4"
-                                      ToolTip="Application graphic (default): 100% designer parity vector/raster render. Printer native: direct thermal commands (fails closed if driver inactive)."/>
-                            <TextBlock Text="Application graphic ensures 100% parity with the designer preview." Foreground="#64748B" FontSize="10" TextWrapping="Wrap"/>
+                                      Margin="0,4,0,0"/>
+                            <TextBlock Text="Đồ họa ứng dụng bảo đảm khớp 100% với xem trước trong trình thiết kế." Foreground="#64748B" FontSize="10" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Expander>
 
-                    <Expander Header="Calibration" IsExpanded="False" Margin="0,6,0,0">
+                    <Expander Header="Hiệu chỉnh" IsExpanded="False" Margin="0,6,0,0">
                         <StackPanel Margin="0,8,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -327,7 +374,7 @@
                                     <TextBox Text="{Binding LabelTemplate.PrinterProfile.Dpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Scale X/Y"/>
+                                    <TextBlock Text="Tỉ lệ X/Y"/>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition/>
@@ -346,11 +393,11 @@
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <TextBlock Text="Offset X"/>
+                                    <TextBlock Text="Lệch X"/>
                                     <TextBox Text="{Binding LabelTemplate.PrinterProfile.OffsetXMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Offset Y"/>
+                                    <TextBlock Text="Lệch Y"/>
                                     <TextBox Text="{Binding LabelTemplate.PrinterProfile.OffsetYMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
                                 </StackPanel>
                             </Grid>
@@ -360,17 +407,17 @@
                                     <ColumnDefinition Width="8"/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Button Content="Print calibration" Padding="8,5" Click="PrintCalibration_Click"/>
-                                <Button Grid.Column="2" Content="Reset offset/scale" Padding="8,5" Click="ResetCalibration_Click"/>
+                                <Button Content="In hiệu chỉnh" Padding="8,5" Click="PrintCalibration_Click"/>
+                                <Button Grid.Column="2" Content="Đặt lại lệch/tỉ lệ" Padding="8,5" Click="ResetCalibration_Click"/>
                             </Grid>
                         </StackPanel>
                     </Expander>
 
-                    <TextBlock Text="Each Excel row becomes one label. Adjust copies with ▲▼ buttons." TextWrapping="Wrap" Foreground="#526070" Margin="0,14,0,0"/>
+                    <TextBlock Text="Mỗi dòng Excel thành một tem. Chỉnh số bản bằng nút ▲▼." TextWrapping="Wrap" Foreground="#526070" Margin="0,14,0,0"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
-                        <Button Content="Close" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Close_Click"/>
-                        <Button Content="Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanPrint}"/>
+                        <Button Content="Đóng" AutomationProperties.AutomationId="PrintPreview.Close" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Close_Click"/>
+                        <Button Content="In" AutomationProperties.AutomationId="PrintPreview.Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanRequestPrint}"/>
                     </StackPanel>
                 </StackPanel>
                 </ScrollViewer>

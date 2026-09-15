@@ -1,0 +1,21 @@
+# -*- coding: utf-8 -*-
+R = [
+ (4,  "Title",  "Database Manager", "Quản lý cơ sở dữ liệu"),
+ (29, "Content","Close", "Đóng"),
+ (43, "Text",   "Shared data sources", "Nguồn dữ liệu dùng chung"),
+ (44, "Text",   "Reuse one Excel file/sheet across multiple templates.", "Dùng lại một file/trang Excel cho nhiều mẫu tem."),
+ (47, "Content","Clean up...", "Dọn dẹp..."),
+ (48, "ToolTip","Find and remove shared sources whose Excel file is missing and unused for 30+ days", "Tìm và xóa nguồn dùng chung có file Excel bị thiếu và không dùng quá 30 ngày"),
+ (55, "Text",   "Select a data source on the left, or add the current template's Excel link, to manage it here.", "Chọn một nguồn dữ liệu bên trái, hoặc thêm liên kết Excel của mẫu tem hiện tại, để quản lý ở đây."),
+ (62, "Text",   "Name", "Tên"),
+ (65, "Text",   "Excel file", "File Excel"),
+ (73, "Content","Relink...", "Liên kết lại..."),
+ (76, "Text",   "Sheet", "Trang tính"),
+ (84, "Content","Load sheets", "Nạp trang tính"),
+ (87, "Text",   "Header row", "Dòng tiêu đề"),
+ (91, "Content","Test Connection", "Kiểm tra kết nối"),
+ (92, "Content","Preview data...", "Xem trước dữ liệu..."),
+ (101,"Text",   "Used by the currently open template", "Đang được mẫu tem mở dùng"),
+ (107,"Content","Use for current template", "Dùng cho mẫu tem hiện tại"),
+ (108,"Content","Remove...", "Xóa..."),
+]

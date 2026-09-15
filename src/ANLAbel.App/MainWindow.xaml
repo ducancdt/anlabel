@@ -6,7 +6,7 @@
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:converters="clr-namespace:ANLAbel.App.Converters"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Label Designer v0.276"
+        Title="ANLAbel - Thiết kế tem v0.289"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="720" Width="1280"
         MinHeight="600" MinWidth="1024"
@@ -440,7 +440,7 @@
 
     <DockPanel LastChildFill="True">
         <!-- Shell regions map: docs/NICELABEL_DESIGNER_SHELL_RESEARCH.md + Figma Full Shell v1 -->
-        <Border DockPanel.Dock="Top" Height="52" Background="#102A56" BorderBrush="#234A83" BorderThickness="0,0,0,1"
+        <Border DockPanel.Dock="Top" Height="52" Background="#063B66" BorderBrush="#173B72" BorderThickness="0,0,0,1"
                 AutomationProperties.AutomationId="Shell.QuickAccess"
                 AutomationProperties.Name="Quick access">
             <Grid Margin="18,0">
@@ -453,35 +453,38 @@
                            RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" UseLayoutRounding="True"/>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="ANLAbel" FontSize="17" FontWeight="Bold" Foreground="#FFFFFF"/>
-                        <TextBlock Text="Industrial label workspace" FontSize="10" Foreground="#B9CAE7"/>
+                        <TextBlock Text="{Binding Ui.Subtitle}" FontSize="10" Foreground="#B9CAE7"/>
                     </StackPanel>
                     <Border Margin="14,0,0,0" Padding="8,3" Background="#1E4D8F" BorderBrush="#5B8DD4" BorderThickness="1" CornerRadius="5" VerticalAlignment="Center">
-                        <TextBlock x:Name="BuildChannelText" Text="GPL-3.0 · v0.276" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF"/>
+                        <TextBlock x:Name="BuildChannelText" Text="GPL-3.0 · v0.289" FontSize="11" FontWeight="SemiBold" Foreground="#FFFFFF"/>
                     </Border>
                     <Border Width="1" Height="28" Background="#31598F" Margin="12,0,8,0"/>
-                    <Button Style="{StaticResource QuickAccessButton}" Click="New_Click" ToolTip="New label (Ctrl+N)" AutomationProperties.Name="New label" AutomationProperties.AutomationId="Shell.QuickAccess.New">
+                    <Button Style="{StaticResource QuickAccessButton}" Click="New_Click" ToolTip="Tạo tem mới (Ctrl+N)" AutomationProperties.Name="New label" AutomationProperties.AutomationId="Shell.QuickAccess.New">
                         <Image Source="Icons/new.png" Stretch="Uniform"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Click="Open_Click" ToolTip="Open label (Ctrl+O)" AutomationProperties.Name="Open label" AutomationProperties.AutomationId="Shell.QuickAccess.Open">
+                    <Button Style="{StaticResource QuickAccessButton}" Click="Open_Click" ToolTip="Mở tem (Ctrl+O)" AutomationProperties.Name="Open label" AutomationProperties.AutomationId="Shell.QuickAccess.Open">
                         <Image Source="Icons/open.png" Stretch="Uniform"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Click="Save_Click" ToolTip="Save label (Ctrl+S)" AutomationProperties.Name="Save label" AutomationProperties.AutomationId="Shell.QuickAccess.Save">
+                    <Button Style="{StaticResource QuickAccessButton}" Click="Save_Click" ToolTip="Lưu tem (Ctrl+S)" AutomationProperties.Name="Save label" AutomationProperties.AutomationId="Shell.QuickAccess.Save">
                         <Image Source="Icons/save.png" Stretch="Uniform"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding UndoCommand}" ToolTip="Undo (Ctrl+Z)" AutomationProperties.Name="Undo" AutomationProperties.AutomationId="Shell.QuickAccess.Undo">
+                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding UndoCommand}" ToolTip="Hoàn tác (Ctrl+Z)" AutomationProperties.Name="Undo" AutomationProperties.AutomationId="Shell.QuickAccess.Undo">
                         <Image Source="Icons/undo.png" Stretch="Uniform"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding RedoCommand}" ToolTip="Redo (Ctrl+Y)" AutomationProperties.Name="Redo" AutomationProperties.AutomationId="Shell.QuickAccess.Redo">
+                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding RedoCommand}" ToolTip="Làm lại (Ctrl+Y)" AutomationProperties.Name="Redo" AutomationProperties.AutomationId="Shell.QuickAccess.Redo">
                         <Image Source="Icons/redo.png" Stretch="Uniform"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Click="RevisionHistory_Click" ToolTip="Template revisions and backups" AutomationProperties.Name="Template revisions" AutomationProperties.AutomationId="Shell.QuickAccess.Revisions">
+                    <Button Style="{StaticResource QuickAccessButton}" Click="RevisionHistory_Click" ToolTip="Phiên bản và bản sao lưu mẫu tem" AutomationProperties.Name="Template revisions" AutomationProperties.AutomationId="Shell.QuickAccess.Revisions">
                         <Image Source="Icons/revisions.png" Stretch="Uniform"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Click="Settings_Click" ToolTip="{Binding Ui.Settings}" AutomationProperties.Name="Settings" AutomationProperties.AutomationId="Shell.QuickAccess.Settings">
+                        <Image Source="Icons/settings.png" Stretch="Uniform"/>
                     </Button>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="ActivationButton" Content="Kích hoạt" Visibility="Collapsed" Padding="12,4" Margin="0,0,16,0"/>
                     <Border Background="#F8FAFC" BorderBrush="#5B8DD4" BorderThickness="1" CornerRadius="5" Padding="9,4" Margin="0,0,10,0"
-                            ToolTip="Selected industrial printer queue (status)"
+                            ToolTip="Hàng đợi máy in công nghiệp đã chọn (trạng thái)"
                             AutomationProperties.AutomationId="Shell.QuickAccess.PrinterStatus">
                         <StackPanel Orientation="Horizontal">
                             <Image Style="{StaticResource SmallIconImage}" Source="Icons/printer_status.png" Width="17" Height="17" Margin="0,0,6,0"/>
@@ -490,7 +493,7 @@
                     </Border>
                     <Border Background="#173B72" BorderBrush="#31598F" BorderThickness="1" CornerRadius="5" Padding="9,4">
                     <TextBlock FontWeight="SemiBold" Foreground="#E8F0FD">
-                        <Run Text="Paper: "/>
+                        <Run Text="Khổ giấy: "/>
                         <Run Text="{Binding Template.WidthMm, StringFormat={}{0:0.##}}"/>
                         <Run Text=" x "/>
                         <Run Text="{Binding Template.HeightMm, StringFormat={}{0:0.##}}"/>
@@ -507,68 +510,68 @@
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal">
                     <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="Mở thư viện mẫu tem có sẵn" AutomationProperties.Name="Templates" AutomationProperties.AutomationId="Shell.Ribbon.Templates">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="Templates" Style="{StaticResource RibbonPrimaryCaption}"/></StackPanel>
+                        <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="{Binding Ui.Templates}" AutomationProperties.Name="Templates" AutomationProperties.AutomationId="Shell.Ribbon.Templates">
+                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="{Binding Ui.Templates}" Style="{StaticResource RibbonPrimaryCaption}"/></StackPanel>
                         </Button>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Library"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Library}"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource RibbonButton}" Click="ImportExcel_Click" AutomationProperties.Name="Import Excel" AutomationProperties.AutomationId="Shell.Ribbon.ImportExcel">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="Import" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Excel" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="{Binding Ui.Import}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Excel}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Reload data from the linked Excel file and sheet" AutomationProperties.Name="Update Excel" AutomationProperties.AutomationId="Shell.Ribbon.UpdateExcel">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/update_excel.png"/><TextBlock Text="Update" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Excel" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Nạp lại dữ liệu từ tệp Excel và trang tính đã liên kết" AutomationProperties.Name="Update Excel" AutomationProperties.AutomationId="Shell.Ribbon.UpdateExcel">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/update_excel.png"/><TextBlock Text="{Binding Ui.Update}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Excel}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Data"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Data}"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource RibbonButton}" Click="PrinterSetup_Click" AutomationProperties.Name="Printer Setup" AutomationProperties.AutomationId="Shell.Ribbon.PrinterSetup">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/printer_setup.png"/><TextBlock Text="Printer" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Setup" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/printer_setup.png"/><TextBlock Text="{Binding Ui.Printer}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Setup}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource RibbonButton}" Click="PrintPreview_Click" AutomationProperties.Name="Preview" AutomationProperties.AutomationId="Shell.Ribbon.Preview">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="Preview" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Ctrl+P" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="{Binding Ui.Preview}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Ctrl+P" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding PrintCurrentRowCommand}" AutomationProperties.Name="Print Current" AutomationProperties.AutomationId="Shell.Ribbon.PrintCurrent">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_current.png"/><TextBlock Text="Print" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Current" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Click="PrintCurrent_Click" AutomationProperties.Name="Print Current" AutomationProperties.AutomationId="Shell.Ribbon.PrintCurrent">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_current.png"/><TextBlock Text="{Binding Ui.Print}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.CurrentRow}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
                             <StackPanel Margin="3,0,0,0">
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintAllRowsCommand}" ToolTip="Print every imported row" AutomationProperties.Name="Print all rows" AutomationProperties.AutomationId="Shell.Ribbon.PrintAllRows">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_all_rows.png" Margin="0,0,6,0"/><TextBlock Text="Print all rows" VerticalAlignment="Center"/></StackPanel>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintAllRows_Click" ToolTip="In mọi dòng đã nhập" AutomationProperties.Name="Print all rows" AutomationProperties.AutomationId="Shell.Ribbon.PrintAllRows">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_all_rows.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintAllRows}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintHistory_Click" ToolTip="Open the append-only print history" AutomationProperties.Name="Print history" AutomationProperties.AutomationId="Shell.Ribbon.PrintHistory">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_history.png" Margin="0,0,6,0"/><TextBlock Text="Print history" VerticalAlignment="Center"/></StackPanel>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintHistory_Click" ToolTip="Mở lịch sử in (chỉ ghi thêm)" AutomationProperties.Name="Print history" AutomationProperties.AutomationId="Shell.Ribbon.PrintHistory">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_history.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintHistory}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                             </StackPanel>
                             <StackPanel>
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="ExportPrintHistory_Click" ToolTip="Export print history to Excel" AutomationProperties.Name="Export Excel" AutomationProperties.AutomationId="Shell.Ribbon.ExportExcel">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/export_excel.png" Margin="0,0,6,0"/><TextBlock Text="Export Excel" VerticalAlignment="Center"/></StackPanel>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="ExportPrintHistory_Click" ToolTip="Xuất lịch sử in ra Excel" AutomationProperties.Name="Export Excel" AutomationProperties.AutomationId="Shell.Ribbon.ExportExcel">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/export_excel.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.ExportExcel}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintCalibrationCommand}" ToolTip="Print a calibration label" AutomationProperties.Name="Test print" AutomationProperties.AutomationId="Shell.Ribbon.TestPrint">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/test_print.png" Margin="0,0,6,0"/><TextBlock Text="Test print" VerticalAlignment="Center"/></StackPanel>
+                                <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintCalibrationCommand}" ToolTip="In tem hiệu chỉnh" AutomationProperties.Name="Test print" AutomationProperties.AutomationId="Shell.Ribbon.TestPrint">
+                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/test_print.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.TestPrint}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Print &amp; Output"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.PrintOutput}"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}" AutomationProperties.Name="Panels restore" AutomationProperties.AutomationId="Shell.Ribbon.Panels">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="Panels" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="restore" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="{Binding Ui.Panels}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Restore}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                             </Button>
                             <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="58"
                                           IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToObjectsEnabled, Mode=TwoWay}"
                                           AutomationProperties.Name="Snap to objects"
                                           AutomationProperties.AutomationId="Shell.Ribbon.SnapObjects"
-                                          ToolTip="Snap object edges and centers while dragging. Hold Alt to bypass temporarily.">
+                                          ToolTip="Dính cạnh và tâm đối tượng khi kéo. Giữ Alt để tạm bỏ qua.">
                                 <ToggleButton.Resources>
                                     <Style TargetType="TextBlock">
                                         <Style.Triggers>
@@ -580,44 +583,44 @@
                                 </ToggleButton.Resources>
                                 <StackPanel>
                                     <Image Style="{StaticResource IconImage}" Source="Icons/snap_objects.png"/>
-                                    <TextBlock Text="Objects" FontSize="10" TextAlignment="Center"/>
-                                    <TextBlock Text="snap" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                    <TextBlock Text="{Binding Ui.Objects}" FontSize="10" TextAlignment="Center"/>
+                                    <TextBlock Text="{Binding Ui.Snap}" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
                                 </StackPanel>
                             </ToggleButton>
                             <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="62"
                                           IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToGridEnabled, Mode=TwoWay}"
                                           AutomationProperties.Name="Snap to grid"
                                           AutomationProperties.AutomationId="Shell.Ribbon.SnapGrid"
-                                          ToolTip="Snap object edges to the configured physical grid step. Drag from a ruler to create a persistent guide; right-click the canvas to lock/delete guides or choose the step; hold Alt to bypass temporarily.">
+                                          ToolTip="Dính cạnh đối tượng theo bước lưới vật lý đã đặt. Kéo từ thước để tạo đường gióng cố định; chuột phải lên khung vẽ để khóa/xóa đường gióng hoặc chọn bước; giữ Alt để tạm bỏ qua.">
                                 <StackPanel>
                                     <Image Style="{StaticResource IconImage}" Source="Icons/snap_grid.png"/>
-                                    <TextBlock Text="Grid" FontSize="10" TextAlignment="Center"/>
-                                    <TextBlock Text="snap" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                    <TextBlock Text="{Binding Ui.Grid}" FontSize="10" TextAlignment="Center"/>
+                                    <TextBlock Text="{Binding Ui.Snap}" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
                                 </StackPanel>
                             </ToggleButton>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Workspace"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Workspace}"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <Button Style="{StaticResource RibbonButton}" Command="controls:LabelDesignerCanvas.DeleteSelectionCommand" AutomationProperties.Name="Delete Selection" AutomationProperties.AutomationId="Shell.Ribbon.DeleteSelection">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/delete_selection.png"/><TextBlock Text="Delete" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Selection" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/delete_selection.png"/><TextBlock Text="{Binding Ui.Delete}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Selection}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                         </Button>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Selection"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Selection}"/>
                     </StackPanel>
 
                     <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource RibbonButton}" Click="Help_Click" AutomationProperties.Name="Help" AutomationProperties.AutomationId="Shell.Ribbon.Help">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="Help" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="F1" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="{Binding Ui.Help}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="F1" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="CheckUpdates_Click" ToolTip="Kiểm tra bản cập nhật mới từ GitHub Releases" AutomationProperties.Name="Check for Updates" AutomationProperties.AutomationId="Shell.Ribbon.CheckUpdates">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/app_update.png"/><TextBlock Text="Update" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="GitHub" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
+                            <Button Style="{StaticResource RibbonButton}" Click="CheckUpdates_Click" ToolTip="Kiểm tra bản cập nhật mới từ các bản phát hành trên GitHub" AutomationProperties.Name="Check for Updates" AutomationProperties.AutomationId="Shell.Ribbon.CheckUpdates">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/app_update.png"/><TextBlock Text="{Binding Ui.Update}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="GitHub" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
                             </Button>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Help"/>
+                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Help}"/>
                     </StackPanel>
                 </StackPanel>
             </Viewbox>
@@ -634,7 +637,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock FontWeight="SemiBold" Foreground="#173B72" VerticalAlignment="Center" Margin="0,0,14,0"
                                MaxWidth="220" TextTrimming="CharacterEllipsis">
-                        <Run Text="Printer: "/>
+                        <Run Text="{Binding Ui.PrinterPrefix, Mode=OneWay}"/>
                         <Run Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=—, FallbackValue=—}"/>
                     </TextBlock>
                     <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
@@ -655,7 +658,7 @@
                             Background="#FFF7ED"
                             BorderBrush="#FDBA74"
                             Foreground="#9A3412"
-                            ToolTip="Review uncertain print jobs; automatic retry is disabled">
+                            ToolTip="Xem xét lệnh in chưa chắc chắn; tự động thử lại đã tắt">
                         <TextBlock Text="{Binding PrintRecoveryStatusText}" FontWeight="SemiBold"/>
                     </Button>
                 </StackPanel>
@@ -672,7 +675,7 @@
             <Grid.Background>
                 <VisualBrush TileMode="Tile" Viewport="0,0,600,300" ViewportUnits="Absolute">
                     <VisualBrush.Visual>
-                        <TextBlock Text="cre: Duc An" FontSize="56" FontWeight="Bold" Foreground="#64748B" Opacity="0.18" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <TextBlock Text="cre: Đức An" FontSize="56" FontWeight="Bold" Foreground="#64748B" Opacity="0.18" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </VisualBrush.Visual>
                 </VisualBrush>
             </Grid.Background>
@@ -701,8 +704,8 @@
                             AutomationProperties.AutomationId="Shell.Toolbox"
                             AutomationProperties.Name="Insert objects">
                         <DockPanel>
-                            <TextBlock Text="Insert objects" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HideToolboxCommand}" ToolTip="Hide toolbox">
+                            <TextBlock Text="{Binding Ui.InsertObjects}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HideToolboxCommand}" ToolTip="Ẩn hộp công cụ">
                                 <Image Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
                             </Button>
                         </DockPanel>
@@ -710,26 +713,26 @@
 
                     <StackPanel Grid.Row="1" Margin="8,8,8,8">
                         <UniformGrid Columns="2" Rows="4">
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Static Text" TextAlignment="Center" FontSize="12"/></StackPanel>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}" ToolTip="Chữ (một dòng, nội dung tự sở hữu)">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Chữ" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextBoxCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/text_box.png"/><TextBlock Text="Text Box" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/text_box.png"/><TextBlock Text="Ô chữ" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddBarcodeCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/barcode.png"/><TextBlock Text="Barcode" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/barcode.png"/><TextBlock Text="Mã vạch" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddLineCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/line.png"/><TextBlock Text="Line" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/line.png"/><TextBlock Text="Đường kẻ" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddRectangleCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rectangle.png"/><TextBlock Text="Rectangle" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rectangle.png"/><TextBlock Text="Hình chữ nhật" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Ellipse" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Hình bầu dục" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddImageCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Image" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Hình ảnh" TextAlignment="Center" FontSize="12"/></StackPanel>
                             </Button>
                         </UniformGrid>
 
@@ -763,7 +766,7 @@
                         <DockPanel>
                             <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                                 <DockPanel>
-                                    <TextBlock Text="Workspace" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Không gian làm việc" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     <Image DockPanel.Dock="Right" Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
                                 </DockPanel>
                             </Border>
@@ -772,7 +775,7 @@
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
                                             <Image Source="Icons/panels.png" Width="15" Height="15" Margin="0,0,6,0"/>
-                                            <TextBlock Text="Layers"/>
+                                            <TextBlock Text="Lớp"/>
                                         </StackPanel>
                                     </TabItem.Header>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -781,7 +784,7 @@
                                                 <TreeView>
                                                     <TreeViewItem IsExpanded="True">
                                                         <TreeViewItem.Header>
-                                                            <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Template" FontWeight="SemiBold"/></StackPanel>
+                                                            <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem" FontWeight="SemiBold"/></StackPanel>
                                                         </TreeViewItem.Header>
                                                         <TreeViewItem Header="{Binding Template.Name}"/>
                                                         <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
@@ -791,7 +794,7 @@
                                             </Border>
                                             <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8">
                                                 <StackPanel>
-                                                    <TextBlock Text="Objects" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="2,0,0,6"/>
+                                                    <TextBlock Text="Đối tượng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="2,0,0,6"/>
                                                     <TreeView ItemsSource="{Binding Template.Objects}">
                                                         <TreeView.ItemTemplate>
                                                             <HierarchicalDataTemplate>
@@ -812,7 +815,7 @@
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
                                             <Image Source="Icons/database.png" Width="15" Height="15" Margin="0,0,6,0"/>
-                                            <TextBlock Text="Data"/>
+                                            <TextBlock Text="Dữ liệu"/>
                                         </StackPanel>
                                     </TabItem.Header>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -820,7 +823,7 @@
                                     <TreeView Padding="0,0,0,8" Visibility="Collapsed">
                                         <TreeViewItem IsExpanded="True" Visibility="Collapsed">
                                             <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Template"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem Header="{Binding Template.Name}"/>
                                             <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
@@ -828,7 +831,7 @@
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.Objects}" Visibility="Collapsed">
                                             <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/panels.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Objects"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/panels.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Đối tượng"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
                                                 <HierarchicalDataTemplate>
@@ -878,20 +881,20 @@
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True">
                                             <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/database.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Database"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/database.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Cơ sở dữ liệu"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem Header="{Binding LinkedExcelSourceText}"/>
                                             <TextBlock Text="{Binding ExcelDataFreshnessText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" Margin="4,0,4,2" TextWrapping="Wrap"/>
                                              <TextBlock Text="{Binding ExcelLinkStatusText}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap"/>
                                              <TextBlock Text="{Binding DataTransformError}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding HasDataTransformError, Converter={StaticResource BoolToVisibility}}"/>
-                                            <Button Content="🔗 Relink Excel..." Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
+                                            <Button Content="🔗 Liên kết lại Excel..." Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
                                             <TextBlock Text="{Binding ExcelStaleNoticeText}" Foreground="#B45309" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
-                                            <Button Content="↻ Update Excel" Command="{Binding RefreshExcelDataCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
-                                            <Button Content="⛔ Unlink Excel" Click="UnlinkExcel_Click" Margin="4,2" Padding="6,2" HorizontalAlignment="Left"
-                                                    ToolTip="Remove the Excel link from this template. Object bindings are kept — import Excel again to resume printing."
+                                            <Button Content="↻ Cập nhật Excel" Command="{Binding RefreshExcelDataCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
+                                            <Button Content="⛔ Bỏ liên kết Excel" Click="UnlinkExcel_Click" Margin="4,2" Padding="6,2" HorizontalAlignment="Left"
+                                                    ToolTip="Bỏ liên kết Excel khỏi mẫu tem này. Ràng buộc đối tượng vẫn giữ — nhập Excel lại để in tiếp."
                                                     Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}"/>
                                              <TreeViewItem Header="{Binding CurrentExcelRowText}"/>
-                                             <TreeViewItem Header="Transforms" IsExpanded="False" Visibility="Collapsed">
+                                             <TreeViewItem Header="Biến đổi" IsExpanded="False" Visibility="Collapsed">
                                                  <ItemsControl ItemsSource="{Binding DataTransforms}">
                                                      <ItemsControl.ItemTemplate>
                                                          <DataTemplate>
@@ -911,18 +914,18 @@
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
                                                 <Image Source="Icons/database.png" Width="18" Height="18" Margin="0,0,7,0"/>
-                                                <TextBlock Text="Current data" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                                <TextBlock Text="Dữ liệu hiện tại" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             </StackPanel>
                                             <TextBlock Text="{Binding LinkedExcelSourceText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding LinkedExcelSourceText}"/>
                                             <TextBlock Text="{Binding CurrentExcelRowText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,3,0,0"/>
                                             <TextBlock Text="{Binding ExcelDataFreshnessText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                             <TextBlock Text="{Binding ExcelLinkStatusText}" FontSize="10.5" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                             <WrapPanel Margin="0,7,0,0">
-                                                <Button Content="Relink Excel..." Command="{Binding RelinkExcelCommand}" Padding="7,3" Margin="0,0,5,5"
+                                                <Button Content="Liên kết lại Excel..." Command="{Binding RelinkExcelCommand}" Padding="7,3" Margin="0,0,5,5"
                                                         Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
-                                                <Button Content="Update Excel" Command="{Binding RefreshExcelDataCommand}" Padding="7,3" Margin="0,0,5,5"/>
-                                                <Button Content="Unlink" Click="UnlinkExcel_Click" Padding="7,3" Margin="0,0,0,5"
-                                                        ToolTip="Remove the Excel link while keeping object bindings."/>
+                                                <Button Content="Cập nhật Excel" Command="{Binding RefreshExcelDataCommand}" Padding="7,3" Margin="0,0,5,5"/>
+                                                <Button Content="Bỏ liên kết" Click="UnlinkExcel_Click" Padding="7,3" Margin="0,0,0,5"
+                                                        ToolTip="Bỏ liên kết Excel nhưng vẫn giữ ràng buộc đối tượng."/>
                                             </WrapPanel>
                                         </StackPanel>
                                     </Border>
@@ -942,14 +945,14 @@
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                                 <Image Source="Icons/database.png" Width="22" Height="22" Margin="0,0,8,0" VerticalAlignment="Top"/>
                                                 <StackPanel>
-                                                    <TextBlock Text="No data linked" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="Import Excel or CSV to preview rows and bind object fields." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="Chưa liên kết dữ liệu" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <Button Click="ImportExcel_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="{StaticResource AppBlueBrush}" Foreground="#FFFFFF" BorderBrush="{StaticResource AppBlueBrush}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                     <TextBlock Text="⊞" FontSize="16" Foreground="#FFFFFF" Margin="0,0,7,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="Import Excel / CSV" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Nhập Excel / CSV" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>
@@ -958,7 +961,7 @@
                                             Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel>
                                             <DockPanel Margin="0,0,0,6">
-                                                <TextBlock Text="Excel Rows" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Dòng Excel" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" VerticalAlignment="Center"/>
                                                 <TextBlock DockPanel.Dock="Right" Text="{Binding CurrentExcelRowText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
                                             </DockPanel>
                                             <DataGrid ItemsSource="{Binding ExcelDataView}"
@@ -975,31 +978,31 @@
                                                       IsReadOnly="True"/>
                                         </StackPanel>
                                     </Border>
-                                    <Expander Header="Data settings · Tracking, copies, transforms &amp; sources" IsExpanded="False" Margin="0,8,0,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}">
+                                    <Expander Header="Cài đặt dữ liệu · Theo dõi, số bản, biến đổi &amp; nguồn" IsExpanded="False" Margin="0,8,0,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}">
                                     <StackPanel>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
                                             Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel>
-                                            <TextBlock Text="Row Tracking Key" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Khóa theo dõi dòng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Optional: pick a column to keep the same row selected after refresh, even if Excel rows are inserted or removed. Leave blank to track by row position."/>
+                                                       Text="Tùy chọn: chọn một cột để giữ nguyên dòng đang chọn sau khi nạp lại, kể cả khi có dòng Excel được thêm hoặc xóa. Bỏ trống để theo dõi theo vị trí dòng."/>
                                             <ComboBox ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedKeyFieldName, Mode=TwoWay}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
                                             Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel>
-                                            <TextBlock Text="Copies Per Record" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Số bản mỗi dòng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Optional: pick a column whose value sets how many labels to print for each row in Print Preview. Leave blank for 1 copy per row (still editable by hand there)."/>
+                                                       Text="Tùy chọn: chọn cột có giá trị quy định số tem in cho mỗi dòng trong Xem trước khi in. Bỏ trống để in 1 bản mỗi dòng (vẫn sửa tay được ở đó)."/>
                                             <ComboBox ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedCopiesFieldName, Mode=TwoWay}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="Shared Data Sources" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Nguồn dữ liệu dùng chung" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Reuse one Excel file/sheet across multiple templates. Relinking a shared source once fixes it for every template that uses it."/>
+                                                       Text="Dùng lại một tệp/trang Excel cho nhiều mẫu tem. Liên kết lại nguồn dùng chung một lần sẽ sửa cho mọi mẫu tem đang dùng nó."/>
                                             <ItemsControl ItemsSource="{Binding DataSources}" Margin="0,0,0,6">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -1007,13 +1010,13 @@
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
-                                            <Button Content="Manage Data Sources..." Click="ManageDataSources_Click" HorizontalAlignment="Left" Padding="6,2"/>
+                                            <Button Content="Quản lý nguồn dữ liệu..." Click="ManageDataSources_Click" HorizontalAlignment="Left" Padding="6,2"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="Transforms" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock Text="Calculated fields run before preview and print." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"/>
+                                            <TextBlock Text="Biến đổi" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Trường tính toán chạy trước khi xem trước và in." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"/>
                                             <ItemsControl ItemsSource="{Binding DataTransforms}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -1041,7 +1044,7 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock Text="Binding checks" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Kiểm tra ràng buộc" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             <TextBlock Text="{Binding BindingIssuesSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                             <ItemsControl ItemsSource="{Binding BindingIssues}" Margin="0,8,0,0">
                                                 <ItemsControl.ItemTemplate>
@@ -1151,13 +1154,13 @@
                     <Border DockPanel.Dock="Top" Height="42" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="14,0">
                         <DockPanel>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Object Properties" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="Thuộc tính đối tượng" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <Border Margin="8,0,0,0" Padding="6,2" CornerRadius="4" Background="#EAF3FF" BorderBrush="#9BC4F5" BorderThickness="1" VerticalAlignment="Center"
-                                        ToolTip="NiceLabel pins Object Properties with F4; ANLAbel keeps this docked panel always available.">
-                                    <TextBlock Text="docked" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                        ToolTip="NiceLabel ghim Thuộc tính đối tượng bằng F4; ANLAbel luôn giữ bảng cố định này sẵn sàng.">
+                                    <TextBlock Text="cố định" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                 </Border>
                             </StackPanel>
-                            <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HidePropertiesCommand}" ToolTip="Hide properties">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HidePropertiesCommand}" ToolTip="Ẩn thuộc tính">
                                 <Image Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
                             </Button>
                         </DockPanel>
@@ -1186,8 +1189,8 @@
                                             <Image Source="Icons/cursor_select.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                            <TextBlock Text="No object selected" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock Text="Select an object to edit position, content and style." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            <TextBlock Text="Chưa chọn đối tượng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Chọn một đối tượng để sửa vị trí, nội dung và kiểu." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -1196,29 +1199,29 @@
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <Image Source="Icons/folder.png" Width="18" Height="18" Margin="0,0,7,0"/>
-                                            <TextBlock Text="Document" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock Text="Tài liệu" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                         </StackPanel>
                                         <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Label size" Foreground="{StaticResource AppMutedBrush}"/>
+                                            <TextBlock Text="Kích thước tem" Foreground="{StaticResource AppMutedBrush}"/>
                                             <TextBlock Grid.Column="1" HorizontalAlignment="Right" FontWeight="SemiBold">
                                                 <Run Text="{Binding Template.WidthMm, StringFormat={}{0:0.##}}"/><Run Text=" × "/><Run Text="{Binding Template.HeightMm, StringFormat={}{0:0.##}}"/><Run Text=" mm"/>
                                             </TextBlock>
                                         </Grid>
                                         <Grid Margin="0,5,0,2">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Printer" Foreground="{StaticResource AppMutedBrush}"/>
+                                            <TextBlock Text="Máy in" Foreground="{StaticResource AppMutedBrush}"/>
                                             <TextBlock Grid.Column="1" Text="{Binding PrinterDisplayName}" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#B45309" TextTrimming="CharacterEllipsis" MaxWidth="142"/>
                                         </Grid>
                                         <Grid Margin="0,5,0,8">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Data" Foreground="{StaticResource AppMutedBrush}"/>
+                                            <TextBlock Text="Dữ liệu" Foreground="{StaticResource AppMutedBrush}"/>
                                             <TextBlock Grid.Column="1" Text="{Binding LinkedExcelSourceText}" HorizontalAlignment="Right" FontSize="10.5" FontWeight="SemiBold" Foreground="#475569" TextTrimming="CharacterEllipsis" MaxWidth="142"/>
                                         </Grid>
                                         <Button Click="PrinterSetup_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="#EAF3FF" BorderBrush="#5B8DD4" Foreground="{StaticResource AppBlueDarkBrush}">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                 <Image Source="Icons/printer_setup.png" Width="16" Height="16" Margin="0,0,7,0"/>
-                                                <TextBlock Text="Label &amp; printer setup" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Cài đặt tem &amp; máy in" FontWeight="SemiBold"/>
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
@@ -1281,7 +1284,7 @@
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <Image Source="Icons/static_text.png" Width="14" Height="14" Margin="0,0,5,0"/>
-                                                <TextBlock Text="Label"/>
+                                                <TextBlock Text="Tem"/>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
@@ -1289,7 +1292,7 @@
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <Image Source="Icons/panels.png" Width="14" Height="14" Margin="0,0,5,0"/>
-                                                <TextBlock Text="Layout"/>
+                                                <TextBlock Text="Bố cục"/>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
@@ -1297,7 +1300,7 @@
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <Image Source="Icons/settings.png" Width="14" Height="14" Margin="0,0,5,0"/>
-                                                <TextBlock Text="Advanced"/>
+                                                <TextBlock Text="Nâng cao"/>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
@@ -1318,7 +1321,7 @@
                                     <Expander IsExpanded="True" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}">
                                         <Expander.Header>
                                             <StackPanel>
-                                                <TextBlock Text="Position &amp; size" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Vị trí &amp; kích thước" FontWeight="SemiBold"/>
                                                 <TextBlock FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0">
                                                     <TextBlock.Text>
                                                         <MultiBinding StringFormat="{}{0:0.##}, {1:0.##} · {2:0.##} × {3:0.##} mm">
@@ -1357,11 +1360,11 @@
                                             <Grid>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="Width" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Rộng" Style="{StaticResource PropLabel}"/>
                                                     <TextBox Text="{Binding SelectedObject.WidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Height" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Cao" Style="{StaticResource PropLabel}"/>
                                                     <TextBox Text="{Binding SelectedObject.HeightMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                             </Grid>
@@ -1420,8 +1423,8 @@
                                     <Expander IsExpanded="True" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}">
                                     <Expander.Header>
                                         <StackPanel>
-                                            <TextBlock Text="Advanced" FontWeight="SemiBold"/>
-                                            <TextBlock Text="Rotate · align · arrange · layer" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0"/>
+                                            <TextBlock Text="Nâng cao" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Xoay · căn · sắp xếp · lớp" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Expander.Header>
                                     <StackPanel Margin="0,6,0,0">
@@ -1432,44 +1435,44 @@
                                             <Button Content="180°" Command="{Binding SetRotationCommand}" CommandParameter="180" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
                                             <Button Content="270°" Command="{Binding SetRotationCommand}" CommandParameter="270" Padding="4,5" FontSize="11" Margin="2,0,0,0"/>
                                         </UniformGrid>
-                                        <TextBlock Text="Align reference" Style="{StaticResource PropLabel}" Margin="0,6,0,1"/>
+                                        <TextBlock Text="Mốc căn chỉnh" Style="{StaticResource PropLabel}" Margin="0,6,0,1"/>
                                         <ComboBox x:Name="ArrangeReferenceCombo" SelectedIndex="0" Margin="0,0,0,4">
-                                            <ComboBoxItem Content="Selection frame" Tag="SelectionBounds"/>
-                                            <ComboBoxItem Content="Key object (selected)" Tag="KeyObject"/>
-                                            <ComboBoxItem Content="Label artboard" Tag="Canvas"/>
+                                            <ComboBoxItem Content="Khung vùng chọn" Tag="SelectionBounds"/>
+                                            <ComboBoxItem Content="Đối tượng mốc (đang chọn)" Tag="KeyObject"/>
+                                            <ComboBoxItem Content="Khung tem" Tag="Canvas"/>
                                         </ComboBox>
-                                        <TextBlock Text="Align objects" Style="{StaticResource PropLabel}"/>
+                                        <TextBlock Text="Căn đối tượng" Style="{StaticResource PropLabel}"/>
                                         <UniformGrid Columns="3" Margin="0,0,0,3">
-                                            <Button Content="Left" Tag="Left" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="0,0,2,0"/>
-                                            <Button Content="Center" Tag="HorizontalCenter" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="1,0,1,0"/>
-                                            <Button Content="Right" Tag="Right" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="2,0,0,0"/>
-                                            <Button Content="Top" Tag="Top" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="0,2,2,0"/>
-                                            <Button Content="Middle" Tag="VerticalCenter" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="1,2,1,0"/>
-                                            <Button Content="Bottom" Tag="Bottom" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="2,2,0,0"/>
+                                            <Button Content="Trái" Tag="Left" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="0,0,2,0"/>
+                                            <Button Content="Giữa" Tag="HorizontalCenter" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="1,0,1,0"/>
+                                            <Button Content="Phải" Tag="Right" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="2,0,0,0"/>
+                                            <Button Content="Trên" Tag="Top" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="0,2,2,0"/>
+                                            <Button Content="Giữa (dọc)" Tag="VerticalCenter" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="1,2,1,0"/>
+                                            <Button Content="Dưới" Tag="Bottom" Click="ArrangeAlign_Click" Padding="3,4" FontSize="10" Margin="2,2,0,0"/>
                                         </UniformGrid>
-                                        <Button Content="Align text baselines" Click="ArrangeBaseline_Click" Padding="3,4" FontSize="10" Margin="0,0,0,3" ToolTip="Align the first baseline of the selected Text/TextBox objects to the selected key text object"/>
-                                        <Button Content="Optical ink center" Click="ArrangeOptical_Click" Padding="3,4" FontSize="10" Margin="0,0,0,3" ToolTip="Explicitly align the visible glyph ink center; this is different from frame or baseline alignment"/>
-                                        <TextBlock Text="Distribute (3+ objects)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <Button Content="Căn đường cơ sở chữ" Click="ArrangeBaseline_Click" Padding="3,4" FontSize="10" Margin="0,0,0,3" ToolTip="Căn đường cơ sở đầu tiên của các đối tượng Chữ/Ô chữ đã chọn theo đối tượng chữ mốc"/>
+                                        <Button Content="Tâm mực quang học" Click="ArrangeOptical_Click" Padding="3,4" FontSize="10" Margin="0,0,0,3" ToolTip="Căn rõ tâm mực nét chữ nhìn thấy; khác với căn theo khung hoặc đường cơ sở"/>
+                                        <TextBlock Text="Phân bố (3+ đối tượng)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <UniformGrid Columns="2" Margin="0,0,0,4">
-                                            <Button Content="Centers horizontal" Tag="HorizontalCenters" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="0,0,2,0"/>
-                                            <Button Content="Centers vertical" Tag="VerticalCenters" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="2,0,0,0"/>
-                                            <Button Content="Gaps horizontal" Tag="HorizontalGaps" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="0,2,2,0"/>
-                                            <Button Content="Gaps vertical" Tag="VerticalGaps" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="2,2,0,0"/>
+                                            <Button Content="Tâm theo chiều ngang" Tag="HorizontalCenters" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="0,0,2,0"/>
+                                            <Button Content="Tâm theo chiều dọc" Tag="VerticalCenters" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="2,0,0,0"/>
+                                            <Button Content="Khoảng cách ngang" Tag="HorizontalGaps" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="0,2,2,0"/>
+                                            <Button Content="Khoảng cách dọc" Tag="VerticalGaps" Click="ArrangeDistribute_Click" Padding="3,4" FontSize="10" Margin="2,2,0,0"/>
                                         </UniformGrid>
-                                        <TextBlock Text="Layer order" Style="{StaticResource PropLabel}"/>
+                                        <TextBlock Text="Thứ tự lớp" Style="{StaticResource PropLabel}"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Button Content="↑ Bring to Front" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
-                                            <Button Grid.Column="2" Content="↓ Send to Back" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Content="↑ Đưa lên trên cùng" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Grid.Column="2" Content="↓ Đưa xuống dưới cùng" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Button Content="Bring Forward" Command="{Binding BringForwardCommand}" Padding="6,5" FontSize="11"/>
-                                            <Button Grid.Column="2" Content="Send Backward" Command="{Binding SendBackwardCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Content="Đưa lên trước" Command="{Binding BringForwardCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Grid.Column="2" Content="Đưa ra sau" Command="{Binding SendBackwardCommand}" Padding="6,5" FontSize="11"/>
                                         </Grid>
                                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <CheckBox Content="Visible" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
-                                            <CheckBox Content="Locked" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                            <CheckBox Content="Hiển thị" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
+                                            <CheckBox Content="Khóa" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </StackPanel>
                                     </Expander>
@@ -1489,7 +1492,7 @@
                                     </StackPanel.Style>
                                 <Border Style="{StaticResource PropCard}">
                                     <StackPanel>
-                                        <TextBlock Text="Content" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Nội dung" Style="{StaticResource PropTitle}"/>
                                         <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,0,0,7">
                                             <Border.Style>
                                                 <Style TargetType="Border">
@@ -1547,20 +1550,20 @@
                                                 <TextBlock Text="{Binding ExcelLinkVerificationTrustText}" Foreground="#66758A" FontSize="9.5" TextWrapping="Wrap" Margin="0,5,0,0"/>
                                             </StackPanel>
                                         </Border>
-                                        <TextBlock Text="Source" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <TextBlock Text="Nguồn" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <ComboBox x:Name="ContentSourceComboBox" SelectionChanged="ContentSourceComboBox_SelectionChanged" SelectedIndex="0" Margin="0,0,0,2">
-                                            <ComboBoxItem Content="Text" Tag="Static"/>
-                                            <ComboBoxItem Content="Excel Field" Tag="Excel"/>
-                                            <ComboBoxItem Content="Binding / Formula" Tag="Binding"/>
+                                            <ComboBoxItem Content="Chữ" Tag="Static"/>
+                                            <ComboBoxItem Content="Trường Excel" Tag="Excel"/>
+                                            <ComboBoxItem Content="Ràng buộc / Công thức" Tag="Binding"/>
                                         </ComboBox>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Excel"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                            <TextBlock Text="Text" Style="{StaticResource PropLabel}"/>
+                                            <TextBlock Text="Chữ" Style="{StaticResource PropLabel}"/>
                                             <TextBox x:Name="ObjectTextBox" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" Margin="0,2,0,0" PreviewTextInput="ObjectTextBox_PreviewTextInput"/>
                                         </StackPanel>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Excel"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                            <TextBlock Text="Excel field" Style="{StaticResource PropLabel}"/>
+                                            <TextBlock Text="Trường Excel" Style="{StaticResource PropLabel}"/>
                                             <ComboBox x:Name="ExcelFieldComboBox"
                                                       ItemsSource="{Binding LabelDatabaseFields}"
                                                       SelectedItem="{Binding SelectedLabelDatabaseField, Mode=TwoWay}"
@@ -1570,10 +1573,10 @@
                                         </StackPanel>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                            <Expander Header="Formula Builder" IsExpanded="True" Margin="0,2,0,0">
+                                            <Expander Header="Trình tạo công thức" IsExpanded="True" Margin="0,2,0,0">
                                                 <StackPanel Margin="0,6,0,0">
                                                     <!-- Fields section -->
-                                                    <TextBlock Text="Add Excel field" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Thêm trường Excel" Style="{StaticResource PropLabel}"/>
                                                     <ItemsControl ItemsSource="{Binding LabelDatabaseFields}">
                                                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                                         <ItemsControl.ItemTemplate>
@@ -1583,34 +1586,34 @@
                                                         </ItemsControl.ItemTemplate>
                                                     </ItemsControl>
                                                     <!-- Separators -->
-                                                    <TextBlock Text="Separators" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Dấu ngăn cách" Style="{StaticResource PropLabel}"/>
                                                     <WrapPanel>
-                                                        <Button Style="{StaticResource ChipButton}" Content="Space" Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" "/>
+                                                        <Button Style="{StaticResource ChipButton}" Content="Khoảng trắng" Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" "/>
                                                         <Button Style="{StaticResource ChipButton}" Content=" - " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" - "/>
                                                         <Button Style="{StaticResource ChipButton}" Content=" / " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" / "/>
                                                         <Button Style="{StaticResource ChipButton}" Content=" | " Command="{Binding AddFormulaSeparatorPartCommand}" CommandParameter=" | "/>
                                                     </WrapPanel>
                                                     <!-- Text part -->
-                                                    <TextBlock Text="Add text" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Thêm chữ" Style="{StaticResource PropLabel}"/>
                                                     <Grid>
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="5"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                                         <TextBox Text="{Binding FormulaBuilderText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="12" MinHeight="26" Margin="0"/>
-                                                        <Button Grid.Column="2" Style="{StaticResource ChipButton}" Content="Add" Command="{Binding AddFormulaTextPartCommand}" Margin="0" MinHeight="26"/>
+                                                        <Button Grid.Column="2" Style="{StaticResource ChipButton}" Content="Thêm" Command="{Binding AddFormulaTextPartCommand}" Margin="0" MinHeight="26"/>
                                                     </Grid>
                                                     <!-- Parts list -->
-                                                    <TextBlock Text="Formula parts" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Thành phần công thức" Style="{StaticResource PropLabel}"/>
                                                     <ListBox ItemsSource="{Binding FormulaBuilderParts}" SelectedItem="{Binding SelectedFormulaBuilderPart, Mode=TwoWay}" DisplayMemberPath="DisplayText" MaxHeight="90" FontSize="11"/>
-                                                    <Button Style="{StaticResource ChipButton}" Content="Remove selected" Command="{Binding RemoveFormulaPartCommand}" Margin="0,5,0,0" HorizontalAlignment="Right"/>
+                                                    <Button Style="{StaticResource ChipButton}" Content="Xóa mục đã chọn" Command="{Binding RemoveFormulaPartCommand}" Margin="0,5,0,0" HorizontalAlignment="Right"/>
                                                     <!-- Expression preview -->
-                                                    <TextBlock Text="Expression" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Biểu thức" Style="{StaticResource PropLabel}"/>
                                                     <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,4">
                                                         <TextBlock Text="{Binding FormulaBuilderExpression}" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
                                                     </Border>
                                                     <!-- Apply / Clear -->
                                                     <Grid Margin="0,6,0,0">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                        <Button Content="Clear" Command="{Binding ClearFormulaBuilderCommand}" Padding="6,6" FontSize="11"/>
-                                                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Height="Auto" Padding="6,6" FontSize="11" Content="Apply Formula" Command="{Binding ApplyFormulaBuilderCommand}"/>
+                                                        <Button Content="Xóa hết" Command="{Binding ClearFormulaBuilderCommand}" Padding="6,6" FontSize="11"/>
+                                                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Height="Auto" Padding="6,6" FontSize="11" Content="Áp dụng công thức" Command="{Binding ApplyFormulaBuilderCommand}"/>
                                                     </Grid>
                                                 </StackPanel>
                                             </Expander>
@@ -1629,10 +1632,10 @@
                                                 </Style>
                                             </StackPanel.Style>
                                             <Border BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,8"/>
-                                            <TextBlock Text="Binding" Style="{StaticResource PropTitle}"/>
+                                            <TextBlock Text="Ràng buộc" Style="{StaticResource PropTitle}"/>
                                             <TextBlock Text="{Binding SelectedBindingKindText, StringFormat=Source type: {0}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding SelectedBindingStatusText}" FontSize="10.5" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="0,2,0,2"/>
-                                            <TextBlock Text="Preview" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
+                                            <TextBlock Text="Xem trước" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
                                             <TextBox Text="{Binding SelectedBindingPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="22" Margin="0,0,0,2"/>
                                             <TextBlock Text="{Binding SelectedBindingUsedFieldsSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding SelectedBindingMissingFieldsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -1650,8 +1653,8 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
-                                            <TextBlock Text="Formula Output" Style="{StaticResource PropTitle}"/>
-                                            <TextBlock Text="Output" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="Kết quả công thức" Style="{StaticResource PropTitle}"/>
+                                            <TextBlock Text="Kết quả" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                             <TextBox Text="{Binding FormulaPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="26" Margin="0,0,0,4"/>
                                             <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Used fields: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
@@ -1674,7 +1677,7 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Text Style" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Kiểu chữ" Style="{StaticResource PropTitle}"/>
                                         <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="4" Padding="7,5" Margin="0,0,0,6">
                                             <Grid>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -1704,7 +1707,7 @@
                                                 </TextBlock>
                                             </Grid>
                                         </Border>
-                                        <TextBlock Text="Font" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <TextBlock Text="Phông chữ" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <DockPanel LastChildFill="True" Margin="0,0,0,4">
                                             <Border DockPanel.Dock="Right"
                                                     Height="24"
@@ -1719,7 +1722,7 @@
                                                                   IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}"
                                                                   AutomationProperties.AutomationId="Properties.TextStyle.Bold"
                                                                   AutomationProperties.Name="Bold"
-                                                                  ToolTip="Bold">
+                                                                  ToolTip="Đậm">
                                                         <TextBlock Text="B" FontWeight="Bold" FontSize="11"/>
                                                     </ToggleButton>
                                                     <Rectangle Width="1" Fill="#C7D2DE"/>
@@ -1727,7 +1730,7 @@
                                                                   IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}"
                                                                   AutomationProperties.AutomationId="Properties.TextStyle.Italic"
                                                                   AutomationProperties.Name="Italic"
-                                                                  ToolTip="Italic">
+                                                                  ToolTip="Nghiêng">
                                                         <TextBlock Text="I" FontStyle="Italic" FontSize="11"/>
                                                     </ToggleButton>
                                                     <Rectangle Width="1" Fill="#C7D2DE"/>
@@ -1735,7 +1738,7 @@
                                                                   IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}"
                                                                   AutomationProperties.AutomationId="Properties.TextStyle.Underline"
                                                                   AutomationProperties.Name="Underline"
-                                                                  ToolTip="Underline">
+                                                                  ToolTip="Gạch chân">
                                                         <TextBlock Text="U" TextDecorations="Underline" FontSize="11"/>
                                                     </ToggleButton>
                                                 </StackPanel>
@@ -1753,7 +1756,7 @@
                                                       KeyDown="FontSizeCombo_KeyDown"
                                                       AutomationProperties.AutomationId="Properties.TextStyle.FontSize"
                                                       AutomationProperties.Name="Font size"
-                                                      ToolTip="Type a size in points, like Excel, or pick a standard size."/>
+                                                      ToolTip="Nhập cỡ theo pt như Excel, hoặc chọn một cỡ chuẩn."/>
                                             <ComboBox Style="{StaticResource FontToolbarCombo}"
                                                       IsEditable="True"
                                                       IsTextSearchEnabled="True"
@@ -1762,7 +1765,7 @@
                                                       SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
                                                       AutomationProperties.AutomationId="Properties.TextStyle.FontFamily"
                                                       AutomationProperties.Name="Font family"
-                                                      ToolTip="Licensed Windows and open fonts only. Unlicensed machine fonts are not listed.">
+                                                      ToolTip="Chỉ phông Windows có bản quyền và phông mở. Không liệt kê phông máy không có bản quyền.">
                                                 <ComboBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="13"/>
@@ -1781,10 +1784,10 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
-                                            <TextBlock Text="Fit inside frame" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                            <TextBlock Text="Vừa trong khung" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                             <ComboBox ItemsSource="{Binding TextBoxSizingModes}"
                                                       SelectedItem="{Binding SelectedObject.Style.TextSizing, Mode=TwoWay}"
-                                                      ToolTip="All modes preserve the Width/Height you design: wrap at authored font, fit by point size, or fit by horizontal font scaling." Margin="0,0,0,3">
+                                                      ToolTip="Mọi chế độ giữ nguyên Rộng/Cao bạn thiết kế: xuống dòng theo cỡ phông gốc, vừa theo cỡ pt, hoặc vừa bằng co giãn phông theo chiều ngang." Margin="0,0,0,3">
                                                 <ComboBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <TextBlock>
@@ -1801,10 +1804,10 @@
                                                     </DataTemplate>
                                                 </ComboBox.ItemTemplate>
                                             </ComboBox>
-                                            <TextBlock Text="When content is too tall" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                            <TextBlock Text="Khi nội dung quá cao" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                             <ComboBox ItemsSource="{Binding TextBoxOverflowModes}"
                                                       SelectedItem="{Binding SelectedObject.Style.TextOverflow, Mode=TwoWay}"
-                                                      ToolTip="Block print is safest. Clip hides excess content. Ellipsis marks the final visible line. TextBox never allows glyphs outside its frame." Margin="0,0,0,3">
+                                                      ToolTip="Chặn in là an toàn nhất. Cắt sẽ ẩn phần dư. Dấu ba chấm đánh dấu dòng cuối nhìn thấy. Ô chữ không bao giờ cho nét chữ tràn ra ngoài khung." Margin="0,0,0,3">
                                                 <ComboBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <TextBlock>
@@ -1834,12 +1837,12 @@
                                                 </Grid.Style>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="Minimum font (pt)" Style="{StaticResource PropLabel}"/>
+                                                    <TextBlock Text="Phông nhỏ nhất (pt)" Style="{StaticResource PropLabel}"/>
                                                     <TextBox Text="{Binding SelectedObject.Style.TextFitMinimumFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Maximum font (pt)" Style="{StaticResource PropLabel}"/>
-                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMaximumFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="0 uses the authored font size for older templates." KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                    <TextBlock Text="Phông lớn nhất (pt)" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMaximumFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="0 dùng cỡ phông gốc cho các mẫu tem cũ." KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                             </Grid>
                                             <Grid Margin="0,1,0,3">
@@ -1855,16 +1858,16 @@
                                                 </Grid.Style>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                 <StackPanel>
-                                                    <TextBlock Text="Minimum scale" Style="{StaticResource PropLabel}"/>
-                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMinimumScale, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="0.5 means 50% width." KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                    <TextBlock Text="Co giãn nhỏ nhất" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMinimumScale, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="0.5 nghĩa là 50% chiều rộng." KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Maximum scale" Style="{StaticResource PropLabel}"/>
-                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMaximumScale, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="1 is 100%; values above 1 allow stretching." KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                    <TextBlock Text="Co giãn lớn nhất" Style="{StaticResource PropLabel}"/>
+                                                    <TextBox Text="{Binding SelectedObject.Style.TextFitMaximumScale, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="1 là 100%; giá trị trên 1 cho phép kéo giãn." KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
-                                        <TextBlock Text="Align" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
+                                        <TextBlock Text="Căn" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                             <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True"
                                                     AutomationProperties.AutomationId="Properties.TextStyle.AlignHorizontal">
@@ -1872,7 +1875,7 @@
                                                     <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignLeft"
-                                                                 AutomationProperties.Name="Align left" ToolTip="Align left">
+                                                                 AutomationProperties.Name="Align left" ToolTip="Căn trái">
                                                         <StackPanel Width="14" Height="12">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
@@ -1883,7 +1886,7 @@
                                                     <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Center}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignCenter"
-                                                                 AutomationProperties.Name="Align center" ToolTip="Align center">
+                                                                 AutomationProperties.Name="Align center" ToolTip="Căn giữa">
                                                         <StackPanel Width="14" Height="12">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
@@ -1894,7 +1897,7 @@
                                                     <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Right}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignRight"
-                                                                 AutomationProperties.Name="Align right" ToolTip="Align right">
+                                                                 AutomationProperties.Name="Align right" ToolTip="Căn phải">
                                                         <StackPanel Width="14" Height="12">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
@@ -1905,7 +1908,7 @@
                                                     <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignJustify"
-                                                                 AutomationProperties.Name="Justify" ToolTip="Justify">
+                                                                 AutomationProperties.Name="Justify" ToolTip="Căn đều">
                                                         <StackPanel Width="14" Height="12">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
@@ -1920,7 +1923,7 @@
                                                     <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Top}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignTop"
-                                                                 AutomationProperties.Name="Align top" ToolTip="Align top">
+                                                                 AutomationProperties.Name="Align top" ToolTip="Căn trên">
                                                         <StackPanel Width="14" Height="12" VerticalAlignment="Top">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
@@ -1930,7 +1933,7 @@
                                                     <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Center}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignMiddle"
-                                                                 AutomationProperties.Name="Align middle" ToolTip="Align middle">
+                                                                 AutomationProperties.Name="Align middle" ToolTip="Căn giữa (dọc)">
                                                         <StackPanel Width="14" Height="12" VerticalAlignment="Center">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
@@ -1940,7 +1943,7 @@
                                                     <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
                                                                  IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Bottom}}"
                                                                  AutomationProperties.AutomationId="Properties.TextStyle.AlignBottom"
-                                                                 AutomationProperties.Name="Align bottom" ToolTip="Align bottom">
+                                                                 AutomationProperties.Name="Align bottom" ToolTip="Căn dưới">
                                                         <StackPanel Width="14" Height="12" VerticalAlignment="Bottom">
                                                             <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
                                                             <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
@@ -1949,11 +1952,11 @@
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
-                                        <TextBlock Text="Direction" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Chiều chữ" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <ComboBox ItemsSource="{Binding TextDirections}" SelectedItem="{Binding SelectedObject.Style.TextDirection, Mode=TwoWay}" Margin="0,0,0,3"/>
-                                        <TextBlock Text="Line height (pt; 0 = Auto)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Chiều cao dòng (pt; 0 = Tự động)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <TextBox Text="{Binding SelectedObject.Style.LineHeightPt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
-                                                 ToolTip="Use 0 for the font's natural line height, or enter a minimum line box height in points."
+                                                 ToolTip="Dùng 0 cho chiều cao dòng tự nhiên của phông, hoặc nhập chiều cao hộp dòng tối thiểu theo pt."
                                                  KeyDown="PositionSizeTextBox_KeyDown" Margin="0,0,0,3"/>
                                         <StackPanel>
                                             <StackPanel.Style>
@@ -1966,16 +1969,16 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
-                                        <TextBlock Text="Inner padding (mm)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Đệm trong (mm)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <TextBox Text="{Binding SelectedObject.Style.TextPaddingMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
-                                                 ToolTip="Uniform physical inset applied to the text content in designer, preview, print and preflight. Range: 0–20 mm."
+                                                 ToolTip="Lề vật lý đồng đều áp cho nội dung chữ ở thiết kế, xem trước, in và kiểm tra trước. Khoảng: 0–20 mm."
                                                  KeyDown="PositionSizeTextBox_KeyDown" Margin="0,0,0,3"/>
                                         <UniformGrid Columns="3" Margin="0,1,0,3">
-                                            <Button Content="Tight 0" Tag="0" Click="TextPaddingPreset_Click" ToolTip="Use the whole frame; best for very small labels." Margin="0,0,2,0" Padding="3,2"/>
-                                            <Button Content="Compact .2" Tag="0.2" Click="TextPaddingPreset_Click" ToolTip="Small safety inset; default for new Text Boxes." Margin="1,0" Padding="3,2"/>
-                                            <Button Content="Comfort 1" Tag="1" Click="TextPaddingPreset_Click" ToolTip="Larger inset for roomy labels." Margin="2,0,0,0" Padding="3,2"/>
+                                            <Button Content="Sát 0" Tag="0" Click="TextPaddingPreset_Click" ToolTip="Dùng trọn khung; tốt nhất cho tem rất nhỏ." Margin="0,0,2,0" Padding="3,2"/>
+                                            <Button Content="Gọn .2" Tag="0.2" Click="TextPaddingPreset_Click" ToolTip="Lề an toàn nhỏ; mặc định cho Ô chữ mới." Margin="1,0" Padding="3,2"/>
+                                            <Button Content="Thoáng 1" Tag="1" Click="TextPaddingPreset_Click" ToolTip="Lề lớn hơn cho tem rộng rãi." Margin="2,0,0,0" Padding="3,2"/>
                                         </UniformGrid>
-                                        <TextBlock Text="Edge override L / R / T / B (mm)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Ghi đè cạnh L / R / T / B (mm)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <Grid Margin="0,0,0,3">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
@@ -1985,23 +1988,23 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="L" Style="{StaticResource PropLabel}"/>
-                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingLeftMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Left padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingLeftMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Đệm trái theo mi-li-mét" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="R" Style="{StaticResource PropLabel}"/>
-                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingRightMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Right padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingRightMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Đệm phải theo mi-li-mét" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="4">
                                                 <TextBlock Text="T" Style="{StaticResource PropLabel}"/>
-                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingTopMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Top padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingTopMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Đệm trên theo mi-li-mét" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="6">
                                                 <TextBlock Text="B" Style="{StaticResource PropLabel}"/>
-                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingBottomMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Bottom padding in millimetres" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.TextPaddingBottomMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" ToolTip="Đệm dưới theo mi-li-mét" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             </StackPanel>
                                         </Grid>
                                         </StackPanel>
-                                        <TextBlock Text="Color" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Màu" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                                             <TextBox Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
@@ -2029,7 +2032,7 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Shape Style" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Kiểu hình" Style="{StaticResource PropTitle}"/>
                                         <StackPanel>
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel">
@@ -2041,24 +2044,24 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </StackPanel.Style>
-                                            <TextBlock Text="Fill" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                            <TextBlock Text="Tô nền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                             <Grid Margin="0,0,0,4">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                                                 <ComboBox ItemsSource="{Binding FillStyles}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
                                                 <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.FillColor}"/>
                                             </Grid>
-                                            <TextBlock Text="Corner radius" Style="{StaticResource PropLabel}"/>
+                                            <TextBlock Text="Bo góc" Style="{StaticResource PropLabel}"/>
                                             <TextBox Text="{Binding SelectedObject.Style.CornerRadiusMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown" Margin="0,2,0,4"/>
                                         </StackPanel>
-                                        <TextBlock Text="Outline" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <TextBlock Text="Viền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                                             <ComboBox ItemsSource="{Binding OutlineStyles}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
                                             <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
                                         </Grid>
-                                        <TextBlock Text="Thickness (mm)" Style="{StaticResource PropLabel}"/>
+                                        <TextBlock Text="Độ dày (mm)" Style="{StaticResource PropLabel}"/>
                                         <TextBox Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                     </StackPanel>
                                 </Border>
@@ -2066,105 +2069,105 @@
                                 <Border>
                                     <Border.Style><Style TargetType="Border" BasedOn="{StaticResource PropCard}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.BarcodeCode128}"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.QRCode}"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.DataMatrix}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Barcode" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Mã vạch" Style="{StaticResource PropTitle}"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Standard" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3"><ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle></ComboBox></StackPanel>
-                                            <StackPanel Grid.Row="1"><TextBlock Text="2D Mode" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
-                                            <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="ECC level" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
+                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Chuẩn" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3"><ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle></ComboBox></StackPanel>
+                                            <StackPanel Grid.Row="1"><TextBlock Text="Chế độ 2D" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
+                                            <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="Mức ECC" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
                                         </Grid>
-                                        <TextBlock Text="Application profile" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Hồ sơ ứng dụng" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
                                         <ComboBox ItemsSource="{Binding BarcodeApplicationProfiles}"
                                                   SelectedItem="{Binding SelectedObject.BarcodeApplicationProfile, Mode=TwoWay}"
-                                                  ToolTip="General keeps legacy authoring rules; Industrial and GS1 enable fail-closed production preflight."
+                                                  ToolTip="Chung giữ quy tắc soạn cũ; Công nghiệp và GS1 bật kiểm tra trước kiểu chặn-khi-lỗi cho sản xuất."
                                                   Margin="0,1,0,2"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
-                                                <TextBlock Text="Quiet zone (modules)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Vùng yên (mô-đun)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding QrQuietZoneModuleOptions}"
                                                           SelectedItem="{Binding SelectedObject.QrQuietZoneModules, Mode=TwoWay}"
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="HRI placement" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Vị trí HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding BarcodeHriPlacementOptions}"
                                                           SelectedItem="{Binding SelectedObject.BarcodeHriPlacement, Mode=TwoWay}"
-                                                          ToolTip="None = full frame for bars. Below = legacy strip under symbol. Above = strip over symbol. Linear barcodes only; QR/Data Matrix keep the full symbol frame."
+                                                          ToolTip="Không = trọn khung cho vạch. Dưới = dải cũ dưới ký hiệu. Trên = dải trên ký hiệu. Chỉ mã vạch tuyến tính; QR/Data Matrix giữ trọn khung ký hiệu."
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="HRI size (pt)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Cỡ HRI (pt)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
                                             <TextBox Grid.Column="2" Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" Width="58" HorizontalAlignment="Left"/>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
-                                                <TextBlock Text="Check digit" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Số kiểm tra" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}"
                                                           SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
-                                                          ToolTip="Code 39 / ITF only. None = no requirement. Auto = accept with or without trailing check. Verify = preflight fails closed if check digit is missing or wrong. Code 128 ignores this."
+                                                          ToolTip="Chỉ Code 39 / ITF. Không = không yêu cầu. Tự động = chấp nhận có hoặc không số kiểm tra cuối. Xác minh = kiểm tra trước chặn nếu thiếu hoặc sai số kiểm tra. Code 128 bỏ qua mục này."
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="HRI check digit" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <CheckBox Content="Show in HRI"
+                                                <TextBlock Text="Số kiểm tra HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <CheckBox Content="Hiện trong HRI"
                                                           IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"
-                                                          ToolTip="When unchecked, a validated trailing check digit is hidden in human-readable text only. The encoded symbol always uses the full payload."
+                                                          ToolTip="Khi bỏ chọn, số kiểm tra cuối đã xác thực chỉ bị ẩn trong phần chữ người đọc được. Ký hiệu mã hóa luôn dùng trọn dữ liệu."
                                                           Margin="0,3,0,0"/>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
-                                                <TextBlock Text="Code 39 ratio" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Tỉ lệ Code 39" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding Code39WideNarrowRatioOptions}"
                                                           SelectedItem="{Binding SelectedObject.Code39WideNarrowRatio, Mode=TwoWay}"
-                                                          ToolTip="Code 39 wide:narrow ratio. Default preserves legacy engine pattern. 2.0:1 is allowed when effective X &gt;= 0.508 mm (USS-39 / ISO 16388)."
+                                                          ToolTip="Tỉ lệ rộng:hẹp của Code 39. Mặc định giữ mẫu bộ máy cũ. Cho phép 2.0:1 khi X hiệu dụng &gt;= 0.508 mm (USS-39 / ISO 16388)."
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Quiet zone (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Vùng yên (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <TextBlock Text="{Binding BarcodePhysicalQuietZoneText}"
                                                            Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,3,0,0"
-                                                           ToolTip="Physical quiet zone per side at print DPI: modules × effective X mm. Code 39 requires at least max(10X, 2.54 mm)."/>
+                                                           ToolTip="Vùng yên vật lý mỗi bên theo DPI in: mô-đun × X hiệu dụng mm. Code 39 cần tối thiểu max(10X, 2.54 mm)."/>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
-                                                <TextBlock Text="Bearer bars" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Vạch bao" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding BearerBarStyleOptions}"
                                                           SelectedItem="{Binding SelectedObject.BearerBarStyle, Mode=TwoWay}"
-                                                          ToolTip="Bearer (guard) bars for packaging linear barcodes (e.g. ITF-14). Top &amp; bottom or full enclosing frame."
+                                                          ToolTip="Vạch bao (bảo vệ) cho mã vạch tuyến tính đóng gói (ví dụ ITF-14). Trên &amp; dưới hoặc khung bao trọn."
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Bearer thick (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBlock Text="Độ dày vạch bao (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <TextBox Text="{Binding SelectedObject.BearerBarThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
-                                                         ToolTip="Thickness of the bearer / guard bars in millimetres (default 1.0 mm)."
+                                                         ToolTip="Độ dày của vạch bao / bảo vệ theo mi-li-mét (mặc định 1.0 mm)."
                                                          Margin="0,1,0,0"/>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="X-dim (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
-                                                       ToolTip="1D module (X-dimension) in millimetres. 0 = legacy (estimate from frame). Print quantizes to whole printer dots at plan DPI."/>
+                                            <TextBlock Text="Cỡ X (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
+                                                       ToolTip="Mô-đun 1D (cỡ X) theo mi-li-mét. 0 = cũ (ước lượng từ khung). In lượng tử hóa về số chấm nguyên của máy in tại DPI kế hoạch."/>
                                             <TextBox Grid.Column="2"
                                                      Text="{Binding SelectedObject.BarcodeModuleWidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
                                                      Width="58" HorizontalAlignment="Left"
-                                                     ToolTip="Industrial X-dimension. Typical thermal: 0.25–0.40 mm. 0 keeps legacy frame-derived sizing. Bar height uses object height minus HRI strip."/>
+                                                     ToolTip="Cỡ X công nghiệp. Nhiệt điển hình: 0.25–0.40 mm. 0 giữ cách lấy cỡ từ khung cũ. Chiều cao vạch dùng chiều cao đối tượng trừ dải HRI."/>
                                         </Grid>
-                                        <CheckBox Content="Size width from X × modules"
+                                        <CheckBox Content="Lấy rộng theo X × mô-đun"
                                                   IsChecked="{Binding SelectedObjectSizeFromX, Mode=TwoWay}"
                                                   Margin="0,4,0,0" FontSize="11"
-                                                  ToolTip="When checked and X-dim &gt; 0, object width = quantized effective X × pure logical module count at print DPI. Unchecked = legacy frame-owned width."/>
+                                                  ToolTip="Khi chọn và cỡ X &gt; 0, chiều rộng đối tượng = X hiệu dụng đã lượng tử × số mô-đun luận lý thuần tại DPI in. Bỏ chọn = chiều rộng theo khung cũ."/>
                                         <TextBlock Text="{Binding BarcodeEffectiveModuleReadoutText}"
                                                    Foreground="{StaticResource AppMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0"
-                                                   ToolTip="Effective module at the print-plan DPI (same quantize path as preflight). mil = mm/25.4×1000."/>
+                                                   ToolTip="Mô-đun hiệu dụng tại DPI kế hoạch in (cùng đường lượng tử với kiểm tra trước). mil = mm/25.4×1000."/>
                                         <TextBlock Text="{Binding BarcodeApplicationValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
                                         <!-- Linked text & DPI: compact single row -->
                                         <Grid Margin="0,3,0,0">
@@ -2176,11 +2179,11 @@
                                         <Border Margin="0,3,0,0" Padding="0" BorderThickness="0">
                                             <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.QrSizingMode}" Value="{x:Static barcode:QrSizingMode.AutoSizeByData}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                             <StackPanel>
-                                                <TextBlock Text="Fixed Size" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,2"/>
+                                                <TextBlock Text="Cỡ cố định" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,2"/>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                    <StackPanel><TextBlock Text="Symbol version" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrVersionOptions}" SelectedValue="{Binding SelectedObject.QrFixedVersion, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0" MaxDropDownHeight="320"/></StackPanel>
-                                                    <StackPanel Grid.Column="2"><TextBlock Text="Module size (px)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrModuleSizePxOptions}" SelectedItem="{Binding SelectedObject.QrModuleSizePx, Mode=TwoWay}" Margin="0,1,0,0"/></StackPanel>
+                                                    <StackPanel><TextBlock Text="Phiên bản ký hiệu" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrVersionOptions}" SelectedValue="{Binding SelectedObject.QrFixedVersion, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0" MaxDropDownHeight="320"/></StackPanel>
+                                                    <StackPanel Grid.Column="2"><TextBlock Text="Cỡ mô-đun (px)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrModuleSizePxOptions}" SelectedItem="{Binding SelectedObject.QrModuleSizePx, Mode=TwoWay}" Margin="0,1,0,0"/></StackPanel>
                                                 </Grid>
                                             </StackPanel>
                                         </Border>
@@ -2200,14 +2203,14 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Image" Style="{StaticResource PropTitle}"/>
-                                        <Button Content="Choose image..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4"/>
-                                        <TextBlock Text="Raster policy" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Hình ảnh" Style="{StaticResource PropTitle}"/>
+                                        <Button Content="Chọn hình ảnh..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4"/>
+                                        <TextBlock Text="Chính sách ảnh điểm" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <ComboBox ItemsSource="{Binding ImageRasterModes}"
                                                   SelectedItem="{Binding SelectedObject.ImageRasterMode, Mode=TwoWay}"
                                                   Margin="0,0,0,3"
-                                                  ToolTip="DriverManaged keeps colour/alpha for the printer driver; monochrome modes use the same deterministic transform in the designer, preview and print."/>
-                                        <TextBlock Text="Aspect ratio is preserved and the picture is centered inside its frame." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                                  ToolTip="DriverManaged giữ màu/độ trong suốt cho trình điều khiển máy in; các chế độ đơn sắc dùng cùng phép biến đổi tất định ở thiết kế, xem trước và in."/>
+                                        <TextBlock Text="Tỉ lệ khung hình được giữ và hình được canh giữa trong khung." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
                                 </StackPanel>

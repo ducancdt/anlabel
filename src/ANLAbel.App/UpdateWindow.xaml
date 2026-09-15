@@ -27,7 +27,7 @@
                        RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="Cập nhật phần mềm ANLAbel" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF"/>
-                    <TextBlock x:Name="BannerSubtitle" Text="Kiểm tra phiên bản mới từ GitHub Release" FontSize="11" Foreground="#B9CAE7" Margin="0,2,0,0"/>
+                    <TextBlock x:Name="BannerSubtitle" Text="Kiểm tra phiên bản mới từ bản phát hành trên GitHub" FontSize="11" Foreground="#B9CAE7" Margin="0,2,0,0"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -60,7 +60,7 @@
                 </Border>
 
                 <!-- Release Notes Card -->
-                <TextBlock Text="Nhật ký thay đổi (Release Notes):" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,6"/>
+                <TextBlock Text="Nhật ký thay đổi:" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,0,0,6"/>
                 <Border Background="#FFFFFF" BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="6" Padding="12" MinHeight="140" MaxHeight="200">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <TextBlock x:Name="ReleaseNotesText" Text="Đang tải thông tin phát hành từ GitHub..." TextWrapping="Wrap" Foreground="#334155" FontSize="12" LineHeight="18"/>

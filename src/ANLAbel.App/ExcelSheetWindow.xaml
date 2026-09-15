@@ -14,7 +14,7 @@
 
         <StackPanel>
             <TextBlock Text="Chọn trang tính" FontSize="18" FontWeight="SemiBold"/>
-            <TextBlock Text="Chọn sheet chứa dữ liệu để dùng cho mẫu tem." Foreground="{DynamicResource AppMutedBrush}" Margin="0,3,0,12"/>
+            <TextBlock Text="Chọn trang tính chứa dữ liệu để dùng cho mẫu tem." Foreground="{DynamicResource AppMutedBrush}" Margin="0,3,0,12"/>
         </StackPanel>
         <ListBox x:Name="SheetsList" Grid.Row="1" Margin="0,0,0,14"/>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">

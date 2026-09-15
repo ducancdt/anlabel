@@ -47,7 +47,7 @@ public sealed class TextStylePickerChromeContractTests
     private static string SliceTextStyle(string xaml)
     {
         var start = xaml.IndexOf("Properties.TextStyle.FontFamily", StringComparison.Ordinal);
-        var end = xaml.IndexOf("Text=\"Align\"", start, StringComparison.Ordinal);
+        var end = xaml.IndexOf("Text=\"Căn\"", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start);
         return xaml[start..end];
     }
