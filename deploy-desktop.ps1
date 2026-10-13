@@ -2,7 +2,13 @@
 # Publishes self-contained win-x64 and copies over the location the
 # desktop shortcut points to: %LOCALAPPDATA%\Programs\ANLAbel
 #
-# Usage:  powershell -ExecutionPolicy Bypass -File deploy-desktop.ps1
+# Usage:  powershell -ExecutionPolicy Bypass -File deploy-desktop.ps1 [-Force]
+#
+# A running ANLAbel is asked to close normally (so it can prompt to save).
+# If it is still running after the wait, the deploy stops instead of killing
+# an editing session. -Force restores the old kill-and-replace behaviour.
+
+param([switch]$Force)
 
 $ErrorActionPreference = "Stop"
 $root      = $PSScriptRoot
@@ -10,9 +16,23 @@ $proj      = Join-Path $root "src\ANLAbel.App\ANLAbel.App.csproj"
 $publishDir = Join-Path $root "publish_out\desktop-x64"
 $installDir = Join-Path $env:LOCALAPPDATA "Programs\ANLAbel"
 
-Write-Host "==> Stopping running ANLAbel (if any)..." -ForegroundColor Cyan
-Get-Process -Name "ANLAbel.App" -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Milliseconds 500
+Write-Host "==> Closing running ANLAbel (if any)..." -ForegroundColor Cyan
+$running = @(Get-Process -Name "ANLAbel.App" -ErrorAction SilentlyContinue)
+if ($running.Count -gt 0) {
+    foreach ($process in $running) { [void]$process.CloseMainWindow() }
+    $deadline = (Get-Date).AddSeconds(20)
+    while ((Get-Date) -lt $deadline -and @(Get-Process -Name "ANLAbel.App" -ErrorAction SilentlyContinue).Count -gt 0) {
+        Start-Sleep -Milliseconds 500
+    }
+    $still = @(Get-Process -Name "ANLAbel.App" -ErrorAction SilentlyContinue)
+    if ($still.Count -gt 0) {
+        if (-not $Force) {
+            throw "ANLAbel is still running (it may be waiting for the operator to save). Close it, then deploy again, or use -Force to kill it."
+        }
+        $still | Stop-Process -Force
+        Start-Sleep -Milliseconds 500
+    }
+}
 
 Write-Host "==> Publishing self-contained win-x64..." -ForegroundColor Cyan
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
