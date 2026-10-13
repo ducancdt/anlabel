@@ -93,32 +93,26 @@ public partial class ExcelImportWindow : Window
 
             Mouse.OverrideCursor = Cursors.Wait;
             CancelButton.Visibility = Visibility.Visible;
-            _viewModel.Template.DatabaseConfig.HeaderRowIndex = headerRow;
-            await _viewModel.ImportExcelAsync(dialog.FileName, sheetDialog.SelectedSheetName, token);
+            // The header row is stored in the label only after the import succeeds (H16).
+            await _viewModel.ImportExcelAsync(dialog.FileName, sheetDialog.SelectedSheetName, headerRow, token);
         }
         catch (OperationCanceledException)
         {
             // User cancelled – silently return
         }
-        catch (IOException ex)
-        {
-            MessageBox.Show(this, $"Không thể đọc tệp Excel. Vui lòng đóng tệp trong Excel rồi thử lại.\n\n{ex.Message}", "Nhập dữ liệu thất bại", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-        catch (TimeoutException)
-        {
-            // Safety net (bug fix 2026-07-03, second round): guarantees the UI always recovers
-            // instead of staying frozen indefinitely if something inside the Excel read gets
-            // stuck — reported on a weak machine even after switching to ExcelDataReader.
-            MessageBox.Show(
-                this,
-                "Đọc tệp Excel quá lâu và đã tự động dừng. Hãy thử lại, đóng các chương trình khác hoặc thử với tệp nhỏ hơn.",
-                "Hết thời gian nhập dữ liệu",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-        }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Nhập dữ liệu thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+            // Locked file, timeout (the read stops instead of freezing the window),
+            // missing sheet, Excel error cell, formula without a value, CSV shape:
+            // one plain explanation with the file, row and column (plan 13 GĐ4).
+            var explanation = ANLAbel.App.Services.OperationFailureExplainer.Explain(ex);
+            OperatorDialog.Ask(
+                this,
+                "Nhập dữ liệu thất bại",
+                [explanation.Problem, explanation.NextAction],
+                $"Chi tiết kỹ thuật: {explanation.Technical}",
+                OperatorDialogTone.Warning,
+                new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
         }
         finally
         {

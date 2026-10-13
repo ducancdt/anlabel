@@ -194,6 +194,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("oversized or unreadable images are refused on insert", DesignHistoryRegression.OversizedOrUnreadableImagesAreRefusedOnInsert),
     ("design stays responsive with 200 objects", DesignLatencyRegression.DesignStaysResponsiveWith200Objects),
     ("handle resize keeps millimetres at every zoom", DesignInteractionRegression.HandleResizeKeepsMillimetresAtEveryZoom),
+    ("data failures name the file, row and column", DataSourceRegression.DataFailuresNameTheFileRowAndColumn),
+    ("failed import or relink keeps the working link", DataSourceRegression.FailedImportOrRelinkKeepsTheWorkingLink),
     ("excel read honors cancellation", TestExcelReadHonorsCancellation),
     ("excel refresh skips unchanged file", TestExcelRefreshSkipsUnchangedFile),
     ("database config full round trip", TestDatabaseConfigRoundTrip),

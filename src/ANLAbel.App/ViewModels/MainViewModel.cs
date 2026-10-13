@@ -1817,18 +1817,30 @@ public sealed class MainViewModel : ObservableObject
         await ImportExcelAsync(filePath, sheetName, "Import", cancellationToken);
     }
 
-    private async Task ImportExcelAsync(string filePath, string sheetName, string operation, CancellationToken cancellationToken = default)
+    /// <summary>Imports with the header row the operator chose; it is stored only after success.</summary>
+    public async Task ImportExcelAsync(string filePath, string sheetName, int headerRowIndex, CancellationToken cancellationToken = default)
     {
+        await ImportExcelAsync(filePath, sheetName, "Import", cancellationToken, headerRowIndex);
+    }
+
+    private async Task ImportExcelAsync(string filePath, string sheetName, string operation, CancellationToken cancellationToken = default, int? headerRowIndex = null)
+    {
+        // The link (file, sheet, header row) changes only after the new data was
+        // read; a failed import or relink leaves the working link as it was (H16).
+        var headerRow = headerRowIndex ?? Template.DatabaseConfig.HeaderRowIndex;
         DataTable table;
         try
         {
-            table = await _excelDataService.LoadSheetAsync(filePath, sheetName, Template.DatabaseConfig.HeaderRowIndex, cancellationToken);
+            table = await _excelDataService.LoadSheetAsync(filePath, sheetName, headerRow, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogDataOperation(operation, filePath, sheetName, rowCount: 0, columnCount: 0, success: false, ex.Message);
+            StatusText = "Chưa đọc được dữ liệu: " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
             throw;
         }
+
+        Template.DatabaseConfig.HeaderRowIndex = headerRow;
 
         ExcelDataView = table.DefaultView;
         DataConnector = new DataTableDataConnector(
@@ -2298,23 +2310,18 @@ public sealed class MainViewModel : ObservableObject
             ? Template.DatabaseConfig.SheetName
             : sheets[0];
 
-        Template.DatabaseConfig.FilePath = filePath;
-
-        if (!string.IsNullOrWhiteSpace(CurrentFilePath))
-        {
-            UpdateRelativePath(CurrentFilePath);
-        }
-
+        // ImportExcelAsync stores the new path (and relative path) only after
+        // the new file was read; a failed relink keeps the previous link (H16).
         try
         {
             await ImportExcelAsync(filePath, sheetName, "Relink");
             IsExcelLinkBroken = false;
             StatusText = $"Đã liên kết lại Excel: {Path.GetFileName(filePath)} / {sheetName}";
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             IsExcelLinkBroken = true;
-            StatusText = $"Liên kết lại thất bại: {ex.Message}";
+            StatusText = "Liên kết lại thất bại: " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
         }
     }
 

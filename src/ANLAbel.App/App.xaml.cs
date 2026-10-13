@@ -137,10 +137,10 @@ public partial class App : Application
         }
 
         CrashReporter.AppendErrorLog(exception, "Lệnh bất đồng bộ thất bại");
-        var explanation = PrintFailureExplainer.Explain(exception.Message);
+        var explanation = OperationFailureExplainer.Explain(exception);
         OperatorDialog.Ask(
             MainWindow,
-            "Thao tác chưa hoàn tất",
+            OperationFailureExplainer.IsDataFailure(exception) ? "Chưa đọc được dữ liệu" : "Thao tác chưa hoàn tất",
             [explanation.Problem, explanation.NextAction],
             $"Chi tiết kỹ thuật: {explanation.Technical} (đã ghi vào logs\\errors.log)",
             OperatorDialogTone.Error,

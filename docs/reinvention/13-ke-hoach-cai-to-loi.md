@@ -533,11 +533,11 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 **GĐ4 — Dữ liệu**
 
-- [ ] DB02, DB04, DB10: không in nội dung sai (mất số 0 đầu, công thức không cache, bỏ qua dòng lỗi)
+- [x] DB02, DB04, DB10: không in nội dung sai (mất số 0 đầu, công thức không cache, bỏ qua dòng lỗi) — xong 2026-10-13. DB04: ô có công thức nhưng tệp chưa lưu giá trị đã tính (thường do phần mềm khác ghi tệp) trước đây đọc thành ô trống; nay việc nhập bị chặn và nêu ô, ví dụ B3 (`XlsxFormulaValueInspector`, unit `A_formula_without_a_calculated_value_stops_the_import_at_its_cell`). Ô báo lỗi Excel và định dạng số không hỗ trợ đã bị chặn từ 0.282/0.286. DB02: chuỗi `000123`, khoảng trắng và định dạng số `000000` giữ đúng (`DataPayloadPreservationTests`, `ExcelNumericPayloadTests`). Số General không có số 0 đầu trong dữ liệu nên không có gì bị mất. DB10: lỗi ở bất kỳ dòng đã chọn nào chặn cả lô. Bỏ dòng lỗi chỉ xảy ra khi người vận hành bấm Có, các dòng đó được bỏ chọn, phần còn lại được kiểm tra lại, và kết quả in nêu các dòng đã bỏ.
 - [ ] DB05, DB06, DB07, DB08: danh tính file và dòng, refresh nguyên khối, copies
-- [ ] "Cập nhật Excel" báo lỗi rõ; thiết lập liên kết chỉ ghi sau khi nhập thành công
+- [x] "Cập nhật Excel" báo lỗi rõ; thiết lập liên kết chỉ ghi sau khi nhập thành công — xong 2026-10-13. `DataFailureExplainer` báo tiếng Việt cho tệp bị khóa, hết thời gian đọc, thiếu tệp hoặc sheet (kèm danh sách sheet hiện có), tệp hỏng, sai dòng tiêu đề, ô lỗi, công thức chưa tính và CSV sai số trường: nêu tệp, sheet, ô và cách sửa. Áp dụng cho hộp thoại lệnh thất bại (tiêu đề “Chưa đọc được dữ liệu”), cửa sổ nhập và thanh trạng thái (Figma `37:269`). Dòng tiêu đề và đường dẫn liên kết lại chỉ được ghi sau khi đọc thành công; nhập lỗi giữ nguyên liên kết và dữ liệu đang dùng (H16). Gate `data failures name the file, row and column`, `failed import or relink keeps the working link`.
 - [ ] Fixture dữ liệu chạy qua kiểm tra payload mã vạch B01/B02; payload lỗi chặn in
-- [ ] Chốt ADR CSV về dòng thiếu hoặc thừa cột
+- [x] Chốt ADR CSV về dòng thiếu hoặc thừa cột — xong 2026-10-13: ADR-024. Dòng thiếu hay thừa trường so với tiêu đề đều chặn việc nhập và nêu số dòng.
 - [ ] Tái hiện và xử lý treo khi nhập Excel trên máy 4 GB
 - [ ] Đo 1, 1.000 và 10.000 dòng; công bố giới hạn
 

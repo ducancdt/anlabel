@@ -140,7 +140,7 @@ internal static class PrintSafetyRegression
                 && viewModel.Contains("PrintFailureExplainer.Explain(ex.Message).StatusLine", StringComparison.Ordinal),
             "Quick print must explain print stops in plain language.");
         var report = Method(Path.Combine("src", "ANLAbel.App", "App.xaml.cs"), "private void ReportFailedOperation(");
-        Require(report.Contains("PrintFailureExplainer.Explain(exception.Message)", StringComparison.Ordinal),
+        Require(report.Contains("OperationFailureExplainer.Explain(exception)", StringComparison.Ordinal),
             "Failed commands must be explained in plain language.");
         return Task.CompletedTask;
     }
