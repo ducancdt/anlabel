@@ -33,7 +33,7 @@ Việc chỉ lấy từ mục 9 của kế hoạch; tài liệu này không tạ
 | F04 · Tìm thấy bản phục hồi | `36:201` |
 | F05 · Đã khôi phục cấu hình | `36:216` |
 | 1.5 · Chuẩn mã vạch theo bằng chứng | `37:142`. Chỉ phần tên nhóm tiếng Việt được áp dụng: ngày 2026-10-13 cả 15 loại đã đủ bằng chứng nên không có nhóm “mẫu cũ” |
-| GĐ3 · Menu chuột phải canvas tiếng Việt | `37:208` |
+| GĐ3 · Menu chuột phải canvas tiếng Việt | `37:208`. WPF: `LabelDesignerCanvas.ContextMenu` (Dính theo đối tượng, Dính theo lưới, Bước lưới, Đường gióng); gate `canvas context menu is Vietnamese without developer items` |
 | D07 · Thiếu phông chữ / ảnh | `37:259` |
 | GĐ4 · “Cập nhật Excel” thất bại | `37:269` |
 | GĐ5 · Lệnh in chưa rõ, nhật ký hỏng, dòng đã gửi | `37:280` |

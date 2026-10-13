@@ -98,7 +98,6 @@ public sealed class LabelDesignerCanvas : Canvas
     private readonly MenuItem _snapMenuItem;
     private readonly MenuItem _snapGridMenuItem;
     private readonly MenuItem _gridStepMenuItem;
-    private readonly MenuItem _pointerTelemetryMenuItem;
     private readonly MenuItem _guidesMenuItem;
     private readonly MenuItem _addVerticalGuideMenuItem;
     private readonly MenuItem _addHorizontalGuideMenuItem;
@@ -161,17 +160,17 @@ public sealed class LabelDesignerCanvas : Canvas
         LostKeyboardFocus += CanvasLostKeyboardFocus;
         _snapMenuItem = new MenuItem
         {
-            Header = "Snap to objects",
+            Header = "Dính theo đối tượng",
             IsCheckable = true
         };
         _snapMenuItem.Click += (_, _) => IsSnapToObjectsEnabled = _snapMenuItem.IsChecked;
         _snapGridMenuItem = new MenuItem
         {
-            Header = "Snap to grid",
+            Header = "Dính theo lưới",
             IsCheckable = true
         };
         _snapGridMenuItem.Click += (_, _) => IsSnapToGridEnabled = _snapGridMenuItem.IsChecked;
-        _gridStepMenuItem = new MenuItem { Header = "Grid step" };
+        _gridStepMenuItem = new MenuItem { Header = "Bước lưới" };
         foreach (var step in new[] { 0.5, 1.0, 2.0, 5.0, 10.0 })
         {
             var stepItem = new MenuItem
@@ -190,19 +189,12 @@ public sealed class LabelDesignerCanvas : Canvas
             };
             _gridStepMenuItem.Items.Add(stepItem);
         }
-        _pointerTelemetryMenuItem = new MenuItem
-        {
-            Header = "Show pointer performance",
-            IsCheckable = true,
-            ToolTip = "Show opt-in P95/max drag-frame telemetry on the canvas"
-        };
-        _pointerTelemetryMenuItem.Click += (_, _) => ShowPointerTelemetry = _pointerTelemetryMenuItem.IsChecked;
-        _guidesMenuItem = new MenuItem { Header = "Design guides" };
-        _addVerticalGuideMenuItem = new MenuItem { Header = "Add vertical guide here" };
-        _addHorizontalGuideMenuItem = new MenuItem { Header = "Add horizontal guide here" };
-        _toggleGuideLockMenuItem = new MenuItem { Header = "Lock selected guide" };
-        _deleteGuideMenuItem = new MenuItem { Header = "Delete selected guide" };
-        _clearGuidesMenuItem = new MenuItem { Header = "Clear all guides" };
+        _guidesMenuItem = new MenuItem { Header = "Đường gióng" };
+        _addVerticalGuideMenuItem = new MenuItem { Header = "Thêm đường gióng dọc tại đây" };
+        _addHorizontalGuideMenuItem = new MenuItem { Header = "Thêm đường gióng ngang tại đây" };
+        _toggleGuideLockMenuItem = new MenuItem { Header = "Khóa đường gióng này" };
+        _deleteGuideMenuItem = new MenuItem { Header = "Xóa đường gióng này" };
+        _clearGuidesMenuItem = new MenuItem { Header = "Xóa mọi đường gióng chưa khóa" };
         _addVerticalGuideMenuItem.Click += (_, _) => AddGuideFromContext(LabelGuideOrientation.Vertical);
         _addHorizontalGuideMenuItem.Click += (_, _) => AddGuideFromContext(LabelGuideOrientation.Horizontal);
         _toggleGuideLockMenuItem.Click += (_, _) => ToggleContextGuideLock();
@@ -214,7 +206,7 @@ public sealed class LabelDesignerCanvas : Canvas
         _guidesMenuItem.Items.Add(_toggleGuideLockMenuItem);
         _guidesMenuItem.Items.Add(_deleteGuideMenuItem);
         _guidesMenuItem.Items.Add(_clearGuidesMenuItem);
-        ContextMenu = new ContextMenu { Items = { _snapMenuItem, _snapGridMenuItem, _gridStepMenuItem, new Separator(), _pointerTelemetryMenuItem, _guidesMenuItem } };
+        ContextMenu = new ContextMenu { Items = { _snapMenuItem, _snapGridMenuItem, _gridStepMenuItem, new Separator(), _guidesMenuItem } };
         ContextMenuOpening += (_, e) =>
         {
             if (DrawingTool is not null)
@@ -225,7 +217,6 @@ public sealed class LabelDesignerCanvas : Canvas
 
             _snapMenuItem.IsChecked = IsSnapToObjectsEnabled;
             _snapGridMenuItem.IsChecked = IsSnapToGridEnabled;
-            _pointerTelemetryMenuItem.IsChecked = ShowPointerTelemetry;
             _gridStepMenuItem.IsEnabled = IsSnapToGridEnabled;
             UpdateGridStepMenu();
             _contextMenuPoint = Mouse.GetPosition(this);
@@ -337,8 +328,8 @@ public sealed class LabelDesignerCanvas : Canvas
         RefreshSelectionAdorner();
         InvalidateVisual();
         InteractionStatusText = changed
-            ? $"Key object: {item.Name}"
-            : $"Key object remains {item.Name}";
+            ? $"Đối tượng mốc: {item.Name}"
+            : $"Đối tượng mốc vẫn là {item.Name}";
         return true;
     }
 
@@ -378,7 +369,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 reference,
                 Template.WidthMm,
                 Template.HeightMm);
-            var changed = ApplyArrangeResult(result, $"Aligned {alignment} ({reference})");
+            var changed = ApplyArrangeResult(result, $"Căn {AlignmentText(alignment)} ({ReferenceText(reference)})");
             if (changed)
             {
                 NotifyEditGestureCompleted();
@@ -405,7 +396,7 @@ public sealed class LabelDesignerCanvas : Canvas
             var result = LabelArrangeEngine.Distribute(
                 _selectedObjects.OrderBy(item => item.ZIndex).ThenBy(item => item.Id, StringComparer.Ordinal).ToArray(),
                 distribution);
-            var changed = ApplyArrangeResult(result, $"Distributed {distribution}");
+            var changed = ApplyArrangeResult(result, $"Phân bố {DistributionText(distribution)}");
             if (changed)
             {
                 NotifyEditGestureCompleted();
@@ -439,13 +430,13 @@ public sealed class LabelDesignerCanvas : Canvas
             .ToArray();
         if (textItems.Length < 2)
         {
-            InteractionStatusText = "Select at least two text objects for baseline alignment.";
+            InteractionStatusText = "Chọn ít nhất hai đối tượng chữ để căn đường cơ sở.";
             return false;
         }
 
         if (textItems.Any(item => item.IsLocked || !item.IsVisible))
         {
-            InteractionStatusText = "Unlock and show every selected text object before baseline alignment.";
+            InteractionStatusText = "Mở khóa và hiện mọi đối tượng chữ đã chọn trước khi căn đường cơ sở.";
             return false;
         }
 
@@ -475,7 +466,7 @@ public sealed class LabelDesignerCanvas : Canvas
         if (changed == 0)
         {
             NotifyEditGestureCanceled();
-            InteractionStatusText = "Baseline alignment: already aligned.";
+            InteractionStatusText = "Căn đường cơ sở: các đối tượng đã thẳng hàng.";
             return false;
         }
 
@@ -486,7 +477,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         InvalidateVisual();
         NotifyEditGestureCompleted();
-        InteractionStatusText = $"Baseline aligned to {key.Name}: {changed} object(s) changed.";
+        InteractionStatusText = $"Đã căn đường cơ sở theo {key.Name}: {changed} đối tượng thay đổi.";
         return true;
     }
 
@@ -506,13 +497,13 @@ public sealed class LabelDesignerCanvas : Canvas
             .ToArray();
         if (textItems.Length < 2)
         {
-            InteractionStatusText = "Select at least two text objects for optical alignment.";
+            InteractionStatusText = "Chọn ít nhất hai đối tượng chữ để căn tâm mực quang học.";
             return false;
         }
 
         if (textItems.Any(item => item.IsLocked || !item.IsVisible))
         {
-            InteractionStatusText = "Unlock and show every selected text object before optical alignment.";
+            InteractionStatusText = "Mở khóa và hiện mọi đối tượng chữ đã chọn trước khi căn tâm mực quang học.";
             return false;
         }
 
@@ -522,7 +513,7 @@ public sealed class LabelDesignerCanvas : Canvas
         var targetInk = GetTextInkBoundsMm(key);
         if (targetInk is null)
         {
-            InteractionStatusText = $"Optical alignment could not measure visible ink in {key.Name}.";
+            InteractionStatusText = $"Căn quang học: không đo được nét chữ của {key.Name}.";
             return false;
         }
 
@@ -539,7 +530,7 @@ public sealed class LabelDesignerCanvas : Canvas
             if (sourceInk is null)
             {
                 NotifyEditGestureCanceled();
-                InteractionStatusText = $"Optical alignment stopped: visible ink could not be measured in {item.Name}.";
+                InteractionStatusText = $"Đã dừng căn quang học: không đo được nét chữ của {item.Name}.";
                 return false;
             }
 
@@ -547,7 +538,7 @@ public sealed class LabelDesignerCanvas : Canvas
             if (!result.Succeeded)
             {
                 NotifyEditGestureCanceled();
-                InteractionStatusText = result.ErrorMessage ?? "Optical alignment failed closed.";
+                InteractionStatusText = ArrangeFailureText(result.ErrorMessage, "Không căn quang học được các đối tượng đã chọn.");
                 return false;
             }
 
@@ -564,7 +555,7 @@ public sealed class LabelDesignerCanvas : Canvas
         if (changed == 0)
         {
             NotifyEditGestureCanceled();
-            InteractionStatusText = "Optical alignment: visible ink is already aligned.";
+            InteractionStatusText = "Căn quang học: nét chữ đã thẳng hàng.";
             return false;
         }
 
@@ -575,7 +566,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         InvalidateVisual();
         NotifyEditGestureCompleted();
-        InteractionStatusText = $"Optical {anchor.ToString().ToLowerInvariant()} alignment to {key.Name}: {changed} object(s) changed.";
+        InteractionStatusText = $"Đã căn quang học ({AnchorText(anchor)}) theo {key.Name}: {changed} đối tượng thay đổi.";
         return true;
     }
 
@@ -677,17 +668,70 @@ public sealed class LabelDesignerCanvas : Canvas
         return item.YMm + MmConverter.DipToMm(metrics.VerticalOffsetDip + metrics.BaselineDip);
     }
 
+    private static string AlignmentText(LabelAlignmentMode alignment) => alignment switch
+    {
+        LabelAlignmentMode.Left => "trái",
+        LabelAlignmentMode.HorizontalCenter => "giữa theo chiều ngang",
+        LabelAlignmentMode.Right => "phải",
+        LabelAlignmentMode.Top => "trên",
+        LabelAlignmentMode.VerticalCenter => "giữa theo chiều dọc",
+        LabelAlignmentMode.Bottom => "dưới",
+        _ => alignment.ToString(),
+    };
+
+    private static string ReferenceText(LabelArrangeReferenceMode reference) => reference switch
+    {
+        LabelArrangeReferenceMode.SelectionBounds => "theo vùng chọn",
+        LabelArrangeReferenceMode.KeyObject => "theo đối tượng mốc",
+        LabelArrangeReferenceMode.Canvas => "theo khung tem",
+        _ => reference.ToString(),
+    };
+
+    private static string DistributionText(LabelDistributionMode distribution) => distribution switch
+    {
+        LabelDistributionMode.HorizontalCenters => "tâm theo chiều ngang",
+        LabelDistributionMode.VerticalCenters => "tâm theo chiều dọc",
+        LabelDistributionMode.HorizontalGaps => "khoảng cách theo chiều ngang",
+        LabelDistributionMode.VerticalGaps => "khoảng cách theo chiều dọc",
+        _ => distribution.ToString(),
+    };
+
+    private static string AnchorText(OpticalAlignmentAnchor anchor) => anchor switch
+    {
+        OpticalAlignmentAnchor.Leading => "đầu",
+        OpticalAlignmentAnchor.Center => "giữa",
+        OpticalAlignmentAnchor.Trailing => "cuối",
+        _ => anchor.ToString(),
+    };
+
+    private static string GuideText(LabelGuideOrientation orientation)
+        => orientation == LabelGuideOrientation.Vertical ? "dọc" : "ngang";
+
+    // The Core arrange/optical contracts keep English diagnostics (tests use
+    // them); the status bar shows Vietnamese. Unknown text is shown unchanged.
+    private static string ArrangeFailureText(string? message, string fallback) => message switch
+    {
+        null or "" => fallback,
+        "A positive canvas dimension is required for canvas alignment." => "Không căn theo khung tem được vì kích thước tem không hợp lệ.",
+        "The selection contains an invalid object." => "Vùng chọn có đối tượng không hợp lệ.",
+        "Unlock every selected object before arranging." => "Mở khóa mọi đối tượng đã chọn trước khi căn.",
+        "Show every selected object before arranging." => "Hiện mọi đối tượng đã chọn trước khi căn.",
+        "Choose a selected key object first." => "Chọn đối tượng mốc trong vùng chọn trước.",
+        "Both text objects must expose finite visible ink bounds." => "Không đo được nét chữ của đối tượng đã chọn.",
+        _ => message,
+    };
+
     private bool ApplyArrangeResult(LabelArrangeResult result, string action)
     {
         if (!result.Succeeded)
         {
-            InteractionStatusText = result.ErrorMessage ?? "Arrange operation could not be applied.";
+            InteractionStatusText = ArrangeFailureText(result.ErrorMessage, "Không căn được các đối tượng đã chọn.");
             return false;
         }
 
         if (!result.Changed)
         {
-            InteractionStatusText = $"{action}: already aligned.";
+            InteractionStatusText = $"{action}: các đối tượng đã thẳng hàng.";
             return false;
         }
 
@@ -697,7 +741,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         InvalidateVisual();
-        InteractionStatusText = $"{action}: {result.AffectedCount} object(s) changed.";
+        InteractionStatusText = $"{action}: {result.AffectedCount} đối tượng thay đổi.";
         return true;
     }
 
@@ -727,7 +771,7 @@ public sealed class LabelDesignerCanvas : Canvas
             includeLocked: true);
         if (existing?.IsLocked == true)
         {
-            InteractionStatusText = "The selected guide is locked. Unlock it from the Design guides menu before moving it.";
+            InteractionStatusText = "Đường gióng này đang khóa. Mở khóa trong menu chuột phải “Đường gióng” trước khi di chuyển.";
             return false;
         }
 
@@ -746,7 +790,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         _draggedGuideStartPositionMm = _draggedGuide.PositionMm;
         UpdateGuideDrag(clamped);
-        InteractionStatusText = $"Moving {orientation.ToString().ToLowerInvariant()} guide at {clamped:0.###} mm.";
+        InteractionStatusText = $"Đang di chuyển đường gióng {GuideText(orientation)} tại {clamped:0.###} mm.";
         return true;
     }
 
@@ -782,7 +826,7 @@ public sealed class LabelDesignerCanvas : Canvas
         if (changed)
         {
             NotifyEditGestureCompleted();
-            InteractionStatusText = $"Guide saved at {guide.PositionMm:0.###} mm.";
+            InteractionStatusText = $"Đã đặt đường gióng tại {guide.PositionMm:0.###} mm.";
         }
         else
         {
@@ -810,7 +854,7 @@ public sealed class LabelDesignerCanvas : Canvas
         _draggedGuide = null;
         _createdGuideForDrag = false;
         NotifyEditGestureCanceled();
-        InteractionStatusText = "Guide move cancelled.";
+        InteractionStatusText = "Đã hủy di chuyển đường gióng.";
     }
 
     private void CreatePersistentGuideVisual(LabelGuide guide)
@@ -958,7 +1002,7 @@ public sealed class LabelDesignerCanvas : Canvas
         NotifyEditGestureStarted();
         Template.Guides.Add(guide);
         NotifyEditGestureCompleted();
-        InteractionStatusText = $"Added {orientation.ToString().ToLowerInvariant()} guide at {guide.PositionMm:0.###} mm.";
+        InteractionStatusText = $"Đã thêm đường gióng {GuideText(orientation)} tại {guide.PositionMm:0.###} mm.";
     }
 
     private void ToggleContextGuideLock()
@@ -971,7 +1015,7 @@ public sealed class LabelDesignerCanvas : Canvas
         NotifyEditGestureStarted();
         _contextGuide.IsLocked = !_contextGuide.IsLocked;
         NotifyEditGestureCompleted();
-        InteractionStatusText = _contextGuide.IsLocked ? "Guide locked." : "Guide unlocked.";
+        InteractionStatusText = _contextGuide.IsLocked ? "Đã khóa đường gióng." : "Đã mở khóa đường gióng.";
     }
 
     private void DeleteContextGuide()
@@ -984,7 +1028,7 @@ public sealed class LabelDesignerCanvas : Canvas
         NotifyEditGestureStarted();
         Template.Guides.Remove(_contextGuide);
         NotifyEditGestureCompleted();
-        InteractionStatusText = "Guide deleted.";
+        InteractionStatusText = "Đã xóa đường gióng.";
         _contextGuide = null;
     }
 
@@ -1004,8 +1048,8 @@ public sealed class LabelDesignerCanvas : Canvas
 
         NotifyEditGestureCompleted();
         InteractionStatusText = removable.Length == 0
-            ? "All guides are locked."
-            : $"Removed {removable.Length} guide(s).";
+            ? "Mọi đường gióng đều đang khóa."
+            : $"Đã xóa {removable.Length} đường gióng.";
     }
 
     private void UpdateGuideContextMenu()
@@ -1014,8 +1058,8 @@ public sealed class LabelDesignerCanvas : Canvas
         _toggleGuideLockMenuItem.IsEnabled = hasGuide;
         _deleteGuideMenuItem.IsEnabled = hasGuide && !_contextGuide!.IsLocked;
         _toggleGuideLockMenuItem.Header = hasGuide && _contextGuide!.IsLocked
-            ? "Unlock selected guide"
-            : "Lock selected guide";
+            ? "Mở khóa đường gióng này"
+            : "Khóa đường gióng này";
         _clearGuidesMenuItem.IsEnabled = Template?.Guides.Any(guide => !guide.IsLocked) == true;
     }
 
@@ -2083,7 +2127,6 @@ public sealed class LabelDesignerCanvas : Canvas
     private static void OnPointerTelemetryVisibilityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var canvas = (LabelDesignerCanvas)d;
-        canvas._pointerTelemetryMenuItem.IsChecked = (bool)e.NewValue;
         canvas.InvalidateVisual();
     }
 
@@ -2153,8 +2196,8 @@ public sealed class LabelDesignerCanvas : Canvas
         var enabled = (bool)e.NewValue;
         canvas._snapMenuItem.IsChecked = enabled;
         canvas.InteractionStatusText = enabled
-            ? "Snap to objects enabled (hold Alt to bypass)"
-            : "Snap to objects disabled";
+            ? "Đã bật dính theo đối tượng (giữ Alt để tạm bỏ qua)"
+            : "Đã tắt dính theo đối tượng";
 
         try
         {
@@ -2162,11 +2205,11 @@ public sealed class LabelDesignerCanvas : Canvas
         }
         catch (IOException)
         {
-            canvas.InteractionStatusText += " — preference could not be saved";
+            canvas.InteractionStatusText += " — không lưu được tùy chọn";
         }
         catch (UnauthorizedAccessException)
         {
-            canvas.InteractionStatusText += " — preference could not be saved";
+            canvas.InteractionStatusText += " — không lưu được tùy chọn";
         }
     }
 
@@ -2187,19 +2230,19 @@ public sealed class LabelDesignerCanvas : Canvas
         canvas.UpdateGridStepMenu();
         canvas.InvalidateVisual();
         canvas.InteractionStatusText = canvas.IsSnapToGridEnabled
-            ? $"Snap to {canvas.GridStepMm:0.##} mm grid enabled (hold Alt to bypass)"
-            : "Snap to grid disabled";
+            ? $"Đã bật dính theo lưới {canvas.GridStepMm:0.##} mm (giữ Alt để tạm bỏ qua)"
+            : "Đã tắt dính theo lưới";
         try
         {
             canvas.SaveDesignerPreferences();
         }
         catch (IOException)
         {
-            canvas.InteractionStatusText += " — preference could not be saved";
+            canvas.InteractionStatusText += " — không lưu được tùy chọn";
         }
         catch (UnauthorizedAccessException)
         {
-            canvas.InteractionStatusText += " — preference could not be saved";
+            canvas.InteractionStatusText += " — không lưu được tùy chọn";
         }
     }
 
@@ -2827,7 +2870,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         if (!selectedItems.Any(item => !item.IsLocked))
         {
-            InteractionStatusText = "Unlock at least one selected object before nudging.";
+            InteractionStatusText = "Mở khóa ít nhất một đối tượng đã chọn trước khi dịch chuyển.";
             return false;
         }
 
@@ -2869,8 +2912,8 @@ public sealed class LabelDesignerCanvas : Canvas
 
         var stepMm = NudgeStepContract.ResolveStepMm(mode);
         InteractionStatusText = selectedItems.Count == 1
-            ? $"{selectedItems[0].Name}: X {selectedItems[0].XMm:0.##} mm, Y {selectedItems[0].YMm:0.##} mm (nudge {stepMm:0.##} mm)"
-            : $"Moved {selectedItems.Count} objects by {stepMm:0.##} mm";
+            ? $"{selectedItems[0].Name}: X {selectedItems[0].XMm:0.##} mm, Y {selectedItems[0].YMm:0.##} mm (bước {stepMm:0.##} mm)"
+            : $"Đã dịch {selectedItems.Count} đối tượng {stepMm:0.##} mm";
         RestartNudgeGestureTimer();
         return true;
     }
@@ -2910,7 +2953,7 @@ public sealed class LabelDesignerCanvas : Canvas
         HideAlignmentGuides();
         InvalidateVisual();
         NotifyEditGestureCanceled();
-        InteractionStatusText = "Keyboard nudge cancelled.";
+        InteractionStatusText = "Đã hủy dịch chuyển bằng bàn phím.";
     }
 
     private void RestartNudgeGestureTimer()
@@ -3703,7 +3746,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         if (!_barcodeRenderer.ValidateData(data, type))
         {
-            return $"Invalid {type} data.";
+            return $"Dữ liệu không hợp lệ cho mã {type}.";
         }
 
         try
@@ -3729,7 +3772,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return $"{type} cannot be rendered: {ex.Message}";
+            return $"Không vẽ được mã {type}: {ex.Message}";
         }
     }
 

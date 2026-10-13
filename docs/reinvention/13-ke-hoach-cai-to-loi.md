@@ -528,7 +528,7 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 - [ ] D07 Báo font hoặc ảnh thiếu ngay trên canvas
 - [ ] D01/D03/D05 Kiểm tra tương tác thật ở các mức zoom và Windows scaling
 - [ ] Snapshot undo không nhân bản ảnh; giới hạn ảnh khi chèn; giảm làm mới bảng thuộc tính
-- [ ] Menu chuột phải canvas tiếng Việt; bỏ mục dành cho lập trình viên
+- [x] Menu chuột phải canvas tiếng Việt; bỏ mục dành cho lập trình viên — xong 2026-10-13: menu và mọi thông báo trạng thái của canvas (dính, lưới, đường gióng, căn, phân bố, dịch chuyển) là tiếng Việt. Mục “Show pointer performance” đã bỏ; thuộc tính chẩn đoán vẫn giữ cho test. Gate `canvas context menu is Vietnamese without developer items`. Hai thông báo tràn chữ của Text/TextBox vẫn tiếng Anh vì nằm trong vùng được bảo vệ (AGENTS.md).
 - [ ] Đo độ trễ thao tác với mẫu thật lớn nhất và 200 object
 
 **GĐ4 — Dữ liệu**
