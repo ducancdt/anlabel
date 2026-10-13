@@ -303,7 +303,7 @@ public partial class PrintPreviewWindow
                     0,
                     "Máy in đã chọn",
                     "Output",
-                    $"Cài đặt máy in cần chú ý. Bản xem trước này sử dụng thiết kế nhãn, chưa xác thực đầu ra máy in. Hãy mở Cài đặt máy in để xem lại hàng đợi, khổ giấy và trình điều khiển. Chi tiết: {ex.Message}"));
+                    $"Cài đặt máy in cần chú ý. Bản xem trước này sử dụng thiết kế nhãn, chưa xác thực đầu ra máy in. Hãy mở Cài đặt máy in để xem lại hàng đợi, khổ giấy và trình điều khiển. Chi tiết kỹ thuật: {ex.Message}"));
         }
     }
 

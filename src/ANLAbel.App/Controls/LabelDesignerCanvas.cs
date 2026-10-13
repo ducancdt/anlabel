@@ -3796,7 +3796,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return $"Không vẽ được mã {type}: {ex.Message}";
+            return $"Không vẽ được mã {type}. Chi tiết kỹ thuật: {ex.Message}";
         }
     }
 
