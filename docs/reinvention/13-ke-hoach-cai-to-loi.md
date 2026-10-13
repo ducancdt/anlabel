@@ -135,7 +135,7 @@ Mục ghi "nghi ngờ" là đọc từ mã nguồn, chưa có ca tái hiện.
 | H21 | In thử sửa mẫu đang mở | `PrinterSetupWindow` nhận mẫu đang mở (`MainWindow.xaml.cs:1129`) và ghi máy in, offset, scale, DPI vào đó trước khi bấm OK (`PrinterSetupWindow.xaml.cs:725-730`) | Bấm Hủy vẫn đổi thiết lập in của mẫu, trái RULES §1 |
 | H22 | Ba đường in khác nhau | `PrintPreviewWindow.Print_Click` (436 dòng), in nhanh `DispatchTrackedPrintAsync`, và `NiceLabelJobRunner` (không ghi bằng chứng job bền vững) | Ba bộ quy tắc có thể lệch nhau |
 | H23 | Có lần dừng in tránh được | <ul><li>Ngày 2026-09-15 có 4 lần dừng in trên XP-DT426B do "missing verified driver-ticket evidence"; bản 0.288 (chưa commit, chưa cài) ghi đã sửa nguyên nhân.</li><li>Mẫu gắn tên driver cứng sẽ bị chặn trên máy có tên driver khác dù cùng khổ và DPI (`DocumentPrinterIdentityContract.cs:56-60`).</li></ul> | Ca in dừng vì metadata driver, không phải vì tem sai |
-| H24 | Log in thiếu danh tính mẫu | 11/11 lệnh in thật có `TemplateFilePath` rỗng | Khó truy ngược tem đã in từ mẫu nào (P08) |
+| H24 | Log in thiếu danh tính mẫu | 11/11 lệnh in thật có `TemplateFilePath` rỗng. *Đính chính 2026-10-13:* log đã ghi `TemplateName`, `DocumentHash` và `ManifestFingerprint`; đường dẫn chỉ rỗng khi in từ mẫu chưa lưu, và cả 11 lệnh đều in từ mẫu thư viện mở thành bản chưa lưu (22, 23). Không đổi schema log | Khó truy ngược tem đã in từ mẫu nào (P08) |
 | H25 | Thông báo kỹ thuật tiếng Anh | Khoảng 76 lệnh `throw new …Exception("…")` tiếng Anh ở Core/Data/Printing/Project có thể hiện lên hộp thoại. Thông điệp phục hồi và menu chuột phải của canvas còn tiếng Anh | Người vận hành không hiểu lỗi, không biết làm gì tiếp |
 
 ### 2.4 Bề mặt và mã nguồn
@@ -501,10 +501,10 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 **GĐ1 — Gọn phạm vi**
 
-- [ ] 1.1 Gỡ 9 cửa sổ không truy cập được, handler mồ côi và XAML chết `[chờ QĐ-4]`
-- [ ] 1.2 Đưa automation thả file và NiceLabel JOB ra khỏi bản phát hành `[chờ QĐ-5]`
-- [ ] 1.3 Gỡ `TRIAL_BUILD`, installer Trial/Commercial và `tools/KeyProvisioner` `[chờ QĐ-6]`
-- [ ] 1.4 Chuyển tài liệu ngoài phạm vi vào `docs/archive/` và đồng bộ các tài liệu dẫn đường `[chờ QĐ-11]`
+- [x] 1.1 Gỡ 9 cửa sổ không truy cập được, handler mồ côi và XAML chết `[chờ QĐ-4]` — xong 2026-10-13 (`a699825`): build 0/0, unit 1104/1104, regression 213/0. Mã cũ giữ ở nhánh `archive/automation-2026-10`.
+- [x] 1.2 Đưa automation thả file và NiceLabel JOB ra khỏi bản phát hành `[chờ QĐ-5]` — xong 2026-10-13 (`a699825`). Giữ `FileDropPreparedBatchIdentity` vì manifest đã ghi cần kiểm chứng được.
+- [x] 1.3 Gỡ `TRIAL_BUILD`, installer Trial/Commercial và `tools/KeyProvisioner` `[chờ QĐ-6]` — xong 2026-10-13 (`a699825`); `tools/KeyProvisioner` không còn trong repo.
+- [x] 1.4 Chuyển tài liệu ngoài phạm vi vào `docs/archive/` và đồng bộ các tài liệu dẫn đường `[chờ QĐ-11]` — xong 2026-10-13 (`59acbcf`): 42 tài liệu, liên kết đã viết lại.
 - [ ] 1.5 Danh sách mã vạch tạo mới theo bằng chứng `[chờ QĐ-8]`
 
 **GĐ2 — File**
@@ -539,15 +539,15 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 **GĐ5 — Mã vạch, xem trước và in**
 
-- [ ] In nhanh đi chung đường với xem trước
-- [ ] Liệt kê máy in, đọc contract, băm Excel ngoài luồng giao diện; báo đúng lỗi spooler
-- [ ] Nhật ký job ghi nối tiếp, xoay vòng, tự cách ly dòng cuối hỏng
-- [ ] In thử chạy trên bản sao của mẫu
-- [ ] Phân loại lại điểm dừng in (ca XP-DT426B ngày 2026-09-15)
-- [ ] Lệnh in thành công không còn trong "Xem lại"; cảnh báo in trùng hoạt động `[chờ QĐ-10]`
-- [ ] P07 Unknown sau khi gửi; P08 chặn khi lỗi lưu bằng chứng; P04 thứ tự record/copy
-- [ ] Log in ghi mẫu; thông báo lỗi in tiếng Việt kèm việc cần làm
-- [ ] Tên driver khác máy: ca tái hiện và ADR `[chờ QĐ-12]`
+- [x] In nhanh đi chung đường với xem trước — xong 2026-10-13 (`d61d6db`): một bản chụp mẫu cho contract, kiểm tra, manifest và lệnh gửi; contract và kiểm tra chạy ngoài luồng giao diện; gate `quick print uses one snapshot and the async driver contract`.
+- [x] Liệt kê máy in, đọc contract, băm Excel ngoài luồng giao diện; báo đúng lỗi spooler — xong 2026-10-13 (`d61d6db`): `PrinterQueueLoader` (luồng STA riêng, báo spooler dừng); băm Excel bằng `Task.Run` và đọc với `FileShare.ReadWrite` (hết chặn "Excel đã thay đổi" khi Excel đang mở tệp); unit `FileSourceIdentitySharingTests`.
+- [x] Nhật ký job ghi nối tiếp, xoay vòng, tự cách ly dòng cuối hỏng — xong 2026-10-13: chỉ đọc lại khi tệp đổi, dòng cuối ghi dở tự cất sang `.hong-*.jsonl` (`c95a10c`); nhật ký trên 16 MB mà mọi lệnh đã xong được lưu nguyên tệp sang `.luu-*.jsonl` khi mở app, nhật ký còn lệnh cần đối soát hoặc đang chuẩn bị thì giữ nguyên; unit `PrintJobLogRepairTests` (10).
+- [x] In thử chạy trên bản sao của mẫu — xong 2026-10-13 (`9169716`): gate `calibration print uses an isolated copy of the label`.
+- [x] Phân loại lại điểm dừng in (ca XP-DT426B ngày 2026-09-15) — xong 2026-10-13. Bằng chứng từ `print-operations.jsonl`: 4 lần dừng lúc 15:12–15:21 (3 lần "output contract is missing verified driver-ticket evidence", 1 lần "changed immediately before dispatch (effective-ticket, prepared-expectation)") do đồng hồ ticket Seagull, đã sửa ở v0.288; sau đó cùng hai mẫu in 4 lần trên XP-DT426B (15:42–19:26, spool accepted, ticket verified). Các điểm dừng còn lại đều là thay đổi thiết lập thật nên vẫn chặn (ADR-021); thông báo nay là tiếng Việt.
+- [x] Lệnh in thành công không còn trong "Xem lại"; cảnh báo in trùng hoạt động `[chờ QĐ-10]` — xong 2026-10-13 (`c95a10c`, ADR-023): trên bản sao log thật, 0/10 lệnh bị liệt kê (trước là 6/6 lệnh in thành công); dòng đã gửi được đánh dấu để cảnh báo in trùng.
+- [x] P07 Unknown sau khi gửi; P08 chặn khi lỗi lưu bằng chứng; P04 thứ tự record/copy — xong 2026-10-13: P07 `d61d6db`, gate `failure after spool acceptance is unknown, not failed`; P08 cả hai đường in dùng `PrintJobEvidenceAppend`, unit `RequiredPreDispatchAppendFailureBlocksSend`; P04 unit `TryExpand_KeepsRecordAndCopyIdentityInPrintOrder` và `TwoThenOneCopyOrdinalsChangeTheManifestAndAMissingSequenceStaysV3`. P05: `DispatchRevalidationContractTests`; P06: gate `print preview busy gate blocks duplicate dispatch`, `async relay command rejects re-entry until the first call completes`.
+- [x] Log in ghi mẫu; thông báo lỗi in tiếng Việt kèm việc cần làm — xong 2026-10-13: log đã có danh tính mẫu (xem đính chính H24); `PrintFailureExplainer` và `PreflightIssueText` nêu vấn đề, dòng dữ liệu/đối tượng và việc cần làm, chi tiết kỹ thuật để riêng; gate `print stops are explained in plain Vietnamese`, `preflight issues name the data row in Vietnamese`. Bố cục dùng hộp thoại F03 (`36:188`); nội dung chữ ở handoff §3.
+- [ ] Tên driver khác máy: ca tái hiện và ADR `[chờ QĐ-12]` — chưa có ca tái hiện (cần máy thứ hai); giữ hành vi chặn hiện tại theo QĐ-12.
 - [ ] Matrix B01–B07 cho các loại mã được giữ
 
 **GĐ6 — Nghiệm thu thật**

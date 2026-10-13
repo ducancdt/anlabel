@@ -77,6 +77,30 @@ public sealed class QuickPrintQuantityTests
     }
 
     [Fact]
+    public void TryExpand_KeepsRecordAndCopyIdentityInPrintOrder()
+    {
+        // P04: A×2, B×1 → A1, A2, B1 — the same order the manifest records.
+        var database = new DatabaseConfig { CopiesField = "Qty" };
+        var rows = new (int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)[]
+        {
+            (4, new Dictionary<string, string> { ["Part"] = "A", ["Qty"] = "2" }),
+            (7, new Dictionary<string, string> { ["Part"] = "B", ["Qty"] = "1" })
+        };
+
+        Assert.True(QuickPrintQuantity.TryExpand(database, fallbackCopies: 1, rows, out var expanded, out var sequence, out var error));
+        Assert.Equal(string.Empty, error);
+        Assert.Equal(
+            new[] { new PrintDispatchCopy(4, 1, 1), new PrintDispatchCopy(4, 2, 2), new PrintDispatchCopy(7, 1, 3) },
+            sequence);
+        Assert.Equal(new[] { "A", "A", "B" }, expanded.Select(row => row!["Part"]));
+
+        Assert.True(QuickPrintQuantity.TryExpand(null, fallbackCopies: 2, rows, out _, out var manualSequence, out _));
+        Assert.Equal(
+            new[] { new PrintDispatchCopy(4, 1, 1), new PrintDispatchCopy(4, 2, 2), new PrintDispatchCopy(7, 1, 3), new PrintDispatchCopy(7, 2, 4) },
+            manualSequence);
+    }
+
+    [Fact]
     public void TryExpand_RejectsManualCopyCountAboveTheLimit()
     {
         var database = new DatabaseConfig();
