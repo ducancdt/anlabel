@@ -1,5 +1,43 @@
 # ANLAbel Phase 1 Plan
 
+## v0.310 — Hoàn tất kiểm tra toàn ứng dụng: đóng các lỗ hổng còn sót
+
+Đối chiếu lại năm báo cáo kiểm tra với các bản sửa của v0.309; những phần còn sót:
+
+**Dữ liệu và tệp**
+
+- Mở bản phục hồi rồi lưu: nếu tệp gốc đã được cửa sổ hoặc máy khác lưu sau khi
+  ANLAbel đóng bất thường, ANLAbel hỏi trước khi ghi đè (trước đây ghi đè không hỏi).
+  Bản phục hồi của phiên bản cũ vẫn mở như trước.
+- Trường chuyển đổi dữ liệu trong mẫu và danh sách nguồn dữ liệu dùng chung giữ
+  nguyên các trường do bản ANLAbel mới hơn ghi.
+- Báo cáo lỗi đầu tiên của một phiên luôn được giữ, kể cả khi có hàng loạt lỗi
+  tiếp theo.
+
+**In ấn**
+
+- Khi đã gửi lệnh in nhưng không ghi được kết quả vào nhật ký, In nhanh và Xem
+  trước báo rằng lệnh sẽ hiện trong Trung tâm in như chưa rõ kết quả và cần kiểm
+  tra tem trước khi in lại.
+- Kiểm tra máy in đã lưu dừng chờ sau 20 giây khi Print Spooler treo và báo
+  “Không kiểm tra được máy in đã lưu”; không chồng thêm luồng chờ.
+- Đóng ANLAbel khi đang gửi lệnh in nhanh sẽ hỏi trước (mặc định “Chờ in xong”);
+  cài bản cập nhật cũng chờ in xong.
+- Giữ nguyên có chủ đích: Hủy trong Xem trước vẫn chờ trình điều khiển trả lời
+  thay vì chồng thêm luồng; nút “Đóng” luôn dùng được.
+
+**Kho mã**
+
+- Bốn mẫu thư viện (20, 21, 23, 24) đổi tên tệp, không còn tên khách hàng trong
+  DLL; bộ lọc kiểm cả tên tệp, tên mẫu và tên đối tượng. Ngừng theo dõi PDF hướng
+  dẫn NiceLabel còn sót.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1189/1189; regression 256 PASS / 0 FAIL. Mutation gate không bắt
+  buộc: không đổi contract Core nào trong danh sách mutation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.309 — Kiểm tra toàn ứng dụng: không mất dữ liệu, in đúng thứ đã xem, giao diện tiếng Việt
 
 **In ấn**
