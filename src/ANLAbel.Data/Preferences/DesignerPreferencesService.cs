@@ -16,10 +16,7 @@ public sealed class DesignerPreferencesService
     private readonly string _filePath;
 
     public DesignerPreferencesService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "designer-preferences.json"))
+        : this(AppDataPaths.Local("designer-preferences.json"))
     {
     }
 

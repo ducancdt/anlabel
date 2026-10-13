@@ -13,10 +13,7 @@ public sealed class UiPreferencesService
     private readonly string _filePath;
 
     public UiPreferencesService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "ui-preferences.json"))
+        : this(AppDataPaths.Local("ui-preferences.json"))
     {
     }
 

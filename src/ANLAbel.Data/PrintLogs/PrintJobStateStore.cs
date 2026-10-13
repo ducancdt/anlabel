@@ -21,11 +21,7 @@ public sealed class PrintJobStateStore
     private bool _loaded;
 
     public PrintJobStateStore()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "logs",
-            "print-job-events.jsonl"))
+        : this(AppDataPaths.Log("print-job-events.jsonl"))
     {
     }
 

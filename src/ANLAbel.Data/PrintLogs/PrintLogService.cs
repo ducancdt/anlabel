@@ -37,10 +37,7 @@ public sealed class PrintLogService
     private readonly object _writeLock = new();
 
     public PrintLogService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "ANLAbel",
-            "print-history.csv"))
+        : this(AppDataPaths.Roaming("print-history.csv"))
     {
     }
 

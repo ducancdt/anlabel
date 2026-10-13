@@ -22,18 +22,9 @@ public sealed class AutomationConsoleViewModel : INotifyPropertyChanged
 
     public AutomationConsoleViewModel(Func<FileDropClaimLedger>? ledgerFactory = null, Func<FileDropTriggerConfigurationStore>? configurationStoreFactory = null, Func<FileDropLifecycleStore>? lifecycleStoreFactory = null)
     {
-        _ledgerFactory = ledgerFactory ?? new Func<FileDropClaimLedger>(() => new FileDropClaimLedger(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "automation-claims.jsonl")));
-        _configurationStoreFactory = configurationStoreFactory ?? new Func<FileDropTriggerConfigurationStore>(() => new FileDropTriggerConfigurationStore(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "automation-trigger.json")));
-        _lifecycleStoreFactory = lifecycleStoreFactory ?? new Func<FileDropLifecycleStore>(() => new FileDropLifecycleStore(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "automation-lifecycle.jsonl")));
+        _ledgerFactory = ledgerFactory ?? new Func<FileDropClaimLedger>(() => new FileDropClaimLedger(ANLAbel.Data.AppDataPaths.Local("automation-claims.jsonl")));
+        _configurationStoreFactory = configurationStoreFactory ?? new Func<FileDropTriggerConfigurationStore>(() => new FileDropTriggerConfigurationStore(ANLAbel.Data.AppDataPaths.Local("automation-trigger.json")));
+        _lifecycleStoreFactory = lifecycleStoreFactory ?? new Func<FileDropLifecycleStore>(() => new FileDropLifecycleStore(ANLAbel.Data.AppDataPaths.Local("automation-lifecycle.jsonl")));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -25,10 +25,7 @@ public sealed class DataSourceRegistry
     };
 
     public DataSourceRegistry()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "ANLAbel",
-            "data-sources.json"))
+        : this(AppDataPaths.Roaming("data-sources.json"))
     {
     }
 

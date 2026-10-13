@@ -35,8 +35,14 @@ using System.Printing;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+// A regression run must never write into the operator's real ANLAbel data
+// (logs, preferences, data-source registry). Plan 13 item 0.4.
+var testDataRoot = Path.Combine(Path.GetTempPath(), "ANLAbel.Tests.Data", Environment.ProcessId.ToString());
+Environment.SetEnvironmentVariable(AppDataPaths.OverrideVariable, testDataRoot);
+
 var tests = new (string Name, Func<Task> Run)[]
 {
+    ("test run keeps app data out of the operator profile", TestAppDataIsRedirectedForTestRun),
     ("mm to WPF DIP conversion", TestMmToDip),
     ("mm to printer dots conversion", TestMmToPrinterDots),
     ("label orientation follows design dimensions", TestLabelOrientationFollowsDesignDimensions),
@@ -267,6 +273,15 @@ foreach (var test in selectedTests)
         failed++;
         Console.WriteLine($"FAIL {test.Name}: {ex.Message}");
     }
+}
+
+try
+{
+    Directory.Delete(testDataRoot, recursive: true);
+}
+catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+{
+    // Temp cleanup is best effort; a locked file is left for the OS to clean.
 }
 
 return failed == 0 ? 0 : 1;
@@ -11330,6 +11345,18 @@ static void PumpDispatcherUntil(Func<bool> condition, TimeSpan timeout)
     }
 }
 
+static Task TestAppDataIsRedirectedForTestRun()
+{
+    var operatorLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel");
+    var operatorRoaming = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ANLAbel");
+    AssertEqual(true, AppDataPaths.IsOverridden, "Regression runs must redirect ANLAbel app data");
+    AssertEqual(false, AppDataPaths.LocalRoot.StartsWith(operatorLocal, StringComparison.OrdinalIgnoreCase), "Local app data must not point at the operator profile");
+    AssertEqual(false, AppDataPaths.RoamingRoot.StartsWith(operatorRoaming, StringComparison.OrdinalIgnoreCase), "Roaming app data must not point at the operator profile");
+    AssertEqual(false, new DataOperationLogService().LogFilePath.StartsWith(operatorLocal, StringComparison.OrdinalIgnoreCase), "Data operation log must stay in the test root");
+    AssertEqual(false, new PrintJobStateStore().LogFilePath.StartsWith(operatorLocal, StringComparison.OrdinalIgnoreCase), "Print job evidence must stay in the test root");
+    return Task.CompletedTask;
+}
+
 static void AssertEqual<T>(T expected, T actual, string message)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))
@@ -11437,3 +11464,4 @@ sealed class QueueChangeCapabilityStub : IPrinterCapabilityService
             media));
     }
 }
+

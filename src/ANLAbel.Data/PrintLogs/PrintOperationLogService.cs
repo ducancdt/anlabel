@@ -13,11 +13,7 @@ public sealed class PrintOperationLogService
     private readonly SemaphoreSlim _writeGate = new(1, 1);
 
     public PrintOperationLogService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "logs",
-            "print-operations.jsonl"))
+        : this(AppDataPaths.Log("print-operations.jsonl"))
     {
     }
 
@@ -91,6 +87,7 @@ public sealed class PrintOperationLogService
             }
 
             var line = JsonSerializer.Serialize(entry, JsonOptions);
+            LogFileRotation.RotateIfNeeded(LogFilePath);
             File.AppendAllText(LogFilePath, line + Environment.NewLine);
         }
         catch (IOException)

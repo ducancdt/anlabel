@@ -14,11 +14,7 @@ public sealed class DataOperationLogService
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
 
     public DataOperationLogService()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ANLAbel",
-            "logs",
-            "data-operations.jsonl"))
+        : this(AppDataPaths.Log("data-operations.jsonl"))
     {
     }
 
@@ -72,6 +68,7 @@ public sealed class DataOperationLogService
                     }
 
                     var line = JsonSerializer.Serialize(entry, JsonOptions);
+                    LogFileRotation.RotateIfNeeded(LogFilePath);
                     File.AppendAllText(LogFilePath, line + Environment.NewLine);
                     break;
                 }

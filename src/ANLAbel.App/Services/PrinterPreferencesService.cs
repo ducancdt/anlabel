@@ -9,11 +9,10 @@ namespace ANLAbel.App.Services;
 /// </summary>
 public sealed class PrinterPreferencesService
 {
-    private static readonly string PreferencesDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ANLAbel");
+    // Resolved per call so a test-run data root (ANLABEL_DATA_ROOT) always applies.
+    private static string PreferencesDir => ANLAbel.Data.AppDataPaths.LocalRoot;
 
-    private static readonly string PreferencesPath = Path.Combine(PreferencesDir, "printer-preferences.json");
+    private static string PreferencesPath => Path.Combine(PreferencesDir, "printer-preferences.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

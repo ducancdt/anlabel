@@ -20,7 +20,7 @@ public partial class AutomationWindow : Window
         _history = history;
         _printCenter = printCenter;
         _configure = configure ?? (() => new AutomationConfigurationWindow { Owner = this }.ShowDialog() == true);
-        _lifecycleStore = new FileDropLifecycleStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel", "automation-lifecycle.jsonl"));
+        _lifecycleStore = new FileDropLifecycleStore(ANLAbel.Data.AppDataPaths.Local("automation-lifecycle.jsonl"));
         _viewModel = viewModel ?? new AutomationConsoleViewModel();
         DataContext = _viewModel;
     }
@@ -33,7 +33,7 @@ public partial class AutomationWindow : Window
     private void Start_Click(object sender, RoutedEventArgs e)
     {
         if (_runner is { IsRunning: true }) { ReportLifecycle("Running", "Detect-only watcher is active; it cannot claim or dispatch."); return; }
-        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel");
+        var root = ANLAbel.Data.AppDataPaths.LocalRoot;
         var configuration = new FileDropTriggerConfigurationStore(Path.Combine(root, "automation-trigger.json")).Read(out var diagnostic);
         if (configuration is null) { ReportLifecycle(diagnostic is null ? "Stopped" : "Error", diagnostic is null ? "Configure a local trigger before starting." : $"Configuration requires repair: {diagnostic}"); return; }
         if (!TryRecordLifecycle("Starting", "Validated local configuration; starting detect-only watcher.")) return;
@@ -45,14 +45,14 @@ public partial class AutomationWindow : Window
     private void Stop_Click(object sender, RoutedEventArgs e) { _runner?.Dispose(); _runner = null; ReportLifecycle("Stopped", "Detect-only watcher is not armed."); }
     private void Claim_Click(object sender, RoutedEventArgs e)
     {
-        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel");
+        var root = ANLAbel.Data.AppDataPaths.LocalRoot;
         var result = new FileDropClaimReviewService(new FileDropClaimLedger(Path.Combine(root, "automation-claims.jsonl"))).ClaimDetected(out var message);
         _viewModel.Refresh();
         ReportLifecycle(result > 0 ? "Claimed" : "Stopped", message);
     }
     private async void ValidateTemplate_Click(object sender, RoutedEventArgs e)
     {
-        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel");
+        var root = ANLAbel.Data.AppDataPaths.LocalRoot;
         var configuration = new FileDropTriggerConfigurationStore(Path.Combine(root, "automation-trigger.json")).Read(out var diagnostic);
         if (configuration is null) { _viewModel.ReportLifecycle(diagnostic is null ? "Template policy cannot be validated: configure a target template first." : $"Template policy configuration requires repair: {diagnostic}"); return; }
         var result = await new AutomationTemplateBindingValidator().ValidateAsync(configuration.Configuration);

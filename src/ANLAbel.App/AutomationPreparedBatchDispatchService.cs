@@ -18,7 +18,7 @@ public sealed class AutomationPreparedBatchDispatchService
     public AutomationPreparedBatchDispatchService(FileDropClaimLedger ledger, AutomationJobHistoryStore? history = null)
     {
         _ledger = ledger;
-        _history = history ?? new AutomationJobHistoryStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel", "automation-job-history.jsonl"));
+        _history = history ?? new AutomationJobHistoryStore(ANLAbel.Data.AppDataPaths.Local("automation-job-history.jsonl"));
     }
 
     public async Task<AutomationPreparedBatchDispatchResult> DispatchAsync(

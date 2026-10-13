@@ -11,7 +11,7 @@ public partial class AutomationConfigurationWindow : Window
     public AutomationConfigurationWindow(FileDropTriggerConfigurationStore? store = null)
     {
         InitializeComponent();
-        _viewModel = new AutomationConfigurationViewModel(store ?? new FileDropTriggerConfigurationStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel", "automation-trigger.json")));
+        _viewModel = new AutomationConfigurationViewModel(store ?? new FileDropTriggerConfigurationStore(ANLAbel.Data.AppDataPaths.Local("automation-trigger.json")));
         DataContext = _viewModel;
     }
     private void Save_Click(object sender, RoutedEventArgs e) { if (_viewModel.Save()) DialogResult = true; }

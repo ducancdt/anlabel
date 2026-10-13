@@ -40,7 +40,7 @@ public sealed class LocalMaintenanceViewModel : INotifyPropertyChanged
             SourceStatus = string.IsNullOrWhiteSpace(history)
                 ? "History evidence location is unavailable."
                 : $"History evidence is local: {Path.GetFileName(history)}.";
-            var preferencesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ANLAbel", "designer-preferences.json");
+            var preferencesPath = ANLAbel.Data.AppDataPaths.Local("designer-preferences.json");
             PreferencesStatus = File.Exists(preferencesPath)
                 ? "Designer preferences are saved locally; change them through their existing designer controls."
                 : "Designer preferences have no saved file yet; application defaults remain in effect.";
