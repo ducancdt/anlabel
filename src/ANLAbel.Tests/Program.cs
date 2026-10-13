@@ -59,6 +59,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("failure while sending is uncertain, not failed", PrintSafetyRegression.FailureWhileSendingIsUncertainNotFailed),
     ("quick print refuses placeholders and runs one job at a time", PrintSafetyRegression.QuickPrintRefusesPlaceholdersAndRunsOneJobAtATime),
     ("printer list wait is bounded and reuses a stuck enumeration", PrintSafetyRegression.PrinterListWaitIsBoundedAndReusesAStuckEnumeration),
+    ("printer, print, template and data failures read in Vietnamese", OperatorLanguageRegression.FailuresAndStatusesAreExplainedInVietnamese),
     ("print stops are explained in plain Vietnamese", PrintSafetyRegression.PrintStopsAreExplainedInPlainVietnamese),
     ("preflight issues name the data row in Vietnamese", PrintSafetyRegression.PreflightIssuesNameTheDataRowInVietnamese),
     ("print history regression suite", PrintHistoryRegression.Run),
@@ -8785,9 +8786,9 @@ static async Task TestPropertiesExcelVerification()
     await vm.VerifyExcelLinkAsync();
     AssertEqual(ExcelLinkVerificationState.Failed, vm.ExcelLinkVerificationState,
         "A missing workbook must fail verification instead of keeping a green status");
-    AssertEqual(true, vm.ExcelLinkVerificationDetail.Contains("not", StringComparison.OrdinalIgnoreCase)
-        || vm.ExcelLinkVerificationDetail.Contains("find", StringComparison.OrdinalIgnoreCase),
-        "Failed verification must expose an actionable file error");
+    AssertEqual(true, vm.ExcelLinkVerificationDetail.Contains("Không tìm thấy tệp dữ liệu", StringComparison.Ordinal)
+        && vm.ExcelLinkVerificationDetail.Contains("Liên kết lại", StringComparison.Ordinal),
+        "Failed verification must expose an actionable file error in Vietnamese");
 
     vm.UnlinkExcel();
     try { Directory.Delete(dir, true); } catch { }

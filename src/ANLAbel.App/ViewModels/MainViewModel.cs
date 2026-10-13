@@ -99,7 +99,7 @@ public sealed class MainViewModel : ObservableObject
     private int _printCopies = 1;
     private string _printCopiesField = string.Empty;
     private string _currentFilePath = string.Empty;
-    private string _statusText = "Ready";
+    private string _statusText = "Sẵn sàng";
     private string _lastTemplateSnapshot = string.Empty;
     private bool _isRestoringHistory;
     private bool _syncingTemplatePrinterSize;
@@ -1246,11 +1246,24 @@ public sealed class MainViewModel : ObservableObject
             ? "Chọn máy in đã xác thực"
             : PrinterQueueStatus.IsAvailable ? "Máy in chưa sẵn sàng" : "Máy in không khả dụng";
 
-    public string PrinterQueueStatusMessage => PrinterQueueStatus.CanSubmit
-        ? string.Empty
-        : string.IsNullOrWhiteSpace(PrinterQueueStatus.ErrorMessage)
-            ? "Hàng đợi máy in đã lưu không khả dụng. Hãy mở Cài đặt máy in và chọn hàng đợi đã xác thực trước khi in."
-            : $"{PrinterQueueStatus.ErrorMessage} Hãy mở Cài đặt máy in và chọn hàng đợi đã xác thực trước khi in.";
+    public string PrinterQueueStatusMessage
+    {
+        get
+        {
+            if (PrinterQueueStatus.CanSubmit)
+            {
+                return string.Empty;
+            }
+
+            // Shown in the status bar at startup, the printer chip and the
+            // print warning: Vietnamese, with the technical text kept only
+            // when no rule recognises it (audit 2026-10-13).
+            var explained = ANLAbel.App.Services.PrintFailureExplainer.ExplainQueueStatus(PrinterQueueStatus.ErrorMessage);
+            return explained.IsGeneric && !string.IsNullOrWhiteSpace(explained.Technical)
+                ? $"{explained.StatusLine} Chi tiết kỹ thuật: {explained.Technical}"
+                : explained.StatusLine;
+        }
+    }
 
     /// <summary>
     /// Rechecks the saved queue off the WPF dispatcher. The result is applied
@@ -1667,8 +1680,11 @@ public sealed class MainViewModel : ObservableObject
             var reason = string.IsNullOrWhiteSpace(loadResult.PrimaryError)
                 ? "The template file is invalid."
                 : loadResult.PrimaryError;
-            throw new InvalidDataException(
-                $"Không thể mở tệp mẫu ({reason}). Bản sao lưu còn tại '{backupPath}'. Tài liệu đang mở không bị thay. Hãy mở tệp sao lưu đó nếu muốn dùng nó.");
+            var failure = new InvalidDataException(
+                $"Không mở được tệp mẫu: {ANLAbel.App.Services.TemplateFailureExplainer.ExplainMessage(reason).Problem} Bản sao lưu còn tại '{backupPath}'. Tài liệu đang mở không bị thay. Hãy mở tệp sao lưu đó nếu muốn dùng nó.");
+            failure.Data[ANLAbel.App.Services.TemplateFailureExplainer.BackupPathKey] = backupPath;
+            failure.Data[ANLAbel.App.Services.TemplateFailureExplainer.PrimaryErrorKey] = reason;
+            throw failure;
         }
 
         UnobserveTemplate(Template);
@@ -1772,7 +1788,11 @@ public sealed class MainViewModel : ObservableObject
             offsetYMm,
             scaleX,
             scaleY);
-        StatusText = $"Máy in: {printer.Name}, khổ tem: {paper.Name} ({Template.WidthMm:0.##} x {Template.HeightMm:0.##} mm), nguồn trang: {pageSizeSource}, hướng: {orientation}";
+        // "Custom" is the stored name of a typed size; only the display is translated.
+        var paperName = string.Equals(paper.Name, "Custom", StringComparison.OrdinalIgnoreCase) ? "tùy chỉnh" : paper.Name;
+        var source = pageSizeSource == PaperSizeSource.DriverAutomatic ? "tự động theo driver" : "thủ công";
+        var direction = orientation == LabelOrientation.Portrait ? "dọc" : "ngang";
+        StatusText = $"Máy in: {printer.Name}, khổ tem: {paperName} ({Template.WidthMm:0.##} x {Template.HeightMm:0.##} mm), nguồn trang: {source}, hướng: {direction}";
     }
 
     public async Task ImportExcelAsync(string filePath, string sheetName, CancellationToken cancellationToken = default)
@@ -1981,25 +2001,27 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            var result = await _excelDataService.TestConnectionAsync(
+            var check = await _excelDataService.CheckConnectionAsync(
                 Template.DatabaseConfig.FilePath,
                 Template.DatabaseConfig.SheetName,
                 Template.DatabaseConfig.HeaderRowIndex,
                 cancellationToken);
 
-            if (!result.Ok)
+            if (!check.Ok)
             {
-                MarkExcelLinkVerificationFailed(result.Message);
+                MarkExcelLinkVerificationFailed(check.Failure is null
+                    ? "Sheet không có cột nào ở dòng tiêu đề đã chọn."
+                    : ANLAbel.App.Services.OperationFailureExplainer.StatusLine(check.Failure));
                 return;
             }
 
             IsExcelLinkBroken = false;
             MarkExcelLinkVerified(ExcelDataView?.Count ?? 0, ExcelHeaders.Count);
-            StatusText = $"Đã xác thực liên kết Excel: {LinkedExcelSourceText}. {result.Message}";
+            StatusText = $"Đã xác thực liên kết Excel: {LinkedExcelSourceText}. Đạt — {check.ColumnCount} cột, {check.RowCount} dòng.";
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            MarkExcelLinkVerificationFailed(ex.Message);
+            MarkExcelLinkVerificationFailed(ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex));
         }
     }
 
@@ -2291,7 +2313,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            StatusText += $" (Chưa cập nhật được danh sách nguồn dữ liệu dùng chung: {ex.Message})";
+            StatusText += $" (Chưa cập nhật được danh sách nguồn dữ liệu dùng chung. {ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)})";
         }
     }
 
@@ -2322,7 +2344,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Không thể đọc tệp Excel: {ex.Message}";
+            StatusText = "Không thể đọc tệp Excel: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
             return;
         }
 
@@ -2535,7 +2557,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Không thể đọc tệp Excel: {ex.Message}";
+            StatusText = "Không thể đọc tệp Excel: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
             return;
         }
 
@@ -3040,7 +3062,7 @@ public sealed class MainViewModel : ObservableObject
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus);
                 _ = WritePrintLogAsync(
                     "Current row",
                     rows,
@@ -3053,7 +3075,7 @@ public sealed class MainViewModel : ObservableObject
             }
             else if (result.Outcome != PrintJobOutcome.Cancelled)
             {
-                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus);
                 LogPrintOperation(
                     "Current row",
                     PreviewRow is null ? 0 : 1,
@@ -3131,7 +3153,7 @@ public sealed class MainViewModel : ObservableObject
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus) + zeroCopyNote;
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + zeroCopyNote;
                 _ = WritePrintLogAsync(
                     "All rows",
                     rows,
@@ -3144,7 +3166,7 @@ public sealed class MainViewModel : ObservableObject
             }
             else if (result.Outcome != PrintJobOutcome.Cancelled)
             {
-                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus);
                 LogPrintOperation(
                     "All rows",
                     ExcelDataView?.Count ?? 0,
@@ -3172,18 +3194,14 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             var result = await _printService.PrintCalibrationWithResultAsync(Template);
-            if (result.IsAccepted)
+            if (result.Outcome != PrintJobOutcome.Cancelled)
             {
-                StatusText = result.UserFacingStatus;
-            }
-            else if (result.Outcome != PrintJobOutcome.Cancelled)
-            {
-                StatusText = result.UserFacingStatus;
+                StatusText = ANLAbel.App.Services.PrintStatusText.Result(result);
             }
         }
         catch (Exception ex)
         {
-            StatusText = $"In hiệu chỉnh thất bại: {ex.Message}";
+            StatusText = "In hiệu chỉnh thất bại: " + ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message).StatusLine;
         }
     }
 
@@ -3329,7 +3347,9 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            problem = $"Không thể đọc tệp hình ảnh: {ex.Message}";
+            problem = ex is UnauthorizedAccessException
+                ? $"ANLAbel không có quyền đọc ảnh “{name}”. Kiểm tra quyền truy cập tệp rồi chèn lại."
+                : $"Không đọc được ảnh “{name}”: tệp đang bị chương trình khác mở, đã bị xóa hoặc ổ mạng mất kết nối. Kiểm tra rồi chèn lại.";
             return false;
         }
     }
@@ -5252,7 +5272,7 @@ public sealed class MainViewModel : ObservableObject
             return status;
         }
 
-        return $"{status}\nTrạng thái hàng đợi: {spoolStatus.UserFacingStatus}";
+        return $"{status}\nTrạng thái hàng đợi: {ANLAbel.App.Services.PrintStatusText.Queue(spoolStatus)}";
     }
 
     /// <summary>What a print-history row needs, read once on the UI thread.</summary>
@@ -5396,7 +5416,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Không thể mở lịch sử in: {ex.Message}";
+            StatusText = "Không thể mở lịch sử in: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
         }
     }
 }

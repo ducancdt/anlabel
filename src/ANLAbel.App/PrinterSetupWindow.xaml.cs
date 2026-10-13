@@ -738,12 +738,12 @@ public partial class PrinterSetupWindow : Window
             var result = await _printService.PrintCalibrationWithResultAsync(calibrationTemplate);
             if (!result.IsAccepted)
             {
-                MessageBox.Show(this, result.UserFacingStatus, "Hiệu chỉnh chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, ANLAbel.App.Services.PrintStatusText.Result(result), "Hiệu chỉnh chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "In hiệu chỉnh thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message).StatusLine, "In hiệu chỉnh thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

@@ -258,13 +258,22 @@ internal static class DocumentLifecycleRegression
             await clean.OpenAsync(templatePath);
             Require(!clean.IsDirty, "Opening a linked template must not mark it changed.");
 
+            // Edit once the data restore has started. Waiting only for the new
+            // template raced the open on a pool thread (this runner has no UI
+            // dispatcher): an edit before the document was marked clean became
+            // part of the "as read" state. In the app the open's synchronous
+            // part runs on the UI thread, so no edit can land there.
             var vm = new MainViewModel();
-            var opening = vm.OpenAsync(templatePath);
-            var deadline = DateTime.UtcNow.AddSeconds(20);
-            while (vm.Template.Name != "Đang mở" && DateTime.UtcNow < deadline)
+            var restoreStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            vm.PropertyChanged += (_, e) =>
             {
-                await Task.Delay(5);
-            }
+                if (e.PropertyName == nameof(MainViewModel.HasLinkedExcelSource))
+                {
+                    restoreStarted.TrySetResult();
+                }
+            };
+            var opening = vm.OpenAsync(templatePath);
+            await restoreStarted.Task.WaitAsync(TimeSpan.FromSeconds(20));
 
             Require(!opening.IsCompleted, "The fixture must edit while the linked data is still loading.");
             vm.Template.Objects.Single().XMm = 9;

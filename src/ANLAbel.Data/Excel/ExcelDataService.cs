@@ -16,6 +16,12 @@ public sealed record ExcelPreviewRow(int RowNumber, IReadOnlyList<string> Cells)
 /// <summary>One sheet's name plus its preview rows, from <see cref="ExcelDataService.GetSheetsWithPreviewAsync"/>.</summary>
 public sealed record ExcelSheetPreview(string SheetName, IReadOnlyList<ExcelPreviewRow> Rows);
 
+/// <summary>Result of a link check: column and row counts, or why the sheet could not be read.</summary>
+public sealed record ExcelConnectionCheck(int ColumnCount, int RowCount, Exception? Failure)
+{
+    public bool Ok => Failure is null && ColumnCount > 0;
+}
+
 /// <summary>
 /// Reads .xlsx/.xlsm workbooks with ExcelDataReader (bug fix 2026-07-03: switched from
 /// ClosedXML). ClosedXML builds a full in-memory DOM of the whole workbook — every sheet,
@@ -100,12 +106,25 @@ public sealed class ExcelDataService
     /// </summary>
     public async Task<(bool Ok, string Message)> TestConnectionAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
     {
+        var check = await CheckConnectionAsync(filePath, sheetName, headerRowIndex, cancellationToken);
+        return check.Failure is not null
+            ? (false, check.Failure.Message)
+            : check.ColumnCount > 0
+                ? (true, $"OK — {check.ColumnCount} column(s), {check.RowCount} row(s).")
+                : (false, "Sheet has no columns at the given header row.");
+    }
+
+    /// <summary>
+    /// The same check as <see cref="TestConnectionAsync"/>, returning the counts
+    /// and the failure itself so the UI can explain it in the operator's language.
+    /// Never throws except for cancellation.
+    /// </summary>
+    public async Task<ExcelConnectionCheck> CheckConnectionAsync(string filePath, string sheetName, int headerRowIndex = 1, CancellationToken cancellationToken = default)
+    {
         try
         {
             var table = await LoadSheetAsync(filePath, sheetName, headerRowIndex, cancellationToken);
-            return table.Columns.Count > 0
-                ? (true, $"OK — {table.Columns.Count} column(s), {table.Rows.Count} row(s).")
-                : (false, "Sheet has no columns at the given header row.");
+            return new ExcelConnectionCheck(table.Columns.Count, table.Rows.Count, null);
         }
         catch (OperationCanceledException)
         {
@@ -113,7 +132,7 @@ public sealed class ExcelDataService
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            return new ExcelConnectionCheck(0, 0, ex);
         }
     }
 

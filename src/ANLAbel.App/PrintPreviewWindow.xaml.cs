@@ -737,7 +737,7 @@ public partial class PrintPreviewWindow : Window
                 }
                 else
                 {
-                    MessageBox.Show(this, printResult.UserFacingStatus, "Lệnh in chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, ANLAbel.App.Services.PrintStatusText.Result(printResult), "Lệnh in chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
                 return;
@@ -758,7 +758,7 @@ public partial class PrintPreviewWindow : Window
             var statusText = printResult.UserFacingStatus;
             if (spoolStatus is not null)
             {
-                statusText += $"\nTrạng thái hàng đợi: {spoolStatus.UserFacingStatus}";
+                statusText += $"\nTrạng thái hàng đợi: {ANLAbel.App.Services.PrintStatusText.Queue(spoolStatus)}";
             }
 
             var printedRowCount = selected.Select(entry => entry.SourceRowNumber).Distinct().Count();

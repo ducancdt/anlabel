@@ -490,7 +490,7 @@
                             AutomationProperties.AutomationId="Shell.QuickAccess.PrinterStatus">
                         <StackPanel Orientation="Horizontal">
                             <Image Style="{StaticResource SmallIconImage}" Source="Icons/printer_status.png" Width="17" Height="17" Margin="0,0,6,0"/>
-                            <TextBlock Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=Printer not selected, FallbackValue=Printer not selected}" FontWeight="SemiBold" Foreground="#173B72"/>
+                            <TextBlock Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=Chưa chọn máy in, FallbackValue=Chưa chọn máy in}" FontWeight="SemiBold" Foreground="#173B72"/>
                         </StackPanel>
                     </Border>
                     <Border Background="#173B72" BorderBrush="#31598F" BorderThickness="1" CornerRadius="5" Padding="9,4">
@@ -676,7 +676,7 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.AutomationId="Shell.Status.Zoom">
-                    <TextBlock Text="{Binding ZoomPercent, StringFormat=Zoom: {0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="{Binding ZoomPercent, StringFormat=Thu phóng: {0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/zoom_minus.png"/>
                     <Slider Width="132" Minimum="0.25" Maximum="4" SmallChange="0.1" LargeChange="0.25" Value="{Binding Zoom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="8,0" AutomationProperties.Name="Zoom" AutomationProperties.AutomationId="Shell.Status.ZoomSlider"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/zoom_plus.png"/>

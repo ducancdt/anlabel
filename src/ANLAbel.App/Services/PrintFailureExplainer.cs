@@ -136,6 +136,48 @@ public static class PrintFailureExplainer
         };
     }
 
+    private static readonly (Regex Pattern, string Problem, string Action)[] QueueStatusRules =
+    [
+        (Rx(@"^No (?:verified )?printer queue (?:is|was) selected"),
+            "Chưa chọn máy in cho mẫu này.", "Mở Cài đặt máy in để chọn hàng đợi máy in tem trước khi in."),
+        (Rx(@"^The requested Windows printer queue is unavailable"),
+            "Không tìm thấy máy in đã lưu trong Windows.", "Bật máy in hoặc chọn lại hàng đợi máy in trong Cài đặt máy in."),
+        (Rx(@"^Windows resolved the requested queue to '"),
+            "Windows trỏ máy in đã lưu sang một hàng đợi khác.", "Chọn lại máy in trong Cài đặt máy in."),
+        (Rx(@"^Windows could not open the saved queue"),
+            "Windows không mở được máy in đã lưu.", "Kiểm tra máy in đã cài và đang kết nối, hoặc chọn lại hàng đợi trong Cài đặt máy in."),
+        (Rx(@"^Printer queue lookup failed"),
+            "Không kiểm tra được máy in đã lưu.", "Kiểm tra dịch vụ Print Spooler rồi mở lại Cài đặt máy in."),
+    ];
+
+    /// <summary>
+    /// The saved printer's queue state for the status bar and the printer chip,
+    /// before any print was attempted, so it never says a label was not sent
+    /// (audit 2026-10-13).
+    /// </summary>
+    public static PrintFailureExplanation ExplainQueueStatus(string? technicalMessage)
+    {
+        var technical = (technicalMessage ?? string.Empty).Trim();
+        foreach (var (pattern, problem, action) in QueueStatusRules)
+        {
+            if (pattern.IsMatch(technical))
+            {
+                return new PrintFailureExplanation(problem, action, technical);
+            }
+        }
+
+        var explained = Explain(technical);
+        return explained.IsGeneric
+            ? new PrintFailureExplanation(
+                "Máy in đã lưu chưa sẵn sàng.",
+                "Mở Cài đặt máy in và chọn lại hàng đợi máy in tem trước khi in.",
+                technical)
+            {
+                IsGeneric = true,
+            }
+            : explained with { Problem = explained.Problem.Replace(" " + NotSent, string.Empty, StringComparison.Ordinal) };
+    }
+
     private static Regex Rx(string pattern) => new(pattern, RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static string Fields(Match match)

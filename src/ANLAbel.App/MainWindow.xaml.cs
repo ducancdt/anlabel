@@ -573,15 +573,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        try
-        {
-            await _viewModel.OpenAsync(dialog.FileName);
-            await _viewModel.RefreshPrinterQueueStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Mở thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        await OpenDocumentPathAsync(dialog.FileName);
     }
 
     private async void RevisionHistory_Click(object sender, RoutedEventArgs e)
@@ -738,7 +730,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Xuất thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex), "Xuất thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -782,7 +774,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Thư viện mẫu tem", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ANLAbel.App.Services.OperationFailureExplainer.WithTechnicalIfGeneric(ANLAbel.App.Services.TemplateFailureExplainer.Explain(ex)), "Thư viện mẫu tem", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -791,7 +783,7 @@ public partial class MainWindow : Window
         var confirmed = MessageBox.Show(
             this,
             "Hủy liên kết Excel khỏi mẫu tem này?\n\nCác đối tượng vẫn giữ trường liên kết nhưng sẽ hiển thị nội dung mẫu cho đến khi bạn nhập dữ liệu lại.",
-            "Unlink Excel",
+            "Hủy liên kết Excel",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question) == MessageBoxResult.Yes;
         if (confirmed)
@@ -836,7 +828,7 @@ public partial class MainWindow : Window
             System.Diagnostics.Debug.WriteLine($"Print preview open error: {ex}");
             MessageBox.Show(
                 this,
-                $"Không thể mở Xem trước khi in. {ex.Message}",
+                $"Không thể mở Xem trước khi in. {ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)}",
                 "Xem trước không khả dụng",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -907,7 +899,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Không thể đọc danh sách máy in đã cài đặt.\n\n{ex.Message}", "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, $"Không thể đọc danh sách máy in đã cài đặt.\n\n{ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)}", "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 }

@@ -222,7 +222,7 @@ public partial class MainWindow
                 this,
                 "Không lưu được mẫu tem",
                 [
-                    $"Chưa lưu được “{Path.GetFileName(filePath)}”: {ex.Message}",
+                    $"Chưa lưu được “{Path.GetFileName(filePath)}”: {ANLAbel.App.Services.OperationFailureExplainer.WithTechnicalIfGeneric(ANLAbel.App.Services.TemplateFailureExplainer.Explain(ex))}",
                     protectedCopy
                         ? "Thay đổi vẫn còn trong ANLAbel và đã có bản phục hồi tự động. Hãy kiểm tra quyền ghi hoặc dung lượng ổ đĩa rồi lưu lại, hoặc dùng Lưu thành… để lưu ra chỗ khác."
                         : "Thay đổi vẫn còn trong ANLAbel. Hãy kiểm tra quyền ghi hoặc dung lượng ổ đĩa rồi lưu lại, hoặc dùng Lưu thành… để lưu ra chỗ khác."
@@ -282,11 +282,12 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
+            var explained = ANLAbel.App.Services.TemplateFailureExplainer.Explain(ex);
             OperatorDialog.Ask(
                 this,
                 "Không mở được mẫu tem",
-                [$"Không mở được “{Path.GetFileName(filePath)}”: {ex.Message}", "Mẫu đang mở không bị thay đổi."],
-                filePath,
+                [$"Không mở được “{Path.GetFileName(filePath)}”: {explained.Problem}", explained.NextAction, "Mẫu đang mở không bị thay đổi."],
+                $"{filePath} — Chi tiết kỹ thuật: {explained.Technical}",
                 OperatorDialogTone.Error,
                 new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
         }
@@ -478,7 +479,7 @@ public partial class MainWindow
                 OperatorDialog.Ask(
                     this,
                     "Không mở được bản phục hồi",
-                    [ex.Message, "Bản phục hồi vẫn được giữ lại để thử lần sau."],
+                    [ANLAbel.App.Services.OperationFailureExplainer.WithTechnicalIfGeneric(ANLAbel.App.Services.TemplateFailureExplainer.Explain(ex)), "Bản phục hồi vẫn được giữ lại để thử lần sau."],
                     entry.DocumentPath,
                     OperatorDialogTone.Error,
                     new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));

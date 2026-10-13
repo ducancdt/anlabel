@@ -166,4 +166,15 @@ public static class OperationFailureExplainer
 
     /// <summary>True when the failure came from reading a data source.</summary>
     public static bool IsDataFailure(Exception exception) => DataFailureExplainer.TryExplain(exception) is not null;
+
+    /// <summary>
+    /// One status-bar or message line: problem and next action, with the
+    /// technical text kept only when no rule recognised it (audit 2026-10-13).
+    /// </summary>
+    public static string StatusLine(Exception exception) => WithTechnicalIfGeneric(Explain(exception));
+
+    public static string WithTechnicalIfGeneric(PrintFailureExplanation explained)
+        => explained.IsGeneric && !string.IsNullOrWhiteSpace(explained.Technical)
+            ? $"{explained.StatusLine} Chi tiết kỹ thuật: {explained.Technical}"
+            : explained.StatusLine;
 }

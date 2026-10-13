@@ -69,8 +69,8 @@ public partial class DatabaseManagerWindow : Window
         }
 
         UsedByCurrentTemplateText.Text = string.Equals(_viewModel.Template.DatabaseConfig.DataSourceId, source.Id, StringComparison.OrdinalIgnoreCase)
-            ? "Yes — the template currently open in the designer uses this source."
-            : "No — the template currently open in the designer does not reference this source.";
+            ? "Có — mẫu đang mở trong trình thiết kế dùng nguồn này."
+            : "Không — mẫu đang mở trong trình thiết kế không dùng nguồn này.";
     }
 
     private void NameTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -141,12 +141,12 @@ public partial class DatabaseManagerWindow : Window
             SheetComboBox.ItemsSource = sheets;
             SheetComboBox.Text = sheets.Contains(source.SheetName) ? source.SheetName : sheets.FirstOrDefault() ?? string.Empty;
             TestResultText.Foreground = System.Windows.Media.Brushes.DarkGreen;
-            TestResultText.Text = $"Found {sheets.Count} sheet(s).";
+            TestResultText.Text = $"Tìm thấy {sheets.Count} sheet.";
         }
         catch (Exception ex)
         {
             TestResultText.Foreground = System.Windows.Media.Brushes.Firebrick;
-            TestResultText.Text = $"Could not read sheets: {ex.Message}";
+            TestResultText.Text = "Không đọc được danh sách sheet: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
         }
         finally
         {
@@ -165,9 +165,13 @@ public partial class DatabaseManagerWindow : Window
         Cursor = System.Windows.Input.Cursors.Wait;
         try
         {
-            var (ok, message) = await _viewModel.ExcelDataService.TestConnectionAsync(source.FilePath, SheetComboBox.Text, source.HeaderRowIndex);
-            TestResultText.Foreground = ok ? System.Windows.Media.Brushes.DarkGreen : System.Windows.Media.Brushes.Firebrick;
-            TestResultText.Text = (ok ? "✓ " : "✗ ") + message;
+            var check = await _viewModel.ExcelDataService.CheckConnectionAsync(source.FilePath, SheetComboBox.Text, source.HeaderRowIndex);
+            TestResultText.Foreground = check.Ok ? System.Windows.Media.Brushes.DarkGreen : System.Windows.Media.Brushes.Firebrick;
+            TestResultText.Text = check.Ok
+                ? $"✓ Đạt — {check.ColumnCount} cột, {check.RowCount} dòng."
+                : "✗ " + (check.Failure is null
+                    ? "Sheet không có cột nào ở dòng tiêu đề đã chọn."
+                    : ANLAbel.App.Services.OperationFailureExplainer.StatusLine(check.Failure));
         }
         finally
         {
@@ -190,13 +194,13 @@ public partial class DatabaseManagerWindow : Window
             PreviewDataGrid.ItemsSource = table.DefaultView;
             PreviewDataGrid.Visibility = Visibility.Visible;
             TestResultText.Foreground = System.Windows.Media.Brushes.DarkGreen;
-            TestResultText.Text = $"Preview loaded: {table.Rows.Count} row(s), {table.Columns.Count} column(s).";
+            TestResultText.Text = $"Đã tải xem trước: {table.Rows.Count} dòng, {table.Columns.Count} cột.";
         }
         catch (Exception ex)
         {
             PreviewDataGrid.Visibility = Visibility.Collapsed;
             TestResultText.Foreground = System.Windows.Media.Brushes.Firebrick;
-            TestResultText.Text = $"Could not load preview: {ex.Message}";
+            TestResultText.Text = "Không tải được xem trước: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
         }
         finally
         {
