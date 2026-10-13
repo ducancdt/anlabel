@@ -4437,6 +4437,11 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        // The data link (file, sheet, header row, key and copies fields) is not
+        // a design edit: import, relink and unlink change it outside the undo
+        // history, and the loaded rows stay as they are. Undo/redo must not
+        // silently put back an older link (plan 13 H16, D02).
+        restored.DatabaseConfig = Template.DatabaseConfig;
         _isRestoringHistory = true;
         try
         {
@@ -4445,14 +4450,14 @@ public sealed class MainViewModel : ObservableObject
             SelectedObject = string.IsNullOrWhiteSpace(selectedId)
                 ? null
                 : Template.Objects.FirstOrDefault(item => item.Id == selectedId);
-            _lastTemplateSnapshot = snapshot;
+            _lastTemplateSnapshot = CaptureTemplateSnapshot();
         }
         finally
         {
             _isRestoringHistory = false;
         }
 
-        UpdateDirtyState(snapshot);
+        UpdateDirtyState(_lastTemplateSnapshot);
     }
 
     private string CaptureTemplateSnapshot()

@@ -2763,6 +2763,8 @@ public sealed class LabelDesignerCanvas : Canvas
         var nextZ = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
 
         _selectedObjects.Clear();
+        // One paste is one undo step, however many objects it adds (D02).
+        NotifyEditGestureStarted();
         foreach (var item in pasted)
         {
             item.Id = Guid.NewGuid().ToString("N");
@@ -2773,6 +2775,7 @@ public sealed class LabelDesignerCanvas : Canvas
             _selectedObjects.Add(item);
         }
 
+        NotifyEditGestureCompleted();
         SelectedObject = pasted.LastOrDefault();
         RefreshSelectionAdorner();
 
