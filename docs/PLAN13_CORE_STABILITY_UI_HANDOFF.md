@@ -86,6 +86,8 @@ chỉ hộp thoại `OperatorDialog` sẵn có, dòng trạng thái và chữ tr
 | Bảng Thuộc tính, danh sách Lớp, danh sách chọn | `DisplayNames`, `DisplayNameConverter`, `FormulaErrorText` | Tên loại như hộp công cụ (Chữ, Ô chữ, Mã vạch…); giá trị lưu vẫn là tên enum |
 | Trung tâm in, Lịch sử in, Phiên bản mẫu tem | `PrintCenterText`, `PrintHistoryViewModel`, `RevisionText` | Trạng thái, thao tác, hàng đợi, lý do và kết quả bằng tiếng Việt; nhật ký giữ chữ gốc làm bằng chứng |
 | Cài đặt máy in | `MediaCompatibilityText`, `CapabilityStatusText` | Thẻ Tương thích và trạng thái trình điều khiển tiếng Việt; chẩn đoán gốc nằm trong tooltip “Chi tiết kỹ thuật” |
+| Đóng khi đang in nhanh (v0.310) | `MainWindow_Closing` khi `IsQuickPrinting` | Tiêu đề “Đang gửi lệnh in”; nút “Chờ in xong” (mặc định, Esc) và “Vẫn đóng”; cài bản cập nhật trong lúc in thì báo chờ in xong |
+| Không ghi được kết quả lệnh in (v0.310) | `_printEvidenceDropped` sau khi gửi | Thêm vào dòng kết quả: “Chưa ghi được kết quả lệnh in vào nhật ký nên lệnh này sẽ hiện trong Trung tâm in như chưa rõ kết quả; kiểm tra tem đã ra trước khi in lại.” |
 | Chưa đổi | Thẻ Ô chữ trong Bảng thuộc tính | Banner và tùy chọn của Ô chữ thuộc hợp đồng Text/TextBox; chờ chủ sản phẩm duyệt |
 
 ## 4. Bố cục
