@@ -1401,11 +1401,15 @@ public partial class PrintPreviewWindow : Window
             yield break;
         }
 
-        foreach (DataRowView rowView in _excelDataView)
+        // Source-file order, so row numbers do not follow a sort of the data grid (DB07).
+        var records = _excelDataView.Table is { } table
+            ? table.Rows.Cast<DataRow>()
+            : _excelDataView.Cast<DataRowView>().Select(item => item.Row);
+        foreach (var record in records)
         {
-            yield return rowView.Row.Table.Columns
+            yield return record.Table.Columns
                 .Cast<DataColumn>()
-                .ToDictionary(column => column.ColumnName, column => rowView.Row[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(column => column.ColumnName, column => record[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase);
         }
     }
 

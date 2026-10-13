@@ -63,6 +63,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
     private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
+    private int _importGeneration;
     private bool _selectedObjectRefreshDeferred;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
@@ -242,10 +243,12 @@ public sealed class MainViewModel : ObservableObject
             return true;
         }
 
+        // Records keep the order and numbers of the source file (DB07): sorting
+        // the data grid to find a row must not renumber or reorder print rows.
         var prepared = new List<IReadOnlyDictionary<string, string>?>();
-        foreach (DataRowView rowView in ExcelDataView)
+        foreach (DataRow dataRow in RecordsInSourceOrder(ExcelDataView))
         {
-            var row = CreatePreviewRow(rowView, out var rowError);
+            var row = CreatePreviewRow(dataRow, out var rowError);
             if (!string.IsNullOrWhiteSpace(rowError))
             {
                 rows = Array.Empty<IReadOnlyDictionary<string, string>?>();
@@ -1828,16 +1831,37 @@ public sealed class MainViewModel : ObservableObject
         // The link (file, sheet, header row) changes only after the new data was
         // read; a failed import or relink leaves the working link as it was (H16).
         var headerRow = headerRowIndex ?? Template.DatabaseConfig.HeaderRowIndex;
+        // DB05: when imports overlap (a refresh while an import is still
+        // reading), only the latest one may publish; an older, slower read is
+        // discarded instead of replacing newer data.
+        var generation = ++_importGeneration;
         DataTable table;
+        FileSourceIdentity? sourceIdentity;
         try
         {
             table = await _excelDataService.LoadSheetAsync(filePath, sheetName, headerRow, cancellationToken);
+            // Content identity (SHA-256) so a refresh cannot treat a same-mtime
+            // byte replacement as current (DB06). Hashed off the UI thread and
+            // before publishing, so a newer import cannot interleave.
+            var capturedPath = filePath;
+            sourceIdentity = await Task.Run(() =>
+                FileSourceIdentity.TryCapture(capturedPath, out var identity) ? identity : null).ConfigureAwait(true);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogDataOperation(operation, filePath, sheetName, rowCount: 0, columnCount: 0, success: false, ex.Message);
-            StatusText = "Chưa đọc được dữ liệu: " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
+            if (generation == _importGeneration)
+            {
+                StatusText = "Chưa đọc được dữ liệu: " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
+            }
+
             throw;
+        }
+
+        if (generation != _importGeneration)
+        {
+            LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: false, "Superseded by a newer import of the data source.");
+            throw new OperationCanceledException("A newer data import started; this result was discarded.");
         }
 
         Template.DatabaseConfig.HeaderRowIndex = headerRow;
@@ -1895,11 +1919,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedCopiesFieldName));
 
         _excelDataReadAtLocal = DateTime.Now;
-        // Capture content identity (SHA-256) so refresh cannot treat same-mtime
-        // byte replacements as current (CORE DB06). Hash off the UI thread.
-        var capturedPath = filePath;
-        _excelDataSourceIdentity = await Task.Run(() =>
-            FileSourceIdentity.TryCapture(capturedPath, out var identity) ? identity : null).ConfigureAwait(true);
+        _excelDataSourceIdentity = sourceIdentity;
         _excelDataSourceWriteTimeUtc = _excelDataSourceIdentity?.LastWriteTimeUtc ?? TryGetFileWriteTimeUtc(filePath);
         OnPropertyChanged(nameof(ExcelDataFreshnessText));
         IsExcelDataStale = false;
@@ -2904,9 +2924,9 @@ public sealed class MainViewModel : ObservableObject
     {
         try
         {
-            if (IsExcelDataStale)
+            if (IsExcelDataStale || await LinkedDataChangedSinceImportAsync())
             {
-                StatusText = "Đã chặn in: tệp Excel liên kết đã thay đổi kể từ lần đọc cuối. Hãy nhấn Cập nhật Excel trước (hoặc dùng Xem trước khi in để xác nhận và in với dữ liệu hiện tại).";
+                StatusText = "Đã chặn in: tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần đọc cuối. Hãy bấm Cập nhật Excel rồi in lại (hoặc dùng Xem trước khi in để kiểm tra).";
                 return;
             }
 
@@ -2989,21 +3009,17 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            if (IsExcelDataStale)
+            if (IsExcelDataStale || await LinkedDataChangedSinceImportAsync())
             {
-                StatusText = "Đã chặn in: tệp Excel liên kết đã thay đổi kể từ lần đọc cuối. Hãy nhấn Cập nhật Excel trước (hoặc dùng Xem trước khi in để xác nhận và in với dữ liệu hiện tại).";
+                StatusText = "Đã chặn in: tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần đọc cuối. Hãy bấm Cập nhật Excel rồi in lại (hoặc dùng Xem trước khi in để kiểm tra).";
                 return;
             }
 
             var quantityRows = new List<(int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)>();
-            for (var index = 0; index < ExcelDataView.Count; index++)
+            var records = RecordsInSourceOrder(ExcelDataView);
+            for (var index = 0; index < records.Count; index++)
             {
-                if (ExcelDataView[index] is not DataRowView rowView)
-                {
-                    continue;
-                }
-
-                var row = CreatePreviewRow(rowView, out var transformError);
+                var row = CreatePreviewRow(records[index], out var transformError);
                 if (!string.IsNullOrWhiteSpace(transformError))
                 {
                     DataTransformError = transformError;
@@ -4700,12 +4716,17 @@ public sealed class MainViewModel : ObservableObject
     private IReadOnlyDictionary<string, string>? CreatePreviewRow(object? item, out string error)
     {
         error = string.Empty;
-        if (item is not DataRowView rowView)
+        var dataRow = item switch
+        {
+            DataRowView rowView => rowView.Row,
+            DataRow row => row,
+            _ => null
+        };
+        if (dataRow is null)
         {
             return null;
         }
 
-        var dataRow = rowView.Row;
         if (dataRow.RowState is DataRowState.Deleted or DataRowState.Detached)
         {
             error = "A linked Excel/CSV row is no longer available.";
@@ -4732,18 +4753,45 @@ public sealed class MainViewModel : ObservableObject
         return transformed.Record.Values.ToDictionary(pair => pair.Key, pair => pair.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Zero-based record number in the source file, independent of how the
+    /// data grid is sorted (DB07). "Dòng N" always names the same record.
+    /// </summary>
     private static int GetDataRowViewIndex(DataRowView rowView)
     {
-        for (var i = 0; i < rowView.DataView.Count; i++)
+        var index = rowView.Row.Table?.Rows.IndexOf(rowView.Row) ?? -1;
+        return Math.Max(0, index);
+    }
+
+    /// <summary>
+    /// DB06/H15: quick print compares the linked file's content identity right
+    /// before printing; the file watcher alone can miss a change (network or
+    /// synced folders) or fail to start. Unreadable counts as changed, as in
+    /// Print Preview.
+    /// </summary>
+    private async Task<bool> LinkedDataChangedSinceImportAsync()
+    {
+        var known = _excelDataSourceIdentity;
+        if (known is null || ExcelDataView is null)
         {
-            if (ReferenceEquals(rowView.DataView[i], rowView))
-            {
-                return i;
-            }
+            return false;
         }
 
-        return 0;
+        var path = Template.DatabaseConfig.FilePath;
+        var current = await Task.Run(() =>
+            FileSourceIdentity.TryCapture(path, out var identity) ? identity : null).ConfigureAwait(true);
+        if (!FileSourceIdentity.IsStale(known, current))
+        {
+            return false;
+        }
+
+        IsExcelDataStale = true;
+        return true;
     }
+
+    /// <summary>The imported records in source-file order, whatever the grid's sort.</summary>
+    private static IReadOnlyList<DataRow> RecordsInSourceOrder(DataView view)
+        => view.Table is { } table ? table.Rows.Cast<DataRow>().ToArray() : view.Cast<DataRowView>().Select(item => item.Row).ToArray();
 
     private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(
         IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
