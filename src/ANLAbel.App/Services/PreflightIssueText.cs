@@ -16,6 +16,8 @@ public static class PreflightIssueText
         (Rx(@"^Missing field\(s\) in Excel data: (?<f>.+?)\. This object will print blank"),
             m => $"dữ liệu thiếu cột {m.Groups["f"].Value}; đối tượng sẽ in trống"),
         (Rx(@"^Formula binding error"), _ => "công thức lấy dữ liệu bị lỗi"),
+        (Rx("^Printing is blocked because the label design is invalid [(](?<d>.*)[)][.]"),
+            m => $"thiết kế tem có lỗi nên chưa thể in (chi tiết kỹ thuật: {m.Groups["d"].Value}); sửa thiết kế rồi làm mới xem trước"),
         (Rx(@"^Text extends outside the design label for this row"),
             _ => "chữ của dòng này tràn ra ngoài tem; rút ngắn dữ liệu, giảm cỡ chữ hoặc dùng khung chữ"),
         (Rx(@"^Fixed text frame overflow"), _ => "chữ tràn khung đã khóa; nới khung hoặc giảm cỡ chữ"),
@@ -126,6 +128,7 @@ public static class PreflightIssueText
         "PrintScale" => "tỉ lệ in",
         "PrinterProfile" => "cài đặt máy in",
         "Output" => "máy in",
+        "Design" => "thiết kế",
         _ => objectType ?? string.Empty,
     };
 

@@ -150,7 +150,7 @@ public partial class PrintPreviewWindow
                     {
                         new PrintPreflightIssue(
                             0,
-                            "Scene",
+                            "Template",
                             "Design",
                             PreviewInitializationTrust.SceneBlockMessage(planResolution.Plan.SceneDiagnostics),
                             IsBlocking: true)
@@ -234,7 +234,7 @@ public partial class PrintPreviewWindow
                 keepStatus = true;
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    _previewProgressText = $"Cập nhật xem trước thất bại: {ex.Message}";
+                    _previewProgressText = "Cập nhật xem trước thất bại: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
                     OnPropertyChanged();
                 });
                 System.Diagnostics.Debug.WriteLine($"Preview refresh error: {ex}");

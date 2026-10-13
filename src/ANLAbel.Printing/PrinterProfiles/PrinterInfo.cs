@@ -11,7 +11,7 @@ public sealed class PrinterInfo
     {
         get
         {
-            var suffix = IsDefault ? " (Default)" : string.Empty;
+            var suffix = IsDefault ? " (mặc định của Windows)" : string.Empty;
             return $"{Name}{suffix}";
         }
     }

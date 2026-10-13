@@ -17,7 +17,7 @@ internal sealed class WindowsPrinterPreferencesLauncher : IPrinterPreferencesLau
     public async Task OpenAsync(string queueName, CancellationToken cancellationToken = default)
     {
         using var process = Process.Start(CreateStartInfo(queueName))
-            ?? throw new InvalidOperationException("Windows did not open the printer preferences process.");
+            ?? throw new InvalidOperationException("Windows không mở được cửa sổ Tùy chọn của trình điều khiển máy in.");
         // rundll32/PrintUIEntry returns a non-zero exit code for benign outcomes
         // such as the operator cancelling the driver property sheet, declining UAC,
         // or driver quirks. Only a failure to START is a genuine error; once the

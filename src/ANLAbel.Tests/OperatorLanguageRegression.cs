@@ -79,7 +79,27 @@ internal static class OperatorLanguageRegression
                 && ANLAbel.Core.Barcode.QrOptionLists.Versions[0].DisplayName.StartsWith("Phiên bản 1 = 21 × 21 mô-đun", StringComparison.Ordinal),
             "QR option lists must be Vietnamese.");
 
+        // Print Preview and Printer Setup.
+        Require(ANLAbel.App.Services.MediaCompatibilityText.Describe(new PrinterMediaResolution(PrinterMediaResolutionStatus.DriverAutomatic, null,
+                    "Physical page sizing will be resolved by the printer driver at dispatch time.")) == "Trình điều khiển sẽ đặt khổ trang theo kích thước tem khi in.",
+            "The compatibility card must be Vietnamese.");
+        Require(ANLAbel.App.Services.MediaCompatibilityText.Describe(new PrinterMediaResolution(PrinterMediaResolutionStatus.Compatible, null,
+                    "Driver media '4x2 in' matches the requested physical size.")).Contains("“4x2 in”", StringComparison.Ordinal),
+            "A matching driver media keeps its name in the Vietnamese text.");
+        Require(ANLAbel.App.Services.MediaCompatibilityText.Describe(new PrinterMediaResolution(PrinterMediaResolutionStatus.Unknown, null, "A new resolver text."))
+                .StartsWith("Chưa xác định được", StringComparison.Ordinal),
+            "An unknown resolver message falls back to a Vietnamese status text.");
+        Require(PreflightIssueText.Message(PreviewInitializationTrust.SceneBlockMessage("scene hash missing")).StartsWith("thiết kế tem có lỗi", StringComparison.Ordinal),
+            "The preview's invalid-design stop must be Vietnamese.");
+        Require(new PrinterInfo { Name = "Zebra", IsDefault = true }.DisplayName == "Zebra (mặc định của Windows)",
+            "The Windows default printer must be marked in Vietnamese.");
+
         var root = FindRepositoryRoot();
+        var setup = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrinterSetupWindow.xaml.cs"));
+        Require(!setup.Contains("Driver evidence:", StringComparison.Ordinal)
+                && !setup.Contains("driver media option(s)", StringComparison.Ordinal)
+                && setup.Contains("var orientLabel = LandscapeRadio?.IsChecked == true ? \"Ngang\" : \"Dọc\";", StringComparison.Ordinal),
+            "Printer Setup status lines must be Vietnamese.");
         var window = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "MainWindow.xaml"));
         foreach (var list in new[] { "FillStyles", "OutlineStyles", "BarcodeApplicationProfiles", "BarcodeHriPlacementOptions", "BarcodeCheckDigitPolicyOptions", "Code39WideNarrowRatioOptions", "BearerBarStyleOptions", "ImageRasterModes" })
         {
@@ -98,7 +118,8 @@ internal static class OperatorLanguageRegression
                            && !path.EndsWith("PrintFailureExplainer.cs", StringComparison.Ordinal)
                            && !path.EndsWith("TemplateFailureExplainer.cs", StringComparison.Ordinal)
                            && !path.EndsWith("FormulaErrorText.cs", StringComparison.Ordinal)
-                           && !path.EndsWith("PreflightIssueText.cs", StringComparison.Ordinal))
+                           && !path.EndsWith("PreflightIssueText.cs", StringComparison.Ordinal)
+                           && !path.EndsWith("MediaCompatibilityText.cs", StringComparison.Ordinal))
             .Select(File.ReadAllText));
         string[] anchors =
         [
@@ -142,6 +163,21 @@ internal static class OperatorLanguageRegression
             "HRI text has no measurable width or height",
             "Barcode frame must have positive finite dimensions before HRI",
             "Unsupported HRI placement '",
+            "Current driver preferences own the print ticket, but driver configured page ",
+            "Current driver preferences own the print ticket (effective page ",
+            "Current driver preferences own the print ticket. Physical page sizing",
+            "Physical page sizing will be resolved by the printer driver at dispatch time",
+            "The requested physical media dimensions are invalid",
+            "mm does not contain the authored label ",
+            "The requested physical size is within the custom-media range",
+            "The driver claims custom-media support without usable size limits",
+            "The requested physical size is outside the driver custom-media range ",
+            "Printer media capabilities are incomplete",
+            "No same-orientation driver media matches the requested physical size",
+            "' matches the requested physical size.",
+            "' matches the requested physical size but is a software stock ",
+            "The selected printer queue is unavailable",
+            "Printing is blocked because the label design is invalid (",
         ];
         foreach (var anchor in anchors)
         {

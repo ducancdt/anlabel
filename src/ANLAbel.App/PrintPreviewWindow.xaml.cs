@@ -1288,7 +1288,7 @@ public partial class PrintPreviewWindow : Window
             return;
         }
 
-        var operation = BeginPreviewOperation("Rendering label preview", invalidateContent: false);
+        var operation = BeginPreviewOperation("Đang vẽ bản xem trước tem", invalidateContent: false);
         _ = RenderCurrentPreviewImageAsync(operation);
     }
 
@@ -1301,7 +1301,7 @@ public partial class PrintPreviewWindow : Window
             if (IsCurrentPreviewOperation(operation))
             {
                 _previewProgressPercent = 100;
-                _previewProgressText = "Preview ready.";
+                _previewProgressText = "Bản xem trước đã sẵn sàng.";
                 OnPropertyChanged();
             }
         }
@@ -1310,7 +1310,7 @@ public partial class PrintPreviewWindow : Window
             if (IsCurrentPreviewOperation(operation))
             {
                 keepStatus = true;
-                _previewProgressText = "Preview render canceled.";
+                _previewProgressText = "Đã hủy vẽ bản xem trước.";
                 OnPropertyChanged();
             }
         }
@@ -1319,7 +1319,7 @@ public partial class PrintPreviewWindow : Window
             if (IsCurrentPreviewOperation(operation))
             {
                 keepStatus = true;
-                _previewProgressText = $"Không vẽ được bản xem trước: {ex.Message}";
+                _previewProgressText = "Không vẽ được bản xem trước: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
                 OnPropertyChanged();
             }
         }
@@ -1630,10 +1630,10 @@ public partial class PrintPreviewWindow : Window
         var qty = GetRowValue(row, "Qty", "Quantity", "SoLuong", "So Luong", "Số lượng");
         var summary = string.Join(" | ", new[]
         {
-            string.IsNullOrWhiteSpace(partNo) ? string.Empty : $"PartNo: {partNo}",
-            string.IsNullOrWhiteSpace(name) ? string.Empty : $"Name: {name}",
-            string.IsNullOrWhiteSpace(lot) ? string.Empty : $"Lot: {lot}",
-            string.IsNullOrWhiteSpace(qty) ? string.Empty : $"Qty: {qty}"
+            string.IsNullOrWhiteSpace(partNo) ? string.Empty : $"Mã hàng: {partNo}",
+            string.IsNullOrWhiteSpace(name) ? string.Empty : $"Tên: {name}",
+            string.IsNullOrWhiteSpace(lot) ? string.Empty : $"Lô: {lot}",
+            string.IsNullOrWhiteSpace(qty) ? string.Empty : $"SL: {qty}"
         }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
         return string.IsNullOrWhiteSpace(summary) ? string.Join(" | ", row.Take(4).Select(pair => $"{pair.Key}: {pair.Value}")) : summary;

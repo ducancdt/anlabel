@@ -328,7 +328,7 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="Cùng một cửa sổ Thiết lập tem với designer. Không có bộ chọn khổ giấy riêng trong Xem trước." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,0,0,12"/>
+                    <TextBlock Text="Cùng một cửa sổ Thiết lập tem với trình thiết kế. Không có bộ chọn khổ giấy riêng trong Xem trước." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,0,0,12"/>
 
                     <Expander Header="Phương pháp in" IsExpanded="False" Margin="0,6,0,0">
                         <StackPanel Margin="0,8,0,0">

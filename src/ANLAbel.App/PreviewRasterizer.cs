@@ -93,7 +93,7 @@ internal static class PreviewRasterizer
         if (pixelCount > MaxPreviewPixels)
         {
             throw new InvalidOperationException(
-                $"Preview label is too large to rasterize safely at {PreviewDpi:0} DPI ({pixelWidth:n0} x {pixelHeight:n0} pixels).");
+                $"Tem quá lớn để vẽ bản xem trước an toàn ở {PreviewDpi:0} DPI ({pixelWidth:n0} x {pixelHeight:n0} điểm ảnh).");
         }
 
         var request = new RenderRequest(drawing, pixelWidth, pixelHeight, cancellationToken);
@@ -130,13 +130,13 @@ internal static class PreviewRasterizer
     {
         if (!double.IsFinite(dimensionDip) || dimensionDip <= 0)
         {
-            throw new InvalidOperationException("Preview dimensions must be finite and greater than zero.");
+            throw new InvalidOperationException("Kích thước bản xem trước phải lớn hơn 0.");
         }
 
         var scaled = dimensionDip * (PreviewDpi / 96.0);
         if (!double.IsFinite(scaled) || scaled > int.MaxValue)
         {
-            throw new InvalidOperationException("Preview dimensions exceed the safe raster size supported by this application.");
+            throw new InvalidOperationException("Kích thước bản xem trước vượt giới hạn vẽ an toàn của ANLAbel.");
         }
 
         return Math.Max(1, (int)Math.Ceiling(scaled));
@@ -214,7 +214,7 @@ internal static class PreviewRasterizer
                 pixels);
             if (!identity.IsValid)
             {
-                throw new InvalidOperationException("Preview raster identity could not be computed for the rendered frame.");
+                throw new InvalidOperationException("Không tính được dấu nhận dạng của bản xem trước vừa vẽ.");
             }
 
             request.Completion.TrySetResult(new PreviewRasterResult(target, identity));

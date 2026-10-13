@@ -151,7 +151,7 @@ public partial class PrinterSetupWindow : Window
 
         if (PrinterBox.SelectedItem is not PrinterInfo printer)
         {
-            CapabilityStatusText.Text = "Select a printer to load driver media.";
+            CapabilityStatusText.Text = "Chọn máy in để tải các khổ giấy của trình điều khiển.";
             DriverText.Text = string.Empty;
             UpdateCompatibilityPreview();
             return;
@@ -172,8 +172,9 @@ public partial class PrinterSetupWindow : Window
         // HeightBox, so authored label geometry stays stable until Apply.
         DriverText.Text = string.IsNullOrWhiteSpace(printer.DriverName)
             ? printer.Name
-            : $"Driver: {printer.DriverName}";
-        CapabilityStatusText.Text = "Loading media from the selected printer driver…";
+            : $"Trình điều khiển: {printer.DriverName}";
+        CapabilityStatusText.Text = "Đang tải khổ giấy từ trình điều khiển máy in…";
+        CapabilityStatusText.ToolTip = null;
         UpdateCompatibilityPreview();
 
         try
@@ -196,34 +197,41 @@ public partial class PrinterSetupWindow : Window
                 : media.FirstOrDefault(item =>
                     string.Equals(item.RawIdentity, _initialDriverMediaIdentity, StringComparison.OrdinalIgnoreCase));
 
+            // Operator text in Vietnamese; the driver's own diagnostics stay in
+            // the tooltip as technical detail (audit 2026-10-13).
+            var technical = new List<string>();
             var status = !snapshot.IsAvailable
-                ? snapshot.Diagnostic
+                ? "Không đọc được khả năng của trình điều khiển máy in. Khổ giấy sẽ được kiểm tra lại khi in."
                 : media.Length == 0
-                    ? "The driver exposed no sized media. Compatibility will be revalidated at print time."
-                    : $"Loaded {media.Length} driver media option(s). Changing printer did not change the authored label.";
-            if (snapshot.IsAvailable && !string.IsNullOrWhiteSpace(snapshot.Diagnostic))
+                    ? "Trình điều khiển không công bố khổ giấy nào. Khổ giấy sẽ được kiểm tra lại khi in."
+                    : $"Đã tải {media.Length} khổ giấy từ trình điều khiển. Đổi máy in không làm đổi kích thước tem đã thiết kế.";
+            if (!string.IsNullOrWhiteSpace(snapshot.Diagnostic))
             {
-                status += $" Partial capability warning: {snapshot.Diagnostic}";
+                technical.Add(snapshot.Diagnostic);
+                if (snapshot.IsAvailable)
+                {
+                    status += " Trình điều khiển chỉ trả về một phần thông tin.";
+                }
             }
 
             if (snapshot.IsAvailable && snapshot.AvailableResolutions.Count > 0
                 && !snapshot.AvailableResolutions.Any(resolution =>
                     resolution.IsSquare && resolution.DpiX == _authoredDpi))
             {
-                status += $" Saved DPI {_authoredDpi} is not advertised by this driver; effective DPI will be revalidated before printing.";
+                status += $" Trình điều khiển không công bố DPI {_authoredDpi} đã lưu; DPI thực tế sẽ được kiểm tra lại trước khi in.";
             }
 
             if (snapshot.PageObservation is { HasEffectiveMedia: true } page)
             {
-                status += $" Effective page {page.MediaWidthMm:0.##} × {page.MediaHeightMm:0.##} mm";
+                status += $" Trang thực tế {page.MediaWidthMm:0.##} × {page.MediaHeightMm:0.##} mm";
                 status += page.IsImageableAreaVerified
-                    ? $"; imageable {page.ImageableWidthMm:0.##} × {page.ImageableHeightMm:0.##} mm."
-                    : "; imageable area is unavailable or unverified.";
+                    ? $"; vùng in {page.ImageableWidthMm:0.##} × {page.ImageableHeightMm:0.##} mm."
+                    : "; chưa xác minh được vùng in.";
             }
 
             if (snapshot.CustomMediaRange is { IsValid: true } range)
             {
-                status += $" Custom media {range.MinimumWidthMm:0.##} × {range.MinimumHeightMm:0.##} to "
+                status += $" Khổ tùy chỉnh từ {range.MinimumWidthMm:0.##} × {range.MinimumHeightMm:0.##} đến "
                     + $"{range.MaximumWidthMm:0.##} × {range.MaximumHeightMm:0.##} mm.";
             }
 
@@ -231,21 +239,25 @@ public partial class PrinterSetupWindow : Window
             {
                 if (!string.IsNullOrWhiteSpace(features.EffectiveMediaType))
                 {
-                    status += $" Media type: {features.EffectiveMediaType}"
-                        + (features.IsEffectiveMediaTypeAdvertised ? "." : " (current ticket value, not advertised as a selectable capability)." );
+                    status += $" Loại vật liệu: {features.EffectiveMediaType}"
+                        + (features.IsEffectiveMediaTypeAdvertised ? "." : " (giá trị hiện tại, không có trong danh sách chọn của trình điều khiển).");
                 }
 
                 if (!string.IsNullOrWhiteSpace(features.EffectiveOutputQuality))
                 {
-                    status += $" Output quality: {features.EffectiveOutputQuality}"
-                        + (features.IsEffectiveOutputQualityAdvertised ? "." : " (current ticket value, not advertised as a selectable capability)." );
+                    status += $" Chất lượng in: {features.EffectiveOutputQuality}"
+                        + (features.IsEffectiveOutputQualityAdvertised ? "." : " (giá trị hiện tại, không có trong danh sách chọn của trình điều khiển).");
                 }
             }
 
             var driverEvidence = PrinterDriverEvidenceContract.Evaluate(snapshot);
-            status += $" Driver evidence: {driverEvidence.State}. {driverEvidence.Diagnostic}";
+            status += driverEvidence.State == PrinterDriverEvidenceState.FullyObserved
+                ? " Đã đọc đủ thông tin trình điều khiển."
+                : " Thông tin trình điều khiển chưa đầy đủ; thiết lập sẽ được kiểm tra lại trước khi in.";
+            technical.Add($"{driverEvidence.State}. {driverEvidence.Diagnostic}");
 
             CapabilityStatusText.Text = status;
+            CapabilityStatusText.ToolTip = "Chi tiết kỹ thuật: " + string.Join(" ", technical);
             UpdateCompatibilityPreview();
         }
         catch (OperationCanceledException)
@@ -256,7 +268,7 @@ public partial class PrinterSetupWindow : Window
         {
             if (!token.IsCancellationRequested)
             {
-                CapabilityStatusText.Text = $"Failed to read driver capabilities: {ex.Message}";
+                CapabilityStatusText.Text = "Không đọc được khả năng của trình điều khiển: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
                 UpdateCompatibilityPreview();
             }
         }
@@ -462,7 +474,7 @@ public partial class PrinterSetupWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Tùy chọn trình điều khiển", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ex is InvalidOperationException ? ex.Message : "Không mở được Tùy chọn trình điều khiển. Chi tiết kỹ thuật: " + ex.Message, "Tùy chọn trình điều khiển", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -477,7 +489,7 @@ public partial class PrinterSetupWindow : Window
     {
         if (double.TryParse(WidthBox?.Text, out var w) && double.TryParse(HeightBox?.Text, out var h))
         {
-            var orientLabel = LandscapeRadio?.IsChecked == true ? "Landscape" : "Portrait";
+            var orientLabel = LandscapeRadio?.IsChecked == true ? "Ngang" : "Dọc";
             SizeSummaryText.Text = $"{w:0.##} × {h:0.##} mm ({orientLabel})";
         }
     }
@@ -492,7 +504,7 @@ public partial class PrinterSetupWindow : Window
         if (!double.TryParse(WidthBox?.Text, out var widthMm) || widthMm <= 0
             || !double.TryParse(HeightBox?.Text, out var heightMm) || heightMm <= 0)
         {
-            MediaCompatibilityText.Text = "Enter a valid positive label width and height.";
+            MediaCompatibilityText.Text = "Nhập chiều rộng và chiều cao tem hợp lệ (lớn hơn 0).";
             MediaCompatibilityText.Foreground = new SolidColorBrush(Color.FromRgb(180, 35, 24));
             CompatibilityCard.BorderBrush = new SolidColorBrush(Color.FromRgb(253, 162, 155));
             ApplyButton.IsEnabled = false;
@@ -501,7 +513,7 @@ public partial class PrinterSetupWindow : Window
 
         if (PrinterBox?.SelectedItem is not PrinterInfo)
         {
-            MediaCompatibilityText.Text = "Select an exact printer queue before applying this setup.";
+            MediaCompatibilityText.Text = "Chọn đúng hàng đợi máy in trước khi áp dụng.";
             MediaCompatibilityText.Foreground = new SolidColorBrush(Color.FromRgb(180, 35, 24));
             CompatibilityCard.BorderBrush = new SolidColorBrush(Color.FromRgb(253, 162, 155));
             ApplyButton.IsEnabled = false;
@@ -510,7 +522,7 @@ public partial class PrinterSetupWindow : Window
 
         if (_capabilitySnapshot is null)
         {
-            MediaCompatibilityText.Text = "Loading printer capabilities. Apply will become available after the driver has been checked.";
+            MediaCompatibilityText.Text = "Đang tải khả năng của máy in. Có thể áp dụng sau khi kiểm tra xong trình điều khiển.";
             MediaCompatibilityText.Foreground = new SolidColorBrush(Color.FromRgb(71, 84, 103));
             CompatibilityCard.BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225));
             ApplyButton.IsEnabled = false;
@@ -536,6 +548,7 @@ public partial class PrinterSetupWindow : Window
                 settingsSource));
 
         MediaCompatibilityText.Text = FormatCompatibilityMessage(resolution, widthMm, heightMm);
+        MediaCompatibilityText.ToolTip = string.IsNullOrWhiteSpace(resolution.Message) ? null : "Chi tiết kỹ thuật: " + resolution.Message;
         ApplyButton.IsEnabled = resolution.CanDispatch;
         var color = resolution.CanDispatch
             ? Color.FromRgb(6, 118, 71)
@@ -558,14 +571,14 @@ public partial class PrinterSetupWindow : Window
         var stock = LabelStockContract.Evaluate(w, h, w, h, previewName);
         if (!stock.IsAllowed)
         {
-            MessageBox.Show(this, stock.Diagnostic, "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(stock.Diagnostic), "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         var dpiDecision = IndustrialPrintDpiContract.Evaluate(ReadDpi(), ReadDpi());
         if (!dpiDecision.IsAllowed)
         {
-            MessageBox.Show(this, dpiDecision.Diagnostic, "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(dpiDecision.Diagnostic), "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -574,7 +587,7 @@ public partial class PrinterSetupWindow : Window
         var scaleDecision = PrintScaleContract.Evaluate(scaleX, scaleY);
         if (!scaleDecision.IsAllowed)
         {
-            MessageBox.Show(this, scaleDecision.Diagnostic, "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(scaleDecision.Diagnostic), "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -712,7 +725,7 @@ public partial class PrinterSetupWindow : Window
         var scaleDecision = PrintScaleContract.Evaluate(scaleX, scaleY);
         if (!scaleDecision.IsAllowed)
         {
-            MessageBox.Show(this, scaleDecision.Diagnostic, "Căn chỉnh khổ in", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(scaleDecision.Diagnostic), "Căn chỉnh khổ in", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -767,7 +780,7 @@ public partial class PrinterSetupWindow : Window
                 + "Hoặc chọn vật liệu đủ lớn. Không đổi kích thước tem khi đổi máy in.";
         }
 
-        return resolution.Message;
+        return ANLAbel.App.Services.MediaCompatibilityText.Describe(resolution);
     }
 
     private static double ReadMm(TextBox? box, double fallback)

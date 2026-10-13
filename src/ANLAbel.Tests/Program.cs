@@ -5354,21 +5354,21 @@ static Task TestPrinterSetupOrientationInteractivity()
             AssertEqual(LabelOrientation.Landscape, window.SelectedOrientation, "SelectedOrientation must be Landscape");
             AssertEqual("100", widthBox.Text, "WidthBox must be 100");
             AssertEqual("50", heightBox.Text, "HeightBox must be 50");
-            AssertEqual(true, summaryText.Text.Contains("Landscape", StringComparison.Ordinal), "Summary must indicate Landscape");
+            AssertEqual(true, summaryText.Text.Contains("(Ngang)", StringComparison.Ordinal), "Summary must indicate landscape (Ngang)");
 
             // Toggling to Portrait
             portraitRadio.IsChecked = true;
             AssertEqual(LabelOrientation.Portrait, window.SelectedOrientation, "Toggling to Portrait must update SelectedOrientation");
             AssertEqual("50", widthBox.Text, "Toggling to Portrait must orient width to short side");
             AssertEqual("100", heightBox.Text, "Toggling to Portrait must orient height to long side");
-            AssertEqual(true, summaryText.Text.Contains("Portrait", StringComparison.Ordinal), "Summary must indicate Portrait");
+            AssertEqual(true, summaryText.Text.Contains("(Dọc)", StringComparison.Ordinal), "Summary must indicate portrait (Dọc)");
 
             // Toggling back to Landscape
             landscapeRadio.IsChecked = true;
             AssertEqual(LabelOrientation.Landscape, window.SelectedOrientation, "Toggling to Landscape must update SelectedOrientation");
             AssertEqual("100", widthBox.Text, "Toggling to Landscape must orient width to long side");
             AssertEqual("50", heightBox.Text, "Toggling to Landscape must orient height to short side");
-            AssertEqual(true, summaryText.Text.Contains("Landscape", StringComparison.Ordinal), "Summary must indicate Landscape");
+            AssertEqual(true, summaryText.Text.Contains("(Ngang)", StringComparison.Ordinal), "Summary must indicate landscape (Ngang)");
 
             // User enters portrait dimensions directly
             widthBox.Text = "40";
