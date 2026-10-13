@@ -1,0 +1,18 @@
+# The repository stores text files with LF; checkouts follow each machine's
+# core.autocrlf. Declaring text=auto keeps a clone without autocrlf from
+# committing CRLF files (audit 2026-10-13).
+* text=auto
+
+# Binary assets are never converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.xlsm binary
+*.ttf binary
+*.otf binary
+*.zip binary

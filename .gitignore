@@ -42,10 +42,14 @@ Desktop.ini
 ## Repository agent instructions are versioned with the product rules.
 
 ## Customer label data and third-party guides stay local (docs/COMMIT_WORKFLOW.md §5).
-TEM REDACTED-14 VN*/
-CUSTOMER-1/
-tem REDACTED-10/
-images/
-ug-NiceLabel_*.md
-ug-NiceLabel_*.pdf
+## Anchored to the repository root so a source folder with the same name is never hidden.
+/TEM REDACTED-14 VN*/
+/CUSTOMER-1/
+/tem REDACTED-10/
+/images/
+/form tem nhãn/
+/datasheet pf bfv.xlsx
+/docs/assets/nicelabel-control-center/
+/ug-NiceLabel_*.md
+/ug-NiceLabel_*.pdf
 __pycache__/

@@ -22,9 +22,15 @@ internal static class AcceptanceRegression
     {
         var root = FindRepositoryRoot();
         var folder = Path.Combine(root, "form tem nhãn", "anlabel");
-        var files = Directory.Exists(folder)
-            ? Directory.GetFiles(folder, "*.anlabel").OrderBy(path => path, StringComparer.Ordinal).ToArray()
-            : Array.Empty<string>();
+        if (!Directory.Exists(folder))
+        {
+            // The operator's real templates are customer data and stay local
+            // (docs/COMMIT_WORKFLOW.md §5); a clone without them skips this check.
+            Console.WriteLine($"INFO mẫu thật: không có thư mục {folder} trên máy này; bỏ qua kiểm tra mẫu thật.");
+            return;
+        }
+
+        var files = Directory.GetFiles(folder, "*.anlabel").OrderBy(path => path, StringComparer.Ordinal).ToArray();
         Require(files.Length == 5, $"Expected the 5 real templates in {folder}, found {files.Length}.");
         var queueInstalled = IsQueueInstalled(OperatorQueue);
         var work = Path.Combine(Path.GetTempPath(), "anlabel-acceptance-" + Guid.NewGuid().ToString("N"));

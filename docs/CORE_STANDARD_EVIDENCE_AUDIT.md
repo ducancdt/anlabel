@@ -48,7 +48,7 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 | B01 | Pass | — | Not verified | `BarcodeEvidenceMatrixTests` (fixture âm từng loại), `BarcodeApplicationContractTests` |
 | B02 | Pass | — | Not verified | `ImportedBarcodeRoundTripTests` (15 loại × CSV/XLSX × 203/300/600 DPI) |
 | B03 | Pass | — | Not verified | `BarcodeApplicationContractTests` (GS1), `Gs1Code128Fnc1RoundTripTests` |
-| B04 | Pass | — | Not verified | `LinearBarcodeModuleContractTests`, `MatrixSquareModuleFitTests`, `QrSizingCalculatorTests`, `code 39 wide narrow ratio and physical quiet zone preflight` |
+| B04 | Pass | — | Not verified | `LinearBarcodeModuleContractTests`, `MatrixSquareModuleFitTests`, `code 39 wide narrow ratio and physical quiet zone preflight`. (Audit 2026-10-13: `QrSizingCalculatorTests` đã bỏ khỏi bằng chứng — lớp `QrSizingCalculator` không được ứng dụng gọi.) |
 | B05 | Pass | — | Not verified | `BarcodeHriLayoutTests`, `DeviceBarcodeLayoutTests` |
 | B06 | Một phần | — | Not verified | Cùng renderer và tùy chọn mã; designer vẽ ở `QrDpi`, xem trước/in vẽ ở DPI hiệu dụng. Thiếu: một ca so sánh designer–xem trước–in |
 | B07 | Pass | — | Not verified | Ma trận theo từng loại (mục dưới); không loại nào được ghi là đã nghiệm thu sản xuất |

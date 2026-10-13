@@ -77,7 +77,9 @@ vào `.gitignore` nếu chưa có:
 | Mục | Lý do |
 |-----|-------|
 | `TEM REDACTED-14 VN (1)/`, `CUSTOMER-1/`, `tem REDACTED-10/` | Dữ liệu nhãn của khách hàng |
+| `form tem nhãn/`, `datasheet pf bfv.xlsx` | Mẫu tem và dữ liệu thật của khách hàng (kiểm tra chấp nhận chạy khi thư mục có trên máy; bỏ qua nếu không) |
 | `images/` (ảnh trích từ NiceLabel guide) | Tài liệu bên thứ ba, bản quyền |
+| `docs/assets/nicelabel-control-center/` | Ảnh trích từ hướng dẫn NiceLabel — tài liệu bên thứ ba, bản quyền |
 | `ug-NiceLabel_2019_PowerForms_User_Guide-en.md` | Tài liệu bên thứ ba, bản quyền |
 | `bin/`, `obj/`, `*.log`, `TestOutput/` | Output build (đã ignore) |
 

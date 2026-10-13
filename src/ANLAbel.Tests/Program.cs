@@ -8442,11 +8442,25 @@ static Task TestTemplateLibraryStandalone()
 
     var failures = new List<string>();
     var loaded = new List<LabelTemplate>();
-    string[] customerTokens =
+    // Customer names and order/part numbers that must never ship in library
+    // text. Only each token's length and SHA-256 (upper-case UTF-8) are kept,
+    // so the guard itself does not publish them (audit 2026-10-13).
+    (int Length, string Sha256)[] customerTokenHashes =
     [
-        "REDACTED-14", "REDACTED-10", "REDACTED-13", "REDACTED-12", "REDACTED-5",
-        "REDACTED-11", "REDACTED-1", "REDACTED-2", "REDACTED-9",
-        "REDACTED-7", "REDACTED-6", "REDACTED-8", "REDACTED-3", "REDACTED-4"
+        (5, "daa3b2c4829dee84eb29d85db55187e85afcec610568b16c18185db0167732a4"),
+        (8, "a00f494da3c2c9eb91c015db4ebc1ee9291d62f1c2e6ae99ba8bc81c4cef9313"),
+        (6, "cce477d3289188201fa0aa3fced2c58214c7393351167735e03b84fcf268035f"),
+        (7, "14d00f08f816914841064338b6a848cc6d15d93fdfaa2cf8328af07d8308bebc"),
+        (10, "5863536a6162762a8509463fbf4774496e4d8f64dc280d1269dbcd9c35f8ca1d"),
+        (7, "6e94f940a6b692bfbca77187c18e3073ab30c62c4b4c91b30276b0175ae096e2"),
+        (12, "dc4a6e66e1f6a32dec7466404892beefcfb22c8d098b7c23b0d7dd190d39ad67"),
+        (12, "ec1d9adc12596e9abe1807177dc84ed2eac9012b6c8fd7343f9aea9c3e991715"),
+        (8, "99fe3bc2081b0472c497be4b373bb44137aac1c72581c65c8b939ede37f81756"),
+        (10, "25a49b62a4b38c798f3176ad3b5e356b3d125f1ceb792c28c2cc85a8e514f7bc"),
+        (10, "2fd003a846253c8ac9332a1b4347459b9f126c079415a65618c11ffabe3cf685"),
+        (9, "3548f912f15b20038d4eeb79ef96610e9e8d1dd76d39485ac19ee67a8ad462b4"),
+        (11, "afc1e23248a78368f1653a854fa88064302d30e296bede1713379c13b9606c67"),
+        (11, "3b420309ca563f5f2796d3203fd5cf508a021a90153eb9ab5bab68d38122b2f9"),
     ];
 
     foreach (var file in anlabelFiles)
@@ -8473,12 +8487,17 @@ static Task TestTemplateLibraryStandalone()
 
         foreach (var item in template.Objects)
         {
-            var staticText = item.Text ?? string.Empty;
-            foreach (var token in customerTokens)
+            var staticText = (item.Text ?? string.Empty).ToUpperInvariant();
+            foreach (var (length, sha256) in customerTokenHashes)
             {
-                if (staticText.Contains(token, StringComparison.OrdinalIgnoreCase))
+                for (var start = 0; start + length <= staticText.Length; start++)
                 {
-                    failures.Add($"{Path.GetFileName(file)} object '{item.Name}': static Text contains customer token '{token}'");
+                    var window = System.Text.Encoding.UTF8.GetBytes(staticText.Substring(start, length));
+                    if (Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(window)).Equals(sha256, StringComparison.OrdinalIgnoreCase))
+                    {
+                        failures.Add($"{Path.GetFileName(file)} object '{item.Name}': static Text contains a customer token (sha256 {sha256[..8]})");
+                        break;
+                    }
                 }
             }
         }
