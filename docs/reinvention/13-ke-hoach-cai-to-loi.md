@@ -525,7 +525,7 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 **GĐ3 — Thiết kế**
 
 - [x] D02 Undo một bước cho resize, xoay, nhóm và dán; liên kết dữ liệu không bị undo âm thầm — xong 2026-10-13. Undo, Redo và hủy thao tác giữ nguyên liên kết dữ liệu hiện tại (tệp, sheet, dòng tiêu đề, cột số bản). Trước đây Undo một thao tác không liên quan có thể trả liên kết về giá trị cũ (H16); gate này đỏ khi bỏ phần sửa. Dán nhiều đối tượng là một bước. Gate `undo and redo keep the current data link`, `rotation and multi-object gestures are one undo step`, `canvas paste and group resize are single gestures`. Chưa kiểm bằng chuột thật (D01/D03).
-- [ ] D07 Báo font hoặc ảnh thiếu ngay trên canvas
+- [x] D07 Báo font hoặc ảnh thiếu ngay trên canvas — xong 2026-10-13: thanh trạng thái có chip “Thiếu 1 phông chữ, 1 ảnh” (Figma `37:259`). Chip có tooltip theo từng đối tượng: phông nào thiếu và đang thay bằng phông nào, ảnh nào không có dữ liệu. Bấm chip sẽ chọn đối tượng đầu tiên. Không vẽ đè lên tem. Gate `missing font or image is shown while editing`. Ảnh có dữ liệu nhưng hỏng vẫn chỉ được bắt ở kiểm tra trước khi in.
 - [ ] D01/D03/D05 Kiểm tra tương tác thật ở các mức zoom và Windows scaling
 - [ ] Snapshot undo không nhân bản ảnh; giới hạn ảnh khi chèn; giảm làm mới bảng thuộc tính
 - [x] Menu chuột phải canvas tiếng Việt; bỏ mục dành cho lập trình viên — xong 2026-10-13: menu và mọi thông báo trạng thái của canvas (dính, lưới, đường gióng, căn, phân bố, dịch chuyển) là tiếng Việt. Mục “Show pointer performance” đã bỏ; thuộc tính chẩn đoán vẫn giữ cho test. Gate `canvas context menu is Vietnamese without developer items`. Hai thông báo tràn chữ của Text/TextBox vẫn tiếng Anh vì nằm trong vùng được bảo vệ (AGENTS.md).

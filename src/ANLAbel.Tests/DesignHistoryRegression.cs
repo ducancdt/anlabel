@@ -7,8 +7,9 @@ using ANLAbel.Core.Enums;
 using ANLAbel.Core.Models;
 
 /// <summary>
-/// Plan 13 GĐ3 D02: one edit is one undo step, and undo never silently puts
-/// back an older data link (H16). Each method is one named gate in Program.cs.
+/// Plan 13 GĐ3: one edit is one undo step and undo never silently puts back
+/// an older data link (D02, H16); a missing font or image is visible while
+/// editing (D07). Each method is one named gate in Program.cs.
 /// </summary>
 internal static class DesignHistoryRegression
 {
@@ -121,6 +122,46 @@ internal static class DesignHistoryRegression
             throw failure;
         }
 
+        return Task.CompletedTask;
+    }
+
+    public static Task MissingFontOrImageIsShownWhileEditing()
+    {
+        const string missingFont = "ANLAbel Missing Font 7Q";
+        var vm = new MainViewModel();
+        var text = new LabelObject { Id = "missing-font", Type = ObjectType.Text, Name = "Tiêu đề", Text = "ABC", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 5 };
+        text.Style.FontFamily = missingFont;
+        var image = new LabelObject { Id = "missing-image", Type = ObjectType.Image, Name = "Logo", XMm = 30, YMm = 2, WidthMm = 10, HeightMm = 10 };
+        vm.BeginTemplateEditGesture();
+        vm.Template.Objects.Add(text);
+        vm.Template.Objects.Add(image);
+        vm.CommitTemplateEditGesture();
+
+        Require(vm.HasMissingResources && vm.MissingResourcesText == "Thiếu 1 phông chữ, 1 ảnh",
+            "A missing font and an image without data must show in the status bar: " + vm.MissingResourcesText);
+        Require(vm.MissingResourcesDetail.Contains($"phông “{missingFont}” chưa cài trên máy này", StringComparison.Ordinal)
+                && vm.MissingResourcesDetail.Contains("Ảnh “Logo” không có dữ liệu ảnh", StringComparison.Ordinal),
+            "The detail must name each object and what is missing: " + vm.MissingResourcesDetail);
+        vm.SelectFirstMissingResource();
+        Require(vm.SelectedObject?.Id == "missing-font", "The chip must select the first affected object.");
+
+        vm.BeginTemplateEditGesture();
+        vm.Template.Objects.Single(item => item.Id == "missing-font").Style.FontFamily =
+            ANLAbel.Printing.RenderPipeline.TextBoxOverflowDetector.ResolveFontFamilyName(missingFont);
+        vm.Template.Objects.Remove(vm.Template.Objects.Single(item => item.Id == "missing-image"));
+        vm.CommitTemplateEditGesture();
+        Require(!vm.HasMissingResources && vm.MissingResourcesText.Length == 0, "Fixing both must clear the chip.");
+
+        var root = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(root, "ANLAbel.slnx")))
+        {
+            root = Path.GetDirectoryName(root.TrimEnd(Path.DirectorySeparatorChar))!;
+        }
+
+        var xaml = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "MainWindow.xaml"));
+        Require(xaml.Contains("Shell.Status.MissingResources", StringComparison.Ordinal)
+                && xaml.Contains("{Binding MissingResourcesText}", StringComparison.Ordinal),
+            "The missing-resource chip belongs in the status bar (Figma 37:259), not on the label.");
         return Task.CompletedTask;
     }
 

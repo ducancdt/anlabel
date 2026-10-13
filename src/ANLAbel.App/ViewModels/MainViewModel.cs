@@ -62,6 +62,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly QrCapacityTable _qrCapacityTable = new();
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
+    private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
     // IsDirty compares the current snapshot with it, so undoing back to the
@@ -1058,6 +1059,7 @@ public sealed class MainViewModel : ObservableObject
         IsDirty = false;
         OnPropertyChanged(nameof(DocumentDisplayName));
         OnPropertyChanged(nameof(WindowTitle));
+        RefreshMissingResources();
     }
 
     /// <summary>Exact check used before New/Open/Close: compares a fresh snapshot with the saved one.</summary>
@@ -1113,6 +1115,84 @@ public sealed class MainViewModel : ObservableObject
     {
         IsDirty = !string.Equals(currentSnapshot, _savedTemplateSnapshot, StringComparison.Ordinal);
         OnPropertyChanged(nameof(WindowTitle));
+        RefreshMissingResources();
+    }
+
+    /// <summary>Objects whose font is not installed or whose image has no data (plan 13 D07).</summary>
+    public IReadOnlyList<LabelObject> MissingResourceObjects => _missingResourceObjects;
+
+    public bool HasMissingResources => _missingResourceObjects.Count > 0;
+
+    /// <summary>Status-bar chip text, e.g. "Thiếu 1 phông chữ, 1 ảnh" (Figma 37:259).</summary>
+    public string MissingResourcesText { get; private set; } = string.Empty;
+
+    /// <summary>One line per affected object: what is missing and what is used instead.</summary>
+    public string MissingResourcesDetail { get; private set; } = string.Empty;
+
+    /// <summary>Next useful action from the chip: select the first affected object.</summary>
+    public void SelectFirstMissingResource()
+    {
+        if (_missingResourceObjects.Count > 0)
+        {
+            SelectedObject = _missingResourceObjects[0];
+            StatusText = MissingResourcesDetail.Split(Environment.NewLine)[0];
+        }
+    }
+
+    // A missing font or image is shown while editing, not only when printing
+    // is blocked. The canvas keeps drawing with the fallback font; nothing is
+    // drawn over the label (plan 13 D07).
+    private void RefreshMissingResources()
+    {
+        var affected = new List<LabelObject>();
+        var lines = new List<string>();
+        var fonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var images = 0;
+        foreach (var item in Template.Objects.OrderBy(item => item.ZIndex))
+        {
+            if (item.Type is ObjectType.Text or ObjectType.TextBox
+                && !string.IsNullOrWhiteSpace(item.Style.FontFamily)
+                && !TextBoxOverflowDetector.IsFontAvailable(item.Style.FontFamily))
+            {
+                var requested = item.Style.FontFamily.Trim();
+                fonts.Add(requested);
+                affected.Add(item);
+                lines.Add($"“{item.Name}”: phông “{requested}” chưa cài trên máy này; đang hiển thị và sẽ in bằng “{TextBoxOverflowDetector.ResolveFontFamilyName(requested)}”.");
+            }
+            else if (item.Type == ObjectType.Image && string.IsNullOrWhiteSpace(item.ImageDataBase64))
+            {
+                images++;
+                affected.Add(item);
+                lines.Add($"Ảnh “{item.Name}” không có dữ liệu ảnh; hãy chèn lại ảnh.");
+            }
+        }
+
+        var parts = new List<string>();
+        if (fonts.Count > 0)
+        {
+            parts.Add($"{fonts.Count} phông chữ");
+        }
+
+        if (images > 0)
+        {
+            parts.Add($"{images} ảnh");
+        }
+
+        var text = parts.Count == 0 ? string.Empty : "Thiếu " + string.Join(", ", parts);
+        var detail = string.Join(Environment.NewLine, lines);
+        if (text == MissingResourcesText && detail == MissingResourcesDetail)
+        {
+            _missingResourceObjects = affected;
+            return;
+        }
+
+        _missingResourceObjects = affected;
+        MissingResourcesText = text;
+        MissingResourcesDetail = detail;
+        OnPropertyChanged(nameof(MissingResourceObjects));
+        OnPropertyChanged(nameof(HasMissingResources));
+        OnPropertyChanged(nameof(MissingResourcesText));
+        OnPropertyChanged(nameof(MissingResourcesDetail));
     }
 
     public string StatusText

@@ -153,6 +153,11 @@ public partial class MainWindow : Window
         ShowPrintCenter();
     }
 
+    private void MissingResources_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.SelectFirstMissingResource();
+    }
+
     private void ShowPrintCenter()
     {
         var center = new PrintCenterWindow(_viewModel, OpenApprovedReprintPreview)

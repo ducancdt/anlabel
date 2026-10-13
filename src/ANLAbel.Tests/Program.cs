@@ -188,6 +188,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("undo and redo keep the current data link", DesignHistoryRegression.UndoAndRedoKeepTheCurrentDataLink),
     ("rotation and multi-object gestures are one undo step", DesignHistoryRegression.RotationAndMultiObjectGesturesAreOneUndoStep),
     ("canvas paste and group resize are single gestures", DesignHistoryRegression.CanvasPasteAndGroupResizeAreSingleGestures),
+    ("missing font or image is shown while editing", DesignHistoryRegression.MissingFontOrImageIsShownWhileEditing),
     ("excel read honors cancellation", TestExcelReadHonorsCancellation),
     ("excel refresh skips unchanged file", TestExcelRefreshSkipsUnchangedFile),
     ("database config full round trip", TestDatabaseConfigRoundTrip),

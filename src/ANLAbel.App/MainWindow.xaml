@@ -663,6 +663,17 @@
                             ToolTip="Xem xét lệnh in chưa chắc chắn; tự động thử lại đã tắt">
                         <TextBlock Text="{Binding PrintRecoveryStatusText}" FontWeight="SemiBold"/>
                     </Button>
+                    <Button Click="MissingResources_Click"
+                            Visibility="{Binding HasMissingResources, Converter={StaticResource BoolToVisibility}}"
+                            Margin="12,0,0,0"
+                            Padding="7,2"
+                            Background="#FFFBEB"
+                            BorderBrush="#FCD34D"
+                            Foreground="#92400E"
+                            AutomationProperties.AutomationId="Shell.Status.MissingResources"
+                            ToolTip="{Binding MissingResourcesDetail}">
+                        <TextBlock Text="{Binding MissingResourcesText}" FontWeight="SemiBold"/>
+                    </Button>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.AutomationId="Shell.Status.Zoom">
                     <TextBlock Text="{Binding ZoomPercent, StringFormat=Zoom: {0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
