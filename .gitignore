@@ -52,4 +52,7 @@ Desktop.ini
 /docs/assets/nicelabel-control-center/
 /ug-NiceLabel_*.md
 /ug-NiceLabel_*.pdf
+
+## Agent worktrees are local scratch copies of the repository.
+/.claude/worktrees/
 __pycache__/

@@ -16,3 +16,5 @@
 *.ttf binary
 *.otf binary
 *.zip binary
+*.prn binary
+*.nlbl binary

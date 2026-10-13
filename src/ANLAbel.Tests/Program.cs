@@ -8489,22 +8489,48 @@ static Task TestTemplateLibraryStandalone()
             failures.Add($"{Path.GetFileName(file)}: DatabaseConfig.SheetName should be empty but is '{template.DatabaseConfig.SheetName}'");
         }
 
+        // File and template names are embedded in the shipped DLL too, not only
+        // object text (audit 2026-10-13).
+        if (CustomerToken(Path.GetFileNameWithoutExtension(file)) is { } inFileName)
+        {
+            failures.Add($"{Path.GetFileName(file)}: file name contains a customer token (sha256 {inFileName})");
+        }
+
+        if (CustomerToken(template.Name) is { } inTemplateName)
+        {
+            failures.Add($"{Path.GetFileName(file)}: template name contains a customer token (sha256 {inTemplateName})");
+        }
+
         foreach (var item in template.Objects)
         {
-            var staticText = (item.Text ?? string.Empty).ToUpperInvariant();
-            foreach (var (length, sha256) in customerTokenHashes)
+            if (CustomerToken(item.Text) is { } inText)
             {
-                for (var start = 0; start + length <= staticText.Length; start++)
+                failures.Add($"{Path.GetFileName(file)} object '{item.Name}': static Text contains a customer token (sha256 {inText})");
+            }
+
+            if (CustomerToken(item.Name) is { } inName)
+            {
+                failures.Add($"{Path.GetFileName(file)}: an object name contains a customer token (sha256 {inName})");
+            }
+        }
+    }
+
+    string? CustomerToken(string? value)
+    {
+        var text = (value ?? string.Empty).ToUpperInvariant();
+        foreach (var (length, sha256) in customerTokenHashes)
+        {
+            for (var start = 0; start + length <= text.Length; start++)
+            {
+                var window = System.Text.Encoding.UTF8.GetBytes(text.Substring(start, length));
+                if (Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(window)).Equals(sha256, StringComparison.OrdinalIgnoreCase))
                 {
-                    var window = System.Text.Encoding.UTF8.GetBytes(staticText.Substring(start, length));
-                    if (Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(window)).Equals(sha256, StringComparison.OrdinalIgnoreCase))
-                    {
-                        failures.Add($"{Path.GetFileName(file)} object '{item.Name}': static Text contains a customer token (sha256 {sha256[..8]})");
-                        break;
-                    }
+                    return sha256[..8];
                 }
             }
         }
+
+        return null;
     }
 
     (double WidthMm, double HeightMm, string[] Bindings)[] classifiedDistinct =
