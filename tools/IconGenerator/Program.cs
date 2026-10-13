@@ -33,6 +33,7 @@ public static class Program
         Generate("new", DrawNew);
         Generate("open", DrawOpen);
         Generate("save", DrawSave);
+        Generate("save_as", DrawSaveAs);
         Generate("folder", DrawFolder);
         Generate("revisions", DrawRevisions);
         Generate("undo", DrawUndo);
@@ -71,7 +72,7 @@ public static class Program
         Generate("collapse_chevron", DrawCollapseChevron);
         Generate("expand_chevron", DrawExpandChevron);
 
-        Console.WriteLine("All 40 industrial icons rendered with 100% pure vector geometry & pixel-perfect centering!");
+        Console.WriteLine("All 41 industrial icons rendered with 100% pure vector geometry & pixel-perfect centering!");
     }
 
     private static void Generate(string name, Action<DrawingContext, double> drawAction)
@@ -201,6 +202,32 @@ public static class Program
         var labelPen = new Pen(BlueLine, 1.8) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         dc.DrawLine(labelPen, new Point(16, 29), new Point(32, 29));
         dc.DrawLine(labelPen, new Point(16, 33), new Point(28, 33));
+    }
+
+    // 3b. save_as: the save disk with an amber pencil badge (plan 13 F02, Figma 36:165)
+    private static void DrawSaveAs(DrawingContext dc, double s)
+    {
+        DrawSave(dc, s);
+
+        // Pencil body from the lower-left tip to the upper-right end.
+        var body = new PathGeometry();
+        var bodyFig = new PathFigure { StartPoint = new Point(27.0, 40.9), IsClosed = true, IsFilled = true };
+        bodyFig.Segments.Add(new LineSegment(new Point(40.9, 27.0), true));
+        bodyFig.Segments.Add(new LineSegment(new Point(45.1, 31.2), true));
+        bodyFig.Segments.Add(new LineSegment(new Point(31.2, 45.1), true));
+        body.Figures.Add(bodyFig);
+        dc.DrawGeometry(AmberPrimary, new Pen(InkBorder, 1.6), body);
+
+        // Graphite tip.
+        var tip = new PathGeometry();
+        var tipFig = new PathFigure { StartPoint = new Point(27.0, 40.9), IsClosed = true, IsFilled = true };
+        tipFig.Segments.Add(new LineSegment(new Point(31.2, 45.1), true));
+        tipFig.Segments.Add(new LineSegment(new Point(24.6, 47.4), true));
+        tip.Figures.Add(tipFig);
+        dc.DrawGeometry(InkDark, new Pen(InkBorder, 1.2), tip);
+
+        // Eraser band at the far end.
+        dc.DrawLine(new Pen(AmberLight, 2.0), new Point(39.4, 28.5), new Point(43.6, 32.7));
     }
 
     // 4. folder: Classic Industrial Folder

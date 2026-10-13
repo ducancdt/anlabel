@@ -95,6 +95,54 @@ public sealed class ProjectFileService : IProjectFileService
         }
     }
 
+    /// <summary>
+    /// Writes a crash-recovery copy in the normal document format.
+    /// <para>
+    /// The write is atomic (temporary file, flush, rename) and synchronous, so it
+    /// can run from a background autosave or from an unhandled-exception path.
+    /// It never creates a <c>.bak</c> or revision archive and is meant for the
+    /// recovery folder only, never for an operator's authored file.
+    /// </para>
+    /// </summary>
+    public static void WriteRecoveryCopy(LabelTemplate template, string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("File path is required.", nameof(filePath));
+        }
+
+        var fullPath = Path.GetFullPath(filePath);
+        var directory = Path.GetDirectoryName(fullPath)
+            ?? throw new InvalidOperationException("The recovery path has no parent directory.");
+        Directory.CreateDirectory(directory);
+        var temporaryPath = Path.Combine(directory, $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var stream = new FileStream(
+                temporaryPath,
+                new FileStreamOptions
+                {
+                    Mode = FileMode.CreateNew,
+                    Access = FileAccess.Write,
+                    Share = FileShare.None,
+                    BufferSize = 64 * 1024,
+                    Options = FileOptions.WriteThrough
+                }))
+            {
+                JsonSerializer.Serialize(stream, new ProjectFileEnvelope(FileFormat, CurrentSchemaVersion, template), JsonOptions);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporaryPath, fullPath, overwrite: true);
+        }
+        catch
+        {
+            TryDeleteTemporaryFile(temporaryPath);
+            throw;
+        }
+    }
+
     private static void TryDeleteTemporaryFile(string path)
     {
         try

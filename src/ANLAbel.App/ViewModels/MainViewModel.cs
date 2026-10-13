@@ -63,6 +63,13 @@ public sealed class MainViewModel : ObservableObject
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
     private readonly Stack<string> _redoStack = new();
+    // Plan 13 F01: the history snapshot of the document as last saved/opened.
+    // IsDirty compares the current snapshot with it, so undoing back to the
+    // saved state clears the unsaved marker.
+    private string _savedTemplateSnapshot = string.Empty;
+    private bool _isDirty;
+    private bool _isSaving;
+    private readonly List<string> _startupNotices = new();
     private System.Windows.Threading.DispatcherTimer? _debounceTimer;
     private bool _debounceActive;
     private string _pendingPreChangeSnapshot = string.Empty;
@@ -130,7 +137,13 @@ public sealed class MainViewModel : ObservableObject
         _printOperationLogService = printOperationLogService ?? new PrintOperationLogService();
         _dataOperationLogService = dataOperationLogService ?? new DataOperationLogService();
         _dataSourceRegistry = dataSourceRegistry ?? new DataSourceRegistry();
-        _dataSourceRegistry.Load();
+        var registryOutcome = _dataSourceRegistry.LoadOrQuarantine();
+        if (!registryOutcome.IsLoaded)
+        {
+            _startupNotices.Add(registryOutcome.QuarantinePath is { } quarantinePath
+                ? $"Tệp cấu hình nguồn dữ liệu dùng chung bị hỏng nên không đọc được. ANLAbel đã cất tệp này thành {Path.GetFileName(quarantinePath)} và dùng danh sách trống. Mẫu tem không bị ảnh hưởng."
+                : "Không đọc được tệp cấu hình nguồn dữ liệu dùng chung (tệp đang bị khóa hoặc không có quyền). Phiên này dùng danh sách trống; tệp không bị thay đổi.");
+        }
         DataSources = new ObservableCollection<DataSource>(_dataSourceRegistry.Sources);
         AddTextCommand = new RelayCommand(AddText);
         AddTextBoxCommand = new RelayCommand(AddTextBox);
@@ -184,6 +197,7 @@ public sealed class MainViewModel : ObservableObject
         RelinkDataSourceCommand = new AsyncRelayCommand(async parameter => { if (parameter is DataSource source) { await RelinkDataSourceAsync(source); } }, parameter => parameter is DataSource);
         ObserveTemplate(Template);
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
+        _savedTemplateSnapshot = _lastTemplateSnapshot;
     }
 
     public LabelTemplate Template
@@ -985,7 +999,120 @@ public sealed class MainViewModel : ObservableObject
     public string CurrentFilePath
     {
         get => _currentFilePath;
-        private set => SetProperty(ref _currentFilePath, value);
+        private set
+        {
+            if (SetProperty(ref _currentFilePath, value))
+            {
+                OnPropertyChanged(nameof(DocumentDisplayName));
+                OnPropertyChanged(nameof(WindowTitle));
+            }
+        }
+    }
+
+    /// <summary>True when the document differs from its last saved/opened state (plan 13 F01).</summary>
+    public bool IsDirty
+    {
+        get => _isDirty;
+        private set
+        {
+            if (SetProperty(ref _isDirty, value))
+            {
+                OnPropertyChanged(nameof(WindowTitle));
+            }
+        }
+    }
+
+    /// <summary>True while a save is writing; a second save request is refused (plan 13 F07).</summary>
+    public bool IsSaving
+    {
+        get => _isSaving;
+        private set => SetProperty(ref _isSaving, value);
+    }
+
+    /// <summary>File name of the open document, or its label name when it was never saved.</summary>
+    public string DocumentDisplayName => !string.IsNullOrWhiteSpace(CurrentFilePath)
+        ? Path.GetFileNameWithoutExtension(CurrentFilePath)
+        : string.IsNullOrWhiteSpace(Template?.Name) ? "Mẫu mới" : Template.Name;
+
+    /// <summary>Window title, e.g. "Tem kho 100x50* — ANLAbel - Thiết kế tem v0.306".</summary>
+    public string WindowTitle => $"{DocumentDisplayName}{(IsDirty ? "*" : string.Empty)} — {ApplicationTitle}";
+
+    public static string ApplicationTitle { get; } = BuildApplicationTitle();
+
+    /// <summary>Problems found while starting (e.g. a quarantined registry), shown once after the window opens.</summary>
+    public IReadOnlyList<string> StartupNotices => _startupNotices;
+
+    private static string BuildApplicationTitle()
+    {
+        var version = typeof(MainViewModel).Assembly.GetName().Version;
+        return version is null
+            ? "ANLAbel - Thiết kế tem"
+            : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"ANLAbel - Thiết kế tem v{version.Major}.{version.Minor:000}");
+    }
+
+    /// <summary>Marks the current document state as saved (after save, open, new or library load).</summary>
+    public void MarkDocumentClean()
+    {
+        CommitPendingHistory();
+        _savedTemplateSnapshot = CaptureTemplateSnapshot();
+        IsDirty = false;
+        OnPropertyChanged(nameof(DocumentDisplayName));
+        OnPropertyChanged(nameof(WindowTitle));
+    }
+
+    /// <summary>Exact check used before New/Open/Close: compares a fresh snapshot with the saved one.</summary>
+    public bool HasUnsavedChanges()
+    {
+        CommitPendingHistory();
+        var dirty = !string.Equals(CaptureTemplateSnapshot(), _savedTemplateSnapshot, StringComparison.Ordinal);
+        IsDirty = dirty;
+        return dirty;
+    }
+
+    /// <summary>
+    /// Immutable copy of the open document for the recovery store, or null when
+    /// there is nothing unsaved to protect. Safe to serialize off the UI thread.
+    /// </summary>
+    public LabelTemplate? CaptureRecoveryCopy()
+    {
+        var snapshot = CaptureTemplateSnapshot();
+        if (string.Equals(snapshot, _savedTemplateSnapshot, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return JsonSerializer.Deserialize<LabelTemplate>(snapshot, HistoryJsonOptions);
+    }
+
+    /// <summary>
+    /// Opens a recovery copy (plan 13 F04) as an unsaved document. The original
+    /// path is kept when it still exists, so Save writes back there (its previous
+    /// content goes to .bak as usual); otherwise Save asks for a location.
+    /// </summary>
+    public async Task OpenRecoveredAsync(string recoveryDocumentPath, string? originalFilePath, string documentName)
+    {
+        var recovered = await _projectFileService.LoadAsync(recoveryDocumentPath);
+        StopWatchingExcelFile();
+        UnobserveTemplate(Template);
+        Template = recovered;
+        ResetHistory();
+        CurrentFilePath = !string.IsNullOrWhiteSpace(originalFilePath) && File.Exists(originalFilePath)
+            ? originalFilePath
+            : string.Empty;
+        SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
+        await RestoreLinkedExcelDataAsync();
+        CommitPendingHistory();
+        _savedTemplateSnapshot = string.Empty;
+        UpdateDirtyState(CaptureTemplateSnapshot());
+        StatusText = string.IsNullOrWhiteSpace(CurrentFilePath)
+            ? $"Đã mở bản phục hồi của “{documentName}”. Bấm Lưu để chọn nơi lưu."
+            : $"Đã mở bản phục hồi của “{documentName}”. Bấm Lưu để ghi lại {Path.GetFileName(CurrentFilePath)} (bản cũ giữ trong .bak).";
+    }
+
+    private void UpdateDirtyState(string currentSnapshot)
+    {
+        IsDirty = !string.Equals(currentSnapshot, _savedTemplateSnapshot, StringComparison.Ordinal);
+        OnPropertyChanged(nameof(WindowTitle));
     }
 
     public string StatusText
@@ -1455,15 +1582,37 @@ public sealed class MainViewModel : ObservableObject
         ResetHistory();
         SelectedObject = null;
         CurrentFilePath = string.Empty;
+        MarkDocumentClean();
         StatusText = $"Mẫu tem mới: {Template.WidthMm} x {Template.HeightMm} mm";
     }
 
     public async Task SaveAsync(string filePath)
     {
-        UpdateRelativePath(filePath);
-        await _projectFileService.SaveAsync(Template, filePath);
-        CurrentFilePath = filePath;
-        StatusText = $"Đã lưu: {Path.GetFileName(filePath)}";
+        if (IsSaving)
+        {
+            throw new InvalidOperationException("Đang lưu mẫu tem. Hãy chờ lần lưu hiện tại hoàn tất.");
+        }
+
+        IsSaving = true;
+        try
+        {
+            CommitPendingHistory();
+            UpdateRelativePath(filePath);
+            // Serialize an immutable snapshot, not the live object: the designer
+            // stays editable while the asynchronous write runs (plan 13 F07).
+            var snapshot = CaptureTemplateSnapshot();
+            var copy = JsonSerializer.Deserialize<LabelTemplate>(snapshot, HistoryJsonOptions)
+                ?? throw new InvalidOperationException("Không tạo được bản chụp của mẫu tem để lưu.");
+            await _projectFileService.SaveAsync(copy, filePath);
+            CurrentFilePath = filePath;
+            _savedTemplateSnapshot = snapshot;
+            UpdateDirtyState(CaptureTemplateSnapshot());
+            StatusText = $"Đã lưu: {Path.GetFileName(filePath)}";
+        }
+        finally
+        {
+            IsSaving = false;
+        }
     }
 
     public async Task<ProjectLoadResult> OpenAsync(string filePath)
@@ -1495,6 +1644,7 @@ public sealed class MainViewModel : ObservableObject
         CurrentFilePath = filePath;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
+        MarkDocumentClean();
         return loadResult;
     }
 
@@ -1512,6 +1662,7 @@ public sealed class MainViewModel : ObservableObject
         CurrentFilePath = string.Empty;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
+        MarkDocumentClean();
         StatusText = $"Đã mở mẫu từ thư viện: {template.Name}";
     }
 
@@ -4122,6 +4273,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var currentSnapshot = CaptureTemplateSnapshot();
+        UpdateDirtyState(currentSnapshot);
         if (currentSnapshot == _lastTemplateSnapshot)
         {
             return;
@@ -4181,6 +4333,7 @@ public sealed class MainViewModel : ObservableObject
             _lastTemplateSnapshot = finalSnapshot;
         }
 
+        UpdateDirtyState(finalSnapshot);
         RaiseHistoryCanExecuteChanged();
     }
 
@@ -4234,6 +4387,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         _lastTemplateSnapshot = finalSnapshot;
+        UpdateDirtyState(finalSnapshot);
         RaiseHistoryCanExecuteChanged();
     }
 
@@ -4258,6 +4412,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
+        UpdateDirtyState(_lastTemplateSnapshot);
         RaiseHistoryCanExecuteChanged();
     }
 
@@ -4284,6 +4439,8 @@ public sealed class MainViewModel : ObservableObject
         {
             _isRestoringHistory = false;
         }
+
+        UpdateDirtyState(snapshot);
     }
 
     private string CaptureTemplateSnapshot()

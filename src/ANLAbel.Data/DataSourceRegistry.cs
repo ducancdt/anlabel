@@ -71,6 +71,47 @@ public sealed class DataSourceRegistry
         _sources = registry.Sources ?? new List<DataSource>();
     }
 
+    /// <summary>
+    /// Startup-safe load (plan 13 F05). A malformed registry, or one written by
+    /// a newer ANLAbel, is moved aside as <c>data-sources.json.hong-&lt;time&gt;</c>
+    /// and the registry starts empty, so the application still opens. A
+    /// registry that cannot be read right now (locked, no access) is left in
+    /// place and the registry starts empty for this session.
+    /// </summary>
+    public DataSourceRegistryLoadOutcome LoadOrQuarantine(DateTime? now = null)
+    {
+        try
+        {
+            Load();
+            return DataSourceRegistryLoadOutcome.Loaded;
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidDataException or NotSupportedException)
+        {
+            _sources = new List<DataSource>();
+            var stamp = (now ?? DateTime.Now).ToString("yyyyMMdd-HHmmss");
+            var quarantinePath = $"{_filePath}.hong-{stamp}";
+            for (var counter = 1; File.Exists(quarantinePath); counter++)
+            {
+                quarantinePath = $"{_filePath}.hong-{stamp}-{counter}";
+            }
+
+            try
+            {
+                File.Move(_filePath, quarantinePath);
+                return new DataSourceRegistryLoadOutcome(false, quarantinePath, exception.Message);
+            }
+            catch (Exception moveException) when (moveException is IOException or UnauthorizedAccessException)
+            {
+                return new DataSourceRegistryLoadOutcome(false, null, exception.Message);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _sources = new List<DataSource>();
+            return new DataSourceRegistryLoadOutcome(false, null, exception.Message);
+        }
+    }
+
     public void Save()
     {
         var dir = Path.GetDirectoryName(_filePath);
@@ -161,4 +202,13 @@ public sealed class DataSourceRegistry
     {
         _sources.RemoveAll(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
     }
+}
+
+/// <summary>Result of <see cref="DataSourceRegistry.LoadOrQuarantine"/>.</summary>
+/// <param name="IsLoaded">True when the saved registry was read.</param>
+/// <param name="QuarantinePath">Where an unreadable registry was moved, if it was moved.</param>
+/// <param name="Problem">Technical reason when the registry was not read.</param>
+public sealed record DataSourceRegistryLoadOutcome(bool IsLoaded, string? QuarantinePath, string? Problem)
+{
+    public static DataSourceRegistryLoadOutcome Loaded { get; } = new(true, null, null);
 }

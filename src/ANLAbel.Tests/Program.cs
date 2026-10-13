@@ -43,6 +43,13 @@ Environment.SetEnvironmentVariable(AppDataPaths.OverrideVariable, testDataRoot);
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("test run keeps app data out of the operator profile", TestAppDataIsRedirectedForTestRun),
+    ("unsaved marker follows edits, undo and save", DocumentLifecycleRegression.UnsavedMarkerFollowsEditsUndoAndSave),
+    ("save writes a snapshot and refuses a concurrent save", DocumentLifecycleRegression.SaveWritesSnapshotAndRefusesConcurrentSave),
+    ("recovery copy is offered once and opens unsaved", DocumentLifecycleRegression.RecoveryCopyIsOfferedOnceAndOpensUnsaved),
+    ("corrupt data-source registry is quarantined at startup", DocumentLifecycleRegression.CorruptRegistryIsQuarantinedAtStartup),
+    ("explorer argument opens only existing documents", DocumentLifecycleRegression.ExplorerArgumentOpensOnlyExistingDocuments),
+    ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),
+    ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
     ("print history regression suite", PrintHistoryRegression.Run),
     ("release version script projects one public version", ReleaseVersionScriptRegression.Run),
     ("mm to WPF DIP conversion", TestMmToDip),

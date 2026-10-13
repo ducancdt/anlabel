@@ -29,6 +29,7 @@ internal static class LanguageComplianceRegression
         "UpdateWindow.xaml",
         "HelpWindow.xaml",
         "SettingsWindow.xaml",
+        "OperatorDialog.xaml",
         "App.xaml",
     };
 
@@ -157,7 +158,9 @@ internal static class LanguageComplianceRegression
         var results = new List<Violation>();
         var lines = File.ReadAllLines(path);
         var attrPattern = new Regex(
-            "(?<attr>" + string.Join("|", VisibleAttributes) + ")=\"(?<val>[^\"]*)\"",
+            // (?<!\w): match whole attribute names only, so SizeToContent="Height"
+            // is not read as Content="Height"; ToolTipService.ToolTip still matches.
+            "(?<!\\w)(?<attr>" + string.Join("|", VisibleAttributes) + ")=\"(?<val>[^\"]*)\"",
             RegexOptions.CultureInvariant);
 
         for (var i = 0; i < lines.Length; i++)

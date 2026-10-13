@@ -631,6 +631,7 @@ public partial class HelpWindow : Window
         rb.Children.Add(P("• New (Ctrl+N) — " + (vi ? "tạo template trống mới." : "create a new blank template.")));
         rb.Children.Add(P("• Open (Ctrl+O) — " + (vi ? "mở file template .anlabel." : "open an .anlabel template file.")));
         rb.Children.Add(P("• Save (Ctrl+S) — " + (vi ? "lưu template hiện tại." : "save the current template.")));
+        rb.Children.Add(P("• Lưu thành… (Ctrl+Shift+S) — " + (vi ? "lưu template ra tệp mới; tệp đang mở giữ nguyên." : "save the template to a new file.")));
         rb.Children.Add(H2(vi ? "Nhóm Edit" : "Edit group"));
         rb.Children.Add(P("• Undo (Ctrl+Z) / Redo (Ctrl+Y) — " + (vi ? "hoàn tác / làm lại thao tác." : "undo / redo your last action.")));
         rb.Children.Add(H2(vi ? "Nhóm Data" : "Data group"));
@@ -786,6 +787,7 @@ public partial class HelpWindow : Window
         sh.Children.Add(ShortcutRow("Ctrl+N", vi ? "Tạo template mới" : "New template"));
         sh.Children.Add(ShortcutRow("Ctrl+O", vi ? "Mở template" : "Open template"));
         sh.Children.Add(ShortcutRow("Ctrl+S", vi ? "Lưu template" : "Save template"));
+        sh.Children.Add(ShortcutRow("Ctrl+Shift+S", vi ? "Lưu thành tệp mới" : "Save as a new file"));
         sh.Children.Add(ShortcutRow("Ctrl+Z", vi ? "Hoàn tác" : "Undo"));
         sh.Children.Add(ShortcutRow("Ctrl+Y", vi ? "Làm lại" : "Redo"));
         sh.Children.Add(ShortcutRow("Ctrl+P", vi ? "Xem trước khi in" : "Print Preview"));

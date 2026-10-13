@@ -76,37 +76,37 @@ public sealed class LabelObject : ObservableObject
     public double XMm
     {
         get => _xMm;
-        set => SetProperty(ref _xMm, Math.Round(value, 2));
+        set { if (double.IsFinite(value)) SetProperty(ref _xMm, Math.Round(value, 2)); }
     }
 
     public double YMm
     {
         get => _yMm;
-        set => SetProperty(ref _yMm, Math.Round(value, 2));
+        set { if (double.IsFinite(value)) SetProperty(ref _yMm, Math.Round(value, 2)); }
     }
 
     public double WidthMm
     {
         get => _widthMm;
-        set => SetProperty(ref _widthMm, Math.Max(0.5, Math.Round(value, 2)));
+        set { if (double.IsFinite(value)) SetProperty(ref _widthMm, Math.Max(0.5, Math.Round(value, 2))); }
     }
 
     public double HeightMm
     {
         get => _heightMm;
-        set => SetProperty(ref _heightMm, Math.Max(0.5, Math.Round(value, 2)));
+        set { if (double.IsFinite(value)) SetProperty(ref _heightMm, Math.Max(0.5, Math.Round(value, 2))); }
     }
 
     public double LineEndXMm
     {
         get => _lineEndXMm;
-        set => SetProperty(ref _lineEndXMm, Math.Round(value, 2));
+        set { if (double.IsFinite(value)) SetProperty(ref _lineEndXMm, Math.Round(value, 2)); }
     }
 
     public double LineEndYMm
     {
         get => _lineEndYMm;
-        set => SetProperty(ref _lineEndYMm, Math.Round(value, 2));
+        set { if (double.IsFinite(value)) SetProperty(ref _lineEndYMm, Math.Round(value, 2)); }
     }
 
     public int Rotation

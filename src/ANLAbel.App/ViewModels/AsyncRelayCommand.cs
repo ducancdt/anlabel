@@ -27,6 +27,14 @@ public sealed class AsyncRelayCommand : ICommand
         _onError = onError;
     }
 
+    /// <summary>
+    /// Receives failures of commands created without their own error callback.
+    /// The application sets it at startup so a failed refresh/print/relink is
+    /// shown to the operator and logged instead of disappearing into Debug
+    /// output (plan 13 F03). Null keeps the old Debug-only behaviour (tests).
+    /// </summary>
+    public static Action<Exception>? DefaultErrorHandler { get; set; }
+
     public event EventHandler? CanExecuteChanged;
 
     public bool CanExecute(object? parameter)
@@ -61,6 +69,10 @@ public sealed class AsyncRelayCommand : ICommand
             if (_onError is not null)
             {
                 _onError(ex);
+            }
+            else if (DefaultErrorHandler is { } handler)
+            {
+                handler(ex);
             }
             else
             {

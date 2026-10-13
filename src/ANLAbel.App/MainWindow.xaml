@@ -468,6 +468,9 @@
                     <Button Style="{StaticResource QuickAccessButton}" Click="Save_Click" ToolTip="Lưu tem (Ctrl+S)" AutomationProperties.Name="Save label" AutomationProperties.AutomationId="Shell.QuickAccess.Save">
                         <Image Source="Icons/save.png" Stretch="Uniform"/>
                     </Button>
+                    <Button Style="{StaticResource QuickAccessButton}" Click="SaveAs_Click" ToolTip="Lưu thành… (Ctrl+Shift+S)" AutomationProperties.Name="Save label as" AutomationProperties.AutomationId="Shell.QuickAccess.SaveAs">
+                        <Image Source="Icons/save_as.png" Stretch="Uniform"/>
+                    </Button>
                     <Button Style="{StaticResource QuickAccessButton}" Command="{Binding UndoCommand}" ToolTip="Hoàn tác (Ctrl+Z)" AutomationProperties.Name="Undo" AutomationProperties.AutomationId="Shell.QuickAccess.Undo">
                         <Image Source="Icons/undo.png" Stretch="Uniform"/>
                     </Button>

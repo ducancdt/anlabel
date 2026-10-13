@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = _viewModel;
+        InitializeDocumentLifecycle();
         DesignerCanvas.EditGestureStarted += (_, _) => _viewModel.BeginTemplateEditGesture();
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
@@ -144,6 +145,7 @@ public partial class MainWindow : Window
         UpdateContentSourceSelection();
         await _viewModel.RefreshPrinterQueueStatusAsync();
         await _viewModel.RefreshPrintRecoveryAsync();
+        await CompleteStartupAsync();
     }
 
     private void ReviewPrintRecovery_Click(object sender, RoutedEventArgs e)
@@ -530,6 +532,11 @@ public partial class MainWindow : Window
 
     private async void New_Click(object sender, RoutedEventArgs e)
     {
+        if (!await ConfirmDocumentCanBeReplacedAsync("tạo mẫu mới"))
+        {
+            return;
+        }
+
         var dialog = new NewTemplateWindow { Owner = this };
         if (dialog.ShowDialog() == true)
         {
@@ -540,38 +547,16 @@ public partial class MainWindow : Window
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
-        var filePath = _viewModel.CurrentFilePath;
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            var dialog = new SaveFileDialog
-            {
-                Title = "Lưu mẫu tem ANLAbel",
-                Filter = "Mẫu tem ANLAbel (*.anlabel)|*.anlabel|Tệp JSON (*.json)|*.json|Tất cả tệp (*.*)|*.*",
-                DefaultExt = ".anlabel",
-                AddExtension = true,
-                FileName = $"{_viewModel.Template.Name}.anlabel"
-            };
-
-            if (dialog.ShowDialog(this) != true)
-            {
-                return;
-            }
-
-            filePath = dialog.FileName;
-        }
-
-        try
-        {
-            await _viewModel.SaveAsync(filePath);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Lưu thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        await SaveDocumentAsync(saveAs: false);
     }
 
     private async void Open_Click(object sender, RoutedEventArgs e)
     {
+        if (!await ConfirmDocumentCanBeReplacedAsync("mở mẫu khác"))
+        {
+            return;
+        }
+
         var dialog = new OpenFileDialog
         {
             Title = "Mở mẫu tem ANLAbel",
@@ -594,8 +579,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RevisionHistory_Click(object sender, RoutedEventArgs e)
+    private async void RevisionHistory_Click(object sender, RoutedEventArgs e)
     {
+        if (!string.IsNullOrWhiteSpace(_viewModel.CurrentFilePath)
+            && !await ConfirmDocumentCanBeReplacedAsync("xem và khôi phục phiên bản"))
+        {
+            return;
+        }
+
         ShowRevisionHistory();
     }
 
@@ -747,6 +738,11 @@ public partial class MainWindow : Window
     {
         try
         {
+            if (!await ConfirmDocumentCanBeReplacedAsync("mở mẫu từ thư viện"))
+            {
+                return;
+            }
+
             _templateLibrary ??= new TemplateLibrary.TemplateLibraryService();
             var window = new TemplateLibraryWindow(_templateLibrary) { Owner = this };
             if (window.ShowDialog() == true && window.ChosenTemplate is not null)
