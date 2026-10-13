@@ -7,6 +7,78 @@ Base commit: `d408fe8191d8cbd9aece3b69b706deced7c00833`, worktree có nhiều th
 >
 > Phiên này chỉ đọc source/assertion và sửa tài liệu này; không chạy build, test, Fast, mutation, WPF, driver hay máy in. Không chứng nhận thay đổi Excel đang do chủ sở hữu khác thực hiện. `Not verified` là thiếu bằng chứng thực thi hiện tại, **không đồng nghĩa có bug**; mâu thuẫn xác định qua source được ghi riêng, chưa gọi là test Fail.
 
+## Trạng thái hiện hành theo commit đã khóa — `fcfb9ad` (v0.308, 2026-10-13)
+
+Phần này thay cho “Kết luận mapping hiện tại (2026-09-16)” ở dưới. Các phần lịch
+sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chuẩn:
+
+- **Commit:** `fcfb9ad` (`release: v0.308`), worktree sạch, Windows 11, .NET 8,
+  máy phát triển.
+- **Lệnh:**
+  - `dotnet build ANLAbel.slnx -c Debug` → 0 cảnh báo, 0 lỗi.
+  - `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj -c Debug --no-build` → 1175/1175.
+  - `dotnet src/ANLAbel.Tests/bin/Debug/net8.0-windows/ANLAbel.Tests.dll` → 243 PASS / 0 FAIL, exit 0.
+  - `scripts/Invoke-ANLAbelLifecycleSmoke.ps1` trên bản cài 0.308 → 15/15.
+- **Ba mức bằng chứng:**
+  - **Phần mềm:** gate tự động ở trên, có tên cụ thể.
+  - **Tương tác:** app thật, qua UI Automation hoặc thao tác người.
+  - **Vật lý:** máy in và tem thật. Mức này chia ba: quan sát capability, spool
+    và xác minh tem ra.
+- Không mức nào được suy ra từ mức khác. `Not verified` không đóng gate.
+
+| ID | Phần mềm | Tương tác | Vật lý | Bằng chứng chính / phần còn thiếu |
+| --- | --- | --- | --- | --- |
+| D01 | Pass | Not verified | — | `handle resize keeps millimetres at every zoom` (50/100/200 %), `snap tolerance and hysteresis remain stable across zoom`, `ResizeGeometryContractTests`. Thiếu: chuột thật, Windows scaling 125/150 % |
+| D02 | Pass | Not verified | — | `canvas edit gesture is one undo step and cancel restores`, `rotation and multi-object gestures are one undo step`, `canvas paste and group resize are single gestures`, `undo and redo keep the current data link`, `keyboard nudge uses physical steps and one gesture` |
+| D03 | Pass | Not verified | — | `normal resize capture release does not cancel gesture`; cancel trả đúng hình học. Thiếu: Esc/mất capture bằng chuột thật |
+| D04 | Pass | Not verified | — | Bảy gate Text/TextBox được bảo vệ |
+| D05 | Pass | Not verified | — | `designer preview row keeps object geometry`, `bound rows preserve preview and print geometry identity` |
+| D06 | Pass | Pass | — | `library templates round-trip without geometry change` (22 mẫu), `real templates open, save, render and pass preflight` (5 mẫu thật, byte-stable), `failed template open preserves the current document`, `corrupt template with backup does not replace the open document`; smoke A/C |
+| D07 | Pass | Pass | — | `missing font or image is shown while editing`, `async command failure reaches the operator`; smoke B (lỗi → bản phục hồi) |
+| DB01 | Pass | Not verified | — | `csv import supports UTF-8, quoted commas and semicolon delimiter`, `CsvInputSafetyTests`, `import keeps a non-default header row instead of resetting to 1`, `failed import or relink keeps the working link` |
+| DB02 | Pass | — | Not verified | `DataPayloadPreservationTests`, `ExcelNumericPayloadTests`, `ImportedBarcodeRoundTripTests` (payload từ ô tới decode) |
+| DB03 | Một phần | — | — | Tiêu đề trống/trùng thành tên duy nhất (`ExcelDataServiceReliabilityTests`); thiếu cột chặn preflight và nêu tên. Thiếu: báo vị trí khi cột bị đổi tên/xóa giữa hai lần nhập |
+| DB04 | Pass | — | — | `ExcelErrorCellTests`, `ExcelFormulaAndCsvShapeTests` (công thức chưa có giá trị đã tính chặn nhập và nêu ô) |
+| DB05 | Pass | Not verified | — | `overlapping imports publish only the latest`, `failed import or relink keeps the working link`, `excel read honors cancellation` |
+| DB06 | Pass | — | — | `FileSourceIdentitySharingTests`, `FileSourceIdentityStaleProtectTests`, `quick print rechecks the linked file before printing` (đổi byte, giữ giờ/kích thước), `linked excel file watcher flags stale data` |
+| DB07 | Pass | — | — | `record numbers follow the source file, not the grid sort`, `key field selection tracks row across refresh` |
+| DB08 | Pass | — | — | `CopiesFieldContractTests`, `DatabaseConfigCopiesTests`, `QuickPrintQuantityTests` (không cắt, không đổi thành 1) |
+| DB09 | Pass | — | — | `unlink excel clears database config but keeps bindings`, `unlink excel works when link is broken`, `shared data source relink fixes every referencing template` |
+| DB10 | Pass | Not verified | — | `print preflight groups root issues while preserving raw row failures`, `invalid barcode data in a file blocks printing`. Thiếu: luồng “bỏ dòng lỗi” trên UI thật |
+| B01 | Pass | — | Not verified | `BarcodeEvidenceMatrixTests` (fixture âm từng loại), `BarcodeApplicationContractTests` |
+| B02 | Pass | — | Not verified | `ImportedBarcodeRoundTripTests` (15 loại × CSV/XLSX × 203/300/600 DPI) |
+| B03 | Pass | — | Not verified | `BarcodeApplicationContractTests` (GS1), `Gs1Code128Fnc1RoundTripTests` |
+| B04 | Pass | — | Not verified | `LinearBarcodeModuleContractTests`, `MatrixSquareModuleFitTests`, `QrSizingCalculatorTests`, `code 39 wide narrow ratio and physical quiet zone preflight` |
+| B05 | Pass | — | Not verified | `BarcodeHriLayoutTests`, `DeviceBarcodeLayoutTests` |
+| B06 | Một phần | — | Not verified | Cùng renderer và tùy chọn mã; designer vẽ ở `QrDpi`, xem trước/in vẽ ở DPI hiệu dụng. Thiếu: một ca so sánh designer–xem trước–in |
+| B07 | Pass | — | Not verified | Ma trận theo từng loại (mục dưới); không loại nào được ghi là đã nghiệm thu sản xuất |
+| P01 | Pass | — | Not verified | `named queue resolve does not pick the Windows default`, `printer setup does not select a queue when the document has none` |
+| P02 | Pass | — | Quan sát capability: Pass | `PrinterMediaResolverTests`. Driver XP-DT426B (chỉ đọc) xác minh ticket cho hai mẫu 75×100; mẫu 110×150 bị báo khổ 75×100 vì đó là cuộn tem đang lắp |
+| P03 | Pass | — | — | `PrintSessionTemplateContractTests`, `quick print uses one snapshot and the async driver contract`, `calibration print uses an isolated copy of the label` |
+| P04 | Pass | — | Not verified | `TryExpand_KeepsRecordAndCopyIdentityInPrintOrder`, `TwoThenOneCopyOrdinalsChangeTheManifestAndAMissingSequenceStaysV3` |
+| P05 | Pass | — | Not verified | `DispatchRevalidationContractTests`, `queue health blocks shipped plan before ticket merge`. Thiếu: đổi ticket sau xem trước trên driver thật |
+| P06 | Pass | Not verified | — | `print preview busy gate blocks duplicate dispatch`, `async relay command rejects re-entry until the first call completes`. Thiếu: nhấp đúp thật khi driver chậm |
+| P07 | Pass | — | Not verified | `failure after spool acceptance is unknown, not failed`, `PrintJobRecoveryServiceTests` (ADR-023). Spool accepted ≠ tem đã ra |
+| P08 | Pass | — | — | `RequiredPreDispatchAppendFailureBlocksSend`, `PrintJobLogRepairTests` (10) |
+| F01 | Pass | Pass | — | `unsaved marker follows edits, undo and save`; smoke A |
+| F02 | Pass | Not verified | — | Lệnh Lưu thành/Ctrl+Shift+S; chưa thử bằng phím thật |
+| F03 | Pass | Pass | — | `async command failure reaches the operator`; smoke B |
+| F04 | Pass | Pass | — | `recovery copy is offered once and opens unsaved`; smoke B |
+| F05 | Pass | — | — | `corrupt data-source registry is quarantined at startup` |
+| F06 | Pass | Pass | — | `explorer argument opens only existing documents`; smoke A mở tệp qua tham số |
+| F07 | Pass | Pass | — | `save writes a snapshot and refuses a concurrent save`; smoke C (lưu khi đóng, có .bak) |
+
+**Chặn in đã biết, chờ chủ sản phẩm quyết định:** hai mẫu thật 100×70 (“tem cqs”,
+“tem trong data”) bị preflight chặn. Khung chữ 14 pt của dòng cuối dư 0,18 mm
+qua mép dưới tem, nằm trong khoảng trống dưới nét chữ. Luật đang áp dụng là gate
+được bảo vệ `print preflight blocks text outside label`. Có hai cách sửa: dời hai
+dòng đó lên, hoặc đổi luật theo nét chữ thật. Cách sau là thay đổi hợp đồng Text
+và cần quyết định riêng.
+
+**Vật lý:** không có lệnh in thật nào được gửi trong đợt này. Bằng chứng in vật
+lý gần nhất là ngày 2026-09-15: XP-DT426B, 4 lệnh spool accepted. Chưa có xác
+minh tem ra.
+
 ## Khoảng trống dữ liệu cần xử lý trước
 
 Các phát hiện dưới đây được xác định bằng đọc implementation. Chưa có kiểm thử tái hiện riêng cho từng input; không trình bày chúng như test thất bại đã chạy.

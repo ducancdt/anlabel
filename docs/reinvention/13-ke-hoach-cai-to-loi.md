@@ -501,7 +501,7 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 - [x] 0.3 Phát hành từ commit sạch và cài lên desktop `[chờ QĐ-1]` — xong 2026-10-13: bản cài 0.306.0.0 khởi động và đóng bình thường. Script deploy giờ đóng app nhẹ nhàng thay vì kill (`d7c4eea`).
 - [x] 0.4 Một nguồn đường dẫn dữ liệu app, có override cho test, và xoay vòng log — xong 2026-10-13 (`9831415`): unit 1137/1137, regression 212/0. Ảnh chụp trước/sau cho thấy không file nào trong thư mục dữ liệu thật thay đổi.
 - [x] 0.5 Dispatcher chỉ đọc §9 của tài liệu này `[chờ QĐ-3]` — xong 2026-10-13 (`5f1026c`): test dispatcher 14/14; dry-run chỉ liệt kê các mục §9.
-- [ ] 0.6 Cập nhật trạng thái 32 ID theo commit đã khóa
+- [x] 0.6 Cập nhật trạng thái 32 ID theo commit đã khóa — xong 2026-10-13 tại `fcfb9ad` (v0.308): bảng 32 ID cùng F01–F07, ba mức bằng chứng, trong `docs/CORE_STANDARD_EVIDENCE_AUDIT.md`.
 
 **GĐ1 — Gọn phạm vi**
 
@@ -558,4 +558,4 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 - [ ] Luồng chính trên bộ mẫu thật với XP-DT426B — *mức phần mềm xong, 2026-10-13* (gate `real templates open, save, render and pass preflight`). Cả 5 mẫu trong `form tem nhãn/anlabel` mở và lưu không đổi byte, vẽ ra tem có nội dung. Với contract driver XP-DT426B (chỉ đọc, không gửi lệnh in), hai mẫu 75×100 qua kiểm tra và ticket được xác minh. Mẫu 110×150 bị driver báo khổ 75×100: đây là cuộn tem đang lắp, cần đổi khổ trên máy in, không phải lỗi app. **Cần chủ sản phẩm quyết định:** hai mẫu 100×70 (“tem cqs”, “tem trong data”) bị chặn in vì khung chữ 14 pt của dòng cuối dư 0,18 mm qua mép dưới tem, nằm trong khoảng trống dưới nét chữ. Có hai cách: dời hai dòng đó lên ≥0,2 mm trong mẫu, hoặc đổi luật kiểm tra theo nét chữ thật. Cách sau đụng hợp đồng Text được bảo vệ. Còn lại: in vật lý, cần cho phép.
 - [ ] Kịch bản lỗi máy in (hết giấy, offline, tạm dừng, restart spooler, mất điện khi ghi nhật ký, kết quả chưa rõ) — *mức phần mềm:* trạng thái hàng đợi ánh xạ thành điểm dừng (`PrinterQueueHealthContractTests`) và được giải thích bằng tiếng Việt (gate `print stops are explained in plain Vietnamese`). Dòng cuối nhật ký ghi dở được tự cất (`PrintJobLogRepairTests`). Kết quả chưa rõ thành Unknown (gate `failure after spool acceptance is unknown, not failed`). Chưa thử trên máy in thật vì phải tạm dừng hoặc rút máy in, cần người vận hành cho phép.
-- [ ] Ghi bằng chứng ba mức vào `docs/CORE_STANDARD_EVIDENCE_AUDIT.md`
+- [x] Ghi bằng chứng ba mức vào `docs/CORE_STANDARD_EVIDENCE_AUDIT.md` — xong 2026-10-13 (phần mềm / tương tác / vật lý cho từng ID). Mức vật lý ghi rõ là Not verified.
