@@ -268,7 +268,6 @@ public sealed class PrintJobManifestTests
         var printClick = Slice(preview, "private async void Print_Click", "private void LogPrintOperation");
         var currentRow = Slice(viewModel, "private async Task PrintCurrentRowAsync()", "private async Task PrintAllRowsAsync()");
         var allRows = Slice(viewModel, "private async Task PrintAllRowsAsync()", "private static IReadOnlyList<string> GetIndustrialFontFamilies()");
-        var reprint = Slice(viewModel, "public async Task<TrackedPrintResult> DispatchApprovedPrintJobReprintAsync(", "private void ShowAllPanels()");
         var dispatch = Slice(viewModel, "private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(", "PrintJobResult result;");
 
         Assert.Contains("sequence: selected.Select(entry => entry.Copy).ToArray()", printClick, StringComparison.Ordinal);
@@ -276,7 +275,6 @@ public sealed class PrintJobManifestTests
         Assert.Contains("sequence: sequence", currentRow, StringComparison.Ordinal);
         Assert.Contains("out var sequence", allRows, StringComparison.Ordinal);
         Assert.Contains("sequence: sequence", allRows, StringComparison.Ordinal);
-        Assert.Contains("sequence: sequence", reprint, StringComparison.Ordinal);
         Assert.Contains("sequence: sequence", dispatch, StringComparison.Ordinal);
     }
 

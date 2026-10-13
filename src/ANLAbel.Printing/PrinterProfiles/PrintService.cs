@@ -330,21 +330,6 @@ public sealed class PrintService
             cancellationToken);
     }
 
-    public bool PrintCurrentRow(LabelTemplate template, IReadOnlyDictionary<string, string>? row)
-    {
-        return PrintRows(template, new[] { row }, $"{template.Name} label");
-    }
-
-    public bool PrintAllRows(LabelTemplate template, IEnumerable<IReadOnlyDictionary<string, string>> rows)
-    {
-        return PrintRows(template, rows.Cast<IReadOnlyDictionary<string, string>?>(), $"{template.Name} labels");
-    }
-
-    public bool PrintRows(LabelTemplate template, IEnumerable<IReadOnlyDictionary<string, string>?> rows, string description)
-    {
-        return PrintRowsWithResult(template, rows, description).IsAccepted;
-    }
-
     /// <summary>
     /// Dispatches a prepared print on a dedicated STA so a slow thermal driver
     /// cannot block the WPF dispatcher. The template and row dictionaries are
@@ -381,48 +366,6 @@ public sealed class PrintService
                 description,
                 expectedOutputContractHash),
             cancellationToken);
-    }
-
-    public PrintJobResult PrintRowsWithResult(LabelTemplate template, IEnumerable<IReadOnlyDictionary<string, string>?> rows, string description)
-    {
-        try
-        {
-            var dialog = CreatePrintDialog(template);
-            var initialQueueName = dialog.PrintQueue?.FullName;
-            if (dialog.ShowDialog() != true)
-            {
-                return new PrintJobResult(PrintJobOutcome.Cancelled, template.PrinterProfile.PrinterName, description, 0);
-            }
-
-            var selectedQueueName = dialog.PrintQueue?.FullName;
-            selectedQueueName = RequireExplicitInteractiveQueue(
-                template.PrinterProfile.PrinterName,
-                initialQueueName,
-                selectedQueueName);
-            return PrintRowsWithDialog(template, rows, dialog, description,
-                selectedQueueName);
-        }
-        catch (Exception ex)
-        {
-            return CreateFailedResult(template.PrinterProfile.PrinterName, description, ex);
-        }
-    }
-
-    public void PrintRows(LabelTemplate template, IEnumerable<IReadOnlyDictionary<string, string>?> rows, WpfPrintDialog dialog, string description)
-    {
-        _ = PrintRowsWithResult(template, rows, dialog, description);
-    }
-
-    public PrintJobResult PrintRowsWithResult(LabelTemplate template, IEnumerable<IReadOnlyDictionary<string, string>?> rows, WpfPrintDialog dialog, string description)
-    {
-        var selectedQueueName = dialog.PrintQueue?.FullName;
-        return PrintRowsWithDialog(template, rows, dialog, description,
-            string.IsNullOrWhiteSpace(selectedQueueName) ? template.PrinterProfile.PrinterName : selectedQueueName);
-    }
-
-    public void PrintRows(LabelTemplate template, IEnumerable<IReadOnlyDictionary<string, string>?> rows, string printerName, string description)
-    {
-        _ = PrintRowsWithResult(template, rows, printerName, description);
     }
 
     public PrintJobResult PrintRowsWithResult(
@@ -625,36 +568,6 @@ public sealed class PrintService
                     DateTimeOffset.UtcNow)
         };
         return AttachSupportEvidence(result, plan, durableJobIdHint: description);
-    }
-
-    public bool PrintCalibration(LabelTemplate template)
-    {
-        return PrintCalibrationWithResult(template).IsAccepted;
-    }
-
-    public PrintJobResult PrintCalibrationWithResult(LabelTemplate template)
-    {
-        WpfPrintDialog dialog;
-        try
-        {
-            dialog = CreatePrintDialog(template);
-            var initialQueueName = dialog.PrintQueue?.FullName;
-            if (dialog.ShowDialog() != true)
-            {
-                return new PrintJobResult(PrintJobOutcome.Cancelled, template.PrinterProfile.PrinterName, $"{template.Name} calibration", 0);
-            }
-
-            var selectedQueueName = RequireExplicitInteractiveQueue(
-                template.PrinterProfile.PrinterName,
-                initialQueueName,
-                dialog.PrintQueue?.FullName);
-            EnsurePrintQueue(dialog, selectedQueueName);
-            return PrintCalibrationWithDialog(template, dialog);
-        }
-        catch (Exception ex)
-        {
-            return new PrintJobResult(PrintJobOutcome.Failed, template.PrinterProfile.PrinterName, $"{template.Name} calibration", 0, ex.Message);
-        }
     }
 
     /// <summary>

@@ -226,8 +226,9 @@ internal static class PrintSafetyRegression
             "' metadata does not match its embedded payload",
             "Print was blocked because required job evidence could not be saved",
             "dispatch was blocked because the newly compiled inputs do not match the approved manifest",
-            "the current row/label counts do not match the approved manifest",
-            "the current template, printer, DPI or data no longer matches the approved manifest",
+            // The row-count and template-drift reprint stops came from an unused
+            // view-model dispatch removed in the 2026-10-13 audit; the explainer
+            // keeps their rule for job records written by older versions.
         ];
         foreach (var anchor in anchors)
         {
