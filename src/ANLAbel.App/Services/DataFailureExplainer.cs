@@ -25,6 +25,14 @@ public static class DataFailureExplainer
                 "Đọc tệp dữ liệu quá lâu nên ANLAbel đã dừng.",
                 "Đóng các chương trình đang mở tệp, kiểm tra ổ mạng rồi thử lại. Nếu tệp rất lớn, hãy tách thành nhiều tệp nhỏ.",
                 exception.Message),
+            IOException io when io.Message.StartsWith("The shared data-source list", StringComparison.Ordinal) => new(
+                "Chưa lưu được danh sách nguồn dữ liệu dùng chung: tệp trên đĩa đang bị khóa, bị hỏng hoặc do bản ANLAbel mới hơn ghi. Tệp đó được giữ nguyên.",
+                "Đóng chương trình đang mở tệp hoặc cập nhật ANLAbel rồi thử lại.",
+                exception.Message),
+            IOException io when io.Message.StartsWith("The data file changed while it was being read", StringComparison.Ordinal) => new(
+                "Tệp dữ liệu thay đổi ngay trong lúc ANLAbel đang đọc.",
+                "Đợi phần mềm đang ghi tệp (ví dụ chương trình xuất dữ liệu) ghi xong rồi nhập lại.",
+                exception.Message),
             IOException io when io.HResult is SharingViolation or LockViolation => new(
                 "Tệp dữ liệu đang bị chương trình khác khóa.",
                 "Đóng tệp trong Excel hoặc chương trình khác rồi thử lại.",

@@ -17,6 +17,11 @@ public sealed class DataSourceRegistry
     private const int CurrentSchemaVersion = 1;
     private readonly string _filePath;
     private List<DataSource> _sources = new();
+    // What each entry looked like when it was read or last written, so a save
+    // can tell this session's changes from entries another window changed.
+    private Dictionary<string, string> _persisted = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _removedIds = new(StringComparer.OrdinalIgnoreCase);
+    private bool _unreadableAtLoad;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -38,10 +43,17 @@ public sealed class DataSourceRegistry
 
     public void Load()
     {
+        _sources = ReadSources();
+        _persisted = Snapshot(_sources);
+        _removedIds.Clear();
+        _unreadableAtLoad = false;
+    }
+
+    private List<DataSource> ReadSources()
+    {
         if (!File.Exists(_filePath))
         {
-            _sources = new List<DataSource>();
-            return;
+            return new List<DataSource>();
         }
 
         var json = File.ReadAllText(_filePath);
@@ -51,9 +63,8 @@ public sealed class DataSourceRegistry
             // Migrate the original bare-array format in memory.  The next save
             // writes the versioned document below, without breaking existing
             // installations or hand-edited legacy registries.
-            _sources = JsonSerializer.Deserialize<List<DataSource>>(document.RootElement.GetRawText(), JsonOptions)
+            return JsonSerializer.Deserialize<List<DataSource>>(document.RootElement.GetRawText(), JsonOptions)
                 ?? new List<DataSource>();
-            return;
         }
 
         if (document.RootElement.ValueKind != JsonValueKind.Object)
@@ -68,7 +79,7 @@ public sealed class DataSourceRegistry
             throw new InvalidDataException($"The data-source registry requires a newer ANLAbel version (schema {registry.SchemaVersion}).");
         }
 
-        _sources = registry.Sources ?? new List<DataSource>();
+        return registry.Sources ?? new List<DataSource>();
     }
 
     /// <summary>
@@ -108,11 +119,82 @@ public sealed class DataSourceRegistry
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             _sources = new List<DataSource>();
+            _persisted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _unreadableAtLoad = true;
             return new DataSourceRegistryLoadOutcome(false, null, exception.Message);
         }
     }
 
+    /// <summary>
+    /// Writes this session's changes on top of what the file holds now. Entries
+    /// added or edited by another ANLAbel window stay, and a registry that could
+    /// not be read at startup is never replaced by the partial in-memory list:
+    /// if it still cannot be read, nothing is written and the error is raised.
+    /// </summary>
     public void Save()
+    {
+        var changed = _sources
+            .Where(source => !_persisted.TryGetValue(source.Id, out var before) || before != Serialize(source))
+            .ToList();
+        var removed = _removedIds.ToList();
+        List<DataSource> merged;
+        if (File.Exists(_filePath))
+        {
+            try
+            {
+                merged = ReadSources();
+            }
+            catch (Exception exception) when (exception is InvalidDataException or NotSupportedException)
+            {
+                // Written by a newer ANLAbel, or not a registry at all: never overwrite it.
+                throw new IOException("The shared data-source list was not saved because the file on disk cannot be read by this version.", exception);
+            }
+            catch (JsonException exception)
+            {
+                if (_unreadableAtLoad)
+                {
+                    throw new IOException("The shared data-source list is damaged and was not overwritten.", exception);
+                }
+
+                // Damaged since this session read it: keep the damaged bytes aside
+                // and write this session's full list, the best copy left.
+                File.Copy(_filePath, $"{_filePath}.hong-{DateTime.Now:yyyyMMdd-HHmmss}", overwrite: true);
+                merged = _sources.ToList();
+            }
+        }
+        else
+        {
+            merged = _unreadableAtLoad ? new List<DataSource>() : _sources.ToList();
+        }
+
+        merged.RemoveAll(source => removed.Contains(source.Id, StringComparer.OrdinalIgnoreCase));
+        foreach (var source in changed)
+        {
+            merged.RemoveAll(existing => string.Equals(existing.Id, source.Id, StringComparison.OrdinalIgnoreCase));
+            merged.Add(source);
+        }
+
+        Write(merged);
+        _sources = merged;
+        _persisted = Snapshot(merged);
+        _removedIds.Clear();
+        _unreadableAtLoad = false;
+    }
+
+    private static string Serialize(DataSource source) => JsonSerializer.Serialize(source, JsonOptions);
+
+    private static Dictionary<string, string> Snapshot(IEnumerable<DataSource> sources)
+    {
+        var snapshot = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var source in sources)
+        {
+            snapshot[source.Id] = Serialize(source);
+        }
+
+        return snapshot;
+    }
+
+    private void Write(List<DataSource> sources)
     {
         var dir = Path.GetDirectoryName(_filePath);
         if (dir is not null && !Directory.Exists(dir))
@@ -123,7 +205,7 @@ public sealed class DataSourceRegistry
         var json = JsonSerializer.Serialize(new RegistryDocument
         {
             SchemaVersion = CurrentSchemaVersion,
-            Sources = _sources
+            Sources = sources
         }, JsonOptions);
         var temporaryPath = Path.Combine(
             dir ?? Environment.CurrentDirectory,
@@ -201,6 +283,7 @@ public sealed class DataSourceRegistry
     public void Remove(string id)
     {
         _sources.RemoveAll(s => string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
+        _removedIds.Add(id);
     }
 }
 

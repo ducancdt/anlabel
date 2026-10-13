@@ -326,6 +326,53 @@ internal static class DataSourceRegression
         return root;
     }
 
+    public static async Task RefreshReloadsAfterAFailedRestore()
+    {
+        var directory = NewDirectory();
+        try
+        {
+            var data = Path.Combine(directory, "data.csv");
+            await File.WriteAllTextAsync(data, "Code,Qty\nA1,1\nA2,2\n");
+            var templatePath = Path.Combine(directory, "linked.anlabel");
+            var template = new ANLAbel.Core.Models.LabelTemplate { Name = "Linked", WidthMm = 50, HeightMm = 30 };
+            template.DatabaseConfig.FilePath = data;
+            template.DatabaseConfig.SheetName = ExcelDataService.CsvSheetName;
+            await new ANLAbel.Project.SaveLoad.ProjectFileService().SaveAsync(template, templatePath);
+
+            var vm = new MainViewModel();
+            await vm.ImportExcelAsync(data, ExcelDataService.CsvSheetName, 1);
+
+            // The share is briefly unreachable while the template is reopened.
+            using (new FileStream(data, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                await vm.OpenAsync(templatePath);
+            }
+
+            Require(vm.ExcelDataView is null || vm.ExcelDataView.Count == 0,
+                "A failed restore leaves no rows: " + vm.StatusText);
+            await vm.RefreshExcelDataAsync();
+            Require(vm.ExcelDataView?.Count == 2 && !vm.IsExcelLinkBroken,
+                "Once the file is readable again, Cập nhật Excel must load it instead of answering “already up to date”: " + vm.StatusText);
+
+            var source = File.ReadAllText(Path.Combine(FindRoot(), "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs")).Replace("\nCR\n", "");
+            var restore = source[source.IndexOf("private async Task RestoreLinkedExcelDataAsync()", StringComparison.Ordinal)..];
+            restore = restore[..restore.IndexOf("private void ForgetImportedSourceIdentity()", StringComparison.Ordinal)];
+            var cancelled = restore.IndexOf("catch (OperationCanceledException)", StringComparison.Ordinal);
+            var failed = restore.IndexOf("catch (Exception ex)", StringComparison.Ordinal);
+            Require(cancelled > 0 && failed > cancelled,
+                "A restore overtaken by a newer import must return before the failure path clears the newer rows.");
+            var useSource = source[source.IndexOf("private async Task UseDataSourceAsync(DataSource source)", StringComparison.Ordinal)..];
+            useSource = useSource[..useSource.IndexOf("TryRecordDataSourceUsage(source);", StringComparison.Ordinal)];
+            Require(useSource.IndexOf("Template.DatabaseConfig.DataSourceId = source.Id;", StringComparison.Ordinal)
+                    > useSource.IndexOf("await ImportExcelAsync(", StringComparison.Ordinal),
+                "Using a shared source must change the template's link only after its data was read.");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static PrintFailureExplanation Explain(Exception exception) => OperationFailureExplainer.Explain(exception);
 
     private static async Task<Exception> Capture(Func<Task> action)

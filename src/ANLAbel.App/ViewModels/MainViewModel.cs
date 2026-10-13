@@ -1839,13 +1839,20 @@ public sealed class MainViewModel : ObservableObject
         FileSourceIdentity? sourceIdentity;
         try
         {
-            table = await _excelDataService.LoadSheetAsync(filePath, sheetName, headerRow, cancellationToken);
             // Content identity (SHA-256) so a refresh cannot treat a same-mtime
-            // byte replacement as current (DB06). Hashed off the UI thread and
-            // before publishing, so a newer import cannot interleave.
+            // byte replacement as current (DB06). It is taken before and after
+            // the read: a file rewritten while it was read (an export still
+            // running) would otherwise store old rows under the new identity.
             var capturedPath = filePath;
+            var before = await Task.Run(() =>
+                FileSourceIdentity.TryCapture(capturedPath, out var identity) ? identity : null).ConfigureAwait(true);
+            table = await _excelDataService.LoadSheetAsync(filePath, sheetName, headerRow, cancellationToken);
             sourceIdentity = await Task.Run(() =>
                 FileSourceIdentity.TryCapture(capturedPath, out var identity) ? identity : null).ConfigureAwait(true);
+            if (before is not null && sourceIdentity is not null && !Equals(before, sourceIdentity))
+            {
+                throw new IOException("The data file changed while it was being read. Wait until the program writing it has finished, then import again.");
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -1865,6 +1872,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         Template.DatabaseConfig.HeaderRowIndex = headerRow;
+        IsExcelLinkBroken = false;
 
         ExcelDataView = table.DefaultView;
         DataConnector = new DataTableDataConnector(
@@ -1967,7 +1975,7 @@ public sealed class MainViewModel : ObservableObject
         // replaced bytes must still refresh. Hash off the UI thread.
         var current = await Task.Run(() =>
             FileSourceIdentity.TryCapture(path, out var identity) ? identity : null).ConfigureAwait(true);
-        if (ExcelDataFreshnessPolicy.IsUnchanged(known, current))
+        if (ExcelDataView is { Count: > 0 } && !IsExcelLinkBroken && ExcelDataFreshnessPolicy.IsUnchanged(known, current))
         {
             StatusText = $"Dữ liệu Excel đã được cập nhật mới nhất ({ExcelDataFreshnessText}) — tệp không thay đổi kể từ lần đọc cuối";
             return;
@@ -2256,7 +2264,8 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(SelectedKeyFieldName));
             OnPropertyChanged(nameof(SelectedCopiesFieldName));
             IsExcelLinkBroken = true;
-            MarkExcelLinkVerificationFailed($"File not found: {Template.DatabaseConfig.FilePath}");
+            ForgetImportedSourceIdentity();
+            MarkExcelLinkVerificationFailed($"Không tìm thấy tệp: {Template.DatabaseConfig.FilePath}");
             StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Không tìm thấy tệp Excel liên kết: {Template.DatabaseConfig.FilePath}";
             return;
         }
@@ -2267,13 +2276,12 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName, "Open");
-            if (linkedSource is not null)
-            {
-                RecordDataSourceUsage(linkedSource);
-            }
-
-            IsExcelLinkBroken = false;
-            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Đã khôi phục liên kết Excel: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer import (refresh, import, another template) has already
+            // published its rows; this older read was discarded on purpose.
+            return;
         }
         catch (Exception ex)
         {
@@ -2284,8 +2292,46 @@ public sealed class MainViewModel : ObservableObject
             ExcelHeaders.Clear();
             OnPropertyChanged(nameof(CurrentExcelRowText));
             IsExcelLinkBroken = true;
-            MarkExcelLinkVerificationFailed(ex.Message);
-            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Không thể khôi phục liên kết Excel: {ex.Message}";
+            ForgetImportedSourceIdentity();
+            var explanation = ANLAbel.App.Services.OperationFailureExplainer.Explain(ex);
+            MarkExcelLinkVerificationFailed(explanation.Problem);
+            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Chưa khôi phục được liên kết dữ liệu: {explanation.StatusLine}";
+            return;
+        }
+
+        StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Đã khôi phục liên kết Excel: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
+        if (linkedSource is not null)
+        {
+            TryRecordDataSourceUsage(linkedSource);
+        }
+    }
+
+    /// <summary>
+    /// After a failed restore or import, the previous file identity no longer
+    /// describes loaded rows; keeping it made "Cập nhật Excel" answer "already
+    /// up to date" and load nothing.
+    /// </summary>
+    private void ForgetImportedSourceIdentity()
+    {
+        StopWatchingExcelFile();
+        _excelDataSourceIdentity = null;
+        _excelDataSourceWriteTimeUtc = null;
+        OnPropertyChanged(nameof(ExcelDataFreshnessText));
+    }
+
+    /// <summary>
+    /// Records registry usage after a successful import. A registry that cannot
+    /// be written must not turn the import into a data-link failure.
+    /// </summary>
+    private void TryRecordDataSourceUsage(DataSource source)
+    {
+        try
+        {
+            RecordDataSourceUsage(source);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText += $" (Chưa cập nhật được danh sách nguồn dữ liệu dùng chung: {ex.Message})";
         }
     }
 
@@ -2437,19 +2483,25 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     private async Task UseDataSourceAsync(DataSource source)
     {
-        Template.DatabaseConfig.DataSourceId = source.Id;
-        Template.DatabaseConfig.HeaderRowIndex = source.HeaderRowIndex;
+        // The template points at the shared source only after its data was
+        // read; a failed import keeps the working link (H16).
         try
         {
-            await ImportExcelAsync(source.FilePath, source.SheetName, "Import");
-            RecordDataSourceUsage(source);
-            StatusText = $"Đang dùng nguồn dữ liệu dùng chung: {source.DisplayName}";
+            await ImportExcelAsync(source.FilePath, source.SheetName, "Import", headerRowIndex: source.HeaderRowIndex);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
         catch (Exception ex)
         {
-            IsExcelLinkBroken = true;
-            StatusText = $"Không thể dùng nguồn dữ liệu dùng chung '{source.DisplayName}': {ex.Message}";
+            StatusText = $"Không dùng được nguồn dữ liệu dùng chung “{source.DisplayName}”: " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
+            return;
         }
+
+        Template.DatabaseConfig.DataSourceId = source.Id;
+        StatusText = $"Đang dùng nguồn dữ liệu dùng chung: {source.DisplayName}";
+        TryRecordDataSourceUsage(source);
     }
 
     /// <summary>
@@ -2551,7 +2603,14 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     public void PersistDataSources()
     {
-        _dataSourceRegistry.Save();
+        try
+        {
+            _dataSourceRegistry.Save();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText = ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
+        }
     }
 
     /// <summary>
