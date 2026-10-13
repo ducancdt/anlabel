@@ -108,6 +108,18 @@ public partial class MainWindow
     /// </summary>
     internal async Task<bool> PrepareForUpdateInstallAsync()
     {
+        if (_viewModel.IsQuickPrinting)
+        {
+            OperatorDialog.Ask(
+                this,
+                "Đang gửi lệnh in",
+                ["ANLAbel đang gửi tem tới máy in. Hãy chờ in xong rồi cài bản cập nhật."],
+                null,
+                OperatorDialogTone.Warning,
+                new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
+            return false;
+        }
+
         if (!await ConfirmDocumentCanBeReplacedAsync("cài đặt bản cập nhật"))
         {
             return false;
@@ -298,6 +310,28 @@ public partial class MainWindow
         if (_closeConfirmed || SuppressClosePrompt)
         {
             return;
+        }
+
+        // Closing cuts off a quick print that is still being sent; the job
+        // would only show up later as uncertain (audit 2026-10-13).
+        if (_viewModel.IsQuickPrinting)
+        {
+            var choice = OperatorDialog.Ask(
+                this,
+                "Đang gửi lệnh in",
+                [
+                    "ANLAbel đang gửi tem tới máy in. Đóng bây giờ có thể làm dừng lệnh in giữa chừng.",
+                    "Nếu vẫn đóng, lệnh này sẽ hiện trong Trung tâm in như chưa rõ kết quả; kiểm tra tem đã ra trước khi in lại."
+                ],
+                null,
+                OperatorDialogTone.Warning,
+                new OperatorDialogChoice("wait", "Chờ in xong", IsDefault: true, IsCancel: true),
+                new OperatorDialogChoice("close", "Vẫn đóng"));
+            if (choice != "close")
+            {
+                e.Cancel = true;
+                return;
+            }
         }
 
         CommitFocusedEdit();

@@ -93,7 +93,59 @@ internal static class PrintSafetyRegression
         var printClick = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async void Print_Click(");
         Require(printClick.Contains("if (_printEvidenceDropped)", StringComparison.Ordinal),
             "The Print Preview result must say when the job's outcome could not be logged.");
+
+        // Closing or updating while a quick print is still being sent must not
+        // cut the job off silently.
+        var closing = Method(Path.Combine("src", "ANLAbel.App", "MainWindow.DocumentLifecycle.cs"), "private void MainWindow_Closing(");
+        var update = Method(Path.Combine("src", "ANLAbel.App", "MainWindow.DocumentLifecycle.cs"), "internal async Task<bool> PrepareForUpdateInstallAsync(");
+        Require(closing.Contains("_viewModel.IsQuickPrinting", StringComparison.Ordinal) && closing.Contains("\"Chờ in xong\"", StringComparison.Ordinal)
+                && update.Contains("_viewModel.IsQuickPrinting", StringComparison.Ordinal),
+            "Closing or installing an update during a quick print must ask or wait first.");
         return Task.CompletedTask;
+    }
+
+    public static async Task SavedPrinterCheckGivesUpOnAHungSpooler()
+    {
+        // Audit 2026-10-13: the saved-printer check had no timeout; with a hung
+        // spooler the chip never updated and every check parked a thread.
+        var lookup = new HangingQueueLookup();
+        var previous = ANLAbel.App.ViewModels.MainViewModel.PrinterQueueLookupTimeout;
+        ANLAbel.App.ViewModels.MainViewModel.PrinterQueueLookupTimeout = TimeSpan.FromMilliseconds(200);
+        try
+        {
+            var vm = new ANLAbel.App.ViewModels.MainViewModel(
+                new ANLAbel.Project.SaveLoad.ProjectFileService(),
+                new ANLAbel.Data.Excel.ExcelDataService(),
+                new ANLAbel.Printing.PrinterProfiles.PrintService(queueLookup: lookup),
+                new ANLAbel.Printing.PrinterProfiles.PrinterDiscoveryService(),
+                new ANLAbel.Data.PrintLogs.PrintLogService(),
+                printerQueueLookup: lookup);
+            vm.Template.PrinterProfile.PrinterName = "Zebra treo";
+            await vm.RefreshPrinterQueueStatusAsync();
+            Require(vm.HasPrinterQueueWarning && vm.PrinterQueueStatusMessage.StartsWith("Không kiểm tra được máy in đã lưu", StringComparison.Ordinal),
+                $"A hung spooler must give a warning instead of no answer: {vm.PrinterQueueStatusMessage}");
+            await vm.RefreshPrinterQueueStatusAsync();
+            Require(Volatile.Read(ref lookup.Calls) == 1, "A second check must reuse the stuck lookup, not park another thread.");
+        }
+        finally
+        {
+            lookup.Release.Set();
+            ANLAbel.App.ViewModels.MainViewModel.PrinterQueueLookupTimeout = previous;
+        }
+    }
+
+    private sealed class HangingQueueLookup : ANLAbel.Printing.PrinterProfiles.IPrinterQueueLookup
+    {
+        public int Calls;
+
+        public ManualResetEventSlim Release { get; } = new();
+
+        public ANLAbel.Printing.PrinterProfiles.PrinterQueueLookupResult Resolve(string printerName)
+        {
+            Interlocked.Increment(ref Calls);
+            Release.Wait();
+            return ANLAbel.Printing.PrinterProfiles.PrinterQueueLookupResult.Missing(printerName, "released");
+        }
     }
 
     public static async Task PrinterListWaitIsBoundedAndReusesAStuckEnumeration()

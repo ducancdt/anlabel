@@ -65,6 +65,11 @@ public sealed class MainViewModel : ObservableObject
     private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
     private FileSourceIdentity? _documentFileIdentity;
     private bool _printEvidenceDropped;
+    private Task<PrinterQueueLookupResult>? _queueLookup;
+    private string _queueLookupName = string.Empty;
+
+    /// <summary>How long the saved printer's status check may wait for Windows.</summary>
+    internal static TimeSpan PrinterQueueLookupTimeout { get; set; } = TimeSpan.FromSeconds(20);
     private bool _isQuickPrinting;
     private int _importGeneration;
     private bool _selectedObjectRefreshDeferred;
@@ -1278,13 +1283,28 @@ public sealed class MainViewModel : ObservableObject
         PrinterQueueLookupResult result;
         try
         {
-            result = await Task.Run(
-                () => string.IsNullOrWhiteSpace(requestedName)
-                    ? PrinterQueueLookupResult.Missing(
-                        requestedName,
-                        "No printer queue is selected. Choose a verified industrial printer before printing.")
-                    : _printerQueueLookup.Resolve(requestedName),
-                cancellationToken).ConfigureAwait(true);
+            // A hung Print Spooler never answers: stop waiting after a bound
+            // and say so, and reuse a lookup that is still running instead of
+            // parking another thread on the spooler (audit 2026-10-13).
+            var lookup = _queueLookup is { IsCompleted: false } running
+                         && string.Equals(_queueLookupName, requestedName, StringComparison.OrdinalIgnoreCase)
+                ? running
+                : Task.Run(
+                    () => string.IsNullOrWhiteSpace(requestedName)
+                        ? PrinterQueueLookupResult.Missing(
+                            requestedName,
+                            "No printer queue is selected. Choose a verified industrial printer before printing.")
+                        : _printerQueueLookup.Resolve(requestedName),
+                    CancellationToken.None);
+            _queueLookup = lookup;
+            _queueLookupName = requestedName;
+            result = await lookup.WaitAsync(PrinterQueueLookupTimeout, cancellationToken).ConfigureAwait(true);
+        }
+        catch (TimeoutException)
+        {
+            result = PrinterQueueLookupResult.Missing(
+                requestedName,
+                $"Printer queue lookup failed: Windows did not answer within {PrinterQueueLookupTimeout.TotalSeconds:0} seconds.");
         }
         catch (OperationCanceledException)
         {

@@ -51,6 +51,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("a recovered copy asks before overwriting a later save", DocumentLifecycleRegression.RecoveredCopyAsksBeforeOverwritingALaterSave),
     ("the first crash report of a session survives a burst", DocumentLifecycleRegression.FirstCrashLogOfASessionSurvivesABurst),
     ("dropped post-dispatch evidence is told to the operator", PrintSafetyRegression.DroppedPostDispatchEvidenceIsToldToTheOperator),
+    ("saved printer check gives up on a hung spooler", PrintSafetyRegression.SavedPrinterCheckGivesUpOnAHungSpooler),
     ("corrupt data-source registry is quarantined at startup", DocumentLifecycleRegression.CorruptRegistryIsQuarantinedAtStartup),
     ("explorer argument opens only existing documents", DocumentLifecycleRegression.ExplorerArgumentOpensOnlyExistingDocuments),
     ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),
