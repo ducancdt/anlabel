@@ -6,7 +6,16 @@ using ANLAbel.Core.Expressions.Formulas;
 namespace ANLAbel.Core.Data;
 
 /// <summary>A named derived field evaluated from source and earlier derived fields.</summary>
-public sealed record DataTransformDefinition(string Name, string Formula);
+public sealed record DataTransformDefinition(string Name, string Formula)
+{
+    /// <summary>
+    /// Members written by a newer ANLAbel that this version does not know. They
+    /// are kept on a template load/save round trip instead of being dropped
+    /// (audit 2026-10-13). Null when there are none.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? ExtensionData { get; init; }
+}
 
 /// <summary>Auditable lineage for one derived field without retaining external connector state.</summary>
 public sealed record DataTransformLineage(string OutputField, ImmutableArray<string> InputFields);

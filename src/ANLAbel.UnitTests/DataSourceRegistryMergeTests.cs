@@ -107,6 +107,30 @@ public sealed class DataSourceRegistryMergeTests : IDisposable
         return registry.Sources.Select(source => source.Id).ToArray();
     }
 
+    [Fact]
+    public void Members_from_a_newer_version_survive_a_save_by_this_version()
+    {
+        var path = Path.Combine(_directory, "data-sources.json");
+        var seed = new DataSourceRegistry(path);
+        seed.Load();
+        seed.Upsert(Source("x", "X.xlsx"));
+        seed.Save();
+
+        // A newer ANLAbel added a member to the entry without a schema bump.
+        var document = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+        document["Sources"]![0]!["FutureSourceMember"] = "kept";
+        File.WriteAllText(path, document.ToJsonString());
+
+        var registry = new DataSourceRegistry(path);
+        registry.Load();
+        registry.GetById("x")!.Name = "X renamed";
+        registry.Save();
+
+        var text = File.ReadAllText(path);
+        Assert.Contains("FutureSourceMember", text, StringComparison.Ordinal);
+        Assert.Contains("X renamed", text, StringComparison.Ordinal);
+    }
+
     private static DataSource Source(string id, string file) => new()
     {
         Id = id,

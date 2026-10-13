@@ -132,6 +132,70 @@ internal static class DocumentLifecycleRegression
         }
     }
 
+    public static async Task RecoveredCopyAsksBeforeOverwritingALaterSave()
+    {
+        // Audit 2026-10-13: a recovered session took the original file's
+        // identity at recovery time, so a save made elsewhere after the crash
+        // was overwritten without asking.
+        var root = CreateRoot();
+        try
+        {
+            var recoveryDirectory = Path.Combine(root, "Recovered");
+            var path = Path.Combine(root, "chung.anlabel");
+            var service = new ProjectFileService();
+            var original = new LabelTemplate { Name = "Chung", WidthMm = 50, HeightMm = 30 };
+            original.Objects.Add(Rectangle("shared-object", 5));
+            await service.SaveAsync(original, path);
+
+            var crashed = new MainViewModel();
+            await crashed.OpenAsync(path);
+            crashed.Template.Objects.Single().XMm = 30;
+            new DocumentRecoveryService(recoveryDirectory, 4242, 111, _ => null)
+                .Write(crashed.CaptureRecoveryCopy()!, crashed.CurrentFilePath, "Chung", crashed.DocumentFileIdentity);
+
+            var other = new MainViewModel();
+            await other.OpenAsync(path);
+            other.Template.Objects.Single().XMm = 20;
+            await other.SaveAsync(path);
+
+            var entry = new DocumentRecoveryService(recoveryDirectory, 5151, 222, _ => null).FindOrphans().Single();
+            var recovered = new MainViewModel();
+            await recovered.OpenRecoveredAsync(entry.DocumentPath, entry.OriginalFilePath, entry.DocumentName, entry.OriginalFileIdentity);
+            DocumentChangedOnDiskException? conflict = null;
+            try
+            {
+                await recovered.SaveAsync(path);
+            }
+            catch (DocumentChangedOnDiskException ex)
+            {
+                conflict = ex;
+            }
+
+            Require(conflict is not null, "Saving a recovered copy over a file saved elsewhere after the crash must ask first.");
+            Require((await service.LoadAsync(path)).Objects.Single().XMm == 20, "The later save must stay until the operator decides.");
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    public static Task FirstCrashLogOfASessionSurvivesABurst()
+    {
+        // Audit 2026-10-13: a burst of follow-on errors pruned the report of
+        // the original cause. The runner writes logs under ANLABEL_DATA_ROOT.
+        for (var i = 0; i < CrashReporter.KeepCrashLogs + 5; i++)
+        {
+            CrashReporter.WriteCrashLog(new InvalidOperationException($"burst {i}"), "regression burst");
+        }
+
+        var first = CrashReporter.FirstCrashLogThisSession;
+        Require(first is not null && File.Exists(first), "The first crash report of a session must survive a burst of follow-on errors.");
+        var count = Directory.EnumerateFiles(Path.GetDirectoryName(first!)!, "crash-*.log").Count();
+        Require(count <= CrashReporter.KeepCrashLogs + 1, $"Crash reports must stay bounded; found {count}.");
+        return Task.CompletedTask;
+    }
+
     public static Task CorruptRegistryIsQuarantinedAtStartup()
     {
         var root = CreateRoot();

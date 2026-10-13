@@ -100,7 +100,8 @@ public sealed class PrintJobEvidencePolicyTests
                 DateTimeOffset.UtcNow,
                 "spool accepted");
 
-            await PrintJobEvidenceAppend.AppendAsync(store, transition);
+            Assert.False(await PrintJobEvidenceAppend.AppendAsync(store, transition),
+                "A dropped post-dispatch event must be reported so the operator can be told.");
         }
         finally
         {

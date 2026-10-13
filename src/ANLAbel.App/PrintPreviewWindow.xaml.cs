@@ -52,6 +52,7 @@ public partial class PrintPreviewWindow : Window
     private bool _isRefreshing;
     private bool _isPreviewBusy;
     private bool _isPrintBusy;
+    private bool _printEvidenceDropped;
     private int _previewProgressPercent;
     private string _previewProgressText = string.Empty;
     private CancellationTokenSource? _previewOperationCts;
@@ -342,6 +343,7 @@ public partial class PrintPreviewWindow : Window
         }
 
         _isPrintBusy = true;
+        _printEvidenceDropped = false;
         OnPropertyChanged();
         var printJobId = string.Empty;
         PrintJobManifest? manifest = null;
@@ -767,6 +769,11 @@ public partial class PrintPreviewWindow : Window
             {
                 summary += $" Đã bỏ qua {skippedSourceRows.Length} dòng gặp lỗi tiền kiểm: Dòng {string.Join(", ", skippedSourceRows)}.";
             }
+            if (_printEvidenceDropped)
+            {
+                summary += " Chưa ghi được kết quả lệnh in vào nhật ký nên lệnh này sẽ hiện trong Trung tâm in như chưa rõ kết quả; kiểm tra tem đã ra trước khi in lại.";
+            }
+
             summary += $" Nhật ký: {_printLogService.LogFilePath}";
             _previewProgressText = summary;
             _ = WritePrintHistoryAsync(rows, statusText);
@@ -899,7 +906,12 @@ public partial class PrintPreviewWindow : Window
     {
         // Pre-dispatch Preparing/PreflightPassed/Dispatching must persist or block
         // send (CORE P08). Post-dispatch appends stay best-effort.
-        await PrintJobEvidenceAppend.AppendAsync(_printJobStateStore, transition).ConfigureAwait(true);
+        if (!await PrintJobEvidenceAppend.AppendAsync(_printJobStateStore, transition).ConfigureAwait(true))
+        {
+            // Post-dispatch evidence was dropped: the job will be listed for
+            // review although it may have printed (audit 2026-10-13).
+            _printEvidenceDropped = true;
+        }
     }
 
     private static PrintJobLifecycleState MapPrintResultToLifecycleState(PrintJobResult result)

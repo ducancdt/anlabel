@@ -14,6 +14,11 @@ public static class CrashReporter
 {
     public const int KeepCrashLogs = 20;
 
+    private static string? _firstCrashLogThisSession;
+
+    /// <summary>The first report written by this process; it names the original cause.</summary>
+    internal static string? FirstCrashLogThisSession => Volatile.Read(ref _firstCrashLogThisSession);
+
     /// <summary>Writes a crash report and returns its path, or null when it could not be written.</summary>
     public static string? WriteCrashLog(Exception exception, string context)
     {
@@ -22,6 +27,7 @@ public static class CrashReporter
             Directory.CreateDirectory(AppDataPaths.LogsDirectory);
             var path = AppDataPaths.Log($"crash-{DateTime.Now:yyyyMMdd-HHmmss-fff}-{Environment.ProcessId}-{Guid.NewGuid().ToString("N")[..8]}.log");
             File.WriteAllText(path, Describe(exception, context));
+            Interlocked.CompareExchange(ref _firstCrashLogThisSession, path, null);
             PruneCrashLogs();
             return path;
         }
@@ -61,8 +67,12 @@ public static class CrashReporter
 
     private static void PruneCrashLogs()
     {
+        // A burst of follow-on errors must not prune the report of the
+        // original cause (audit 2026-10-13).
+        var first = Path.GetFileName(FirstCrashLogThisSession);
         var old = Directory
             .EnumerateFiles(AppDataPaths.LogsDirectory, "crash-*.log")
+            .Where(path => !string.Equals(Path.GetFileName(path), first, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(path => Path.GetFileName(path), StringComparer.Ordinal)
             .Skip(KeepCrashLogs)
             .ToArray();

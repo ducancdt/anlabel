@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Models;
 using ANLAbel.Data;
 using ANLAbel.Project.SaveLoad;
@@ -14,7 +15,8 @@ public sealed record RecoveryEntry(
     string MetadataPath,
     string? OriginalFilePath,
     string DocumentName,
-    DateTime SavedAtLocal);
+    DateTime SavedAtLocal,
+    FileSourceIdentity? OriginalFileIdentity = null);
 
 /// <summary>
 /// Crash-recovery copies of the open label (plan 13 F03/F04).
@@ -60,7 +62,9 @@ public sealed class DocumentRecoveryService
     public string SessionMetadataPath => Path.ChangeExtension(SessionDocumentPath, ".json");
 
     /// <summary>Writes or replaces this session's recovery copy.</summary>
-    public void Write(LabelTemplate template, string? originalFilePath, string documentName)
+    /// <param name="originalFileIdentity">The original file as the session last read or wrote it, so a
+    /// recovered session still notices a save made elsewhere after the crash.</param>
+    public void Write(LabelTemplate template, string? originalFilePath, string documentName, FileSourceIdentity? originalFileIdentity = null)
     {
         ArgumentNullException.ThrowIfNull(template);
         ProjectFileService.WriteRecoveryCopy(template, SessionDocumentPath);
@@ -68,7 +72,8 @@ public sealed class DocumentRecoveryService
             MetadataSchemaVersion,
             string.IsNullOrWhiteSpace(originalFilePath) ? null : originalFilePath,
             documentName,
-            DateTime.Now);
+            DateTime.Now,
+            originalFileIdentity);
         WriteAtomically(SessionMetadataPath, JsonSerializer.Serialize(metadata, MetadataJsonOptions));
     }
 
@@ -103,7 +108,8 @@ public sealed class DocumentRecoveryService
                 metadataPath,
                 metadata?.OriginalFilePath,
                 string.IsNullOrWhiteSpace(metadata?.DocumentName) ? "Mẫu chưa đặt tên" : metadata.DocumentName,
-                metadata?.SavedAtLocal ?? File.GetLastWriteTime(documentPath)));
+                metadata?.SavedAtLocal ?? File.GetLastWriteTime(documentPath),
+                metadata?.OriginalFileIdentity));
         }
 
         return entries.OrderByDescending(entry => entry.SavedAtLocal).ToArray();
@@ -188,5 +194,10 @@ public sealed class DocumentRecoveryService
         }
     }
 
-    private sealed record RecoveryMetadata(int SchemaVersion, string? OriginalFilePath, string DocumentName, DateTime SavedAtLocal);
+    private sealed record RecoveryMetadata(
+        int SchemaVersion,
+        string? OriginalFilePath,
+        string DocumentName,
+        DateTime SavedAtLocal,
+        FileSourceIdentity? OriginalFileIdentity = null);
 }

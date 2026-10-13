@@ -31,6 +31,7 @@ public sealed class TemplateForwardCompatibilityTests : IDisposable
         template.Objects.Add(new LabelObject { Id = "o1", Name = "Text", Text = "A", XMm = 1, YMm = 1, WidthMm = 10, HeightMm = 5 });
         template.Guides.Add(new LabelGuide());
         template.DatabaseConfig.AvailableFields.Add(new DatabaseField { Name = "Part" });
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Lot2", "Lot"));
         await service.SaveAsync(template, path);
 
         // Simulate a newer build adding members below the template level.
@@ -42,14 +43,16 @@ public sealed class TemplateForwardCompatibilityTests : IDisposable
         saved["DatabaseConfig"]!["FutureDatabaseMember"] = "d";
         saved["DatabaseConfig"]!["AvailableFields"]![0]!["FutureFieldMember"] = "f";
         saved["Guides"]![0]!["FutureGuideMember"] = "g";
+        saved["DataTransforms"]![0]!["FutureTransformMember"] = "t";
         await File.WriteAllTextAsync(path, document.ToJsonString());
 
         var loaded = await service.LoadAsync(path);
         loaded.Objects[0].Text = "B";
+        Assert.Equal("Lot2", loaded.DataTransforms.Single().Name);
         await service.SaveAsync(loaded, path);
 
         var text = await File.ReadAllTextAsync(path);
-        foreach (var member in new[] { "FutureObjectMember", "FutureStyleMember", "FuturePrinterMember", "FutureDatabaseMember", "FutureFieldMember", "FutureGuideMember" })
+        foreach (var member in new[] { "FutureObjectMember", "FutureStyleMember", "FuturePrinterMember", "FutureDatabaseMember", "FutureFieldMember", "FutureGuideMember", "FutureTransformMember" })
         {
             Assert.Contains(member, text, StringComparison.Ordinal);
         }

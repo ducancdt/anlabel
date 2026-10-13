@@ -64,6 +64,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly Stack<string> _undoStack = new();
     private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
     private FileSourceIdentity? _documentFileIdentity;
+    private bool _printEvidenceDropped;
     private bool _isQuickPrinting;
     private int _importGeneration;
     private bool _selectedObjectRefreshDeferred;
@@ -1095,7 +1096,7 @@ public sealed class MainViewModel : ObservableObject
     /// path is kept when it still exists, so Save writes back there (its previous
     /// content goes to .bak as usual); otherwise Save asks for a location.
     /// </summary>
-    public async Task OpenRecoveredAsync(string recoveryDocumentPath, string? originalFilePath, string documentName)
+    public async Task OpenRecoveredAsync(string recoveryDocumentPath, string? originalFilePath, string documentName, FileSourceIdentity? originalFileIdentity = null)
     {
         var recovered = await _projectFileService.LoadAsync(recoveryDocumentPath);
         StopWatchingExcelFile();
@@ -1105,7 +1106,17 @@ public sealed class MainViewModel : ObservableObject
         CurrentFilePath = !string.IsNullOrWhiteSpace(originalFilePath) && File.Exists(originalFilePath)
             ? originalFilePath
             : string.Empty;
-        RememberDocumentFileIdentity();
+        // The original as the crashed session knew it: a save made elsewhere
+        // after the crash must still ask before it is overwritten (audit
+        // 2026-10-13). Copies from older versions carry no identity.
+        if (originalFileIdentity is not null && !string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            _documentFileIdentity = originalFileIdentity;
+        }
+        else
+        {
+            RememberDocumentFileIdentity();
+        }
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
         CommitPendingHistory();
@@ -1700,6 +1711,9 @@ public sealed class MainViewModel : ObservableObject
 
         return loadResult;
     }
+
+    /// <summary>The document file as this session last read or wrote it; stored with recovery copies.</summary>
+    public FileSourceIdentity? DocumentFileIdentity => _documentFileIdentity;
 
     /// <summary>Identity of the document file as this session last read or wrote it.</summary>
     private void RememberDocumentFileIdentity()
@@ -3053,7 +3067,7 @@ public sealed class MainViewModel : ObservableObject
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked);
                 _ = WritePrintLogAsync(
                     "Current row",
                     rows,
@@ -3066,7 +3080,7 @@ public sealed class MainViewModel : ObservableObject
             }
             else if (result.Outcome != PrintJobOutcome.Cancelled)
             {
-                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked);
                 LogPrintOperation(
                     "Current row",
                     PreviewRow is null ? 0 : 1,
@@ -3144,7 +3158,7 @@ public sealed class MainViewModel : ObservableObject
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + zeroCopyNote;
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked) + zeroCopyNote;
                 _ = WritePrintLogAsync(
                     "All rows",
                     rows,
@@ -3157,7 +3171,7 @@ public sealed class MainViewModel : ObservableObject
             }
             else if (result.Outcome != PrintJobOutcome.Cancelled)
             {
-                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked);
                 LogPrintOperation(
                     "All rows",
                     ExcelDataView?.Count ?? 0,
@@ -4919,6 +4933,7 @@ public sealed class MainViewModel : ObservableObject
         IReadOnlyList<PrintDispatchCopy>? sequence = null)
     {
         var jobId = string.IsNullOrWhiteSpace(existingJobId) ? Guid.NewGuid().ToString("N") : existingJobId;
+        _printEvidenceDropped = false;
         // Plan 13 GD5 (H17/H22, P03/P05): one immutable snapshot feeds the
         // printer contract, preflight, manifest and dispatch, so an edit made
         // while the driver or validation is busy cannot mix two label states.
@@ -5120,13 +5135,24 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
-        return new TrackedPrintResult(jobId, result, spoolStatus, printTemplate);
+        return new TrackedPrintResult(jobId, result, spoolStatus, printTemplate, _printEvidenceDropped);
     }
 
     private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
     {
-        await PrintJobEvidenceAppend.AppendAsync(_printJobStateStore, transition).ConfigureAwait(true);
+        if (!await PrintJobEvidenceAppend.AppendAsync(_printJobStateStore, transition).ConfigureAwait(true))
+        {
+            _printEvidenceDropped = true;
+        }
     }
+
+    /// <summary>
+    /// A post-dispatch event could not be saved, so the job will be listed for
+    /// review although it may have printed; say so (audit 2026-10-13).
+    /// </summary>
+    private static string EvidenceNote(TrackedPrintResult tracked) => tracked.EvidenceIncomplete
+        ? " Chưa ghi được kết quả lệnh in vào nhật ký nên lệnh này sẽ hiện trong Trung tâm in như chưa rõ kết quả; kiểm tra tem đã ra trước khi in lại."
+        : string.Empty;
 
     public async Task WritePrintLogAsync(
         string printMode,
@@ -5423,7 +5449,8 @@ public sealed record TrackedPrintResult(
     string JobId,
     PrintJobResult Result,
     SpoolJobMonitorResult? SpoolStatus = null,
-    LabelTemplate? PrintedTemplate = null);
+    LabelTemplate? PrintedTemplate = null,
+    bool EvidenceIncomplete = false);
 
 public sealed record NewTemplateRequest(string Name, double WidthMm, double HeightMm, int Dpi);
 

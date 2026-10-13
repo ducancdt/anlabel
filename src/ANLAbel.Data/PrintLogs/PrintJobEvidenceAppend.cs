@@ -8,7 +8,12 @@ namespace ANLAbel.Data.PrintLogs;
 /// </summary>
 public static class PrintJobEvidenceAppend
 {
-    public static async Task AppendAsync(
+    /// <returns>
+    /// False when a post-dispatch event could not be saved. The job then stays
+    /// uncertain in the log, so the caller tells the operator why it will be
+    /// listed for review (audit 2026-10-13).
+    /// </returns>
+    public static async Task<bool> AppendAsync(
         PrintJobStateStore store,
         PrintJobStateTransition transition,
         CancellationToken cancellationToken = default)
@@ -19,10 +24,12 @@ public static class PrintJobEvidenceAppend
         try
         {
             await store.AppendAsync(transition, cancellationToken).ConfigureAwait(false);
+            return true;
         }
         catch (Exception ex) when (!PrintJobEvidencePolicy.IsRequiredBeforeDispatch(transition.To))
         {
             System.Diagnostics.Debug.WriteLine($"Print job state log failed (best-effort): {ex.Message}");
+            return false;
         }
         catch (Exception ex)
         {

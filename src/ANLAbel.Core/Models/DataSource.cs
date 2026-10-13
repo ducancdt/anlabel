@@ -73,4 +73,12 @@ public sealed class DataSource : ObservableObject
         get => _recentTemplates;
         set => SetProperty(ref _recentTemplates, value ?? new List<string>());
     }
+
+    /// <summary>
+    /// Members written by a newer ANLAbel that this version does not know. They
+    /// are kept when this version rewrites the shared list instead of being
+    /// dropped (audit 2026-10-13).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> ExtensionData { get; set; } = new(StringComparer.Ordinal);
 }

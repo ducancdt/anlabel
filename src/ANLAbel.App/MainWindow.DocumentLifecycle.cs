@@ -375,6 +375,7 @@ public partial class MainWindow
 
         var originalPath = _viewModel.CurrentFilePath;
         var documentName = _viewModel.DocumentDisplayName;
+        var originalIdentity = _viewModel.DocumentFileIdentity;
         _ = Task.Run(() =>
         {
             try
@@ -385,7 +386,7 @@ public partial class MainWindow
                 }
                 else
                 {
-                    _recovery.Write(copy, originalPath, documentName);
+                    _recovery.Write(copy, originalPath, documentName, originalIdentity);
                 }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -409,7 +410,7 @@ public partial class MainWindow
                 return false;
             }
 
-            _recovery.Write(copy, _viewModel.CurrentFilePath, _viewModel.DocumentDisplayName);
+            _recovery.Write(copy, _viewModel.CurrentFilePath, _viewModel.DocumentDisplayName, _viewModel.DocumentFileIdentity);
             return true;
         }
         catch (Exception)
@@ -460,7 +461,7 @@ public partial class MainWindow
 
             try
             {
-                await _viewModel.OpenRecoveredAsync(entry.DocumentPath, entry.OriginalFilePath, entry.DocumentName);
+                await _viewModel.OpenRecoveredAsync(entry.DocumentPath, entry.OriginalFilePath, entry.DocumentName, entry.OriginalFileIdentity);
                 await _viewModel.RefreshPrinterQueueStatusAsync();
                 // This session must protect the recovered content before the old copy goes.
                 if (TryWriteRecoveryNow())

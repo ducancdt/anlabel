@@ -77,6 +77,25 @@ internal static class PrintSafetyRegression
         return Task.CompletedTask;
     }
 
+    public static Task DroppedPostDispatchEvidenceIsToldToTheOperator()
+    {
+        // Audit 2026-10-13: an event that could not be saved after dispatch was
+        // only written to the debugger, so a printed job later showed up as
+        // uncertain with no explanation, inviting a duplicate reprint.
+        var viewModelRecord = Method(Path.Combine("src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"), "private async Task RecordPrintJobTransitionAsync(");
+        var previewRecord = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async Task RecordPrintJobTransitionAsync(");
+        Require(viewModelRecord.Contains("_printEvidenceDropped = true", StringComparison.Ordinal)
+                && previewRecord.Contains("_printEvidenceDropped = true", StringComparison.Ordinal),
+            "A post-dispatch event that could not be saved must be remembered for the operator.");
+        var viewModel = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"));
+        Require(viewModel.Split("+ EvidenceNote(tracked)").Length - 1 == 4,
+            "Every quick-print result line must carry the evidence note.");
+        var printClick = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async void Print_Click(");
+        Require(printClick.Contains("if (_printEvidenceDropped)", StringComparison.Ordinal),
+            "The Print Preview result must say when the job's outcome could not be logged.");
+        return Task.CompletedTask;
+    }
+
     public static async Task PrinterListWaitIsBoundedAndReusesAStuckEnumeration()
     {
         // Audit 2026-10-13: a hung Print Spooler left a wait cursor and no

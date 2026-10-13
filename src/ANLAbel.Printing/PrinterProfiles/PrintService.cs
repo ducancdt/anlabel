@@ -782,17 +782,19 @@ public sealed class PrintService
             }
         }
 
+        // No queue is set here when the template names none. Note that WPF's
+        // PrintDialog.PrintQueue getter (read below) fills an unset dialog with
+        // Windows' default queue, so the dialog opens on it. That queue is
+        // never used implicitly: a default office printer can be a materially
+        // wrong destination for an industrial label, so the interactive caller
+        // compares the queue the dialog opened on with the one the operator
+        // confirmed and refuses an unchanged default
+        // (RequireExplicitInteractiveQueue). The earlier comment claimed the
+        // queue stayed empty (audit 2026-10-13).
         if (dialog.PrintQueue is not null)
         {
             return;
         }
-
-        // Never fill an unconfigured dialog with Windows' default queue. A
-        // default office printer can be a materially wrong destination for an
-        // industrial label, and the operator would see no evidence that the
-        // queue was inferred. Leave the queue empty so the print dialog can ask
-        // for an explicit selection; dispatch paths then fail closed if none
-        // was selected.
     }
 
     private static string RequireExplicitInteractiveQueue(
