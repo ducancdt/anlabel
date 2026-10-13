@@ -1,5 +1,50 @@
 # ANLAbel Phase 1 Plan
 
+## v0.307 — Không mất thiết kế; gọn phạm vi; một nguồn việc (kế hoạch 13, GĐ0–GĐ2)
+
+**Vòng đời tệp (GĐ2, F01–F07)**
+
+- Tiêu đề hiện `*` khi mẫu có thay đổi chưa lưu; Undo về đúng bản đã lưu thì
+  hết `*`.
+- Tạo mới, Mở, Mở từ thư viện, Phiên bản và Đóng hỏi *Lưu / Không lưu / Hủy*.
+- Có nút “Lưu thành…” (Ctrl+Shift+S). Ctrl+N/O/S nay hoạt động đúng như tooltip.
+- Lỗi bất ngờ:
+  - ghi `logs/crash-*.log`;
+  - lưu bản phục hồi;
+  - báo bằng tiếng Việt, kèm lựa chọn “Tiếp tục làm việc” hoặc “Đóng ANLAbel”.
+- Lệnh bất đồng bộ thất bại (Cập nhật Excel, In, Liên kết lại…) được báo cho người
+  vận hành và ghi `logs/errors.log`, không còn im lặng.
+- Bản phục hồi tự động:
+  - lưu mỗi 60 giây khi có thay đổi;
+  - lần mở sau đề nghị khôi phục;
+  - tệp gốc không bị ghi đè.
+- `data-sources.json` hỏng hoặc có schema mới hơn được cất sang
+  `.hong-<thời gian>`; app vẫn mở.
+- Mở đúp tệp `.anlabel` trong Explorer sẽ mở đúng tệp đó.
+- Lưu từ bản chụp và không cho lưu chồng. Mọi lỗi lưu được báo rõ; vẫn giữ quy tắc
+  không ghi đè khi chưa lưu trữ được bản trước.
+- Model bỏ qua tọa độ hoặc kích thước NaN/vô cực.
+
+**Gọn phạm vi (GĐ1)**
+
+- Gỡ 9 cửa sổ không còn đường mở, automation thả file, NiceLabel JOB runner, bản
+  trial/commercial. Mã được giữ ở nhánh `archive/automation-2026-10`.
+- 42 tài liệu ngoài phạm vi chuyển vào `docs/archive/`.
+
+**Khóa nền (GĐ0)**
+
+- Worktree được commit. Test không còn ghi vào thư mục dữ liệu thật của người dùng.
+- Log phụ trợ có xoay vòng.
+- AGY dispatcher chỉ lấy việc từ mục 9 của kế hoạch 13.
+- Script deploy đóng app nhẹ nhàng thay vì kill.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1112/1112; regression 220 PASS / 0 FAIL.
+- `scripts/Invoke-ANLAbelLifecycleSmoke.ps1` trên app thật: hỏi lưu, Hủy, Không
+  lưu, sập rồi khôi phục, lưu khi đóng — 15/15 đạt.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.306 — Ghi bù 0.289–0.306: copies, độ mới dữ liệu, bằng chứng job, preview trust
 
 Ghi bù ngày 2026-10-13 khi commit lần đầu (kế hoạch 13, mục 0.2). Các version
