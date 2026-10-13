@@ -18,13 +18,13 @@ internal static class PrintHistoryRegression
         var vm = new PrintHistoryViewModel(_ => Task.FromResult(new HistorySnapshot(new PrintJobRecoverySnapshot([state], ["valid prefix diagnostic"]), [operation], [], [new PrintLogSummary(1, timestamp.LocalDateTime, "Template-A", "Queue-A", "Current", "1")], [])));
         Require(await vm.RefreshAsync(), "History snapshot must load.");
         var job = vm.Rows.Single(row => row.RecordId == "job-1");
-        Require(job.Lifecycle == "QueueObserved", "Durable state must win lifecycle over operation outcome.");
-        Require(job.Source == "State store + operation trace", "Merged job must retain source provenance.");
-        Require(job.Evidence.Contains("physical output unverified", StringComparison.OrdinalIgnoreCase), "Spool evidence must not claim physical output.");
-        var csv = vm.Rows.Single(row => row.RecordType == "CsvLabelRecord");
+        Require(job.Lifecycle == ANLAbel.App.Services.PrintCenterText.State(PrintJobLifecycleState.QueueObserved), "Durable state must win lifecycle over operation outcome.");
+        Require(job.Source == "Nhật ký lệnh in + vết thao tác", "Merged job must retain source provenance.");
+        Require(job.Evidence.Contains("chưa xác minh tem đã ra", StringComparison.Ordinal), "Spool evidence must not claim physical output.");
+        var csv = vm.Rows.Single(row => row.RecordType == PrintHistoryViewModel.CsvRecord);
         Require(csv.RecordId == "csv:1", "CSV record must not fabricate a JobId.");
-        Require(csv.Detail.Contains("no JobId was fabricated", StringComparison.OrdinalIgnoreCase), "CSV detail must name its identity boundary.");
-        Require(vm.StatusText.Contains("diagnostic", StringComparison.OrdinalIgnoreCase), "Store diagnostics must stay visible in history status.");
+        Require(csv.Detail.Contains("không tạo mã giả", StringComparison.Ordinal), "CSV detail must name its identity boundary.");
+        Require(vm.StatusText.Contains("chẩn đoán", StringComparison.Ordinal), "Store diagnostics must stay visible in history status.");
     }
 
     private static void AssertHistoryUiExcludesMutation()

@@ -61,8 +61,8 @@ public partial class DataSourceCleanupWindow : Window
             Source = source;
             DisplayName = source.DisplayName;
             var lastUsedText = source.LastUsedUtc is { } lastUsed
-                ? $"last used {lastUsed.ToLocalTime():yyyy-MM-dd}"
-                : "never used";
+                ? $"dùng lần cuối {lastUsed.ToLocalTime():yyyy-MM-dd}"
+                : "chưa từng dùng";
             DetailText = $"{source.FilePath} — {lastUsedText}";
         }
 

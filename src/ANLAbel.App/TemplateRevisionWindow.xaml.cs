@@ -30,9 +30,9 @@ public partial class TemplateRevisionWindow : Window
     {
         if (string.IsNullOrWhiteSpace(_filePath))
         {
-            StatusText.Text = "Save the current template first; an untitled document has no revision history.";
+            StatusText.Text = "Hãy lưu mẫu tem trước; mẫu chưa có tên tệp thì chưa có lịch sử phiên bản.";
             RevisionGrid.ItemsSource = Array.Empty<ProjectRevisionEntry>();
-            DiffTextBox.Text = "No committed primary/backup pair is available.";
+            DiffTextBox.Text = "Chưa có bản hiện tại và bản sao lưu để so sánh.";
             RestoreButton.IsEnabled = false;
             return;
         }
@@ -45,25 +45,25 @@ public partial class TemplateRevisionWindow : Window
             var diff = await _revisionService.CompareAsync(_filePath);
             var audit = await _revisionService.ListAuditAsync(_filePath);
             var latestAudit = audit.FirstOrDefault();
-            DiffTextBox.Text = diff.DetailsText
+            DiffTextBox.Text = ANLAbel.App.Services.RevisionText.Details(diff)
                 + Environment.NewLine
                 + Environment.NewLine
-                + $"Primary hash: {FormatHash(diff.PrimaryHash)}"
+                + $"Mã băm bản hiện tại: {FormatHash(diff.PrimaryHash)}"
                 + Environment.NewLine
-                + $"Backup hash: {FormatHash(diff.BackupHash)}"
+                + $"Mã băm bản sao lưu: {FormatHash(diff.BackupHash)}"
                 + Environment.NewLine
                 + Environment.NewLine
-                + $"Archive audit events: {audit.Count}"
+                + $"Số sự kiện lưu trữ đã ghi: {audit.Count}"
                 + (latestAudit is null
                     ? string.Empty
-                    : Environment.NewLine + $"Latest: {latestAudit.Event} at {latestAudit.TimestampUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}");
-            StatusText.Text = $"{entries.Count} committed revisions inspected for {Path.GetFileName(_filePath)}.";
+                    : Environment.NewLine + $"Gần nhất: {latestAudit.Event} lúc {latestAudit.TimestampUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}");
+            StatusText.Text = $"Đã kiểm tra {entries.Count} phiên bản đã lưu của {Path.GetFileName(_filePath)}.";
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            StatusText.Text = $"Revision inspection failed: {exception.Message}";
+            StatusText.Text = "Không kiểm tra được các phiên bản: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(exception);
             RevisionGrid.ItemsSource = Array.Empty<ProjectRevisionEntry>();
-            DiffTextBox.Text = $"Diff inspection failed: {exception.Message}";
+            DiffTextBox.Text = "Không so sánh được các phiên bản: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(exception);
         }
         finally
         {
@@ -118,8 +118,9 @@ public partial class TemplateRevisionWindow : Window
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            StatusText.Text = $"Khôi phục thất bại: {exception.Message}";
-            MessageBox.Show(this, exception.Message, "Khôi phục thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+            var restoreFailure = ANLAbel.App.Services.OperationFailureExplainer.WithTechnicalIfGeneric(ANLAbel.App.Services.TemplateFailureExplainer.Explain(exception));
+            StatusText.Text = "Khôi phục thất bại: " + restoreFailure;
+            MessageBox.Show(this, restoreFailure, "Khôi phục thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {

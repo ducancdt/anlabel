@@ -194,13 +194,13 @@ public partial class UpdateWindow : Window
         catch (Exception ex)
         {
             ProgressStatusText.Text = "Tải bản cập nhật thất bại.";
-            ProgressDetailText.Text = ex.Message;
+            ProgressDetailText.Text = ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex);
             CloseButton.IsEnabled = true;
             InstallButton.IsEnabled = true;
             CheckAgainButton.IsEnabled = true;
 
             var result = MessageBox.Show(
-                $"Không thể tải bản cập nhật: {ex.Message}\n\nBạn có muốn mở trang GitHub để tải trực tiếp từ trình duyệt không?",
+                $"Không thể tải bản cập nhật: {ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)}\n\nBạn có muốn mở trang GitHub để tải trực tiếp từ trình duyệt không?",
                 "Lỗi tải cập nhật",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Error);

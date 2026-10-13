@@ -1448,7 +1448,7 @@ public sealed class MainViewModel : ObservableObject
             var missing = PrintJobRecoveryService.CreateInvalidResult(
                 jobId,
                 "The print job is no longer present in the valid recovery snapshot; refresh the report and do not retry automatically.");
-            StatusText = missing.Summary;
+            StatusText = ANLAbel.App.Services.PrintCenterText.Reconcile(missing);
             return missing;
         }
 
@@ -1483,7 +1483,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
-        StatusText = result.Summary;
+        StatusText = ANLAbel.App.Services.PrintCenterText.Reconcile(result);
         return result;
     }
 
@@ -1503,7 +1503,7 @@ public sealed class MainViewModel : ObservableObject
             cancellationToken: cancellationToken).ConfigureAwait(true);
         LogOperatorAction(result);
         await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
-        StatusText = result.Summary;
+        StatusText = ANLAbel.App.Services.PrintCenterText.ActionResult(result);
         return result;
     }
 
@@ -1523,7 +1523,7 @@ public sealed class MainViewModel : ObservableObject
             cancellationToken: cancellationToken).ConfigureAwait(true);
         LogOperatorAction(result);
         await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
-        StatusText = result.Summary;
+        StatusText = ANLAbel.App.Services.PrintCenterText.ActionResult(result);
         return result;
     }
 
@@ -1544,7 +1544,7 @@ public sealed class MainViewModel : ObservableObject
             cancellationToken: cancellationToken).ConfigureAwait(true);
         LogOperatorAction(result);
         await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
-        StatusText = result.Summary;
+        StatusText = ANLAbel.App.Services.PrintCenterText.ActionResult(result);
         return result;
     }
 
@@ -1567,7 +1567,7 @@ public sealed class MainViewModel : ObservableObject
             cancellationToken: cancellationToken).ConfigureAwait(true);
         LogOperatorAction(result);
         await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
-        StatusText = result.Summary;
+        StatusText = ANLAbel.App.Services.PrintCenterText.ActionResult(result);
         return result;
     }
 

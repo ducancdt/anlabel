@@ -94,7 +94,31 @@ internal static class OperatorLanguageRegression
         Require(new PrinterInfo { Name = "Zebra", IsDefault = true }.DisplayName == "Zebra (mặc định của Windows)",
             "The Windows default printer must be marked in Vietnamese.");
 
+        // Print Center: reasons, results and refusals the operator reconciles with.
+        Require(PrintCenterText.Reason("An operator acknowledged this uncertain job; review the queue evidence or void it before any reprint.").StartsWith("Đã ghi nhận", StringComparison.Ordinal),
+            "Print Center reasons must be Vietnamese.");
+        Require(PrintCenterText.ActionResult(new ANLAbel.Data.PrintLogs.PrintJobOperatorActionResult("abcdef1234567890", PrintJobOperatorAction.Void, true, null, string.Empty, null, "English summary"))
+                .StartsWith("Đã hủy lệnh abcdef12", StringComparison.Ordinal),
+            "Print Center action results must be Vietnamese and name the job.");
+        Require(PrintCenterText.Failure(new InvalidOperationException("Print job 'x' is already terminal and cannot be changed.")) == "Lệnh này đã kết thúc nên không thay đổi được.",
+            "Print Center refusals must be Vietnamese.");
+        Require(PrintCenterText.State(PrintJobLifecycleState.Unknown) == "Chưa rõ kết quả" && PrintCenterText.Queue("Printing") == "Đang in",
+            "Print Center columns must be Vietnamese.");
+
+        // Template revision history.
+        Require(RevisionText.Status("Unsupported schema") == "Phiên bản mới hơn" && RevisionText.Kind(ANLAbel.Project.SaveLoad.ProjectRevisionKind.Backup) == "Bản sao lưu phục hồi",
+            "Revision statuses must be Vietnamese.");
+        Require(RevisionText.Difference("Label size: primary '50 × 30 mm' · backup '40 × 20 mm'") == "Kích thước tem: bản hiện tại “50 × 30 mm” · bản sao lưu “40 × 20 mm”",
+            "Revision differences must be Vietnamese.");
+
         var root = FindRepositoryRoot();
+        var center = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrintCenterWindow.xaml"));
+        foreach (var column in new[] { "State", "OperatorAction", "QueueState", "Reason" })
+        {
+            Require(center.Contains($"Binding=\"{{Binding {column}, Converter={{StaticResource PrintCenterText}}", StringComparison.Ordinal),
+                $"The Print Center {column} column must show Vietnamese text.");
+        }
+
         var setup = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrinterSetupWindow.xaml.cs"));
         Require(!setup.Contains("Driver evidence:", StringComparison.Ordinal)
                 && !setup.Contains("driver media option(s)", StringComparison.Ordinal)
@@ -119,7 +143,9 @@ internal static class OperatorLanguageRegression
                            && !path.EndsWith("TemplateFailureExplainer.cs", StringComparison.Ordinal)
                            && !path.EndsWith("FormulaErrorText.cs", StringComparison.Ordinal)
                            && !path.EndsWith("PreflightIssueText.cs", StringComparison.Ordinal)
-                           && !path.EndsWith("MediaCompatibilityText.cs", StringComparison.Ordinal))
+                           && !path.EndsWith("MediaCompatibilityText.cs", StringComparison.Ordinal)
+                           && !path.EndsWith("PrintCenterText.cs", StringComparison.Ordinal)
+                           && !path.EndsWith("RevisionText.cs", StringComparison.Ordinal))
             .Select(File.ReadAllText));
         string[] anchors =
         [
@@ -178,6 +204,30 @@ internal static class OperatorLanguageRegression
             "' matches the requested physical size but is a software stock ",
             "The selected printer queue is unavailable",
             "Printing is blocked because the label design is invalid (",
+            "The event log has a corrupt or incomplete tail",
+            "An operator acknowledged this uncertain job",
+            "A linked reprint request (",
+            "A linked reprint was approved against manifest",
+            "The queue reported a terminal state, but physical output is not verified",
+            "A printer and spool identity are available",
+            "Dispatch reached an uncertain state without a safely reusable queue identity",
+            "The process stopped before a terminal print outcome was recorded",
+            "The recovery candidate has no safe printer/job identity",
+            "already has a linked reprint request",
+            "is not awaiting approval or has no immutable manifest metadata",
+            "The print-job event log needs repair before an operator action can be recorded",
+            "was not found in the durable event log",
+            "is already terminal and cannot be changed",
+            "Primary and backup differ",
+            "Primary and backup have the same document identity",
+            "Diff unavailable: primary is ",
+            "Document content/style/resource identity changed",
+            "No committed revision is present at this path.",
+            "\"Label size\"",
+            "\"Design DPI\"",
+            "\"Printer queue\"",
+            "\"Linked data\"",
+            "differences.Add($\"{label}: primary '{primary}' · backup '{backup}'\");",
         ];
         foreach (var anchor in anchors)
         {

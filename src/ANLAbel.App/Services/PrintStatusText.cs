@@ -28,7 +28,15 @@ public static class PrintStatusText
     public static string Queue(SpoolJobMonitorResult status)
     {
         var observation = status.FinalObservation;
-        var state = observation.State switch
+        var line = $"Lệnh hàng đợi #{observation.JobId}: {QueueState(observation.State)}. Chưa xác minh tem đã ra.";
+        return status.TimedOut
+            ? $"Đã chờ {status.Elapsed.TotalSeconds:0.#} giây mà hàng đợi chưa báo xong; không tự in lại. {line}"
+            : line;
+    }
+
+    public static string QueueState(SpoolJobState state)
+    {
+        return state switch
         {
             SpoolJobState.NotFound => "không còn thấy trong hàng đợi",
             SpoolJobState.Pending => "đang chờ trong hàng đợi",
@@ -45,9 +53,5 @@ public static class PrintStatusText
             SpoolJobState.Deleted => "đã bị xóa khỏi hàng đợi",
             _ => "chưa rõ trạng thái",
         };
-        var line = $"Lệnh hàng đợi #{observation.JobId}: {state}. Chưa xác minh tem đã ra.";
-        return status.TimedOut
-            ? $"Đã chờ {status.Elapsed.TotalSeconds:0.#} giây mà hàng đợi chưa báo xong; không tự in lại. {line}"
-            : line;
     }
 }

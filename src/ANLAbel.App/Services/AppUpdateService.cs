@@ -45,7 +45,7 @@ public sealed class AppUpdateService
                 {
                     Status = UpdateStatus.Error,
                     CurrentVersion = currentVersion,
-                    ErrorMessage = "GitHub API rate limit exceeded. Please try again later or visit the release page directly."
+                    ErrorMessage = "GitHub đang giới hạn số lần kiểm tra. Hãy thử lại sau hoặc mở trang phát hành để tải trực tiếp."
                 };
             }
 
@@ -55,7 +55,7 @@ public sealed class AppUpdateService
                 {
                     Status = UpdateStatus.Error,
                     CurrentVersion = currentVersion,
-                    ErrorMessage = $"Server returned HTTP {(int)response.StatusCode} ({response.ReasonPhrase})"
+                    ErrorMessage = $"Máy chủ cập nhật trả về lỗi HTTP {(int)response.StatusCode} ({response.ReasonPhrase})."
                 };
             }
 
@@ -68,7 +68,7 @@ public sealed class AppUpdateService
                 {
                     Status = UpdateStatus.Error,
                     CurrentVersion = currentVersion,
-                    ErrorMessage = "Could not parse release metadata from GitHub response."
+                    ErrorMessage = "Không đọc được thông tin phiên bản từ GitHub."
                 };
             }
 
@@ -87,7 +87,7 @@ public sealed class AppUpdateService
             {
                 Status = UpdateStatus.Offline,
                 CurrentVersion = currentVersion,
-                ErrorMessage = $"Network connection error: {ex.Message}"
+                ErrorMessage = $"Không kết nối được mạng. Chi tiết kỹ thuật: {ex.Message}"
             };
         }
         catch (TaskCanceledException)
@@ -96,7 +96,7 @@ public sealed class AppUpdateService
             {
                 Status = UpdateStatus.Error,
                 CurrentVersion = currentVersion,
-                ErrorMessage = "Update check request timed out."
+                ErrorMessage = "Kiểm tra cập nhật quá thời gian chờ. Hãy kiểm tra kết nối mạng rồi thử lại."
             };
         }
         catch (Exception ex)
@@ -105,7 +105,7 @@ public sealed class AppUpdateService
             {
                 Status = UpdateStatus.Error,
                 CurrentVersion = currentVersion,
-                ErrorMessage = $"Unexpected error checking updates: {ex.Message}"
+                ErrorMessage = $"Kiểm tra cập nhật gặp lỗi. Chi tiết kỹ thuật: {ex.Message}"
             };
         }
     }
@@ -120,7 +120,7 @@ public sealed class AppUpdateService
     {
         if (string.IsNullOrWhiteSpace(asset.DownloadUrl))
         {
-            throw new InvalidOperationException("Asset has no download URL.");
+            throw new InvalidOperationException("Bản cập nhật không có đường dẫn tải.");
         }
 
         var tempDir = Path.Combine(Path.GetTempPath(), "ANLAbel_Updates");

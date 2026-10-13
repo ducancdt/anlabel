@@ -57,7 +57,7 @@ public partial class PrintCenterWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Trung tâm in ấn", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ANLAbel.App.Services.PrintCenterText.Failure(ex), "Trung tâm in ấn", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -75,8 +75,8 @@ public partial class PrintCenterWindow : Window
         var filtered = PrintRecoveryCandidateFilter.Apply(_allCandidates, FilterTextBox.Text);
         JobsGrid.ItemsSource = filtered;
         FilterSummaryText.Text = _allCandidates.Count == filtered.Count
-            ? $"{filtered.Count} job(s)"
-            : $"{filtered.Count}/{_allCandidates.Count} match";
+            ? $"{filtered.Count} lệnh"
+            : $"{filtered.Count}/{_allCandidates.Count} lệnh khớp";
 
         if (!string.IsNullOrWhiteSpace(selectedJobId))
         {
@@ -168,7 +168,7 @@ public partial class PrintCenterWindow : Window
 
         if (candidate.Action != PrintJobRecoveryAction.ReconcileQueue)
         {
-            ShowActionMessage("This job has no safe queue identity for reconciliation. Review or choose an explicit operator action.", MessageBoxImage.Warning);
+            ShowActionMessage("Lệnh này không có mã hàng đợi an toàn để đối soát. Hãy xem lại và chọn một thao tác: ghi nhận, hủy hoặc yêu cầu in lại.", MessageBoxImage.Warning);
             return;
         }
 
@@ -176,12 +176,12 @@ public partial class PrintCenterWindow : Window
         {
             SetBusy(true);
             var result = await _viewModel.ReconcilePrintJobAsync(candidate.JobId);
-            ShowActionMessage(result.Summary, result.Outcome == PrintJobReconciliationOutcome.QueueObserved ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.Reconcile(result), result.Outcome == PrintJobReconciliationOutcome.QueueObserved ? MessageBoxImage.Information : MessageBoxImage.Warning);
             await RefreshAsync();
         }
         catch (Exception ex)
         {
-            ShowActionMessage(ex.Message, MessageBoxImage.Warning);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.Failure(ex), MessageBoxImage.Warning);
         }
         finally
         {
@@ -201,12 +201,12 @@ public partial class PrintCenterWindow : Window
         {
             SetBusy(true);
             var result = await _viewModel.AcknowledgePrintJobAsync(candidate.JobId);
-            ShowActionMessage(result.Summary, MessageBoxImage.Information);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.ActionResult(result), MessageBoxImage.Information);
             await RefreshAsync();
         }
         catch (Exception ex)
         {
-            ShowActionMessage(ex.Message, MessageBoxImage.Warning);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.Failure(ex), MessageBoxImage.Warning);
         }
         finally
         {
@@ -237,12 +237,12 @@ public partial class PrintCenterWindow : Window
         {
             SetBusy(true);
             var result = await _viewModel.VoidPrintJobAsync(candidate.JobId);
-            ShowActionMessage(result.Summary, MessageBoxImage.Information);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.ActionResult(result), MessageBoxImage.Information);
             await RefreshAsync();
         }
         catch (Exception ex)
         {
-            ShowActionMessage(ex.Message, MessageBoxImage.Warning);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.Failure(ex), MessageBoxImage.Warning);
         }
         finally
         {
@@ -262,12 +262,12 @@ public partial class PrintCenterWindow : Window
         {
             SetBusy(true);
             var result = await _viewModel.RequestPrintJobReprintAsync(candidate.JobId);
-            ShowActionMessage(result.Summary, MessageBoxImage.Information);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.ActionResult(result), MessageBoxImage.Information);
             await RefreshAsync();
         }
         catch (Exception ex)
         {
-            ShowActionMessage(ex.Message, MessageBoxImage.Warning);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.Failure(ex), MessageBoxImage.Warning);
         }
         finally
         {
@@ -286,7 +286,7 @@ public partial class PrintCenterWindow : Window
         if (candidate.OperatorAction != ANLAbel.Core.Printing.PrintJobOperatorAction.ReprintRequested
             || candidate.Manifest is null)
         {
-            ShowActionMessage("Select a linked reprint request with a valid manifest before approving it.", MessageBoxImage.Warning);
+            ShowActionMessage("Hãy chọn một yêu cầu in lại có bản kê hợp lệ trước khi duyệt.", MessageBoxImage.Warning);
             return;
         }
 
@@ -294,12 +294,12 @@ public partial class PrintCenterWindow : Window
         {
             SetBusy(true);
             var result = await _viewModel.ApprovePrintJobReprintAsync(candidate.JobId, candidate.Manifest);
-            ShowActionMessage(result.Summary, MessageBoxImage.Information);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.ActionResult(result), MessageBoxImage.Information);
             await RefreshAsync();
         }
         catch (Exception ex)
         {
-            ShowActionMessage(ex.Message, MessageBoxImage.Warning);
+            ShowActionMessage(ANLAbel.App.Services.PrintCenterText.Failure(ex), MessageBoxImage.Warning);
         }
         finally
         {
@@ -318,13 +318,13 @@ public partial class PrintCenterWindow : Window
         if (candidate.OperatorAction != ANLAbel.Core.Printing.PrintJobOperatorAction.ReprintApproved
             || candidate.Manifest is null)
         {
-            ShowActionMessage("Only an approved linked child with a valid manifest can open the guarded preview.", MessageBoxImage.Warning);
+            ShowActionMessage("Chỉ yêu cầu in lại đã duyệt và có bản kê hợp lệ mới mở được Xem trước bảo vệ.", MessageBoxImage.Warning);
             return;
         }
 
         if (_openApprovedPreview is null)
         {
-            ShowActionMessage("The host window did not provide an approved-preview action.", MessageBoxImage.Warning);
+            ShowActionMessage("Cửa sổ chính chưa cung cấp thao tác mở Xem trước cho lệnh đã duyệt.", MessageBoxImage.Warning);
             return;
         }
 
@@ -366,12 +366,12 @@ public partial class PrintCenterWindow : Window
             await Task.Run(() => PrintSupportEvidenceContract.WriteJsonAsync(bundle, path))
                 .ConfigureAwait(true);
             ShowActionMessage(
-                $"Redacted support evidence written to:\n{path}\nFingerprint: {bundle.EvidenceFingerprint}\nPhysical completion is not claimed.",
+                $"Đã xuất dữ liệu hỗ trợ (đã ẩn nội dung tem) tới:\n{path}\nDấu nhận dạng: {bundle.EvidenceFingerprint}\nTệp này không xác nhận tem đã in ra.",
                 MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            ShowActionMessage($"Could not export support evidence: {ex.Message}", MessageBoxImage.Warning);
+            ShowActionMessage("Không xuất được dữ liệu hỗ trợ: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex), MessageBoxImage.Warning);
         }
         finally
         {
@@ -419,7 +419,7 @@ public partial class PrintCenterWindow : Window
         var candidate = SelectedCandidate;
         if (candidate is null)
         {
-            ShowActionMessage("Select a print job first.", MessageBoxImage.Information);
+            ShowActionMessage("Hãy chọn một lệnh in trước.", MessageBoxImage.Information);
         }
 
         return candidate;
@@ -449,10 +449,10 @@ public partial class PrintCenterWindow : Window
         {
             var manifest = candidate.Manifest;
             DetailsText.Text =
-                $"{candidate.JobId} · {candidate.State} · {candidate.Action}\n" +
-                $"Printer: {candidate.PrinterName} · Spool: {candidate.SpoolJobId?.ToString() ?? "none"} · Queue: {candidate.QueueState}\n" +
-                $"Manifest: {candidate.ManifestFingerprint} · Metadata valid: {manifest?.IsFingerprintValid == true}\n" +
-                candidate.Reason;
+                $"{candidate.JobId} · {ANLAbel.App.Services.PrintCenterText.State(candidate.State)} · {ANLAbel.App.Services.PrintCenterText.RecoveryAction(candidate.Action)}\n" +
+                $"Máy in: {candidate.PrinterName} · Mã lệnh hàng đợi: {candidate.SpoolJobId?.ToString() ?? "không có"} · Hàng đợi: {ANLAbel.App.Services.PrintCenterText.Queue(candidate.QueueState)}\n" +
+                $"Bản kê: {candidate.ManifestFingerprint} · Bản kê hợp lệ: {(manifest?.IsFingerprintValid == true ? "có" : "không")}\n" +
+                ANLAbel.App.Services.PrintCenterText.Reason(candidate.Reason);
         }
 
         UpdateActionState();
@@ -516,7 +516,7 @@ public partial class PrintCenterWindow : Window
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            ShowActionMessage($"Chưa lưu trữ được nhật ký: {ex.Message}", MessageBoxImage.Warning);
+            ShowActionMessage("Chưa lưu trữ được nhật ký: " + ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex), MessageBoxImage.Warning);
         }
         finally
         {
