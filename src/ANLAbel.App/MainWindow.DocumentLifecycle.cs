@@ -177,6 +177,42 @@ public partial class MainWindow
             _recovery.DeleteSession();
             return true;
         }
+        catch (DocumentChangedOnDiskException)
+        {
+            var choice = OperatorDialog.Ask(
+                this,
+                "Tệp đã được lưu ở nơi khác",
+                [
+                    $"“{Path.GetFileName(filePath)}” đã được lưu từ cửa sổ ANLAbel khác hoặc máy khác sau khi bạn mở.",
+                    "Ghi đè sẽ thay bản đó bằng bản của bạn; bản kia vẫn được giữ trong Lịch sử phiên bản. Lưu thành tệp khác sẽ giữ nguyên cả hai."
+                ],
+                null,
+                OperatorDialogTone.Warning,
+                new OperatorDialogChoice("saveas", "Lưu thành tệp khác…", IsDefault: true),
+                new OperatorDialogChoice("overwrite", "Ghi đè"),
+                new OperatorDialogChoice("cancel", "Hủy", IsCancel: true));
+            switch (choice)
+            {
+                case "saveas":
+                    return await SaveDocumentAsync(saveAs: true);
+                case "overwrite":
+                    try
+                    {
+                        await _viewModel.SaveAsync(filePath, overwriteExternalChanges: true);
+                        _recovery.DeleteSession();
+                        return true;
+                    }
+                    catch (Exception overwriteFailure)
+                    {
+                        _viewModel.StatusText = "Chưa lưu được: " + ANLAbel.App.Services.OperationFailureExplainer.Explain(overwriteFailure).StatusLine;
+                        TryWriteRecoveryNow();
+                        return false;
+                    }
+
+                default:
+                    return false;
+            }
+        }
         catch (Exception ex)
         {
             // Every failure here means "not saved"; the operator needs the reason

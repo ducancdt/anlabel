@@ -63,6 +63,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
     private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
+    private FileSourceIdentity? _documentFileIdentity;
     private bool _isQuickPrinting;
     private int _importGeneration;
     private bool _selectedObjectRefreshDeferred;
@@ -1113,6 +1114,7 @@ public sealed class MainViewModel : ObservableObject
         CurrentFilePath = !string.IsNullOrWhiteSpace(originalFilePath) && File.Exists(originalFilePath)
             ? originalFilePath
             : string.Empty;
+        RememberDocumentFileIdentity();
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
         CommitPendingHistory();
@@ -1690,7 +1692,7 @@ public sealed class MainViewModel : ObservableObject
         StatusText = $"Mẫu tem mới: {Template.WidthMm} x {Template.HeightMm} mm";
     }
 
-    public async Task SaveAsync(string filePath)
+    public async Task SaveAsync(string filePath, bool overwriteExternalChanges = false)
     {
         if (IsSaving)
         {
@@ -1700,6 +1702,21 @@ public sealed class MainViewModel : ObservableObject
         IsSaving = true;
         try
         {
+            // Another window or PC may have saved the same file since it was
+            // opened here; silently writing over it would hide their version
+            // in the archive. Ask first (audit 2026-10-13).
+            if (!overwriteExternalChanges
+                && _documentFileIdentity is { } known
+                && string.Equals(Path.GetFullPath(filePath), Path.GetFullPath(CurrentFilePath), StringComparison.OrdinalIgnoreCase)
+                && File.Exists(filePath))
+            {
+                var onDisk = await Task.Run(() => FileSourceIdentity.TryCapture(filePath, out var identity) ? identity : null).ConfigureAwait(true);
+                if (onDisk is not null && !Equals(onDisk, known))
+                {
+                    throw new DocumentChangedOnDiskException(filePath);
+                }
+            }
+
             CommitPendingHistory();
             UpdateRelativePath(filePath);
             // Serialize an immutable snapshot, not the live object: the designer
@@ -1709,6 +1726,7 @@ public sealed class MainViewModel : ObservableObject
                 ?? throw new InvalidOperationException("Không tạo được bản chụp của mẫu tem để lưu.");
             await _projectFileService.SaveAsync(copy, filePath);
             CurrentFilePath = filePath;
+            RememberDocumentFileIdentity();
             _savedTemplateSnapshot = snapshot;
             UpdateDirtyState(CaptureTemplateSnapshot());
             StatusText = $"Đã lưu: {Path.GetFileName(filePath)}";
@@ -1747,6 +1765,7 @@ public sealed class MainViewModel : ObservableObject
         // relative data-source paths resolve beside the original document.
         CurrentFilePath = filePath;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
+        RememberDocumentFileIdentity();
         // The file as read is the saved state. The data restore below can take
         // up to the read timeout while the label is already editable; edits
         // made meanwhile must stay unsaved (audit 2026-10-13). Only the data
@@ -1760,6 +1779,15 @@ public sealed class MainViewModel : ObservableObject
         }
 
         return loadResult;
+    }
+
+    /// <summary>Identity of the document file as this session last read or wrote it.</summary>
+    private void RememberDocumentFileIdentity()
+    {
+        _documentFileIdentity = !string.IsNullOrWhiteSpace(CurrentFilePath)
+            && FileSourceIdentity.TryCapture(CurrentFilePath, out var identity)
+                ? identity
+                : null;
     }
 
     /// <summary>The template without its data link, to tell edits from a link refresh.</summary>

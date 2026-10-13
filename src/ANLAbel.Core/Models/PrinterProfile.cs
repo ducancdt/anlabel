@@ -191,4 +191,12 @@ public sealed class PrinterProfile : ObservableObject
         get => _printMethod;
         set => SetProperty(ref _printMethod, value);
     }
+
+    /// <summary>
+    /// Members written by a newer ANLAbel that this version does not know. They
+    /// are kept on a load/save round trip instead of being dropped (audit
+    /// 2026-10-13); the template-level bag alone did not cover nested parts.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> ExtensionData { get; set; } = new(StringComparer.Ordinal);
 }

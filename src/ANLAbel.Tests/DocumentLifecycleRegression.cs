@@ -292,6 +292,50 @@ internal static class DocumentLifecycleRegression
         }
     }
 
+    public static async Task SavingOverAnotherWindowsSaveAsksFirst()
+    {
+        var root = CreateRoot();
+        try
+        {
+            var path = Path.Combine(root, "shared.anlabel");
+            var service = new ProjectFileService();
+            var original = new LabelTemplate { Name = "Chung", WidthMm = 50, HeightMm = 30 };
+            original.Objects.Add(Rectangle("shared-object", 5));
+            await service.SaveAsync(original, path);
+
+            var mine = new MainViewModel();
+            await mine.OpenAsync(path);
+            var theirs = new MainViewModel();
+            await theirs.OpenAsync(path);
+
+            theirs.Template.Objects.Single().XMm = 20;
+            await theirs.SaveAsync(path);
+
+            mine.Template.Objects.Single().XMm = 30;
+            DocumentChangedOnDiskException? conflict = null;
+            try
+            {
+                await mine.SaveAsync(path);
+            }
+            catch (DocumentChangedOnDiskException ex)
+            {
+                conflict = ex;
+            }
+
+            Require(conflict is not null, "Saving over a file another window saved must ask first.");
+            Require((await service.LoadAsync(path)).Objects.Single().XMm == 20, "The other window's save must stay until the operator decides.");
+
+            await mine.SaveAsync(path, overwriteExternalChanges: true);
+            Require((await service.LoadAsync(path)).Objects.Single().XMm == 30, "Overwrite, once chosen, writes this window's version.");
+            await mine.SaveAsync(path);
+            Require(!mine.IsDirty, "A normal save after the overwrite needs no confirmation.");
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
     private static MainViewModel CreateViewModel(IProjectFileService files, string registryPath)
     {
         return new MainViewModel(

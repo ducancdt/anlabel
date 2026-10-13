@@ -47,4 +47,12 @@ public sealed class LabelGuide : ObservableObject
 
     private static double NormalizePosition(double value)
         => double.IsFinite(value) ? Math.Round(Math.Max(0, value), 3, MidpointRounding.AwayFromZero) : 0;
+
+    /// <summary>
+    /// Members written by a newer ANLAbel that this version does not know. They
+    /// are kept on a load/save round trip instead of being dropped (audit
+    /// 2026-10-13); the template-level bag alone did not cover nested parts.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> ExtensionData { get; set; } = new(StringComparer.Ordinal);
 }

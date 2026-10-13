@@ -61,7 +61,20 @@ public sealed class ProjectFileService : IProjectFileService
             // backup is prepared in the same directory and renamed into place
             // before the new primary is committed.  A crash at either boundary
             // therefore leaves at least one complete, parseable document.
-            if (File.Exists(fullPath) && await ShouldRotateBackupAsync(fullPath, cancellationToken))
+            var previousReadable = File.Exists(fullPath) && await ShouldRotateBackupAsync(fullPath, cancellationToken);
+            if (File.Exists(fullPath) && !previousReadable)
+            {
+                // A primary this version cannot read (damaged, or written by a
+                // newer build within the same schema) is archived byte for byte
+                // before it is replaced; the .bak slot is left alone so it keeps
+                // the last known-good copy (audit 2026-10-13).
+                await ProjectRevisionArchive.ArchiveAsync(
+                    fullPath,
+                    reason: "Save over unreadable primary",
+                    cancellationToken);
+            }
+
+            if (previousReadable)
             {
                 // Keep a bounded, hash-addressed snapshot before rotating the
                 // fast .bak slot.  If archiving fails, the live document and
