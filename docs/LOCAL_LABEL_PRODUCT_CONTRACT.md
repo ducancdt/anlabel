@@ -2,6 +2,11 @@
 
 One Windows desktop app. Offline. Design, check, and print industrial labels.
 
+The normative development and acceptance framework is
+[`CORE_SOFTWARE_STANDARD.md`](CORE_SOFTWARE_STANDARD.md). Label data sources
+are Excel/CSV only: no SQL, SQLite, ODBC, or server database connectors.
+Designer and data reliability take priority over automation expansion.
+
 ## What it does
 
 1. Edit a template in millimeters.
@@ -14,7 +19,14 @@ One Windows desktop app. Offline. Design, check, and print industrial labels.
 
 Activation, editions, cloud, login, and a second renderer are not the product.
 
-Priority: correct label → deterministic behavior → no crash/data loss → then speed.
+Priority: correct label and preserved data → reliable, predictable operation →
+simple and understandable workflow → speed → additional features.
+
+NiceLabel manuals, screenshots and recreations are references, not a product
+specification or a parity backlog. Adopt only the core ideas selected in
+[`REFERENCE_POLICY.md`](REFERENCE_POLICY.md). Reliability includes avoiding
+unnecessary stops and giving an actionable recovery path, while preserving
+the safety contracts in the core standard.
 
 ## What it does not do
 
@@ -34,5 +46,6 @@ Domain, save, parse, and tests do not.
 
 ## Done
 
-A slice is done when code, version, Fast (and Mutation for label-safety)
-agree. See [`AUTOMATED_QUALITY_LOOP.md`](AUTOMATED_QUALITY_LOOP.md).
+A code slice is done when behavior, version, Fast (and Mutation for label-safety)
+agree. Documentation-only work checks scope, consistency and links without
+bumping the application version. See [`AUTOMATED_QUALITY_LOOP.md`](AUTOMATED_QUALITY_LOOP.md).

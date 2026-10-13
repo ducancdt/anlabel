@@ -12,9 +12,9 @@
 
 | Evidence | Result | Boundary |
 | --- | --- | --- |
-| Display/source version | `0.276` is canonical in `eng/Version.props` and projected to app metadata, shell title/build-channel text, Help and public Commercial/Trial installer metadata | The private License Master installer intentionally remains `1.0.0`; version parity is source/build evidence, not a signed release artifact while those source/installer files are dirty. |
+| Display/source version | `0.306` is canonical in `eng/Version.props` and projected to app metadata, shell title/build-channel text, Help and public Commercial/Trial installer metadata | The private License Master installer intentionally remains `1.0.0`; version parity is source/build evidence, not a signed release artifact while those source/installer files are dirty. |
 | `dotnet build ANLAbel.slnx --no-restore --nologo -v quiet -p:UseSharedCompilation=false -nodeReuse:false` | PASS · 0 warnings · 0 errors | Compile evidence for the current checkout. |
-| `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -v quiet` | PASS · 356/356 | Unit/contract evidence; no physical-device claim. |
+| `dotnet test src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj --no-build --nologo -v quiet` | PASS · 824/824 (0 skipped) | Unit/contract evidence; no physical-device claim. Count refreshed on the 0.283 worktree re-run (see 0.283 note below); the earlier `356/356` was the 0.276 baseline. |
 | `dotnet run --project src/ANLAbel.Tests/ANLAbel.Tests.csproj --no-build` | PASS · exit 0; 158 registered checks in the current runner | Application regression evidence, including the Operations Overview stale-refresh/scope gate. Named P1/P2 barcode gates and the protected Text/TextBox regression names are present in the runner; this is not a hardware smoke test. |
 | Repository-local Markdown link audit | PASS · 57 Markdown files, 209 relative links checked, 0 broken paths | Relative paths/assets only; external URLs still require network/source review. |
 | Worktree ownership | OPEN · broad dirty implementation wave and untracked research/code/assets remain | This checkpoint must not be used to stage or release those files. |
@@ -300,6 +300,23 @@ CC-P1 is implemented as a staged local `OperationsOverviewWindow` with queue/rec
 - any UI change requiring target-scale screenshot/measurement and the protected Text/TextBox contract gates.
 
 Until those gates close, public wording remains **software regression evidence + graphic thermal path**, not verifier certification or a shipped multi-tenant Control Center/LMS.
+
+## 0.283 evidence re-run (worktree, not a signed release)
+
+The Fast quality loop was re-run on the current worktree after the release
+projections were advanced from `0.282` to `0.283` (increment 0.283 —
+`CsvAutomationSourceParser` RFC-4180 rewrite, recorded in
+[`../CORE_STANDARD_EVIDENCE_AUDIT.md`](../CORE_STANDARD_EVIDENCE_AUDIT.md)):
+
+- `dotnet build ANLAbel.slnx` — PASS · 0 warnings · 0 errors.
+- Unit/contract tests — PASS · 824/824 · 0 skipped.
+- Application regression runner (`ANLAbel.Tests`) — PASS · exit 0, including the
+  seven protected Text/TextBox gates, CSV import/safety, stale-source,
+  duplicate-dispatch and the NiceLabel JOB engine gate.
+
+Boundary unchanged: this is source/regression evidence on a dirty worktree, not
+a signed release artifact, and it makes no physical-device or hardware-verifier
+claim. Mutation, manual interaction and physical-label runs are still deferred.
 
 ## Handoff
 

@@ -1,5 +1,9 @@
 # Barcode object model: NiceLabel + BarTender → ANLAbel gap matrix
 
+> Reference status (2026-09-15): competitor research, not a full implementation
+> requirement or parity backlog. Apply [reference policy](REFERENCE_POLICY.md)
+> and [core standard](CORE_SOFTWARE_STANDARD.md) to select ANLAbel core behavior.
+
 **Research date:** 2026-08-11  
 **Repo of record:** `H:\00_REPOS_PROJECTS\ANLABEL`  
 **Scope:** Defining **barcode-object mechanics** (symbology, size/module/X-dimension, check digit, human-readable/HRI) — not a full symbology catalog rewrite, GS1 certification, or physical verifier campaign.  

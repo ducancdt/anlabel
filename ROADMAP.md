@@ -2,6 +2,10 @@
 
 Stable local Windows label designer. Not a cloud suite.
 
+Industrial reliability and simple operation are the product priorities.
+NiceLabel is a [selective reference](docs/REFERENCE_POLICY.md), not a feature
+parity target. Fix unnecessary operational stops as well as unsafe output.
+
 ## Now
 
 Keep the shipped app compact, basic, and fail-closed:

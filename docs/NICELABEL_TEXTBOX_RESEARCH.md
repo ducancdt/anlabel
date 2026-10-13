@@ -1,5 +1,11 @@
 # NiceLabel Text Box research baseline
 
+> Reference status (2026-09-15): competitor research, not a full implementation
+> requirement or parity backlog. Apply [reference policy](REFERENCE_POLICY.md)
+> and [core standard](CORE_SOFTWARE_STANDARD.md) to select ANLAbel core behavior.
+> The user-approved ANLAbel Text/TextBox decisions recorded here remain
+> protected by AGENTS.md.
+
 Ngay doi chieu: 2026-08-11. Nguon uu tien: tai lieu chinh thuc Loftware/NiceLabel Help Center va user guide chinh thuc. Tai lieu nay tach ro du lieu duoc NiceLabel cong bo va quyet dinh implementation cua ANLAbel; khong suy dien tinh nang cua NiceLabel tu hanh vi WPF.
 
 ## Nguon chinh thuc da kiem tra

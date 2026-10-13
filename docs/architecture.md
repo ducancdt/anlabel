@@ -2,7 +2,12 @@
 
 **Status:** current source-tree map (2026-08-13) · not a release claim
 
-The old Phase 1–4 labels are historical planning language. The current repository already contains the data, barcode, scene/render, print-preflight, revision, and industrial-output boundaries described below. Release status still belongs to [`MASTER_PLAN.md`](../MASTER_PLAN.md), [`PLAN.md`](../PLAN.md), and the [continuation handoff](reinvention/10-continuation-handoff-2026-08-13.md).
+The old Phase 1–4 labels and module map below are historical context. Current
+scope and module responsibilities belong to [core standard](CORE_SOFTWARE_STANDARD.md)
+and the [live plan](reinvention/07-execution-plan.md). Use current build/test
+evidence for release claims, not old checkpoints. Keep one implementation path
+and add structure only to solve a demonstrated problem. NiceLabel research is
+governed by [reference policy](REFERENCE_POLICY.md).
 
 ## Runtime modules
 
@@ -40,6 +45,12 @@ The important direction is one-way: UI actions mutate the model through commands
 - Linear barcode FrameOwned remains the legacy-safe default. SizedFromX is explicit opt-in and derives production width from quantized X-dimension × pure logical module count.
 - HRI placement is a shared None / Below / Above policy across designer, preview, print, and preflight; the legacy visibility flag is only a compatibility mapping.
 - Text and TextBox remain distinct. Text is content-owned/free-flowing; TextBox is user-frame-owned, wraps and clips inside its authored frame, and must not resize from content or binding values. The authoritative protected contract is [`AGENTS.md`](../AGENTS.md) and [`NICELABEL_TEXTBOX_RESEARCH.md`](NICELABEL_TEXTBOX_RESEARCH.md).
+
+## Printer, page/media, and label boundary
+
+The NiceLabel printer/media research is captured in [`NICELABEL_PRINTER_MEDIA_ARCHITECTURE.md`](NICELABEL_PRINTER_MEDIA_ARCHITECTURE.md). The target architecture keeps queue discovery, lazy driver-capability snapshots, page/media resolution, stock presets, and authored label geometry as separate boundaries. Selecting a queue reloads capabilities; it does not silently rewrite `LabelTemplate.WidthMm/HeightMm`. Driver media and software/vendor stock presets carry explicit provenance, while preview and dispatch continue to revalidate the effective queue/ticket/media identity and fail closed on drift.
+
+The Print Preview architecture research is captured in [`NICELABEL_PRINT_PREVIEW_ARCHITECTURE.md`](NICELABEL_PRINT_PREVIEW_ARCHITECTURE.md). Print Preview is a printing-session workflow, not merely a bitmap viewer: immutable document/data/printer snapshots plus selected Excel rows and per-row copies produce a deterministic label-instance sequence, structured preflight and one prepared dispatch handoff. Product scope stays deliberately smaller than NiceLabel PowerForms: one label per feed/page, Excel/CSV data and reliable barcode output are primary; multi-label sheets, skipped slots, label sets, unlimited-data modes and custom printing forms are deferred unless a concrete production requirement appears. The WPF preview remains the migration host, while domain/session orchestration moves out of its code-behind. Preview bitmaps remain projections only and never become the print source or physical-output evidence.
 
 ## Persistence and data boundaries
 

@@ -1,5 +1,79 @@
 # ANLAbel Phase 1 Plan
 
+## v0.306 — Ghi bù 0.289–0.306: copies, độ mới dữ liệu, bằng chứng job, preview trust
+
+Ghi bù ngày 2026-10-13 khi commit lần đầu (kế hoạch 13, mục 0.2). Các version
+0.289–0.306 được tăng trong worktree mà không có changelog hay commit. Mục này
+dựng lại từ mã ngày 2026-10-04/05; các version trung gian không còn tách được.
+
+**Dữ liệu và số bản**
+
+- DB08/DB10 `CopiesFieldContract`: ô copies không hợp lệ ở dòng được chọn chặn cả
+  batch, kèm chẩn đoán dòng và field. Không lặng lẽ bỏ dòng.
+- `QuickPrintQuantity`: in nhanh dùng cùng quy tắc copies với xem trước. Copies
+  rỗng, không nguyên, âm hoặc vượt giới hạn chặn batch. Số bản nhập tay không bị
+  cắt ngầm.
+- DB06 `ExcelDataFreshnessPolicy`: refresh chỉ bỏ qua bước đọc lại khi danh tính
+  nội dung khớp. Riêng mtime khớp không đủ.
+- Bổ sung test cho Excel/CSV: encoding nghiêm ngặt, dò delimiter, ô lỗi, payload
+  số, giữ nguyên payload.
+
+**In và xem trước**
+
+- P08 `PrintJobEvidencePolicy` và `PrintJobEvidenceAppend`:
+  - Lỗi ghi bằng chứng bắt buộc trước khi gửi thì chặn.
+  - Lỗi ghi log sau khi spool chấp nhận không tạo Failed giả và không retry.
+- P03 `PreviewInitializationTrust`, `PrintPreviewContracts`: Ready gắn với một
+  snapshot đã chuẩn bị. Scene lỗi thì không Ready.
+- `PrinterSelectionApplier`: Printer Setup và Xem trước ghi queue, page source,
+  media và kích thước mm cùng một lúc.
+- `PrintTicketXmlFingerprint` (từ v0.288) và các contract đọc-only cho driver,
+  hàng đợi và media.
+
+**Mã vạch**
+
+- B01: test render cho check digit mã bán lẻ.
+- Round-trip GS1-128 FNC1 và round-trip barcode nhập từ dữ liệu.
+
+**Giao diện và công cụ**
+
+- Việt hóa phần còn lại: `Localization/UiCatalog`, `SettingsWindow`.
+- NiceLabel JOB runner: chỉ test gọi tới; theo kế hoạch 13 sẽ rời bản phát hành.
+- Công cụ AGY dispatcher, `PrinterCapabilityProbe`.
+
+**Kiểm tra trước commit (2026-10-13):** build 0 cảnh báo/0 lỗi; unit 1.129/1.129;
+regression 211 PASS/0 FAIL. Chưa có bằng chứng in vật lý.
+
+## v0.288 — Seagull ticket clock no longer invalidates print preparation
+
+- Reproduced Xprinter XP-DT426B 75 × 100 mm / 203 DPI preview/preparation
+  fingerprint drift without dispatching a job. Seagull `JobTicketProperties`
+  / `strSeagullDriver` / `CreationTime` changes when the driver reads/merges
+  a ticket, although print settings are unchanged.
+- Fingerprint normalization now ignores only that metadata value at its exact
+  namespace-qualified path. Driver version, private settings, media and DPI
+  remain part of the identity; unknown properties are retained. The actual
+  PrintTicket sent to the driver is not modified.
+- Regression tests distinguish clock-only changes from setting/version and
+  similarly named extension changes. Driver checks exercise preview, prepare
+  and final validation across clock boundaries without physical printing.
+- Existing job fingerprints remain historical evidence; reopen old previews
+  to prepare with the new identity. No stored jobs or documents are migrated.
+  Text/TextBox behavior is unchanged; physical output remains unverified.
+- Verification on 2026-09-15: solution build 0 warnings/errors; 1,039 unit
+  tests passed; application regressions 201 passed / 2 failed (printer setup
+  orientation expected height 50 but observed 75; legacy thin linear barcode
+  expected blocking preflight but observed success). All seven protected
+  Text/TextBox gates passed. Configured mutation gate: 94.80%; it does not
+  cover the new fingerprint helper. Three delayed real-driver preparation
+  cycles had identical preview/prepared/final hashes. The full Fast gate
+  remains red because of the two application failures; no release claim.
+
+> Historical implementation log. Use the [live plan](docs/reinvention/07-execution-plan.md)
+> for next work and [reference policy](docs/REFERENCE_POLICY.md) for competitor
+> research. Old proposals and unchecked phases are not assignments. Accepted
+> ANLAbel contracts, especially Text/TextBox, remain protected by AGENTS.md.
+
 ## Pure industrial uniform vector icons & pixel-perfect geometry (0.266)
 
 - Rewrote all 40 application icons using 100% pure mathematical vector geometry (replacing string-based text rendering to guarantee zero font-metric distortion or alignment drift).
@@ -1508,3 +1582,72 @@
 | Typed data connectors/schema | Da co immutable CSV/Excel snapshot, schema/page, Formula transform + lineage; connector ngoai va data workspace con mo | Mo rong model/data workflow, can yeu cau san pham cu the |
 | CSV data source | Da co compatibility slice UTF-8 comma/semicolon/tab | ODBC/SQL, paging/lazy-load va typed connector schema con mo |
 | Driver ticket/raster, spooler restart/hot-unplug, verifier, physical label | Khong the dong chi bang code | Can queue, driver, hardware va operator evidence that |
+
+### NiceLabel printer/media architecture research (2026-09-14)
+
+- Printer Setup da duoc sap xep thanh workflow bon tab `Printer`, `Label Dimensions`, `Paper / Media`, `Stocks`; print pane van giu printer, quantity, du lieu va preview trong mot cua so. UI neu ro stock la preset phan mem, media la capability cua driver, va chi `Apply` moi commit thay doi.
+- Printer Setup cap nhat live compatibility va disable Apply cho den khi exact queue/capability/media request co the dispatch. Print Preview dung clone theo session; cac edit trong preview khong mutate label dang mo cho den action explicit `Save current print settings to label`.
+
+- Doc nguon moi `ug-NiceLabel_2019_PowerForms_User_Guide-en.md` da duoc doc tai cac muc Printer and Status Bar, Label Setup Wizard, Label Properties, Printing va Set Printer/Print Parameters.
+- Chot kien truc dich tai `docs/NICELABEL_PRINTER_MEDIA_ARCHITECTURE.md`: queue discovery, lazy driver capability, page/media, stock preset va authored label geometry la cac boundary rieng.
+- Khong duoc gan `StandardLabelSizes.All` thanh capability cua moi printer trong kien truc cuoi; preset phai co provenance va chi duoc apply boi thao tac operator ro rang.
+- Doi printer chi reload capability/compatibility state; khong mutate Width/Height cua label dang mo truoc explicit Apply.
+- Preview/dispatch tiep tuc revalidate effective PrintTicket/media va output-contract hash; capability cache khong phai bang chung dispatch.
+- Text/TextBox industrial contract khong thay doi va khong file protected nao bi sua trong dot nghien cuu nay.
+- Figma shell moi `ANLAbel - NiceLabel Workspace Overview v2` nam trong file `https://www.figma.com/design/zdN71qfzrYV6pPt1b2FRRc`, node `12:2`; da verify screenshot 1440 x 900 khong clip/overlap.
+- Da code foundation: queue-only discovery, lazy WPF/Win32 capability service tren STA, pure media resolver, provenance/driver identity persistence va Printer Setup tach Stock / Page-Media / Authored Label.
+- Manual mode gui exact named/custom media; DriverAutomatic khong ep `PageMediaSize` va tiep tuc fail-closed neu effective ticket bi driver coerce sai khich thuoc.
+- Automated gate moi bao phu same-orientation resolution, incomplete/unavailable/custom status, dedupe provenance, stock/capability separation va round-trip/apply driver identity. Hardware matrix van la external evidence.
+- Tiep tuc capability hardening: read WPF va Win32 catalog theo kieu bo sung (khong chi fallback khi WPF rong), gioi han 8 giay cho driver treo, giu partial diagnostic/`IsComplete=false`, va hien canh bao ngay trong Printer Setup. Raw Win32 media identity van giu format cu de khong pha document da save.
+- Them unit gate `MergeAddsWin32RowsMissingFromWpfCatalog`; doi chieu lai NiceLabel Label Properties/New Label Setup Wizard va Microsoft `DeviceCapabilitiesW`. Khong doi Text/TextBox contract.
+- Khoa them media/label compatibility ngay trong pure `PrinterMediaResolver`: manual media khong duoc `Compatible` neu physical W/H khong match authored label; explicit orientation swap van duoc chap nhan, nhung candidate driver van phai match dung chieu physical request. Printer Setup vi vay block sai kho truoc khi ghi profile.
+- Capability snapshot doc them `PageResolutionCapability` va effective ticket DPI. Printer Setup khong con coi danh sach DPI hard-code la capability cua moi queue: chi hien square DPI driver advertise, van giu authored DPI trong list va canh bao neu driver khong advertise; non-square mode khong bi flatten thanh scalar gia.
+- Them `tools/PrinterCapabilityProbe`: CLI chi-doc, nhan exact queue name hoac `--all`, xuat JSON media/DPI/provenance/completeness/diagnostic va khong gui print job. Day la cong cu thu evidence cho driver matrix, khong phai physical-output verifier.
+- Probe that tren `Xprinter XP-DT426B` va `Datamax E-4203`: ca hai effective `203 x 203`; Xprinter khong advertise resolution capability va chi co mot Win32 `USER`, Datamax co mot WPF resolution va 21 Win32 media. UI duoc sua de capability rong khong fallback sang danh sach DPI chung: sau snapshot chi giu authored DPI + effective/advertised square DPI.
+- Khoa driver drift tai effective-plan boundary: document cu co `DriverIdentity` rong van load/in theo legacy-unverified policy; khi identity da duoc capture, driver khong doc duoc hoac ten driver sau cung queue thay doi se block truoc PrintTicket/preflight/dispatch voi thong bao `no label was submitted`. Win32 fallback khong con dung queue name gia lam driver identity.
+- Printer Setup co action `Driver preferences...` dung Windows `PrintUIEntry /e /n <exact queue>` qua `ProcessStartInfo.ArgumentList`, khong compose shell string va khong gui test/print job. Khi dialog dong, capability snapshot cu bi bo va media/DPI duoc reload.
+- Capability snapshot/probe co them effective page media va imageable-area origin/extent. `PrinterPageObservation.IsImageableAreaVerified` goi dung shared `PrintableAreaContract`; Printer Setup hien effective page va chi goi imageable verified khi geometry nam trong media.
+- Probe page geometry: Xprinter page `104 x 180 mm` tra imageable `8196.31 x 0 mm` nen bi danh dau invalid/unverified; Datamax page `62.5 x 40 mm` tra imageable `60.05 x 40.03 mm` voi origin `1.25 x 0 mm` va pass bounded tolerance. Queue available khong duoc dung thay readiness evidence.
+- Hoan thien `PrinterSettingsSource`: Printer Setup cho chon `Saved with label` hoac `Current driver preferences`. Label mode moi apply saved PageMediaSize/DPI; Driver mode giu ticket hien tai cua driver, sau do van bat buoc merge/validate va effective media/DPI/imageable revalidation truoc spool.
+- Them read-only queue-health contract cho `Paused/Offline/PaperOut/PaperJam/UserIntervention/Error/Unknown`. Production lookup va `CreateEffectivePlan` deu `Refresh()` va fail closed tren blocking state; automation preflight cung dung `CanSubmit`, con `Ready` chi co nghia khong thay Windows blocker, khong phai physical-output proof.
+- Main shell warning, Operations Overview va Print Queue Console cung dung `CanSubmit` thay vi chi `IsAvailable`, nen installed queue dang offline/paused/media fault khong con hien nhu mot queue san sang.
+- Them pure `PrinterDriverEvidenceContract` de probe khong gom nham `queue Ready` voi driver evidence day du: tach `QueueBlocked`, `QueueHealthUnknown`, missing/invalid effective page-imageable area, partial catalog va `FullyObserved`. Day chi la read-only diagnostic; template-specific effective PrintTicket van duoc revalidate o dispatch va `FullyObserved` van khong phai physical-output proof.
+- `SupportsCustomMedia` khong con hard-code: capability STA doc Win32 `DC_FIELDS` + `DC_MINEXTENT/DC_MAXEXTENT`, chi chap nhan khi driver support `dmPaperWidth/dmPaperLength` va range min/max hop le. Manual resolver chi cho `CustomSupported` neu requested W/H nam trong range; thieu range, ngoai range hoac sentinel suy bien deu fail closed.
+- `PrinterMediaResolver` cung fail closed voi `QueueBlocked` truoc ca nhanh `DriverAutomatic`, de Printer Setup khong luu mot cau hinh nhu the san sang khi snapshot vua thay offline/paused/media fault. Dispatch van refresh queue-health lan nua ngay truoc ticket merge/spool.
+- Capability snapshot/probe ghi SHA-256 `ObservedTicketHash` cua current driver PrintTicket bang cung `PrintTicketFingerprint` ma dispatch dung cho requested/effective contract. Khong luu raw XML; serialization fail duoc phan loai `ObservedTicketUnverified`, khong the thanh `FullyObserved`.
+- Probe co `--require-fully-observed`: exit `2` cho unavailable queue, exit `3` cho queue ton tai nhung driver evidence chua day du, va `0` chi khi strict matrix dat. Hai lan doc lien tiep tren Xprinter/Datamax cho cung ticket hash; Xprinter strict fail vi invalid imageable area, Datamax pass.
+- Capability snapshot/probe doc them Print Schema standard features: effective + advertised `PageMediaType` va `OutputQuality`. List rong duoc giu la rong, khong invent default; speed/darkness vendor extension van khong hard-code hay gan nham thanh generic capability.
+- Probe that: Xprinter current ticket co `PageMediaType=Plain` nhung driver advertise media-type list rong; UI danh dau day la current value khong phai selectable capability. Datamax expose rong ca media type va output quality. Cac feature optional nay la diagnostic, khong tu dong block dispatch.
+- Them secure Print Schema feature inventory: parser chi giu Feature QName/namespace, gioi han 2 MiB + 512 identities, prohibit DTD/external entity va khong giu Option/Value/raw XML. Probe that cho Xprinter 5 standard/0 private features; Datamax 6 standard/0 private (them `PageResolution`). Khong co evidence de map darkness/speed thanh generic setting; tiep tuc de driver preferences/DEVMODE vendor so huu.
+
+### NiceLabel Print Preview architecture research (2026-09-14)
+
+- Chương 5 của NiceLabel xác nhận Print Preview là printing form gồm printer, prompted/database data, record selection, quantity, copies, sets, skipped first-page slots và physical page preview; không chỉ là ảnh của một tem.
+- Kiến trúc đích được ghi tại `docs/NICELABEL_PRINT_PREVIEW_ARCHITECTURE.md`: immutable preview session input, explicit `QuantityPlan`, deterministic label-instance sequence, physical page/roll composer, trust state và một prepared-snapshot handoff duy nhất sang dispatch.
+- Giữ các reliability contract hiện có: shared compiled scene/renderer, effective PrintTicket trên STA, stale-operation rejection, LRU raster cache, per-row preflight, source freshness, manifest/hash và last-mile dispatch revalidation.
+- Khoảng trống P0: preview đang giữ live mutable template; label/page đang bị đồng nhất; copies bị flatten mất set/copy/slot identity; readiness phân tán qua nhiều bool/issue thay vì một trust state.
+- Migration giữ `PrintPreviewWindow` làm host nhưng chuyển policy/orchestration khỏi giant code-behind; không tạo renderer hoặc dispatch path thứ hai. Phase đầu là pure contracts, chưa đổi UI/runtime trong đợt nghiên cứu này.
+- Mọi UI implementation tiếp theo phải vẽ state-specific trong Figma trước, sau đó kiểm chứng runtime/UIA; Text/TextBox protected contract không thay đổi.
+- Product scope được chốt là luồng cơ bản và tin cậy: thiết kế tem → Excel → field binding → chọn dòng/copies → barcode preflight → preview → đúng queue/media/DPI → dispatch/audit. ANLAbel không nhằm sao chép toàn bộ NiceLabel PowerForms.
+- Không ưu tiên custom printing forms, scripting/action graph, prompted-variable phức tạp, multi-label sheet/labels-across, skipped slots, physical-page quantity, label sets, unlimited data, Store/Recall hoặc connector ngoài Excel/CSV khi chưa có nhu cầu sản xuất cụ thể.
+- Mặc định kiến trúc và UI là một label mỗi feed/page; chỉ giữ stable source-row/copy identity. Ưu tiên tuyệt đối: không sai dữ liệu, barcode quét ổn định, đúng printer/media/DPI, preview-print cùng snapshot và không báo thành công/in trùng sai.
+
+### NiceLabel JOB command file & execution architecture (2026-09-14)
+
+- Đọc và phân tích toàn bộ Chương 9.1 `Command Files` (đặc biệt mục 9.1.1 `JOB Command File`) trong `ug-NiceLabel_2019_PowerForms_User_Guide-en.md`.
+- File kịch bản `.job` là giao thức tích hợp công nghiệp chuẩn của NiceLabel dành cho ERP (SAP, Oracle, Infor), MES và WMS để in nhãn tự động qua cơ chế file drop hoặc pipeline.
+- Tập lệnh NiceLabel JOB gồm 18 lệnh cốt lõi: `LABEL`, `PRINTER`, `SET`, `CLEARVARIABLEVALUES`, `PRINT`, `PORT`, `PRINTJOBNAME`, `SETPRINTPARAM`, `SESSIONSTART`, `SESSIONPRINT`, `SESSIONEND`, `IGNOREERROR`, `CREATEFILE`, `DELETEFILE`, `TEXTQUALIFIER`, `COMMENT (;)`.
+- Chốt tài liệu kiến trúc và lộ trình thực thi tại `docs/NICELABEL_JOB_COMMAND_ARCHITECTURE.md`.
+- Nguyên tắc thiết kế:
+  1. Bảo vệ nghiêm ngặt hợp đồng `Text / TextBox` theo `AGENTS.md` (không đổi ownership, frame size, padding, clipping hay layout renderer).
+  2. Parser phân tích cú pháp bất biến (Immutable AST: `IJobCommand`), hỗ trợ quoted strings, escape `\r\n` và text qualifiers.
+  3. Context state machine quản lý biến, counter (`step`/`repetitions`), template active, máy in active và trạng thái phiên gom nhãn `SESSION`.
+  4. Lập kế hoạch in (`JobExecutionPlanner`) chuyển đổi các lệnh thành `PrintIntent` và `DataRecord` có cấu trúc.
+  5. Fail-closed: Mọi lệnh sai cú pháp, template không tồn tại, printer queue offline/unavailable hoặc preflight vi phạm (barcode, missing field) đều dừng ngay và báo lỗi, trừ khi có cờ `IGNOREERROR on`.
+  6. Tích hợp trực tiếp với `PrintPreflightValidator`, `IPrinterQueueLookup`, `PrintService` (dedicated STA) và lưu vết audit bất biến vào `AutomationJobHistoryStore`.
+- Lộ trình 5 Phase:
+  - Phase 1: Pure Contracts & Parser (`ANLAbel.Core.Automation.Job`).
+  - Phase 2: Execution Context & Planning Engine.
+  - Phase 3: Preflight & Print Dispatch Pipeline.
+  - Phase 4: File-Drop Automation Watcher & Durable History.
+  - Phase 5: Regression Gates & Integration Fixtures.

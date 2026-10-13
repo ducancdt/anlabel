@@ -6,6 +6,12 @@ Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDU
 
 ## Before you start
 
+Read [AGENTS.md](AGENTS.md), the [core standard](docs/CORE_SOFTWARE_STANDARD.md)
+and [reference policy](docs/REFERENCE_POLICY.md). Industrial reliability and
+simple operator workflows take priority over feature breadth. NiceLabel
+research and Figma recreations do not define a parity backlog. Prefer a fix
+with observable workflow evidence over speculative architecture expansion.
+
 1. Search existing issues and pull requests to avoid duplicate work.
 2. Open an issue before starting a large behavioral or architectural change.
 3. Do not include customer names, part numbers, production data, activation keys, credentials, or proprietary label templates.

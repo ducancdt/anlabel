@@ -1,5 +1,10 @@
 # Tầm nhìn sản phẩm ANLAbel Next
 
+> Tầm nhìn lịch sử, không là phạm vi triển khai hiện hành. Áp dụng
+> [product contract](../LOCAL_LABEL_PRODUCT_CONTRACT.md) và
+> [reference policy](../REFERENCE_POLICY.md): tin cậy công nghiệp, đơn giản,
+> dễ dùng; không tự mở rộng theo enterprise suite.
+
 ## 1. Định vị
 
 ANLAbel Next không cố trở thành bản sao rút gọn của NiceLabel hoặc BarTender. Sản phẩm sẽ chiếm khoảng trống giữa công cụ thiết kế tem đơn giản và enterprise labeling suite:

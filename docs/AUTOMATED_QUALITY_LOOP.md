@@ -2,10 +2,16 @@
 
 Prove the shipped local label app still works. That is the only quality claim.
 
+For documentation/rule/skill-only changes, validate scope, links and conflicting
+instructions; preserve protected contracts. No build, mutation run or version
+bump is required unless executable behavior also changes. For code, use the
+gates below and test the actual operator failure/recovery path. Test counts
+and mutation scores alone do not prove reliable or simple operation.
+
 A **90% mutation score** on the configured label-safety files is the blocking
 proxy. It is not a physical print certificate.
 
-Current public version `0.276`. Thresholds stay `high/low/break = 90`. New
+Current public version `0.306`. Thresholds stay `high/low/break = 90`. New
 files join the mutate list only after the combined score stays at least 90.
 
 ```text

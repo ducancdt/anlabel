@@ -1,5 +1,36 @@
 # Repository guardrails
 
+## Product direction and agent workflow
+
+ANLAbel is industrial label software: reliable output and data preservation
+first, then simple, understandable operation. Feature count and NiceLabel
+parity are not success criteria.
+
+- Follow the current user request, this file's protected contracts, then
+  `docs/LOCAL_LABEL_PRODUCT_CONTRACT.md` and `docs/CORE_SOFTWARE_STANDARD.md`.
+  `docs/reinvention/07-execution-plan.md` is the live plan. Older plans,
+  competitor research, screenshots and Figma recreations do not create work.
+- NiceLabel is a reference only. Adopt a feature only for a concrete ANLAbel
+  operator need within the core scope, with a reliability benefit and a
+  practical acceptance check. See `docs/REFERENCE_POLICY.md`.
+- Diagnose reported failures from the current build, input and logs before
+  proposing architecture changes. Implement through the existing path; avoid
+  new frameworks, agents, services or screens without a demonstrated need.
+- Reliability includes availability and understandable recovery. Do not turn
+  every missing driver metadata field into a blocking error. Distinguish
+  unsafe output, uncertain dispatch and advisory diagnostics using the core
+  standard. Never bypass an existing safety contract just to make printing pass.
+- Present the problem, affected row/object/job and next useful action in plain
+  language. Group repeated diagnostics; keep technical hashes in details/logs.
+- Verify in proportion to the change. Keep required safety gates; documentation
+  edits need consistency/link checks, not a version bump or physical print.
+  Report what was verified and what remains unverified.
+- Use the repository skill `.agents/skills/anlabel-industrial-core/SKILL.md`
+  for product/rule reviews and cross-cutting reliability work. Routine fixes
+  do not require a new audit program or another agent.
+
+This direction does not alter the protected Text/TextBox contract below.
+
 ## Protected Text / TextBox contract
 
 The Text/TextBox behavior below is user-approved and must be treated as a protected product contract, not as refactoring latitude.
@@ -53,3 +84,9 @@ The custom regression suite must continue to pass these named gates:
 - `designer preview row keeps object geometry`
 
 See `PLAN.md` under `Text / TextBox industrial contract` and `docs/NICELABEL_TEXTBOX_RESEARCH.md` for the decision record and research basis.
+
+## Gemini / Antigravity Contributor Attribution
+
+Khi thực hiện thay đổi mã nguồn, tài liệu hoặc audit bởi tác tử Gemini (Antigravity):
+- Sau mỗi phiên code sửa đổi hoặc trong báo cáo thực thi / audit log (như `CORE_STANDARD_EVIDENCE_AUDIT.md`), phải để rõ tên định danh: `[Agent: Gemini / Antigravity]`.
+- Mọi phản hồi tổng kết phiên làm việc phải đính kèm chữ ký định danh này để minh bạch nguồn gốc thay đổi và bảo đảm truy vết phiên làm việc.

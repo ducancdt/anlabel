@@ -103,28 +103,29 @@ tiếng Anh bị bỏ" chỉ đúng khi scanner xanh.
 6. Cổng đóng khi: scanner xanh + build xanh + unit/integration xanh trên toàn
    bộ 26 file XAML và các chuỗi C# hiển thị.
 
-## 5b. Tiến độ (cập nhật liên tục)
+## 5b. Tiến độ (Đã hoàn thành 100%)
 
-- **Đã enforce xanh: 22/26 file XAML** — toàn bộ chuỗi hiển thị đã 100% tiếng
+- **Đã enforce xanh: 26/26 file XAML** — toàn bộ chuỗi hiển thị đã 100% tiếng
   Việt có dấu, scanner FAIL nếu tái xuất tiếng Anh: MainWindow, PrintPreview,
   PrinterSetup, DatabaseManager, LocalMaintenance, DataWorkspace, ExcelImport,
   OperationsOverview, PrintQueueConsole, PrintCenter, PrintHistory,
   TemplateRevision, AutomationConfiguration, Automation, DocumentLibrary,
   Analytics, DataSourceCleanup, DocumentWorkflow, ExcelHeaderRow, NewTemplate,
-  ExcelSheet, TemplateLibrary. (~600 chuỗi.)
-- **Còn lại:** `HelpWindow.xaml` (nút chuyển "English/Tiếng Việt") và
-  `SettingsWindow.xaml` — thuộc **khung song ngữ**, xử lý cùng bước thu đơn ngữ.
-  Rồi tới **chuỗi C# hiển thị** (`MessageBox.Show`, tiêu đề cửa sổ, chuỗi trạng
-  thái). Con số sống ở dòng `[Việt hóa]` khi chạy runner.
-- **Thu khung song ngữ về đơn ngữ Việt:** bỏ bảng `En` trong `UiCatalog`, bỏ
-  `UiLanguage` + nút chuyển; cập nhật hai test `ui catalog matching en/vi keys`
-  và `settings bilingual radios`.
-- **Công cụ:** `scripts/viethoa_apply.py <xaml> <map.py>` (thay thế neo theo
-  dòng+thuộc tính, an toàn với enum WPF). Mỗi file một `scripts/map_*.py`.
-- **Cạm bẫy đã gặp:** vài test khớp cứng nhãn tiếng Anh → phải cập nhật theo nhãn
-  Việt (padding presets, header tab máy in, mốc cắt `Text="Căn"` trong
-  TextStylePicker). `git stash pop` khi `core.autocrlf=true` lật LF→CRLF, làm test
-  đọc raw bytes (`\n`) đứt — khôi phục LF cho file bị lật.
+  ExcelSheet, TemplateLibrary, HelpWindow, SettingsWindow, QuickPrintWindow,
+  ThermalPrintWindow. Toàn bộ chuỗi hiển thị đã được chuẩn hóa.
+- **Thu khung song ngữ về đơn ngữ Việt:** Đã bỏ bảng `En` trong `UiCatalog`,
+  `UiPreferencesService` luôn cung cấp tiếng Việt chuẩn; cập nhật các bài kiểm
+  tra cấu hình sang đơn ngữ chuẩn công nghiệp.
+- **Chuỗi C# hiển thị:** Đã Việt hóa 100% hộp thoại `MessageBox.Show`, tiêu đề
+  cửa sổ, chuỗi trạng thái (`StatusText`, `PrinterStatusText`, `PrinterQueueStatusText`,
+  `PreviewTrustStatusText`), cảnh báo kích thước module mã vạch, thông báo xác
+  thực liên kết Excel và ràng buộc công thức trong `MainViewModel.cs`,
+  `PrintPreviewWindow.xaml.cs`, `PrintPreviewWindow.Async.cs`.
+- **Bảo toàn hợp đồng cốt lõi:** Tuyệt đối giữ nguyên hợp đồng `Text/TextBox`
+  (Invariant 1-10 trong `AGENTS.md`), giữ nguyên placeholder mặc định `"Text Box"`.
+- **Kiểm thử:** Toàn bộ test suite unit test và custom regression gates đều PASS.
+
+*(Cập nhật bởi: [Agent: Gemini / Antigravity])*
 
 ## 6. Cấm — để không phá chức năng
 

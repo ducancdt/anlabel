@@ -1,5 +1,9 @@
 ﻿# NiceLabel Control Center 2019 — User Guide (Markdown)
 
+> Reference status (2026-09-15): competitor research, not a full implementation
+> requirement or parity backlog. Apply [reference policy](REFERENCE_POLICY.md)
+> and [core standard](CORE_SOFTWARE_STANDARD.md) to select ANLAbel core behavior.
+
 **Source PDF:** `ug-NiceLabel_Control_Center-en.pdf` (On-premise Edition, Rev-2020-11) — typically at repo root or `H:\00_REPOS_PROJECTS\ANLABEL\`  
 **Conversion:** Full text extract + UI page renders for research / Figma recreation  
 **Asset folder:** `docs/assets/nicelabel-control-center/ui-screens/` (155 files: full-page renders + embedded UI crops)  

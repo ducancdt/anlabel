@@ -2,6 +2,10 @@
 
 `agent.md` / `AGENTS.md` win if this file disagrees.
 
+Product decisions prioritize reliable industrial labels and simple operation.
+Follow [core standard](../CORE_SOFTWARE_STANDARD.md) and
+[reference policy](../REFERENCE_POLICY.md). NiceLabel parity is not a gate.
+
 ## Stability
 
 1. Document changes go through an explicit command or user edit. Render,
@@ -17,3 +21,9 @@
    version, projections in sync.
 
 Changing a live rule needs an ADR in `DECISIONS.md`.
+
+Keep work proportional: diagnose operational failures before adding structure;
+group repeated errors and give one useful next action. Optional metadata gaps
+are not automatically blocking defects. Preserve output safety and never
+automatically retry an uncertain dispatch. Documentation-only slices check
+consistency and links without changing the public application version.

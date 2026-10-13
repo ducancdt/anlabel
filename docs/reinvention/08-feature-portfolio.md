@@ -1,5 +1,9 @@
 # Danh mục tính năng và ưu tiên
 
+> Danh mục nghiên cứu lịch sử, không phải backlog. Điểm số và thứ tự bên dưới
+> không tạo yêu cầu triển khai. Chọn việc theo [live plan](07-execution-plan.md)
+> và [reference policy](../REFERENCE_POLICY.md), ưu tiên lỗi vận hành lõi.
+
 ## 1. Cách chấm
 
 - **Impact:** giảm lỗi vật lý, tăng tốc workflow, mở rộng sản phẩm.

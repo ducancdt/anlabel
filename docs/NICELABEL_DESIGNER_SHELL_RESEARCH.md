@@ -1,8 +1,12 @@
 # NiceLabel Designer main-shell research → ANLAbel Figma recreation
 
+> Reference status (2026-09-15): competitor research, not a full implementation
+> requirement or parity backlog. Apply [reference policy](REFERENCE_POLICY.md)
+> and [core standard](CORE_SOFTWARE_STANDARD.md) to select ANLAbel core behavior.
+
 **Research date:** 2026-08-11  
 **Scope:** Full **Desktop Designer main window shell** (workspace chrome). Not every NiceLabel modal, PowerForms, or Dynamic Data Manager surface.  
-**Account used for Figma:** `owner@example.invalid` (plan `An Duong Duc's team`)  
+**Account used for Figma:** `andd@REDACTED-13.com.vn` (plan `An Duong Duc's team`)  
 **Path used:** Official Loftware Help + Figma MCP write into a dedicated design file.
 
 ## Official NiceLabel / Loftware sources

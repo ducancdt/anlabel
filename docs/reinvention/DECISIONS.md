@@ -2,6 +2,69 @@
 
 Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 
+## ADR-022 — Cải tổ tập trung lõi: khóa nền, gọn phạm vi, ổn định trước tính năng
+
+- Status: Accepted (2026-10-13: chủ sản phẩm chỉ thị thực thi theo phương án đề xuất)
+- Date: 2026-10-13
+- Context: Khảo sát ngày 2026-10-13 ([`13-ke-hoach-cai-to-loi.md`](13-ke-hoach-cai-to-loi.md) §2) cho thấy:
+  - Worktree có 184 mục chưa commit. Bản cài là 0.266 trong khi nguồn là 0.306; 0.289–0.305 không có changelog.
+  - Tạo mới, Mở và Đóng không hỏi lưu. Không có bắt lỗi toàn cục, không tự lưu. 8 lệnh bất đồng bộ chỉ ghi lỗi vào `Debug`.
+  - Nhật ký job có thể chặn mọi lệnh in. Mọi lệnh in thành công vẫn nằm trong "Xem lại".
+  - 9 cửa sổ không còn đường mở; khoảng 5.100 dòng automation/JOB chỉ test gọi tới.
+  - AGY dispatcher lấy việc từ tài liệu lịch sử và ngoài phạm vi.
+  - 32/32 ID của quy chuẩn lõi đang *Not verified*.
+
+  ADR-021 đã chốt hướng "tin cậy, đơn giản", nhưng quy trình làm việc chưa đưa hướng đó vào thực tế.
+- Decision:
+  - `13-ke-hoach-cai-to-loi.md` là chương trình hiện hành của live plan. Checklist §9 của nó là nguồn việc duy nhất cho người, agent và dispatcher.
+  - Mỗi lát công việc chỉ thuộc một trong bốn loại: sửa lỗi lõi tái hiện được, gỡ phức tạp ngoài lõi, đóng một ID bằng test/fixture, chẩn đoán vận hành.
+  - Thứ tự: khóa nền → gọn phạm vi → vòng đời file → Designer và Excel/CSV → mã vạch, xem trước và in → nghiệm thu thật.
+  - Các thay đổi phạm vi, version, dispatcher và chính sách cảnh báo in chỉ có hiệu lực theo từng QĐ-1…QĐ-12 sau khi chủ sản phẩm duyệt.
+- Alternatives:
+  - Tiếp tục sửa lỗi lẻ trên worktree chưa bảo toàn: rủi ro mất việc và không truy vết được.
+  - Viết lại designer hoặc shell: rủi ro cao và trái ADR-002.
+  - Chỉ ẩn tính năng ngoài lõi: vẫn tốn công bảo trì, dịch và test.
+- Consequences:
+  - Tạm dừng mọi tính năng mới trong thời gian chương trình chạy.
+  - Một số cửa sổ và mã ngoài lõi rời bản phát hành (nếu duyệt), và khôi phục được qua git.
+  - Thêm tiêu chí vòng đời file F01–F07 vào quy chuẩn lõi (nếu duyệt QĐ-9).
+- Migration/rollback:
+  - Mỗi lần gỡ là một commit riêng, có thể revert.
+  - Không đổi schema `.anlabel`, không đổi hợp đồng Text/TextBox, không nới cổng an toàn in.
+  - Mẫu cũ phải mở, lưu và xem trước như trước (gate round-trip).
+  - Thay đổi chính sách runtime (QĐ-10, QĐ-12) cần ca tái hiện, lý do an toàn và regression riêng.
+- Evidence required:
+  - Các chỉ số ở §6 của kế hoạch.
+  - Fast xanh sau mỗi lát.
+  - Round-trip toàn bộ mẫu thư viện và mẫu thật.
+  - Dispatcher dry-run chỉ liệt kê việc của §9.
+  - Chạy test không đổi file nào trong thư mục dữ liệu thật của người dùng.
+
+## ADR-021 — Tin cậy công nghiệp, thao tác đơn giản, tham chiếu chọn lọc
+
+- Status: Accepted
+- Date: 2026-09-15
+- Context: Người dùng xác nhận độ tin cậy cao và dễ dùng luôn là mục đích;
+  kế hoạch cạnh tranh và rule lịch sử có thể làm lệch sang sao chép tính năng.
+- Decision: Product contract và core standard là phạm vi hiện hành. NiceLabel
+  chỉ là tham chiếu theo `../REFERENCE_POLICY.md`. Ưu tiên lỗi vận hành lõi,
+  dữ liệu/đầu ra đúng, phục hồi rõ ràng; không đo chất lượng bằng số tính năng
+  hoặc số lần chặn in. Thiếu metadata không thiết yếu cần phân loại, không tự
+  suy ra lỗi chặn; không bỏ kiểm tra an toàn hay retry kết quả chưa rõ.
+- Supersedes: phần mở rộng cloud/server mặc định của ADR-001; các đề xuất
+  SQLite/typed data graph/Control Center không còn là backlog mặc định.
+  ADR-020 và rule 11 trong `agent.md` không còn cấm đọc capability driver:
+  dùng adapter hiện có, kiểm tra nguồn gốc/đơn vị và giữ preset tách capability.
+  Giữ nguyên named queue, Text/TextBox, chống in trùng và bằng chứng đầu ra.
+- Alternatives: full NiceLabel parity hoặc chặn mọi khoảng trống metadata đều
+  không đáp ứng mục tiêu đơn giản và tin cậy.
+- Migration/rollback: chỉ cập nhật hướng dẫn và phân loại tài liệu; không sửa
+  runtime, schema, template hoặc thiết lập máy in. Giữ lịch sử để truy vết.
+  Bất kỳ thay đổi policy runtime tiếp theo cần evidence và regression riêng.
+- Evidence required: các entrypoint cùng trỏ về phạm vi lõi; skill/rule không
+  tự mở rộng tính năng; link hợp lệ; protected contract giữ nguyên. Hoàn tất
+  tài liệu không có nghĩa đã nghiệm thu độ tin cậy runtime hoặc tem thật.
+
 | ID | Trạng thái | Quyết định | Lý do chính | Điều kiện xem lại |
 | --- | --- | --- | --- | --- |
 | ADR-001 | Accepted | Local-first là mặc định; server/cloud là optional module | phù hợp xưởng nhỏ, offline, GPL và giảm vận hành | có nhu cầu collaboration đa site được chứng minh |
