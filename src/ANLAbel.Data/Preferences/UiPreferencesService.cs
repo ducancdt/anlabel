@@ -81,9 +81,6 @@ public sealed class UiPreferencesService
             Directory.CreateDirectory(directory);
         }
 
-        var temporaryPath = _filePath + ".tmp";
-        var json = JsonSerializer.Serialize(new UiPreferences { Language = ToStorage(language) }, JsonOptions);
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _filePath, overwrite: true);
+        AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(new UiPreferences { Language = ToStorage(language) }, JsonOptions));
     }
 }

@@ -86,7 +86,7 @@ public static class ProjectRevisionArchive
                 committed,
                 eventName: "Archived",
                 cancellationToken);
-            await TrimAsync(sourcePath, retentionCount, cancellationToken);
+            await TrimAsync(sourcePath, retentionCount, cancellationToken, keepPath: finalPath);
             return committed;
         }
         finally
@@ -195,7 +195,8 @@ public static class ProjectRevisionArchive
     public static async Task TrimAsync(
         string filePath,
         int retentionCount = DefaultRetentionCount,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? keepPath = null)
     {
         if (retentionCount < 1)
         {
@@ -213,13 +214,32 @@ public static class ProjectRevisionArchive
             .OrderByDescending(file => file.LastWriteTimeUtc)
             .ThenByDescending(file => file.Name, StringComparer.Ordinal)
             .ToArray();
-        foreach (var stale in files.Skip(retentionCount))
+        // The snapshot just written always stays: with a clock set back it
+        // would otherwise sort as the oldest and be deleted at once (audit
+        // 2026-10-13). Cleanup is best effort: a file that cannot be deleted
+        // (read-only, locked) must not fail the save that archived.
+        var keep = keepPath is null ? null : Path.GetFullPath(keepPath);
+        bool IsKept(FileInfo file) => keep is not null && string.Equals(file.FullName, keep, StringComparison.OrdinalIgnoreCase);
+        var othersToKeep = retentionCount - (files.Any(IsKept) ? 1 : 0);
+        var kept = 0;
+        foreach (var file in files)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsKept(file) || ++kept <= othersToKeep)
+            {
+                continue;
+            }
+
             // The directory is derived from the explicit primary path and the
             // glob is restricted to archive documents; no broad cleanup is
             // attempted here.
-            stale.Delete();
+            try
+            {
+                file.Delete();
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+            }
         }
     }
 

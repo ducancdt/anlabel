@@ -20,7 +20,7 @@ public static class CrashReporter
         try
         {
             Directory.CreateDirectory(AppDataPaths.LogsDirectory);
-            var path = AppDataPaths.Log($"crash-{DateTime.Now:yyyyMMdd-HHmmss}-{Environment.ProcessId}.log");
+            var path = AppDataPaths.Log($"crash-{DateTime.Now:yyyyMMdd-HHmmss-fff}-{Environment.ProcessId}-{Guid.NewGuid().ToString("N")[..8]}.log");
             File.WriteAllText(path, Describe(exception, context));
             PruneCrashLogs();
             return path;

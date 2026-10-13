@@ -62,9 +62,6 @@ public sealed class DesignerPreferencesService
             Directory.CreateDirectory(directory);
         }
 
-        var temporaryPath = _filePath + ".tmp";
-        var json = JsonSerializer.Serialize(preferences, JsonOptions);
-        File.WriteAllText(temporaryPath, json);
-        File.Move(temporaryPath, _filePath, overwrite: true);
+        AtomicFile.WriteAllText(_filePath, JsonSerializer.Serialize(preferences, JsonOptions));
     }
 }

@@ -210,7 +210,51 @@ public sealed class PrintLogService
                 }.Select(EscapeCsvField)));
             }
 
-            File.AppendAllText(LogFilePath, builder.ToString(), Encoding.UTF8);
+            AppendDurably(LogFilePath, builder.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Appends history rows so another ANLAbel window writing at the same time,
+    /// or a line cut off by power loss, cannot lose or merge records (audit
+    /// 2026-10-13).
+    /// </summary>
+    private static void AppendDurably(string path, string text)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            // Only opening is retried. A failed write (disk full) is not
+            // repeated, so it cannot leave a half row followed by a copy.
+            FileStream stream;
+            try
+            {
+                stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read, 4096, FileOptions.WriteThrough);
+            }
+            catch (IOException exception) when (attempt < 5 && AtomicFile.IsSharingViolation(exception))
+            {
+                Thread.Sleep(100);
+                continue;
+            }
+
+            using (stream)
+            {
+                if (stream.Length > 0)
+                {
+                    stream.Seek(-1, SeekOrigin.End);
+                    if (stream.ReadByte() != '\n')
+                    {
+                        stream.WriteByte((byte)'\n');
+                    }
+                }
+
+                var bytes = stream.Length == 0
+                    ? Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(text)).ToArray()
+                    : Encoding.UTF8.GetBytes(text);
+                stream.Seek(0, SeekOrigin.End);
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Flush(flushToDisk: true);
+                return;
+            }
         }
     }
 

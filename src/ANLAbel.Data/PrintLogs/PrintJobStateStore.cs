@@ -651,16 +651,37 @@ public sealed class PrintJobStateStore
 
         var line = JsonSerializer.Serialize(stateEvent, JsonOptions) + Environment.NewLine;
         var bytes = Encoding.UTF8.GetBytes(line);
-        await using var stream = new FileStream(
-            LogFilePath,
-            FileMode.Append,
-            FileAccess.Write,
-            FileShare.Read,
-            bufferSize: 4096,
-            options: FileOptions.Asynchronous | FileOptions.WriteThrough);
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
-        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-        return bytes.Length;
+        // Another ANLAbel window may be appending this instant; a short retry
+        // keeps its sharing violation from dropping this job's evidence
+        // (audit 2026-10-13). Only opening is retried: a failed write (disk
+        // full) is not repeated, so it cannot leave a half line and a copy.
+        for (var attempt = 1; ; attempt++)
+        {
+            FileStream stream;
+            try
+            {
+                stream = new FileStream(
+                    LogFilePath,
+                    FileMode.Append,
+                    FileAccess.Write,
+                    FileShare.Read,
+                    bufferSize: 4096,
+                    options: FileOptions.Asynchronous | FileOptions.WriteThrough);
+            }
+            catch (IOException exception) when (attempt < 5 && AtomicFile.IsSharingViolation(exception))
+            {
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            await using (stream)
+            {
+                await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return bytes.Length;
+        }
     }
 
     private static string ComputeHash(PrintJobStateEvent stateEvent)

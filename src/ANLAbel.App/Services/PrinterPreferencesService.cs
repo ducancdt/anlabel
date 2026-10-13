@@ -41,9 +41,9 @@ public sealed class PrinterPreferencesService
     {
         try
         {
-            Directory.CreateDirectory(PreferencesDir);
-            var json = JsonSerializer.Serialize(preferences, JsonOptions);
-            File.WriteAllText(PreferencesPath, json);
+            // Atomic replace: a crash must not leave a truncated file that then
+            // silently loads as defaults (audit 2026-10-13).
+            ANLAbel.Data.AtomicFile.WriteAllText(PreferencesPath, JsonSerializer.Serialize(preferences, JsonOptions));
         }
         catch
         {
