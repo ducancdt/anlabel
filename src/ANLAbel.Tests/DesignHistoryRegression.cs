@@ -165,6 +165,111 @@ internal static class DesignHistoryRegression
         return Task.CompletedTask;
     }
 
+    public static Task UndoHistoryKeepsEachImageOnceAndRestoresIt()
+    {
+        var vm = new MainViewModel();
+        var imageData = Convert.ToBase64String(Enumerable.Range(0, 1_500_000).Select(index => (byte)(index * 31)).ToArray());
+        vm.BeginTemplateEditGesture();
+        vm.Template.Objects.Add(new LabelObject { Id = "logo", Type = ObjectType.Image, Name = "Logo", ImageDataBase64 = imageData, XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 10 });
+        vm.CommitTemplateEditGesture();
+        for (var step = 1; step <= 30; step++)
+        {
+            vm.BeginTemplateEditGesture();
+            vm.Template.Objects[0].XMm = 2 + step;
+            vm.CommitTemplateEditGesture();
+        }
+
+        var undo = (Stack<string>)typeof(MainViewModel).GetField("_undoStack", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(vm)!;
+        Require(undo.Count == 31, $"Expected 31 undo steps, found {undo.Count}.");
+        var held = undo.Sum(snapshot => (long)snapshot.Length);
+        Require(held < 31 * 20_000, $"Undo steps must not repeat the 2 MB image: {held:N0} characters held.");
+
+        for (var step = 0; step < 31; step++)
+        {
+            vm.UndoCommand.Execute(null);
+        }
+
+        Require(vm.Template.Objects.Count == 0, "Undo must go back to the empty label.");
+        for (var step = 0; step < 31; step++)
+        {
+            vm.RedoCommand.Execute(null);
+        }
+
+        var restored = vm.Template.Objects.Single();
+        Require(restored.ImageDataBase64 == imageData && restored.XMm == 32, "Redo must restore the exact image data and position.");
+        var recovery = vm.CaptureRecoveryCopy();
+        Require(recovery?.Objects.Single().ImageDataBase64 == imageData, "The recovery copy must carry the full image data, not a history key.");
+        return Task.CompletedTask;
+    }
+
+    public static Task CanvasGestureRefreshesThePropertyPanelOnce()
+    {
+        var vm = new MainViewModel();
+        vm.BeginTemplateEditGesture();
+        vm.Template.Objects.Add(Rectangle("drag", 5));
+        vm.CommitTemplateEditGesture();
+        vm.SelectedObject = vm.Template.Objects[0];
+        var refreshes = 0;
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.SelectedObject))
+            {
+                refreshes++;
+            }
+        };
+
+        vm.BeginTemplateEditGesture();
+        for (var tick = 1; tick <= 100; tick++)
+        {
+            vm.SelectedObject!.XMm = 5 + tick * 0.1;
+            vm.SelectedObject.YMm = 5 + tick * 0.1;
+        }
+
+        Require(refreshes == 0, $"A drag must not refresh the whole property panel on every tick ({refreshes} refreshes).");
+        vm.CommitTemplateEditGesture();
+        Require(refreshes == 1, $"The property panel must refresh once when the drag ends ({refreshes}).");
+
+        vm.SelectedObject!.Rotation = 90;
+        Require(refreshes == 2, "An edit outside a canvas gesture still refreshes the panel immediately.");
+        return Task.CompletedTask;
+    }
+
+    public static Task OversizedOrUnreadableImagesAreRefusedOnInsert()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-image-limit-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var large = Path.Combine(directory, "large.png");
+            using (var stream = File.Create(large))
+            {
+                stream.SetLength(MainViewModel.MaximumImageFileBytes + 1);
+            }
+
+            Require(!MainViewModel.TryReadImageForLabel(large, out _, out var tooLarge)
+                    && tooLarge.Contains("vượt giới hạn 10 MB", StringComparison.Ordinal),
+                "An image file over 10 MB must be refused with the limit: " + tooLarge);
+
+            var notImage = Path.Combine(directory, "notes.png");
+            File.WriteAllText(notImage, "not an image");
+            Require(!MainViewModel.TryReadImageForLabel(notImage, out _, out var unreadable)
+                    && unreadable.StartsWith("Không đọc được ảnh", StringComparison.Ordinal),
+                "A file that is not an image must be refused: " + unreadable);
+
+            var small = Path.Combine(directory, "small.png");
+            File.WriteAllBytes(small, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="));
+            Require(MainViewModel.TryReadImageForLabel(small, out var image, out var problem)
+                    && image.PixelWidth == 1 && image.PixelHeight == 1,
+                "A normal image must be accepted: " + problem);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static LabelObject Rectangle(string id, double x) => new()
     {
         Id = id,

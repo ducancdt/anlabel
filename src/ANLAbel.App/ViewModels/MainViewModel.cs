@@ -63,6 +63,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
     private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
+    private bool _selectedObjectRefreshDeferred;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
     // IsDirty compares the current snapshot with it, so undoing back to the
@@ -116,11 +117,18 @@ public sealed class MainViewModel : ObservableObject
     private int _excelLinkVerifiedRowCount;
     private int _excelLinkVerifiedColumnCount;
 
-    private static readonly JsonSerializerOptions HistoryJsonOptions = new()
+    private static readonly JsonSerializerOptions HistoryJsonBaseOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         Converters = { new JsonStringEnumConverter() }
     };
+
+    // Undo snapshots refer to each embedded image by content key instead of
+    // repeating its base64 data in every step (plan 13 H29).
+    private readonly ImageHistoryPool _historyImages = new();
+    private JsonSerializerOptions? _historyJsonOptions;
+
+    private JsonSerializerOptions HistoryJsonOptions => _historyJsonOptions ??= _historyImages.CreateSnapshotOptions(HistoryJsonBaseOptions);
 
     public MainViewModel()
         : this(new ProjectFileService(), new ExcelDataService(), new PrintService(), new PrinterDiscoveryService(), new PrintLogService(), new DataOperationLogService())
@@ -3144,26 +3152,69 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
+        if (!TryReadImageForLabel(dialog.FileName, out var image, out var problem))
+        {
+            StatusText = problem;
+            return;
+        }
+
+        SelectedObject.ImageDataBase64 = image.Base64;
+        SelectedObject.ImagePixelWidth = image.PixelWidth;
+        SelectedObject.ImagePixelHeight = image.PixelHeight;
+        SelectedObject.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
+        StatusText = $"Đã thay đổi hình ảnh: {SelectedObject.Name}";
+    }
+
+    /// <summary>Largest image file accepted for a label (plan 13 H29).</summary>
+    public const long MaximumImageFileBytes = 10L * 1024 * 1024;
+
+    /// <summary>Largest image accepted for a label, in pixels (plan 13 H29).</summary>
+    public const long MaximumImagePixels = 25_000_000;
+
+    public sealed record LabelImageFile(byte[] Bytes, string Base64, int PixelWidth, int PixelHeight);
+
+    /// <summary>
+    /// Reads an image for a label object. A file that is not a readable image,
+    /// or one far larger than any label can print, is refused with a reason
+    /// instead of slowing every save, undo step and preview (plan 13 H29).
+    /// </summary>
+    public static bool TryReadImageForLabel(string path, out LabelImageFile image, out string problem)
+    {
+        image = new LabelImageFile(Array.Empty<byte>(), string.Empty, 0, 0);
+        var name = Path.GetFileName(path);
         try
         {
-            var base64 = Convert.ToBase64String(File.ReadAllBytes(dialog.FileName));
-            SelectedObject.ImageDataBase64 = base64;
-            if (ImageRasterizer.TryGetPixelDimensions(base64, out var pixelWidth, out var pixelHeight))
+            var length = new FileInfo(path).Length;
+            if (length > MaximumImageFileBytes)
             {
-                SelectedObject.ImagePixelWidth = pixelWidth;
-                SelectedObject.ImagePixelHeight = pixelHeight;
+                problem = $"Ảnh “{name}” nặng {length / 1048576.0:0.#} MB, vượt giới hạn {MaximumImageFileBytes / 1048576} MB cho tem. Hãy thu nhỏ ảnh rồi chèn lại.";
+                return false;
             }
-            else
+
+            var bytes = File.ReadAllBytes(path);
+            var base64 = Convert.ToBase64String(bytes);
+            if (!ImageRasterizer.TryGetPixelDimensions(base64, out var pixelWidth, out var pixelHeight)
+                || pixelWidth <= 0
+                || pixelHeight <= 0)
             {
-                SelectedObject.ImagePixelWidth = 0;
-                SelectedObject.ImagePixelHeight = 0;
+                problem = $"Không đọc được ảnh “{name}”. Hãy chọn tệp PNG, JPG, BMP hoặc GIF hợp lệ.";
+                return false;
             }
-            SelectedObject.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
-            StatusText = $"Đã thay đổi hình ảnh: {SelectedObject.Name}";
+
+            if ((long)pixelWidth * pixelHeight > MaximumImagePixels)
+            {
+                problem = $"Ảnh “{name}” có {pixelWidth} × {pixelHeight} điểm ảnh, vượt giới hạn {MaximumImagePixels / 1_000_000} megapixel cho tem. Hãy thu nhỏ ảnh rồi chèn lại.";
+                return false;
+            }
+
+            image = new LabelImageFile(bytes, base64, pixelWidth, pixelHeight);
+            problem = string.Empty;
+            return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            StatusText = $"Không thể đọc tệp hình ảnh: {ex.Message}";
+            problem = $"Không thể đọc tệp hình ảnh: {ex.Message}";
+            return false;
         }
     }
 
@@ -3180,28 +3231,20 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        byte[] bytes;
-        try
+        if (!TryReadImageForLabel(dialog.FileName, out var image, out var problem))
         {
-            bytes = File.ReadAllBytes(dialog.FileName);
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Không thể đọc tệp hình ảnh: {ex.Message}";
+            StatusText = problem;
             return;
         }
 
-        var (widthMm, heightMm) = GetDefaultImageSizeMm(bytes);
-        var imageBase64 = Convert.ToBase64String(bytes);
-        ImageRasterizer.TryGetPixelDimensions(imageBase64, out var pixelWidth, out var pixelHeight);
-
+        var (widthMm, heightMm) = GetDefaultImageSizeMm(image.Bytes);
         AddObject(new LabelObject
         {
             Type = ObjectType.Image,
             Name = Path.GetFileNameWithoutExtension(dialog.FileName),
-            ImageDataBase64 = imageBase64,
-            ImagePixelWidth = pixelWidth,
-            ImagePixelHeight = pixelHeight,
+            ImageDataBase64 = image.Base64,
+            ImagePixelWidth = image.PixelWidth,
+            ImagePixelHeight = image.PixelHeight,
             XMm = 5,
             YMm = 5,
             WidthMm = widthMm,
@@ -3742,8 +3785,32 @@ public sealed class MainViewModel : ObservableObject
         RecordTemplateChange();
         if (SelectedObject is not null && ReferenceEquals(SelectedObject.Style, sender))
         {
-            OnPropertyChanged(nameof(SelectedObject));
+            RaiseSelectedObjectChanged();
             OnPropertyChanged(nameof(TextBoxValidationMessage));
+        }
+    }
+
+    // Bindings to SelectedObject.X follow the object's own notifications.
+    // Re-raising SelectedObject re-reads every property-panel binding, so
+    // during a canvas drag/resize it is raised once when the gesture ends
+    // instead of on every pointer tick (plan 13 H29).
+    private void RaiseSelectedObjectChanged()
+    {
+        if (_explicitEditGestureActive)
+        {
+            _selectedObjectRefreshDeferred = true;
+            return;
+        }
+
+        OnPropertyChanged(nameof(SelectedObject));
+    }
+
+    private void FlushDeferredSelectedObjectRefresh()
+    {
+        if (_selectedObjectRefreshDeferred)
+        {
+            _selectedObjectRefreshDeferred = false;
+            OnPropertyChanged(nameof(SelectedObject));
         }
     }
 
@@ -3817,7 +3884,7 @@ public sealed class MainViewModel : ObservableObject
         RecordTemplateChange();
         if (ReferenceEquals(sender, SelectedObject))
         {
-            OnPropertyChanged(nameof(SelectedObject));
+            RaiseSelectedObjectChanged();
             if (e.PropertyName is nameof(LabelObject.BindingExpression) or nameof(LabelObject.Text))
             {
                 RaiseFormulaPreviewChanged();
@@ -4481,6 +4548,7 @@ public sealed class MainViewModel : ObservableObject
         _lastTemplateSnapshot = finalSnapshot;
         UpdateDirtyState(finalSnapshot);
         RaiseHistoryCanExecuteChanged();
+        FlushDeferredSelectedObjectRefresh();
     }
 
     /// <summary>
@@ -4506,6 +4574,7 @@ public sealed class MainViewModel : ObservableObject
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
         UpdateDirtyState(_lastTemplateSnapshot);
         RaiseHistoryCanExecuteChanged();
+        FlushDeferredSelectedObjectRefresh();
     }
 
     private void RestoreTemplateSnapshot(string snapshot)
