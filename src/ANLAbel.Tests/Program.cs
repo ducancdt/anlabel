@@ -50,6 +50,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("explorer argument opens only existing documents", DocumentLifecycleRegression.ExplorerArgumentOpensOnlyExistingDocuments),
     ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),
     ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
+    ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("print history regression suite", PrintHistoryRegression.Run),
     ("release version script projects one public version", ReleaseVersionScriptRegression.Run),
     ("mm to WPF DIP conversion", TestMmToDip),

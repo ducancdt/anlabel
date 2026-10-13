@@ -722,16 +722,20 @@ public partial class PrinterSetupWindow : Window
             scaleY = PrintScaleContract.Identity;
         }
 
-        _workingTemplate.PrinterProfile.PrinterName = printer.Name;
-        _workingTemplate.PrinterProfile.OffsetXMm = ReadMm(OffsetXBox, 0);
-        _workingTemplate.PrinterProfile.OffsetYMm = ReadMm(OffsetYBox, 0);
-        _workingTemplate.PrinterProfile.ScaleX = scaleX;
-        _workingTemplate.PrinterProfile.ScaleY = scaleY;
-        _workingTemplate.PrinterProfile.Dpi = ReadDpi();
+        // Plan 13 H21: the calibration print uses an isolated copy. The open
+        // label changes only when the operator confirms the dialog (OK applies
+        // the Selected* values); Cancel must leave it exactly as it was.
+        var calibrationTemplate = PrintSessionTemplateContract.Capture(_workingTemplate);
+        calibrationTemplate.PrinterProfile.PrinterName = printer.Name;
+        calibrationTemplate.PrinterProfile.OffsetXMm = ReadMm(OffsetXBox, 0);
+        calibrationTemplate.PrinterProfile.OffsetYMm = ReadMm(OffsetYBox, 0);
+        calibrationTemplate.PrinterProfile.ScaleX = scaleX;
+        calibrationTemplate.PrinterProfile.ScaleY = scaleY;
+        calibrationTemplate.PrinterProfile.Dpi = ReadDpi();
 
         try
         {
-            var result = await _printService.PrintCalibrationWithResultAsync(_workingTemplate);
+            var result = await _printService.PrintCalibrationWithResultAsync(calibrationTemplate);
             if (!result.IsAccepted)
             {
                 MessageBox.Show(this, result.UserFacingStatus, "Hiệu chỉnh chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
