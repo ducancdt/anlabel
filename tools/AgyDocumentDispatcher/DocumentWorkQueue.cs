@@ -10,11 +10,22 @@ public sealed record DocumentWorkItem(
     string AssignmentText);
 
 /// <summary>
-/// Reads in-repo planning/handoff documents and yields remaining open work
-/// as verbatim excerpts. Selection is pure over file contents.
+/// Reads the live work queue and yields remaining open work as verbatim
+/// excerpts. Selection is pure over file contents.
+/// <para>
+/// Only the open checkboxes in section 9 of the live program
+/// (<see cref="LiveProgramRelativePath"/>) are work. PLAN.md, MASTER_PLAN.md and
+/// the historical handoff/decision packets are history and never create
+/// assignments (ADR-022, plan 13 QĐ-3).
+/// </para>
 /// </summary>
 public static class DocumentWorkQueue
 {
+    public const string LiveProgramRelativePath = "docs/reinvention/13-ke-hoach-cai-to-loi.md";
+
+    /// <summary>Heading prefix of the checklist section inside the live program.</summary>
+    public const string LiveChecklistHeadingPrefix = "## 9.";
+
     private static readonly Regex OpenCheckbox = new(
         @"^\s*[-*]\s+\[\s\]\s+(.+)$",
         RegexOptions.Compiled);
@@ -52,20 +63,7 @@ public static class DocumentWorkQueue
         }
 
         var files = new List<string>();
-        AddIfExists(files, Path.Combine(repoRoot, "PLAN.md"));
-        AddIfExists(files, Path.Combine(repoRoot, "MASTER_PLAN.md"));
-        AddIfExists(files, Path.Combine(repoRoot, "docs", "figma-ui-handoff-template.md"));
-
-        var docs = Path.Combine(repoRoot, "docs");
-        if (Directory.Exists(docs))
-        {
-            foreach (var path in Directory.EnumerateFiles(docs, "*HANDOFF*.md", SearchOption.AllDirectories)
-                         .OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
-            {
-                AddIfExists(files, path);
-            }
-        }
-
+        AddIfExists(files, Path.Combine(repoRoot, LiveProgramRelativePath.Replace('/', Path.DirectorySeparatorChar)));
         return files;
     }
 
@@ -75,7 +73,7 @@ public static class DocumentWorkQueue
         var items = new List<DocumentWorkItem>();
         foreach (var path in ListSourceDocuments(repo))
         {
-            items.AddRange(ExtractFromFile(path, repo));
+            items.AddRange(ExtractFromFile(path, repo, LiveChecklistHeadingPrefix));
         }
 
         return items;
@@ -98,7 +96,14 @@ public static class DocumentWorkQueue
         return null;
     }
 
-    public static IReadOnlyList<DocumentWorkItem> ExtractFromFile(string documentPath, string? repoRoot = null)
+    /// <param name="sectionHeadingPrefix">
+    /// When set, only checkboxes under the level-2 heading that starts with this
+    /// prefix are returned, and the status-line fallback is disabled.
+    /// </param>
+    public static IReadOnlyList<DocumentWorkItem> ExtractFromFile(
+        string documentPath,
+        string? repoRoot = null,
+        string? sectionHeadingPrefix = null)
     {
         var fullPath = Path.GetFullPath(documentPath);
         if (!File.Exists(fullPath))
@@ -113,6 +118,8 @@ public static class DocumentWorkQueue
         string? heading = null;
         string? statusVerbatim = null;
         var statusLooksOpen = false;
+        var sectionFiltered = !string.IsNullOrWhiteSpace(sectionHeadingPrefix);
+        var inSection = !sectionFiltered;
 
         for (var i = 0; i < lines.Length; i++)
         {
@@ -121,6 +128,17 @@ public static class DocumentWorkQueue
             if (trimmed.StartsWith("# ", StringComparison.Ordinal) && heading is null)
             {
                 heading = trimmed;
+            }
+
+            if (sectionFiltered && trimmed.StartsWith("## ", StringComparison.Ordinal))
+            {
+                inSection = trimmed.StartsWith(sectionHeadingPrefix!, StringComparison.Ordinal);
+                continue;
+            }
+
+            if (!inSection)
+            {
+                continue;
             }
 
             var statusMatch = StatusLine.Match(line);
@@ -152,7 +170,7 @@ public static class DocumentWorkQueue
             items.Add(CreateItem(relative, fullPath, i + 1, verbatim, heading));
         }
 
-        if (items.Count == 0 && statusLooksOpen && statusVerbatim is not null)
+        if (!sectionFiltered && items.Count == 0 && statusLooksOpen && statusVerbatim is not null)
         {
             // Keep the excerpt truly verbatim: the Status line is a literal source
             // line, while the document heading is surfaced separately in the

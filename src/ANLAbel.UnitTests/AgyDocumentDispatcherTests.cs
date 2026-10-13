@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AgyDocumentDispatcher;
 using Xunit;
 
@@ -5,31 +6,62 @@ namespace ANLAbel.UnitTests;
 
 public sealed class AgyDocumentDispatcherTests
 {
+    private const string FixtureProgram = """
+        # 13 — Fixture program
+
+        ## 4. Lộ trình
+
+        - [ ] Roadmap prose is not a work item.
+
+        ## 9. Checklist thực thi (nguồn việc duy nhất)
+
+        - [x] 0.1 Already done.
+        - [ ] 0.4 Một nguồn đường dẫn dữ liệu app
+        - [ ] F01 Trạng thái "chưa lưu"
+        - [ ] F02 "Lưu thành…" và phím tắt
+
+        ## 10. After the checklist
+
+        - [ ] Not part of section 9.
+        """;
+
     [Fact]
-    public void SelectNext_FromRealMasterPlan_ContainsVerbatimOpenCheckbox()
+    public void ListSourceDocuments_OnRealRepo_ReturnsOnlyTheLiveProgram()
     {
         var repo = FindRepoRoot();
-        var documentPath = Path.Combine(repo, "MASTER_PLAN.md");
-        Assert.True(File.Exists(documentPath), "MASTER_PLAN.md must exist in the checkout.");
 
-        var documentText = File.ReadAllText(documentPath);
-        var distinctiveLine = documentText
-            .Split(["\r\n", "\n"], StringSplitOptions.None)
-            .Select(line => line.Trim())
-            .FirstOrDefault(line => line.Contains("- [ ]", StringComparison.Ordinal)
-                                    && line.Contains("M4b", StringComparison.Ordinal));
-        Assert.False(string.IsNullOrWhiteSpace(distinctiveLine), "MASTER_PLAN.md lost its open M4b checkbox.");
+        var source = Assert.Single(DocumentWorkQueue.ListSourceDocuments(repo));
 
-        var extracted = DocumentWorkQueue.ExtractFromFile(documentPath, repo);
-        Assert.NotEmpty(extracted);
+        Assert.EndsWith("13-ke-hoach-cai-to-loi.md", source, StringComparison.OrdinalIgnoreCase);
+    }
 
-        var assignment = Assert.Single(extracted, item =>
-            item.VerbatimPhrase.Contains("M4b", StringComparison.Ordinal));
-        Assert.False(string.IsNullOrWhiteSpace(assignment.AssignmentText));
-        Assert.Contains(distinctiveLine, assignment.VerbatimPhrase, StringComparison.Ordinal);
-        Assert.Contains(assignment.VerbatimPhrase, documentText, StringComparison.Ordinal);
-        Assert.Contains(assignment.VerbatimPhrase, assignment.AssignmentText, StringComparison.Ordinal);
-        Assert.EndsWith("MASTER_PLAN.md", assignment.SourcePath, StringComparison.OrdinalIgnoreCase);
+    [Fact]
+    public void Load_OnRealRepo_NeverQueuesHistoryOrHandoffDocuments()
+    {
+        var repo = FindRepoRoot();
+        var program = Path.Combine(repo, DocumentWorkQueue.LiveProgramRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var lines = File.ReadAllLines(program);
+        var checklistLine = Array.FindIndex(lines, line => line.StartsWith(DocumentWorkQueue.LiveChecklistHeadingPrefix, StringComparison.Ordinal)) + 1;
+        Assert.True(checklistLine > 0, "The live program lost its section 9 checklist.");
+
+        Assert.All(DocumentWorkQueue.Load(repo), item =>
+        {
+            Assert.Equal(Path.GetFullPath(program), item.SourcePath, StringComparer.OrdinalIgnoreCase);
+            Assert.True(item.LineNumber > checklistLine, $"Item at line {item.LineNumber} is outside section 9.");
+            Assert.StartsWith("- [ ]", item.VerbatimPhrase, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void ExtractFromFile_WithSection_ReturnsOnlyOpenItemsOfThatSection()
+    {
+        using var fixture = new FixtureRepo(FixtureProgram);
+
+        var items = DocumentWorkQueue.ExtractFromFile(fixture.ProgramPath, fixture.Root, DocumentWorkQueue.LiveChecklistHeadingPrefix);
+
+        Assert.Equal(
+            new[] { "- [ ] 0.4 Một nguồn đường dẫn dữ liệu app", "- [ ] F01 Trạng thái \"chưa lưu\"", "- [ ] F02 \"Lưu thành…\" và phím tắt" },
+            items.Select(item => item.VerbatimPhrase).ToArray());
     }
 
     [Fact]
@@ -74,28 +106,29 @@ public sealed class AgyDocumentDispatcherTests
     }
 
     [Fact]
-    public void SelectNext_OnRepoDocuments_AssignmentQuotesItsSourceFile()
+    public void SelectNext_OnFixtureRepo_AssignmentQuotesItsSourceFile()
     {
-        var repo = FindRepoRoot();
-        var next = DocumentWorkQueue.SelectNext(repo);
-        Assert.NotNull(next);
-        Assert.False(string.IsNullOrWhiteSpace(next!.AssignmentText));
-        Assert.True(File.Exists(next.SourcePath));
+        using var fixture = new FixtureRepo(FixtureProgram);
 
+        var next = DocumentWorkQueue.SelectNext(fixture.Root);
+
+        Assert.NotNull(next);
+        Assert.Equal("- [ ] 0.4 Một nguồn đường dẫn dữ liệu app", next!.VerbatimPhrase);
         var sourceText = File.ReadAllText(next.SourcePath);
         Assert.Contains(next.VerbatimPhrase, sourceText, StringComparison.Ordinal);
         Assert.Contains(next.VerbatimPhrase, next.AssignmentText, StringComparison.Ordinal);
+        Assert.Contains(DocumentWorkQueue.LiveProgramRelativePath, next.AssignmentText, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Assemble_UsesAgyInSameGitToplevel_WithoutWorktreeSwitch()
     {
-        var repo = FindRepoRoot();
-        var next = DocumentWorkQueue.SelectNext(repo);
+        using var fixture = new FixtureRepo(FixtureProgram);
+        var next = DocumentWorkQueue.SelectNext(fixture.Root);
         Assert.NotNull(next);
 
-        var invocation = AgyWorkerAssembler.Assemble(repo, next!);
-        var toplevel = GitToplevel.Resolve(repo);
+        var invocation = AgyWorkerAssembler.Assemble(fixture.Root, next!);
+        var toplevel = GitToplevel.Resolve(fixture.Root);
 
         Assert.Equal(toplevel, invocation.WorkingDirectory, StringComparer.OrdinalIgnoreCase);
         Assert.Contains("agy", Path.GetFileName(invocation.FileName), StringComparison.OrdinalIgnoreCase);
@@ -109,8 +142,10 @@ public sealed class AgyDocumentDispatcherTests
     [Fact]
     public void DispatchLoop_DryRunTwoCycles_AdvancesRemainingDocumentTasks()
     {
-        var repo = FindRepoRoot();
-        var cycles = AgyDispatchLoop.Run(new DispatchOptions(repo, MaxCycles: 2, DryRun: true));
+        using var fixture = new FixtureRepo(FixtureProgram);
+
+        var cycles = AgyDispatchLoop.Run(new DispatchOptions(fixture.Root, MaxCycles: 2, DryRun: true));
+
         Assert.Equal(2, cycles.Count);
         Assert.Equal(1, cycles[0].CycleNumber);
         Assert.Equal(2, cycles[1].CycleNumber);
@@ -119,7 +154,7 @@ public sealed class AgyDocumentDispatcherTests
         {
             Assert.False(cycle.ExecutedLive);
             Assert.Contains("agy", Path.GetFileName(cycle.Invocation.FileName), StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(GitToplevel.Resolve(repo), cycle.Invocation.WorkingDirectory, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(GitToplevel.Resolve(fixture.Root), cycle.Invocation.WorkingDirectory, StringComparer.OrdinalIgnoreCase);
             var source = File.ReadAllText(cycle.Invocation.Assignment.SourcePath);
             Assert.Contains(cycle.Invocation.Assignment.VerbatimPhrase, source, StringComparison.Ordinal);
         });
@@ -134,16 +169,25 @@ public sealed class AgyDocumentDispatcherTests
     [Fact]
     public void DispatchLoop_StartAt_SkipsEarlierItemsAndBeginsAtMatch()
     {
-        var repo = FindRepoRoot();
-        var all = DocumentWorkQueue.Load(repo);
-        Assert.True(all.Count > 1, "Expected more than one open work item in the repo.");
-        var target = all[all.Count - 1];
+        using var fixture = new FixtureRepo(FixtureProgram);
+        var all = DocumentWorkQueue.Load(fixture.Root);
+        Assert.Equal(3, all.Count);
+        var target = all[^1];
 
         var cycles = AgyDispatchLoop.Run(new DispatchOptions(
-            repo, MaxCycles: 1, DryRun: true, StartAt: target.VerbatimPhrase));
+            fixture.Root, MaxCycles: 1, DryRun: true, StartAt: target.VerbatimPhrase));
 
         var cycle = Assert.Single(cycles);
         Assert.Equal(target.Id, cycle.Invocation.Assignment.Id);
+    }
+
+    [Fact]
+    public void DispatchLoop_StartAt_NoMatch_Throws()
+    {
+        using var fixture = new FixtureRepo(FixtureProgram);
+        Assert.Throws<InvalidOperationException>(() =>
+            AgyDispatchLoop.Run(new DispatchOptions(
+                fixture.Root, MaxCycles: 1, DryRun: true, StartAt: "no-such-work-item-xyzzy")));
     }
 
     [Fact]
@@ -170,15 +214,6 @@ public sealed class AgyDocumentDispatcherTests
         var formatted = AgyDispatchLoop.FormatCycles([cycle]);
 
         Assert.DoesNotContain("worker_output_begin", formatted, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void DispatchLoop_StartAt_NoMatch_Throws()
-    {
-        var repo = FindRepoRoot();
-        Assert.Throws<InvalidOperationException>(() =>
-            AgyDispatchLoop.Run(new DispatchOptions(
-                repo, MaxCycles: 1, DryRun: true, StartAt: "no-such-work-item-xyzzy")));
     }
 
     [Fact]
@@ -215,7 +250,7 @@ public sealed class AgyDocumentDispatcherTests
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
-            var marker = Path.Combine(directory.FullName, "MASTER_PLAN.md");
+            var marker = Path.Combine(directory.FullName, "AGENTS.md");
             var git = Path.Combine(directory.FullName, ".git");
             if (File.Exists(marker) && (Directory.Exists(git) || File.Exists(git)))
             {
@@ -226,5 +261,49 @@ public sealed class AgyDocumentDispatcherTests
         }
 
         throw new InvalidOperationException("Could not locate ANLABEL repo root from the test directory.");
+    }
+
+    /// <summary>A throwaway git repository holding only a live-program document.</summary>
+    private sealed class FixtureRepo : IDisposable
+    {
+        public FixtureRepo(string programText)
+        {
+            Root = Path.Combine(Path.GetTempPath(), "agy-fixture-" + Guid.NewGuid().ToString("N"));
+            ProgramPath = Path.Combine(Root, DocumentWorkQueue.LiveProgramRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(ProgramPath)!);
+            File.WriteAllText(ProgramPath, programText);
+            var init = Process.Start(new ProcessStartInfo("git", "init -q")
+            {
+                WorkingDirectory = Root,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            }) ?? throw new InvalidOperationException("git init could not start.");
+            init.WaitForExit();
+            if (init.ExitCode != 0)
+            {
+                throw new InvalidOperationException("git init failed for the dispatcher fixture.");
+            }
+        }
+
+        public string Root { get; }
+
+        public string ProgramPath { get; }
+
+        public void Dispose()
+        {
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+
+                Directory.Delete(Root, recursive: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Temp cleanup is best effort.
+            }
+        }
     }
 }
