@@ -28,6 +28,25 @@ specification or a parity backlog. Adopt only the core ideas selected in
 unnecessary stops and giving an actionable recovery path, while preserving
 the safety contracts in the core standard.
 
+## Measured limits
+
+Measured on 2026-10-13 on the development PC, not yet on the 4 GB operator PC.
+Source: regression gates `import and preview cost is measured for 1, 1000 and
+10000 rows` and `design stays responsive with 200 objects` (MEASURE lines).
+
+| Operation | 1 row | 1,000 rows | 10,000 rows |
+| --- | --- | --- | --- |
+| Import XLSX, 6 columns | 6 ms | 50 ms, +0.3 MB | 0.45 s, +3.5 MB |
+| Import CSV, 6 columns | 1 ms | 4 ms, +0.1 MB | 0.04 s, +1.3 MB |
+| Open Print Preview, every row checked (one text and one EAN-13 per label) | 0.07 s | 2.2 s | 16.6 s |
+
+- Import runs off the UI thread, with Cancel. It stops after 45 s for a local
+  file and 30 s for a network file.
+- Print Preview shows progress and can be cancelled. Its time grows about
+  linearly with rows × barcodes.
+- With 200 objects, a drag costs about 6 ms per frame. With the largest real
+  template (49 objects), it costs under 1 ms.
+
 ## What it does not do
 
 Web, cloud, login, sync, remote print gateways, hosted control planes,

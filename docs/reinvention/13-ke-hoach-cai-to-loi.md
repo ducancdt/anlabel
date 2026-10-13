@@ -538,8 +538,8 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 - [x] "Cập nhật Excel" báo lỗi rõ; thiết lập liên kết chỉ ghi sau khi nhập thành công — xong 2026-10-13. `DataFailureExplainer` báo tiếng Việt cho tệp bị khóa, hết thời gian đọc, thiếu tệp hoặc sheet (kèm danh sách sheet hiện có), tệp hỏng, sai dòng tiêu đề, ô lỗi, công thức chưa tính và CSV sai số trường: nêu tệp, sheet, ô và cách sửa. Áp dụng cho hộp thoại lệnh thất bại (tiêu đề “Chưa đọc được dữ liệu”), cửa sổ nhập và thanh trạng thái (Figma `37:269`). Dòng tiêu đề và đường dẫn liên kết lại chỉ được ghi sau khi đọc thành công; nhập lỗi giữ nguyên liên kết và dữ liệu đang dùng (H16). Gate `data failures name the file, row and column`, `failed import or relink keeps the working link`.
 - [x] Fixture dữ liệu chạy qua kiểm tra payload mã vạch B01/B02; payload lỗi chặn in — xong 2026-10-13. Payload từ ô CSV/XLSX tới decode: `ImportedBarcodeRoundTripTests` (15 loại, 90 ca). Một dòng CSV có EAN-13 sai số kiểm tra chặn đúng dòng đó ở kiểm tra trước khi in, và thông báo nêu “Dòng 2 · “EAN” (mã vạch)” (gate `invalid barcode data in a file blocks printing`).
 - [x] Chốt ADR CSV về dòng thiếu hoặc thừa cột — xong 2026-10-13: ADR-024. Dòng thiếu hay thừa trường so với tiêu đề đều chặn việc nhập và nêu số dòng.
-- [ ] Tái hiện và xử lý treo khi nhập Excel trên máy 4 GB
-- [ ] Đo 1, 1.000 và 10.000 dòng; công bố giới hạn
+- [ ] Tái hiện và xử lý treo khi nhập Excel trên máy 4 GB — *chưa làm được, 2026-10-13:* cần máy 4 GB thật. Trên máy phát triển, bản hiện tại không treo: 10.000 dòng XLSX nhập trong 0,45 s và chỉ thêm 3,5 MB. Việc nhập chạy ngoài luồng giao diện, có Hủy và tự dừng sau 45 s (tệp mạng 30 s).
+- [x] Đo 1, 1.000 và 10.000 dòng; công bố giới hạn — xong 2026-10-13: bảng “Measured limits” trong [`../LOCAL_LABEL_PRODUCT_CONTRACT.md`](../LOCAL_LABEL_PRODUCT_CONTRACT.md). Nhập 10.000 dòng: XLSX 0,45 s, CSV 0,04 s. Mở Xem trước 10.000 tem: 16,6 s (đo một lần; gate thường chạy đến 1.000 dòng để bộ test không chậm).
 
 **GĐ5 — Mã vạch, xem trước và in**
 

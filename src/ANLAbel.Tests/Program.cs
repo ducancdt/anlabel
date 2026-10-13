@@ -200,6 +200,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("record numbers follow the source file, not the grid sort", DataSourceRegression.RecordNumbersFollowTheSourceFileNotTheGridSort),
     ("quick print rechecks the linked file before printing", DataSourceRegression.QuickPrintRechecksTheLinkedFileBeforePrinting),
     ("invalid barcode data in a file blocks printing", DataSourceRegression.InvalidBarcodeDataInAFileBlocksPrinting),
+    ("import and preview cost is measured for 1, 1000 and 10000 rows", DataVolumeRegression.ImportAndPreviewCostIsMeasured),
     ("excel read honors cancellation", TestExcelReadHonorsCancellation),
     ("excel refresh skips unchanged file", TestExcelRefreshSkipsUnchangedFile),
     ("database config full round trip", TestDatabaseConfigRoundTrip),
