@@ -20,6 +20,8 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <converters:EnumEqualsConverter x:Key="EnumEquals"/>
+        <converters:DisplayNameConverter x:Key="DisplayName"/>
+        <DataTemplate x:Key="DisplayNameItem"><TextBlock Text="{Binding Converter={StaticResource DisplayName}}"/></DataTemplate>
         <controls:BoolToGridLengthConverter x:Key="BoolToGridLength"/>
         <CollectionViewSource x:Key="GroupedBarcodeSymbologies" Source="{Binding BarcodeSymbologyOptions}">
             <CollectionViewSource.GroupDescriptions>
@@ -813,7 +815,7 @@
                                                             <HierarchicalDataTemplate>
                                                                 <StackPanel Margin="0,2">
                                                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                                                    <TextBlock Text="{Binding Type}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                                    <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
                                                                     <TextBlock Text="{Binding BindingStateDisplayText}" FontSize="10" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
                                                                 </StackPanel>
                                                             </HierarchicalDataTemplate>
@@ -1441,7 +1443,7 @@
                                         </StackPanel>
                                     </Expander.Header>
                                     <StackPanel Margin="0,6,0,0">
-                                        <TextBlock Text="{Binding SelectedObject.Rotation, StringFormat=Rotation (current: {0}°)}" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <TextBlock Text="{Binding SelectedObject.Rotation, StringFormat=Xoay (hiện tại: {0}°)}" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <UniformGrid Columns="4" Margin="0,0,0,2">
                                             <Button Content="0°" Command="{Binding SetRotationCommand}" CommandParameter="0" Padding="4,5" FontSize="11" Margin="0,0,2,0"/>
                                             <Button Content="90°" Command="{Binding SetRotationCommand}" CommandParameter="90" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
@@ -1669,7 +1671,7 @@
                                             <TextBlock Text="Kết quả công thức" Style="{StaticResource PropTitle}"/>
                                             <TextBlock Text="Kết quả" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                             <TextBox Text="{Binding FormulaPreviewValue, Mode=OneWay}" IsReadOnly="True" MinHeight="26" Margin="0,0,0,4"/>
-                                            <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Used fields: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Trường đã dùng: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </StackPanel>
@@ -2060,7 +2062,7 @@
                                             <TextBlock Text="Tô nền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                             <Grid Margin="0,0,0,4">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
-                                                <ComboBox ItemsSource="{Binding FillStyles}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
+                                                <ComboBox ItemsSource="{Binding FillStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
                                                 <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.FillColor}"/>
                                             </Grid>
@@ -2070,7 +2072,7 @@
                                         <TextBlock Text="Viền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
-                                            <ComboBox ItemsSource="{Binding OutlineStyles}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
+                                            <ComboBox ItemsSource="{Binding OutlineStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
                                             <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
                                         </Grid>
@@ -2091,7 +2093,7 @@
                                             <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="Mức ECC" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
                                         </Grid>
                                         <TextBlock Text="Hồ sơ ứng dụng" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
-                                        <ComboBox ItemsSource="{Binding BarcodeApplicationProfiles}"
+                                        <ComboBox ItemsSource="{Binding BarcodeApplicationProfiles}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                   SelectedItem="{Binding SelectedObject.BarcodeApplicationProfile, Mode=TwoWay}"
                                                   ToolTip="Chung giữ quy tắc soạn cũ; Công nghiệp và GS1 bật kiểm tra trước kiểu chặn-khi-lỗi cho sản xuất."
                                                   Margin="0,1,0,2"/>
@@ -2105,7 +2107,7 @@
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="Vị trí HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding BarcodeHriPlacementOptions}"
+                                                <ComboBox ItemsSource="{Binding BarcodeHriPlacementOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.BarcodeHriPlacement, Mode=TwoWay}"
                                                           ToolTip="Không = trọn khung cho vạch. Dưới = dải cũ dưới ký hiệu. Trên = dải trên ký hiệu. Chỉ mã vạch tuyến tính; QR/Data Matrix giữ trọn khung ký hiệu."
                                                           Margin="0,1,0,0"/>
@@ -2120,7 +2122,7 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="Số kiểm tra" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}"
+                                                <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
                                                           ToolTip="Chỉ Code 39 / ITF. Không = không yêu cầu. Tự động = chấp nhận có hoặc không số kiểm tra cuối. Xác minh = kiểm tra trước chặn nếu thiếu hoặc sai số kiểm tra. Code 128 bỏ qua mục này."
                                                           Margin="0,1,0,0"/>
@@ -2137,7 +2139,7 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="Tỉ lệ Code 39" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding Code39WideNarrowRatioOptions}"
+                                                <ComboBox ItemsSource="{Binding Code39WideNarrowRatioOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.Code39WideNarrowRatio, Mode=TwoWay}"
                                                           ToolTip="Tỉ lệ rộng:hẹp của Code 39. Mặc định giữ mẫu bộ máy cũ. Cho phép 2.0:1 khi X hiệu dụng &gt;= 0.508 mm (USS-39 / ISO 16388)."
                                                           Margin="0,1,0,0"/>
@@ -2153,7 +2155,7 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="Vạch bao" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding BearerBarStyleOptions}"
+                                                <ComboBox ItemsSource="{Binding BearerBarStyleOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.BearerBarStyle, Mode=TwoWay}"
                                                           ToolTip="Vạch bao (bảo vệ) cho mã vạch tuyến tính đóng gói (ví dụ ITF-14). Trên &amp; dưới hoặc khung bao trọn."
                                                           Margin="0,1,0,0"/>
@@ -2219,10 +2221,10 @@
                                         <TextBlock Text="Hình ảnh" Style="{StaticResource PropTitle}"/>
                                         <Button Content="Chọn hình ảnh..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4"/>
                                         <TextBlock Text="Chính sách ảnh điểm" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
-                                        <ComboBox ItemsSource="{Binding ImageRasterModes}"
+                                        <ComboBox ItemsSource="{Binding ImageRasterModes}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                   SelectedItem="{Binding SelectedObject.ImageRasterMode, Mode=TwoWay}"
                                                   Margin="0,0,0,3"
-                                                  ToolTip="DriverManaged giữ màu/độ trong suốt cho trình điều khiển máy in; các chế độ đơn sắc dùng cùng phép biến đổi tất định ở thiết kế, xem trước và in."/>
+                                                  ToolTip="Trình điều khiển xử lý: giữ màu/độ trong suốt cho trình điều khiển máy in; các chế độ đơn sắc dùng cùng phép biến đổi tất định ở thiết kế, xem trước và in."/>
                                         <TextBlock Text="Tỉ lệ khung hình được giữ và hình được canh giữa trong khung." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>

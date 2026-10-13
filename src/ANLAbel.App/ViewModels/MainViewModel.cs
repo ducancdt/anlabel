@@ -525,11 +525,11 @@ public sealed class MainViewModel : ObservableObject
     ];
 
     public string FormulaPreviewValue => EvaluateSelectedFormula().Value;
-    public string FormulaPreviewErrors => string.Join(Environment.NewLine, EvaluateSelectedFormula().Errors);
+    public string FormulaPreviewErrors => ANLAbel.App.Services.FormulaErrorText.Join(EvaluateSelectedFormula().Errors);
     public string FormulaPreviewUsedFields => string.Join(", ", EvaluateSelectedFormula().UsedFields);
     public string FormulaBuilderExpression => BuildFormulaExpression();
     public string FormulaBuilderPreviewValue => EvaluateFormulaBuilder().Value;
-    public string FormulaBuilderPreviewErrors => string.Join(Environment.NewLine, EvaluateFormulaBuilder().Errors);
+    public string FormulaBuilderPreviewErrors => ANLAbel.App.Services.FormulaErrorText.Join(EvaluateFormulaBuilder().Errors);
     public string BarcodeValidationMessage => ValidateSelectedBarcode();
     public string BarcodeApplicationValidationMessage => ValidateSelectedBarcodeApplication();
 
@@ -579,7 +579,7 @@ public sealed class MainViewModel : ObservableObject
                 {
                     var resolution = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, printDpi);
                     var message = LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution);
-                    return string.IsNullOrEmpty(message) ? string.Empty : "⚠ " + message;
+                    return string.IsNullOrEmpty(message) ? string.Empty : "⚠ " + ANLAbel.App.Services.PreflightIssueText.Sentence(message);
                 }
                 catch
                 {
@@ -687,10 +687,10 @@ public sealed class MainViewModel : ObservableObject
                 {
                     var resolution = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, printDpi);
                     var observedQzMm = Code39RatioContract.ObservedQuietZoneMmPerSide(item.QrQuietZoneModules, resolution);
-                    return $"{observedQzMm:0.##} mm ({item.QrQuietZoneModules} modules)";
+                    return $"{observedQzMm:0.##} mm ({item.QrQuietZoneModules} mô-đun)";
                 }
 
-                return $"{item.QrQuietZoneModules} modules (legacy frame estimate)";
+                return $"{item.QrQuietZoneModules} mô-đun (ước lượng theo khung cũ)";
             }
             catch
             {
@@ -713,18 +713,9 @@ public sealed class MainViewModel : ObservableObject
         ObjectType.Image => "Icons/image.png",
         _ => "Icons/cursor_select.png"
     };
-    public string SelectedObjectTypeText => SelectedObject?.Type switch
-    {
-        ObjectType.Text => "Text",
-        ObjectType.TextBox => "Text Box",
-        ObjectType.BarcodeCode128 => "Barcode",
-        ObjectType.QRCode => "QR Code",
-        ObjectType.DataMatrix => "Data Matrix",
-        ObjectType.Rectangle => "Rectangle",
-        ObjectType.Ellipse => "Ellipse",
-        ObjectType.Line => "Line",
-        _ => "Object"
-    };
+    public string SelectedObjectTypeText => SelectedObject is null
+        ? "Đối tượng"
+        : ANLAbel.App.Services.DisplayNames.ForObjectType(SelectedObject.Type);
     public string SelectedObjectSummaryText => SelectedObject is null
         ? string.Empty
         : $"{SelectedObject.Name} | {SelectedObjectTypeText} | {SelectedObject.WidthMm:0.##} x {SelectedObject.HeightMm:0.##} mm";
@@ -894,7 +885,7 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedBindingUsedFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingUsedFieldsText) ? string.Empty : $"Trường liên kết: {SelectedBindingUsedFieldsText}";
     public string SelectedBindingMissingFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingMissingFieldsText) ? string.Empty : $"Trường còn thiếu: {SelectedBindingMissingFieldsText}";
     public string SelectedBindingStatusText => EvaluateSelectedBinding().StatusText;
-    public string SelectedBindingErrorsText => string.Join(Environment.NewLine, EvaluateSelectedBinding().Errors);
+    public string SelectedBindingErrorsText => ANLAbel.App.Services.FormulaErrorText.Join(EvaluateSelectedBinding().Errors);
     public IReadOnlyList<BindingIssueSummary> BindingIssues => GetBindingIssues();
     public bool HasBindingIssues => BindingIssues.Count > 0;
     public string BindingIssuesSummary => HasBindingIssues
@@ -3126,8 +3117,8 @@ public sealed class MainViewModel : ObservableObject
                 var row = CreatePreviewRow(records[index], out var transformError);
                 if (!string.IsNullOrWhiteSpace(transformError))
                 {
-                    DataTransformError = transformError;
-                    StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {transformError}";
+                    DataTransformError = ANLAbel.App.Services.FormulaErrorText.Translate(transformError);
+                    StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {DataTransformError}";
                     return;
                 }
 
@@ -3210,7 +3201,7 @@ public sealed class MainViewModel : ObservableObject
         AddObject(new LabelObject
         {
             Type = ObjectType.Text,
-            Name = "Text",
+            Name = "Chữ",
             Text = "Long text can overflow horizontally",
             BindingExpression = string.Empty,
             XMm = 5,
@@ -3424,7 +3415,7 @@ public sealed class MainViewModel : ObservableObject
         AddObject(new LabelObject
         {
             Type = ObjectType.Text,
-            Name = $"Field: {fieldName}",
+            Name = $"Trường: {fieldName}",
             Text = fieldName,
             BindingExpression = $"{{{fieldName}}}",
             XMm = 5,
@@ -3448,8 +3439,8 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedObject.Name = SelectedObject.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix
-            ? $"{SelectedObject.Type}: {fieldName}"
-            : $"Field: {fieldName}";
+            ? $"{ANLAbel.App.Services.DisplayNames.ForObjectType(SelectedObject.Type)}: {fieldName}"
+            : $"Trường: {fieldName}";
         SelectedObject.Text = fieldName;
         SelectedObject.BindingExpression = $"{{{fieldName}}}";
         StatusText = $"Đã liên kết đối tượng được chọn với {{{fieldName}}}";
@@ -3471,7 +3462,7 @@ public sealed class MainViewModel : ObservableObject
 
         if (SelectedObject.Type is ObjectType.Text or ObjectType.TextBox)
         {
-            SelectedObject.Name = "Text";
+            SelectedObject.Name = "Chữ";
         }
         StatusText = "Đối tượng được chọn đã chuyển thành văn bản tĩnh";
         RaiseFormulaPreviewChanged();
@@ -3652,7 +3643,7 @@ public sealed class MainViewModel : ObservableObject
         var barcode = new LabelObject
         {
             Type = ObjectType.BarcodeCode128,
-            Name = "Barcode",
+            Name = "Mã vạch",
             Text = "123456789012",
             BindingExpression = string.Empty,
             XMm = 8,
@@ -3670,7 +3661,7 @@ public sealed class MainViewModel : ObservableObject
         var qr = new LabelObject
         {
             Type = ObjectType.QRCode,
-            Name = "QR Code",
+            Name = "Mã QR",
             Text = "QR Code",
             BindingExpression = string.Empty,
             XMm = 8,
@@ -4208,7 +4199,7 @@ public sealed class MainViewModel : ObservableObject
         var renderError = ValidateBarcodeCanRender(item, data, type);
         return renderError is null
             ? string.Empty
-            : $"Invalid {type} data. {renderError}";
+            : $"Dữ liệu không hợp lệ cho mã {type}. {BarcodeProblemText(renderError)}";
     }
 
     private string ValidateSelectedBarcodeApplication()
@@ -4251,7 +4242,7 @@ public sealed class MainViewModel : ObservableObject
             errors.Add(hriLayout.ErrorMessage);
         }
 
-        return string.Join(Environment.NewLine, errors);
+        return string.Join(Environment.NewLine, errors.Select(ANLAbel.App.Services.PreflightIssueText.Sentence));
     }
 
     private string ValidateSelectedTextBox()
@@ -4265,7 +4256,7 @@ public sealed class MainViewModel : ObservableObject
             && !TextBoxOverflowDetector.IsFontAvailable(item.Style.FontFamily))
         {
             var fallback = TextBoxOverflowDetector.ResolveFontFamilyName(item.Style.FontFamily);
-            return $"Font '{item.Style.FontFamily}' is unavailable; preview/print use '{fallback}'. Install it or choose an installed family.";
+            return $"Phông “{item.Style.FontFamily}” chưa cài trên máy này; xem trước và in sẽ dùng “{fallback}”. Hãy cài phông hoặc chọn phông đã cài.";
         }
 
         if (item.Type != ObjectType.TextBox)
@@ -4276,7 +4267,7 @@ public sealed class MainViewModel : ObservableObject
         var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
         return TextBoxOverflowDetector.ShouldBlockOverflow(item)
             && IsTextBoxOverflowing(item, data)
-            ? "Text box overflow: increase the object size or reduce text/font size."
+            ? "Chữ tràn ô chữ: nới khung hoặc giảm chữ, cỡ chữ."
             : string.Empty;
     }
 
@@ -4289,11 +4280,18 @@ public sealed class MainViewModel : ObservableObject
             ANLAbel.Core.Geometry.MmConverter.MmToDip(item.HeightMm));
     }
 
+    /// <summary>A barcode render or layout problem in Vietnamese (audit 2026-10-13).</summary>
+    private static string BarcodeProblemText(string problem) => problem == UnreadableBarcodeData
+        ? "Kiểm tra nội dung trống, ký tự không hỗ trợ hoặc độ dài bắt buộc."
+        : ANLAbel.App.Services.PreflightIssueText.Sentence(problem);
+
+    private const string UnreadableBarcodeData = "Check empty text, unsupported characters, or required length.";
+
     private string? ValidateBarcodeCanRender(LabelObject item, string data, BarcodeType type)
     {
         if (!_barcodeValidator.ValidateData(data, type))
         {
-            return "Check empty text, unsupported characters, or required length.";
+            return UnreadableBarcodeData;
         }
 
         var hriLayout = BarcodeHriTextLayout.Measure(
@@ -4531,8 +4529,8 @@ public sealed class MainViewModel : ObservableObject
 
             item.HasBindingIssue = false;
             item.BindingStateDisplayText = FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
-                ? "Formula linked"
-                : "Linked Excel";
+                ? "Đã liên kết công thức"
+                : "Đã liên kết Excel";
         }
     }
 
@@ -4541,12 +4539,12 @@ public sealed class MainViewModel : ObservableObject
         if (issue.MissingFields.Count > 0)
         {
             return issue.MissingFields.Count == 1
-                ? $"Missing: {issue.MissingFields[0]}"
-                : $"Missing {issue.MissingFields.Count} fields";
+                ? $"Thiếu trường: {issue.MissingFields[0]}"
+                : $"Thiếu {issue.MissingFields.Count} trường";
         }
 
         return issue.Errors.Count > 0
-            ? "Formula error"
+            ? "Lỗi công thức"
             : issue.StatusText;
     }
 
@@ -4822,7 +4820,7 @@ public sealed class MainViewModel : ObservableObject
     private IReadOnlyDictionary<string, string>? CreatePreviewRow(object? item)
     {
         var row = CreatePreviewRow(item, out var error);
-        DataTransformError = error;
+        DataTransformError = ANLAbel.App.Services.FormulaErrorText.Translate(error);
         return row;
     }
 
@@ -4842,7 +4840,7 @@ public sealed class MainViewModel : ObservableObject
 
         if (dataRow.RowState is DataRowState.Deleted or DataRowState.Detached)
         {
-            error = "A linked Excel/CSV row is no longer available.";
+            error = "Dòng Excel/CSV đã liên kết không còn nữa. Hãy cập nhật dữ liệu rồi chọn lại dòng.";
             return null;
         }
 
@@ -4859,7 +4857,7 @@ public sealed class MainViewModel : ObservableObject
             Template.DataTransforms);
         if (!transformed.IsValid)
         {
-            error = string.Join(" ", transformed.Errors);
+            error = string.Join(" ", transformed.Errors.Select(ANLAbel.App.Services.FormulaErrorText.Translate));
             return source;
         }
 
@@ -5464,7 +5462,7 @@ public sealed record BindingIssueSummary(
     IReadOnlyList<string> MissingFields,
     IReadOnlyList<string> Errors)
 {
-    public string Title => $"{ObjectName} ({ObjectType})";
+    public string Title => $"{ObjectName} ({ANLAbel.App.Services.PreflightIssueText.ObjectType(ObjectType)})";
     public string MissingFieldsSummary => MissingFields.Count == 0 ? string.Empty : $"Thiếu: {string.Join(", ", MissingFields)}";
-    public string ErrorsSummary => Errors.Count == 0 ? string.Empty : string.Join(Environment.NewLine, Errors);
+    public string ErrorsSummary => Errors.Count == 0 ? string.Empty : ANLAbel.App.Services.FormulaErrorText.Join(Errors);
 }

@@ -919,7 +919,7 @@ public sealed class LabelDesignerCanvas : Canvas
             visuals.Line.Y2 = heightDip;
             SetLeft(visuals.Label, Math.Max(0, Math.Min(Math.Max(0, widthDip - 140), positionDip + 4)));
             SetTop(visuals.Label, 4);
-            UpdatePersistentGuideLabel(visuals.Label, $"Guide X {positionMm:0.###} mm", accent);
+            UpdatePersistentGuideLabel(visuals.Label, $"Đường gióng X {positionMm:0.###} mm", accent);
         }
         else
         {
@@ -929,7 +929,7 @@ public sealed class LabelDesignerCanvas : Canvas
             visuals.Line.Y2 = positionDip;
             SetLeft(visuals.Label, 4);
             SetTop(visuals.Label, Math.Max(0, Math.Min(Math.Max(0, heightDip - 28), positionDip + 4)));
-            UpdatePersistentGuideLabel(visuals.Label, $"Guide Y {positionMm:0.###} mm", accent);
+            UpdatePersistentGuideLabel(visuals.Label, $"Đường gióng Y {positionMm:0.###} mm", accent);
         }
     }
 
@@ -2521,7 +2521,7 @@ public sealed class LabelDesignerCanvas : Canvas
             ObjectType.Line => new LabelObject
             {
                 Type = ObjectType.Line,
-                Name = "Line",
+                Name = "Đường kẻ",
                 XMm = _drawingStartMm.X,
                 YMm = _drawingStartMm.Y,
                 LineEndXMm = _drawingStartMm.X,
@@ -2533,7 +2533,7 @@ public sealed class LabelDesignerCanvas : Canvas
             ObjectType.Ellipse => new LabelObject
             {
                 Type = ObjectType.Ellipse,
-                Name = "Ellipse",
+                Name = "Hình bầu dục",
                 XMm = _drawingStartMm.X,
                 YMm = _drawingStartMm.Y,
                 WidthMm = 0.5,
@@ -2543,7 +2543,7 @@ public sealed class LabelDesignerCanvas : Canvas
             _ => new LabelObject
             {
                 Type = ObjectType.Rectangle,
-                Name = "Rectangle",
+                Name = "Hình chữ nhật",
                 XMm = _drawingStartMm.X,
                 YMm = _drawingStartMm.Y,
                 WidthMm = 0.5,
@@ -2806,7 +2806,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private static string CreateCopyName(string name)
     {
-        return string.IsNullOrWhiteSpace(name) ? "Copy" : $"{name} Copy";
+        return string.IsNullOrWhiteSpace(name) ? "Bản sao" : $"{name} (bản sao)";
     }
 
     private static void MoveObject(LabelObject item, double deltaXMm, double deltaYMm)
@@ -3394,9 +3394,9 @@ public sealed class LabelDesignerCanvas : Canvas
         {
             DrawingCommandText = DrawingTool switch
             {
-                ObjectType.Line => "Line: specify first point",
-                ObjectType.Rectangle => "Rectangle: specify first corner",
-                ObjectType.Ellipse => "Ellipse/Circle: specify first corner",
+                ObjectType.Line => "Đường kẻ: chọn điểm đầu",
+                ObjectType.Rectangle => "Hình chữ nhật: chọn góc thứ nhất",
+                ObjectType.Ellipse => "Hình bầu dục/tròn: chọn góc thứ nhất",
                 _ => string.Empty
             };
             return;
@@ -3405,12 +3405,12 @@ public sealed class LabelDesignerCanvas : Canvas
         DrawingCommandText = string.IsNullOrWhiteSpace(_dimensionBuffer)
             ? _drawingObject.Type switch
             {
-                ObjectType.Line => "Line: specify next point or type length, Enter",
-                ObjectType.Rectangle => "Rectangle: specify opposite corner or type width,height, Enter",
-                ObjectType.Ellipse => "Ellipse/Circle: specify opposite corner or type width,height, Enter",
+                ObjectType.Line => "Đường kẻ: chọn điểm tiếp theo hoặc nhập chiều dài rồi nhấn Enter",
+                ObjectType.Rectangle => "Hình chữ nhật: chọn góc đối diện hoặc nhập rộng,cao rồi nhấn Enter",
+                ObjectType.Ellipse => "Hình bầu dục/tròn: chọn góc đối diện hoặc nhập rộng,cao rồi nhấn Enter",
                 _ => string.Empty
             }
-            : $"Size: {_dimensionBuffer}";
+            : $"Kích thước: {_dimensionBuffer}";
     }
 
     private static string? KeyToDimensionToken(Key key)
@@ -3504,22 +3504,22 @@ public sealed class LabelDesignerCanvas : Canvas
                 AddCandidate(yCandidates, raw.Y, bounds.Bottom, 80, $"{stableKey}:draw:y:trailing");
             }
 
-            AddCandidate(xCandidates, raw.X, 0, 90, "canvas:edge:draw:x:leading", "artboard edge");
-            AddCandidate(xCandidates, raw.X, Template.WidthMm / 2, 90, "canvas:center:draw:x", "artboard center");
-            AddCandidate(xCandidates, raw.X, Template.WidthMm, 90, "canvas:edge:draw:x:trailing", "artboard edge");
-            AddCandidate(yCandidates, raw.Y, 0, 90, "canvas:edge:draw:y:leading", "artboard edge");
-            AddCandidate(yCandidates, raw.Y, Template.HeightMm / 2, 90, "canvas:center:draw:y", "artboard center");
-            AddCandidate(yCandidates, raw.Y, Template.HeightMm, 90, "canvas:edge:draw:y:trailing", "artboard edge");
+            AddCandidate(xCandidates, raw.X, 0, 90, "canvas:edge:draw:x:leading", "cạnh tem");
+            AddCandidate(xCandidates, raw.X, Template.WidthMm / 2, 90, "canvas:center:draw:x", "tâm tem");
+            AddCandidate(xCandidates, raw.X, Template.WidthMm, 90, "canvas:edge:draw:x:trailing", "cạnh tem");
+            AddCandidate(yCandidates, raw.Y, 0, 90, "canvas:edge:draw:y:leading", "cạnh tem");
+            AddCandidate(yCandidates, raw.Y, Template.HeightMm / 2, 90, "canvas:center:draw:y", "tâm tem");
+            AddCandidate(yCandidates, raw.Y, Template.HeightMm, 90, "canvas:edge:draw:y:trailing", "cạnh tem");
 
             foreach (var guide in Template.Guides.Where(item => item.IsVisible))
             {
                 if (guide.Orientation == LabelGuideOrientation.Vertical)
                 {
-                    AddCandidate(xCandidates, raw.X, guide.PositionMm, 105, $"guide:{guide.Id}:draw:x", "guide");
+                    AddCandidate(xCandidates, raw.X, guide.PositionMm, 105, $"guide:{guide.Id}:draw:x", "đường gióng");
                 }
                 else
                 {
-                    AddCandidate(yCandidates, raw.Y, guide.PositionMm, 105, $"guide:{guide.Id}:draw:y", "guide");
+                    AddCandidate(yCandidates, raw.Y, guide.PositionMm, 105, $"guide:{guide.Id}:draw:y", "đường gióng");
                 }
             }
         }
@@ -3527,13 +3527,13 @@ public sealed class LabelDesignerCanvas : Canvas
         if (IsSnapToGridEnabled
             && SnapGridContract.TrySnap(raw.X, GridStepMm, SnapThresholdMm, out var gridX))
         {
-            AddCandidate(xCandidates, raw.X, gridX, 30, $"grid:draw:x:{gridX:0.###}", $"grid {gridX:0.##} mm");
+            AddCandidate(xCandidates, raw.X, gridX, 30, $"grid:draw:x:{gridX:0.###}", $"lưới {gridX:0.##} mm");
         }
 
         if (IsSnapToGridEnabled
             && SnapGridContract.TrySnap(raw.Y, GridStepMm, SnapThresholdMm, out var gridY))
         {
-            AddCandidate(yCandidates, raw.Y, gridY, 30, $"grid:draw:y:{gridY:0.###}", $"grid {gridY:0.##} mm");
+            AddCandidate(yCandidates, raw.Y, gridY, 30, $"grid:draw:y:{gridY:0.###}", $"lưới {gridY:0.##} mm");
         }
 
         var winnerX = ChoosePathSnap(SnapPathKind.Draw, xCandidates);
@@ -3787,7 +3787,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 item.BarcodeTextFontSizePt);
             if (!hriLayout.IsValid)
             {
-                return hriLayout.ErrorMessage;
+                return ANLAbel.App.Services.PreflightIssueText.Sentence(hriLayout.ErrorMessage);
             }
 
             var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
@@ -5114,7 +5114,7 @@ public sealed class LabelDesignerCanvas : Canvas
                     Math.Abs(target - source.Position),
                     GetSnapPriority(source.Kind, SnapAnchorKind.Grid),
                     $"{stablePrefix}:grid:x:{source.Kind}:{target:0.###}",
-                    $"grid {target:0.##} mm"));
+                    $"lưới {target:0.##} mm"));
             }
         }
 
@@ -5128,7 +5128,7 @@ public sealed class LabelDesignerCanvas : Canvas
                     Math.Abs(target - source.Position),
                     GetSnapPriority(source.Kind, SnapAnchorKind.Grid),
                     $"{stablePrefix}:grid:y:{source.Kind}:{target:0.###}",
-                    $"grid {target:0.##} mm"));
+                    $"lưới {target:0.##} mm"));
             }
         }
     }
@@ -5167,14 +5167,14 @@ public sealed class LabelDesignerCanvas : Canvas
                     Math.Abs(targetLeading - proposedLeft),
                     GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
                     $"{stablePrefix}:spacing:x:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
-                    $"gap {gap.Gap:0.##} mm"));
+                    $"khoảng cách {gap.Gap:0.##} mm"));
                 xCandidates.Add(new SnapCandidate(
                     proposedRight,
                     targetLeading + objectWidth,
                     Math.Abs(targetLeading + objectWidth - proposedRight),
                     GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
                     $"{stablePrefix}:spacing:x-trailing:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
-                    $"gap {gap.Gap:0.##} mm"));
+                    $"khoảng cách {gap.Gap:0.##} mm"));
             }
         }
 
@@ -5195,14 +5195,14 @@ public sealed class LabelDesignerCanvas : Canvas
                     Math.Abs(targetLeading - proposedTop),
                     GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
                     $"{stablePrefix}:spacing:y:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
-                    $"gap {gap.Gap:0.##} mm"));
+                    $"khoảng cách {gap.Gap:0.##} mm"));
                 yCandidates.Add(new SnapCandidate(
                     proposedBottom,
                     targetLeading + objectHeight,
                     Math.Abs(targetLeading + objectHeight - proposedBottom),
                     GetSnapPriority(SnapAnchorKind.Spacing, SnapAnchorKind.Spacing),
                     $"{stablePrefix}:spacing:y-trailing:{gap.BeforeKey}:{gap.AfterKey}:{targetLeading:0.###}",
-                    $"gap {gap.Gap:0.##} mm"));
+                    $"khoảng cách {gap.Gap:0.##} mm"));
             }
         }
     }
@@ -5237,23 +5237,23 @@ public sealed class LabelDesignerCanvas : Canvas
         var key = selected.StableKey ?? string.Empty;
         if (key.Contains("Baseline", StringComparison.OrdinalIgnoreCase))
         {
-            return "baseline";
+            return "đường chân chữ";
         }
 
         if (key.Contains("canvas:center", StringComparison.OrdinalIgnoreCase))
         {
-            return "canvas center";
+            return "tâm tem";
         }
 
         if (key.Contains(":Center", StringComparison.OrdinalIgnoreCase))
         {
-            return "center";
+            return "tâm";
         }
 
         if (key.Contains(":Leading", StringComparison.OrdinalIgnoreCase)
             || key.Contains(":Trailing", StringComparison.OrdinalIgnoreCase))
         {
-            return "edge";
+            return "cạnh";
         }
 
         return null;
@@ -5774,7 +5774,7 @@ public sealed class LabelDesignerCanvas : Canvas
             textBlock.Text = text;
         }
 
-        var isSpacing = text.StartsWith("gap ", StringComparison.OrdinalIgnoreCase);
+        var isSpacing = text.StartsWith("khoảng cách ", StringComparison.OrdinalIgnoreCase);
         label.Background = isSpacing
             ? new SolidColorBrush(Color.FromArgb(235, 5, 150, 105))
             : new SolidColorBrush(Color.FromArgb(235, 37, 99, 235));

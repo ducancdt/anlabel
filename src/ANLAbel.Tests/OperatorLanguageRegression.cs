@@ -58,13 +58,47 @@ internal static class OperatorLanguageRegression
         Require(OperationFailureExplainer.StatusLine(missing.Failure!).StartsWith("Không tìm thấy tệp dữ liệu", StringComparison.Ordinal),
             $"A missing data file: {OperationFailureExplainer.StatusLine(missing.Failure!)}");
 
-        // Each rule anchors on a core message.
+        // Designer panels: type names, option lists, formula and barcode texts.
+        Require(DisplayNames.ForObjectType(ANLAbel.Core.Enums.ObjectType.Image) == "Hình ảnh"
+                && DisplayNames.For(ANLAbel.Core.Enums.ObjectType.TextBox) == "Ô chữ",
+            "Object types must use the toolbox names.");
+        Require(DisplayNames.For(ANLAbel.Core.Enums.OutlineStyle.Dash) == "Gạch"
+                && DisplayNames.For(ANLAbel.Core.Enums.ImageRasterMode.MonochromeOrderedDither) == "Đơn sắc hòa sắc"
+                && DisplayNames.For(ANLAbel.Core.Enums.BarcodeHriPlacement.Below) == "Dưới",
+            "Option lists must show Vietnamese names.");
+        Require(FormulaErrorText.Translate("Field 'Qty' was not found.") == "Không tìm thấy trường “Qty”.",
+            "Formula errors must be Vietnamese.");
+        Require(FormulaErrorText.Translate("Transform 'Lot2': Unknown function 'FOO'.") == "Trường chuyển đổi “Lot2”: Hàm “FOO” không được hỗ trợ.",
+            "Transform errors must be Vietnamese, including the inner formula error.");
+        Require(FormulaErrorText.Translate("Some new engine message.") == "Some new engine message.",
+            "An unknown formula message must be shown unchanged, not hidden.");
+        Require(PreflightIssueText.Sentence("HRI text is 32 mm wide but the barcode frame is only 20 mm. Increase the frame or reduce the HRI font size.")
+                == "Dòng chữ dưới mã rộng 32 mm nhưng khung mã chỉ 20 mm; nới khung hoặc giảm cỡ chữ.",
+            "Barcode HRI layout problems must be Vietnamese.");
+        Require(ANLAbel.Core.Barcode.QrOptionLists.SizingModes[0].DisplayName == "Tự động theo dữ liệu"
+                && ANLAbel.Core.Barcode.QrOptionLists.Versions[0].DisplayName.StartsWith("Phiên bản 1 = 21 × 21 mô-đun", StringComparison.Ordinal),
+            "QR option lists must be Vietnamese.");
+
         var root = FindRepositoryRoot();
+        var window = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "MainWindow.xaml"));
+        foreach (var list in new[] { "FillStyles", "OutlineStyles", "BarcodeApplicationProfiles", "BarcodeHriPlacementOptions", "BarcodeCheckDigitPolicyOptions", "Code39WideNarrowRatioOptions", "BearerBarStyleOptions", "ImageRasterModes" })
+        {
+            Require(window.Contains($"ItemsSource=\"{{Binding {list}}}\" ItemTemplate=\"{{StaticResource DisplayNameItem}}\"", StringComparison.Ordinal),
+                $"The {list} drop-down must show Vietnamese names, not enum names.");
+        }
+
+        Require(window.Contains("Text=\"{Binding Type, Converter={StaticResource DisplayName}}\"", StringComparison.Ordinal)
+                && !window.Contains("StringFormat=Zoom:", StringComparison.Ordinal),
+            "The layer list and status bar must not show English names.");
+
+        // Each rule anchors on a core message.
         var sources = string.Concat(new[] { "ANLAbel.Core", "ANLAbel.Data", "ANLAbel.Printing", "ANLAbel.Project", "ANLAbel.App" }
             .SelectMany(project => Directory.EnumerateFiles(Path.Combine(root, "src", project), "*.cs", SearchOption.AllDirectories))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                            && !path.EndsWith("PrintFailureExplainer.cs", StringComparison.Ordinal)
-                           && !path.EndsWith("TemplateFailureExplainer.cs", StringComparison.Ordinal))
+                           && !path.EndsWith("TemplateFailureExplainer.cs", StringComparison.Ordinal)
+                           && !path.EndsWith("FormulaErrorText.cs", StringComparison.Ordinal)
+                           && !path.EndsWith("PreflightIssueText.cs", StringComparison.Ordinal))
             .Select(File.ReadAllText));
         string[] anchors =
         [
@@ -86,6 +120,28 @@ internal static class OperatorLanguageRegression
             "The versioned template envelope",
             "The versioned template payload is invalid",
             "The legacy template payload is invalid",
+            "Formula is empty.",
+            "Unexpected token '",
+            "Expected expression but reached end of formula.",
+            "Expected '(' after function name '",
+            "Expected ',' or ')' after argument in function '",
+            "Expected ')' to close function '",
+            "Expected string literal.",
+            "Unterminated escape sequence in string literal.",
+            "Unterminated string literal.",
+            "Unknown function '",
+            "FIELD expects exactly one argument.",
+            "FIELD field name is empty.",
+            "' was not found.",
+            "A transform output field name is required.",
+            "' conflicts with a source field.",
+            "' is defined more than once.",
+            "Transform dependency cycle detected: ",
+            "HRI text is ",
+            "Barcode frame is too short for the HRI strip",
+            "HRI text has no measurable width or height",
+            "Barcode frame must have positive finite dimensions before HRI",
+            "Unsupported HRI placement '",
         ];
         foreach (var anchor in anchors)
         {

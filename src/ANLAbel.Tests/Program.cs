@@ -2547,7 +2547,7 @@ static Task TestSmartSpacingAndGridSnap()
             var snap = snapMethod!.Invoke(canvas, new object[] { moving, 51d, moving.YMm });
             snappedX = (double?)snap!.GetType().GetProperty("SnapX")!.GetValue(snap);
             var snapCaption = (string?)snap.GetType().GetProperty("XCaption")!.GetValue(snap);
-            AssertEqual("gap 10 mm", snapCaption,
+            AssertEqual("khoảng cách 10 mm", snapCaption,
                 "The winning spacing candidate must expose a truthful gap caption for the guide overlay");
 
             canvas.IsSnapToObjectsEnabled = false;
@@ -8011,7 +8011,7 @@ static async Task TestCtrlPPreviewOpenDoesNotCrash()
 
     AssertEqual(false, vm.TryBuildPrintPreviewRows(out _, out var deletedError),
         "A deleted Excel row must block Preview preparation instead of crashing");
-    AssertEqual(true, deletedError.Contains("no longer available", StringComparison.OrdinalIgnoreCase),
+    AssertEqual(true, deletedError.Contains("không còn nữa", StringComparison.Ordinal),
         "Deleted-row preparation must explain the missing source row: " + deletedError);
     try { Directory.Delete(dir, true); } catch { }
 }
@@ -9829,10 +9829,9 @@ static Task TestLinearBarcodeXDimModuleSizeWarning()
     AssertEqual(true, vm.BarcodeModuleSizeWarningText.Length > 0,
         "Authored X-dim that yields sub-2-dot modules at PrinterProfile.Dpi must warn");
     AssertEqual(true,
-        vm.BarcodeModuleSizeWarningText.Contains("dot", StringComparison.OrdinalIgnoreCase)
-        || vm.BarcodeModuleSizeWarningText.Contains("module", StringComparison.OrdinalIgnoreCase)
-        || vm.BarcodeModuleSizeWarningText.Contains("X-dimension", StringComparison.OrdinalIgnoreCase),
-        "Linear X-dim warning must mention dots, module, or X-dimension");
+        vm.BarcodeModuleSizeWarningText.Contains("chấm in", StringComparison.Ordinal)
+        && vm.BarcodeModuleSizeWarningText.Contains("Vạch hẹp nhất", StringComparison.Ordinal),
+        "Linear X-dim warning must name the narrow bar and its printer dots in Vietnamese");
 
     barcode.BarcodeModuleWidthMm = 0.33;
     AssertEqual(string.Empty, vm.BarcodeModuleSizeWarningText,
