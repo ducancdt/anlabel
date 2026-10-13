@@ -208,33 +208,6 @@ public sealed class MainViewModel : ObservableObject
 
     public UiStrings Ui => UiStrings.Current;
     public IEnumerable<DataTransformDefinition> DataTransforms => Template.DataTransforms;
-
-    public DataRecord? GetSelectedDataRecordForWorkspace()
-    {
-        if (SelectedDataItem is not DataRowView rowView)
-        {
-            return null;
-        }
-
-        return DataRecord.Create(rowView.Row.Table.Columns
-            .Cast<DataColumn>()
-            .Select(column => new KeyValuePair<string, string?>(column.ColumnName, rowView.Row[column]?.ToString())));
-    }
-
-    public void ReplaceDataTransforms(IEnumerable<DataTransformDefinition> definitions)
-    {
-        ArgumentNullException.ThrowIfNull(definitions);
-        BeginTemplateEditGesture();
-        Template.DataTransforms.Clear();
-        foreach (var definition in definitions)
-        {
-            Template.DataTransforms.Add(definition);
-        }
-
-        OnPropertyChanged(nameof(DataTransforms));
-        CommitTemplateEditGesture();
-    }
-
     public bool TryBuildPrintPreviewRows(
         out IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
         out string error)

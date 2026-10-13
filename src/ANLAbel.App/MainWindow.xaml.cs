@@ -19,15 +19,7 @@ namespace ANLAbel.App;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel = new();
-    private OperationsOverviewWindow? _operationsOverviewWindow;
-    private PrintQueueConsoleWindow? _printQueueConsoleWindow;
     private PrintHistoryWindow? _printHistoryWindow;
-    private AnalyticsWindow? _analyticsWindow;
-    private DocumentLibraryWindow? _documentLibraryWindow;
-    private LocalMaintenanceWindow? _localMaintenanceWindow;
-    private DataWorkspaceWindow? _dataWorkspaceWindow;
-    private DocumentWorkflowWindow? _documentWorkflowWindow;
-    private AutomationWindow? _automationWindow;
     private bool _syncingContentSource;
     private bool _syncingExcelField;
     private bool _syncingRulerOffsets;
@@ -167,49 +159,6 @@ public partial class MainWindow : Window
         };
         center.ShowDialog();
     }
-
-    private void OperationsOverview_Click(object sender, RoutedEventArgs e)
-    {
-        if (_operationsOverviewWindow is { IsVisible: true })
-        {
-            _operationsOverviewWindow.Activate();
-            return;
-        }
-
-        var overview = new OperationsOverviewWindow(
-            _viewModel,
-            ShowPrinterSetupDialog,
-            ShowPrintCenter,
-            ShowPrintHistory)
-        {
-            Owner = this
-        };
-        overview.Closed += (_, _) => _operationsOverviewWindow = null;
-        _operationsOverviewWindow = overview;
-        overview.Show();
-    }
-
-    private void PrintQueueConsole_Click(object sender, RoutedEventArgs e)
-    {
-        if (_printQueueConsoleWindow is { IsVisible: true })
-        {
-            _printQueueConsoleWindow.Activate();
-            return;
-        }
-
-        var console = new PrintQueueConsoleWindow(
-            _viewModel,
-            ShowPrinterSetupDialog,
-            ShowPrintCenter,
-            ShowPrintHistory)
-        {
-            Owner = this
-        };
-        console.Closed += (_, _) => _printQueueConsoleWindow = null;
-        _printQueueConsoleWindow = console;
-        console.Show();
-    }
-
     private void OpenApprovedReprintPreview(PrintJobRecoveryCandidate candidate)
     {
         if (candidate.Manifest is null || !candidate.Manifest.IsFingerprintValid)
@@ -225,148 +174,6 @@ public partial class MainWindow : Window
 
         OpenPrintPreviewDialog(candidate.JobId, candidate.Manifest);
     }
-
-    private async void ReviewPrintRecoveryLegacy_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            await _viewModel.RefreshPrintRecoveryAsync();
-            var report = _viewModel.PrintRecoveryReport;
-            if (!report.HasPendingJobs && !report.RequiresRepair)
-            {
-                MessageBox.Show(this, report.UserFacingSummary, "Phục hồi in ấn", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var queueCandidate = report.Candidates.FirstOrDefault(
-                candidate => candidate.Action == ANLAbel.Data.PrintLogs.PrintJobRecoveryAction.ReconcileQueue);
-            if (queueCandidate is not null)
-            {
-                var queryChoice = MessageBox.Show(
-                    this,
-                    $"Đã có thông tin định danh máy in / lệnh in an toàn cho {queueCandidate.JobId}. Bạn có muốn truy vấn hàng đợi ngay bây giờ?\n\nThao tác này chỉ đọc trạng thái bộ đệm in và không bao giờ in lại.",
-                    "Truy vấn hàng đợi in",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-                if (queryChoice == MessageBoxResult.Yes)
-                {
-                    var reconciliation = await _viewModel.ReconcilePrintJobAsync(queueCandidate.JobId);
-                    MessageBox.Show(
-                        this,
-                        reconciliation.Summary,
-                        "Đối soát hàng đợi",
-                        MessageBoxButton.OK,
-                        reconciliation.Outcome == ANLAbel.Data.PrintLogs.PrintJobReconciliationOutcome.QueueObserved
-                            ? MessageBoxImage.Information
-                            : MessageBoxImage.Warning);
-
-                    if (reconciliation.Outcome != PrintJobReconciliationOutcome.QueueObserved)
-                    {
-                        await OfferOperatorDecisionActionsAsync(queueCandidate);
-                    }
-                    return;
-                }
-            }
-
-            var details = report.Candidates.Count == 0
-                ? "Không có bản ghi lệnh in hoàn chỉnh nào."
-                : string.Join(
-                    Environment.NewLine,
-                    report.Candidates.Select(candidate =>
-                        $"• {candidate.JobId} — {candidate.State} — {candidate.Action}\n  {candidate.Reason}"));
-            var message = $"{report.UserFacingSummary}\n\n{details}";
-            if (report.StoreDiagnostics.Count > 0)
-            {
-                message += $"\n\nChẩn đoán:\n{string.Join(Environment.NewLine, report.StoreDiagnostics)}";
-            }
-
-            MessageBox.Show(
-                this,
-                message + "\n\nKhông thử lại tự động cho đến khi định danh hàng đợi/lệnh in được đối soát.",
-                "Xem xét phục hồi in ấn",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-
-            if (report.Candidates.Count == 1)
-            {
-                await OfferOperatorDecisionActionsAsync(report.Candidates[0]);
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Phục hồi in ấn", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-    }
-
-    private async Task OfferOperatorDecisionActionsAsync(PrintJobRecoveryCandidate candidate)
-    {
-        var acknowledge = MessageBox.Show(
-            this,
-            $"Xác nhận {candidate.JobId} đã được xem xét?\n\nThao tác này chỉ ghi nhận quyết định của người vận hành, không đánh dấu nhãn đã in.",
-            "Xác nhận lệnh in",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-        if (acknowledge == MessageBoxResult.Yes)
-        {
-            var result = await _viewModel.AcknowledgePrintJobAsync(candidate.JobId);
-            MessageBox.Show(this, result.Summary, "Phục hồi in ấn", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var voidChoice = MessageBox.Show(
-            this,
-            $"Hủy bỏ {candidate.JobId} trong lịch sử bền vững?\n\nKhông có lệnh máy in nào được gửi, và lịch sử sự kiện vẫn được giữ lại.",
-            "Hủy lệnh in không chắc chắn",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-        if (voidChoice == MessageBoxResult.Yes)
-        {
-            var result = await _viewModel.VoidPrintJobAsync(candidate.JobId);
-            MessageBox.Show(this, result.Summary, "Phục hồi in ấn", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var reprintChoice = MessageBox.Show(
-            this,
-            $"Tạo yêu cầu in lại liên kết cho {candidate.JobId}?\n\nMột lệnh mới sẽ được ghi nhận để xem xét, nhưng không tự động chuẩn bị hoặc phát lệnh.",
-            "Yêu cầu in lại liên kết",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-        if (reprintChoice == MessageBoxResult.Yes)
-        {
-            var result = await _viewModel.RequestPrintJobReprintAsync(candidate.JobId);
-            MessageBox.Show(this, result.Summary, "Phục hồi in ấn", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            if (result.RelatedEvent?.Manifest is { } manifest)
-            {
-                var approveChoice = MessageBox.Show(
-                    this,
-                    $"Xem xét bản kê khai {manifest.Fingerprint} cho lệnh in liên kết?\n\nPhê duyệt chỉ ghi nhận sự đồng thuận rõ ràng của người vận hành. Lệnh sẽ không in cho đến khi mẫu tem/dữ liệu hiện tại khớp và được phát lệnh riêng.",
-                    "Phê duyệt in lại liên kết",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-                if (approveChoice == MessageBoxResult.Yes)
-                {
-                    var approval = await _viewModel.ApprovePrintJobReprintAsync(result.RelatedJobId, manifest);
-                    MessageBox.Show(this, approval.Summary, "Phục hồi in ấn", MessageBoxButton.OK, MessageBoxImage.Information);
-                    if (approval.Succeeded && approval.Event?.Manifest is { } approvedManifest)
-                    {
-                        var openChoice = MessageBox.Show(
-                            this,
-                            "Mở Xem trước khi in để chọn chính xác các dòng nguồn cho lệnh in đã duyệt này? Khung bảo vệ kê khai sẽ chặn nếu mẫu tem hoặc dữ liệu có thay đổi.",
-                            "Chọn dòng in lại",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Question);
-                        if (openChoice == MessageBoxResult.Yes)
-                        {
-                            OpenPrintPreviewDialog(approval.JobId, approvedManifest);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /// <summary>
     /// Chooses a workspace profile from the usable monitor area in WPF device-independent pixels.
     /// HD displays use the full work area; Full HD and larger displays use a centered, comfortable
@@ -662,16 +469,6 @@ public partial class MainWindow : Window
     {
         ShowDatabaseManager();
     }
-
-    private void DataWorkspace_Click(object sender, RoutedEventArgs e)
-    {
-        if (_dataWorkspaceWindow is { IsVisible: true }) { _dataWorkspaceWindow.Activate(); return; }
-        var workspace = new DataWorkspaceWindow(_viewModel) { Owner = this };
-        workspace.Closed += (_, _) => _dataWorkspaceWindow = null;
-        _dataWorkspaceWindow = workspace;
-        workspace.Show();
-    }
-
     private void ShowDatabaseManager()
     {
         var window = new DatabaseManagerWindow(_viewModel) { Owner = this };
@@ -886,67 +683,6 @@ public partial class MainWindow : Window
         _printHistoryWindow = history;
         history.Show();
     }
-
-    private void Analytics_Click(object sender, RoutedEventArgs e)
-    {
-        if (_analyticsWindow is { IsVisible: true }) { _analyticsWindow.Activate(); return; }
-        var analytics = new AnalyticsWindow(_viewModel, ShowPrintHistory) { Owner = this };
-        analytics.Closed += (_, _) => _analyticsWindow = null;
-        _analyticsWindow = analytics;
-        analytics.Show();
-    }
-
-    private void DocumentLibrary_Click(object sender, RoutedEventArgs e)
-    {
-        if (_documentLibraryWindow is { IsVisible: true }) { _documentLibraryWindow.Activate(); return; }
-        var library = new DocumentLibraryWindow(GetLocalLibraryRoot, OpenLibraryDocumentAsync, ShowRevisionHistory) { Owner = this };
-        library.Closed += (_, _) => _documentLibraryWindow = null;
-        _documentLibraryWindow = library;
-        library.Show();
-    }
-
-    private void DocumentWorkflow_Click(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(_viewModel.CurrentFilePath)) { MessageBox.Show(this, "Vui lòng lưu mẫu tem trước. Nhật ký quy trình gắn liền với tệp đã lưu.", "Quy trình tài liệu", MessageBoxButton.OK, MessageBoxImage.Information); return; }
-        if (_documentWorkflowWindow is { IsVisible: true }) { _documentWorkflowWindow.Activate(); return; }
-        var workflow = new DocumentWorkflowWindow(_viewModel) { Owner = this };
-        workflow.Closed += (_, _) => _documentWorkflowWindow = null; _documentWorkflowWindow = workflow; workflow.Show();
-    }
-
-    private void Automation_Click(object sender, RoutedEventArgs e)
-    {
-        if (_automationWindow is { IsVisible: true }) { _automationWindow.Activate(); return; }
-        var automation = new AutomationWindow(ShowPrintHistory, ShowPrintCenter) { Owner = this };
-        automation.Closed += (_, _) => _automationWindow = null;
-        _automationWindow = automation;
-        automation.Show();
-    }
-
-    private void LocalMaintenance_Click(object sender, RoutedEventArgs e)
-    {
-        if (_localMaintenanceWindow is { IsVisible: true }) { _localMaintenanceWindow.Activate(); return; }
-        var maintenance = new LocalMaintenanceWindow(
-            _viewModel,
-            ShowPrinterSetupDialog,
-            ShowDatabaseManager,
-            ShowPrintHistory,
-            () => Analytics_Click(this, new RoutedEventArgs()),
-            ShowPrintCenter) { Owner = this };
-        maintenance.Closed += (_, _) => _localMaintenanceWindow = null;
-        _localMaintenanceWindow = maintenance;
-        maintenance.Show();
-    }
-
-    private string GetLocalLibraryRoot() => !string.IsNullOrWhiteSpace(_viewModel.CurrentFilePath)
-        ? Path.GetDirectoryName(_viewModel.CurrentFilePath) ?? string.Empty
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ANLAbel", "Templates");
-
-    private async Task OpenLibraryDocumentAsync(string filePath)
-    {
-        try { await _viewModel.OpenAsync(filePath); await _viewModel.RefreshPrinterQueueStatusAsync(); _documentLibraryWindow?.Activate(); }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Mở thất bại", MessageBoxButton.OK, MessageBoxImage.Error); }
-    }
-
     private async void ExportPrintHistory_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog

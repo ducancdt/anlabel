@@ -159,12 +159,17 @@ public sealed class PrintJobManifestTests
     [Fact]
     public void AutomationBatchProvenanceIsBoundWithoutPersistingRawRecords()
     {
-        var source = System.Text.Encoding.UTF8.GetBytes("Sku,Lot\nA-1,L-2\n");
-        var fileDropEvent = FileDropClaimContract.CreateIdentity("trigger-a", "configuration-a", FileDropClaimContract.ComputeContentFingerprint(source));
-        var batch = FileDropPreparedBatchContract.Create(
-            fileDropEvent,
-            "template-hash",
-            [DataRecord.Create([new("SKU", "A-1"), new("LOT", "L-2")])]);
+        // The file-drop automation is archived; manifests still bind its optional
+        // provenance fields, so a payload-free identity is built directly.
+        var batch = new FileDropPreparedBatchIdentity(
+            PreparedBatchId: string.Concat(Enumerable.Repeat("0123456789abcdef", 4)),
+            EventId: new string('B', 64),
+            TriggerId: "trigger-a",
+            ConfigurationFingerprint: new string('c', 64),
+            SourceFingerprint: new string('d', 64),
+            TemplateFingerprint: new string('e', 64),
+            DataFingerprint: new string('f', 64),
+            RecordCount: 1);
         var manifest = PrintJobManifest.Create(
             "Warehouse label", "warehouse.anlabel", "Automation", "Zebra-01",
             100, 50, 203, 203, 1, 1,

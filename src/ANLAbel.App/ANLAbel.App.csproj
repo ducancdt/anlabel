@@ -17,15 +17,6 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <TrialBuild Condition="'$(TrialBuild)' == ''">false</TrialBuild>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TrialBuild)' == 'true'">
-    <DefineConstants>$(DefineConstants);TRIAL_BUILD</DefineConstants>
-    <InformationalVersion>0.306-trial.7d</InformationalVersion>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\ANLAbel.Barcode\ANLAbel.Barcode.csproj" />
     <ProjectReference Include="..\ANLAbel.Core\ANLAbel.Core.csproj" />

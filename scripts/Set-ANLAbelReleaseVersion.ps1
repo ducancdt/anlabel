@@ -27,13 +27,12 @@ Replace-Required 'src/ANLAbel.App/ANLAbel.App.csproj' '<Version>\d+\.\d+</Versio
 Replace-Required 'src/ANLAbel.App/ANLAbel.App.csproj' '<AssemblyVersion>\d+\.\d+\.0\.0</AssemblyVersion>' "<AssemblyVersion>$Version.0.0</AssemblyVersion>"
 Replace-Required 'src/ANLAbel.App/ANLAbel.App.csproj' '<FileVersion>\d+\.\d+\.0\.0</FileVersion>' "<FileVersion>$Version.0.0</FileVersion>"
 Replace-Required 'src/ANLAbel.App/ANLAbel.App.csproj' '<InformationalVersion>\d+\.\d+</InformationalVersion>' "<InformationalVersion>$Version</InformationalVersion>"
-Replace-Required 'src/ANLAbel.App/ANLAbel.App.csproj' '<InformationalVersion>\d+\.\d+-trial\.7d</InformationalVersion>' "<InformationalVersion>$Version-trial.7d</InformationalVersion>"
 
-foreach ($file in @('src/ANLAbel.App/MainWindow.xaml', 'src/ANLAbel.App/HelpWindow.xaml.cs', 'src/ANLAbel.App/App.xaml.cs')) {
+foreach ($file in @('src/ANLAbel.App/MainWindow.xaml', 'src/ANLAbel.App/HelpWindow.xaml.cs')) {
     Replace-Required $file 'v\d+\.\d+' "v$Version"
 }
 
-foreach ($file in @('installer/ANLAbel-x64.iss', 'installer/ANLAbel-Commercial-x64.iss', 'installer/ANLAbel-Trial-x64.iss')) {
+foreach ($file in @('installer/ANLAbel-x64.iss')) {
     Replace-Required $file 'AppVersion=\d+\.\d+' "AppVersion=$Version"
     Replace-Required $file 'v\d+\.\d+' "v$Version"
     Replace-Required $file 'VersionInfoVersion=\d+\.\d+\.0\.0' "VersionInfoVersion=$Version.0.0"

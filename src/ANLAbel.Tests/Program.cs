@@ -43,6 +43,8 @@ Environment.SetEnvironmentVariable(AppDataPaths.OverrideVariable, testDataRoot);
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("test run keeps app data out of the operator profile", TestAppDataIsRedirectedForTestRun),
+    ("print history regression suite", PrintHistoryRegression.Run),
+    ("release version script projects one public version", ReleaseVersionScriptRegression.Run),
     ("mm to WPF DIP conversion", TestMmToDip),
     ("mm to printer dots conversion", TestMmToPrinterDots),
     ("label orientation follows design dimensions", TestLabelOrientationFollowsDesignDimensions),
@@ -252,7 +254,6 @@ var tests = new (string Name, Func<Task> Run)[]
     ("ui catalog has valid vietnamese keys", TestUiCatalogHasValidVietnameseKeys),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
-    ("NiceLabel JOB execution engine validates preflight and session print", NiceLabelJobRunnerRegression.Run),
     ("bộ quy chuẩn Việt hóa chặn tiếng Anh trên file đã enforce", LanguageComplianceRegression.Run)
 };
 
@@ -398,7 +399,6 @@ static Task TestReleaseMetadataIsSynchronized()
 
     var appMetadata = new[]
     {
-        Path.Combine(root, "src", "ANLAbel.App", "App.xaml.cs"),
         Path.Combine(root, "src", "ANLAbel.App", "HelpWindow.xaml.cs"),
         Path.Combine(root, "src", "ANLAbel.App", "MainWindow.xaml")
     };
@@ -409,7 +409,7 @@ static Task TestReleaseMetadataIsSynchronized()
             $"{Path.GetFileName(path)} must advertise {displayVersion}");
     }
 
-    foreach (var installerName in new[] { "ANLAbel-Commercial-x64.iss", "ANLAbel-Trial-x64.iss" })
+    foreach (var installerName in new[] { "ANLAbel-x64.iss" })
     {
         var installer = File.ReadAllText(Path.Combine(root, "installer", installerName));
         AssertEqual(true, installer.Contains($"AppVersion={version}", StringComparison.Ordinal),
