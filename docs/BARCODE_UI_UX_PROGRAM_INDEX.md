@@ -9,8 +9,8 @@
 **P4 owner decision packet:** [`P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md`](P4_BARCODE_RATIO_QUIET_ZONE_DECISION_PACKET.md)
 **P5 owner decision packet:** [`P5_2D_BARCODE_PARITY_DECISION_PACKET.md`](P5_2D_BARCODE_PARITY_DECISION_PACKET.md)
 **P6 owner decision packet:** [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md)
-**P7 owner decision packet:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md)
-**P8 owner decision packet:** [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
+**P7 owner decision packet:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](archive/P7_PRINT_METHOD_DECISION_PACKET.md)
+**P8 owner decision packet:** [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](archive/P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
 **Continuation checkpoint:** [`reinvention/10-continuation-handoff-2026-08-13.md`](reinvention/10-continuation-handoff-2026-08-13.md)
 **Verification checkpoint:** [`reinvention/11-verification-checkpoint-2026-08-13.md`](reinvention/11-verification-checkpoint-2026-08-13.md)
 
@@ -25,8 +25,8 @@ This index coordinates the barcode UI/UX handoffs for P3–P8. The individual ha
 | P4 | Review ratio, derived density and physical quiet-zone measurement | Linear module/layout/preflight contracts and future Properties readout | Panels file `18:69` / `13:2`; no ratio/QZ state | [`P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md`](P4_BARCODE_RATIO_QUIET_ZONE_UI_HANDOFF.md) · approve first symbology and QZ convention before fields. |
 | P5 | Distinguish QR version/ECC from Data Matrix size/EC semantics | Renderer capability, matrix geometry and standard-aware preflight | Panels file `18:69`; no 2D state | [`P5_2D_BARCODE_PARITY_UI_HANDOFF.md`](P5_2D_BARCODE_PARITY_UI_HANDOFF.md) · confirm renderer semantics and unavailable states. |
 | P6 | Explain GS1 AI parsing, boundaries/FNC1 and registry provenance | `BarcodeApplicationContract`, `Gs1AiRegistry`, preflight and diagnostics | Panels file `13:2`; no GS1 state | [`P6_GS1_AI_UI_HANDOFF.md`](P6_GS1_AI_UI_HANDOFF.md) · confirm demanded AI classes, registry policy and runtime evidence. |
-| P7 | Know whether dispatch is graphic or pilot-approved native output | `PrintService`, `PrintRenderPlan`, `PrintJobResult` and future method/adapter ADR | Shell `2:2`, Print & Output `2:39`; no method state | [`P7_PRINT_METHOD_UI_HANDOFF.md`](P7_PRINT_METHOD_UI_HANDOFF.md) · ADR, capability record and real printer-family pilot required. |
-| P8 | Distinguish queue/preflight from physical verifier evidence and grade | `PhysicalOutputVerificationEvidence`, adapter/coordinator, manifest/state store and future Print Center/History detail | Shell `2:2`; Control Center History `3:85`; no verifier state | [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) · fixture, adapter, evidence and hardware gates required. |
+| P7 | Know whether dispatch is graphic or pilot-approved native output | `PrintService`, `PrintRenderPlan`, `PrintJobResult` and future method/adapter ADR | Shell `2:2`, Print & Output `2:39`; no method state | [`P7_PRINT_METHOD_UI_HANDOFF.md`](archive/P7_PRINT_METHOD_UI_HANDOFF.md) · ADR, capability record and real printer-family pilot required. |
+| P8 | Distinguish queue/preflight from physical verifier evidence and grade | `PhysicalOutputVerificationEvidence`, adapter/coordinator, manifest/state store and future Print Center/History detail | Shell `2:2`; Control Center History `3:85`; no verifier state | [`P8_PHYSICAL_VERIFIER_UI_HANDOFF.md`](archive/P8_PHYSICAL_VERIFIER_UI_HANDOFF.md) · fixture, adapter, evidence and hardware gates required. |
 
 All rows are design/review evidence, not release approval. `Current source owner` names where the authoritative policy or action lives today; it does not imply that the proposed control is implemented.
 
@@ -111,9 +111,9 @@ For the 2D parity slice, record D1-D7 in [`P5_2D_BARCODE_PARITY_DECISION_PACKET.
 
 For the GS1 diagnostics slice, record D1-D7 in [`P6_GS1_AI_UI_DECISION_PACKET.md`](P6_GS1_AI_UI_DECISION_PACKET.md) before treating demanded AI families, notation/binding behavior, `[FNC1]` copy, registry provenance, diagnostics ownership or runtime evidence as approved.
 
-For the print-method slice, record D1-D8 in [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) before treating Graphic/Native vocabulary, capability evidence, fallback behavior, method-sensitive persistence or a printer pilot as approved.
+For the print-method slice, record D1-D8 in [`P7_PRINT_METHOD_DECISION_PACKET.md`](archive/P7_PRINT_METHOD_DECISION_PACKET.md) before treating Graphic/Native vocabulary, capability evidence, fallback behavior, method-sensitive persistence or a printer pilot as approved.
 
-For the physical-verifier slice, record D1-D8 in [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) before treating a host, grade scale, adapter/correlation, completion rule, redaction policy, signed evidence or lab fixture as approved.
+For the physical-verifier slice, record D1-D8 in [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](archive/P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) before treating a host, grade scale, adapter/correlation, completion rule, redaction policy, signed evidence or lab fixture as approved.
 
 1. Select the first implementation slice (P3–P6 authoring or P7/P8 job evidence) and name its WPF owner.
 2. Approve reuse of the existing Properties/shell/History references or identify the smallest missing Figma state.
@@ -141,8 +141,8 @@ P6 is the GS1 diagnostics slice. Core already owns strict `(AI)value` parsing, c
 
 ### P7 decision route
 
-P7 is the dispatch/output slice. The current path is WPF `PrintDocument` plus app-rendered graphic output with explicit queue/ticket and effective-output-contract validation; `PrintJobManifest.PrintMode` remains a workflow description and no native adapter or method-sensitive result fields exist. Use the [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md) to approve the Graphic/Native model, capability-record scope, explicit fallback policy, manifest migration, parity severity and real printer-family pilot before implementation. Figma shell `2:2`/`2:39` is placement-only and contains no method state; no native, physical or certification claim is implied.
+P7 is the dispatch/output slice. The current path is WPF `PrintDocument` plus app-rendered graphic output with explicit queue/ticket and effective-output-contract validation; `PrintJobManifest.PrintMode` remains a workflow description and no native adapter or method-sensitive result fields exist. Use the [`P7_PRINT_METHOD_DECISION_PACKET.md`](archive/P7_PRINT_METHOD_DECISION_PACKET.md) to approve the Graphic/Native model, capability-record scope, explicit fallback policy, manifest migration, parity severity and real printer-family pilot before implementation. Figma shell `2:2`/`2:39` is placement-only and contains no method state; no native, physical or certification claim is implied.
 
 ### P8 decision route
 
-P8 is the physical-verifier evidence slice. Core already separates spool/queue states from `Completed`, requires accepted manifest-bound scanner/verifier evidence for lifecycle completion, keeps ANSI/ISO grade scales explicit and enforces adapter identity, correlation, timeout and busy rules. Use the [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) to approve the host, method/grade thresholds, request binding, lab fixture, signed-evidence policy, redaction and runtime ownership before implementation. Figma History `3:85` is generic row/detail research with no verifier state; no physical or certification claim is implied.
+P8 is the physical-verifier evidence slice. Core already separates spool/queue states from `Completed`, requires accepted manifest-bound scanner/verifier evidence for lifecycle completion, keeps ANSI/ISO grade scales explicit and enforces adapter identity, correlation, timeout and busy rules. Use the [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](archive/P8_PHYSICAL_VERIFIER_DECISION_PACKET.md) to approve the host, method/grade thresholds, request binding, lab fixture, signed-evidence policy, redaction and runtime ownership before implementation. Figma History `3:85` is generic row/detail research with no verifier state; no physical or certification claim is implied.

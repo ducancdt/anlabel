@@ -492,11 +492,11 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 **GĐ0 — Khóa nền**
 
-- [ ] 0.1 Commit worktree theo phân hệ theo `docs/COMMIT_WORKFLOW.md` `[chờ QĐ-1]`
-- [ ] 0.2 Changelog 0.289–0.306 và quy tắc version mới `[chờ QĐ-2]`
-- [ ] 0.3 Phát hành từ commit sạch và cài lên desktop `[chờ QĐ-1]`
-- [ ] 0.4 Một nguồn đường dẫn dữ liệu app, có override cho test, và xoay vòng log
-- [ ] 0.5 Dispatcher chỉ đọc §9 của tài liệu này `[chờ QĐ-3]`
+- [x] 0.1 Commit worktree theo phân hệ theo `docs/COMMIT_WORKFLOW.md` `[chờ QĐ-1]` — xong 2026-10-13: `7a0a834`, `e43cc80`, `52a98d6`. Các thay đổi mã liên quan chéo nhau nên gom thành một commit release để commit nào cũng build được.
+- [x] 0.2 Changelog 0.289–0.306 và quy tắc version mới `[chờ QĐ-2]` — xong 2026-10-13: `PLAN.md` mục v0.306; `VERSIONING.md` và quy tắc 2 của `agent.md` (`e43cc80`).
+- [x] 0.3 Phát hành từ commit sạch và cài lên desktop `[chờ QĐ-1]` — xong 2026-10-13: bản cài 0.306.0.0 khởi động và đóng bình thường. Script deploy giờ đóng app nhẹ nhàng thay vì kill (`d7c4eea`).
+- [x] 0.4 Một nguồn đường dẫn dữ liệu app, có override cho test, và xoay vòng log — xong 2026-10-13 (`9831415`): unit 1137/1137, regression 212/0. Ảnh chụp trước/sau cho thấy không file nào trong thư mục dữ liệu thật thay đổi.
+- [x] 0.5 Dispatcher chỉ đọc §9 của tài liệu này `[chờ QĐ-3]` — xong 2026-10-13 (`5f1026c`): test dispatcher 14/14; dry-run chỉ liệt kê các mục §9.
 - [ ] 0.6 Cập nhật trạng thái 32 ID theo commit đã khóa
 
 **GĐ1 — Gọn phạm vi**

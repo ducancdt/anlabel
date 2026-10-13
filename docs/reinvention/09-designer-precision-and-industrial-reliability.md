@@ -1,5 +1,8 @@
 # Designer Precision và Industrial Reliability
 
+> **Lịch sử (2026-10-13):** tài liệu tham chiếu, không tạo việc. Việc thiết kế hiện
+> hành lấy từ mục 9 của [`13-ke-hoach-cai-to-loi.md`](13-ke-hoach-cai-to-loi.md) (GĐ3, D01–D07).
+
 Trạng thái: **Approved planning baseline — implementation checkpoint v0.186; operator support export + GS1 industrial AI subset; hardware gates open**  
 Cập nhật: **2026-08-11**  
 Phạm vi: bắt điểm, căn chỉnh, text layout, ruler/guide, độ xác định của scene, preflight, media/printer profile, job lifecycle và kiểm thử máy in thật.

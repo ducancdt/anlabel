@@ -2,7 +2,7 @@
 
 **Status:** documentation-only runtime/design contract; implementation exists but click-through evidence is open (2026-08-13)
 **Handoff:** [`DATABASE_MANAGER_UI_HANDOFF.md`](DATABASE_MANAGER_UI_HANDOFF.md)
-**Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
+**Owner decision packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](archive/R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
 **Concrete Manager/Cleanup owner packet:** [`DATABASE_MANAGER_UI_DECISION_PACKET.md`](DATABASE_MANAGER_UI_DECISION_PACKET.md)
 **Module plan:** [`database-manager-module-plan.md`](database-manager-module-plan.md)
 **Figma reference:** panels file `kqyNBI0DgRHnPzJTDBIui5`, shell `8:2`; no dedicated Manager frame exists
@@ -183,4 +183,4 @@ Before a visual or behavioral change, the owner must confirm:
 
 Until those decisions and click-through evidence exist, this document remains a verification specification, not a release or UX-complete claim.
 
-Use [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md) for the cross-surface source identity, connector snapshot, Manager/Workspace action ownership, stale-result and Figma-routing decisions. This specification remains authoritative for the Manager state matrix and runtime checklist.
+Use [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](archive/R4_DATA_SURFACES_OWNER_DECISION_PACKET.md) for the cross-surface source identity, connector snapshot, Manager/Workspace action ownership, stale-result and Figma-routing decisions. This specification remains authoritative for the Manager state matrix and runtime checklist.

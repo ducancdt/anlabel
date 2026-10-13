@@ -234,7 +234,7 @@ Legend: **Have** = shipped and used on real paths; **Partial** = exists but inco
 
 ## 8. Recommended product sequencing
 
-**Authoritative ordered phases + acceptance gates:** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0 done; P1+ open).  
+**Historical ordered phases (superseded 2026-10-13 by plan 13 GĐ5):** [`INDUSTRIAL_BARCODE_EXECUTION_PLAN.md`](INDUSTRIAL_BARCODE_EXECUTION_PLAN.md) (P0 done; P1+ open).  
 **Next coding slice (P1 optimized):** [`P1_LINEAR_GEOMETRY_NEXT_SLICE.md`](P1_LINEAR_GEOMETRY_NEXT_SLICE.md) — logical module count first; do not treat ZXing scaled `WidthModules` as logical modules.
 
 Research-level summary (same order):

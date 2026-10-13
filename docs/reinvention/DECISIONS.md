@@ -74,9 +74,9 @@ Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 | ADR-005 | Accepted | Mọi mutation qua command transaction | undo ổn định, diff/audit được, cấm render mutation | không |
 | ADR-006 | Accepted | Tách Design và Print Center | giảm lỗi thao tác và hỗ trợ persona Operator | không; chỉ có thể thay shell presentation |
 | ADR-007 | Proposed | Document v2 dùng JSON envelope + schema migrations + resource manifest | tương thích Git, dễ inspect, hỗ trợ portability | prototype phải đo kích thước/load/migration |
-| ADR-008 | Proposed | Dùng SQLite cho unified local job/revision/event index; artifact lớn nằm ngoài DB theo content hash | query/recovery tốt hơn CSV/JSONL rời rạc | benchmark, dependency/license và backup strategy |
+| ADR-008 | Superseded (ADR-021; core standard: no SQL/SQLite) | Dùng SQLite cho unified local job/revision/event index; artifact lớn nằm ngoài DB theo content hash | query/recovery tốt hơn CSV/JSONL rời rạc | benchmark, dependency/license và backup strategy |
 | ADR-009 | Accepted | Printer profile là versioned snapshot/ref, không phải implicit OS state | reproducibility và preflight | mapping sang driver backend có thể thay đổi |
-| ADR-010 | Accepted | Typed data graph thay string binding làm model đích | validation, transform, lineage, connector reuse | compatibility adapter phải giữ template v1 |
+| ADR-010 | Superseded (ADR-021: typed data graph is not a backlog item) | Typed data graph thay string binding làm model đích | validation, transform, lineage, connector reuse | compatibility adapter phải giữ template v1 |
 | ADR-011 | Proposed | Semantic diff + visual diff đều cần cho revision review | hình giống nhưng data rule khác và ngược lại đều nguy hiểm | chọn engine diff sau prototype |
 | ADR-012 | Accepted | Automation có job state machine và idempotency contract | tránh retry in trùng | không |
 | ADR-013 | Accepted | Snap V2 dùng immutable scene anchors, screen-space acquire/release hysteresis và stable semantic ranking | cảm giác bắt điểm ổn định theo zoom, không phụ thuộc thứ tự collection | usability/pen/touch evidence có thể đổi threshold, không bỏ hysteresis/determinism |
@@ -113,7 +113,7 @@ Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 
 ### ADR-020 - Operator label stock, not office paper or driver lists
 
-- Status: Accepted
+- Status: Accepted. ADR-021 superseded the ban on reading driver capability: evidence may be read through the existing adapter. The stock list itself stays the mm catalog plus manual entry and is never filled from the driver.
 - Date: 2026-08-18
 - Context: Industrial queues do not expose a trustworthy paper-size list (`DEVMODE` / `DC_PAPERSIZE` previously returned swapped or mistyped sizes). Mixing A4/Letter into `StandardLabelSizes`, stamping catalog picks as `DriverAutomatic`, and selecting `printers[0]` (Windows default) made khổ giấy and printer choice fail open.
 - Decision: Keep the millimetre catalog + typed custom size. Treat both as `PaperSizeSource.Manual`. Reject A4/A3/Letter/Legal as thermal stock in `LabelStockContract` and preflight. Resolve a named queue only; never auto-select the default. Do not reopen driver paper enumeration.

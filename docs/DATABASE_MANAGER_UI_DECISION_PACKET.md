@@ -4,7 +4,7 @@
 **Module plan:** [`database-manager-module-plan.md`](database-manager-module-plan.md)
 **UI/UX handoff:** [`DATABASE_MANAGER_UI_HANDOFF.md`](DATABASE_MANAGER_UI_HANDOFF.md)
 **UI/UX specification:** [`DATABASE_MANAGER_UI_SPEC.md`](DATABASE_MANAGER_UI_SPEC.md)
-**Cross-surface R4 packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
+**Cross-surface R4 packet:** [`R4_DATA_SURFACES_OWNER_DECISION_PACKET.md`](archive/R4_DATA_SURFACES_OWNER_DECISION_PACKET.md)
 **Figma routing:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
 **Protected contract:** [`../AGENTS.md`](../AGENTS.md)
 

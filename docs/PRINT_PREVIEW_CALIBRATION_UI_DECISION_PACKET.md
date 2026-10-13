@@ -4,7 +4,7 @@
 **Reliability plan:** [`print-preview-reliability-plan.md`](print-preview-reliability-plan.md)
 **Physical calibration guide:** [`print-calibration.md`](print-calibration.md)
 **Figma handoff template:** [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)
-**Barcode/output boundaries:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](P7_PRINT_METHOD_DECISION_PACKET.md), [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
+**Barcode/output boundaries:** [`P7_PRINT_METHOD_DECISION_PACKET.md`](archive/P7_PRINT_METHOD_DECISION_PACKET.md), [`P8_PHYSICAL_VERIFIER_DECISION_PACKET.md`](archive/P8_PHYSICAL_VERIFIER_DECISION_PACKET.md)
 **Protected contract:** [`../AGENTS.md`](../AGENTS.md)
 
 ## Purpose and decision boundary

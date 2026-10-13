@@ -12,7 +12,7 @@ Không SQL, SQLite, ODBC, server database hoặc connector database khác. File 
 
 Lấy từ nghiên cứu NiceLabel: tách thiết kế khỏi dữ liệu, map field rõ ràng, chọn dòng/copies, preview đúng instance, driver là nguồn capability, kiểm tra trước in. Không lấy toàn bộ kiến trúc hay toàn bộ tập lệnh NiceLabel.
 
-Nguồn nội bộ: [product contract](LOCAL_LABEL_PRODUCT_CONTRACT.md), [preview](NICELABEL_PRINT_PREVIEW_ARCHITECTURE.md), [printer/media](NICELABEL_PRINTER_MEDIA_ARCHITECTURE.md), [JOB](NICELABEL_JOB_COMMAND_ARCHITECTURE.md), [designer audit](designer-stability-plan.md), [database plan](database-plan.md), [Text/TextBox](NICELABEL_TEXTBOX_RESEARCH.md). Đây là tổng hợp quyết định sản phẩm từ tài liệu trong repo, không xác nhận lại mọi phát biểu về NiceLabel trong các nghiên cứu.
+Nguồn nội bộ: [product contract](LOCAL_LABEL_PRODUCT_CONTRACT.md), [preview](NICELABEL_PRINT_PREVIEW_ARCHITECTURE.md), [printer/media](NICELABEL_PRINTER_MEDIA_ARCHITECTURE.md), [JOB](archive/NICELABEL_JOB_COMMAND_ARCHITECTURE.md), [designer audit](designer-stability-plan.md), [database plan](database-plan.md), [Text/TextBox](NICELABEL_TEXTBOX_RESEARCH.md). Đây là tổng hợp quyết định sản phẩm từ tài liệu trong repo, không xác nhận lại mọi phát biểu về NiceLabel trong các nghiên cứu.
 
 Quy chuẩn này chốt phạm vi cho kế hoạch tiếp theo. Các đề xuất SQL/ODBC, full JOB và multi-label trong tài liệu lịch sử không phải backlog. [AGENTS.md](../AGENTS.md) vẫn là hợp đồng bảo vệ Text/TextBox; tài liệu này không sửa bất kỳ invariant nào của hợp đồng đó.
 

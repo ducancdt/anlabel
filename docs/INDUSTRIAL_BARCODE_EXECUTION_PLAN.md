@@ -1,6 +1,6 @@
 # ANLAbel — Industrial barcode long-horizon execution plan
 
-**Status:** Active execution spine (multi-session / multi-agent)  
+**Status:** Historical. Since 2026-10-13 barcode work comes from section 9 of [`reinvention/13-ke-hoach-cai-to-loi.md`](reinvention/13-ke-hoach-cai-to-loi.md) (GĐ5, B01–B07); this file does not create work.  
 **Created:** 2026-08-12  
 **Repo of record:** `H:\00_REPOS_PROJECTS\ANLABEL` (keep Grok worktree in parity when both are used)  
 **Audience:** Implementers and agents executing barcode reliability work for industrial thermal label ops  

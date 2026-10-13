@@ -56,7 +56,9 @@ Control Center, a second renderer, or changing the Text/TextBox contract.
    label size itself must still be finite and must not be an office sheet.
 6. Do not enumerate `PrintCapabilities.PageMediaSizeCapability` or
    `DeviceCapabilitiesW` to fill the list. Do not add a hardcoded office
-   tray list as a fallback.
+   tray list as a fallback. (ADR-021 allows reading driver capability as
+   evidence through the existing adapter; it does not allow filling the stock
+   list from the driver.)
 7. Each stock edge must be between 8 mm and 400 mm. Smaller than the
    jewelry/Brother catalog or larger than a rack label is not thermal stock.
 8. Authored DPI is an industrial thermal value (`152/203/300/305/600/609/1200`),

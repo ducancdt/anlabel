@@ -40,11 +40,8 @@ foreach ($file in @('installer/ANLAbel-x64.iss')) {
 
 Replace-Required 'docs/VERSIONING.md' 'current public version is `\d+\.\d+`' ('current public version is `{0}`' -f $Version)
 Replace-Required 'docs/AUTOMATED_QUALITY_LOOP.md' 'public version `\d+\.\d+`' ('public version `{0}`' -f $Version)
-Replace-Required 'docs/audit-2026-07-02.md' 'public version `\d+\.\d+` is canonical' ('public version `{0}` is canonical' -f $Version)
-Replace-Required 'docs/reinvention/11-verification-checkpoint-2026-08-13.md' 'Display/source version \| `\d+\.\d+` is canonical' ('Display/source version | `{0}` is canonical' -f $Version)
 Replace-Required 'docs/reinvention/07-execution-plan.md' '## Now \(\d+\.\d+\)' "## Now ($Version)"
 Replace-Required 'docs/reinvention/07-execution-plan.md' 'Public version `\d+\.\d+`' "Public version ``$Version``"
 Replace-Required 'docs/reinvention/MEMORY.md' 'Version: `\d+\.\d+`' "Version: ``$Version``"
-Replace-Required 'MASTER_PLAN.md' 'product display \*\*v\d+\.\d+\*\*' "product display **v$Version**"
 
 Write-Host "ANLAbel public release projections updated to $Version. Run build, unit tests and the application regression suite before release."

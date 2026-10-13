@@ -13,9 +13,6 @@ internal static class ReleaseVersionScriptRegression
             Write(root, "installer/ANLAbel-x64.iss", "AppVersion=0.221\nv0.221\nVersionInfoVersion=0.221.0.0");
             Write(root, "docs/VERSIONING.md", "current public version is `0.221`");
             Write(root, "docs/AUTOMATED_QUALITY_LOOP.md", "public version `0.221`");
-            Write(root, "docs/audit-2026-07-02.md", "public version `0.221` is canonical");
-            Write(root, "docs/reinvention/11-verification-checkpoint-2026-08-13.md", "Display/source version | `0.221` is canonical");
-            Write(root, "MASTER_PLAN.md", "product display **v0.221**");
             var script = Path.Combine(FindRepositoryRoot(), "scripts", "Set-ANLAbelReleaseVersion.ps1");
             var psi = new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -Version 0.222 -Root \"{root}\"") { UseShellExecute = false, RedirectStandardError = true };
             using var process = Process.Start(psi) ?? throw new InvalidOperationException("Could not start PowerShell version script regression.");
