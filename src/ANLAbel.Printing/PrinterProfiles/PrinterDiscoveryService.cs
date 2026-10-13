@@ -14,8 +14,8 @@ public sealed record PrinterDiscoveryResult(
 }
 
 /// <summary>
-/// Lists Windows printers without attempting to read paper sizes from drivers.
-/// Paper sizes come from <see cref="StandardLabelSizes"/> catalog instead.
+/// Lists Windows printer queues only. Driver capabilities are loaded lazily by
+/// <see cref="PrinterCapabilityService"/> after the operator selects a queue.
 /// </summary>
 public sealed class PrinterDiscoveryService
 {
@@ -76,8 +76,7 @@ public sealed class PrinterDiscoveryService
         {
             Name = name,
             DriverName = driverName,
-            IsDefault = string.Equals(name, defaultName, StringComparison.OrdinalIgnoreCase),
-            PaperSizes = StandardLabelSizes.All
+            IsDefault = string.Equals(name, defaultName, StringComparison.OrdinalIgnoreCase)
         };
     }
 

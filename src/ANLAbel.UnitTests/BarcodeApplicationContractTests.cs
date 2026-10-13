@@ -266,4 +266,222 @@ public sealed class BarcodeApplicationContractTests
             "(3912)US"); // Requires 3-digit ISO currency + amount digits
         Assert.Contains(invalidPriceErrors, e => e.Contains("requires 3 numeric ISO currency digits followed by 1–15 numeric amount digits."));
     }
+
+    [Theory]
+    [InlineData(BarcodeApplicationProfile.General)]
+    [InlineData(BarcodeApplicationProfile.Industrial)]
+    public void NonGs1ProfileRejectsEmptyOrWhitespaceDataWithSymbologyDiagnostic(BarcodeApplicationProfile profile)
+    {
+        var nullErrors = BarcodeApplicationContract.ValidateData(profile, BarcodeSymbology.Code128, null);
+        Assert.Contains(nullErrors, e => e.Contains("Code128") && e.Contains("empty or whitespace"));
+
+        var emptyErrors = BarcodeApplicationContract.ValidateData(profile, BarcodeSymbology.QRCode, "");
+        Assert.Contains(emptyErrors, e => e.Contains("QRCode") && e.Contains("empty or whitespace"));
+
+        var whitespaceErrors = BarcodeApplicationContract.ValidateData(profile, BarcodeSymbology.Ean13, "   ");
+        Assert.Contains(whitespaceErrors, e => e.Contains("Ean13") && e.Contains("empty or whitespace"));
+    }
+
+    [Theory]
+    [InlineData(BarcodeApplicationProfile.General, "CODE-128_TEST!", true)]
+    [InlineData(BarcodeApplicationProfile.General, "CODE128\u00A0NBSP", false)]
+    [InlineData(BarcodeApplicationProfile.Industrial, "VALID-PART#123", true)]
+    [InlineData(BarcodeApplicationProfile.Industrial, "INVALID\u0009TAB", false)]
+    public void Code128AndCode93ValidatePrintableAsciiBoundary(BarcodeApplicationProfile profile, string payload, bool expectedValid)
+    {
+        var code128Errors = BarcodeApplicationContract.ValidateData(profile, BarcodeSymbology.Code128, payload);
+        Assert.Equal(expectedValid, code128Errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(code128Errors, e => e.Contains("Code128") && e.Contains("unsupported characters"));
+        }
+
+        var code93Errors = BarcodeApplicationContract.ValidateData(profile, BarcodeSymbology.Code93, payload);
+        Assert.Equal(expectedValid, code93Errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(code93Errors, e => e.Contains("Code93") && e.Contains("unsupported characters"));
+        }
+    }
+
+    [Theory]
+    [InlineData("CODE39-123. $/+%", true)]
+    [InlineData("code39-lower-case", true)]
+    [InlineData("CODE39@BAD", false)]
+    [InlineData("CODE39_UNDERSCORE", false)]
+    [InlineData("CODE39!EXCL", false)]
+    public void Code39ValidatesStrictAlphabet(string payload, bool expectedValid)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, BarcodeSymbology.Code39, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("Code39") && e.Contains("unsupported characters"));
+        }
+    }
+
+    [Theory]
+    [InlineData("400638133393", true, null)] // 12 digits: encoder generates check digit
+    [InlineData("4006381333931", true, null)] // 13 digits: correct check digit
+    [InlineData("4006381333932", false, "check digit")] // 13 digits: wrong check digit
+    [InlineData("40063813339", false, "length must be 12 digits")] // 11 digits: invalid length
+    [InlineData("40063813339315", false, "length must be 12 digits")] // 14 digits: invalid length
+    [InlineData("40063813339A", false, "numeric digits only")] // Non-numeric
+    public void Ean13ValidatesLengthAndCheckDigitOnlyWhenPresent(string payload, bool expectedValid, string? expectedDiagnosticPart)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, BarcodeSymbology.Ean13, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("Ean13") && e.Contains(expectedDiagnosticPart!, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Theory]
+    [InlineData("9638507", true, null)] // 7 digits: encoder generates check digit
+    [InlineData("96385074", true, null)] // 8 digits: correct check digit
+    [InlineData("96385075", false, "check digit")] // 8 digits: wrong check digit
+    [InlineData("963850", false, "length must be 7 digits")] // 6 digits: invalid length
+    [InlineData("963850741", false, "length must be 7 digits")] // 9 digits: invalid length
+    [InlineData("963850A", false, "numeric digits only")] // Non-numeric
+    public void Ean8ValidatesLengthAndCheckDigitOnlyWhenPresent(string payload, bool expectedValid, string? expectedDiagnosticPart)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.Industrial, BarcodeSymbology.Ean8, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("Ean8") && e.Contains(expectedDiagnosticPart!, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Theory]
+    [InlineData("03600029145", true, null)] // 11 digits: encoder generates check digit
+    [InlineData("036000291452", true, null)] // 12 digits: correct check digit
+    [InlineData("036000291453", false, "check digit")] // 12 digits: wrong check digit
+    [InlineData("0360002914", false, "length must be 11 digits")] // 10 digits: invalid length
+    [InlineData("0360002914520", false, "length must be 11 digits")] // 13 digits: invalid length
+    [InlineData("0360002914A", false, "numeric digits only")] // Non-numeric
+    public void UpcAValidatesLengthAndCheckDigitOnlyWhenPresent(string payload, bool expectedValid, string? expectedDiagnosticPart)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, BarcodeSymbology.UpcA, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("UpcA") && e.Contains(expectedDiagnosticPart!, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Theory]
+    [InlineData("012345", true, null)]
+    [InlineData("0123456", true, null)]
+    [InlineData("01234567", true, null)]
+    [InlineData("01234", false, "length must be 6, 7, or 8 digits")]
+    [InlineData("012345678", false, "length must be 6, 7, or 8 digits")]
+    [InlineData("01234A", false, "numeric digits only")]
+    public void UpcEValidatesLengthAndNumericDigits(string payload, bool expectedValid, string? expectedDiagnosticPart)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, BarcodeSymbology.UpcE, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("UpcE") && e.Contains(expectedDiagnosticPart!, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Theory]
+    [InlineData("1234", true, null)]
+    [InlineData("12345678", true, null)]
+    [InlineData("123", false, "even number of digits")]
+    [InlineData("12345", false, "even number of digits")]
+    [InlineData("123A", false, "numeric digits only")]
+    public void ItfValidatesNumericAndEvenLength(string payload, bool expectedValid, string? expectedDiagnosticPart)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.Industrial, BarcodeSymbology.ITF, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("ITF") && e.Contains(expectedDiagnosticPart!, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Theory]
+    [InlineData("A123456B", true)]
+    [InlineData("012345-$:/.+", true)]
+    [InlineData("123@456", false)]
+    [InlineData("ABC?", false)]
+    public void CodabarValidatesSupportedAlphabet(string payload, bool expectedValid)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, BarcodeSymbology.Codabar, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains("Codabar") && e.Contains("unsupported characters"));
+        }
+    }
+
+    [Theory]
+    [InlineData(BarcodeSymbology.MSI, "123456", true)]
+    [InlineData(BarcodeSymbology.MSI, "12345A", false)]
+    [InlineData(BarcodeSymbology.Plessey, "98765", true)]
+    [InlineData(BarcodeSymbology.Plessey, "9876F", false)]
+    public void MsiAndPlesseyValidateNumericDigits(BarcodeSymbology symbology, string payload, bool expectedValid)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.Industrial, symbology, payload);
+        Assert.Equal(expectedValid, errors.Count == 0);
+        if (!expectedValid)
+        {
+            Assert.Contains(errors, e => e.Contains(symbology.ToString()) && e.Contains("numeric digits only"));
+        }
+    }
+
+    [Theory]
+    [InlineData(BarcodeSymbology.QRCode)]
+    [InlineData(BarcodeSymbology.DataMatrix)]
+    [InlineData(BarcodeSymbology.Pdf417)]
+    [InlineData(BarcodeSymbology.Aztec)]
+    public void TwoDimensionalSymbologiesAcceptArbitraryPayloadWhenNotEmpty(BarcodeSymbology symbology)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, symbology, "UTF-8: Nhãn hàng Tiếng Việt 100%!");
+        Assert.Empty(errors);
+    }
+
+    // DEFECT 2 — AI 20 (product variant, N2) is a GS1 pre-defined-length AI and
+    // must NOT be followed by a group separator when another element string
+    // follows it. Previously it was misclassified as SeparatorRequired.
+    [Fact]
+    public void Gs1ProductVariantAi20IsPredefinedLengthAndEmitsNoSeparator()
+    {
+        Assert.True(Gs1AiRegistry.TryGetDefinition("20", out var definition));
+        Assert.Equal(Gs1AiBoundaryKind.PredefinedLength, definition.BoundaryKind);
+
+        var valid = BarcodeApplicationContract.TryNormalizeGs1Data("(20)01(10)ABC", out var normalized, out var errors);
+
+        Assert.True(valid);
+        Assert.Empty(errors);
+        Assert.Equal("200110ABC", normalized);
+        Assert.DoesNotContain(BarcodeApplicationContract.GroupSeparator, normalized);
+    }
+
+    // DEFECT 3 — GS1 permits a day component of "00" (year/month only) on date
+    // AIs. Strict DateTime.TryParseExact("yyMMdd") rejected DD=00; it must be
+    // accepted while genuinely invalid calendar dates stay rejected.
+    [Theory]
+    [InlineData("(17)250600", true)]  // DD=00 permitted (month-only expiry)
+    [InlineData("(17)250630", true)]  // real date
+    [InlineData("(17)250000", false)] // MM=00 still invalid
+    [InlineData("(17)251300", false)] // MM=13 invalid
+    [InlineData("(17)250631", false)] // June has 30 days
+    [InlineData("(17)250230", false)] // Feb 30 invalid
+    [InlineData("(7003)2506000000", true)]  // DD=00 in date/time
+    [InlineData("(7003)2506302359", true)]  // real date/time
+    [InlineData("(7003)2506312359", false)] // June 31 invalid
+    public void Gs1DateAisAcceptDayZeroButRejectInvalidCalendarDates(string source, bool expectedValid)
+    {
+        var errors = BarcodeApplicationContract.ValidateData(
+            BarcodeApplicationProfile.Gs1,
+            BarcodeSymbology.DataMatrix,
+            source);
+
+        Assert.Equal(expectedValid, errors.Count == 0);
+    }
 }

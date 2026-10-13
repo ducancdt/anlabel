@@ -30,7 +30,7 @@ public partial class OperationsOverviewWindow : Window
                 var queue = mainViewModel.PrinterQueueStatus;
                 return new OperationsQueueEvidence(
                     queue.RequestedName,
-                    queue.IsAvailable,
+                    queue.CanSubmit,
                     queue.CanonicalName,
                     queue.ErrorMessage,
                     DateTimeOffset.UtcNow);

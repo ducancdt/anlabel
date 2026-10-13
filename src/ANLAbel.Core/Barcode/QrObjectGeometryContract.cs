@@ -57,6 +57,40 @@ public static class QrObjectGeometryContract
             maxSizeMm);
     }
 
+    /// <summary>
+    /// Resolves the unclamped physical minimum for row validation, not the
+    /// available-space-dependent AutoSizeByData authoring recommendation.
+    /// Fixed sizing retains its selected version/module geometry.
+    /// </summary>
+    public static double? ResolveMinimumSizeMm(
+        LabelObject item,
+        string? data,
+        IQrCapacityProvider? capacityProvider = null)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (!item.IsSquare2DCodeLike())
+        {
+            return null;
+        }
+
+        if (item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize)
+        {
+            return ResolveTargetSizeMm(item, data, capacityProvider: capacityProvider);
+        }
+
+        if (data is null || item.QrModuleSizePx <= 0 || item.QrDpi <= 0)
+        {
+            return null;
+        }
+
+        return QrAutoSizeHelper.CalculateMinimumSizeMm(
+            data,
+            item.QrErrorCorrection,
+            item.QrQuietZoneModules,
+            capacityProvider);
+    }
+
     public static bool HasMeaningfulSizeDelta(LabelObject item, double targetSizeMm)
     {
         ArgumentNullException.ThrowIfNull(item);

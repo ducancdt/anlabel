@@ -1,0 +1,31 @@
+<Window x:Class="ANLAbel.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cài đặt ANLAbel"
+        Height="280" Width="420"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppCanvasBrush}"
+        AutomationProperties.AutomationId="Settings.Root"
+        AutomationProperties.Name="Cài đặt ứng dụng">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="Cài đặt" FontSize="19" FontWeight="SemiBold" Margin="0,0,0,12"/>
+            <TextBlock Text="Ngôn ngữ" FontWeight="SemiBold"/>
+            <StackPanel Margin="0,8,0,12" AutomationProperties.AutomationId="Settings.Language">
+                <RadioButton Content="Tiếng Việt (mặc định)"
+                             IsChecked="True"
+                             IsEnabled="False"
+                             Margin="0,0,0,6"
+                             AutomationProperties.AutomationId="Settings.Language.Vietnamese"/>
+            </StackPanel>
+            <TextBlock Text="Ứng dụng ANLAbel vận hành ở chế độ đơn ngữ tiếng Việt chuẩn công nghiệp." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" FontSize="12"/>
+        </StackPanel>
+        <Button Grid.Row="1" Content="Đóng" Width="92" HorizontalAlignment="Right" Padding="8,5" Click="Close_Click"
+                AutomationProperties.AutomationId="Settings.Close"/>
+    </Grid>
+</Window>

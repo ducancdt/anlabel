@@ -11,9 +11,20 @@ public sealed class TrackingRowViewModel : INotifyPropertyChanged
     private bool _isSelected = true;
     private int _copies = 1;
     private bool _isPrinted;
+    private int _pageNumber;
 
+    public string RecordId { get; init; } = string.Empty;
     public int SourceRowNumber { get; init; }
-    public int PageNumber { get; set; }
+    public int PageNumber
+    {
+        get => _pageNumber;
+        set
+        {
+            if (_pageNumber == value) return;
+            _pageNumber = value;
+            OnPropertyChanged(nameof(PageNumber));
+        }
+    }
     public string? Col1 { get; init; }
     public string? Col2 { get; init; }
     public string? Col3 { get; init; }

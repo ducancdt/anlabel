@@ -23,8 +23,8 @@ public partial class ExcelImportWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Import Excel or CSV data",
-            Filter = "Data files (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Excel Workbook (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|CSV files (*.csv)|*.csv|All files (*.*)|*.*"
+            Title = "Nhập dữ liệu Excel hoặc CSV",
+            Filter = "Tệp dữ liệu (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Sổ làm việc Excel (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|Tệp CSV (*.csv)|*.csv|Tất cả tệp (*.*)|*.*"
         };
 
         if (dialog.ShowDialog(this) != true)
@@ -102,7 +102,7 @@ public partial class ExcelImportWindow : Window
         }
         catch (IOException ex)
         {
-            MessageBox.Show(this, $"Cannot read the Excel file. Close it in Excel and try again.\n\n{ex.Message}", "Import failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, $"Không thể đọc tệp Excel. Vui lòng đóng tệp trong Excel rồi thử lại.\n\n{ex.Message}", "Nhập dữ liệu thất bại", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         catch (TimeoutException)
         {
@@ -111,14 +111,14 @@ public partial class ExcelImportWindow : Window
             // stuck — reported on a weak machine even after switching to ExcelDataReader.
             MessageBox.Show(
                 this,
-                "Reading this Excel file is taking too long and was stopped automatically. This can happen on an older or busy computer. Try again, close other programs first, or try a smaller/simpler file.",
-                "Import timed out",
+                "Đọc tệp Excel quá lâu và đã tự động dừng. Hãy thử lại, đóng các chương trình khác hoặc thử với tệp nhỏ hơn.",
+                "Hết thời gian nhập dữ liệu",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Import failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ex.Message, "Nhập dữ liệu thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {

@@ -1,5 +1,6 @@
 using ANLAbel.Barcode.Options;
 using ANLAbel.Core.Barcode;
+using ANLAbel.Core.Enums;
 using ZXing;
 using ZXing.Common;
 using ZXing.Datamatrix.Encoder;
@@ -10,6 +11,12 @@ namespace ANLAbel.Barcode.Renderers;
 public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRenderer
 {
     private const int MaxPixelCount = 25_000_000;
+
+    /// <summary>
+    /// ZXing.Net's Code128Writer FNC1 escape character (U+00F1). It is the only
+    /// value the Code128 encoder converts into an FNC1 symbol character.
+    /// </summary>
+    private const char Gs1Code128Fnc1Escape = 'ñ';
 
     public BarcodePixelImage RenderBarcode(string data, BarcodeType type, double widthMm, double heightMm, int dpi, BarcodeRenderOptions? options = null)
     {
@@ -70,10 +77,10 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
             BarcodeType.Code128 => data.All(ch => ch >= 32 && ch <= 126),
             BarcodeType.Code39 => data.All(ch => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%".Contains(char.ToUpperInvariant(ch))),
             BarcodeType.Code93 => data.All(ch => ch >= 32 && ch <= 126),
-            BarcodeType.Ean13 => data.All(char.IsDigit) && data.Length is 12 or 13,
-            BarcodeType.Ean8 => data.All(char.IsDigit) && data.Length is 7 or 8,
-            BarcodeType.UpcA => data.All(char.IsDigit) && data.Length is 11 or 12,
-            BarcodeType.UpcE => data.All(char.IsDigit) && data.Length is 6 or 7 or 8,
+            BarcodeType.Ean13 => AcceptsRetailPayload(BarcodeSymbology.Ean13, data),
+            BarcodeType.Ean8 => AcceptsRetailPayload(BarcodeSymbology.Ean8, data),
+            BarcodeType.UpcA => AcceptsRetailPayload(BarcodeSymbology.UpcA, data),
+            BarcodeType.UpcE => AcceptsRetailPayload(BarcodeSymbology.UpcE, data),
             BarcodeType.ITF => data.All(char.IsDigit) && data.Length % 2 == 0,
             BarcodeType.Codabar => data.All(ch => "0123456789-$:/.+ABCDTN*E".Contains(char.ToUpperInvariant(ch))),
             BarcodeType.MSI => data.All(char.IsDigit),
@@ -94,6 +101,14 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
     /// instead of throwing, producing a barcode that scanners in standard mode read
     /// back garbled. Uppercase first so the data always maps onto the plain alphabet.
     /// </summary>
+    /// <summary>
+    /// Retail symbologies share the application contract: a full payload with a
+    /// wrong check digit is invalid, while the short form that omits the check
+    /// digit stays valid so the encoder may append that one digit.
+    /// </summary>
+    private static bool AcceptsRetailPayload(BarcodeSymbology symbology, string data)
+        => BarcodeApplicationContract.ValidateData(BarcodeApplicationProfile.General, symbology, data).Count == 0;
+
     private static string NormalizeData(string data, BarcodeType type, BarcodeRenderOptions options)
     {
         var normalized = type is BarcodeType.Code39 or BarcodeType.Codabar
@@ -113,6 +128,18 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         if (!BarcodeApplicationContract.TryNormalizeGs1Data(normalized, out var gs1Data, out var errors))
         {
             throw new ArgumentException(string.Join(" ", errors));
+        }
+
+        // ZXing.Net's Code128Writer only converts the FNC1 escape char (U+00F1)
+        // into an FNC1 symbol character; a literal GS (0x1D) is encoded as a
+        // plain Code-Set data character, silently breaking GS1 conformance. The
+        // leading FNC1 is still supplied automatically because we pass the
+        // GS1_FORMAT hint. The QR and Data Matrix encoders, by contrast, treat a
+        // literal 0x1D as the FNC1 separator, so only the Code128 path needs the
+        // translation.
+        if (type == BarcodeType.Code128)
+        {
+            gs1Data = gs1Data.Replace(BarcodeApplicationContract.GroupSeparator, Gs1Code128Fnc1Escape);
         }
 
         return gs1Data;

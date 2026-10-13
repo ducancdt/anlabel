@@ -80,6 +80,18 @@ public sealed class QrSizingCalculatorTests
         Assert.InRange(size!.Value, 7, 8);
     }
 
+    [Theory]
+    [InlineData("ABC", 4, 7.25)]
+    [InlineData("ABC", 0, 6)]
+    [InlineData("123456789012345", 4, 8.25)]
+    public void AutoSizeMinimum_RespectsEncodingModulesQuietZoneAndReadability(
+        string data, int quietZoneModules, double expectedMinimumMm)
+    {
+        var minimum = QrAutoSizeHelper.CalculateMinimumSizeMm(data, QrErrorCorrection.M, quietZoneModules);
+
+        Assert.Equal(expectedMinimumMm, minimum);
+    }
+
     [Fact]
     public void FixedSizeHelper_HigherVersionAndModuleSizeGrowPredictably()
     {

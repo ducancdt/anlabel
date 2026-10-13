@@ -63,23 +63,24 @@ public sealed class PrintPreflightValidator
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var row = rows[rowIndex];
-                ValidateBindingFieldsPresent(item, row, rowIndex, issues);
-                var data = ResolveExpression(item, row);
-                ValidateTextGlyphCoverage(item, data, rowIndex, issues);
-
-                switch (item.Type)
+                if (TryResolveExpression(item, row, rowIndex, issues, out var data))
                 {
-                    case ObjectType.Text:
-                        ValidateTextWithinLabel(template, item, data, rowIndex, issues);
-                        break;
-                    case ObjectType.BarcodeCode128:
-                    case ObjectType.QRCode:
-                    case ObjectType.DataMatrix:
-                        ValidateBarcode(item, data, rowIndex, issues);
-                        break;
-                    case ObjectType.TextBox:
-                        ValidateTextBox(item, data, rowIndex, issues);
-                        break;
+                    ValidateTextGlyphCoverage(item, data, rowIndex, issues);
+
+                    switch (item.Type)
+                    {
+                        case ObjectType.Text:
+                            ValidateTextWithinLabel(template, item, data, rowIndex, issues);
+                            break;
+                        case ObjectType.BarcodeCode128:
+                        case ObjectType.QRCode:
+                        case ObjectType.DataMatrix:
+                            ValidateBarcode(item, data, rowIndex, issues);
+                            break;
+                        case ObjectType.TextBox:
+                            ValidateTextBox(item, data, rowIndex, issues);
+                            break;
+                    }
                 }
 
                 completedUnits++;
@@ -95,18 +96,27 @@ public sealed class PrintPreflightValidator
     }
 
     /// <summary>
-    /// Flags rows where a bound Excel column is missing (print-preview-reliability-plan R3).
-    /// The plain "{Field}" syntax silently resolves missing fields to an empty string
-    /// (<see cref="BindingExpressionEvaluator.Evaluate"/>), so without this check the
-    /// object would print blank with no warning at all. Formula bindings already surface
-    /// "field not found" via <see cref="FormulaEvaluationResult.Errors"/>, so those are
-    /// simply forwarded instead of re-detected.
+    /// Resolves row data once, reporting binding failures as the root issue.
+    /// Dependent content checks must not run against a failed binding's fallback
+    /// value. Object-level geometry and configuration checks remain independent.
     /// </summary>
-    private static void ValidateBindingFieldsPresent(LabelObject item, IReadOnlyDictionary<string, string>? row, int rowIndex, List<PrintPreflightIssue> issues)
+    private static bool TryResolveExpression(
+        LabelObject item,
+        IReadOnlyDictionary<string, string>? row,
+        int rowIndex,
+        List<PrintPreflightIssue> issues,
+        out string data)
     {
-        if (string.IsNullOrWhiteSpace(item.BindingExpression) || row is null)
+        data = item.Text;
+        if (string.IsNullOrWhiteSpace(item.BindingExpression))
         {
-            return;
+            return true;
+        }
+
+        if (row is null)
+        {
+            data = item.BindingExpression;
+            return true;
         }
 
         if (FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression))
@@ -119,8 +129,10 @@ public sealed class PrintPreflightValidator
                     item.Name,
                     item.Type.ToString(),
                     $"Formula binding error: {string.Join("; ", result.Errors)}"));
+                return false;
             }
-            return;
+            data = result.Value;
+            return true;
         }
 
         var missing = BindingExpressionEvaluator.GetFields(item.BindingExpression)
@@ -133,7 +145,11 @@ public sealed class PrintPreflightValidator
                 item.Name,
                 item.Type.ToString(),
                 $"Missing field(s) in Excel data: {string.Join(", ", missing)}. This object will print blank for this row."));
+            return false;
         }
+
+        data = BindingExpressionEvaluator.Evaluate(item.BindingExpression, row);
+        return true;
     }
 
     /// <summary>
@@ -244,7 +260,8 @@ public sealed class PrintPreflightValidator
             0,
             item.Name,
             item.Type.ToString(),
-            LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution)));
+            LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution),
+            IsBlocking: item.BarcodeModuleWidthMm > 0));
     }
 
     private static void ValidateObjectWithinLabel(LabelTemplate template, LabelObject item, List<PrintPreflightIssue> issues)
@@ -554,11 +571,10 @@ public sealed class PrintPreflightValidator
             return;
         }
 
-        // Auto-size is an authoring aid, but a bound row must never silently
-        // shrink its modules into an undersized authored frame at print time.
-        // Resolve without max-size clamping so this remains a per-row blocking
-        // check rather than a second mutation of document geometry.
-        var requiredSizeMm = QrObjectGeometryContract.ResolveTargetSizeMm(item, data);
+        // A bound row must fit the physical encoding/readability minimum, not
+        // the available-space-dependent size recommended during authoring.
+        // Fixed mode still requires its selected version/module geometry.
+        var requiredSizeMm = QrObjectGeometryContract.ResolveMinimumSizeMm(item, data, QrCapacityProvider);
         if (requiredSizeMm is null)
         {
             return;
@@ -633,23 +649,6 @@ public sealed class PrintPreflightValidator
         {
             return ex.Message;
         }
-    }
-
-    private static string ResolveExpression(LabelObject item, IReadOnlyDictionary<string, string>? row)
-    {
-        if (string.IsNullOrWhiteSpace(item.BindingExpression))
-        {
-            return item.Text;
-        }
-
-        if (row is null)
-        {
-            return item.BindingExpression;
-        }
-
-        return FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
-            ? FormulaBindingEvaluator.Evaluate(item.BindingExpression, row).Value
-            : BindingExpressionEvaluator.Evaluate(item.BindingExpression, row);
     }
 
     private static RectMm GetObjectBoundsMm(LabelObject item)
@@ -868,7 +867,12 @@ public sealed class PrintPreflightValidator
 
 }
 
-public sealed record PrintPreflightIssue(int RowNumber, string ObjectName, string ObjectType, string Message)
+public sealed record PrintPreflightIssue(
+    int RowNumber,
+    string ObjectName,
+    string ObjectType,
+    string Message,
+    bool IsBlocking = true)
 {
     public string Summary => RowNumber <= 0
         ? $"Template, {ObjectName} ({ObjectType}): {Message}"
@@ -891,21 +895,44 @@ internal readonly record struct RectMm(double Left, double Top, double Right, do
 
 public sealed record PrintPreflightResult(IReadOnlyList<PrintPreflightIssue> Issues)
 {
-    public bool IsSuccess => Issues.Count == 0;
+    public bool IsSuccess => Issues.All(issue => !issue.IsBlocking);
 
     public string ToUserMessage(int maxIssues = 5)
     {
-        if (IsSuccess)
+        var blocking = Issues.Where(issue => issue.IsBlocking).ToArray();
+        if (blocking.Length == 0)
         {
             return "Print preflight passed.";
         }
 
-        var lines = Issues.Take(maxIssues).Select(issue => $"- {issue.Summary}").ToList();
-        if (Issues.Count > maxIssues)
+        var groups = blocking.GroupBy(issue => (
+            issue.ObjectName,
+            issue.ObjectType,
+            issue.Message,
+            IsTemplate: issue.RowNumber <= 0)).ToArray();
+        var visibleGroupCount = Math.Clamp(maxIssues, 0, groups.Length);
+        var lines = groups.Take(visibleGroupCount).Select(group =>
         {
-            lines.Add($"- ...and {Issues.Count - maxIssues} more issue(s).");
+            var location = "Template";
+            if (!group.Key.IsTemplate)
+            {
+                var rows = group.Select(issue => issue.RowNumber).Distinct().Order().ToArray();
+                location = rows.Length == 1
+                    ? $"Row {rows[0]}"
+                    : $"Rows {string.Join(", ", rows.Take(5))}";
+                if (rows.Length > 5)
+                {
+                    location += $" (+{rows.Length - 5} more; {rows.Length} affected rows)";
+                }
+            }
+
+            return $"- {location}, {group.Key.ObjectName} ({group.Key.ObjectType}): {group.Key.Message}";
+        }).ToList();
+        if (groups.Length > visibleGroupCount)
+        {
+            lines.Add($"- ...and {groups.Length - visibleGroupCount} more distinct issue(s).");
         }
 
-        return $"Print blocked because label content is not safe to print:{Environment.NewLine}{string.Join(Environment.NewLine, lines)}";
+        return $"Printing is blocked. Resolve the following issues:{Environment.NewLine}{string.Join(Environment.NewLine, lines)}";
     }
 }

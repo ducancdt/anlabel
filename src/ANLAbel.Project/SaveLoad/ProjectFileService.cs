@@ -326,7 +326,22 @@ public sealed class ProjectFileService : IProjectFileService
         // LabelTemplate.  Keep this migration path deliberately explicit and
         // one-way: missing newer fields use model defaults, while a future
         // envelope version fails closed instead of being silently downgraded.
-        return DeserializeTemplate(root, "The legacy template payload is invalid.");
+        if (IsLegacyTemplateSignature(root))
+        {
+            return DeserializeTemplate(root, "The legacy template payload is invalid.");
+        }
+
+        throw new InvalidDataException("The template schemaVersion is missing and payload is not a recognized legacy template.");
+    }
+
+    private static bool IsLegacyTemplateSignature(JsonElement root)
+    {
+        return root.TryGetProperty("Id", out var id) && id.ValueKind == JsonValueKind.String
+            && root.TryGetProperty("Name", out var name) && name.ValueKind == JsonValueKind.String
+            && root.TryGetProperty("WidthMm", out var width) && width.ValueKind == JsonValueKind.Number
+            && root.TryGetProperty("HeightMm", out var height) && height.ValueKind == JsonValueKind.Number
+            && root.TryGetProperty("Dpi", out var dpi) && dpi.ValueKind == JsonValueKind.Number
+            && root.TryGetProperty("Objects", out var objects) && objects.ValueKind == JsonValueKind.Array;
     }
 
     private static LabelTemplate DeserializeTemplate(JsonElement element, string message)

@@ -60,6 +60,27 @@ public sealed class QrObjectGeometryContractTests
     }
 
     [Fact]
+    public void AutoMinimumAcceptsLabelConstrainedAuthoringButRejectsClippedModules()
+    {
+        var item = new LabelObject
+        {
+            Type = ObjectType.QRCode,
+            BindingExpression = "{Code}",
+            QrSizingMode = QrSizingMode.AutoSizeByData,
+            QrErrorCorrection = QrErrorCorrection.M,
+            QrQuietZoneModules = 4
+        };
+
+        var authored = QrObjectGeometryContract.ResolveTargetSizeMm(item, "ABC", maxSizeMm: 30);
+        var minimum = QrObjectGeometryContract.ResolveMinimumSizeMm(item, "ABC");
+        var clipped = QrObjectGeometryContract.ResolveTargetSizeMm(item, "ABC", maxSizeMm: 6);
+
+        Assert.Equal(7.25, authored);
+        Assert.Equal(authored, minimum);
+        Assert.True(clipped < minimum);
+    }
+
+    [Fact]
     public void ToleranceIsSymmetricAcrossWidthAndHeight()
     {
         var item = new LabelObject { Type = ObjectType.QRCode, WidthMm = 10, HeightMm = 10 };

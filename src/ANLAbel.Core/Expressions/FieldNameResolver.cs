@@ -83,7 +83,10 @@ public static partial class FieldNameResolver
             return false;
         }
 
-        value = row.TryGetValue(resolvedFieldName, out var exactValue) ? exactValue?.Trim() ?? string.Empty : string.Empty;
+        // Preserve the raw value (no Trim) so this path matches the {field} brace
+        // path (TryGetValue). Leading/trailing characters can be meaningful for a
+        // traceability/label app, and the two syntaxes must yield identical output.
+        value = row.TryGetValue(resolvedFieldName, out var exactValue) ? exactValue ?? string.Empty : string.Empty;
         return true;
     }
 

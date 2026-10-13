@@ -7,6 +7,7 @@ public sealed class PrinterProfile : ObservableObject
 {
     private string _printerName = string.Empty;
     private string _paperName = string.Empty;
+    private string _labelStockName = string.Empty;
     private PrinterSettingsSource _settingsSource = PrinterSettingsSource.Label;
     private PaperSizeSource _paperSizeSource = PaperSizeSource.DriverAutomatic;
     private LabelMediaType _mediaType = LabelMediaType.Gap;
@@ -22,6 +23,9 @@ public sealed class PrinterProfile : ObservableObject
     private double _scaleY = 1;
     private double _physicalWidthMm;
     private double _physicalHeightMm;
+    private PrinterMediaProvenance _mediaProvenance = PrinterMediaProvenance.Unknown;
+    private string _driverMediaIdentity = string.Empty;
+    private string _driverIdentity = string.Empty;
     private PrintMethod _printMethod = PrintMethod.ApplicationGraphic;
 
     public string PrinterName
@@ -36,16 +40,39 @@ public sealed class PrinterProfile : ObservableObject
         set => SetProperty(ref _paperName, value);
     }
 
+    /// <summary>
+    /// Name of the software/vendor stock preset used for authored label
+    /// geometry. PaperName remains the physical driver media name.
+    /// </summary>
+    public string LabelStockName
+    {
+        get => _labelStockName;
+        set => SetProperty(ref _labelStockName, value ?? string.Empty);
+    }
+
     public PrinterSettingsSource SettingsSource
     {
         get => _settingsSource;
-        set => SetProperty(ref _settingsSource, value);
+        set
+        {
+            if (SetProperty(ref _settingsSource, value))
+            {
+                if (value == PrinterSettingsSource.Driver && _paperSizeSource != PaperSizeSource.DriverAutomatic)
+                {
+                    PaperSizeSource = PaperSizeSource.DriverAutomatic;
+                }
+            }
+        }
     }
 
     public PaperSizeSource PaperSizeSource
     {
-        get => _paperSizeSource;
-        set => SetProperty(ref _paperSizeSource, value);
+        get => _settingsSource == PrinterSettingsSource.Driver ? PaperSizeSource.DriverAutomatic : _paperSizeSource;
+        set
+        {
+            var effective = _settingsSource == PrinterSettingsSource.Driver ? PaperSizeSource.DriverAutomatic : value;
+            SetProperty(ref _paperSizeSource, effective);
+        }
     }
 
     public LabelMediaType MediaType
@@ -132,6 +159,28 @@ public sealed class PrinterProfile : ObservableObject
     {
         get => _physicalHeightMm;
         set => SetProperty(ref _physicalHeightMm, Math.Max(0, Math.Round(value, 2)));
+    }
+
+    /// <summary>
+    /// Records who supplied the physical media definition. Software stock
+    /// presets must not be mistaken for media advertised by a printer driver.
+    /// </summary>
+    public PrinterMediaProvenance MediaProvenance
+    {
+        get => _mediaProvenance;
+        set => SetProperty(ref _mediaProvenance, value);
+    }
+
+    public string DriverMediaIdentity
+    {
+        get => _driverMediaIdentity;
+        set => SetProperty(ref _driverMediaIdentity, value ?? string.Empty);
+    }
+
+    public string DriverIdentity
+    {
+        get => _driverIdentity;
+        set => SetProperty(ref _driverIdentity, value ?? string.Empty);
     }
 
     /// <summary>

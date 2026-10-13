@@ -27,16 +27,14 @@ public static class QrAutoSizeHelper
 
         var value = data ?? string.Empty;
         capacityProvider ??= new QrCapacityTable();
-        var version = Enumerable.Range(QrVersionHelper.MinVersion, QrVersionHelper.MaxVersion)
-            .FirstOrDefault(candidate => capacityProvider.CanEncodeByteMode(value, candidate, errorCorrection));
+        var version = FindMinimumVersion(value, errorCorrection, capacityProvider);
         if (version == 0)
         {
             return null;
         }
 
         var byteCount = Math.Max(1, Encoding.UTF8.GetByteCount(value));
-        var totalModules = QrVersionHelper.GetModuleCount(version) + quietZoneModules * 2;
-        var floorSizeMm = Math.Max(CalculateMinimumReadableSizeMm(maxSizeMm), totalModules * MinimumReadableModuleMm);
+        var floorSizeMm = Math.Max(CalculateMinimumReadableSizeMm(maxSizeMm), CalculatePhysicalMinimumSizeMm(version, quietZoneModules));
         var maxUsableSizeMm = maxSizeMm is > 0
             ? Math.Max(1, maxSizeMm.Value)
             : Math.Max(Math.Max(currentWidthMm, currentHeightMm), floorSizeMm + 24);
@@ -52,6 +50,45 @@ public static class QrAutoSizeHelper
         targetSizeMm = Math.Min(targetSizeMm, maxUsableSizeMm);
 
         return Math.Round(Math.Max(1, targetSizeMm), 2);
+    }
+
+    /// <summary>
+    /// Returns the encoding/readability minimum, independent of available label
+    /// space and the authoring recommendation's data-growth heuristic.
+    /// </summary>
+    public static double? CalculateMinimumSizeMm(
+        string? data,
+        QrErrorCorrection errorCorrection,
+        int quietZoneModules,
+        IQrCapacityProvider? capacityProvider = null)
+    {
+        if (quietZoneModules < 0)
+        {
+            return null;
+        }
+
+        capacityProvider ??= new QrCapacityTable();
+        var version = FindMinimumVersion(data ?? string.Empty, errorCorrection, capacityProvider);
+        return version == 0 ? null : CalculatePhysicalMinimumSizeMm(version, quietZoneModules);
+    }
+
+    private static int FindMinimumVersion(string data, QrErrorCorrection errorCorrection, IQrCapacityProvider capacityProvider)
+    {
+        for (var version = QrVersionHelper.MinVersion; version <= QrVersionHelper.MaxVersion; version++)
+        {
+            if (capacityProvider.CanEncodeByteMode(data, version, errorCorrection))
+            {
+                return version;
+            }
+        }
+
+        return 0;
+    }
+
+    private static double CalculatePhysicalMinimumSizeMm(int version, int quietZoneModules)
+    {
+        var totalModules = QrVersionHelper.GetModuleCount(version) + quietZoneModules * 2;
+        return Math.Max(MinimumReadableSizeMm, totalModules * MinimumReadableModuleMm);
     }
 
     public static double? CalculateFixedSizeMm(

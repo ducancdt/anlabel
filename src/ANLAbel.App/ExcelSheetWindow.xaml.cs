@@ -18,7 +18,7 @@ public partial class ExcelSheetWindow : Window
         SelectedSheetName = SheetsList.SelectedItem?.ToString();
         if (string.IsNullOrWhiteSpace(SelectedSheetName))
         {
-            MessageBox.Show(this, "Please select a sheet.", "Excel import", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "Vui lòng chọn một trang tính (sheet).", "Nhập dữ liệu Excel", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

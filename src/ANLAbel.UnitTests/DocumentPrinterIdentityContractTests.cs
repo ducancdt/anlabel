@@ -35,4 +35,42 @@ public sealed class DocumentPrinterIdentityContractTests
             DocumentPrinterIdentityContract.PaperNameFromDocumentOrHint(null, "100 × 150 mm shipping"));
         Assert.Null(DocumentPrinterIdentityContract.PaperNameFromDocumentOrHint("  ", "  "));
     }
+
+    [Fact]
+    public void LegacyBlankDriverIdentityRemainsAllowedButUnverified()
+    {
+        var decision = DocumentPrinterIdentityContract.EvaluateDriverBinding(null, "ZDesigner ZT411");
+
+        Assert.True(decision.IsAllowed);
+        Assert.False(decision.IsVerified);
+    }
+
+    [Fact]
+    public void CapturedDriverIdentityMustStillMatch()
+    {
+        var stable = DocumentPrinterIdentityContract.EvaluateDriverBinding(
+            " ZDesigner ZT411 ",
+            "zdesigner zt411");
+        var changed = DocumentPrinterIdentityContract.EvaluateDriverBinding(
+            "ZDesigner ZT411",
+            "Generic / Text Only");
+
+        Assert.True(stable.IsAllowed);
+        Assert.True(stable.IsVerified);
+        Assert.False(changed.IsAllowed);
+        Assert.False(changed.IsVerified);
+        Assert.Contains("changed", changed.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("no label was submitted", changed.Diagnostic, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CapturedDriverIdentityCannotBecomeUnreadable()
+    {
+        var decision = DocumentPrinterIdentityContract.EvaluateDriverBinding(
+            "Datamax E-4203",
+            null);
+
+        Assert.False(decision.IsAllowed);
+        Assert.Contains("could not be verified", decision.Diagnostic, StringComparison.OrdinalIgnoreCase);
+    }
 }

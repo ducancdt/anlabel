@@ -1,27 +1,34 @@
 <Window x:Class="ANLAbel.App.PrinterSetupWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Thiết lập tem và máy in" Height="650" Width="900" MinHeight="600" MinWidth="820" WindowStartupLocation="CenterOwner"
+        Title="Thuộc tính tem" Height="650" Width="900" MinHeight="600" MinWidth="820" WindowStartupLocation="CenterOwner"
         Loaded="Window_Loaded" Closed="Window_Closed" Background="{DynamicResource AppCanvasBrush}">
     <Grid Margin="16">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <StackPanel Margin="0,0,0,12">
-            <TextBlock Text="Thiết lập tem và máy in" FontSize="20" FontWeight="SemiBold"/>
-            <TextBlock Text="Chọn máy in, kích thước tem thiết kế, vật liệu vật lý của trình điều khiển, và khổ có sẵn tùy chọn." Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,0"/>
+            <TextBlock Text="Thuộc tính tem" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock Text="Chọn hàng đợi Windows, kích thước tem thiết kế, và giấy/vật liệu của trình điều khiển. Không dùng danh mục khổ có sẵn của phần mềm." Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
         </StackPanel>
-        <TabControl Grid.Row="1" x:Name="SetupTabs" AutomationProperties.AutomationId="PrinterSetup.WorkflowTabs" Background="{DynamicResource AppSurfaceBrush}">
-            <TabItem Header="1  Máy in" AutomationProperties.AutomationId="PrinterSetup.PrinterTab">
+        <TabControl Grid.Row="1" x:Name="SetupTabs" TabStripPlacement="Left" AutomationProperties.AutomationId="PrinterSetup.WorkflowTabs" Background="{DynamicResource AppSurfaceBrush}">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="MinWidth" Value="160"/>
+                    <Setter Property="Padding" Value="12,8"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Style>
+            </TabControl.Resources>
+            <TabItem Header="Máy in" AutomationProperties.AutomationId="PrinterSetup.PrinterTab">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18" MaxWidth="680" HorizontalAlignment="Left">
                     <TextBlock Text="Máy in" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Text="Chọn đúng hàng đợi máy in Windows. Đổi hàng đợi chỉ nạp lại năng lực trình điều khiển; không đổi kích thước tem." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
+                    <TextBlock Text="Chọn đúng hàng đợi máy in Windows. Đổi hàng đợi chỉ nạp lại năng lực trình điều khiển; không đổi kích thước tem cho tới khi Áp dụng." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
                     <TextBlock Text="Hàng đợi máy in" FontWeight="SemiBold"/>
                     <ComboBox x:Name="PrinterBox" AutomationProperties.AutomationId="PrinterSetup.Queue" DisplayMemberPath="DisplayName" Margin="0,4,0,14" MinWidth="420" SelectionChanged="PrinterBox_SelectionChanged"/>
-                    <TextBlock Text="Nguồn cài đặt máy in" FontWeight="SemiBold"/>
+                    <TextBlock Text="Dùng thuộc tính máy in lưu trong" FontWeight="SemiBold"/>
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,14">
-                        <RadioButton x:Name="LabelSettingsRadio" GroupName="SettingsSourceGroup" AutomationProperties.AutomationId="PrinterSetup.SettingsSourceLabel" Content="Lưu cùng tem" Margin="0,0,24,0" Checked="SettingsSource_Changed"/>
-                        <RadioButton x:Name="DriverSettingsRadio" GroupName="SettingsSourceGroup" AutomationProperties.AutomationId="PrinterSetup.SettingsSourceDriver" Content="Tùy chọn trình điều khiển hiện tại" Checked="SettingsSource_Changed"/>
+                        <RadioButton x:Name="LabelSettingsRadio" GroupName="SettingsSourceGroup" AutomationProperties.AutomationId="PrinterSetup.SettingsSourceLabel" Content="Tem" Margin="0,0,24,0" Checked="SettingsSource_Changed"/>
+                        <RadioButton x:Name="DriverSettingsRadio" GroupName="SettingsSourceGroup" AutomationProperties.AutomationId="PrinterSetup.SettingsSourceDriver" Content="Trình điều khiển" Checked="SettingsSource_Changed"/>
                     </StackPanel>
                     <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel><TextBlock Text="DPI" FontWeight="SemiBold"/><ComboBox x:Name="DpiBox" AutomationProperties.AutomationId="PrinterSetup.Dpi" Margin="0,4,12,0"/></StackPanel>
-                        <Button Grid.Column="1" x:Name="DriverPreferencesButton" AutomationProperties.AutomationId="PrinterSetup.DriverPreferences" Content="Tùy chọn trình điều khiển Windows..." Padding="12,7" HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="DriverPreferences_Click"/>
+                        <Button Grid.Column="1" x:Name="DriverPreferencesButton" AutomationProperties.AutomationId="PrinterSetup.DriverPreferences" Content="Thuộc tính máy in" Padding="12,7" HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="DriverPreferences_Click"/>
                     </Grid>
                     <Border Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10" CornerRadius="5"><StackPanel>
                         <TextBlock x:Name="DriverText" TextWrapping="Wrap" FontWeight="SemiBold"/>
@@ -29,7 +36,7 @@
                     </StackPanel></Border>
                 </StackPanel></ScrollViewer>
             </TabItem>
-            <TabItem Header="2  Kích thước tem" AutomationProperties.AutomationId="PrinterSetup.LabelDimensionsTab">
+            <TabItem Header="Kích thước tem" AutomationProperties.AutomationId="PrinterSetup.LabelDimensionsTab">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18" MaxWidth="560" HorizontalAlignment="Left">
                     <TextBlock Text="Kích thước tem thiết kế" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Text="Các kích thước này thuộc tài liệu tem. Chỉ Áp dụng mới ghi nhận. Chọn máy in khác không bao giờ thay đổi chúng." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,16"/>
@@ -42,32 +49,58 @@
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0"><RadioButton x:Name="PortraitRadio" AutomationProperties.AutomationId="PrinterSetup.OrientationPortrait" GroupName="LabelOrientationGroup" Content="Dọc" IsChecked="True" Margin="0,0,24,0" Checked="Orientation_Changed"/><RadioButton x:Name="LandscapeRadio" AutomationProperties.AutomationId="PrinterSetup.OrientationLandscape" GroupName="LabelOrientationGroup" Content="Ngang" Checked="Orientation_Changed"/></StackPanel>
                 </StackPanel></ScrollViewer>
             </TabItem>
-            <TabItem Header="3  Giấy / Vật liệu" AutomationProperties.AutomationId="PrinterSetup.PaperMediaTab">
+            <TabItem Header="Giấy / Vật liệu" AutomationProperties.AutomationId="PrinterSetup.PaperMediaTab">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18" MaxWidth="680" HorizontalAlignment="Left">
-                    <TextBlock Text="Giấy / Vật liệu vật lý" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Text="Danh sách này đến từ trình điều khiển máy in đã chọn qua WPF Print Schema và Win32. Không phải danh mục khổ của phần mềm." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
+                    <TextBlock Text="Giấy / Vật liệu" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Tự động: trình điều khiển sở hữu khổ trang (tem trên cuộn). Thủ công: chọn vật liệu trình điều khiển đã công bố, hoặc nhập milimét trên tab Kích thước tem. Không có danh mục khổ có sẵn của phần mềm." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
                     <TextBlock Text="Nguồn trang / vật liệu" FontWeight="SemiBold"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,6,0,14">
-                        <RadioButton x:Name="DriverAutomaticRadio" GroupName="PageSourceGroup" AutomationProperties.AutomationId="PrinterSetup.PageSourceDriverAutomatic" Content="Trình điều khiển tự động" Margin="0,0,24,0" Checked="PageSource_Changed"/>
-                        <RadioButton x:Name="ManualMediaRadio" GroupName="PageSourceGroup" AutomationProperties.AutomationId="PrinterSetup.PageSourceManual" Content="Thủ công / vật liệu đã chọn" IsChecked="True" Checked="PageSource_Changed"/>
+                    <StackPanel Margin="0,6,0,14">
+                        <RadioButton x:Name="DriverAutomaticRadio" GroupName="PageSourceGroup" AutomationProperties.AutomationId="PrinterSetup.PageSourceDriverAutomatic" Content="Tự động đặt khổ trang theo kích thước tem (tem trên cuộn)" Margin="0,0,0,8" Checked="PageSource_Changed"/>
+                        <RadioButton x:Name="ManualMediaRadio" GroupName="PageSourceGroup" AutomationProperties.AutomationId="PrinterSetup.PageSourceManual" Content="Đặt khổ trang thủ công (tờ giấy)" IsChecked="True" Checked="PageSource_Changed"/>
                     </StackPanel>
                     <TextBlock Text="Vật liệu do trình điều khiển đã chọn công bố" FontWeight="SemiBold"/>
                     <ComboBox x:Name="DriverMediaBox" AutomationProperties.AutomationId="PrinterSetup.DriverMedia" DisplayMemberPath="DisplayName" Margin="0,4,0,12" MinWidth="500" SelectionChanged="MediaSelection_Changed"/>
-                    <Border Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" Padding="10" CornerRadius="5"><TextBlock Text="Áp dụng kiểm tra vật liệu vật lý so với tem thiết kế. Khi lệch sẽ bị chặn thay vì âm thầm thay khổ giấy khác." TextWrapping="Wrap" Foreground="#1E3A5F"/></Border>
+                    <Border Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" Padding="10" CornerRadius="5"><TextBlock Text="Áp dụng kiểm tra vật liệu vật lý so với tem thiết kế. Khi lệch sẽ bị chặn thay vì âm thầm đổi khổ giấy khác." TextWrapping="Wrap" Foreground="#1E3A5F"/></Border>
                     <Border x:Name="CompatibilityCard" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10" CornerRadius="5" Margin="0,10,0,0">
                         <StackPanel><TextBlock Text="Tương thích" FontWeight="SemiBold"/><TextBlock x:Name="MediaCompatibilityText" AutomationProperties.AutomationId="PrinterSetup.CompatibilityStatus" Text="Chọn một máy in để kiểm tra tương thích vật liệu." TextWrapping="Wrap" Margin="0,4,0,0"/></StackPanel>
                     </Border>
-                </StackPanel></ScrollViewer>
-            </TabItem>
-            <TabItem Header="4  Khổ có sẵn" AutomationProperties.AutomationId="PrinterSetup.StocksTab">
-                <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                    <TextBlock Text="Khổ có sẵn" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Row="1" Text="Khổ có sẵn là mẫu định sẵn của phần mềm. Chọn nó sẽ chủ ý sao kích thước vào các trường tem thiết kế; không khẳng định máy in hỗ trợ vật liệu đó." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
-                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="Nhóm" FontWeight="SemiBold"/><ComboBox x:Name="CategoryBox" AutomationProperties.AutomationId="PrinterSetup.StockCategory" SelectionChanged="CategoryBox_SelectionChanged" Margin="0,4,0,0"/></StackPanel>
-                        <ListBox Grid.Column="2" x:Name="PaperSizesList" AutomationProperties.AutomationId="PrinterSetup.StockList" DisplayMemberPath="DisplayName" SelectionChanged="PaperSizesList_SelectionChanged" BorderBrush="#CBD5E1" BorderThickness="1"/>
+                    <TextBlock Text="Căn chỉnh khổ in" FontWeight="SemiBold" Margin="0,16,0,4"/>
+                    <TextBlock Text="Lệch và tỉ lệ là hiệu chỉnh in vật lý sau khi đo tem. Không dùng chúng để đổi kích thước tem thiết kế. Tem trên cuộn: chọn Tự động ở trên để trình điều khiển đặt khổ theo tem." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,0,0,10"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Lệch X (mm)" FontWeight="SemiBold"/>
+                            <TextBox x:Name="OffsetXBox" AutomationProperties.AutomationId="PrinterSetup.OffsetX" Text="0" Margin="0,4,0,10"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Lệch Y (mm)" FontWeight="SemiBold"/>
+                            <TextBox x:Name="OffsetYBox" AutomationProperties.AutomationId="PrinterSetup.OffsetY" Text="0" Margin="0,4,0,10"/>
+                        </StackPanel>
                     </Grid>
-                </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Tỉ lệ X" FontWeight="SemiBold"/>
+                            <TextBox x:Name="ScaleXBox" AutomationProperties.AutomationId="PrinterSetup.ScaleX" Text="1" Margin="0,4,0,10"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Tỉ lệ Y" FontWeight="SemiBold"/>
+                            <TextBox x:Name="ScaleYBox" AutomationProperties.AutomationId="PrinterSetup.ScaleY" Text="1" Margin="0,4,0,10"/>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="In hiệu chỉnh" AutomationProperties.AutomationId="PrinterSetup.PrintCalibration" Padding="8,5" Click="PrintCalibration_Click"/>
+                        <Button Content="Đặt lại lệch/tỉ lệ" AutomationProperties.AutomationId="PrinterSetup.ResetCalibration" Padding="8,5" Margin="8,0,0,0" Click="ResetCalibration_Click"/>
+                    </StackPanel>
+                </StackPanel></ScrollViewer>
             </TabItem>
         </TabControl>
         <Grid Grid.Row="2" Margin="0,12,0,0">

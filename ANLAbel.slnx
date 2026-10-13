@@ -9,4 +9,8 @@
     <Project Path="src/ANLAbel.Tests/ANLAbel.Tests.csproj" />
     <Project Path="src/ANLAbel.UnitTests/ANLAbel.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PrinterCapabilityProbe/PrinterCapabilityProbe.csproj" />
+    <Project Path="tools/AgyDocumentDispatcher/AgyDocumentDispatcher.csproj" />
+  </Folder>
 </Solution>

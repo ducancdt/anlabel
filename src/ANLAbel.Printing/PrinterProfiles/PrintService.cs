@@ -1,5 +1,4 @@
 using System.Printing;
-using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Encodings.Web;
@@ -532,7 +531,7 @@ public sealed class PrintService
         var requestedTicket = dialog.PrintTicket
             ?? dialog.PrintQueue.DefaultPrintTicket
             ?? new PrintTicket();
-        var requestedTicketHash = HashPrintTicket(requestedTicket);
+        var requestedTicketHash = PrintTicketFingerprint.Compute(requestedTicket);
         var plan = CreateEffectivePlan(dialog, template, requestedTicket, requestedTicketHash);
         if (!PrintContractGuard.Matches(
                 expectedOutputContractHash,
@@ -644,13 +643,48 @@ public sealed class PrintService
         return PrintCalibrationWithDialog(template, dialog);
     }
 
+    /// <summary>
+    /// Stock, DPI, and scale must agree with a normal print before a
+    /// calibration page is submitted. A missing imageable area is not an input
+    /// and does not block.
+    /// </summary>
+    public static void EnsureCalibrationDocumentAllowed(LabelTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        var profile = template.PrinterProfile;
+        var stock = LabelStockContract.Evaluate(
+            template.WidthMm,
+            template.HeightMm,
+            profile.PhysicalWidthMm,
+            profile.PhysicalHeightMm,
+            profile.PaperName);
+        if (!stock.IsAllowed)
+        {
+            throw new InvalidOperationException(stock.Diagnostic);
+        }
+
+        var dpi = IndustrialPrintDpiContract.Evaluate(profile.Dpi, template.Dpi);
+        if (!dpi.IsAllowed)
+        {
+            throw new InvalidOperationException(dpi.Diagnostic);
+        }
+
+        var scale = PrintScaleContract.Evaluate(profile.ScaleX, profile.ScaleY);
+        if (!scale.IsAllowed)
+        {
+            throw new InvalidOperationException(scale.Diagnostic);
+        }
+    }
+
     private PrintJobResult PrintCalibrationWithDialog(LabelTemplate template, WpfPrintDialog dialog)
     {
+        EnsureCalibrationDocumentAllowed(template);
+
         ApplyTemplateTicket(dialog, template);
         var requestedTicket = dialog.PrintTicket
             ?? dialog.PrintQueue?.DefaultPrintTicket
             ?? new PrintTicket();
-        var requestedTicketHash = HashPrintTicket(requestedTicket);
+        var requestedTicketHash = PrintTicketFingerprint.Compute(requestedTicket);
         var plan = CreateEffectivePlan(dialog, template, requestedTicket, requestedTicketHash);
         EnsureSceneCompilation(plan);
         plan = RevalidateDispatchPlan(dialog, template, plan, requestedTicket, requestedTicketHash, expectedOutputContractHash: null);
@@ -749,7 +783,7 @@ public sealed class PrintService
         if (!string.IsNullOrWhiteSpace(printerName))
         {
             var lookup = _queueLookup.Resolve(printerName);
-            if (!lookup.IsAvailable)
+            if (!lookup.CanSubmit)
             {
                 throw new InvalidOperationException(
                     $"Requested printer '{printerName}' is unavailable. {lookup.ErrorMessage} Select a verified queue before printing; the Windows default queue will not be used implicitly.");
@@ -1040,6 +1074,32 @@ public sealed class PrintService
             throw new InvalidOperationException("No printer is selected.");
         }
 
+        var queueHealth = PrinterQueueHealthReader.Read(dialog.PrintQueue);
+        if (!queueHealth.CanSubmit)
+        {
+            throw new InvalidOperationException(queueHealth.Diagnostic);
+        }
+
+        string currentDriverIdentity;
+        try
+        {
+            currentDriverIdentity = dialog.PrintQueue.QueueDriver?.Name ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Printing stopped because the current printer driver identity could not be read; no label was submitted.",
+                ex);
+        }
+
+        var driverBinding = DocumentPrinterIdentityContract.EvaluateDriverBinding(
+            template.PrinterProfile.DriverIdentity,
+            currentDriverIdentity);
+        if (!driverBinding.IsAllowed)
+        {
+            throw new InvalidOperationException(driverBinding.Diagnostic);
+        }
+
         var requestedTicket = requestedTicketOverride
             ?? dialog.PrintTicket
             ?? dialog.PrintQueue.DefaultPrintTicket
@@ -1050,11 +1110,9 @@ public sealed class PrintService
             throw new InvalidOperationException("The printer driver did not return a valid effective PrintTicket.");
         }
 
-        if (validation.ConflictStatus != ConflictStatus.NoConflict)
-        {
-            throw new InvalidOperationException("The printer driver reported a PrintTicket conflict. Review printer settings before printing.");
-        }
-
+        // ConflictResolved is the normal thermal-driver path: the queue coerced
+        // requested media/DPI onto UserPrintTicket. A missing ticket is the only
+        // hard failure. Throwing on ConflictResolved blocked Xprinter/Zebra jobs.
         dialog.PrintTicket = validation.ValidatedPrintTicket;
         EnsureEffectiveMediaSize(validation.ValidatedPrintTicket, template);
         PrintCapabilities? capabilities = null;
@@ -1083,8 +1141,11 @@ public sealed class PrintService
                 mediaHeightDip);
             if (!areaValidation.HasUsableGeometry)
             {
-                throw new InvalidOperationException(
-                    $"The printer driver returned an invalid imageable area ({areaValidation.FailureCode}). Review the selected stock/driver before printing.");
+                // Xprinter and other XPS thermal drivers often report a
+                // PageImageableArea that does not fit PageMediaSize. Excel still
+                // prints. Drop the unusable rectangle and keep the ticket;
+                // CreatePlan then marks printable bounds unverified.
+                imageableArea = null;
             }
         }
 
@@ -1104,8 +1165,8 @@ public sealed class PrintService
         var contract = new EffectiveOutputContract
         {
             PrinterName = dialog.PrintQueue.FullName,
-            RequestedTicketHash = requestedTicketHashOverride ?? HashPrintTicket(requestedTicket),
-            EffectiveTicketHash = HashPrintTicket(validation.ValidatedPrintTicket),
+            RequestedTicketHash = requestedTicketHashOverride ?? PrintTicketFingerprint.Compute(requestedTicket),
+            EffectiveTicketHash = PrintTicketFingerprint.Compute(validation.ValidatedPrintTicket),
             DpiX = plan.DpiX,
             DpiY = plan.DpiY,
             LabelWidthDots = plan.DeviceGeometry.LabelWidthDots,
@@ -1166,26 +1227,6 @@ public sealed class PrintService
         }
     }
 
-    private static string HashPrintTicket(PrintTicket? ticket)
-    {
-        if (ticket is null)
-        {
-            return string.Empty;
-        }
-
-        try
-        {
-            using var xml = ticket.GetXmlStream();
-            return Convert.ToHexString(SHA256.HashData(xml.ToArray())).ToLowerInvariant();
-        }
-        catch
-        {
-            // A driver may expose a valid ticket but deny XML serialization.
-            // Keep the contract explicitly unverified instead of inventing a hash.
-            return string.Empty;
-        }
-    }
-
     private static void ApplyTemplateTicket(WpfPrintDialog dialog, LabelTemplate template)
     {
         if (dialog.PrintQueue is null)
@@ -1194,7 +1235,8 @@ public sealed class PrintService
         }
 
         var ticket = dialog.PrintTicket ?? dialog.PrintQueue.DefaultPrintTicket ?? new PrintTicket();
-        // Use physical paper dimensions (from PaperSizePrinter profile) for the PageMediaSize ticket.
+        // DriverAutomatic deliberately preserves the driver's current/default
+        // page sizing. Manual mode supplies the explicitly authored physical media.
         // When design orientation is Landscape, Template.WidthMm/HeightMm may be swapped for display.
         // The physical dimensions are always the original paper size selected by the user.
         var physicalWidthMm = template.PrinterProfile.PhysicalWidthMm > 0 ? template.PrinterProfile.PhysicalWidthMm : template.WidthMm;
@@ -1209,27 +1251,42 @@ public sealed class PrintService
         // content, breaking the print alignment. By leaving PageOrientation unset,
         // the driver receives the exact physical dimensions and prints correctly.
 
-        try
+        if (template.PrinterProfile.SettingsSource == PrinterSettingsSource.Label
+            && template.PrinterProfile.PaperSizeSource == PaperSizeSource.Manual)
         {
-            // PageMediaSizeName.Unknown signals a custom size not from the driver's paper list.
-            // Thermal/label printer drivers rely on the exact width/height rather than named paper sizes.
-            ticket.PageMediaSize = new PageMediaSize(PageMediaSizeName.Unknown, widthDip, heightDip);
-        }
-        catch
-        {
-            // Fall back to unnamed constructor if the driver rejects Unknown name.
             try
             {
-                ticket.PageMediaSize = new PageMediaSize(widthDip, heightDip);
+                var pageMediaName = PageMediaSizeName.Unknown;
+                if (template.PrinterProfile.MediaProvenance == PrinterMediaProvenance.DriverWpf
+                    && Enum.TryParse<PageMediaSizeName>(
+                        template.PrinterProfile.DriverMediaIdentity,
+                        ignoreCase: true,
+                        out var advertisedName))
+                {
+                    pageMediaName = advertisedName;
+                }
+
+                // Preserve the WPF driver identity when available; typed or
+                // catalog custom media continues to use Unknown plus exact size.
+                ticket.PageMediaSize = new PageMediaSize(pageMediaName, widthDip, heightDip);
             }
             catch
             {
-                // Last resort: keep whatever the driver default is and let the paginator handle sizing.
+                // Fall back to unnamed constructor if the driver rejects Unknown name.
+                try
+                {
+                    ticket.PageMediaSize = new PageMediaSize(widthDip, heightDip);
+                }
+                catch
+                {
+                    // Last resort: keep whatever the driver default is and let the paginator handle sizing.
+                }
             }
         }
 
         var ticketDpi = template.PrinterProfile.Dpi > 0 ? template.PrinterProfile.Dpi : template.Dpi;
-        if (ticketDpi > 0)
+        if (template.PrinterProfile.SettingsSource == PrinterSettingsSource.Label
+            && ticketDpi > 0)
         {
             try
             {

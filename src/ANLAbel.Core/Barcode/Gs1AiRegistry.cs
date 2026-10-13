@@ -38,7 +38,7 @@ public static class Gs1AiRegistry
         new("00", Gs1AiBoundaryKind.PredefinedLength), new("01", Gs1AiBoundaryKind.PredefinedLength), new("02", Gs1AiBoundaryKind.PredefinedLength),
         new("10", Gs1AiBoundaryKind.SeparatorRequired), new("11", Gs1AiBoundaryKind.PredefinedLength), new("12", Gs1AiBoundaryKind.PredefinedLength),
         new("13", Gs1AiBoundaryKind.PredefinedLength), new("15", Gs1AiBoundaryKind.PredefinedLength), new("16", Gs1AiBoundaryKind.PredefinedLength),
-        new("17", Gs1AiBoundaryKind.PredefinedLength), new("20", Gs1AiBoundaryKind.SeparatorRequired), new("21", Gs1AiBoundaryKind.SeparatorRequired),
+        new("17", Gs1AiBoundaryKind.PredefinedLength), new("20", Gs1AiBoundaryKind.PredefinedLength), new("21", Gs1AiBoundaryKind.SeparatorRequired),
         new("22", Gs1AiBoundaryKind.SeparatorRequired), new("30", Gs1AiBoundaryKind.SeparatorRequired), new("37", Gs1AiBoundaryKind.SeparatorRequired),
         new("240", Gs1AiBoundaryKind.SeparatorRequired), new("241", Gs1AiBoundaryKind.SeparatorRequired), new("250", Gs1AiBoundaryKind.SeparatorRequired),
         new("251", Gs1AiBoundaryKind.SeparatorRequired),

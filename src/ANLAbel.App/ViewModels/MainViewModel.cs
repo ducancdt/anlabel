@@ -6,7 +6,6 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -30,6 +29,7 @@ using ANLAbel.Data.PrintLogs;
 using ANLAbel.Project.SaveLoad;
 using ANLAbel.Printing.PrinterProfiles;
 using ANLAbel.Printing.RenderPipeline;
+using ANLAbel.App;
 
 namespace ANLAbel.App.ViewModels;
 
@@ -97,6 +97,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _isExcelLinkBroken;
     private DateTime? _excelDataReadAtLocal;
     private DateTime? _excelDataSourceWriteTimeUtc;
+    private FileSourceIdentity? _excelDataSourceIdentity;
     private FileSystemWatcher? _excelFileWatcher;
     private readonly object _excelStaleDebounceLock = new();
     private System.Threading.Timer? _excelStaleDebounceTimer;
@@ -204,6 +205,8 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+
+    public UiStrings Ui => UiStrings.Current;
     public IEnumerable<DataTransformDefinition> DataTransforms => Template.DataTransforms;
 
     public DataRecord? GetSelectedDataRecordForWorkspace()
@@ -514,10 +517,10 @@ public sealed class MainViewModel : ObservableObject
     public IReadOnlyList<FillStyle> FillStyles { get; } = Enum.GetValues<FillStyle>();
     public IReadOnlyList<FormulaFunctionTemplate> FormulaFunctions { get; } =
     [
-        new("QR/Barcode Production", "CONCAT(FIELD(\"part\"), FIELD(\"partname\"), FIELD(\"lot\"))", "Required fields: part + partname + lot. Output example: P001Product AL01."),
-        new("QR/Barcode Production - labeled", "CONCAT(\"Part: \", FIELD(\"part\"), \" | Name: \", FIELD(\"partname\"), \" | Lot: \", FIELD(\"lot\"))", "Readable output with labels and separators."),
-        new("FIELD", "FIELD(\"Name\")", "Get value from one Excel column."),
-        new("CONCAT", "CONCAT(\"Tên: \", FIELD(\"Name\"), \", Mã: \", FIELD(\"Code\"))", "Join fixed text and fields.")
+        new("Sản xuất QR/Mã vạch", "CONCAT(FIELD(\"part\"), FIELD(\"partname\"), FIELD(\"lot\"))", "Các trường bắt buộc: part + partname + lot. Ví dụ đầu ra: P001Product AL01."),
+        new("Sản xuất QR/Mã vạch - có nhãn", "CONCAT(\"Mã: \", FIELD(\"part\"), \" | Tên: \", FIELD(\"partname\"), \" | Lô: \", FIELD(\"lot\"))", "Đầu ra dễ đọc kèm nhãn và dấu phân cách."),
+        new("FIELD", "FIELD(\"Name\")", "Lấy giá trị từ một cột Excel."),
+        new("CONCAT", "CONCAT(\"Tên: \", FIELD(\"Name\"), \", Mã: \", FIELD(\"Code\"))", "Ghép văn bản cố định và các trường.")
     ];
 
     public string FormulaPreviewValue => EvaluateSelectedFormula().Value;
@@ -562,7 +565,7 @@ public sealed class MainViewModel : ObservableObject
             {
                 var effectiveDots = item.QrModuleSizePx * (double)printDpi / item.QrDpi;
                 return effectiveDots < 2
-                    ? $"⚠ Module is only ~{effectiveDots:0.#} dot(s) at {printDpi} DPI — likely to fail scanning. Increase Module px or DPI."
+                    ? $"⚠ Kích thước module chỉ khoảng ~{effectiveDots:0.#} dot ở {printDpi} DPI — có nguy cơ khó quét. Hãy tăng px của Module hoặc tăng DPI."
                     : string.Empty;
             }
 
@@ -646,7 +649,7 @@ public sealed class MainViewModel : ObservableObject
                 }
 
                 var mils = resolution.EffectiveModuleWidthMm / LinearBarcodeModuleContract.MillimetersPerInch * 1000.0;
-                return $"Effective X: {resolution.EffectiveModuleWidthMm:0.###} mm ({mils:0.#} mil) · {resolution.ModuleDots} dot(s) @ {resolution.Dpi} DPI";
+                return $"Kích thước X hiệu dụng: {resolution.EffectiveModuleWidthMm:0.###} mm ({mils:0.#} mil) · {resolution.ModuleDots} dot @ {resolution.Dpi} DPI";
             }
             catch
             {
@@ -740,12 +743,12 @@ public sealed class MainViewModel : ObservableObject
 
     public string LinkedExcelSourceText => HasLinkedExcelSource
         ? $"{Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}"
-        : "No Excel file linked";
+        : "Chưa liên kết tệp Excel";
     public string ExcelLinkStatusText => IsExcelLinkBroken
-        ? "⚠ Excel link broken — click Relink to locate the file"
+        ? "⚠ Liên kết Excel bị hỏng — nhấn Liên kết lại để tìm tệp"
         : string.Empty;
     public string ExcelDataFreshnessText => HasLinkedExcelSource && !IsExcelLinkBroken && _excelDataReadAtLocal is not null
-        ? $"Data read at {_excelDataReadAtLocal.Value:HH:mm:ss}"
+        ? $"Dữ liệu đọc lúc {_excelDataReadAtLocal.Value:HH:mm:ss}"
         : string.Empty;
     public ExcelLinkVerificationState ExcelLinkVerificationState
     {
@@ -764,43 +767,43 @@ public sealed class MainViewModel : ObservableObject
 
     public string ExcelLinkVerificationTitle => ExcelLinkVerificationState switch
     {
-        ExcelLinkVerificationState.Checking => "Checking Excel link...",
-        ExcelLinkVerificationState.Verified => "Excel link verified",
-        ExcelLinkVerificationState.Stale => "Excel changed after verification",
-        ExcelLinkVerificationState.Failed => "Excel verification failed",
-        _ => "Excel source not linked"
+        ExcelLinkVerificationState.Checking => "Đang kiểm tra liên kết Excel...",
+        ExcelLinkVerificationState.Verified => "Liên kết Excel đã xác thực",
+        ExcelLinkVerificationState.Stale => "Tệp Excel đã thay đổi sau khi xác thực",
+        ExcelLinkVerificationState.Failed => "Xác thực liên kết Excel thất bại",
+        _ => "Chưa liên kết nguồn Excel"
     };
 
     public string ExcelLinkVerificationDetail => ExcelLinkVerificationState switch
     {
-        ExcelLinkVerificationState.Checking => "Opening workbook and validating the selected sheet.",
-        ExcelLinkVerificationState.Verified => $"{Path.GetFileName(Template.DatabaseConfig.FilePath)}  ·  Sheet: {Template.DatabaseConfig.SheetName}",
-        ExcelLinkVerificationState.Stale => "Loaded rows may no longer match the workbook.",
+        ExcelLinkVerificationState.Checking => "Đang mở sổ làm việc và kiểm tra trang tính đã chọn.",
+        ExcelLinkVerificationState.Verified => $"{Path.GetFileName(Template.DatabaseConfig.FilePath)}  ·  Trang tính: {Template.DatabaseConfig.SheetName}",
+        ExcelLinkVerificationState.Stale => "Dữ liệu dòng đã nạp có thể không còn khớp với sổ làm việc.",
         ExcelLinkVerificationState.Failed => string.IsNullOrWhiteSpace(_excelLinkVerificationFailureMessage)
-            ? "The file or selected sheet could not be validated."
+            ? "Không thể kiểm tra tệp hoặc trang tính đã chọn."
             : _excelLinkVerificationFailureMessage,
-        _ => "Link a workbook before using row data."
+        _ => "Liên kết sổ làm việc trước khi sử dụng dữ liệu dòng."
     };
 
     public string ExcelLinkVerificationActionText => ExcelLinkVerificationState switch
     {
-        ExcelLinkVerificationState.Checking => "Checking...",
-        ExcelLinkVerificationState.Stale => "Update & verify",
-        ExcelLinkVerificationState.NotLinked => "Link Excel...",
-        _ => "Recheck Excel link"
+        ExcelLinkVerificationState.Checking => "Đang kiểm tra...",
+        ExcelLinkVerificationState.Stale => "Cập nhật & xác thực",
+        ExcelLinkVerificationState.NotLinked => "Liên kết Excel...",
+        _ => "Kiểm tra lại liên kết Excel"
     };
 
     public string ExcelLinkVerificationTrustText => ExcelLinkVerificationState switch
     {
-        ExcelLinkVerificationState.Checking => "Please wait — printing remains blocked.",
-        ExcelLinkVerificationState.Verified => $"{_excelLinkVerifiedColumnCount} columns · {_excelLinkVerifiedRowCount} rows · checked {_excelLinkVerifiedAtLocal:HH:mm:ss}",
-        ExcelLinkVerificationState.Stale => "Printing remains blocked until the data is refreshed.",
-        ExcelLinkVerificationState.Failed => "Relink the workbook if its path or sheet changed.",
-        _ => "Checks file, sheet and header before use."
+        ExcelLinkVerificationState.Checking => "Vui lòng đợi — lệnh in tạm thời bị chặn.",
+        ExcelLinkVerificationState.Verified => $"{_excelLinkVerifiedColumnCount} cột · {_excelLinkVerifiedRowCount} dòng · đã kiểm tra {_excelLinkVerifiedAtLocal:HH:mm:ss}",
+        ExcelLinkVerificationState.Stale => "Lệnh in tiếp tục bị chặn cho đến khi dữ liệu được làm mới.",
+        ExcelLinkVerificationState.Failed => "Liên kết lại sổ làm việc nếu đường dẫn hoặc trang tính bị thay đổi.",
+        _ => "Kiểm tra tệp, trang tính và dòng tiêu đề trước khi dùng."
     };
     public string CurrentExcelRowText => ExcelDataView is null || ExcelDataView.Count == 0 || SelectedDataItem is not DataRowView rowView
-        ? "No Excel row selected"
-        : $"Row {GetDataRowViewIndex(rowView) + 1} of {ExcelDataView.Count}";
+        ? "Chưa chọn dòng Excel nào"
+        : $"Dòng {GetDataRowViewIndex(rowView) + 1} / {ExcelDataView.Count}";
 
     /// <summary>
     /// True when the linked Excel file changed on disk since the last import/refresh
@@ -824,7 +827,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string ExcelStaleNoticeText => IsExcelDataStale
-        ? "⚠ Excel file changed on disk — click Update Excel to refresh"
+        ? "⚠ Tệp Excel trên đĩa đã thay đổi — nhấn Cập nhật Excel để làm mới"
         : string.Empty;
 
     /// <summary>
@@ -887,15 +890,15 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedBindingPreviewValue => EvaluateSelectedBinding().PreviewValue;
     public string SelectedBindingUsedFieldsText => string.Join(", ", EvaluateSelectedBinding().UsedFields);
     public string SelectedBindingMissingFieldsText => string.Join(", ", EvaluateSelectedBinding().MissingFields);
-    public string SelectedBindingUsedFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingUsedFieldsText) ? string.Empty : $"Linked fields: {SelectedBindingUsedFieldsText}";
-    public string SelectedBindingMissingFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingMissingFieldsText) ? string.Empty : $"Missing fields: {SelectedBindingMissingFieldsText}";
+    public string SelectedBindingUsedFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingUsedFieldsText) ? string.Empty : $"Trường liên kết: {SelectedBindingUsedFieldsText}";
+    public string SelectedBindingMissingFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingMissingFieldsText) ? string.Empty : $"Trường còn thiếu: {SelectedBindingMissingFieldsText}";
     public string SelectedBindingStatusText => EvaluateSelectedBinding().StatusText;
     public string SelectedBindingErrorsText => string.Join(Environment.NewLine, EvaluateSelectedBinding().Errors);
     public IReadOnlyList<BindingIssueSummary> BindingIssues => GetBindingIssues();
     public bool HasBindingIssues => BindingIssues.Count > 0;
     public string BindingIssuesSummary => HasBindingIssues
-        ? $"{BindingIssues.Count} object(s) have broken or incomplete Excel bindings."
-        : "All Excel bindings match the current workbook.";
+        ? $"{BindingIssues.Count} đối tượng bị hỏng hoặc chưa hoàn thiện liên kết Excel."
+        : "Tất cả liên kết Excel đều khớp với sổ làm việc hiện tại.";
     public IReadOnlyList<string> FormulaSeparators { get; } = [" - ", " | ", " / ", "_", " ", ": "];
 
     public ObjectType? DrawingTool
@@ -1037,23 +1040,23 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public bool HasPrinterQueueWarning => !PrinterQueueStatus.IsAvailable;
+    public bool HasPrinterQueueWarning => !PrinterQueueStatus.CanSubmit;
 
     public string PrinterDisplayName => string.IsNullOrWhiteSpace(Template.PrinterProfile.PrinterName)
-        ? "Not selected"
+        ? "(Chưa chọn)"
         : Template.PrinterProfile.PrinterName;
 
-    public string PrinterQueueStatusText => PrinterQueueStatus.IsAvailable
+    public string PrinterQueueStatusText => PrinterQueueStatus.CanSubmit
         ? string.Empty
         : string.IsNullOrWhiteSpace(Template.PrinterProfile.PrinterName)
-            ? "Select a verified printer"
-            : "Printer unavailable";
+            ? "Chọn máy in đã xác thực"
+            : PrinterQueueStatus.IsAvailable ? "Máy in chưa sẵn sàng" : "Máy in không khả dụng";
 
-    public string PrinterQueueStatusMessage => PrinterQueueStatus.IsAvailable
+    public string PrinterQueueStatusMessage => PrinterQueueStatus.CanSubmit
         ? string.Empty
         : string.IsNullOrWhiteSpace(PrinterQueueStatus.ErrorMessage)
-            ? "The saved printer queue is unavailable. Open Printer Setup and choose a verified queue before printing."
-            : $"{PrinterQueueStatus.ErrorMessage} Open Printer Setup and choose a verified queue before printing.";
+            ? "Hàng đợi máy in đã lưu không khả dụng. Hãy mở Cài đặt máy in và chọn hàng đợi đã xác thực trước khi in."
+            : $"{PrinterQueueStatus.ErrorMessage} Hãy mở Cài đặt máy in và chọn hàng đợi đã xác thực trước khi in.";
 
     /// <summary>
     /// Rechecks the saved queue off the WPF dispatcher. The result is applied
@@ -1094,9 +1097,9 @@ public sealed class MainViewModel : ObservableObject
         }
 
         PrinterQueueStatus = result;
-        if (!result.IsAvailable)
+        if (!result.CanSubmit)
         {
-            StatusText = $"Printer warning: {PrinterQueueStatusMessage}";
+            StatusText = $"Cảnh báo máy in: {PrinterQueueStatusMessage}";
         }
     }
 
@@ -1120,9 +1123,9 @@ public sealed class MainViewModel : ObservableObject
     public bool HasPendingPrintRecovery => PrintRecoveryReport.RequiresRepair || PrintRecoveryReport.HasPendingJobs;
 
     public string PrintRecoveryStatusText => PrintRecoveryReport.RequiresRepair
-        ? "Review print event log"
+        ? "Xem lại nhật ký sự kiện in"
         : PrintRecoveryReport.HasPendingJobs
-            ? $"Review {PrintRecoveryReport.Candidates.Count} print job(s)"
+            ? $"Xem lại {PrintRecoveryReport.Candidates.Count} lệnh in"
             : string.Empty;
 
     public bool IsToolboxVisible
@@ -1367,6 +1370,7 @@ public sealed class MainViewModel : ObservableObject
         string childJobId,
         IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
         int sourceRowCount,
+        IReadOnlyList<PrintDispatchCopy>? sequence = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(rows);
@@ -1425,7 +1429,8 @@ public sealed class MainViewModel : ObservableObject
             effectivePlan.SceneHash,
             effectivePlan.OutputContractHash,
             imageRasterFingerprint: effectivePlan.ImageRasterFingerprint,
-            thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty);
+            thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty,
+            sequence: sequence);
         if (!string.Equals(currentManifest.Fingerprint, approvedManifest.Fingerprint, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -1437,7 +1442,8 @@ public sealed class MainViewModel : ObservableObject
             approvedManifest.PrintMode,
             existingJobId: childJobId,
             approvedManifest: approvedManifest,
-            sourceRowCount: sourceRowCount).ConfigureAwait(true);
+            sourceRowCount: sourceRowCount,
+            sequence: sequence).ConfigureAwait(true);
         await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
         return tracked;
     }
@@ -1446,7 +1452,7 @@ public sealed class MainViewModel : ObservableObject
     {
         IsToolboxVisible = true;
         IsPropertiesVisible = true;
-        StatusText = "Workspace panels restored";
+        StatusText = "Đã khôi phục các bảng làm việc";
     }
 
     public void NewTemplate(NewTemplateRequest? request)
@@ -1476,7 +1482,7 @@ public sealed class MainViewModel : ObservableObject
         ResetHistory();
         SelectedObject = null;
         CurrentFilePath = string.Empty;
-        StatusText = $"New template: {Template.WidthMm} x {Template.HeightMm} mm";
+        StatusText = $"Mẫu tem mới: {Template.WidthMm} x {Template.HeightMm} mm";
     }
 
     public async Task SaveAsync(string filePath)
@@ -1484,30 +1490,38 @@ public sealed class MainViewModel : ObservableObject
         UpdateRelativePath(filePath);
         await _projectFileService.SaveAsync(Template, filePath);
         CurrentFilePath = filePath;
-        StatusText = $"Saved: {Path.GetFileName(filePath)}";
+        StatusText = $"Đã lưu: {Path.GetFileName(filePath)}";
     }
 
     public async Task<ProjectLoadResult> OpenAsync(string filePath)
     {
-        // Parse/recover before detaching the current document.  A corrupt or
-        // future-schema file must leave the operator's current work intact.
+        // Parse before detaching the current document. A corrupt, foreign, or
+        // future-schema file must leave the operator's current work and undo
+        // history intact. A readable .bak is not installed in its place: that
+        // second outcome used to replace the open session. The operator opens
+        // the backup file explicitly. Explicit revision restore still writes a
+        // validated primary first, then calls this method.
         var loadResult = await _projectFileService.LoadWithRecoveryAsync(filePath);
+        if (loadResult.RecoveredFromBackup)
+        {
+            var backupPath = string.IsNullOrWhiteSpace(loadResult.BackupPath)
+                ? loadResult.SourcePath
+                : loadResult.BackupPath;
+            var reason = string.IsNullOrWhiteSpace(loadResult.PrimaryError)
+                ? "The template file is invalid."
+                : loadResult.PrimaryError;
+            throw new InvalidDataException(
+                $"Không thể mở tệp mẫu ({reason}). Bản sao lưu còn tại '{backupPath}'. Tài liệu đang mở không bị thay. Hãy mở tệp sao lưu đó nếu muốn dùng nó.");
+        }
+
         UnobserveTemplate(Template);
         Template = loadResult.Template;
         ResetHistory();
         // Keep the selected path while linked Excel data is restored so
         // relative data-source paths resolve beside the original document.
-        // A recovered primary is cleared only after that step; Save then
-        // opens Save As and cannot overwrite the damaged source by accident.
         CurrentFilePath = filePath;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
-        if (loadResult.RecoveredFromBackup)
-        {
-            CurrentFilePath = string.Empty;
-            StatusText = $"Recovered {Path.GetFileName(filePath)} from backup. Use Save As to create a new template.";
-        }
-
         return loadResult;
     }
 
@@ -1543,50 +1557,35 @@ public sealed class MainViewModel : ObservableObject
         return _printerDiscoveryService.DiscoverInstalledPrinters();
     }
 
-    public void ApplyPrinterSelection(PrinterInfo printer, PrinterPaperInfo paper, int dpi, LabelOrientation orientation)
+    public void ApplyPrinterSelection(
+        PrinterInfo printer,
+        PrinterPaperInfo paper,
+        int dpi,
+        LabelOrientation orientation,
+        PrinterPaperInfo? physicalMedia = null,
+        PaperSizeSource pageSizeSource = PaperSizeSource.Manual,
+        string driverIdentity = "",
+        PrinterSettingsSource settingsSource = PrinterSettingsSource.Label,
+        double? offsetXMm = null,
+        double? offsetYMm = null,
+        double? scaleX = null,
+        double? scaleY = null)
     {
-        ArgumentNullException.ThrowIfNull(printer);
-        ArgumentNullException.ThrowIfNull(paper);
-
-        // OrientSize swaps dimensions for Landscape so the design canvas shows
-        // the label in landscape view (like NiceLabel). The physical paper dimensions
-        // are sent to the printer driver via PageMediaSize — no PageOrientation is set,
-        // so the driver prints content on the exact physical dimensions without rotation.
-        var (widthMm, heightMm) = LabelGeometry.OrientSize(paper.WidthMm, paper.HeightMm, orientation);
-        var stock = LabelStockContract.Evaluate(
-            widthMm,
-            heightMm,
-            paper.WidthMm,
-            paper.HeightMm,
-            paper.Name);
-        if (!stock.IsAllowed)
-        {
-            throw new InvalidOperationException(stock.Diagnostic);
-        }
-
-        var dpiDecision = IndustrialPrintDpiContract.Evaluate(dpi, dpi);
-        if (!dpiDecision.IsAllowed)
-        {
-            throw new InvalidOperationException(dpiDecision.Diagnostic);
-        }
-
-        Template.WidthMm = widthMm;
-        Template.HeightMm = heightMm;
-        Template.Dpi = dpi;
-        Template.Orientation = orientation;
-        Template.PrinterProfile.PrinterName = printer.Name;
-        Template.PrinterProfile.PaperName = paper.Name;
-        Template.PrinterProfile.SettingsSource = PrinterSettingsSource.Label;
-        Template.PrinterProfile.PaperSizeSource = LabelStockContract.SourceForOperatorStock();
-        Template.PrinterProfile.LabelWidthMm = widthMm;
-        Template.PrinterProfile.LabelHeightMm = heightMm;
-        // Store original physical dimensions (before orient swap) for the printer driver PageMediaSize
-        Template.PrinterProfile.PhysicalWidthMm = paper.WidthMm;
-        Template.PrinterProfile.PhysicalHeightMm = paper.HeightMm;
-        Template.PrinterProfile.Dpi = dpi;
-        Template.PrinterProfile.ScaleX = Template.PrinterProfile.ScaleX == 0 ? 1 : Template.PrinterProfile.ScaleX;
-        Template.PrinterProfile.ScaleY = Template.PrinterProfile.ScaleY == 0 ? 1 : Template.PrinterProfile.ScaleY;
-        StatusText = $"Printer: {printer.Name}, paper: {paper.Name} ({widthMm:0.##} x {heightMm:0.##} mm), orientation: {orientation}";
+        PrinterSelectionApplier.Apply(
+            Template,
+            printer,
+            paper,
+            dpi,
+            orientation,
+            physicalMedia,
+            pageSizeSource,
+            driverIdentity,
+            settingsSource,
+            offsetXMm,
+            offsetYMm,
+            scaleX,
+            scaleY);
+        StatusText = $"Máy in: {printer.Name}, khổ tem: {paper.Name} ({Template.WidthMm:0.##} x {Template.HeightMm:0.##} mm), nguồn trang: {pageSizeSource}, hướng: {orientation}";
     }
 
     public async Task ImportExcelAsync(string filePath, string sheetName, CancellationToken cancellationToken = default)
@@ -1660,15 +1659,20 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedCopiesFieldName));
 
         _excelDataReadAtLocal = DateTime.Now;
-        _excelDataSourceWriteTimeUtc = TryGetFileWriteTimeUtc(filePath);
+        // Capture content identity (SHA-256) so refresh cannot treat same-mtime
+        // byte replacements as current (CORE DB06). Hash off the UI thread.
+        var capturedPath = filePath;
+        _excelDataSourceIdentity = await Task.Run(() =>
+            FileSourceIdentity.TryCapture(capturedPath, out var identity) ? identity : null).ConfigureAwait(true);
+        _excelDataSourceWriteTimeUtc = _excelDataSourceIdentity?.LastWriteTimeUtc ?? TryGetFileWriteTimeUtc(filePath);
         OnPropertyChanged(nameof(ExcelDataFreshnessText));
         IsExcelDataStale = false;
         MarkExcelLinkVerified(table.Rows.Count, table.Columns.Count);
         StartWatchingExcelFile(filePath);
 
         var issueCount = GetBindingIssues().Count;
-        var issueSuffix = issueCount > 0 ? $" — {issueCount} object(s) have missing/broken bindings" : string.Empty;
-        StatusText = $"Imported {table.Rows.Count} rows from {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
+        var issueSuffix = issueCount > 0 ? $" — {issueCount} đối tượng có liên kết bị thiếu/hỏng" : string.Empty;
+        StatusText = $"Đã nhập {table.Rows.Count} dòng từ {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
         LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: true, errorMessage: string.Empty);
     }
 
@@ -1697,18 +1701,23 @@ public sealed class MainViewModel : ObservableObject
     {
         if (!CanRefreshExcelData())
         {
-            StatusText = "No Excel database is linked yet";
+            StatusText = "Chưa có cơ sở dữ liệu Excel nào được liên kết";
             return;
         }
 
-        var currentWriteTimeUtc = TryGetFileWriteTimeUtc(Template.DatabaseConfig.FilePath);
-        if (currentWriteTimeUtc is not null && currentWriteTimeUtc == _excelDataSourceWriteTimeUtc)
+        var path = Template.DatabaseConfig.FilePath;
+        var known = _excelDataSourceIdentity;
+        // DB06: mtime alone is not freshness evidence. Same timestamp with
+        // replaced bytes must still refresh. Hash off the UI thread.
+        var current = await Task.Run(() =>
+            FileSourceIdentity.TryCapture(path, out var identity) ? identity : null).ConfigureAwait(true);
+        if (ExcelDataFreshnessPolicy.IsUnchanged(known, current))
         {
-            StatusText = $"Excel data already up to date ({ExcelDataFreshnessText}) — file has not changed since last read";
+            StatusText = $"Dữ liệu Excel đã được cập nhật mới nhất ({ExcelDataFreshnessText}) — tệp không thay đổi kể từ lần đọc cuối";
             return;
         }
 
-        await ImportExcelAsync(Template.DatabaseConfig.FilePath, Template.DatabaseConfig.SheetName, "Refresh");
+        await ImportExcelAsync(path, Template.DatabaseConfig.SheetName, "Refresh");
     }
 
     /// <summary>
@@ -1722,7 +1731,7 @@ public sealed class MainViewModel : ObservableObject
         if (!HasLinkedExcelSource)
         {
             ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
-            StatusText = "No Excel database is linked yet";
+            StatusText = "Chưa có cơ sở dữ liệu Excel nào được liên kết";
             return;
         }
 
@@ -1731,16 +1740,20 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var currentWriteTimeUtc = TryGetFileWriteTimeUtc(Template.DatabaseConfig.FilePath);
-            if (IsExcelDataStale || currentWriteTimeUtc != _excelDataSourceWriteTimeUtc)
+            var path = Template.DatabaseConfig.FilePath;
+            var known = _excelDataSourceIdentity;
+            var current = await Task.Run(() =>
+                    FileSourceIdentity.TryCapture(path, out var identity) ? identity : null,
+                cancellationToken).ConfigureAwait(true);
+            if (IsExcelDataStale || !ExcelDataFreshnessPolicy.IsUnchanged(known, current))
             {
                 await ImportExcelAsync(
-                    Template.DatabaseConfig.FilePath,
+                    path,
                     Template.DatabaseConfig.SheetName,
                     "Verify",
                     cancellationToken);
                 IsExcelLinkBroken = false;
-                StatusText = $"Excel updated and verified: {LinkedExcelSourceText}";
+                StatusText = $"Đã cập nhật và xác thực Excel: {LinkedExcelSourceText}";
                 return;
             }
 
@@ -1758,7 +1771,7 @@ public sealed class MainViewModel : ObservableObject
 
             IsExcelLinkBroken = false;
             MarkExcelLinkVerified(ExcelDataView?.Count ?? 0, ExcelHeaders.Count);
-            StatusText = $"Excel link verified: {LinkedExcelSourceText}. {result.Message}";
+            StatusText = $"Đã xác thực liên kết Excel: {LinkedExcelSourceText}. {result.Message}";
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -1780,12 +1793,12 @@ public sealed class MainViewModel : ObservableObject
     private void MarkExcelLinkVerificationFailed(string message)
     {
         _excelLinkVerificationFailureMessage = string.IsNullOrWhiteSpace(message)
-            ? "The workbook could not be validated."
+            ? "Không thể xác thực sổ làm việc."
             : message;
         IsExcelLinkBroken = !File.Exists(Template.DatabaseConfig.FilePath);
         ExcelLinkVerificationState = ExcelLinkVerificationState.Failed;
         OnPropertyChanged(nameof(ExcelLinkVerificationDetail));
-        StatusText = $"Excel verification failed: {_excelLinkVerificationFailureMessage}";
+        StatusText = $"Xác thực liên kết Excel thất bại: {_excelLinkVerificationFailureMessage}";
     }
 
     /// <summary>
@@ -1929,7 +1942,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         // Key not found — data may have changed. Keep LastSelectedRow but warn.
-        StatusText = $"Key row \"{keyValue}\" not found in column \"{keyField}\" — row may have been removed or changed";
+        StatusText = $"Không tìm thấy dòng khóa \"{keyValue}\" trong cột \"{keyField}\" — dòng có thể đã bị xóa hoặc thay đổi";
         return null;
     }
 
@@ -1951,7 +1964,7 @@ public sealed class MainViewModel : ObservableObject
             IsExcelDataStale = false;
             IsExcelLinkBroken = false;
             ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
-            StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}";
+            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}";
             return;
         }
 
@@ -1988,7 +2001,7 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(SelectedCopiesFieldName));
             IsExcelLinkBroken = true;
             MarkExcelLinkVerificationFailed($"File not found: {Template.DatabaseConfig.FilePath}");
-            StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Linked Excel file not found: {Template.DatabaseConfig.FilePath}";
+            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Không tìm thấy tệp Excel liên kết: {Template.DatabaseConfig.FilePath}";
             return;
         }
 
@@ -2004,7 +2017,7 @@ public sealed class MainViewModel : ObservableObject
             }
 
             IsExcelLinkBroken = false;
-            StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link restored: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
+            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Đã khôi phục liên kết Excel: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
         }
         catch (Exception ex)
         {
@@ -2016,7 +2029,7 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(CurrentExcelRowText));
             IsExcelLinkBroken = true;
             MarkExcelLinkVerificationFailed(ex.Message);
-            StatusText = $"Opened: {Path.GetFileName(CurrentFilePath)}. Excel link could not be restored: {ex.Message}";
+            StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Không thể khôi phục liên kết Excel: {ex.Message}";
         }
     }
 
@@ -2027,8 +2040,8 @@ public sealed class MainViewModel : ObservableObject
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Locate Excel file",
-            Filter = "Data Files (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|All Files (*.*)|*.*",
+            Title = "Tìm tệp Excel",
+            Filter = "Tệp dữ liệu (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Tất cả tệp (*.*)|*.*",
             FileName = Path.GetFileName(Template.DatabaseConfig.FilePath)
         };
 
@@ -2047,13 +2060,13 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Cannot read Excel file: {ex.Message}";
+            StatusText = $"Không thể đọc tệp Excel: {ex.Message}";
             return;
         }
 
         if (sheets.Count == 0)
         {
-            StatusText = $"No sheets found in {Path.GetFileName(filePath)}";
+            StatusText = $"Không tìm thấy trang tính nào trong {Path.GetFileName(filePath)}";
             return;
         }
 
@@ -2072,12 +2085,12 @@ public sealed class MainViewModel : ObservableObject
         {
             await ImportExcelAsync(filePath, sheetName, "Relink");
             IsExcelLinkBroken = false;
-            StatusText = $"Excel re-linked: {Path.GetFileName(filePath)} / {sheetName}";
+            StatusText = $"Đã liên kết lại Excel: {Path.GetFileName(filePath)} / {sheetName}";
         }
         catch (Exception ex)
         {
             IsExcelLinkBroken = true;
-            StatusText = $"Re-link failed: {ex.Message}";
+            StatusText = $"Liên kết lại thất bại: {ex.Message}";
         }
     }
 
@@ -2115,6 +2128,7 @@ public sealed class MainViewModel : ObservableObject
         ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
         _excelDataReadAtLocal = null;
         _excelDataSourceWriteTimeUtc = null;
+        _excelDataSourceIdentity = null;
 
         OnPropertyChanged(nameof(HasLinkedExcelSource));
         OnPropertyChanged(nameof(LinkedExcelSourceText));
@@ -2126,7 +2140,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedCopiesFieldName));
         RaiseDatabaseFieldStateChanged();
 
-        StatusText = "Excel link removed. Objects keep their bindings — import Excel again to resume printing.";
+        StatusText = "Đã gỡ liên kết Excel. Các đối tượng vẫn giữ liên kết — hãy nhập lại Excel để tiếp tục in.";
         LogDataOperation("Unlink", previousFilePath, previousSheetName, rowCount: 0, columnCount: 0, success: true, errorMessage: string.Empty);
     }
 
@@ -2150,7 +2164,7 @@ public sealed class MainViewModel : ObservableObject
         if (existing is not null)
         {
             Template.DatabaseConfig.DataSourceId = existing.Id;
-            StatusText = $"Already a shared data source: {existing.DisplayName}";
+            StatusText = $"Đã là nguồn dữ liệu dùng chung: {existing.DisplayName}";
             return;
         }
 
@@ -2164,7 +2178,7 @@ public sealed class MainViewModel : ObservableObject
         _dataSourceRegistry.Save();
         DataSources.Add(source);
         Template.DatabaseConfig.DataSourceId = source.Id;
-        StatusText = $"Added shared data source: {source.DisplayName}";
+        StatusText = $"Đã thêm nguồn dữ liệu dùng chung: {source.DisplayName}";
     }
 
     /// <summary>
@@ -2178,12 +2192,12 @@ public sealed class MainViewModel : ObservableObject
         {
             await ImportExcelAsync(source.FilePath, source.SheetName, "Import");
             RecordDataSourceUsage(source);
-            StatusText = $"Using shared data source: {source.DisplayName}";
+            StatusText = $"Đang dùng nguồn dữ liệu dùng chung: {source.DisplayName}";
         }
         catch (Exception ex)
         {
             IsExcelLinkBroken = true;
-            StatusText = $"Could not use shared data source '{source.DisplayName}': {ex.Message}";
+            StatusText = $"Không thể dùng nguồn dữ liệu dùng chung '{source.DisplayName}': {ex.Message}";
         }
     }
 
@@ -2228,7 +2242,7 @@ public sealed class MainViewModel : ObservableObject
         _dataSourceRegistry.Remove(source.Id);
         _dataSourceRegistry.Save();
         DataSources.Remove(source);
-        StatusText = $"Removed shared data source: {source.DisplayName}";
+        StatusText = $"Đã gỡ nguồn dữ liệu dùng chung: {source.DisplayName}";
     }
 
     /// <summary>
@@ -2241,8 +2255,8 @@ public sealed class MainViewModel : ObservableObject
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Locate Excel file for shared data source",
-            Filter = "Data Files (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|All Files (*.*)|*.*",
+            Title = "Tìm tệp Excel cho nguồn dữ liệu dùng chung",
+            Filter = "Tệp dữ liệu (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Tất cả tệp (*.*)|*.*",
             FileName = Path.GetFileName(source.FilePath)
         };
 
@@ -2258,13 +2272,13 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Cannot read Excel file: {ex.Message}";
+            StatusText = $"Không thể đọc tệp Excel: {ex.Message}";
             return;
         }
 
         if (sheets.Count == 0)
         {
-            StatusText = $"No sheets found in {Path.GetFileName(dialog.FileName)}";
+            StatusText = $"Không tìm thấy trang tính nào trong {Path.GetFileName(dialog.FileName)}";
             return;
         }
 
@@ -2272,7 +2286,7 @@ public sealed class MainViewModel : ObservableObject
         source.SheetName = sheets.Contains(source.SheetName) ? source.SheetName : sheets[0];
         _dataSourceRegistry.Upsert(source);
         _dataSourceRegistry.Save();
-        StatusText = $"Relinked shared data source: {source.DisplayName}";
+        StatusText = $"Đã liên kết lại nguồn dữ liệu dùng chung: {source.DisplayName}";
 
         if (string.Equals(Template.DatabaseConfig.DataSourceId, source.Id, StringComparison.OrdinalIgnoreCase))
         {
@@ -2587,7 +2601,7 @@ public sealed class MainViewModel : ObservableObject
             AddLabelDatabaseField(field, updateStatus: false);
         }
 
-        StatusText = $"Added {LabelDatabaseFields.Count} field(s) for label design";
+        StatusText = $"Đã thêm {LabelDatabaseFields.Count} trường cho thiết kế tem";
         RaiseDatabaseFieldStateChanged();
     }
 
@@ -2597,7 +2611,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (updateStatus)
             {
-                StatusText = $"Field already added: {field.Name}";
+                StatusText = $"Trường đã tồn tại: {field.Name}";
             }
             return;
         }
@@ -2608,7 +2622,7 @@ public sealed class MainViewModel : ObservableObject
         SelectedExcelField = clone.Name;
         if (updateStatus)
         {
-            StatusText = $"Added label field: {field.Name}";
+            StatusText = $"Đã thêm trường tem: {field.Name}";
         }
 
         RaiseDatabaseFieldStateChanged();
@@ -2625,7 +2639,7 @@ public sealed class MainViewModel : ObservableObject
         LabelDatabaseFields.Remove(SelectedLabelDatabaseField);
         SelectedLabelDatabaseField = LabelDatabaseFields.FirstOrDefault();
         SelectedExcelField = SelectedLabelDatabaseField?.Name;
-        StatusText = $"Removed label field: {removedName}";
+        StatusText = $"Đã xóa trường tem: {removedName}";
         RaiseDatabaseFieldStateChanged();
     }
 
@@ -2634,7 +2648,7 @@ public sealed class MainViewModel : ObservableObject
         LabelDatabaseFields.Clear();
         SelectedLabelDatabaseField = null;
         SelectedExcelField = null;
-        StatusText = "Cleared label fields";
+        StatusText = "Đã xóa sạch các trường tem";
         RaiseDatabaseFieldStateChanged();
     }
 
@@ -2661,30 +2675,50 @@ public sealed class MainViewModel : ObservableObject
         {
             if (IsExcelDataStale)
             {
-                StatusText = "Print blocked: the linked Excel file changed since it was last read. Click Update Excel first (or use Print Preview, which lets you confirm and print with the current data).";
+                StatusText = "Đã chặn in: tệp Excel liên kết đã thay đổi kể từ lần đọc cuối. Hãy nhấn Cập nhật Excel trước (hoặc dùng Xem trước khi in để xác nhận và in với dữ liệu hiện tại).";
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(DataTransformError))
             {
-                StatusText = $"Print blocked: data transform error. {DataTransformError}";
+                StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {DataTransformError}";
                 return;
             }
 
-            var rows = ExpandRowsForCopies(PreviewRow is null ? new IReadOnlyDictionary<string, string>?[] { null } : new IReadOnlyDictionary<string, string>?[] { PreviewRow }).ToArray();
-            var validationError = ValidatePrintableContent(rows);
-            if (validationError is not null)
+            // Copies come from the template column preview uses. A one-row print
+            // still reports that row's data-view number, not "Row 1".
+            DatabaseConfig? copiesDatabase;
+            IReadOnlyList<(int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)> quantityRows;
+            if (SelectedDataItem is DataRowView selectedRow)
             {
-                StatusText = validationError;
+                copiesDatabase = Template.DatabaseConfig;
+                quantityRows = new (int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)[]
+                {
+                    (GetDataRowViewIndex(selectedRow) + 1, PreviewRow)
+                };
+            }
+            else
+            {
+                copiesDatabase = null;
+                quantityRows = new (int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)[]
+                {
+                    (0, PreviewRow)
+                };
+            }
+
+            if (!QuickPrintQuantity.TryExpand(copiesDatabase, PrintCopies, quantityRows, out var expandedRows, out var sequence, out var copiesError))
+            {
+                StatusText = copiesError;
                 return;
             }
 
-            var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} label");
+            var rows = expandedRows.ToArray();
+            var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} label", sequence: sequence);
             var result = tracked.Result;
             if (result.IsAccepted)
             {
                 StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
-                await WritePrintLogAsync(
+                _ = WritePrintLogAsync(
                     "Current row",
                     rows,
                     PreviewRow is null ? 0 : 1,
@@ -2709,7 +2743,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Print failed: {ex.Message}";
+            StatusText = $"In thất bại: {ex.Message}";
             LogPrintOperation("Current row", PreviewRow is null ? 0 : 1, 0, success: false, ex.Message);
         }
     }
@@ -2720,49 +2754,50 @@ public sealed class MainViewModel : ObservableObject
         {
             if (ExcelDataView is null || ExcelDataView.Count == 0)
             {
-                StatusText = "No Excel rows to print";
+                StatusText = "Không có dòng Excel nào để in";
                 return;
             }
 
             if (IsExcelDataStale)
             {
-                StatusText = "Print blocked: the linked Excel file changed since it was last read. Click Update Excel first (or use Print Preview, which lets you confirm and print with the current data).";
+                StatusText = "Đã chặn in: tệp Excel liên kết đã thay đổi kể từ lần đọc cuối. Hãy nhấn Cập nhật Excel trước (hoặc dùng Xem trước khi in để xác nhận và in với dữ liệu hiện tại).";
                 return;
             }
 
-            var transformedRows = new List<IReadOnlyDictionary<string, string>?>();
-            foreach (DataRowView rowView in ExcelDataView)
+            var quantityRows = new List<(int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)>();
+            for (var index = 0; index < ExcelDataView.Count; index++)
             {
+                if (ExcelDataView[index] is not DataRowView rowView)
+                {
+                    continue;
+                }
+
                 var row = CreatePreviewRow(rowView, out var transformError);
                 if (!string.IsNullOrWhiteSpace(transformError))
                 {
                     DataTransformError = transformError;
-                    StatusText = $"Print blocked: data transform error. {transformError}";
+                    StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {transformError}";
                     return;
                 }
 
-                if (row is not null)
-                {
-                    transformedRows.Add(row);
-                }
+                quantityRows.Add((index + 1, row));
             }
 
             DataTransformError = string.Empty;
-            var rows = ExpandRowsForCopies(transformedRows).ToArray();
-
-            var validationError = ValidatePrintableContent(rows);
-            if (validationError is not null)
+            if (!QuickPrintQuantity.TryExpand(Template.DatabaseConfig, PrintCopies, quantityRows, out var expandedRows, out var sequence, out var copiesError))
             {
-                StatusText = validationError;
+                StatusText = copiesError;
                 return;
             }
 
-            var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} labels");
+            var rows = expandedRows.ToArray();
+
+            var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} labels", sequence: sequence);
             var result = tracked.Result;
             if (result.IsAccepted)
             {
                 StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
-                await WritePrintLogAsync(
+                _ = WritePrintLogAsync(
                     "All rows",
                     rows,
                     ExcelDataView.Count,
@@ -2787,7 +2822,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Print failed: {ex.Message}";
+            StatusText = $"In thất bại: {ex.Message}";
             LogPrintOperation("All rows", ExcelDataView?.Count ?? 0, 0, success: false, ex.Message);
         }
     }
@@ -2808,7 +2843,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Calibration print failed: {ex.Message}";
+            StatusText = $"In hiệu chỉnh thất bại: {ex.Message}";
         }
     }
 
@@ -2885,7 +2920,7 @@ public sealed class MainViewModel : ObservableObject
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Chọn hình ảnh",
-            Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All Files (*.*)|*.*"
+            Filter = "Tệp hình ảnh (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|Tất cả tệp (*.*)|*.*"
         };
 
         if (dialog.ShowDialog() != true)
@@ -2908,11 +2943,11 @@ public sealed class MainViewModel : ObservableObject
                 SelectedObject.ImagePixelHeight = 0;
             }
             SelectedObject.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
-            StatusText = $"Replaced image: {SelectedObject.Name}";
+            StatusText = $"Đã thay đổi hình ảnh: {SelectedObject.Name}";
         }
         catch (Exception ex)
         {
-            StatusText = $"Cannot read image file: {ex.Message}";
+            StatusText = $"Không thể đọc tệp hình ảnh: {ex.Message}";
         }
     }
 
@@ -2921,7 +2956,7 @@ public sealed class MainViewModel : ObservableObject
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "Chọn hình ảnh",
-            Filter = "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All Files (*.*)|*.*"
+            Filter = "Tệp hình ảnh (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|Tất cả tệp (*.*)|*.*"
         };
 
         if (dialog.ShowDialog() != true)
@@ -2936,7 +2971,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Cannot read image file: {ex.Message}";
+            StatusText = $"Không thể đọc tệp hình ảnh: {ex.Message}";
             return;
         }
 
@@ -2987,7 +3022,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(fieldName))
         {
-            StatusText = "Select an Excel field first";
+            StatusText = "Hãy chọn một trường Excel trước";
             return;
         }
 
@@ -3022,7 +3057,7 @@ public sealed class MainViewModel : ObservableObject
             : $"Field: {fieldName}";
         SelectedObject.Text = fieldName;
         SelectedObject.BindingExpression = $"{{{fieldName}}}";
-        StatusText = $"Bound selected object to {{{fieldName}}}";
+        StatusText = $"Đã liên kết đối tượng được chọn với {{{fieldName}}}";
         RaiseFormulaPreviewChanged();
     }
 
@@ -3043,7 +3078,7 @@ public sealed class MainViewModel : ObservableObject
         {
             SelectedObject.Name = "Text";
         }
-        StatusText = "Selected object changed to static text";
+        StatusText = "Đối tượng được chọn đã chuyển thành văn bản tĩnh";
         RaiseFormulaPreviewChanged();
     }
 
@@ -3051,7 +3086,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (SelectedObject is null || string.IsNullOrWhiteSpace(formula))
         {
-            StatusText = "Select an object before inserting a function";
+            StatusText = "Hãy chọn một đối tượng trước khi chèn hàm";
             return;
         }
 
@@ -3061,7 +3096,7 @@ public sealed class MainViewModel : ObservableObject
             SelectedObject.Text = string.Empty;
         }
 
-        StatusText = $"Inserted formula: {formula}";
+        StatusText = $"Đã chèn công thức: {formula}";
         RaiseFormulaPreviewChanged();
     }
 
@@ -3122,13 +3157,13 @@ public sealed class MainViewModel : ObservableObject
     {
         if (SelectedObject is null || FormulaBuilderParts.Count == 0)
         {
-            StatusText = "Select an object and add formula parts first";
+            StatusText = "Hãy chọn một đối tượng và thêm các thành phần công thức trước";
             return;
         }
 
         var expression = BuildFormulaExpression();
         InsertFunctionFormula(expression);
-        StatusText = $"Applied formula builder: {expression}";
+        StatusText = $"Đã áp dụng công thức: {expression}";
     }
 
     private string BuildFormulaExpression()
@@ -3198,15 +3233,15 @@ public sealed class MainViewModel : ObservableObject
         DrawingTool = tool;
         DrawingCommandText = tool switch
         {
-            ObjectType.Line => "Line: specify first point",
-            ObjectType.Ellipse => "Ellipse/Circle: specify first corner",
-            _ => "Rectangle: specify first corner"
+            ObjectType.Line => "Đường kẻ: xác định điểm đầu tiên",
+            ObjectType.Ellipse => "Hình elip/tròn: xác định góc đầu tiên",
+            _ => "Hình chữ nhật: xác định góc đầu tiên"
         };
         StatusText = tool switch
         {
-            ObjectType.Line => "Line: click first point, move pointer, click next point or type length + Enter, Esc to cancel",
-            ObjectType.Ellipse => "Ellipse/Circle: click first corner, move pointer, click opposite corner or type width,height + Enter, Esc to cancel",
-            _ => "Rectangle: click first corner, move pointer, click opposite corner or type width,height + Enter, Esc to cancel"
+            ObjectType.Line => "Đường kẻ: nhấp điểm đầu, di chuyển con trỏ, nhấp điểm tiếp theo hoặc nhập chiều dài + Enter, Esc để hủy",
+            ObjectType.Ellipse => "Hình elip/tròn: nhấp góc đầu, di chuyển con trỏ, nhấp góc đối diện hoặc nhập rộng,cao + Enter, Esc để hủy",
+            _ => "Hình chữ nhật: nhấp góc đầu, di chuyển con trỏ, nhấp góc đối diện hoặc nhập rộng,cao + Enter, Esc để hủy"
         };
     }
 
@@ -3214,7 +3249,7 @@ public sealed class MainViewModel : ObservableObject
     {
         DrawingTool = null;
         SelectedObject = labelObject;
-        StatusText = $"Added {labelObject.Name}";
+        StatusText = $"Đã thêm {labelObject.Name}";
     }
 
     private void AddBarcode()
@@ -3278,7 +3313,7 @@ public sealed class MainViewModel : ObservableObject
         barcode.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
         Template.Objects.Add(barcode);
         SelectedObject = barcode;
-        StatusText = $"Added {barcode.Name}";
+        StatusText = $"Đã thêm {barcode.Name}";
         RecordTemplateChange();
     }
 
@@ -3287,7 +3322,7 @@ public sealed class MainViewModel : ObservableObject
         labelObject.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
         Template.Objects.Add(labelObject);
         SelectedObject = labelObject;
-        StatusText = $"Added {labelObject.Name}";
+        StatusText = $"Đã thêm {labelObject.Name}";
     }
 
     private void DeleteSelected()
@@ -3300,7 +3335,7 @@ public sealed class MainViewModel : ObservableObject
         var toDelete = SelectedObject;
         Template.Objects.Remove(toDelete);
         SelectedObject = null;
-        StatusText = "Deleted selected object";
+        StatusText = "Đã xóa đối tượng được chọn";
     }
 
     private void BringToFront()
@@ -3369,7 +3404,7 @@ public sealed class MainViewModel : ObservableObject
         var previousSnapshot = _undoStack.Pop();
         _redoStack.Push(currentSnapshot);
         RestoreTemplateSnapshot(previousSnapshot);
-        StatusText = "Undo";
+        StatusText = "Hoàn tác";
         RaiseHistoryCanExecuteChanged();
     }
 
@@ -3386,7 +3421,7 @@ public sealed class MainViewModel : ObservableObject
         var nextSnapshot = _redoStack.Pop();
         _undoStack.Push(currentSnapshot);
         RestoreTemplateSnapshot(nextSnapshot);
-        StatusText = "Redo";
+        StatusText = "Làm lại";
         RaiseHistoryCanExecuteChanged();
     }
 
@@ -3826,71 +3861,6 @@ public sealed class MainViewModel : ObservableObject
             : string.Empty;
     }
 
-    public string? ValidatePrintPreviewContent()
-    {
-        try
-        {
-            if (!TryBuildPrintPreviewRows(out var rows, out var transformError))
-            {
-                return $"Print Preview is blocked: data transform error. {transformError}";
-            }
-
-            return ValidatePrintableContent(rows);
-        }
-        catch (Exception ex)
-        {
-            return $"Print Preview is blocked: {ex.Message}";
-        }
-    }
-
-    private string? ValidatePrintableContent(IReadOnlyList<IReadOnlyDictionary<string, string>?> rows)
-    {
-        foreach (var item in Template.Objects.Where(item => item.IsVisible && item.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix))
-        {
-            for (var i = 0; i < rows.Count; i++)
-            {
-                var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, rows[i]);
-                var type = item.Type switch
-                {
-                    ObjectType.QRCode => BarcodeType.QRCode,
-                    ObjectType.DataMatrix => BarcodeType.DataMatrix,
-                    _ => ANLAbel.App.Controls.BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
-                };
-
-                var renderError = ValidateBarcodeCanRender(item, data, type);
-                if (renderError is not null)
-                {
-                    return $"Print blocked: row {i + 1}, {item.Name} has invalid {type} data. {renderError}";
-                }
-
-                if (item.Type == ObjectType.QRCode && item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize)
-                {
-                    var byteCount = Encoding.UTF8.GetByteCount(data);
-                    var capacity = EstimateFixedQrCapacity(item.WidthMm, item.HeightMm, item.QrErrorCorrection);
-                    if (byteCount > capacity)
-                    {
-                        return $"Print blocked: row {i + 1}, {item.Name} has {byteCount} bytes but fixed QR {item.WidthMm:0.#}x{item.HeightMm:0.#}mm allows about {capacity}. Increase size or use Auto size.";
-                    }
-                }
-            }
-        }
-
-        foreach (var item in Template.Objects.Where(item => item.IsVisible && item.Type == ObjectType.TextBox))
-        {
-            for (var i = 0; i < rows.Count; i++)
-            {
-                var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, rows[i]);
-                if (TextBoxOverflowDetector.ShouldBlockOverflow(item)
-                    && IsTextBoxOverflowing(item, data))
-                {
-                    return $"Print blocked: row {i + 1}, {item.Name} text overflows its text box. Increase object size or reduce text/font size.";
-                }
-            }
-        }
-
-        return null;
-    }
-
     private static bool IsTextBoxOverflowing(LabelObject item, string data)
     {
         return TextBoxOverflowDetector.IsOverflowing(
@@ -3949,22 +3919,6 @@ public sealed class MainViewModel : ObservableObject
         };
     }
 
-    private static int EstimateFixedQrCapacity(double widthMm, double heightMm, QrErrorCorrection errorCorrection)
-    {
-        var safeSize = Math.Max(1, Math.Min(widthMm, heightMm));
-        var baseline = Math.Floor(safeSize * safeSize);
-        var factor = errorCorrection switch
-        {
-            QrErrorCorrection.L => 1.15,
-            QrErrorCorrection.M => 1.0,
-            QrErrorCorrection.Q => 0.8,
-            QrErrorCorrection.H => 0.65,
-            _ => 1.0
-        };
-
-        return Math.Max(1, (int)Math.Floor(baseline * factor));
-    }
-
     private FormulaEvaluationResult EvaluateSelectedFormula()
     {
         if (SelectedObject is null || string.IsNullOrWhiteSpace(SelectedObject.BindingExpression) || !FormulaBindingEvaluator.LooksLikeFormula(SelectedObject.BindingExpression))
@@ -4013,7 +3967,7 @@ public sealed class MainViewModel : ObservableObject
                 .ToArray();
 
             return new BindingPreviewResult(
-                "Formula",
+                "Công thức",
                 PreviewRow is null ? string.Empty : previewEvaluation.Value,
                 analysis.UsedFields,
                 missingFields,
@@ -4027,7 +3981,7 @@ public sealed class MainViewModel : ObservableObject
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         return new BindingPreviewResult(
-            "Field placeholders",
+            "Trường giữ chỗ",
             PreviewRow is null ? string.Empty : BindingExpressionEvaluator.Evaluate(expression, PreviewRow),
             usedFields,
             missingPlaceholderFields,
@@ -4063,7 +4017,7 @@ public sealed class MainViewModel : ObservableObject
         SelectedObject = Template.Objects.FirstOrDefault(item => item.Id == issue.ObjectId);
         if (SelectedObject is not null)
         {
-            StatusText = $"Selected binding issue: {SelectedObject.Name}";
+            StatusText = $"Vấn đề liên kết đối tượng: {SelectedObject.Name}";
         }
     }
 
@@ -4099,18 +4053,18 @@ public sealed class MainViewModel : ObservableObject
         if (missingFields.Count > 0)
         {
             return missingFields.Count == 1
-                ? "Binding is missing 1 field in the current workbook."
-                : $"Binding is missing {missingFields.Count} fields in the current workbook.";
+                ? "Liên kết bị thiếu 1 trường trong bảng tính hiện tại."
+                : $"Liên kết bị thiếu {missingFields.Count} trường trong bảng tính hiện tại.";
         }
 
         if (errors.Count > 0)
         {
-            return "Binding has validation errors.";
+            return "Liên kết có lỗi xác thực.";
         }
 
         return hasPreviewRow
-            ? "Binding is linked to the current Excel preview row."
-            : "Binding is valid. Import or select an Excel row to preview output.";
+            ? "Liên kết đã khớp với dòng xem trước Excel hiện tại."
+            : "Liên kết hợp lệ. Hãy nhập hoặc chọn một dòng Excel để xem trước kết quả.";
     }
 
     private void RaiseFormulaPreviewChanged()
@@ -4414,7 +4368,7 @@ public sealed class MainViewModel : ObservableObject
     {
         return new LabelTemplate
         {
-            Name = "ANLAbel Template",
+            Name = "Mẫu ANLAbel",
             WidthMm = 100,
             HeightMm = 50,
             Dpi = 203,
@@ -4488,43 +4442,13 @@ public sealed class MainViewModel : ObservableObject
         return 0;
     }
 
-    private IEnumerable<IReadOnlyDictionary<string, string>?> ExpandRowsForCopies(IEnumerable<IReadOnlyDictionary<string, string>?> rows)
-    {
-        foreach (var row in rows)
-        {
-            var copies = GetCopyCount(row);
-            for (var i = 0; i < copies; i++)
-            {
-                yield return row;
-            }
-        }
-    }
-
-    private int GetCopyCount(IReadOnlyDictionary<string, string>? row)
-    {
-        if (row is not null && !string.IsNullOrWhiteSpace(PrintCopiesField))
-        {
-            var field = PrintCopiesField.Trim();
-            if (field.StartsWith('{') && field.EndsWith('}') && field.Length > 2)
-            {
-                field = field[1..^1];
-            }
-
-            if (row.TryGetValue(field, out var value) && int.TryParse(value, out var fieldCopies) && fieldCopies > 0)
-            {
-                return Math.Min(999, fieldCopies);
-            }
-        }
-
-        return Math.Min(999, Math.Max(1, PrintCopies));
-    }
-
     private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(
         IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
         string description,
         string? existingJobId = null,
         PrintJobManifest? approvedManifest = null,
-        int? sourceRowCount = null)
+        int? sourceRowCount = null,
+        IReadOnlyList<PrintDispatchCopy>? sequence = null)
     {
         var jobId = string.IsNullOrWhiteSpace(existingJobId) ? Guid.NewGuid().ToString("N") : existingJobId;
         var printerName = Template.PrinterProfile.PrinterName;
@@ -4556,6 +4480,9 @@ public sealed class MainViewModel : ObservableObject
             throw new InvalidOperationException(preflight.ToUserMessage());
         }
 
+        var (labelCount, resolvedSourceRowCount) = PrintJobEvidencePolicy.ResolveManifestCounts(
+            rows.Count,
+            sourceRowCount);
         var manifest = PrintJobManifest.Create(
             Template.Name,
             CurrentFilePath,
@@ -4565,15 +4492,16 @@ public sealed class MainViewModel : ObservableObject
             Template.HeightMm,
             effectivePlan.DpiX > 0 ? effectivePlan.DpiX : Template.PrinterProfile.Dpi,
             effectivePlan.DpiY > 0 ? effectivePlan.DpiY : Template.PrinterProfile.Dpi,
-            sourceRowCount ?? rows.Count,
-            rows.Count,
+            labelCount,
+            resolvedSourceRowCount,
             rows,
             effectivePlan.DocumentHash,
             effectivePlan.TextResourceFingerprint,
             effectivePlan.SceneHash,
             effectivePlan.OutputContractHash,
             imageRasterFingerprint: effectivePlan.ImageRasterFingerprint,
-            thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty);
+            thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty,
+            sequence: sequence);
         if (approvedManifest is not null
             && !string.Equals(manifest.Fingerprint, approvedManifest.Fingerprint, StringComparison.Ordinal))
         {
@@ -4716,14 +4644,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
     {
-        try
-        {
-            await _printJobStateStore.AppendAsync(transition).ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Print job state log failed: {ex.Message}");
-        }
+        await PrintJobEvidenceAppend.AppendAsync(_printJobStateStore, transition).ConfigureAwait(true);
     }
 
     public async Task WritePrintLogAsync(
@@ -4746,7 +4667,7 @@ public sealed class MainViewModel : ObservableObject
             jobId: jobId,
             spoolStatus: spoolStatus);
         var effectiveNotes = string.IsNullOrWhiteSpace(notes)
-            ? AppendQueueStatus(result?.UserFacingStatus ?? "Print submission recorded. Physical completion is not independently verified.", spoolStatus)
+            ? AppendQueueStatus(result?.UserFacingStatus ?? "Đã ghi nhận yêu cầu in. Kết quả in vật lý chưa được xác minh độc lập.", spoolStatus)
             : notes;
         try
         {
@@ -4756,7 +4677,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Print sent, but log failed: {ex.Message}";
+            StatusText = $"Đã gửi lệnh in, nhưng ghi nhật ký thất bại: {ex.Message}";
         }
     }
 
@@ -4863,7 +4784,7 @@ public sealed class MainViewModel : ObservableObject
             return status;
         }
 
-        return $"{status}\nQueue status: {spoolStatus.UserFacingStatus}";
+        return $"{status}\nTrạng thái hàng đợi: {spoolStatus.UserFacingStatus}";
     }
 
     private PrintLogEntry CreatePrintLogEntry(string printMode, IReadOnlyDictionary<string, string>? row, int rowCount, int labelCount, int labelIndex, DateTime printedAt, string notes)
@@ -4960,7 +4881,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (!File.Exists(_printLogService.LogFilePath))
             {
-                StatusText = "Print history file has not been created yet";
+                StatusText = "Tệp lịch sử in chưa được tạo";
                 return;
             }
 
@@ -4972,7 +4893,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"Cannot open print history: {ex.Message}";
+            StatusText = $"Không thể mở lịch sử in: {ex.Message}";
         }
     }
 }
@@ -4994,7 +4915,7 @@ public enum FormulaBuilderPartKind
 
 public sealed record FormulaBuilderPart(FormulaBuilderPartKind Kind, string Value, string DisplayText)
 {
-    public string KindText => Kind == FormulaBuilderPartKind.Field ? "Field" : "Text";
+    public string KindText => Kind == FormulaBuilderPartKind.Field ? "Trường" : "Văn bản";
 }
 
 public sealed record BarcodeSymbologyOption(BarcodeSymbology Value, string GroupName, string DisplayName);
@@ -5020,6 +4941,6 @@ public sealed record BindingIssueSummary(
     IReadOnlyList<string> Errors)
 {
     public string Title => $"{ObjectName} ({ObjectType})";
-    public string MissingFieldsSummary => MissingFields.Count == 0 ? string.Empty : $"Missing: {string.Join(", ", MissingFields)}";
+    public string MissingFieldsSummary => MissingFields.Count == 0 ? string.Empty : $"Thiếu: {string.Join(", ", MissingFields)}";
     public string ErrorsSummary => Errors.Count == 0 ? string.Empty : string.Join(Environment.NewLine, Errors);
 }

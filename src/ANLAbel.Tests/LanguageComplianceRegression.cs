@@ -36,6 +36,9 @@ internal static class LanguageComplianceRegression
         "ExcelSheetWindow.xaml",
         "TemplateLibraryWindow.xaml",
         "UpdateWindow.xaml",
+        "HelpWindow.xaml",
+        "SettingsWindow.xaml",
+        "App.xaml",
     };
 
     // Thuộc tính XAML mang chuỗi người vận hành nhìn thấy.

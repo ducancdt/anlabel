@@ -28,6 +28,7 @@ namespace ANLAbel.App;
 
 public partial class PrintPreviewWindow : Window
 {
+    private readonly LabelTemplate _sourceTemplate;
     private readonly LabelTemplate _template;
     private readonly IReadOnlyDictionary<string, string>? _currentRow;
     private readonly DataView? _excelDataView;
@@ -42,6 +43,7 @@ public partial class PrintPreviewWindow : Window
     private readonly IReadOnlyList<IReadOnlyDictionary<string, string>?>? _preparedRows;
     private string _selectedPrinterName = string.Empty;
     private IReadOnlyDictionary<string, string>?[] _previewRows = Array.Empty<IReadOnlyDictionary<string, string>?>();
+    private IReadOnlyList<LabelInstance> _previewInstances = Array.Empty<LabelInstance>();
     private double _previewZoom = 1.0;
     private int _currentPageIndex;
     private string _pageInput = "1";
@@ -56,13 +58,14 @@ public partial class PrintPreviewWindow : Window
     private readonly FileSourceIdentity? _excelKnownSourceIdentity;
     private IReadOnlyDictionary<string, string>?[] _allRowsCache = Array.Empty<IReadOnlyDictionary<string, string>?>();
     private readonly DispatcherTimer _filterDebounceTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
-    private const string AllColumnsFilterOption = "(All columns)";
+    private const string AllColumnsFilterOption = "(Tất cả cột)";
     private const int PreviewCacheCapacity = 8;
     private readonly Dictionary<int, PreviewRasterResult> _previewImageCache = new();
     private readonly LinkedList<int> _previewImageLru = new();
     private PrintRenderPlan? _previewPlan;
     private string _previewPlanPrinterName = string.Empty;
     private PrintPreflightIssue? _previewPlanIssue;
+    private PreviewTrustLevel _previewTrustLevel = PreviewTrustLevel.DesignOnly;
 
     public PrintPreviewWindow(
         LabelTemplate template,
@@ -77,7 +80,8 @@ public partial class PrintPreviewWindow : Window
         FileSourceIdentity? excelSourceIdentity = null)
     {
         InitializeComponent();
-        _template = template;
+        _sourceTemplate = template;
+        _template = PrintSessionTemplateContract.Capture(template);
 
         // Clamp window size to screen working area
         var workArea = SystemParameters.WorkArea;
@@ -117,16 +121,16 @@ public partial class PrintPreviewWindow : Window
         }
     }
 
-    public string PreviewTitle => $"Print Preview - {_template.Name}";
+    public string PreviewTitle => $"Xem trước khi in - {_template.Name}";
     public LabelTemplate LabelTemplate => _template;
     public IReadOnlyList<PrintMethodOption> PrintMethodOptions { get; } = new[]
     {
-        new PrintMethodOption(PrintMethod.ApplicationGraphic, "Application graphic (Designer parity)"),
-        new PrintMethodOption(PrintMethod.PrinterNative, "Printer native (Thermal commands)")
+        new PrintMethodOption(PrintMethod.ApplicationGraphic, "Đồ họa ứng dụng (Khớp bản thiết kế)"),
+        new PrintMethodOption(PrintMethod.PrinterNative, "Lệnh máy in gốc (Lệnh nhiệt native)")
     };
     public List<PrintPreviewPageViewModel> Pages { get; } = new();
     public PrintPreviewPageViewModel? CurrentPage => Pages.Count == 0 ? null : Pages[Math.Max(0, Math.Min(Pages.Count - 1, _currentPageIndex))];
-    public string PrinterName => string.IsNullOrWhiteSpace(_selectedPrinterName) ? "(no printer selected)" : _selectedPrinterName;
+    public string PrinterName => string.IsNullOrWhiteSpace(_selectedPrinterName) ? "(chưa chọn máy in)" : _selectedPrinterName;
     public string LabelSizeText
     {
         get
@@ -135,7 +139,7 @@ public partial class PrintPreviewWindow : Window
             var dpi = plan is { DpiX: > 0, DpiY: > 0 }
                 ? $"{plan.DpiX}×{plan.DpiY}"
                 : $"{_template.PrinterProfile.Dpi}";
-            return $"Label: {(plan?.LabelWidthMm ?? _template.WidthMm):0.##} × {(plan?.LabelHeightMm ?? _template.HeightMm):0.##} mm | DPI: {dpi}";
+            return $"Nhãn: {(plan?.LabelWidthMm ?? _template.WidthMm):0.##} × {(plan?.LabelHeightMm ?? _template.HeightMm):0.##} mm | DPI: {dpi}";
         }
     }
 
@@ -154,29 +158,29 @@ public partial class PrintPreviewWindow : Window
             var parts = new List<string>
             {
                 plan is null
-                    ? $"Plan: {profile.Dpi} DPI (design-only)"
-                    : $"Plan: {plan.DpiX}×{plan.DpiY} DPI{(plan.OutputContractTicketVerified ? string.Empty : " (design-only)")}",
-                $"offset {profile.OffsetXMm:0.##}/{profile.OffsetYMm:0.##} mm"
+                    ? $"Kế hoạch: {profile.Dpi} DPI (chỉ thiết kế)"
+                    : $"Kế hoạch: {plan.DpiX}×{plan.DpiY} DPI{(plan.OutputContractTicketVerified ? string.Empty : " (chỉ thiết kế)")}",
+                $"độ lệch {profile.OffsetXMm:0.##}/{profile.OffsetYMm:0.##} mm"
             };
-            parts.Add(plan?.PrintableAreaVerified == true ? "imageable area verified" : "imageable area unverified");
+            parts.Add(plan?.PrintableAreaVerified == true ? "vùng in đã xác thực" : "chưa xác thực vùng in");
             if (profile.Rotated180)
             {
-                parts.Add("rotated 180°");
+                parts.Add("xoay 180°");
             }
             if (_template.MarginMm > 0)
             {
-                parts.Add($"margin {_template.MarginMm:0.##} mm");
+                parts.Add($"lề {_template.MarginMm:0.##} mm");
             }
             return string.Join(" · ", parts);
         }
     }
-    public string PageCountText => $"Labels/pages: {Pages.Count}";
+    public string PageCountText => $"Số nhãn: {Pages.Count}";
     public string PageInput
     {
         get => _pageInput;
         set => _pageInput = value;
     }
-    public string PageStatusText => Pages.Count == 0 ? "No labels" : $"Label {_currentPageIndex + 1} of {Pages.Count}";
+    public string PageStatusText => Pages.Count == 0 ? "Không có nhãn" : $"Nhãn {_currentPageIndex + 1} / {Pages.Count}";
     public string CurrentRowSummary => CreateRowSummary(_previewRows.ElementAtOrDefault(_currentPageIndex));
     public string SelectedRowsText
     {
@@ -185,23 +189,49 @@ public partial class PrintPreviewWindow : Window
             var selectedCount = _trackingRows.Count(r => r.IsSelected);
             var totalCount = _trackingRows.Count;
             var totalCopies = _trackingRows.Where(r => r.IsSelected).Sum(r => r.Copies);
-            return $"{selectedCount}/{totalCount} selected ({totalCopies} labels)";
+            return $"Đã chọn {selectedCount}/{totalCount} ({totalCopies} nhãn)";
         }
     }
-    public bool HasPreflightIssues => !_preflightResult.IsSuccess;
-    public IReadOnlyList<PrintPreflightIssue> PreflightIssues => _preflightResult.Issues.Take(8).ToArray();
-    public string PreflightStatusText => _preflightResult.IsSuccess
-        ? "Preflight passed. Content is ready to print."
-        : _preflightResult.ToUserMessage(3);
-    public string PreflightIssuesSummary => _preflightResult.Issues.Count <= 8
-        ? $"{_preflightResult.Issues.Count} issue(s) found."
-        : $"Showing first 8 of {_preflightResult.Issues.Count} issue(s).";
+    public bool HasPreflightIssues => !_isPreviewBusy && _preflightResult.Issues.Count > 0;
+    public bool HasBlockingPreflightIssues => !_isPreviewBusy && !_preflightResult.IsSuccess;
+    public IReadOnlyList<PreviewContentIssue> PreflightIssues => _contentIssues;
+    public string PreflightStatusText => _isPreviewBusy
+        ? "Đang kiểm tra các nhãn đã chọn..."
+        : _previewTrustLevel == PreviewTrustLevel.Stale
+            ? "Kiểm tra nội dung chưa hoàn tất. Hãy làm mới danh sách chọn trước khi in."
+            : _previewRows.Length == 0
+                ? "Chưa chọn nhãn nào. Chọn các dòng bên dưới để xem trước."
+                : !_preflightResult.IsSuccess
+                    ? "Nội dung cần chú ý. Sửa các vấn đề bên dưới hoặc bỏ chọn các dòng bị ảnh hưởng."
+                    : _preflightResult.Issues.Count > 0
+                        ? "Chỉ là cảnh báo rủi ro quét mã — vẫn cho phép in. Hãy mở rộng mã vạch hoặc tăng DPI nếu đầu đọc khó quét."
+                        : "Nội dung các nhãn đã chọn đã vượt qua kiểm tra.";
+    public string PreflightIssuesSummary => $"{_contentIssues.Count} vấn đề nội dung riêng biệt. Các bản sao lặp lại đã được gộp nhóm.";
+    public string PrinterStatusText => _isPreviewBusy
+        ? "Đang kiểm tra xem trước..."
+        : _previewPlanIssue?.Message
+          ?? (_previewPlan?.OutputContractTicketVerified == true
+              ? "Cài đặt máy in đã chọn đã được xác thực."
+              : "Cài đặt máy in chưa được xác thực. Hãy xem lại Cài đặt máy in trước khi in.");
     public bool IsPreviewBusy => _isPreviewBusy;
     public bool CanCancelPreview => _isPreviewBusy;
     public int PreviewProgressPercent => _previewProgressPercent;
     public string PreviewProgressText => _previewProgressText;
     public bool IsPrintBusy => _isPrintBusy;
-    public bool CanPrint => CanBeginPrint(_isPrintBusy, _isPreviewBusy, _previewRows.Length);
+    public PreviewTrustLevel PreviewTrustLevel => _previewTrustLevel;
+    public string PreviewTrustStatusText => _previewTrustLevel switch
+    {
+        PreviewTrustLevel.EffectiveReady => "Sẵn sàng in",
+        PreviewTrustLevel.EffectiveUnverified => "Chỉ xem trước — máy in chưa xác thực",
+        PreviewTrustLevel.EffectiveBlocked => _previewPlanIssue is null
+            ? "Đã chặn in — nội dung cần chú ý"
+            : "Chỉ xem trước — cài đặt máy in cần chú ý",
+        PreviewTrustLevel.Stale => "Đang kiểm tra xem trước",
+        _ => "Chỉ xem trước — chưa chọn máy in"
+    };
+    public bool CanPrint => _previewTrustLevel == PreviewTrustLevel.EffectiveReady
+        && CanBeginPrint(_isPrintBusy, _isPreviewBusy, _previewRows.Length);
+    public bool CanRequestPrint => CanBeginPrint(_isPrintBusy, _isPreviewBusy, _previewRows.Length);
     public double PreviewZoom
     {
         get => _previewZoom;
@@ -217,62 +247,92 @@ public partial class PrintPreviewWindow : Window
         var printers = _printerDiscoveryService.GetInstalledPrinters();
         if (printers.Count == 0)
         {
-            MessageBox.Show(this, "No Windows printers were found.", "Printer setup", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, "Không tìm thấy máy in Windows nào.", "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var dialog = new PrinterSetupWindow(
             printers,
             _selectedPrinterName,
-            _template.PrinterProfile.PaperName,
+            string.IsNullOrWhiteSpace(_template.PrinterProfile.LabelStockName)
+                ? _template.PrinterProfile.PaperName
+                : _template.PrinterProfile.LabelStockName,
             _template.Orientation,
-            _template.PrinterProfile.Dpi) { Owner = this };
+            _template.PrinterProfile.Dpi,
+            _template.PrinterProfile.PaperSizeSource,
+            _template.PrinterProfile.DriverMediaIdentity,
+            _template.PrinterProfile.SettingsSource,
+            initialWidthMm: _template.WidthMm,
+            initialHeightMm: _template.HeightMm,
+            initialOffsetXMm: _template.PrinterProfile.OffsetXMm,
+            initialOffsetYMm: _template.PrinterProfile.OffsetYMm,
+            initialScaleX: _template.PrinterProfile.ScaleX,
+            initialScaleY: _template.PrinterProfile.ScaleY,
+            workingTemplate: _template,
+            printService: _printService) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
-            if (dialog.SelectedPrinter is not null)
+            if (dialog.SelectedPrinter is not null && dialog.SelectedPaper is not null)
             {
-                _selectedPrinterName = dialog.SelectedPrinter.Name;
-                _template.PrinterProfile.PrinterName = _selectedPrinterName;
+                try
+                {
+                    PrinterSelectionApplier.Apply(
+                        _template,
+                        dialog.SelectedPrinter,
+                        dialog.SelectedPaper,
+                        dialog.SelectedDpi,
+                        dialog.SelectedOrientation,
+                        dialog.SelectedMedia,
+                        dialog.SelectedPageSizeSource,
+                        dialog.SelectedDriverIdentity,
+                        dialog.SelectedSettingsSource,
+                        dialog.SelectedOffsetXMm,
+                        dialog.SelectedOffsetYMm,
+                        dialog.SelectedScaleX,
+                        dialog.SelectedScaleY);
+                    _selectedPrinterName = dialog.SelectedPrinter.Name;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    MessageBox.Show(this, ex.Message, "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
             }
 
             _previewPlan = null;
             _previewPlanPrinterName = string.Empty;
             _previewPlanIssue = null;
-
-            if (dialog.SelectedPaper is not null)
-            {
-                var (widthMm, heightMm) = LabelGeometry.OrientSize(dialog.SelectedPaper.WidthMm, dialog.SelectedPaper.HeightMm, dialog.SelectedOrientation);
-                var stock = LabelStockContract.Evaluate(
-                    widthMm,
-                    heightMm,
-                    dialog.SelectedPaper.WidthMm,
-                    dialog.SelectedPaper.HeightMm,
-                    dialog.SelectedPaper.Name);
-                if (!stock.IsAllowed)
-                {
-                    MessageBox.Show(this, stock.Diagnostic, "Printer setup", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                _template.WidthMm = widthMm;
-                _template.HeightMm = heightMm;
-                _template.PrinterProfile.LabelWidthMm = widthMm;
-                _template.PrinterProfile.LabelHeightMm = heightMm;
-                _template.PrinterProfile.PhysicalWidthMm = dialog.SelectedPaper.WidthMm;
-                _template.PrinterProfile.PhysicalHeightMm = dialog.SelectedPaper.HeightMm;
-                _template.PrinterProfile.PaperSizeSource = LabelStockContract.SourceForOperatorStock();
-            }
-
-            _template.PrinterProfile.Dpi = dialog.SelectedDpi;
-            _template.Orientation = dialog.SelectedOrientation;
             RefreshPreview();
         }
     }
 
+    private void SavePrintSettingsToLabel_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ValidateLabelDimensions())
+        {
+            return;
+        }
+
+        ApplyPrintSetup();
+        PrintSessionTemplateContract.CommitPrintConfiguration(_template, _sourceTemplate);
+        MessageBox.Show(
+            this,
+            "Kích thước nhãn và cài đặt máy in hiện tại đã được lưu vào mẫu tem đang mở. Sử dụng lệnh Lưu trong trình thiết kế để ghi vào tệp trên đĩa.",
+            "Đã lưu cài đặt in vào mẫu tem",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
     private async void Print_Click(object sender, RoutedEventArgs e)
     {
-        if (!CanBeginPrint(_isPrintBusy, _isPreviewBusy, _previewRows.Length))
+        if (!CanRequestPrint)
         {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedPrinterName))
+        {
+            LabelPrinterSetup_Click(sender, e);
             return;
         }
 
@@ -292,11 +352,31 @@ public partial class PrintPreviewWindow : Window
                 return;
             }
 
+            // DB08/DB10: invalid configured CopiesField on any still-selected tracking
+            // row must block the whole batch. Do this before expanding copies — Resolve
+            // returning 0 would otherwise silently drop the bad row and print the rest.
+            if (!TryAuthorizeCopiesPrepare(out var copiesIssues))
+            {
+                if (_previewTrustLevel != PreviewTrustLevel.DesignOnly)
+                {
+                    _previewTrustLevel = PreviewTrustLevel.EffectiveBlocked;
+                }
+                SetPreflightResult(ToCopiesPreflightResult(copiesIssues));
+                OnPropertyChanged();
+                MessageBox.Show(
+                    this,
+                    CopiesFieldContract.ToUserMessage(copiesIssues),
+                    "Lệnh in bị chặn",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             ApplyPrintSetup();
             var selected = GetSelectedRowsWithSource();
             if (selected.Length == 0)
             {
-                MessageBox.Show(this, "No rows selected for printing. Use checkboxes to select rows.", "Print", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "Chưa chọn dòng nào để in. Sử dụng các hộp kiểm để chọn dòng.", "In", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -314,18 +394,35 @@ public partial class PrintPreviewWindow : Window
             {
                 MessageBox.Show(
                     this,
-                    $"Print preparation stopped because the selected printer contract could not be validated.\n\n{ex.Message}",
-                    "Printer contract unavailable",
+                    $"Quá trình chuẩn bị in đã dừng vì hợp đồng máy in đã chọn không thể kiểm chứng.\n\n{ex.Message}",
+                    "Hợp đồng máy in không khả dụng",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 return;
             }
 
+            // A freshly read ticket or a quantity edit that has not been prepared
+            // again is not the snapshot Ready named. Drop that mark before any
+            // dialog can return and leave the old status on screen.
+            var outputUnchanged = PreviewInitializationTrust.OutputSnapshotUnchanged(
+                _previewPlan?.DocumentHash,
+                _previewPlan?.OutputContractHash,
+                _previewPlan?.OutputContractTicketVerified == true,
+                effectivePlan.DocumentHash,
+                effectivePlan.OutputContractHash,
+                effectivePlan.OutputContractTicketVerified);
+            var quantityUnchanged = PreviewInitializationTrust.QuantitySnapshotMatches(
+                _previewInstances,
+                _trackingRows.Select(row => (row.SourceRowNumber, row.IsSelected ? row.Copies : 0)));
+            _previewTrustLevel = PreviewInitializationTrust.RetainForCurrentSnapshot(
+                _previewTrustLevel,
+                outputUnchanged && quantityUnchanged && _previewPlan is not null);
             // Đợt 4 item 11 — "chống trùng tem": warn before re-sending a row that was
             // already printed earlier in this same preview session.
             // Keep the exact effective queue/driver plan for any preview
             // refresh or rerender that follows this preparation step.
             _previewPlan = effectivePlan;
+            OnPropertyChanged();
             _previewPlanPrinterName = _selectedPrinterName ?? string.Empty;
             _previewPlanIssue = null;
 
@@ -337,8 +434,8 @@ public partial class PrintPreviewWindow : Window
             {
                 var choice = MessageBox.Show(
                     this,
-                    $"{alreadyPrintedRows.Length} selected row(s) were already printed earlier in this session (Row {string.Join(", ", alreadyPrintedRows)}).\n\nPrinting again may create duplicate labels. Continue?",
-                    "Rows already printed this session",
+                    $"{alreadyPrintedRows.Length} dòng đã chọn đã được in trước đó trong phiên này (Dòng {string.Join(", ", alreadyPrintedRows)}).\n\nIn lại có thể tạo nhãn trùng lặp. Tiếp tục?",
+                    "Các dòng đã in trong phiên này",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
                 if (choice != MessageBoxResult.Yes)
@@ -348,7 +445,7 @@ public partial class PrintPreviewWindow : Window
             }
 
             var rows = selected.Select(entry => entry.Row).ToArray();
-            var preflight = await ValidateRowsForUiAsync(rows, "Checking selected labels", effectivePlan);
+            var preflight = await ValidateRowsForUiAsync(rows, selected.Select(entry => entry.SourceRowNumber).ToArray(), "Đang kiểm tra các nhãn đã chọn", effectivePlan);
             var skippedSourceRows = Array.Empty<int>();
             if (!preflight.IsSuccess)
             {
@@ -365,24 +462,30 @@ public partial class PrintPreviewWindow : Window
 
                 if (badSourceRows.Length == 0 || badSourceRows.Length >= totalSelectedRows)
                 {
-                    // Template-level issue (object outside label, etc.) or every row is
-                    // bad — nothing safe to print, block the whole job as before.
-                    _preflightResult = preflight;
+                    SetPreflightResult(preflight, selected.Select(entry => entry.SourceRowNumber).ToArray());
+                    if (_previewTrustLevel != PreviewTrustLevel.DesignOnly)
+                    {
+                        _previewTrustLevel = PreviewTrustLevel.EffectiveBlocked;
+                    }
                     OnPropertyChanged();
-                    MessageBox.Show(this, preflight.ToUserMessage(), "Print blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, preflight.ToUserMessage(), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 var remainingCount = totalSelectedRows - badSourceRows.Length;
                 var choice = MessageBox.Show(
                     this,
-                    $"{badSourceRows.Length} row(s) have preflight issues and will be skipped:\nRow {string.Join(", ", badSourceRows)}\n\n{preflight.ToUserMessage(5)}\n\nPrint the remaining {remainingCount} row(s) instead?",
-                    "Some rows blocked",
+                    $"{badSourceRows.Length} dòng gặp lỗi tiền kiểm và sẽ bị bỏ qua:\nDòng {string.Join(", ", badSourceRows)}\n\n{preflight.ToUserMessage(5)}\n\nTiếp tục in {remainingCount} dòng còn lại?",
+                    "Một số dòng bị chặn",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Warning);
                 if (choice != MessageBoxResult.Yes)
                 {
-                    _preflightResult = preflight;
+                    SetPreflightResult(preflight, selected.Select(entry => entry.SourceRowNumber).ToArray());
+                    if (_previewTrustLevel != PreviewTrustLevel.DesignOnly)
+                    {
+                        _previewTrustLevel = PreviewTrustLevel.EffectiveBlocked;
+                    }
                     OnPropertyChanged();
                     return;
                 }
@@ -396,16 +499,20 @@ public partial class PrintPreviewWindow : Window
                 rows = selected.Select(entry => entry.Row).ToArray();
                 if (rows.Length == 0)
                 {
-                    MessageBox.Show(this, "No rows left to print after skipping the blocked ones.", "Print", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(this, "Không còn dòng nào để in sau khi bỏ qua các dòng lỗi.", "In", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                preflight = await ValidateRowsForUiAsync(rows, "Re-checking remaining labels", effectivePlan);
+                preflight = await ValidateRowsForUiAsync(rows, selected.Select(entry => entry.SourceRowNumber).ToArray(), "Đang kiểm tra lại các nhãn còn lại", effectivePlan);
                 if (!preflight.IsSuccess)
                 {
-                    _preflightResult = preflight;
+                    SetPreflightResult(preflight, selected.Select(entry => entry.SourceRowNumber).ToArray());
+                    if (_previewTrustLevel != PreviewTrustLevel.DesignOnly)
+                    {
+                        _previewTrustLevel = PreviewTrustLevel.EffectiveBlocked;
+                    }
                     OnPropertyChanged();
-                    MessageBox.Show(this, preflight.ToUserMessage(), "Print blocked", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, preflight.ToUserMessage(), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
@@ -420,6 +527,9 @@ public partial class PrintPreviewWindow : Window
             }
 
             printJobId = _approvedReprintJobId ?? Guid.NewGuid().ToString("N");
+            var (previewLabelCount, previewSourceRowCount) = PrintJobEvidencePolicy.ResolveManifestCounts(
+                rows.Length,
+                selected.Select(entry => entry.SourceRowNumber).Distinct().Count());
             manifest = PrintJobManifest.Create(
                 _template.Name,
                 _templateFilePath,
@@ -429,15 +539,16 @@ public partial class PrintPreviewWindow : Window
                 _template.HeightMm,
                 effectivePlan.DpiX > 0 ? effectivePlan.DpiX : _template.PrinterProfile.Dpi,
                 effectivePlan.DpiY > 0 ? effectivePlan.DpiY : _template.PrinterProfile.Dpi,
-                rows.Length,
-                selected.Select(entry => entry.SourceRowNumber).Distinct().Count(),
+                previewLabelCount,
+                previewSourceRowCount,
                 rows,
                 effectivePlan.DocumentHash,
                 effectivePlan.TextResourceFingerprint,
                 effectivePlan.SceneHash,
                 effectivePlan.OutputContractHash,
                 imageRasterFingerprint: effectivePlan.ImageRasterFingerprint,
-                thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty);
+                thermalRasterGoldenFingerprint: effectivePlan.ThermalRasterGolden?.Fingerprint ?? string.Empty,
+                sequence: selected.Select(entry => entry.Copy).ToArray());
             if (_approvedReprintJobId is not null)
             {
                 var recoverySnapshot = await _printJobStateStore.ReadRecoverySnapshotAsync();
@@ -456,8 +567,8 @@ public partial class PrintPreviewWindow : Window
                 {
                     MessageBox.Show(
                         this,
-                        "Reprint blocked: the selected template, printer, DPI or data no longer matches the approved manifest.",
-                        "Manifest mismatch",
+                        "Lệnh in lại bị chặn: mẫu tem, máy in, DPI hoặc dữ liệu đã chọn không còn khớp với bản kê khai (manifest) đã phê duyệt.",
+                        "Sai lệch kê khai",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                     return;
@@ -562,7 +673,7 @@ public partial class PrintPreviewWindow : Window
             LogPrintOperation(rows.Length, printResult, spoolStatus, printJobId);
             if (!printResult.IsAccepted)
             {
-                MessageBox.Show(this, printResult.UserFacingStatus, "Print not completed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, printResult.UserFacingStatus, "Lệnh in chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -581,21 +692,18 @@ public partial class PrintPreviewWindow : Window
             var statusText = printResult.UserFacingStatus;
             if (spoolStatus is not null)
             {
-                statusText += $"\nQueue status: {spoolStatus.UserFacingStatus}";
+                statusText += $"\nTrạng thái hàng đợi: {spoolStatus.UserFacingStatus}";
             }
 
-            await WritePrintHistoryAsync(rows, statusText);
-
-            // Đợt 4 item 10 — batch report so the user knows exactly what happened,
-            // not just "a print job was sent".
             var printedRowCount = selected.Select(entry => entry.SourceRowNumber).Distinct().Count();
-            var summary = $"Submitted {rows.Length} label(s) from {printedRowCount} row(s) to {printResult.PrinterName}.\n\n{statusText}";
+            var summary = $"Đã gửi {rows.Length} nhãn từ {printedRowCount} dòng đến máy in {printResult.PrinterName}. {statusText}";
             if (skippedSourceRows.Length > 0)
             {
-                summary += $"\nSkipped {skippedSourceRows.Length} row(s) with preflight issues: Row {string.Join(", ", skippedSourceRows)}.";
+                summary += $" Đã bỏ qua {skippedSourceRows.Length} dòng gặp lỗi tiền kiểm: Dòng {string.Join(", ", skippedSourceRows)}.";
             }
-            summary += $"\n\nHistory: {_printLogService.LogFilePath}";
-            MessageBox.Show(this, summary, "Print submitted", MessageBoxButton.OK, MessageBoxImage.Information);
+            summary += $" Nhật ký: {_printLogService.LogFilePath}";
+            _previewProgressText = summary;
+            _ = WritePrintHistoryAsync(rows, statusText);
             OnPropertyChanged();
         }
         catch (OperationCanceledException)
@@ -619,7 +727,7 @@ public partial class PrintPreviewWindow : Window
                 }
             }
 
-            _previewProgressText = "Print preflight canceled.";
+            _previewProgressText = "Đã hủy tiền kiểm in.";
             OnPropertyChanged();
         }
         catch (Exception ex)
@@ -643,7 +751,7 @@ public partial class PrintPreviewWindow : Window
             }
 
             LogPrintOperation(0, new PrintJobResult(PrintJobOutcome.Failed, _selectedPrinterName, $"{_template.Name} preview print", 0, ex.Message, ManifestFingerprint: manifest?.Fingerprint ?? string.Empty, Manifest: manifest), jobId: printJobId);
-            MessageBox.Show(this, ex.Message, "Print failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, ex.Message, "In thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -706,17 +814,9 @@ public partial class PrintPreviewWindow : Window
 
     private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
     {
-        try
-        {
-            await _printJobStateStore.AppendAsync(transition).ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            // The state log is an audit/recovery aid, not a reason to block a
-            // validated print. Keep the operator path alive while exposing the
-            // failure in diagnostics for support.
-            System.Diagnostics.Debug.WriteLine($"Print job state log failed: {ex.Message}");
-        }
+        // Pre-dispatch Preparing/PreflightPassed/Dispatching must persist or block
+        // send (CORE P08). Post-dispatch appends stay best-effort.
+        await PrintJobEvidenceAppend.AppendAsync(_printJobStateStore, transition).ConfigureAwait(true);
     }
 
     private static PrintJobLifecycleState MapPrintResultToLifecycleState(PrintJobResult result)
@@ -767,10 +867,14 @@ public partial class PrintPreviewWindow : Window
             return false;
         }
 
+        _previewTrustLevel = PreviewInitializationTrust.RetainForCurrentSnapshot(
+            _previewTrustLevel,
+            snapshotStillCurrent: false);
+        OnPropertyChanged();
         MessageBox.Show(
             this,
-            "The linked Excel file has changed since this preview was opened. Print preparation is blocked because the displayed rows may be outdated.\n\nClose this window, click Update Excel, then open Print Preview again.",
-            "Excel data changed",
+            "Tệp Excel được liên kết đã thay đổi kể từ khi mở xem trước. Chuẩn bị in bị chặn vì các dòng hiển thị có thể đã lỗi thời.\n\nĐóng cửa sổ này, nhấn Cập nhật Excel, rồi mở lại Xem trước khi in.",
+            "Dữ liệu Excel đã thay đổi",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
         return true;
@@ -822,39 +926,6 @@ public partial class PrintPreviewWindow : Window
         }
     }
 
-    private void ApplyPrintSetup_Click(object sender, RoutedEventArgs e)
-    {
-        ApplyPrintSetup();
-        RefreshPreview();
-    }
-
-    private async void PrintCalibration_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            ApplyPrintSetup();
-            var result = await _printService.PrintCalibrationWithResultAsync(_template);
-            if (!result.IsAccepted)
-            {
-                MessageBox.Show(this, result.UserFacingStatus, "Calibration not completed", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            OnPropertyChanged();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Calibration print failed", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private void ResetCalibration_Click(object sender, RoutedEventArgs e)
-    {
-        _template.PrinterProfile.OffsetXMm = 0;
-        _template.PrinterProfile.OffsetYMm = 0;
-        _template.PrinterProfile.ScaleX = 1;
-        _template.PrinterProfile.ScaleY = 1;
-        RefreshPreview();
-    }
-
     private void PreflightIssue_Click(object sender, RoutedEventArgs e)
     {
         if (_isPreviewBusy)
@@ -862,7 +933,7 @@ public partial class PrintPreviewWindow : Window
             return;
         }
 
-        if (sender is not Button { Tag: int rowNumber })
+        if (sender is not Button { Tag: int rowNumber } || rowNumber <= 0)
         {
             return;
         }
@@ -1041,6 +1112,7 @@ public partial class PrintPreviewWindow : Window
             }
             TrackingList.ItemsSource = _trackingRows;
             FilterMatchCountText.Visibility = Visibility.Collapsed;
+            DemoteReadyIfPreparedQuantityDisagrees();
             return;
         }
 
@@ -1059,8 +1131,24 @@ public partial class PrintPreviewWindow : Window
         TrackingList.ItemsSource = visible;
         FilterMatchCountText.Visibility = Visibility.Visible;
         FilterMatchCountText.Text = visible.Count == 0
-            ? $"No rows match \"{filterText}\""
-            : $"{visible.Count} of {_trackingRows.Count} row(s) match — selected for printing";
+            ? $"Không có dòng nào khớp \"{filterText}\""
+            : $"Khớp {visible.Count} / {_trackingRows.Count} dòng — đã chọn để in";
+        DemoteReadyIfPreparedQuantityDisagrees();
+    }
+
+    private void DemoteReadyIfPreparedQuantityDisagrees()
+    {
+        var quantityUnchanged = PreviewInitializationTrust.QuantitySnapshotMatches(
+            _previewInstances,
+            _trackingRows.Select(row => (row.SourceRowNumber, row.IsSelected ? row.Copies : 0)));
+        var next = PreviewInitializationTrust.RetainForCurrentSnapshot(_previewTrustLevel, quantityUnchanged);
+        if (next == _previewTrustLevel)
+        {
+            return;
+        }
+
+        _previewTrustLevel = next;
+        OnPropertyChanged();
     }
 
     private static bool RowMatchesFilter(IReadOnlyDictionary<string, string>? row, string? column, string filterText)
@@ -1079,102 +1167,6 @@ public partial class PrintPreviewWindow : Window
     }
 
     // ==================== Refresh logic ====================
-
-    private void RefreshPreviewLegacy()
-    {
-        if (_isRefreshing)
-        {
-            return;
-        }
-        _isRefreshing = true;
-        try
-        {
-            ApplyPrintSetup();
-            Pages.Clear();
-
-            // Build tracking rows
-            _trackingRows.Clear();
-            var allRows = GetRows().ToArray();
-            _allRowsCache = allRows;
-            var excelColumns = CollectExcelColumns(allRows);
-            var pageNumber = 1;
-            var sourceRowNumber = 0;
-
-            foreach (var row in allRows)
-            {
-                sourceRowNumber++;
-                var isSelected = true;
-                var copies = GetCopiesFromRow(row);
-                var vm = new TrackingRowViewModel
-                {
-                    SourceRowNumber = sourceRowNumber,
-                    PageNumber = pageNumber,
-                    IsSelected = isSelected,
-                    Copies = copies,
-                    Col1 = GetPreviewCol(row, excelColumns, 0),
-                    Col2 = GetPreviewCol(row, excelColumns, 1),
-                    Col3 = GetPreviewCol(row, excelColumns, 2),
-                    Col4 = GetPreviewCol(row, excelColumns, 3)
-                };
-                _trackingRows.Add(vm);
-                pageNumber += copies;
-            }
-
-            // Bind to ItemsControl
-            TrackingList.ItemsSource = _trackingRows;
-
-            // Reset the row filter (it references columns/rows that were just rebuilt).
-            RowFilterColumnCombo.ItemsSource = new[] { AllColumnsFilterOption }.Concat(excelColumns).ToList();
-            RowFilterColumnCombo.SelectedIndex = 0;
-            RowFilterBox.Text = string.Empty;
-            FilterMatchCountText.Visibility = Visibility.Collapsed;
-
-            // Build preview rows
-            _previewRows = BuildExpandedRowsFromTracking();
-
-            _preflightResult = _printService.ValidateRows(_template, _previewRows);
-            BuildPreviewPageMetadata();
-            _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
-            _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
-            EnsureCurrentPreviewImage();
-            OnPropertyChanged();
-        }
-        finally
-        {
-            _isRefreshing = false;
-        }
-    }
-
-    /// <summary>
-    /// Lightweight refresh: rebuilds preview pages from current tracking state.
-    /// Does NOT touch _trackingRows or TrackingList.ItemsSource — safe to call from click handlers.
-    /// </summary>
-    private void RefreshPreviewPagesOnlyLegacy()
-    {
-        if (_isRefreshing)
-        {
-            return;
-        }
-        _isRefreshing = true;
-        try
-        {
-            ApplyPrintSetup();
-            Pages.Clear();
-
-            _previewRows = BuildExpandedRowsFromTracking();
-
-            _preflightResult = _printService.ValidateRows(_template, _previewRows);
-            BuildPreviewPageMetadata();
-            _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
-            _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
-            EnsureCurrentPreviewImage();
-            OnPropertyChanged();
-        }
-        finally
-        {
-            _isRefreshing = false;
-        }
-    }
 
     /// <summary>
     /// Materializes only page metadata.  Visuals and 300-DPI bitmaps are created
@@ -1201,7 +1193,7 @@ public partial class PrintPreviewWindow : Window
             return;
         }
 
-        var operation = BeginPreviewOperation("Rendering label preview");
+        var operation = BeginPreviewOperation("Rendering label preview", invalidateContent: false);
         _ = RenderCurrentPreviewImageAsync(operation);
     }
 
@@ -1309,33 +1301,46 @@ public partial class PrintPreviewWindow : Window
         _previewImageLru.AddLast(pageIndex);
     }
 
-    private IReadOnlyDictionary<string, string>?[] BuildExpandedRowsFromTracking()
-    {
-        return BuildExpandedRowsFromTracking(_trackingRows, GetRows().ToArray());
-    }
 
-    private static IReadOnlyDictionary<string, string>?[] BuildExpandedRowsFromTracking(
+    private static PreparedPreviewRows BuildPreparedRowsFromTracking(
         IReadOnlyList<TrackingRowViewModel> trackingRows,
         IReadOnlyList<IReadOnlyDictionary<string, string>?> allRows)
     {
-        var result = new List<IReadOnlyDictionary<string, string>?>();
+        var quantities = new List<PrintRecordQuantity>(trackingRows.Count);
         foreach (var vm in trackingRows)
         {
-            if (!vm.IsSelected || vm.Copies <= 0)
-            {
-                continue;
-            }
-
-            var row = vm.SourceRowNumber > 0 && vm.SourceRowNumber <= allRows.Count
-                ? allRows[vm.SourceRowNumber - 1]
-                : null;
-            for (var copy = 0; copy < vm.Copies; copy++)
-            {
-                result.Add(row);
-            }
+            quantities.Add(new PrintRecordQuantity(
+                string.IsNullOrWhiteSpace(vm.RecordId)
+                    ? CreateSessionRecordId(vm.SourceRowNumber)
+                    : vm.RecordId,
+                vm.SourceRowNumber,
+                vm.IsSelected ? vm.Copies : 0));
         }
 
-        return result.ToArray();
+        var instances = PrintSequenceBuilder.Build(new PrintIntent(new QuantityPlan(quantities)));
+
+        var rows = instances.Select(instance =>
+            instance.SourceRowNumber > 0 && instance.SourceRowNumber <= allRows.Count
+                ? allRows[instance.SourceRowNumber - 1]
+                : null).ToArray();
+        return new PreparedPreviewRows(rows, instances);
+    }
+
+    /// <summary>
+    /// Writes the flattened <see cref="LabelInstance.SequenceOrdinal"/> back onto the
+    /// data-bound tracking rows (fires PropertyChanged on the visible grid). This is a
+    /// deliberate observable side effect and MUST only be invoked for the winning/current
+    /// preview operation on the UI thread — never from a superseded refresh or a Get* accessor.
+    /// </summary>
+    private static void ApplyTrackingPageNumbers(
+        IReadOnlyList<TrackingRowViewModel> trackingRows,
+        IReadOnlyList<LabelInstance> instances)
+    {
+        foreach (var vm in trackingRows)
+        {
+            vm.PageNumber = instances.FirstOrDefault(instance =>
+                instance.SourceRowNumber == vm.SourceRowNumber)?.SequenceOrdinal ?? 0;
+        }
     }
 
     // ==================== Data helpers ====================
@@ -1378,21 +1383,20 @@ public partial class PrintPreviewWindow : Window
     /// the tracking row that produced them — used for the partial-print offer and the
     /// per-row "printed" marking (print-preview-reliability-plan Đợt 4).
     /// </summary>
-    private (IReadOnlyDictionary<string, string>? Row, int SourceRowNumber)[] GetSelectedRowsWithSource()
+    private (IReadOnlyDictionary<string, string>? Row, int SourceRowNumber, PrintDispatchCopy Copy)[] GetSelectedRowsWithSource()
     {
-        var allRows = GetRows().ToArray();
-        var result = new List<(IReadOnlyDictionary<string, string>? Row, int SourceRowNumber)>();
-        foreach (var vm in _trackingRows)
-        {
-            if (!vm.IsSelected || vm.Copies <= 0) continue;
-            var row = allRows.ElementAtOrDefault(vm.SourceRowNumber - 1);
-            for (var i = 0; i < vm.Copies; i++)
-            {
-                result.Add((row, vm.SourceRowNumber));
-            }
-        }
-        return result.ToArray();
+        var prepared = BuildPreparedRowsFromTracking(_trackingRows, GetRows().ToArray());
+        return prepared.Instances.Select((instance, index) =>
+            (prepared.Rows[index],
+             instance.SourceRowNumber,
+             new PrintDispatchCopy(instance.SourceRowNumber, instance.CopyOrdinal, instance.SequenceOrdinal))).ToArray();
     }
+
+    private static string CreateSessionRecordId(int sourceRowNumber) => $"source-row-{sourceRowNumber}";
+
+    private sealed record PreparedPreviewRows(
+        IReadOnlyDictionary<string, string>?[] Rows,
+        IReadOnlyList<LabelInstance> Instances);
 
     private static List<string> CollectExcelColumns(IReadOnlyDictionary<string, string>?[] allRows)
     {
@@ -1422,7 +1426,46 @@ public partial class PrintPreviewWindow : Window
 
     private int GetCopiesFromRow(IReadOnlyDictionary<string, string>? row)
     {
-        return DatabaseConfig.ResolveCopiesForRow(_template.DatabaseConfig.CopiesField, row);
+        // Quantity for the grid only. Invalid configured cells resolve to 0;
+        // ValidateCopiesFieldForSelectedTracking blocks prepare/print with the diagnostic.
+        return DatabaseConfig.TryResolveCopiesForRow(
+            _template.DatabaseConfig.CopiesField,
+            row,
+            out var copies,
+            out _)
+            ? copies
+            : 0;
+    }
+
+    /// <summary>
+    /// Prepare/print gate for configured CopiesField (CORE DB08/DB10). Must run
+    /// against still-selected tracking rows before copy expansion.
+    /// </summary>
+    private bool TryAuthorizeCopiesPrepare(out IReadOnlyList<CopiesFieldIssue> blockingIssues)
+    {
+        var allRows = _allRowsCache.Length > 0 ? _allRowsCache : GetRows().ToArray();
+        return CopiesFieldContract.TryAuthorizePrepare(
+            _template.DatabaseConfig.CopiesField,
+            _trackingRows
+                .Where(row => row.IsSelected)
+                .Select(row => (
+                    row.SourceRowNumber,
+                    row.SourceRowNumber > 0 && row.SourceRowNumber <= allRows.Length
+                        ? allRows[row.SourceRowNumber - 1]
+                        : null)),
+            out blockingIssues);
+    }
+
+    private static PrintPreflightResult ToCopiesPreflightResult(IReadOnlyList<CopiesFieldIssue> issues)
+    {
+        return new PrintPreflightResult(issues
+            .Select(issue => new PrintPreflightIssue(
+                issue.SourceRowNumber,
+                issue.FieldName,
+                "Copies",
+                issue.Message,
+                IsBlocking: true))
+            .ToArray());
     }
 
     private void ApplyPrintSetup()
@@ -1431,6 +1474,26 @@ public partial class PrintPreviewWindow : Window
         _template.PrinterProfile.LabelHeightMm = _template.HeightMm;
         _template.Orientation = LabelGeometry.ResolveOrientation(_template.WidthMm, _template.HeightMm);
     }
+
+    private bool ValidateLabelDimensions()
+    {
+        var physicalWidth = _template.PrinterProfile.PhysicalWidthMm > 0 ? _template.PrinterProfile.PhysicalWidthMm : _template.WidthMm;
+        var physicalHeight = _template.PrinterProfile.PhysicalHeightMm > 0 ? _template.PrinterProfile.PhysicalHeightMm : _template.HeightMm;
+        var stock = LabelStockContract.Evaluate(
+            _template.WidthMm,
+            _template.HeightMm,
+            physicalWidth,
+            physicalHeight,
+            _template.PrinterProfile.PaperName);
+        if (!stock.IsAllowed)
+        {
+            MessageBox.Show(this, stock.Diagnostic, "Thiết lập nhãn", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
 
     private void OnPropertyChanged()
     {
@@ -1453,7 +1516,7 @@ public partial class PrintPreviewWindow : Window
     {
         if (row is null || row.Count == 0)
         {
-            return "No Excel row selected";
+            return "Chưa chọn dòng Excel nào";
         }
 
         var partNo = GetRowValue(row, "PartNo", "Part No", "PN", "MaHang", "Ma Hang", "Mã hàng");
@@ -1566,14 +1629,13 @@ public partial class PrintPreviewWindow : Window
         {
             await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(row, rows.Length, index + 1, outcomeStatus)));
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(
-                this,
-                $"Print job was sent, but print history could not be saved.\n\n{ex.Message}",
-                "Print history not saved",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            await Dispatcher.InvokeAsync(() =>
+            {
+                _previewProgressText = $"Print sent, but history could not be saved. {ex.Message}";
+                OnPropertyChanged();
+            });
         }
     }
 }

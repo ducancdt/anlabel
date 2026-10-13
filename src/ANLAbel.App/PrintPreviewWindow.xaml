@@ -328,26 +328,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Expander Header="Thiết lập tem" IsExpanded="False" Margin="0,12,0,0">
-                        <StackPanel Margin="0,8,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Rộng tem (mm)"/>
-                                    <TextBox Text="{Binding LabelTemplate.WidthMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Cao tem (mm)"/>
-                                    <TextBox Text="{Binding LabelTemplate.HeightMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
-                                </StackPanel>
-                            </Grid>
-                            <Button Content="Áp dụng kích thước tem" AutomationProperties.AutomationId="PrintPreview.ApplySetup" HorizontalAlignment="Right" Padding="8,5" Margin="0,4,0,0" Click="ApplyPrintSetup_Click"/>
-                        </StackPanel>
-                    </Expander>
+                    <TextBlock Text="Cùng một cửa sổ Thiết lập tem với designer. Không có bộ chọn khổ giấy riêng trong Xem trước." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,0,0,12"/>
 
                     <Expander Header="Phương pháp in" IsExpanded="False" Margin="0,6,0,0">
                         <StackPanel Margin="0,8,0,0">
@@ -361,57 +342,7 @@
                         </StackPanel>
                     </Expander>
 
-                    <Expander Header="Hiệu chỉnh" IsExpanded="False" Margin="0,6,0,0">
-                        <StackPanel Margin="0,8,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="DPI"/>
-                                    <TextBox Text="{Binding LabelTemplate.PrinterProfile.Dpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Tỉ lệ X/Y"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition/>
-                                            <ColumnDefinition Width="4"/>
-                                            <ColumnDefinition/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBox Text="{Binding LabelTemplate.PrinterProfile.ScaleX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F4}"/>
-                                        <TextBox Grid.Column="2" Text="{Binding LabelTemplate.PrinterProfile.ScaleY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F4}"/>
-                                    </Grid>
-                                </StackPanel>
-                            </Grid>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Lệch X"/>
-                                    <TextBox Text="{Binding LabelTemplate.PrinterProfile.OffsetXMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Lệch Y"/>
-                                    <TextBox Text="{Binding LabelTemplate.PrinterProfile.OffsetYMm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F2}" Margin="0,4,0,10"/>
-                                </StackPanel>
-                            </Grid>
-                            <Grid Margin="0,4,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition Width="8"/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <Button Content="In hiệu chỉnh" Padding="8,5" Click="PrintCalibration_Click"/>
-                                <Button Grid.Column="2" Content="Đặt lại lệch/tỉ lệ" Padding="8,5" Click="ResetCalibration_Click"/>
-                            </Grid>
-                        </StackPanel>
-                    </Expander>
+                    <TextBlock Text="Căn chỉnh lệch/tỉ lệ khổ in nằm trong Thiết lập tem và máy in." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,6,0,0"/>
 
                     <TextBlock Text="Mỗi dòng Excel thành một tem. Chỉnh số bản bằng nút ▲▼." TextWrapping="Wrap" Foreground="#526070" Margin="0,14,0,0"/>
 

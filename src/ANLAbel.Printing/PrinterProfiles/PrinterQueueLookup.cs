@@ -1,4 +1,5 @@
 using System.Printing;
+using ANLAbel.Core.Printing;
 
 namespace ANLAbel.Printing.PrinterProfiles;
 
@@ -12,15 +13,22 @@ public sealed record PrinterQueueLookupResult(
     string RequestedName,
     bool IsAvailable,
     string CanonicalName,
-    string ErrorMessage)
+    string ErrorMessage,
+    PrinterQueueHealthObservation? Health = null)
 {
-    public static PrinterQueueLookupResult Available(string requestedName, string canonicalName)
+    public bool CanSubmit => IsAvailable && (Health?.CanSubmit ?? true);
+
+    public static PrinterQueueLookupResult Available(
+        string requestedName,
+        string canonicalName,
+        PrinterQueueHealthObservation? health = null)
     {
         return new PrinterQueueLookupResult(
             requestedName,
             true,
             canonicalName,
-            string.Empty);
+            health is { CanSubmit: false } ? health.Diagnostic : string.Empty,
+            health);
     }
 
     public static PrinterQueueLookupResult Missing(string requestedName, string errorMessage)
@@ -68,7 +76,8 @@ public sealed class WindowsPrinterQueueLookup : IPrinterQueueLookup
                     $"Windows resolved the requested queue to '{canonicalName}', which does not match the saved queue.");
             }
 
-            return PrinterQueueLookupResult.Available(printerName, canonicalName);
+            var health = PrinterQueueHealthReader.Read(queue);
+            return PrinterQueueLookupResult.Available(printerName, canonicalName, health);
         }
         catch (Exception ex)
         {

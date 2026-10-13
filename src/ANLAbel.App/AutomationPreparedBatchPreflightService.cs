@@ -46,7 +46,7 @@ public sealed class AutomationPreparedBatchPreflightService
             return Block("Prepared batch no longer matches the exact trigger configuration or ordered records.");
 
         var queue = _queueLookup.Resolve(configuration.QueueName);
-        if (!queue.IsAvailable || !string.Equals(queue.CanonicalName, configuration.QueueName, StringComparison.OrdinalIgnoreCase))
+        if (!queue.CanSubmit || !string.Equals(queue.CanonicalName, configuration.QueueName, StringComparison.OrdinalIgnoreCase))
             return Block(string.IsNullOrWhiteSpace(queue.ErrorMessage) ? "The configured named queue is unavailable." : queue.ErrorMessage);
 
         try

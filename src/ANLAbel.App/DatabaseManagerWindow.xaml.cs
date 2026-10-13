@@ -239,13 +239,13 @@ public partial class DatabaseManagerWindow : Window
 
         var isUsedByCurrent = string.Equals(_viewModel.Template.DatabaseConfig.DataSourceId, source.Id, StringComparison.OrdinalIgnoreCase);
         var usageNote = isUsedByCurrent
-            ? "\n\nThe template currently open in the designer uses this source — it will fall back to its own file path after removal."
-            : "\n\nAny template referencing this source will fall back to its own file path after removal.";
+            ? "\n\nMẫu tem đang mở trong bảng thiết kế đang dùng nguồn này — mẫu sẽ quay lại đường dẫn tệp riêng sau khi xóa."
+            : "\n\nMọi mẫu tem tham chiếu tới nguồn này sẽ quay lại đường dẫn tệp riêng sau khi xóa.";
 
         var confirmed = MessageBox.Show(
             this,
-            $"Remove the shared data source \"{source.DisplayName}\"?{usageNote}",
-            "Remove Data Source",
+            $"Bạn có chắc chắn muốn xóa nguồn dữ liệu dùng chung \"{source.DisplayName}\"?{usageNote}",
+            "Xóa nguồn dữ liệu",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning) == MessageBoxResult.Yes;
         if (!confirmed)
@@ -272,7 +272,7 @@ public partial class DatabaseManagerWindow : Window
 
         if (candidates.Length == 0)
         {
-            MessageBox.Show(this, "No orphaned data sources found (missing file, unused for 30+ days).", "Clean Up", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, "Không tìm thấy nguồn dữ liệu mồ côi (tệp không tồn tại, không dùng trong 30+ ngày).", "Dọn dẹp nguồn dữ liệu", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

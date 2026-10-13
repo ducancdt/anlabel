@@ -1,3 +1,6 @@
+using ANLAbel.App.ViewModels;
+using ANLAbel.Data.Preferences;
+
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -8,17 +11,14 @@ namespace ANLAbel.App;
 
 public partial class HelpWindow : Window
 {
-    private Dictionary<string, UIElement> _enSections = new();
-    private Dictionary<string, UIElement> _viSections = new();
-    private bool _isVietnamese;
+    private readonly Dictionary<string, UIElement> _sections;
     private string _currentKey = "overview";
-    private bool _initialized;
+    private readonly bool _initialized;
 
     public HelpWindow()
     {
         InitializeComponent();
-        _enSections = BuildSections(false);
-        _viSections = BuildSections(true);
+        _sections = BuildSections(true);
         _initialized = true;
         ShowSection("overview");
     }
@@ -33,56 +33,10 @@ public partial class HelpWindow : Window
         }
     }
 
-    private void LangEn_Checked(object sender, RoutedEventArgs e)
-    {
-        if (!_initialized) return;
-        _isVietnamese = false;
-        GuideTitle.Text = "📖 User Guide";
-        UpdateNavLabels();
-        ShowSection(_currentKey);
-    }
-
-    private void LangVi_Checked(object sender, RoutedEventArgs e)
-    {
-        if (!_initialized) return;
-        _isVietnamese = true;
-        GuideTitle.Text = "📖 Hướng dẫn sử dụng";
-        UpdateNavLabels();
-        ShowSection(_currentKey);
-    }
-
-    private void UpdateNavLabels()
-    {
-        var items = NavListBox.Items.OfType<ListBoxItem>().ToArray();
-        var vi = _isVietnamese;
-        for (var i = 0; i < items.Length; i++)
-        {
-            items[i].Content = (items[i].Tag?.ToString()) switch
-            {
-                "overview" => vi ? "🏠 Tổng quan" : "🏠 Overview",
-                "quickstart" => vi ? "⚡ Hướng dẫn nhanh" : "⚡ Quick Start",
-                "ribbon" => vi ? "🔧 Thanh Ribbon" : "🔧 Ribbon Toolbar",
-                "canvas" => vi ? "🎨 Bảng thiết kế" : "🎨 Design Canvas",
-                "objects" => vi ? "📦 Đối tượng" : "📦 Objects",
-                "properties" => vi ? "🎛️ Bảng thuộc tính" : "🎛️ Properties Panel",
-                "barcode" => vi ? "📊 Mã vạch & QR" : "📊 Barcode & QR",
-                "binding" => vi ? "🔗 Liên kết dữ liệu" : "🔗 Data Binding",
-                "excel" => vi ? "📑 Dữ liệu Excel" : "📑 Excel Data",
-                "printer" => vi ? "🖨️ In ấn" : "🖨️ Printing",
-                "calibration" => vi ? "🎯 Hiệu chỉnh" : "🎯 Calibration",
-                "shortcuts" => vi ? "⌨️ Phím tắt" : "⌨️ Keyboard Shortcuts",
-                "faq" => vi ? "❓ Hỏi đáp" : "❓ FAQ",
-                "about" => vi ? "ℹ️ Giới thiệu" : "ℹ️ About",
-                _ => items[i].Content?.ToString() ?? ""
-            };
-        }
-    }
-
     private void ShowSection(string key)
     {
         ContentStack.Children.Clear();
-        var sections = _isVietnamese ? _viSections : _enSections;
-        if (sections.TryGetValue(key, out var section))
+        if (_sections.TryGetValue(key, out var section))
         {
             ContentStack.Children.Add(section);
         }
@@ -871,7 +825,7 @@ public partial class HelpWindow : Window
         ab.Children.Add(P("ANLAbel - " + (vi ? "Thiết kế Nhãn" : "Label Designer")));
         ab.Children.Add(P((vi ? "Tác giả: " : "Created by ") + "Duc An"));
         ab.Children.Add(P("Email: ducancdt@gmail.com"));
-        ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.276"));
+        ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.306"));
         var updateBtn = new Button
         {
             Content = vi ? "🔄 Kiểm tra bản cập nhật mới (GitHub)" : "🔄 Check for Updates (GitHub)",

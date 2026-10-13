@@ -57,7 +57,7 @@ public partial class PrintCenterWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Print Center", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ex.Message, "Trung tâm in ấn", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {
@@ -224,8 +224,8 @@ public partial class PrintCenterWindow : Window
 
         var choice = MessageBox.Show(
             this,
-            $"Void {candidate.JobId} in the durable history? No printer command is sent and the event chain is retained.",
-            "Void print job",
+            $"Hủy lệnh {candidate.JobId} trong lịch sử bền vững? Không có lệnh in nào được gửi và chuỗi sự kiện vẫn được giữ lại.",
+            "Hủy lệnh in",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
         if (choice != MessageBoxResult.Yes)
@@ -346,8 +346,8 @@ public partial class PrintCenterWindow : Window
 
         var dialog = new SaveFileDialog
         {
-            Title = "Export redacted support evidence",
-            Filter = "Support evidence (*.json)|*.json",
+            Title = "Xuất dữ liệu chứng cứ hỗ trợ",
+            Filter = "Dữ liệu chứng cứ (*.json)|*.json",
             FileName = $"anlabel-support-{SanitizeFileToken(candidate.JobId)}.json",
             AddExtension = true,
             DefaultExt = ".json",
@@ -499,6 +499,6 @@ public partial class PrintCenterWindow : Window
 
     private void ShowActionMessage(string message, MessageBoxImage image)
     {
-        MessageBox.Show(this, message, "Print Center", MessageBoxButton.OK, image);
+        MessageBox.Show(this, message, "Trung tâm in ấn", MessageBoxButton.OK, image);
     }
 }

@@ -24,7 +24,7 @@ public partial class PrintQueueConsoleWindow : Window
             {
                 await main.RefreshPrinterQueueStatusAsync(token);
                 var status = main.PrinterQueueStatus;
-                return new SavedQueueEvidence(status.RequestedName, status.IsAvailable, status.CanonicalName, status.ErrorMessage, DateTimeOffset.UtcNow);
+                return new SavedQueueEvidence(status.RequestedName, status.CanSubmit, status.CanonicalName, status.ErrorMessage, DateTimeOffset.UtcNow);
             });
         DataContext = _viewModel;
     }

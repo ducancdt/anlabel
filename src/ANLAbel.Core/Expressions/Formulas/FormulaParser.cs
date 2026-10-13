@@ -128,15 +128,30 @@ public sealed class FormulaParser
             }
 
             var escaped = Advance();
-            builder.Append(escaped switch
+            switch (escaped)
             {
-                '"' => '"',
-                '\\' => '\\',
-                'n' => '\n',
-                'r' => '\r',
-                't' => '\t',
-                _ => escaped
-            });
+                case '"':
+                    builder.Append('"');
+                    break;
+                case '\\':
+                    builder.Append('\\');
+                    break;
+                case 'n':
+                    builder.Append('\n');
+                    break;
+                case 'r':
+                    builder.Append('\r');
+                    break;
+                case 't':
+                    builder.Append('\t');
+                    break;
+                default:
+                    // Unknown escape: preserve the backslash so paths/label text like
+                    // "C:\data" survive intact instead of silently dropping the '\'.
+                    builder.Append('\\');
+                    builder.Append(escaped);
+                    break;
+            }
         }
 
         _errors.Add("Unterminated string literal.");

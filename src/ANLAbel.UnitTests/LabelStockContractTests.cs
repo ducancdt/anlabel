@@ -57,9 +57,14 @@ public sealed class LabelStockContractTests
         Assert.False(incomplete.IsAllowed);
         Assert.Contains("incomplete", incomplete.Diagnostic, StringComparison.OrdinalIgnoreCase);
 
-        var mismatch = LabelStockContract.Evaluate(50, 30, 100, 150);
+        var mismatch = LabelStockContract.Evaluate(100, 50, 77.47, 100.08);
         Assert.False(mismatch.IsAllowed);
-        Assert.Contains("does not match", mismatch.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("does not contain", mismatch.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("driver-automatic", mismatch.Diagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("contain the label", mismatch.Diagnostic, StringComparison.OrdinalIgnoreCase);
+
+        var fitsOnLargerSheet = LabelStockContract.Evaluate(50, 30, 100, 50);
+        Assert.True(fitsOnLargerSheet.IsAllowed);
 
         var invalid = LabelStockContract.Evaluate(0, 30, 0, 0);
         Assert.False(invalid.IsAllowed);

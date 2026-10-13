@@ -12,8 +12,28 @@ public static class FormulaBindingEvaluator
         }
 
         var trimmed = expression.TrimStart();
-        return trimmed.StartsWith("FIELD", StringComparison.OrdinalIgnoreCase)
-            || trimmed.StartsWith("CONCAT", StringComparison.OrdinalIgnoreCase);
+        return StartsWithFunctionCall(trimmed, "FIELD")
+            || StartsWithFunctionCall(trimmed, "CONCAT");
+    }
+
+    // A value is only a formula when the function name is immediately followed by
+    // '(' (whitespace allowed). This prevents plain static text such as
+    // "FIELD DAY 2026" or "CONCATENATED" from being routed into the formula
+    // engine (where it would fail to parse and render empty).
+    private static bool StartsWithFunctionCall(string text, string functionName)
+    {
+        if (!text.StartsWith(functionName, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var index = functionName.Length;
+        while (index < text.Length && char.IsWhiteSpace(text[index]))
+        {
+            index++;
+        }
+
+        return index < text.Length && text[index] == '(';
     }
 
     public static FormulaEvaluationResult Evaluate(string expression, IReadOnlyDictionary<string, string> row)

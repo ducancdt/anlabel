@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using ANLAbel.App.ViewModels;
+using ANLAbel.Core.Printing;
 using ANLAbel.Printing.PrinterProfiles;
 using ANLAbel.Printing.RenderPipeline;
 
@@ -33,23 +34,15 @@ public partial class PrintPreviewWindow
 
     private async Task<PrintPreflightResult> ValidateRowsForUiAsync(
         IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
-        string description)
-    {
-        return await ValidateRowsForUiAsync(rows, description, plan: null);
-    }
-
-    private async Task<PrintPreflightResult> ValidateRowsForUiAsync(
-        IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        IReadOnlyList<int> sourceRows,
         string description,
-        PrintRenderPlan? plan)
+        PrintRenderPlan plan)
     {
-        var operation = BeginPreviewOperation(description);
+        var operation = BeginPreviewOperation(description, invalidateContent: false);
         try
         {
             var progress = CreatePreviewProgress(operation, description);
-            return plan is null
-                ? await _printService.ValidateRowsAsync(_template, rows, operation.Token, progress)
-                : await _printService.ValidateRowsAsync(_template, rows, plan, operation.Token, progress);
+            return await ValidateSelectedContentAsync(rows, sourceRows, plan, operation.Token, progress);
         }
         finally
         {
@@ -59,7 +52,7 @@ public partial class PrintPreviewWindow
 
     private async Task RefreshPreviewAsync(bool rebuildTrackingRows)
     {
-        var description = rebuildTrackingRows ? "Preparing preview" : "Checking selected labels";
+        var description = rebuildTrackingRows ? "Đang chuẩn bị xem trước" : "Đang kiểm tra các nhãn đã chọn";
         var operation = BeginPreviewOperation(description);
         var keepStatus = false;
         try
@@ -68,6 +61,7 @@ public partial class PrintPreviewWindow
             operation.Token.ThrowIfCancellationRequested();
 
             IReadOnlyDictionary<string, string>?[] rows;
+            IReadOnlyList<LabelInstance> instances;
             IReadOnlyDictionary<string, string>?[]? refreshedAllRows = null;
             List<TrackingRowViewModel>? refreshedTrackingRows = null;
             List<string>? refreshedExcelColumns = null;
@@ -85,6 +79,7 @@ public partial class PrintPreviewWindow
                     var copies = GetCopiesFromRow(row);
                     nextTrackingRows.Add(new TrackingRowViewModel
                     {
+                        RecordId = CreateSessionRecordId(sourceRowNumber),
                         SourceRowNumber = sourceRowNumber,
                         PageNumber = pageNumber,
                         IsSelected = true,
@@ -100,22 +95,73 @@ public partial class PrintPreviewWindow
                 refreshedAllRows = allRows;
                 refreshedTrackingRows = nextTrackingRows;
                 refreshedExcelColumns = excelColumns;
-                rows = BuildExpandedRowsFromTracking(nextTrackingRows, allRows);
+                var prepared = BuildPreparedRowsFromTracking(nextTrackingRows, allRows);
+                rows = prepared.Rows;
+                instances = prepared.Instances;
             }
             else
             {
-                rows = BuildExpandedRowsFromTracking();
+                var prepared = BuildPreparedRowsFromTracking(_trackingRows, GetRows().ToArray());
+                rows = prepared.Rows;
+                instances = prepared.Instances;
             }
             operation.Token.ThrowIfCancellationRequested();
             var planResolution = await ResolvePreviewPlanAsync(operation.Token);
             operation.Token.ThrowIfCancellationRequested();
-            var preflight = await _printService.ValidateRowsAsync(
-                _template,
+            var preflight = await ValidateSelectedContentAsync(
                 rows,
+                instances.Select(instance => instance.SourceRowNumber).ToArray(),
                 planResolution.Plan,
                 operation.Token,
                 CreatePreviewProgress(operation, description));
-            preflight = MergePreviewPlanIssue(preflight, planResolution.Issue);
+
+            // Merge DB08 copies diagnostics from selected tracking rows (before
+            // expansion). Invalid copies must block Ready even when expansion
+            // dropped those rows by resolving copies to 0.
+            var trackingForCopies = refreshedTrackingRows ?? _trackingRows;
+            var rowsForCopies = refreshedAllRows ?? (_allRowsCache.Length > 0 ? _allRowsCache : GetRows().ToArray());
+            if (!CopiesFieldContract.TryAuthorizePrepare(
+                    _template.DatabaseConfig.CopiesField,
+                    trackingForCopies
+                        .Where(row => row.IsSelected)
+                        .Select(row => (
+                            row.SourceRowNumber,
+                            row.SourceRowNumber > 0 && row.SourceRowNumber <= rowsForCopies.Length
+                                ? rowsForCopies[row.SourceRowNumber - 1]
+                                : null)),
+                    out var copiesIssues)
+                && copiesIssues.Count > 0)
+            {
+                var merged = preflight.Issues
+                    .Concat(copiesIssues.Select(issue => new PrintPreflightIssue(
+                        issue.SourceRowNumber,
+                        issue.FieldName,
+                        "Copies",
+                        issue.Message,
+                        IsBlocking: true)))
+                    .ToArray();
+                preflight = new PrintPreflightResult(merged);
+            }
+
+            if (!planResolution.Plan.SceneCompilationVerified)
+            {
+                preflight = new PrintPreflightResult(preflight.Issues
+                    .Concat(new[]
+                    {
+                        new PrintPreflightIssue(
+                            0,
+                            "Scene",
+                            "Design",
+                            PreviewInitializationTrust.SceneBlockMessage(planResolution.Plan.SceneDiagnostics),
+                            IsBlocking: true)
+                    })
+                    .ToArray());
+            }
+
+            var trustLevel = PreviewInitializationTrust.Combine(
+                planResolution.TrustLevel,
+                planResolution.Plan.SceneCompilationVerified,
+                preflight.IsSuccess);
             operation.Token.ThrowIfCancellationRequested();
 
             // CreateEffectivePlanAsync / ValidateRowsAsync resume on the
@@ -142,11 +188,19 @@ public partial class PrintPreviewWindow
                     FilterMatchCountText.Visibility = Visibility.Collapsed;
                 }
 
+                // Only the winning operation mutates the live, data-bound tracking rows
+                // (this fires PropertyChanged on the visible grid). A superseded/canceled
+                // refresh returns above via the IsCurrentPreviewOperation guard and never
+                // rewrites the displayed page numbers.
+                ApplyTrackingPageNumbers(_trackingRows, instances);
+
                 _previewRows = rows;
+                _previewInstances = instances;
                 _previewPlan = planResolution.Plan;
                 _previewPlanPrinterName = _selectedPrinterName ?? string.Empty;
                 _previewPlanIssue = planResolution.Issue;
-                _preflightResult = preflight;
+                _previewTrustLevel = trustLevel;
+                SetPreflightResult(preflight);
                 BuildPreviewPageMetadata();
                 _currentPageIndex = Math.Min(_currentPageIndex, Math.Max(0, Pages.Count - 1));
                 _pageInput = Pages.Count == 0 ? "0" : (_currentPageIndex + 1).ToString();
@@ -168,7 +222,7 @@ public partial class PrintPreviewWindow
                 keepStatus = true;
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    _previewProgressText = "Preview update canceled.";
+                    _previewProgressText = "Đã hủy cập nhật xem trước.";
                     OnPropertyChanged();
                 });
             }
@@ -180,7 +234,7 @@ public partial class PrintPreviewWindow
                 keepStatus = true;
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    _previewProgressText = $"Preview update failed: {ex.Message}";
+                    _previewProgressText = $"Cập nhật xem trước thất bại: {ex.Message}";
                     OnPropertyChanged();
                 });
                 System.Diagnostics.Debug.WriteLine($"Preview refresh error: {ex}");
@@ -200,18 +254,24 @@ public partial class PrintPreviewWindow
             && string.Equals(_previewPlanPrinterName, _selectedPrinterName, StringComparison.OrdinalIgnoreCase)
             && string.Equals(_previewPlan.DocumentHash, designPlan.DocumentHash, StringComparison.Ordinal))
         {
-            return new PreviewPlanResolution(_previewPlan, _previewPlanIssue);
+            return new PreviewPlanResolution(
+                _previewPlan,
+                _previewPlan.OutputContractTicketVerified
+                    ? PreviewTrustLevel.EffectiveReady
+                    : PreviewTrustLevel.EffectiveUnverified,
+                _previewPlanIssue);
         }
 
         if (string.IsNullOrWhiteSpace(_selectedPrinterName))
         {
             return new PreviewPlanResolution(
                 designPlan,
+                PreviewTrustLevel.DesignOnly,
                 new PrintPreflightIssue(
                     0,
-                    "Printer contract",
+                    "Hợp đồng máy in",
                     "Output",
-                    "No printer queue is selected. The page below is design-only; choose a verified industrial queue before printing."));
+                    "Chưa chọn máy in. Bạn có thể xem nhãn và chọn dòng. Hãy chọn máy in trong Cài đặt máy in trước khi in."));
         }
 
         try
@@ -223,7 +283,12 @@ public partial class PrintPreviewWindow
                 _template,
                 _selectedPrinterName,
                 cancellationToken);
-            return new PreviewPlanResolution(effectivePlan, null);
+            return new PreviewPlanResolution(
+                effectivePlan,
+                effectivePlan.OutputContractTicketVerified
+                    ? PreviewTrustLevel.EffectiveReady
+                    : PreviewTrustLevel.EffectiveUnverified,
+                null);
         }
         catch (OperationCanceledException)
         {
@@ -233,28 +298,19 @@ public partial class PrintPreviewWindow
         {
             return new PreviewPlanResolution(
                 designPlan,
+                PreviewTrustLevel.EffectiveBlocked,
                 new PrintPreflightIssue(
                     0,
-                    "Printer contract",
+                    "Hợp đồng máy in",
                     "Output",
-                    $"The selected queue could not be validated. Preview is design-only until the driver contract succeeds: {ex.Message}"));
+                    $"Cài đặt máy in cần chú ý. Bản xem trước này sử dụng thiết kế nhãn, chưa xác thực đầu ra máy in. Hãy mở Cài đặt máy in để xem lại hàng đợi, khổ giấy và trình điều khiển. Chi tiết: {ex.Message}"));
         }
     }
 
-    private static PrintPreflightResult MergePreviewPlanIssue(
-        PrintPreflightResult result,
-        PrintPreflightIssue? planIssue)
-    {
-        if (planIssue is null)
-        {
-            return result;
-        }
-
-        return new PrintPreflightResult(new[] { planIssue }.Concat(result.Issues).ToArray());
-    }
 
     private sealed record PreviewPlanResolution(
         PrintRenderPlan Plan,
+        PreviewTrustLevel TrustLevel,
         PrintPreflightIssue? Issue);
 
     private IProgress<PrintPreflightProgress> CreatePreviewProgress(CancellationTokenSource operation, string description)
@@ -290,7 +346,7 @@ public partial class PrintPreviewWindow
         OnPropertyChanged();
     }
 
-    private CancellationTokenSource BeginPreviewOperation(string description)
+    private CancellationTokenSource BeginPreviewOperation(string description, bool invalidateContent = true)
     {
         _previewOperationCts?.Cancel();
         _previewOperationCts?.Dispose();
@@ -298,6 +354,10 @@ public partial class PrintPreviewWindow
         _previewOperationCts = operation;
         _isRefreshing = true;
         _isPreviewBusy = true;
+        if (invalidateContent)
+        {
+            _previewTrustLevel = PreviewTrustLevel.Stale;
+        }
         _previewProgressPercent = 0;
         _previewProgressText = description;
         OnPropertyChanged();
@@ -334,7 +394,7 @@ public partial class PrintPreviewWindow
         _previewOperationCts?.Cancel();
         if (_isPreviewBusy)
         {
-            _previewProgressText = "Canceling...";
+            _previewProgressText = "Đang hủy...";
             OnPropertyChanged();
         }
     }

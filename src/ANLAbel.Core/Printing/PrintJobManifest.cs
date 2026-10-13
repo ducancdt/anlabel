@@ -30,6 +30,7 @@ public sealed record PrintJobManifest(
     string Fingerprint)
 {
     public const string CurrentContractVersion = "print-manifest-v3";
+    public const string SequenceContractVersion = "print-manifest-v4";
     public const string PreviousContractVersion = "print-manifest-v2";
     public const string LegacyContractVersion = "print-manifest-v1";
     public string ImageRasterFingerprint { get; init; } = string.Empty;
@@ -50,6 +51,11 @@ public sealed record PrintJobManifest(
     public string AutomationConfigurationFingerprint { get; init; } = string.Empty;
     public string AutomationSourceFingerprint { get; init; } = string.Empty;
     public string AutomationPreparedBatchId { get; init; } = string.Empty;
+    /// <summary>
+    /// Hash of source-row, copy-ordinal and sequence-ordinal integers.
+    /// Empty on v3 manifests, which do not carry copy identity.
+    /// </summary>
+    public string SequenceFingerprint { get; init; } = string.Empty;
 
     /// <summary>
     /// Verifies that the stored fingerprint still matches every immutable
@@ -57,7 +63,9 @@ public sealed record PrintJobManifest(
     /// fingerprint string.
     /// </summary>
     public bool IsFingerprintValid => !string.IsNullOrWhiteSpace(Fingerprint)
-        && ((string.Equals(ContractVersion, CurrentContractVersion, StringComparison.Ordinal)
+        && ((string.Equals(ContractVersion, SequenceContractVersion, StringComparison.Ordinal)
+                && string.Equals(Fingerprint, ComputeSequenceManifestFingerprint(this), StringComparison.Ordinal))
+            || (string.Equals(ContractVersion, CurrentContractVersion, StringComparison.Ordinal)
                 && string.Equals(Fingerprint, ComputeManifestFingerprint(this), StringComparison.Ordinal))
             || (string.Equals(ContractVersion, PreviousContractVersion, StringComparison.Ordinal)
                 && HasNoAutomationProvenance(this)
@@ -110,11 +118,15 @@ public sealed record PrintJobManifest(
         string thermalRasterGoldenFingerprint = "",
         FileDropPreparedBatchIdentity? automationBatch = null,
         string printMethod = "ApplicationGraphic",
-        bool nativeCommandsUsed = false)
+        bool nativeCommandsUsed = false,
+        IReadOnlyList<PrintDispatchCopy>? sequence = null)
     {
         var rowList = rows?.ToArray() ?? Array.Empty<IReadOnlyDictionary<string, string>?>();
+        // A missing sequence keeps the v3 digest byte-for-byte. Passing a sequence
+        // opts into v4 so identical field values still differ by copy ordinal.
+        var sequenceFingerprint = sequence is null ? null : ComputeSequenceFingerprint(sequence, rowList.Length);
         var normalized = new PrintJobManifest(
-            CurrentContractVersion,
+            sequenceFingerprint is null ? CurrentContractVersion : SequenceContractVersion,
             NormalizeText(templateName),
             NormalizePath(templateFilePath),
             NormalizeText(printMode),
@@ -140,10 +152,16 @@ public sealed record PrintJobManifest(
             AutomationSourceFingerprint = NormalizeFingerprint(automationBatch?.SourceFingerprint),
             AutomationPreparedBatchId = NormalizeFingerprint(automationBatch?.PreparedBatchId),
             PrintMethod = NormalizeText(printMethod),
-            NativeCommandsUsed = nativeCommandsUsed
+            NativeCommandsUsed = nativeCommandsUsed,
+            SequenceFingerprint = sequenceFingerprint ?? string.Empty
         };
 
-        return normalized with { Fingerprint = ComputeManifestFingerprint(normalized) };
+        return normalized with
+        {
+            Fingerprint = sequenceFingerprint is null
+                ? ComputeManifestFingerprint(normalized)
+                : ComputeSequenceManifestFingerprint(normalized)
+        };
     }
 
     /// <summary>
@@ -178,15 +196,61 @@ public sealed record PrintJobManifest(
     }
 
     private static string ComputeManifestFingerprint(PrintJobManifest manifest)
-        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: true, includeAutomationProvenance: true);
+        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: true, includeAutomationProvenance: true, includeSequence: false);
+
+    private static string ComputeSequenceManifestFingerprint(PrintJobManifest manifest)
+        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: true, includeAutomationProvenance: true, includeSequence: true);
 
     private static string ComputePreviousManifestFingerprint(PrintJobManifest manifest)
-        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: true, includeAutomationProvenance: false);
+        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: true, includeAutomationProvenance: false, includeSequence: false);
 
     private static string ComputeLegacyManifestFingerprint(PrintJobManifest manifest)
-        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: false, includeAutomationProvenance: false);
+        => ComputeManifestFingerprint(manifest, includeThermalRasterGolden: false, includeAutomationProvenance: false, includeSequence: false);
 
-    private static string ComputeManifestFingerprint(PrintJobManifest manifest, bool includeThermalRasterGolden, bool includeAutomationProvenance)
+    private static string ComputeSequenceFingerprint(IReadOnlyList<PrintDispatchCopy> sequence, int rowCount)
+    {
+        if (sequence.Count != rowCount)
+        {
+            throw new ArgumentException(
+                "The dispatch sequence must name every prepared label exactly once.",
+                nameof(sequence));
+        }
+
+        var canonical = new StringBuilder();
+        AppendInteger(canonical, sequence.Count);
+        for (var index = 0; index < sequence.Count; index++)
+        {
+            var copy = sequence[index];
+            if (copy.SourceRowNumber < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sequence), "Source row numbers cannot be negative.");
+            }
+
+            if (copy.CopyOrdinal < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sequence), "Copy ordinals start at 1.");
+            }
+
+            if (copy.SequenceOrdinal != index + 1)
+            {
+                throw new ArgumentException(
+                    "Sequence ordinals must be 1-based and follow the prepared label order.",
+                    nameof(sequence));
+            }
+
+            AppendInteger(canonical, copy.SourceRowNumber);
+            AppendInteger(canonical, copy.CopyOrdinal);
+            AppendInteger(canonical, copy.SequenceOrdinal);
+        }
+
+        return HashCanonical(canonical);
+    }
+
+    private static string ComputeManifestFingerprint(
+        PrintJobManifest manifest,
+        bool includeThermalRasterGolden,
+        bool includeAutomationProvenance,
+        bool includeSequence)
     {
         var canonical = new StringBuilder();
         AppendString(canonical, manifest.ContractVersion);
@@ -217,6 +281,11 @@ public sealed record PrintJobManifest(
             AppendString(canonical, manifest.AutomationConfigurationFingerprint);
             AppendString(canonical, manifest.AutomationSourceFingerprint);
             AppendString(canonical, manifest.AutomationPreparedBatchId);
+        }
+
+        if (includeSequence)
+        {
+            AppendString(canonical, manifest.SequenceFingerprint);
         }
 
         return HashCanonical(canonical);

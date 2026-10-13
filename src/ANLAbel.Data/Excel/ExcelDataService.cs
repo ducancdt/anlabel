@@ -131,9 +131,19 @@ public sealed class ExcelDataService
         {
             EnsureCsvSheet(sheetName, filePath);
             return await Task.Run(
-                () => (IReadOnlyList<ExcelPreviewRow>)ReadCsvRows(filePath, maxRows, cancellationToken)
-                    .Select((cells, index) => new ExcelPreviewRow(index + 1, cells))
-                    .ToArray(),
+                () =>
+                {
+                    try
+                    {
+                        return (IReadOnlyList<ExcelPreviewRow>)ReadCsvRows(filePath, maxRows, cancellationToken)
+                            .Select((cells, index) => new ExcelPreviewRow(index + 1, cells))
+                            .ToArray();
+                    }
+                    catch (DecoderFallbackException ex)
+                    {
+                        throw CreateInvalidCsvEncodingException(filePath, sheetName, ex);
+                    }
+                },
                 CancellationToken.None).WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
         }
 
@@ -224,9 +234,19 @@ public sealed class ExcelDataService
         }
 
         var readTask = Task.Run(
-            () => IsCsvFile(filePath)
-                ? LoadCsv(filePath, sheetName, headerRowIndex, cancellationToken)
-                : LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken),
+            () =>
+            {
+                try
+                {
+                    return IsCsvFile(filePath)
+                        ? LoadCsv(filePath, sheetName, headerRowIndex, cancellationToken)
+                        : LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken);
+                }
+                catch (DecoderFallbackException ex)
+                {
+                    throw CreateInvalidCsvEncodingException(filePath, sheetName, ex);
+                }
+            },
             CancellationToken.None);
 
         return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
@@ -253,17 +273,11 @@ public sealed class ExcelDataService
         {
             cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
-            var cells = ReadRowCellsArray(reader);
+            var cells = ReadRowCells(reader, failClosedOnCellError: true, sheetName, rowNumber, filePath);
             if (rowNumber == headerRowIndex)
             {
                 headerCells = cells;
-                var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                for (var column = 0; column < headerCells.Length; column++)
-                {
-                    var rawHeader = headerCells[column];
-                    var header = string.IsNullOrWhiteSpace(rawHeader) ? $"Column{column + 1}" : rawHeader;
-                    table.Columns.Add(MakeUniqueHeader(header, headers), typeof(string));
-                }
+                AddAssignedColumns(table, headerCells.Select(CleanCellText).ToArray());
             }
             else if (rowNumber > headerRowIndex)
             {
@@ -314,11 +328,33 @@ public sealed class ExcelDataService
         EnsureCsvSheet(sheetName, filePath);
         var table = new DataTable(CsvSheetName);
 
-        string? headerRecord;
+        string? headerRecord = null;
+        var sampleRecords = new List<string>();
         using (var headerStream = OpenFileStream(filePath, cancellationToken))
-        using (var headerReader = new StreamReader(headerStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true))
+        using (var headerReader = OpenStrictCsvReader(headerStream))
         {
-            headerRecord = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
+            for (var recordNumber = 1; recordNumber <= headerRowIndex; recordNumber++)
+            {
+                headerRecord = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
+                if (headerRecord is null)
+                {
+                    if (recordNumber == 1) return table;
+                    throw new ExcelDataReadException(ExcelDataReadError.InvalidHeaderRow,
+                        $"Header row {headerRowIndex} is outside the CSV data range (last row: {recordNumber - 1}).",
+                        filePath, sheetName);
+                }
+            }
+
+            if (headerRecord is not null)
+            {
+                sampleRecords.Add(headerRecord);
+                for (var i = 0; i < 5; i++)
+                {
+                    var next = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
+                    if (next is null) break;
+                    sampleRecords.Add(next);
+                }
+            }
         }
 
         if (headerRecord is null)
@@ -326,11 +362,20 @@ public sealed class ExcelDataService
             return table;
         }
 
-        var delimiter = DetectCsvDelimiter(headerRecord);
-        var rowNumber = 0;
+        // In LoadCsv, sampleRecords[0] is the real header row (any preamble lines above
+        // headerRowIndex were already skipped), so the header is authoritative: a
+        // delimiter-free header means a single-column file and a delimiter that only
+        // appears inside data values must not be allowed to split it.
+        var delimiter = DetectCsvDelimiter(sampleRecords, headerIsAuthoritative: true);
+        var rowNumber = headerRowIndex - 1;
         var foundHeader = false;
         using var stream = OpenFileStream(filePath, cancellationToken);
-        using var reader = new StreamReader(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true);
+        using var reader = OpenStrictCsvReader(stream);
+        // Preamble records do not define the table schema or its delimiter.
+        for (var recordNumber = 1; recordNumber < headerRowIndex; recordNumber++)
+        {
+            ReadCsvHeaderRecord(reader, filePath, cancellationToken);
+        }
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -338,19 +383,20 @@ public sealed class ExcelDataService
             if (record is not null)
             {
                 rowNumber++;
-                var cells = record.Select(CleanCellText).ToArray();
+                var cells = record;
                 if (rowNumber == headerRowIndex)
                 {
                     foundHeader = true;
-                    var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    for (var column = 0; column < cells.Length; column++)
-                    {
-                        var header = string.IsNullOrWhiteSpace(cells[column]) ? $"Column{column + 1}" : cells[column];
-                        table.Columns.Add(MakeUniqueHeader(header, headers), typeof(string));
-                    }
+                    AddAssignedColumns(table, cells.Select(CleanCellText).ToArray());
                 }
                 else if (rowNumber > headerRowIndex)
                 {
+                    if (cells.Length > table.Columns.Count)
+                    {
+                        throw CreateInvalidCsvException(filePath,
+                            $"Record {rowNumber} has {cells.Length} fields; the header defines {table.Columns.Count}.");
+                    }
+
                     var dataRow = table.NewRow();
                     var hasValue = false;
                     for (var column = 0; column < table.Columns.Count; column++)
@@ -388,28 +434,37 @@ public sealed class ExcelDataService
     private static List<string[]> ReadCsvRows(string filePath, int? maxRows, CancellationToken cancellationToken)
     {
         var records = new List<string[]>();
-        string? headerRecord;
+        var sampleRecords = new List<string>();
         using (var headerStream = OpenFileStream(filePath, cancellationToken))
-        using (var headerReader = new StreamReader(headerStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true))
+        using (var headerReader = OpenStrictCsvReader(headerStream))
         {
-            headerRecord = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
+            for (var i = 0; i < 10; i++)
+            {
+                var sample = ReadCsvHeaderRecord(headerReader, filePath, cancellationToken);
+                if (sample is null) break;
+                sampleRecords.Add(sample);
+            }
         }
 
-        if (headerRecord is null)
+        if (sampleRecords.Count == 0)
         {
             return records;
         }
 
-        var delimiter = DetectCsvDelimiter(headerRecord);
+        // The preview path reads from the top of the file with no knowledge of which row
+        // the user will pick as the header, so sampleRecords[0] may be a preamble/title
+        // line. The header is therefore NOT authoritative and data-row structural detection
+        // is still consulted so a delimited real header under a preamble is discovered.
+        var delimiter = DetectCsvDelimiter(sampleRecords, headerIsAuthoritative: false);
         using var stream = OpenFileStream(filePath, cancellationToken);
-        using var reader = new StreamReader(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true), detectEncodingFromByteOrderMarks: true);
+        using var reader = OpenStrictCsvReader(stream);
         while (maxRows is null || records.Count < maxRows.Value)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var record = ReadCsvRecord(reader, delimiter, filePath, cancellationToken, out var reachedEnd);
             if (record is not null)
             {
-                records.Add(record.Select(CleanCellText).ToArray());
+                records.Add(record);
             }
 
             if (reachedEnd)
@@ -479,6 +534,7 @@ public sealed class ExcelDataService
         var cells = new List<string>();
         var cell = new StringBuilder();
         var quoted = false;
+        var closedQuote = false;
         var any = false;
         reachedEnd = false;
         while (true)
@@ -506,6 +562,11 @@ public sealed class ExcelDataService
             var current = (char)next;
             if (current == '"')
             {
+                if (closedQuote || (!quoted && cell.Length != 0))
+                {
+                    throw CreateInvalidCsvException(filePath, $"Unexpected quote in field {cells.Count + 1}.");
+                }
+
                 if (quoted && reader.Peek() == '"')
                 {
                     reader.Read();
@@ -513,6 +574,7 @@ public sealed class ExcelDataService
                 }
                 else
                 {
+                    closedQuote = quoted;
                     quoted = !quoted;
                 }
 
@@ -523,6 +585,7 @@ public sealed class ExcelDataService
             {
                 cells.Add(cell.ToString());
                 cell.Clear();
+                closedQuote = false;
                 continue;
             }
 
@@ -537,6 +600,12 @@ public sealed class ExcelDataService
                 return cells.ToArray();
             }
 
+            if (closedQuote)
+            {
+                throw CreateInvalidCsvException(filePath,
+                    $"Unexpected character after the closing quote in field {cells.Count + 1}.");
+            }
+
             cell.Append(current);
         }
     }
@@ -547,21 +616,139 @@ public sealed class ExcelDataService
             $"CSV file '{Path.GetFileName(filePath)}' is invalid: {detail}",
             filePath);
 
-    private static char DetectCsvDelimiter(string header)
+    private static readonly char[] CandidateDelimiters = { ',', ';', '\t' };
+
+    /// <param name="headerIsAuthoritative">
+    /// True when <c>records[0]</c> is guaranteed to be the real header row (LoadCsv, where any
+    /// preamble above the selected header row has already been skipped). In that case a
+    /// delimiter-free header is definitive proof of a single-column file, so data-row structural
+    /// detection is skipped entirely — a comma (or other candidate) appearing only inside data
+    /// values must never split a delimiter-free header. False when <c>records[0]</c> may be a
+    /// preamble/title line (the preview path, which does not yet know which row is the header);
+    /// there, data-row structural detection is still consulted so a delimited real header sitting
+    /// under a preamble is discovered.
+    /// </param>
+    private static char DetectCsvDelimiter(IReadOnlyList<string> records, bool headerIsAuthoritative)
     {
-        // Locale-neutral CSV commonly uses one of these three delimiters. Delimiter
-        // selection happens before decoding rows so comma/semicolon/tab files all enter
-        // the same quoted-field parser below.
+        var samples = records.Where(record => !string.IsNullOrEmpty(record)).ToList();
+        if (samples.Count == 0)
+        {
+            return ',';
+        }
+
+        // The header row defines the schema, so its delimiter structures the file.
+        // A delimited header wins outright; this preserves multi-column behavior.
+        var (headerComma, headerSemicolon, headerTab) = CountDelimiters(samples[0]);
+        if (headerComma > 0 || headerSemicolon > 0 || headerTab > 0)
+        {
+            var counts = new[]
+            {
+                (Delimiter: ',', Count: headerComma),
+                (Delimiter: ';', Count: headerSemicolon),
+                (Delimiter: '\t', Count: headerTab)
+            };
+            return counts.OrderByDescending(item => item.Count).First().Delimiter;
+        }
+
+        // A delimiter-free header is either a single-column file or (preview only) a
+        // preamble/title line preceding the real header. When the header is authoritative
+        // we do NOT consult data rows: a delimiter that appears only in data values (e.g.
+        // "Smith, John" under a "Name" header) is structurally indistinguishable from a
+        // genuine two-column file, so the only safe, header-authoritative choice is to treat
+        // the file as single-column. For the preview path the header may be a preamble, so a
+        // stable multi-column layout across several data records is still adopted.
+        if (!headerIsAuthoritative)
+        {
+            foreach (var candidate in CandidateDelimiters)
+            {
+                if (IsStructuralDelimiter(candidate, samples))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        // Single column: pick a delimiter absent from every record so each row is
+        // parsed as one field, preserving values that legitimately contain commas.
+        foreach (var candidate in CandidateDelimiters)
+        {
+            if (samples.All(record => CountDelimiter(candidate, record) == 0))
+            {
+                return candidate;
+            }
+        }
+
+        // Finding 2: no candidate is absent from every record, so every choice will split
+        // some value. The header is delimiter-free here, so none splits the header itself;
+        // choose the least-damaging candidate — the one with the fewest total occurrences
+        // across all samples — to preserve as much of the data verbatim as possible.
+        // Tie-break by CandidateDelimiters order (comma, then semicolon, then tab).
+        var leastDamaging = ',';
+        var fewest = int.MaxValue;
+        foreach (var candidate in CandidateDelimiters)
+        {
+            var total = samples.Sum(record => CountDelimiter(candidate, record));
+            if (total < fewest)
+            {
+                fewest = total;
+                leastDamaging = candidate;
+            }
+        }
+
+        return leastDamaging;
+    }
+
+    private static bool IsStructuralDelimiter(char delimiter, IReadOnlyList<string> records)
+    {
+        var fieldCount = -1;
+        var matches = 0;
+        foreach (var record in records)
+        {
+            var fields = CountDelimiter(delimiter, record) + 1;
+            if (fields <= 1)
+            {
+                continue;
+            }
+
+            if (fieldCount < 0)
+            {
+                fieldCount = fields;
+            }
+            else if (fields != fieldCount)
+            {
+                return false;
+            }
+
+            matches++;
+        }
+
+        return matches >= 2;
+    }
+
+    private static int CountDelimiter(char delimiter, string text)
+    {
+        var (comma, semicolon, tab) = CountDelimiters(text);
+        return delimiter switch
+        {
+            ',' => comma,
+            ';' => semicolon,
+            '\t' => tab,
+            _ => 0
+        };
+    }
+
+    private static (int Comma, int Semicolon, int Tab) CountDelimiters(string text)
+    {
         var comma = 0;
         var semicolon = 0;
         var tab = 0;
         var quoted = false;
-        for (var index = 0; index < header.Length; index++)
+        for (var index = 0; index < text.Length; index++)
         {
-            var character = header[index];
+            var character = text[index];
             if (character == '"')
             {
-                if (quoted && index + 1 < header.Length && header[index + 1] == '"')
+                if (quoted && index + 1 < text.Length && text[index + 1] == '"')
                 {
                     index++;
                 }
@@ -586,8 +773,7 @@ public sealed class ExcelDataService
             }
         }
 
-        var counts = new[] { (Delimiter: ',', Count: comma), (Delimiter: ';', Count: semicolon), (Delimiter: '\t', Count: tab) };
-        return counts.OrderByDescending(item => item.Count).First().Delimiter;
+        return (comma, semicolon, tab);
     }
 
     private static bool IsCsvFile(string filePath)
@@ -613,19 +799,48 @@ public sealed class ExcelDataService
         {
             cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
-            rows.Add(new ExcelPreviewRow(rowNumber, ReadRowCellsArray(reader)));
+            rows.Add(new ExcelPreviewRow(rowNumber, ReadRowCells(reader, failClosedOnCellError: false)));
         }
 
         return rows;
     }
 
-    private static string[] ReadRowCellsArray(IExcelDataReader reader)
+    /// <summary>
+    /// Reads one row of cells from the streaming reader according to the target API contract:
+    /// - For <see cref="LoadSheet"/>: <paramref name="failClosedOnCellError"/> is true, halting the entire
+    ///   import and throwing <see cref="ExcelDataReadException"/> with exact row/column coordinates whenever
+    ///   a cell error is encountered (DB04 fail-closed policy).
+    /// - For <see cref="ReadPreviewRows"/>: <paramref name="failClosedOnCellError"/> is false, preserving
+    ///   the standard Excel error token (e.g. #DIV/0!, #N/A) so the operator sees corrupted cells in the preview
+    ///   grid truthfully rather than having them masked as blank or failing before review (DB04 preview truthfulness).
+    /// </summary>
+    private static string[] ReadRowCells(
+        IExcelDataReader reader,
+        bool failClosedOnCellError,
+        string? sheetName = null,
+        int rowNumber = 0,
+        string? filePath = null)
     {
         var fieldCount = reader.FieldCount;
         var cells = new string[fieldCount];
         for (var column = 0; column < fieldCount; column++)
         {
-            cells[column] = CleanCellText(FormatCellValue(reader, column));
+            if (reader.GetCellError(column) is { } cellError)
+            {
+                if (failClosedOnCellError)
+                {
+                    throw new ExcelDataReadException(
+                        ExcelDataReadError.InvalidData,
+                        $"Excel sheet '{sheetName}', row {rowNumber}, column {column + 1} contains an Excel error ({FormatCellError(cellError)}). Correct the source cell before importing.",
+                        filePath ?? string.Empty,
+                        sheetName);
+                }
+
+                cells[column] = FormatCellError(cellError);
+                continue;
+            }
+
+            cells[column] = FormatCellValue(reader, column, failClosedOnCellError, sheetName, rowNumber, filePath);
         }
 
         return cells;
@@ -722,14 +937,17 @@ public sealed class ExcelDataService
     }
 
     /// <summary>
-    /// Converts a raw cell value to display text. Unlike ClosedXML's GetFormattedString(),
-    /// this does not replicate Excel's exact number-format rendering (currency symbols,
-    /// thousands separators, custom formats) — it is a best-effort approximation covering
-    /// the cases that matter for label data: plain numbers (trimmed, no forced decimals),
-    /// percentages (detected via the cell's format code), and dates. This is an accepted
-    /// trade-off for the memory-usage fix switching away from ClosedXML's full-DOM parser.
+    /// Preserves text verbatim and formats authored numeric display patterns with
+    /// ExcelNumberFormat, without loading a workbook DOM. Date and boolean values
+    /// retain the existing invariant serialization policy.
     /// </summary>
-    private static string FormatCellValue(IExcelDataReader reader, int column)
+    private static string FormatCellValue(
+        IExcelDataReader reader,
+        int column,
+        bool failClosedOnCellError = true,
+        string? sheetName = null,
+        int rowNumber = 0,
+        string? filePath = null)
     {
         var value = reader.GetValue(column);
         switch (value)
@@ -745,13 +963,36 @@ public sealed class ExcelDataService
                     ? date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
                     : date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
             case double or float or decimal or int or long or short or byte:
-                return FormatNumber(Convert.ToDouble(value, CultureInfo.InvariantCulture), reader, column);
+                return FormatNumber(Convert.ToDouble(value, CultureInfo.InvariantCulture), reader, column, failClosedOnCellError, sheetName, rowNumber, filePath);
             default:
                 return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         }
     }
 
-    private static string FormatNumber(double value, IExcelDataReader reader, int column)
+    private static string FormatCellError(CellError error)
+    {
+        return error switch
+        {
+            CellError.DIV0 => "#DIV/0!",
+            CellError.NA => "#N/A",
+            CellError.REF => "#REF!",
+            CellError.VALUE => "#VALUE!",
+            CellError.NAME => "#NAME?",
+            CellError.NUM => "#NUM!",
+            CellError.NULL => "#NULL!",
+            CellError.GETTING_DATA => "#GETTING_DATA",
+            _ => $"#{error}"
+        };
+    }
+
+    private static string FormatNumber(
+        double value,
+        IExcelDataReader reader,
+        int column,
+        bool failClosedOnCellError = true,
+        string? sheetName = null,
+        int rowNumber = 0,
+        string? filePath = null)
     {
         string? formatCode = null;
         try
@@ -763,32 +1004,218 @@ public sealed class ExcelDataService
             // Format lookup is best-effort — fall back to plain number formatting below.
         }
 
-        if (formatCode is not null && formatCode.Contains('%'))
+        if (!string.IsNullOrEmpty(formatCode)
+            && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase))
         {
-            return (value * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+            var numberFormat = new ExcelNumberFormat.NumberFormat(formatCode);
+            if (!numberFormat.IsValid)
+            {
+                if (failClosedOnCellError)
+                {
+                    // LoadSheet (DB04 fail-closed): halt the import with exact coordinates
+                    // rather than silently rendering a value under an unsupported format.
+                    throw new ExcelDataReadException(
+                        ExcelDataReadError.InvalidData,
+                        $"Excel sheet '{sheetName}', row {rowNumber}, column {column + 1} uses an unsupported number format ('{formatCode}'). Correct the source cell's format before importing.",
+                        filePath ?? string.Empty,
+                        sheetName);
+                }
+
+                // Preview (DB04 truthfulness): sheetName/filePath are null and rowNumber 0
+                // on this path, so a thrown message would be useless and would break preview.
+                // Fall back to a best-effort round-trip of the raw numeric value, matching how
+                // other non-fatal preview cells are surfaced, so the preview stays truthful.
+                return value.ToString("R", CultureInfo.InvariantCulture);
+            }
+
+            return numberFormat.Format(value, CultureInfo.InvariantCulture);
         }
 
-        return value.ToString("0.##########", CultureInfo.InvariantCulture);
+        // General has no authored decimal precision. Preserve the reader's value
+        // rather than rounding small numbers to zero or discarding fractional digits.
+        return value.ToString("R", CultureInfo.InvariantCulture);
     }
 
     private static string CleanCellText(string value)
     {
+        // Normalize schema names only. Data values may contain significant whitespace
+        // or line breaks used by bindings and barcode payloads.
         return (value ?? string.Empty)
             .Replace("\r", " ")
             .Replace("\n", " ")
             .Trim();
     }
 
-    private static string MakeUniqueHeader(string header, HashSet<string> headers)
+    private static void AddAssignedColumns(DataTable table, IReadOnlyList<string> rawHeaders)
     {
-        var candidate = header;
-        var index = 2;
-        while (!headers.Add(candidate))
+        foreach (var header in AssignColumnHeaders(rawHeaders))
         {
-            candidate = $"{header}_{index}";
-            index++;
+            table.Columns.Add(header, typeof(string));
+        }
+    }
+
+    /// <summary>
+    /// Every distinct raw header is reserved before any suffix is chosen.
+    /// The first occurrence keeps that name. A later duplicate or a blank
+    /// must not be renamed onto another column, even when that name is itself repeated.
+    /// </summary>
+    private static string[] AssignColumnHeaders(IReadOnlyList<string> rawHeaders)
+    {
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var reserved = new HashSet<string>(comparer);
+        foreach (var raw in rawHeaders)
+        {
+            if (!string.IsNullOrWhiteSpace(raw))
+            {
+                reserved.Add(raw);
+            }
         }
 
-        return candidate;
+        var used = new HashSet<string>(comparer);
+        var assigned = new string[rawHeaders.Count];
+        for (var column = 0; column < rawHeaders.Count; column++)
+        {
+            var raw = rawHeaders[column] ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(raw) && used.Add(raw))
+            {
+                assigned[column] = raw;
+                continue;
+            }
+
+            var stem = string.IsNullOrWhiteSpace(raw) ? $"Column{column + 1}" : raw;
+            assigned[column] = ClaimNextHeader(stem, used, reserved);
+        }
+
+        return assigned;
+    }
+
+    private static string ClaimNextHeader(string stem, HashSet<string> used, HashSet<string> reserved)
+    {
+        var suffix = 2;
+        var candidate = stem;
+        while (true)
+        {
+            if (!reserved.Contains(candidate) && used.Add(candidate))
+            {
+                return candidate;
+            }
+
+            candidate = $"{stem}_{suffix}";
+            suffix++;
+        }
+    }
+
+    /// <summary>
+    /// StreamReader BOM detection switches to a decoder that replaces invalid bytes
+    /// with U+FFFD. Detect the mark here and keep a decoder that throws instead.
+    /// </summary>
+    private static StreamReader OpenStrictCsvReader(Stream stream)
+    {
+        var (encoding, prefixed) = OpenCsvPayload(stream);
+        return new StreamReader(prefixed, encoding, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
+    }
+
+    private static (Encoding Encoding, Stream Stream) OpenCsvPayload(Stream stream)
+    {
+        var head = new byte[4];
+        var read = 0;
+        while (read < head.Length)
+        {
+            var count = stream.Read(head, read, head.Length - read);
+            if (count == 0)
+            {
+                break;
+            }
+
+            read += count;
+        }
+
+        Encoding encoding;
+        var bomLength = 0;
+        if (read >= 4 && head[0] == 0xFF && head[1] == 0xFE && head[2] == 0x00 && head[3] == 0x00)
+        {
+            encoding = new UTF32Encoding(bigEndian: false, byteOrderMark: false, throwOnInvalidCharacters: true);
+            bomLength = 4;
+        }
+        else if (read >= 4 && head[0] == 0x00 && head[1] == 0x00 && head[2] == 0xFE && head[3] == 0xFF)
+        {
+            encoding = new UTF32Encoding(bigEndian: true, byteOrderMark: false, throwOnInvalidCharacters: true);
+            bomLength = 4;
+        }
+        else if (read >= 2 && head[0] == 0xFF && head[1] == 0xFE)
+        {
+            encoding = new UnicodeEncoding(bigEndian: false, byteOrderMark: false, throwOnInvalidBytes: true);
+            bomLength = 2;
+        }
+        else if (read >= 2 && head[0] == 0xFE && head[1] == 0xFF)
+        {
+            encoding = new UnicodeEncoding(bigEndian: true, byteOrderMark: false, throwOnInvalidBytes: true);
+            bomLength = 2;
+        }
+        else if (read >= 3 && head[0] == 0xEF && head[1] == 0xBB && head[2] == 0xBF)
+        {
+            encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+            bomLength = 3;
+        }
+        else
+        {
+            encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+        }
+
+        var leftover = new byte[read - bomLength];
+        Array.Copy(head, bomLength, leftover, 0, leftover.Length);
+        return (encoding, new CsvPrefixedStream(leftover, stream));
+    }
+
+    private static ExcelDataReadException CreateInvalidCsvEncodingException(string filePath, string? sheetName, DecoderFallbackException ex)
+        => new(
+            ExcelDataReadError.InvalidData,
+            $"CSV file '{Path.GetFileName(filePath)}' contains byte sequences that are not valid for its encoding. The file was rejected so field values are not replaced with a substitute character.",
+            filePath,
+            sheetName,
+            ex);
+
+    private sealed class CsvPrefixedStream : Stream
+    {
+        private readonly byte[] _prefix;
+        private readonly Stream _inner;
+        private int _prefixPos;
+
+        public CsvPrefixedStream(byte[] prefix, Stream inner)
+        {
+            _prefix = prefix;
+            _inner = inner;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (_prefixPos < _prefix.Length)
+            {
+                var take = Math.Min(count, _prefix.Length - _prefixPos);
+                Array.Copy(_prefix, _prefixPos, buffer, offset, take);
+                _prefixPos += take;
+                return take;
+            }
+
+            return _inner.Read(buffer, offset, count);
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

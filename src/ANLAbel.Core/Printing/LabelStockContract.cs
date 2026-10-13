@@ -74,6 +74,33 @@ public static class LabelStockContract
             || SameSize(landscape.WidthMm, landscape.HeightMm, labelWidthMm, labelHeightMm);
     }
 
+    /// <summary>
+    /// True when physical media is the same die (including an explicit orientation
+    /// swap) or is a larger same-orientation sheet that can contain the label.
+    /// Width/height are never swapped silently to force a fit.
+    /// </summary>
+    public static bool ContainsAuthoredLabel(
+        double physicalWidthMm,
+        double physicalHeightMm,
+        double labelWidthMm,
+        double labelHeightMm)
+    {
+        if (MatchesAuthoredLabel(physicalWidthMm, physicalHeightMm, labelWidthMm, labelHeightMm))
+        {
+            return true;
+        }
+
+        if (!IsFinitePositive(physicalWidthMm, physicalHeightMm)
+            || !IsFinitePositive(labelWidthMm, labelHeightMm))
+        {
+            return false;
+        }
+
+        const double fitToleranceMm = 0.5;
+        return labelWidthMm <= physicalWidthMm + fitToleranceMm
+            && labelHeightMm <= physicalHeightMm + fitToleranceMm;
+    }
+
     public static PaperSizeSource SourceForOperatorStock() => PaperSizeSource.Manual;
 
     public static LabelStockDecision Evaluate(
@@ -118,10 +145,10 @@ public static class LabelStockContract
         }
 
         if (!physicalUnset
-            && !MatchesAuthoredLabel(physicalWidthMm, physicalHeightMm, labelWidthMm, labelHeightMm))
+            && !ContainsAuthoredLabel(physicalWidthMm, physicalHeightMm, labelWidthMm, labelHeightMm))
         {
             return LabelStockDecision.Blocked(
-                $"Physical stock {physicalWidthMm:0.##} × {physicalHeightMm:0.##} mm does not match the authored label {labelWidthMm:0.##} × {labelHeightMm:0.##} mm (including orientation swap). Fix Printer Setup before printing.");
+                $"Physical stock {physicalWidthMm:0.##} × {physicalHeightMm:0.##} mm does not contain the authored label {labelWidthMm:0.##} × {labelHeightMm:0.##} mm. Use driver-automatic page size for labels on a roll, or choose media that can contain the label.");
         }
 
         return LabelStockDecision.Allowed;

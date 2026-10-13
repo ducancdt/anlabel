@@ -26,14 +26,14 @@ public partial class DataSourceCleanupWindow : Window
         var selected = rows.Where(row => row.IsSelected).ToArray();
         if (selected.Length == 0)
         {
-            MessageBox.Show(this, "No sources are selected.", "Clean Up", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, "Chưa chọn nguồn dữ liệu nào.", "Dọn dẹp nguồn dữ liệu", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var confirmed = MessageBox.Show(
             this,
-            $"Remove {selected.Length} data source(s) from the registry? This cannot be undone.",
-            "Clean Up",
+            $"Xóa {selected.Length} nguồn dữ liệu khỏi sổ đăng ký? Thao tác này không thể hoàn tác.",
+            "Dọn dẹp nguồn dữ liệu",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning) == MessageBoxResult.Yes;
         if (!confirmed)

@@ -98,8 +98,8 @@ public partial class TemplateRevisionWindow : Window
 
         var confirmation = MessageBox.Show(
             this,
-            "Restore the validated revision as the current template? The current primary will be moved into the backup slot and archived, and the open document will be reloaded. Unsaved edits in the current document will be discarded.",
-            "Confirm template rollback",
+            "Khôi phục bản sửa đổi đã kiểm chứng này làm mẫu tem hiện tại? Bản chính hiện tại sẽ được lưu trữ sao lưu và tài liệu đang mở sẽ được tải lại. Các chỉnh sửa chưa lưu sẽ bị hủy.",
+            "Xác nhận khôi phục mẫu tem",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
         if (confirmation != MessageBoxResult.Yes)
@@ -113,13 +113,13 @@ public partial class TemplateRevisionWindow : Window
             var result = await _revisionService.RestoreRevisionAsync(_filePath, selected.Path);
             await _viewModel.OpenAsync(_filePath);
             await _viewModel.RefreshPrinterQueueStatusAsync();
-            StatusText.Text = $"Restored {result.TemplateName} from the validated revision. The previous primary is retained as backup and archive.";
+            StatusText.Text = $"Đã khôi phục {result.TemplateName} từ bản sửa đổi đã kiểm chứng. Bản chính trước đó được lưu trữ sao lưu.";
             await RefreshAsync();
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            StatusText.Text = $"Rollback failed: {exception.Message}";
-            MessageBox.Show(this, exception.Message, "Rollback failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusText.Text = $"Khôi phục thất bại: {exception.Message}";
+            MessageBox.Show(this, exception.Message, "Khôi phục thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {

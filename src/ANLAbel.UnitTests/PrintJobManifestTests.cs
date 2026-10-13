@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ANLAbel.Core.Automation;
 using ANLAbel.Core.Data;
+using ANLAbel.Core.Models;
 using ANLAbel.Core.Printing;
 using Xunit;
 
@@ -194,8 +195,91 @@ public sealed class PrintJobManifestTests
         Assert.True(legacy.IsFingerprintValid);
     }
 
-    private static PrintJobManifest Create(IEnumerable<IReadOnlyDictionary<string, string>?> rows)
+    [Fact]
+    public void TwoThenOneCopyOrdinalsChangeTheManifestAndAMissingSequenceStaysV3()
     {
+        var same = new Dictionary<string, string> { ["Part"] = "SAME-LABEL-VALUE" };
+        var rows = new IReadOnlyDictionary<string, string>?[] { same, same, same };
+        var twoThenOne = PrintSequenceBuilder.Build(new PrintIntent(new QuantityPlan(new[]
+        {
+            new PrintRecordQuantity("rec-1", 1, 2),
+            new PrintRecordQuantity("rec-2", 2, 1)
+        })));
+
+        Assert.Equal(new[] { 1, 1, 2 }, twoThenOne.Select(item => item.SourceRowNumber).ToArray());
+        Assert.Equal(new[] { 1, 2, 1 }, twoThenOne.Select(item => item.CopyOrdinal).ToArray());
+        Assert.Equal(new[] { 1, 2, 3 }, twoThenOne.Select(item => item.SequenceOrdinal).ToArray());
+
+        var sequenced = Create(rows, twoThenOne.Select(item =>
+            new PrintDispatchCopy(item.SourceRowNumber, item.CopyOrdinal, item.SequenceOrdinal)).ToArray());
+        var oneThenTwo = Create(rows, new[]
+        {
+            new PrintDispatchCopy(1, 1, 1),
+            new PrintDispatchCopy(2, 1, 2),
+            new PrintDispatchCopy(2, 2, 3)
+        });
+        var unsequenced = Create(rows);
+        var unsequencedAgain = Create(rows);
+
+        Assert.Equal(PrintJobManifest.SequenceContractVersion, sequenced.ContractVersion);
+        Assert.Equal("print-manifest-v3", unsequenced.ContractVersion);
+        Assert.NotEqual(sequenced.Fingerprint, oneThenTwo.Fingerprint);
+        Assert.NotEqual(sequenced.SequenceFingerprint, oneThenTwo.SequenceFingerprint);
+        Assert.Equal(unsequenced.RowsFingerprint, sequenced.RowsFingerprint);
+        Assert.Equal(unsequenced.Fingerprint, unsequencedAgain.Fingerprint);
+        Assert.NotEqual(unsequenced.Fingerprint, sequenced.Fingerprint);
+        Assert.True(sequenced.IsFingerprintValid);
+        Assert.True(unsequenced.IsFingerprintValid);
+        Assert.False((sequenced with { SequenceFingerprint = new string('A', 64) }).IsFingerprintValid);
+        var serialized = JsonSerializer.Serialize(sequenced);
+        Assert.DoesNotContain("SAME-LABEL-VALUE", serialized, StringComparison.Ordinal);
+        Assert.DoesNotContain("rec-1", serialized, StringComparison.Ordinal);
+
+        var database = new DatabaseConfig { CopiesField = "Qty" };
+        var source = new (int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)[]
+        {
+            (1, new Dictionary<string, string> { ["Part"] = "SAME-LABEL-VALUE", ["Qty"] = "2" }),
+            (2, new Dictionary<string, string> { ["Part"] = "SAME-LABEL-VALUE", ["Qty"] = "1" })
+        };
+        Assert.True(QuickPrintQuantity.TryExpand(database, 9, source, out var expanded, out var sequence, out var error));
+        Assert.Equal(string.Empty, error);
+        var fromQuickPrint = Create(expanded, sequence);
+        var swappedQuickPrint = Create(expanded, new[]
+        {
+            new PrintDispatchCopy(1, 1, 1),
+            new PrintDispatchCopy(2, 1, 2),
+            new PrintDispatchCopy(2, 2, 3)
+        });
+        Assert.Equal(sequenced.SequenceFingerprint, fromQuickPrint.SequenceFingerprint);
+        Assert.NotEqual(fromQuickPrint.Fingerprint, swappedQuickPrint.Fingerprint);
+        Assert.Throws<ArgumentException>(() => Create(rows, new[] { new PrintDispatchCopy(1, 1, 1) }));
+    }
+
+    [Fact]
+    public void DispatchCallSitesPassTheCopySequenceIntoTheManifest()
+    {
+        var preview = ReadRepositoryFile("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs");
+        var viewModel = ReadRepositoryFile("src", "ANLAbel.App", "ViewModels", "MainViewModel.cs");
+        var printClick = Slice(preview, "private async void Print_Click", "private void LogPrintOperation");
+        var currentRow = Slice(viewModel, "private async Task PrintCurrentRowAsync()", "private async Task PrintAllRowsAsync()");
+        var allRows = Slice(viewModel, "private async Task PrintAllRowsAsync()", "private static IReadOnlyList<string> GetIndustrialFontFamilies()");
+        var reprint = Slice(viewModel, "public async Task<TrackedPrintResult> DispatchApprovedPrintJobReprintAsync(", "private void ShowAllPanels()");
+        var dispatch = Slice(viewModel, "private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(", "PrintJobResult result;");
+
+        Assert.Contains("sequence: selected.Select(entry => entry.Copy).ToArray()", printClick, StringComparison.Ordinal);
+        Assert.Contains("out var sequence", currentRow, StringComparison.Ordinal);
+        Assert.Contains("sequence: sequence", currentRow, StringComparison.Ordinal);
+        Assert.Contains("out var sequence", allRows, StringComparison.Ordinal);
+        Assert.Contains("sequence: sequence", allRows, StringComparison.Ordinal);
+        Assert.Contains("sequence: sequence", reprint, StringComparison.Ordinal);
+        Assert.Contains("sequence: sequence", dispatch, StringComparison.Ordinal);
+    }
+
+    private static PrintJobManifest Create(
+        IEnumerable<IReadOnlyDictionary<string, string>?> rows,
+        IReadOnlyList<PrintDispatchCopy>? sequence = null)
+    {
+        var list = rows.ToArray();
         return PrintJobManifest.Create(
             "Warehouse label",
             "warehouse.alabel",
@@ -205,12 +289,33 @@ public sealed class PrintJobManifestTests
             50,
             203,
             203,
-            rows.Count(),
-            rows.Count(),
-            rows,
+            list.Length,
+            list.Length,
+            list,
             documentHash: "doc",
             textResourceFingerprint: "text",
             sceneHash: "scene",
-            outputContractHash: "ticket");
+            outputContractHash: "ticket",
+            sequence: sequence);
+    }
+
+    private static string ReadRepositoryFile(params string[] parts)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "ANLAbel.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        return File.ReadAllText(Path.Combine(parts.Prepend(dir!.FullName).ToArray()));
+    }
+
+    private static string Slice(string source, string start, string end)
+    {
+        var startAt = source.IndexOf(start, StringComparison.Ordinal);
+        var endAt = source.IndexOf(end, startAt + start.Length, StringComparison.Ordinal);
+        Assert.True(startAt >= 0 && endAt > startAt);
+        return source.Substring(startAt, endAt - startAt);
     }
 }

@@ -27,7 +27,7 @@ public partial class ExcelHeaderRowWindow : Window
     {
         if (PreviewGrid.SelectedItem is not PreviewRowItem item)
         {
-            MessageBox.Show(this, "Please select the row that contains column headers.", "Excel import", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, "Vui lòng chọn dòng chứa tiêu đề cột.", "Nhập dữ liệu Excel", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

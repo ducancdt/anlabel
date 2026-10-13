@@ -17,7 +17,13 @@ public sealed class FileDropCsvPreparationService
     public bool TryPrepare(FileDropEventIdentity identity, Stream source, out IReadOnlyList<DataRecord> records, out string result)
     {
         using var buffered = new MemoryStream();
-        source.CopyTo(buffered);
+        if (!TryBufferWithinLimit(source, buffered, out var limitError))
+        {
+            _ledger.TryTransition(identity, FileDropEventState.Blocked, limitError, out _, out var blockError);
+            records = [];
+            result = string.IsNullOrWhiteSpace(blockError) ? limitError : blockError;
+            return false;
+        }
         buffered.Position = 0;
         if (!_verification.VerifyClaimed(identity, buffered, out result)) { records = []; return false; }
         buffered.Position = 0;
@@ -37,6 +43,30 @@ public sealed class FileDropCsvPreparationService
         }
         records = parsed.Records;
         result = $"Prepared {records.Count} CSV record(s) in memory; document binding, manifest, queue and dispatch remain unavailable.";
+        return true;
+    }
+
+    /// <summary>
+    /// Buffers the untrusted source while enforcing the maximum input byte size as early as
+    /// possible, so an oversized stream never fully materializes in memory before rejection.
+    /// </summary>
+    private static bool TryBufferWithinLimit(Stream source, Stream destination, out string error)
+    {
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            total += read;
+            if (total > CsvAutomationSourceParser.MaxInputBytes)
+            {
+                error = $"CSV source exceeds the maximum permitted size of {CsvAutomationSourceParser.MaxInputBytes} byte(s).";
+                return false;
+            }
+            destination.Write(buffer, 0, read);
+        }
+        destination.Position = 0;
+        error = "";
         return true;
     }
 }

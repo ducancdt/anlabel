@@ -103,22 +103,29 @@ public static class BarcodeApplicationContract
         string? data)
     {
         var errors = new List<string>();
-        if (profile != BarcodeApplicationProfile.Gs1)
+        if (profile == BarcodeApplicationProfile.Gs1)
         {
+            if (symbology is not (BarcodeSymbology.Code128 or BarcodeSymbology.QRCode or BarcodeSymbology.DataMatrix))
+            {
+                errors.Add("GS1 profile supports Code 128, QR Code, and Data Matrix in this release.");
+                return new ReadOnlyCollection<string>(errors);
+            }
+
+            if (!TryParseGs1(data, out _, out var parseErrors))
+            {
+                errors.AddRange(parseErrors);
+            }
+
             return new ReadOnlyCollection<string>(errors);
         }
 
-        if (symbology is not (BarcodeSymbology.Code128 or BarcodeSymbology.QRCode or BarcodeSymbology.DataMatrix))
+        if (string.IsNullOrWhiteSpace(data))
         {
-            errors.Add("GS1 profile supports Code 128, QR Code, and Data Matrix in this release.");
+            errors.Add($"{symbology} data cannot be empty or whitespace.");
             return new ReadOnlyCollection<string>(errors);
         }
 
-        if (!TryParseGs1(data, out _, out var parseErrors))
-        {
-            errors.AddRange(parseErrors);
-        }
-
+        ValidateSymbologyPayload(symbology, data, errors);
         return new ReadOnlyCollection<string>(errors);
     }
 
@@ -224,7 +231,7 @@ public static class BarcodeApplicationContract
         {
             if (value.Length != 6
                 || !value.All(char.IsDigit)
-                || !DateTime.TryParseExact(value, "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+                || !IsValidGs1Date(value))
             {
                 errors.Add($"GS1 AI {ai} requires exactly 6 numeric date digits (YYMMDD).");
             }
@@ -445,7 +452,7 @@ public static class BarcodeApplicationContract
         {
             if (value.Length != 10
                 || !value.All(char.IsDigit)
-                || !DateTime.TryParseExact(value[..6], "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
+                || !IsValidGs1Date(value[..6])
                 || value[6..] is not { } time
                 || !int.TryParse(time[..2], CultureInfo.InvariantCulture, out var hour)
                 || !int.TryParse(time[2..], CultureInfo.InvariantCulture, out var minute)
@@ -521,6 +528,37 @@ public static class BarcodeApplicationContract
         errors.Add($"GS1 AI {ai} has a value that does not match the official registry pattern.");
     }
 
+    /// <summary>
+    /// Validates a GS1 YYMMDD date element. GS1 General Specifications permit a
+    /// day component of "00" to mean "no specific day" (year/month only), so a
+    /// plain <see cref="DateTime.TryParseExact(string,string,IFormatProvider,DateTimeStyles,out DateTime)"/>
+    /// with "yyMMdd" is too strict: it rejects DD=00. This validates the YY/MM
+    /// ranges, accepts DD=00, and for any other day defers to the calendar so
+    /// genuinely invalid dates (e.g. 250631, 250230) are still rejected.
+    /// </summary>
+    private static bool IsValidGs1Date(string value)
+    {
+        if (value.Length != 6 || !value.All(char.IsDigit))
+        {
+            return false;
+        }
+
+        var month = int.Parse(value.AsSpan(2, 2), CultureInfo.InvariantCulture);
+        var day = int.Parse(value.AsSpan(4, 2), CultureInfo.InvariantCulture);
+        if (month is < 1 or > 12)
+        {
+            return false;
+        }
+
+        if (day == 0)
+        {
+            // DD=00 is an explicit GS1 "month only" marker.
+            return true;
+        }
+
+        return DateTime.TryParseExact(value, "yyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+    }
+
     private static bool HasValidGs1CheckDigit(string value)
     {
         var sum = 0;
@@ -533,6 +571,131 @@ public static class BarcodeApplicationContract
 
         var expected = (10 - (sum % 10)) % 10;
         return expected.ToString(CultureInfo.InvariantCulture)[0] == value[^1];
+    }
+
+    private static void ValidateSymbologyPayload(BarcodeSymbology symbology, string data, List<string> errors)
+    {
+        switch (symbology)
+        {
+            case BarcodeSymbology.Code128:
+                if (!data.All(ch => ch >= 32 && ch <= 126))
+                {
+                    errors.Add("Code128 data contains unsupported characters; standard printable ASCII (32–126) is required.");
+                }
+                break;
+
+            case BarcodeSymbology.Code39:
+                if (!data.All(ch => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%".Contains(char.ToUpperInvariant(ch))))
+                {
+                    errors.Add("Code39 data contains unsupported characters; only alphanumeric, dash, dot, space, dollar, slash, plus, and percent are supported.");
+                }
+                break;
+
+            case BarcodeSymbology.Code93:
+                if (!data.All(ch => ch >= 32 && ch <= 126))
+                {
+                    errors.Add("Code93 data contains unsupported characters; standard printable ASCII (32–126) is required.");
+                }
+                break;
+
+            case BarcodeSymbology.Ean13:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("Ean13 data must contain numeric digits only.");
+                }
+                else if (data.Length is not (12 or 13))
+                {
+                    errors.Add($"Ean13 data length must be 12 digits (without check digit) or 13 digits (with check digit); actual length is {data.Length}.");
+                }
+                else if (data.Length == 13 && !HasValidGs1CheckDigit(data))
+                {
+                    errors.Add("Ean13 data has an invalid check digit.");
+                }
+                break;
+
+            case BarcodeSymbology.Ean8:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("Ean8 data must contain numeric digits only.");
+                }
+                else if (data.Length is not (7 or 8))
+                {
+                    errors.Add($"Ean8 data length must be 7 digits (without check digit) or 8 digits (with check digit); actual length is {data.Length}.");
+                }
+                else if (data.Length == 8 && !HasValidGs1CheckDigit(data))
+                {
+                    errors.Add("Ean8 data has an invalid check digit.");
+                }
+                break;
+
+            case BarcodeSymbology.UpcA:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("UpcA data must contain numeric digits only.");
+                }
+                else if (data.Length is not (11 or 12))
+                {
+                    errors.Add($"UpcA data length must be 11 digits (without check digit) or 12 digits (with check digit); actual length is {data.Length}.");
+                }
+                else if (data.Length == 12 && !HasValidGs1CheckDigit(data))
+                {
+                    errors.Add("UpcA data has an invalid check digit.");
+                }
+                break;
+
+            case BarcodeSymbology.UpcE:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("UpcE data must contain numeric digits only.");
+                }
+                else if (data.Length is not (6 or 7 or 8))
+                {
+                    errors.Add($"UpcE data length must be 6, 7, or 8 digits; actual length is {data.Length}.");
+                }
+                break;
+
+            case BarcodeSymbology.ITF:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("ITF data must contain numeric digits only.");
+                }
+                else if (data.Length % 2 != 0)
+                {
+                    errors.Add($"ITF data length must be an even number of digits; actual length is {data.Length}.");
+                }
+                break;
+
+            case BarcodeSymbology.Codabar:
+                if (!data.All(ch => "0123456789-$:/.+ABCDTN*E".Contains(char.ToUpperInvariant(ch))))
+                {
+                    errors.Add("Codabar data contains unsupported characters; only digits, -$ : / . +, and ABCD/TN*E delimiters are supported.");
+                }
+                break;
+
+            case BarcodeSymbology.MSI:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("MSI data must contain numeric digits only.");
+                }
+                break;
+
+            case BarcodeSymbology.Plessey:
+                if (!data.All(char.IsDigit))
+                {
+                    errors.Add("Plessey data must contain numeric digits only.");
+                }
+                break;
+
+            case BarcodeSymbology.QRCode:
+            case BarcodeSymbology.DataMatrix:
+            case BarcodeSymbology.Pdf417:
+            case BarcodeSymbology.Aztec:
+                break;
+
+            default:
+                errors.Add($"Unsupported symbology: {symbology}.");
+                break;
+        }
     }
 
     private static bool RequiresSeparatorWhenFollowed(string ai)
