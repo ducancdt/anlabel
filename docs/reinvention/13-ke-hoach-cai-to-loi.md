@@ -556,6 +556,6 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 **GĐ6 — Nghiệm thu thật**
 
-- [ ] Luồng chính trên bộ mẫu thật với XP-DT426B
-- [ ] Kịch bản lỗi máy in (hết giấy, offline, tạm dừng, restart spooler, mất điện khi ghi nhật ký, kết quả chưa rõ)
+- [ ] Luồng chính trên bộ mẫu thật với XP-DT426B — *mức phần mềm xong, 2026-10-13* (gate `real templates open, save, render and pass preflight`). Cả 5 mẫu trong `form tem nhãn/anlabel` mở và lưu không đổi byte, vẽ ra tem có nội dung. Với contract driver XP-DT426B (chỉ đọc, không gửi lệnh in), hai mẫu 75×100 qua kiểm tra và ticket được xác minh. Mẫu 110×150 bị driver báo khổ 75×100: đây là cuộn tem đang lắp, cần đổi khổ trên máy in, không phải lỗi app. **Cần chủ sản phẩm quyết định:** hai mẫu 100×70 (“tem cqs”, “tem trong data”) bị chặn in vì khung chữ 14 pt của dòng cuối dư 0,18 mm qua mép dưới tem, nằm trong khoảng trống dưới nét chữ. Có hai cách: dời hai dòng đó lên ≥0,2 mm trong mẫu, hoặc đổi luật kiểm tra theo nét chữ thật. Cách sau đụng hợp đồng Text được bảo vệ. Còn lại: in vật lý, cần cho phép.
+- [ ] Kịch bản lỗi máy in (hết giấy, offline, tạm dừng, restart spooler, mất điện khi ghi nhật ký, kết quả chưa rõ) — *mức phần mềm:* trạng thái hàng đợi ánh xạ thành điểm dừng (`PrinterQueueHealthContractTests`) và được giải thích bằng tiếng Việt (gate `print stops are explained in plain Vietnamese`). Dòng cuối nhật ký ghi dở được tự cất (`PrintJobLogRepairTests`). Kết quả chưa rõ thành Unknown (gate `failure after spool acceptance is unknown, not failed`). Chưa thử trên máy in thật vì phải tạm dừng hoặc rút máy in, cần người vận hành cho phép.
 - [ ] Ghi bằng chứng ba mức vào `docs/CORE_STANDARD_EVIDENCE_AUDIT.md`

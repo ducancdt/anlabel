@@ -32,8 +32,7 @@ internal static class DesignLatencyRegression
             Require(synthetic.CanvasBuildMs < 5000, $"Building the canvas took {synthetic.CanvasBuildMs:0} ms.");
             Require(synthetic.DragTickMs < 30, $"One drag tick took {synthetic.DragTickMs:0.0} ms.");
 
-            // The largest real template stays on the operator's machine only
-            // (customer data is not committed); measure it when present.
+            // The largest real template (form tem nhãn); measured when present.
             var real = Path.Combine(FindRepositoryRoot(), "form tem nhãn", "anlabel", "tem ngoai REDACTED-14.anlabel");
             if (File.Exists(real))
             {

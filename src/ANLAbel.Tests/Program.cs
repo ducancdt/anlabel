@@ -50,6 +50,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("explorer argument opens only existing documents", DocumentLifecycleRegression.ExplorerArgumentOpensOnlyExistingDocuments),
     ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),
     ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
+    ("real templates open, save, render and pass preflight", AcceptanceRegression.RealTemplatesOpenSaveRenderAndPassPreflight),
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
