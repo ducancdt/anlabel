@@ -70,6 +70,24 @@ chưa có quy tắc vẫn hiện nguyên văn, không bị giấu.
 | In nhanh | `MainViewModel.StatusText` | “In thất bại: ” + vấn đề + việc cần làm; với lỗi kiểm tra thì nêu đối tượng đầu tiên và “Mở Xem trước để xem các dòng và đối tượng bị lỗi” |
 | Lệnh bất đồng bộ thất bại | `App.ReportFailedOperation` | Cùng bộ giải thích; chi tiết ghi vào `logs\errors.log` |
 
+### 3b. Kiểm tra toàn ứng dụng (2026-10-13, v0.309) — chữ mới chưa có node Figma
+
+Lượt gọi Figma MCP của gói hiện tại đã hết, nên các thay đổi dưới đây được ghi ở
+đây thay cho node; cần vẽ thẻ tương ứng khi có lượt gọi. Không có bố cục mới:
+chỉ hộp thoại `OperatorDialog` sẵn có, dòng trạng thái và chữ trong control cũ.
+
+| Trạng thái / chỗ hiển thị | Nguồn runtime | Nội dung |
+| --- | --- | --- |
+| Tệp đã được lưu ở nơi khác | `SaveDocumentAsync` bắt `DocumentChangedOnDiskException` | Tiêu đề “Tệp đã được lưu ở nơi khác”; nút “Lưu thành tệp khác…” (mặc định), “Ghi đè”, “Hủy” |
+| Windows chưa trả lời danh sách máy in | `PrinterQueueLoader` sau 20 giây | Tiêu đề “Windows chưa trả lời”; nêu Print Spooler hoặc máy in mạng; nút “Đóng” |
+| Không mở được mẫu tem | `OpenDocumentPathAsync` + `TemplateFailureExplainer` | Vấn đề (tệp hỏng, bản mới hơn, bị khóa, có bản sao lưu đọc được…), việc cần làm, “Mẫu đang mở không bị thay đổi.”; chi tiết kỹ thuật ở dòng phụ |
+| Chip máy in, thanh trạng thái khi mở app | `PrinterQueueStatusMessage` + `PrintFailureExplainer.ExplainQueueStatus` | Ví dụ “Chưa chọn máy in cho mẫu này. Mở Cài đặt máy in…”; không nói “chưa gửi tem” vì chưa in |
+| Sau khi in | `PrintStatusText.Queue` / `.Result` | “Lệnh hàng đợi #12: đang in. Chưa xác minh tem đã ra.” |
+| Bảng Thuộc tính, danh sách Lớp, danh sách chọn | `DisplayNames`, `DisplayNameConverter`, `FormulaErrorText` | Tên loại như hộp công cụ (Chữ, Ô chữ, Mã vạch…); giá trị lưu vẫn là tên enum |
+| Trung tâm in, Lịch sử in, Phiên bản mẫu tem | `PrintCenterText`, `PrintHistoryViewModel`, `RevisionText` | Trạng thái, thao tác, hàng đợi, lý do và kết quả bằng tiếng Việt; nhật ký giữ chữ gốc làm bằng chứng |
+| Cài đặt máy in | `MediaCompatibilityText`, `CapabilityStatusText` | Thẻ Tương thích và trạng thái trình điều khiển tiếng Việt; chẩn đoán gốc nằm trong tooltip “Chi tiết kỹ thuật” |
+| Chưa đổi | Thẻ Ô chữ trong Bảng thuộc tính | Banner và tùy chọn của Ô chữ thuộc hợp đồng Text/TextBox; chờ chủ sản phẩm duyệt |
+
 ## 4. Bố cục
 
 | Yêu cầu | Quyết định |
@@ -103,6 +121,7 @@ chưa có quy tắc vẫn hiện nguyên văn, không bị giấu.
 | Chuỗi tiếng Việt | `OperatorDialog.xaml` nằm trong danh sách cưỡng chế của bộ quét Việt hóa — PASS |
 | Thao tác chuột thật trên hộp thoại | Chưa kiểm tra bằng tay; hộp thoại dùng `ShowDialog` nên test tự động không bấm nút |
 | Lệnh in dừng/bị chặn nói tiếng Việt, đúng dòng dữ liệu | `print stops are explained in plain Vietnamese`, `preflight issues name the data row in Vietnamese` — PASS; mỗi quy tắc neo vào chuỗi lõi nên đổi chuỗi lõi sẽ làm gate đỏ |
+| Chữ mục 3b (v0.309) | `printer, print, template and data failures read in Vietnamese` — PASS; `saving over another window's save asks first`, `printer list wait is bounded and reuses a stuck enumeration` — PASS; UIA smoke 15/15 trên bản cài v0.309 |
 
 ## 7. Điều kiện hoàn tất
 
