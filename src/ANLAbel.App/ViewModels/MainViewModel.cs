@@ -1223,10 +1223,22 @@ public sealed class MainViewModel : ObservableObject
     public bool HasPendingPrintRecovery => PrintRecoveryReport.RequiresRepair || PrintRecoveryReport.HasPendingJobs;
 
     public string PrintRecoveryStatusText => PrintRecoveryReport.RequiresRepair
-        ? "Xem lại nhật ký sự kiện in"
+        ? "Nhật ký lệnh in bị hỏng — mở Trung tâm in"
         : PrintRecoveryReport.HasPendingJobs
-            ? $"Xem lại {PrintRecoveryReport.Candidates.Count} lệnh in"
+            ? $"Xem lại {PrintRecoveryReport.Candidates.Count} lệnh in chưa rõ kết quả"
             : string.Empty;
+
+    /// <summary>
+    /// Operator action from the Print Center (plan 13 GĐ5, Figma 37:280): archives
+    /// a damaged job log and continues with its valid part. Returns the archive
+    /// path, or null when the log was not damaged.
+    /// </summary>
+    public async Task<string?> ArchiveDamagedPrintLogAsync(CancellationToken cancellationToken = default)
+    {
+        var archive = await _printJobStateStore.ArchiveDamagedLogAndStartNewAsync(cancellationToken).ConfigureAwait(true);
+        await RefreshPrintRecoveryAsync(cancellationToken).ConfigureAwait(true);
+        return archive;
+    }
 
     public bool IsToolboxVisible
     {

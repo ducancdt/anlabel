@@ -9,7 +9,8 @@ namespace ANLAbel.Data.PrintLogs;
 /// </summary>
 public sealed record PrintJobRecoverySnapshot(
     IReadOnlyList<PrintJobStateEvent> LatestEvents,
-    IReadOnlyList<string> StoreDiagnostics)
+    IReadOnlyList<string> StoreDiagnostics,
+    IReadOnlyList<string>? RepairNotices = null)
 {
     public static PrintJobRecoverySnapshot Empty { get; } = new(
         Array.Empty<PrintJobStateEvent>(),
@@ -80,7 +81,8 @@ public sealed record PrintJobRecoveryCandidate(
 
 public sealed record PrintJobRecoveryReport(
     IReadOnlyList<PrintJobRecoveryCandidate> Candidates,
-    IReadOnlyList<string> StoreDiagnostics)
+    IReadOnlyList<string> StoreDiagnostics,
+    IReadOnlyList<string>? RepairNotices = null)
 {
     public static PrintJobRecoveryReport Empty { get; } = new(
         Array.Empty<PrintJobRecoveryCandidate>(),
@@ -98,12 +100,12 @@ public sealed record PrintJobRecoveryReport(
         {
             if (RequiresRepair)
             {
-                return "Print history needs repair before an uncertain job can be retried.";
+                return "Nhật ký lệnh in bị hỏng; hãy mở Trung tâm in để lưu trữ nhật ký hỏng trước khi in tiếp.";
             }
 
             return HasPendingJobs
-                ? $"{Candidates.Count} print job(s) need reconciliation before retry."
-                : "No print jobs need reconciliation.";
+                ? $"Có {Candidates.Count} lệnh in chưa rõ kết quả cần đối soát trước khi in lại."
+                : "Không có lệnh in nào cần đối soát.";
         }
     }
 }
@@ -144,7 +146,7 @@ public static class PrintJobRecoveryService
         var candidates = new List<PrintJobRecoveryCandidate>();
         foreach (var lastEvent in snapshot.LatestEvents)
         {
-            if (PrintJobStateMachine.IsTerminal(lastEvent.To))
+            if (PrintJobStateMachine.IsTerminal(lastEvent.To) || !NeedsOperatorReview(lastEvent))
             {
                 continue;
             }
@@ -187,7 +189,56 @@ public static class PrintJobRecoveryService
                 .OrderByDescending(candidate => candidate.LastEventUtc)
                 .ThenBy(candidate => candidate.JobId, StringComparer.Ordinal)
                 .ToArray(),
-            snapshot.StoreDiagnostics.ToArray());
+            snapshot.StoreDiagnostics.ToArray(),
+            snapshot.RepairNotices?.ToArray() ?? Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Plan 13 QĐ-10 / ADR-023: only jobs whose outcome is genuinely uncertain
+    /// need the operator. A job the spooler accepted, or that the queue last
+    /// reported as pending, printing, completed or retained, is a normal print;
+    /// a job that never reached Dispatching was never sent. Neither is listed.
+    /// Spool acceptance still does not mean a label was physically produced.
+    /// Jobs stopped during dispatch, Unknown outcomes, queue faults and
+    /// ambiguous queue answers (deleted/not found), and open reprint requests
+    /// stay listed. A reprint is never automatic.
+    /// </summary>
+    public static bool NeedsOperatorReview(PrintJobStateEvent lastEvent)
+    {
+        ArgumentNullException.ThrowIfNull(lastEvent);
+        if (lastEvent.OperatorAction is not PrintJobOperatorAction.None)
+        {
+            return true;
+        }
+
+        return lastEvent.To switch
+        {
+            PrintJobLifecycleState.Created
+                or PrintJobLifecycleState.Preparing
+                or PrintJobLifecycleState.PreflightPassed => false,
+            PrintJobLifecycleState.SpoolAccepted
+                or PrintJobLifecycleState.QueueObserved => IsQueueProblemOrAmbiguous(lastEvent.QueueState),
+            _ => true
+        };
+    }
+
+    private static bool IsQueueProblemOrAmbiguous(string queueState)
+    {
+        if (string.IsNullOrWhiteSpace(queueState)
+            || !Enum.TryParse<SpoolJobState>(queueState, ignoreCase: true, out var state))
+        {
+            return false;
+        }
+
+        return state is SpoolJobState.Error
+            or SpoolJobState.Offline
+            or SpoolJobState.PaperOut
+            or SpoolJobState.UserIntervention
+            or SpoolJobState.Blocked
+            or SpoolJobState.Paused
+            or SpoolJobState.Deleted
+            or SpoolJobState.NotFound
+            or SpoolJobState.Unknown;
     }
 
     /// <summary>

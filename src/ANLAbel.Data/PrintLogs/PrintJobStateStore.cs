@@ -18,7 +18,15 @@ public sealed class PrintJobStateStore
     private readonly SemaphoreSlim _writeGate;
     private readonly Dictionary<string, RecoveryState> _states = new(StringComparer.Ordinal);
     private readonly List<string> _recoveryDiagnostics = new();
+    private readonly List<string> _repairNotices = new();
     private bool _loaded;
+    // Bytes of the file covered by validated events, and the file time seen
+    // then. An append re-reads the file only when either changed (another
+    // store or process wrote), instead of replaying months of events on every
+    // print (plan 13 H18).
+    private long _loadedLength;
+    private DateTime _loadedLastWriteUtc;
+    private TornTail? _tornTail;
 
     public PrintJobStateStore()
         : this(AppDataPaths.Log("print-job-events.jsonl"))
@@ -54,6 +62,21 @@ public sealed class PrintJobStateStore
         }
     }
 
+    /// <summary>
+    /// Automatic or operator repairs done by this store: what was moved aside and
+    /// where the original bytes were kept. Informational; printing is not blocked.
+    /// </summary>
+    public IReadOnlyList<string> RepairNotices
+    {
+        get
+        {
+            lock (_states)
+            {
+                return _repairNotices.ToArray();
+            }
+        }
+    }
+
     public async Task<PrintJobStateEvent> AppendAsync(
         PrintJobStateTransition transition,
         CancellationToken cancellationToken = default)
@@ -63,9 +86,16 @@ public sealed class PrintJobStateStore
         try
         {
             // Multiple windows/services may share the same local event file. The
-            // process-wide gate serializes writers; replay immediately before each
-            // append so a second store cannot reuse a stale sequence/hash prefix.
-            ReloadFromDisk();
+            // process-wide gate serializes writers; the file is replayed again
+            // whenever it changed since this store last read it, so a second
+            // store cannot reuse a stale sequence/hash prefix. The work runs off
+            // the caller's (UI) thread.
+            await Task.Run(RefreshFromDiskIfChanged, cancellationToken).ConfigureAwait(false);
+            if (TryRepairTornTail())
+            {
+                await Task.Run(ReloadFromDisk, cancellationToken).ConfigureAwait(false);
+            }
+
             lock (_states)
             {
                 if (_recoveryDiagnostics.Count > 0)
@@ -110,7 +140,7 @@ public sealed class PrintJobStateStore
             }
             stateEvent = stateEvent with { IntegrityHash = ComputeHash(stateEvent) };
 
-            await AppendLineAsync(stateEvent, cancellationToken).ConfigureAwait(false);
+            var expectedLength = _loadedLength + await AppendLineAsync(stateEvent, cancellationToken).ConfigureAwait(false);
             lock (_states)
             {
                 _states[transition.JobId] = new RecoveryState(
@@ -118,6 +148,17 @@ public sealed class PrintJobStateStore
                     transition.To,
                     stateEvent.IntegrityHash,
                     stateEvent);
+                var info = new FileInfo(LogFilePath);
+                if (info.Exists && info.Length == expectedLength)
+                {
+                    _loadedLength = expectedLength;
+                    _loadedLastWriteUtc = info.LastWriteTimeUtc;
+                }
+                else
+                {
+                    // Someone else appended too: replay before the next append.
+                    _loadedLastWriteUtc = default;
+                }
             }
 
             return stateEvent;
@@ -204,7 +245,12 @@ public sealed class PrintJobStateStore
         await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            ReloadFromDisk();
+            await Task.Run(ReloadFromDisk, cancellationToken).ConfigureAwait(false);
+            if (TryRepairTornTail())
+            {
+                await Task.Run(ReloadFromDisk, cancellationToken).ConfigureAwait(false);
+            }
+
             lock (_states)
             {
                 return new PrintJobRecoverySnapshot(
@@ -213,7 +259,8 @@ public sealed class PrintJobStateStore
                         .OrderByDescending(item => item.TimestampUtc)
                         .ThenBy(item => item.JobId, StringComparer.Ordinal)
                         .ToArray(),
-                    _recoveryDiagnostics.ToArray());
+                    _recoveryDiagnostics.ToArray(),
+                    _repairNotices.ToArray());
             }
         }
         finally
@@ -228,6 +275,160 @@ public sealed class PrintJobStateStore
         _writeGate.Release();
     }
 
+    /// <summary>
+    /// Operator action for a damaged log (plan 13 GĐ5, Figma 37:280). The whole
+    /// file is copied to <c>print-job-events.hong-&lt;time&gt;.jsonl</c>; the active
+    /// log keeps only the validated prefix, so every job state before the damage
+    /// stays reviewable and printing can continue. Returns the archive path, or
+    /// null when the log was not damaged.
+    /// </summary>
+    public async Task<string?> ArchiveDamagedLogAndStartNewAsync(CancellationToken cancellationToken = default)
+    {
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await Task.Run(() =>
+            {
+                ReloadFromDisk();
+                long validPrefix;
+                lock (_states)
+                {
+                    if (_recoveryDiagnostics.Count == 0 || !File.Exists(LogFilePath))
+                    {
+                        return null;
+                    }
+
+                    validPrefix = _loadedLength;
+                }
+
+                var bytes = ReadAllBytesWithRetry(LogFilePath);
+                var archive = CreateArchivePath();
+                File.WriteAllBytes(archive, bytes);
+                var temporary = LogFilePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+                {
+                    stream.Write(bytes, 0, (int)Math.Min(validPrefix, bytes.Length));
+                    stream.Flush(flushToDisk: true);
+                }
+
+                File.Move(temporary, LogFilePath, overwrite: true);
+                lock (_states)
+                {
+                    _repairNotices.Add($"Đã lưu trữ nhật ký lệnh in bị hỏng thành {Path.GetFileName(archive)} và tiếp tục với phần còn hợp lệ.");
+                }
+
+                ReloadFromDisk();
+                return archive;
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
+
+    private void RefreshFromDiskIfChanged()
+    {
+        lock (_states)
+        {
+            if (_loaded && _recoveryDiagnostics.Count == 0)
+            {
+                var info = new FileInfo(LogFilePath);
+                var length = info.Exists ? info.Length : 0;
+                var lastWrite = info.Exists ? info.LastWriteTimeUtc : default;
+                if (length == _loadedLength && lastWrite == _loadedLastWriteUtc)
+                {
+                    return;
+                }
+            }
+        }
+
+        ReloadFromDisk();
+    }
+
+    /// <summary>
+    /// A last line without its newline is a write cut off by power loss or a
+    /// kill. It cannot be a committed event, so it is moved aside automatically:
+    /// the full file is archived first, then the active log is cut back to the
+    /// validated events. Any other damage still needs the operator action.
+    /// </summary>
+    private bool TryRepairTornTail()
+    {
+        TornTail? torn;
+        lock (_states)
+        {
+            torn = _tornTail;
+        }
+
+        if (torn is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var bytes = ReadAllBytesWithRetry(LogFilePath);
+            if (bytes.Length != torn.FileLength)
+            {
+                return false;
+            }
+
+            var archive = CreateArchivePath();
+            File.WriteAllBytes(archive, bytes);
+            using (var stream = new FileStream(LogFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+            {
+                stream.SetLength(torn.ValidPrefixLength);
+                stream.Flush(flushToDisk: true);
+            }
+
+            lock (_states)
+            {
+                _tornTail = null;
+                _repairNotices.Add($"Dòng cuối của nhật ký lệnh in bị ghi dở (thường do mất điện hoặc tắt máy) đã được cất vào {Path.GetFileName(archive)}; nhật ký tiếp tục từ sự kiện hợp lệ cuối cùng.");
+            }
+
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private string CreateArchivePath()
+    {
+        var directory = Path.GetDirectoryName(LogFilePath) ?? ".";
+        var stem = Path.GetFileNameWithoutExtension(LogFilePath);
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        var archive = Path.Combine(directory, $"{stem}.hong-{stamp}.jsonl");
+        for (var counter = 1; File.Exists(archive); counter++)
+        {
+            archive = Path.Combine(directory, $"{stem}.hong-{stamp}-{counter}.jsonl");
+        }
+
+        return archive;
+    }
+
+    private static byte[] ReadAllBytesWithRetry(string path)
+    {
+        // Antivirus or backup tools hold the file briefly; a short retry keeps
+        // such a lock from being reported as damage.
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                var bytes = new byte[stream.Length];
+                stream.ReadExactly(bytes);
+                return bytes;
+            }
+            catch (IOException) when (attempt < 5 && File.Exists(path))
+            {
+                Thread.Sleep(100);
+            }
+        }
+    }
+
     private void EnsureLoaded()
     {
         lock (_states)
@@ -238,79 +439,117 @@ public sealed class PrintJobStateStore
             }
 
             _loaded = true;
+            _tornTail = null;
+            _loadedLength = 0;
+            _loadedLastWriteUtc = default;
             if (!File.Exists(LogFilePath))
             {
                 return;
             }
 
+            byte[] bytes;
             try
             {
-                foreach (var line in File.ReadLines(LogFilePath))
-                {
-                    if (string.IsNullOrWhiteSpace(line))
-                    {
-                        continue;
-                    }
-
-                    PrintJobStateEvent? item;
-                    try
-                    {
-                        item = JsonSerializer.Deserialize<PrintJobStateEvent>(line, JsonOptions);
-                    }
-                    catch (JsonException ex)
-                    {
-                        _recoveryDiagnostics.Add($"Ignored malformed print-job event tail: {ex.Message}");
-                        break;
-                    }
-
-                    if (item is null || string.IsNullOrWhiteSpace(item.JobId))
-                    {
-                        _recoveryDiagnostics.Add("Ignored an empty print-job event record.");
-                        break;
-                    }
-
-                    if (item.Manifest is not null
-                        && (!string.Equals(item.Manifest.Fingerprint, item.ManifestFingerprint, StringComparison.Ordinal)
-                            || !item.Manifest.IsFingerprintValid))
-                    {
-                        _recoveryDiagnostics.Add($"Stopped replay at an event with invalid manifest metadata for job '{item.JobId}'.");
-                        break;
-                    }
-
-                    if (item.VerificationEvidence is not null
-                        && !item.VerificationEvidence.IsFingerprintValid)
-                    {
-                        _recoveryDiagnostics.Add($"Stopped replay at an event with invalid physical-verification evidence for job '{item.JobId}'.");
-                        break;
-                    }
-
-                    _states.TryGetValue(item.JobId, out var current);
-                    var expectedSequence = (current?.Sequence ?? 0) + 1;
-                    var expectedPreviousHash = current?.Hash ?? string.Empty;
-                    if (item.Sequence != expectedSequence
-                        || !string.Equals(item.PreviousHash, expectedPreviousHash, StringComparison.Ordinal)
-                        || !IsIntegrityHashValid(item))
-                    {
-                        _recoveryDiagnostics.Add($"Stopped replay at invalid event for job '{item.JobId}' sequence {item.Sequence}.");
-                        break;
-                    }
-
-                    _states[item.JobId] = new RecoveryState(
-                        item.Sequence,
-                        item.To,
-                        item.IntegrityHash,
-                        item);
-                }
+                bytes = ReadAllBytesWithRetry(LogFilePath);
+                _loadedLastWriteUtc = File.GetLastWriteTimeUtc(LogFilePath);
+            }
+            catch (FileNotFoundException)
+            {
+                return;
             }
             catch (IOException ex)
             {
                 _recoveryDiagnostics.Add($"Could not replay print-job events: {ex.Message}");
+                return;
             }
             catch (UnauthorizedAccessException ex)
             {
                 _recoveryDiagnostics.Add($"Could not access print-job events: {ex.Message}");
+                return;
             }
+
+            var position = 0;
+            long validEnd = 0;
+            while (position < bytes.Length)
+            {
+                var newline = Array.IndexOf(bytes, (byte)'\n', position);
+                var contentEnd = newline < 0 ? bytes.Length : newline;
+                var lineEnd = newline < 0 ? bytes.Length : newline + 1;
+                var line = Encoding.UTF8.GetString(bytes, position, contentEnd - position).TrimEnd('\r');
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    position = lineEnd;
+                    validEnd = lineEnd;
+                    continue;
+                }
+
+                var problem = ReplayLine(line);
+                if (problem is not null)
+                {
+                    _recoveryDiagnostics.Add(problem);
+                    if (newline < 0)
+                    {
+                        _tornTail = new TornTail(validEnd, bytes.Length);
+                    }
+
+                    break;
+                }
+
+                position = lineEnd;
+                validEnd = lineEnd;
+            }
+
+            _loadedLength = validEnd;
         }
+    }
+
+    /// <summary>Validates one event line against the replayed chain; returns a diagnostic or null.</summary>
+    private string? ReplayLine(string line)
+    {
+        PrintJobStateEvent? item;
+        try
+        {
+            item = JsonSerializer.Deserialize<PrintJobStateEvent>(line, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            return $"Ignored malformed print-job event tail: {ex.Message}";
+        }
+
+        if (item is null || string.IsNullOrWhiteSpace(item.JobId))
+        {
+            return "Ignored an empty print-job event record.";
+        }
+
+        if (item.Manifest is not null
+            && (!string.Equals(item.Manifest.Fingerprint, item.ManifestFingerprint, StringComparison.Ordinal)
+                || !item.Manifest.IsFingerprintValid))
+        {
+            return $"Stopped replay at an event with invalid manifest metadata for job '{item.JobId}'.";
+        }
+
+        if (item.VerificationEvidence is not null
+            && !item.VerificationEvidence.IsFingerprintValid)
+        {
+            return $"Stopped replay at an event with invalid physical-verification evidence for job '{item.JobId}'.";
+        }
+
+        _states.TryGetValue(item.JobId, out var current);
+        var expectedSequence = (current?.Sequence ?? 0) + 1;
+        var expectedPreviousHash = current?.Hash ?? string.Empty;
+        if (item.Sequence != expectedSequence
+            || !string.Equals(item.PreviousHash, expectedPreviousHash, StringComparison.Ordinal)
+            || !IsIntegrityHashValid(item))
+        {
+            return $"Stopped replay at invalid event for job '{item.JobId}' sequence {item.Sequence}.";
+        }
+
+        _states[item.JobId] = new RecoveryState(
+            item.Sequence,
+            item.To,
+            item.IntegrityHash,
+            item);
+        return null;
     }
 
     private void ReloadFromDisk()
@@ -325,7 +564,7 @@ public sealed class PrintJobStateStore
         EnsureLoaded();
     }
 
-    private async Task AppendLineAsync(PrintJobStateEvent stateEvent, CancellationToken cancellationToken)
+    private async Task<long> AppendLineAsync(PrintJobStateEvent stateEvent, CancellationToken cancellationToken)
     {
         var directory = Path.GetDirectoryName(LogFilePath);
         if (!string.IsNullOrEmpty(directory))
@@ -344,6 +583,7 @@ public sealed class PrintJobStateStore
             options: FileOptions.Asynchronous | FileOptions.WriteThrough);
         await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return bytes.Length;
     }
 
     private static string ComputeHash(PrintJobStateEvent stateEvent)
@@ -439,6 +679,8 @@ public sealed class PrintJobStateStore
         PrintJobLifecycleState State,
         string Hash,
         PrintJobStateEvent LastEvent);
+
+    private sealed record TornTail(long ValidPrefixLength, long FileLength);
 }
 
 /// <summary>

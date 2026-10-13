@@ -435,9 +435,15 @@ public partial class PrintCenterWindow : Window
         var candidate = SelectedCandidate;
         if (candidate is null)
         {
-            DetailsText.Text = _viewModel.PrintRecoveryReport.RequiresRepair
-                ? $"Event log diagnostics:\n{string.Join(Environment.NewLine, _viewModel.PrintRecoveryReport.StoreDiagnostics)}"
-                : "Select a job to inspect its durable evidence.";
+            var report = _viewModel.PrintRecoveryReport;
+            var notices = report.RepairNotices ?? Array.Empty<string>();
+            DetailsText.Text = report.RequiresRepair
+                ? "Nhật ký lệnh in bị hỏng (thường do mất điện hoặc tắt máy khi đang ghi). ANLAbel tạm dừng in để không mất bằng chứng. "
+                  + "Bấm “Lưu trữ nhật ký hỏng và bắt đầu nhật ký mới” để tiếp tục.\nChi tiết kỹ thuật: "
+                  + string.Join(" · ", report.StoreDiagnostics)
+                : notices.Count > 0
+                    ? string.Join(Environment.NewLine, notices)
+                    : "Chọn một lệnh để xem bằng chứng của lệnh đó.";
         }
         else
         {
@@ -474,6 +480,48 @@ public partial class PrintCenterWindow : Window
         // Export is available for any selected durable job, including terminal
         // states, so support can reconstruct completed/failed outcomes.
         ExportSupportButton.IsEnabled = hasCandidate;
+        RepairLogButton.Visibility = _viewModel.PrintRecoveryReport.RequiresRepair ? Visibility.Visible : Visibility.Collapsed;
+        RepairLogButton.IsEnabled = !_isBusy;
+    }
+
+    private async void RepairLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        var choice = OperatorDialog.Ask(
+            this,
+            "Nhật ký lệnh in bị hỏng ở dòng cuối",
+            [
+                "Thường do mất điện hoặc tắt máy khi đang ghi. ANLAbel tạm dừng in để không mất bằng chứng.",
+                "Lưu trữ nhật ký hỏng và tiếp tục với phần còn hợp lệ? Tệp cũ được giữ nguyên để tra cứu."
+            ],
+            null,
+            OperatorDialogTone.Error,
+            new OperatorDialogChoice("archive", "Lưu trữ nhật ký hỏng và bắt đầu nhật ký mới", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Hủy", IsCancel: true));
+        if (choice != "archive")
+        {
+            return;
+        }
+
+        try
+        {
+            SetBusy(true);
+            var archive = await _viewModel.ArchiveDamagedPrintLogAsync();
+            _allCandidates = _viewModel.PrintRecoveryReport.Candidates;
+            ApplyFilter(null);
+            ShowActionMessage(
+                archive is null
+                    ? "Nhật ký lệnh in không còn lỗi; không cần lưu trữ."
+                    : $"Đã lưu trữ nhật ký hỏng thành {System.IO.Path.GetFileName(archive)}. Có thể in tiếp.",
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            ShowActionMessage($"Chưa lưu trữ được nhật ký: {ex.Message}", MessageBoxImage.Warning);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private void SetBusy(bool busy)

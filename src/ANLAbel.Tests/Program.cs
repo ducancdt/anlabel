@@ -7556,7 +7556,7 @@ static Task TestSpoolAcceptedDoesNotClaimPhysicalCompletion()
     var result = new PrintJobResult(PrintJobOutcome.SpoolAccepted, "Test Queue", "test", 1, SpoolJobId: 42);
     AssertEqual(true, result.IsAccepted, "SpoolAccepted is a successful submission outcome");
     AssertEqual(false, result.IsPhysicalCompletionVerified, "SpoolAccepted must not claim physical completion");
-    AssertEqual(true, result.UserFacingStatus.Contains("not verified", StringComparison.OrdinalIgnoreCase), "The user status must explain the evidence boundary");
+    AssertEqual(true, result.UserFacingStatus.Contains("chưa xác minh tem đã ra", StringComparison.Ordinal), "The user status must explain the evidence boundary");
     AssertEqual(true, result.UserFacingStatus.Contains("42", StringComparison.Ordinal), "A discovered spool identifier must be visible without implying physical completion");
     return Task.CompletedTask;
 }
@@ -7566,8 +7566,8 @@ static Task TestSpoolAcceptanceWithoutIdentityIsExplicit()
     var result = new PrintJobResult(PrintJobOutcome.SpoolAccepted, "Test Queue", "test", 1);
     AssertEqual(true, result.IsAccepted, "A PrintDocument return remains an accepted submission outcome");
     AssertEqual(false, result.HasSpoolIdentity, "Missing queue enumeration must not invent a spool identity");
-    AssertEqual(true, result.UserFacingStatus.Contains("No spool job identity", StringComparison.OrdinalIgnoreCase), "The operator status must explain that queue correlation is unavailable");
-    AssertEqual(true, result.UserFacingStatus.Contains("Do not retry automatically", StringComparison.OrdinalIgnoreCase), "The operator status must prevent an unsafe duplicate retry");
+    AssertEqual(true, result.UserFacingStatus.Contains("Không ghi nhận được mã lệnh hàng đợi", StringComparison.Ordinal), "The operator status must explain that queue correlation is unavailable");
+    AssertEqual(true, result.UserFacingStatus.Contains("Không tự in lại", StringComparison.Ordinal), "The operator status must prevent an unsafe duplicate retry");
     return Task.CompletedTask;
 }
 

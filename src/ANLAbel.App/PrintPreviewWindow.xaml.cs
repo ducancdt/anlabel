@@ -434,8 +434,8 @@ public partial class PrintPreviewWindow : Window
             {
                 var choice = MessageBox.Show(
                     this,
-                    $"{alreadyPrintedRows.Length} dòng đã chọn đã được in trước đó trong phiên này (Dòng {string.Join(", ", alreadyPrintedRows)}).\n\nIn lại có thể tạo nhãn trùng lặp. Tiếp tục?",
-                    "Các dòng đã in trong phiên này",
+                    $"{alreadyPrintedRows.Length} dòng đã chọn (Dòng {string.Join(", ", alreadyPrintedRows)}) đã được gửi tới máy in trong phiên này.\n\nIn lại có thể tạo tem trùng. Tiếp tục?",
+                    "Các dòng đã gửi tới máy in",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
                 if (choice != MessageBoxResult.Yes)
@@ -677,10 +677,10 @@ public partial class PrintPreviewWindow : Window
                 return;
             }
 
-            // Only a device-confirmed terminal outcome may mark rows as printed.
-            // Spool acceptance (even with a queue job id) is deliberately not
-            // enough evidence for the duplicate-label guard.
-            if (printResult.IsPhysicalCompletionVerified)
+            // ADR-023 / plan 13 QĐ-10: rows the spooler accepted are marked as
+            // "sent", so a second print of the same rows in this session warns
+            // about duplicate labels. This is not a claim of physical output.
+            if (printResult.IsAccepted)
             {
                 var confirmedRows = selected.Select(entry => entry.SourceRowNumber).ToHashSet();
                 foreach (var row in _trackingRows.Where(item => confirmedRows.Contains(item.SourceRowNumber)))

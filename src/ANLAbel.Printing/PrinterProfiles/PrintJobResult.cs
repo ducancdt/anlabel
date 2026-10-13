@@ -77,20 +77,21 @@ public sealed record PrintJobResult(
 
     public bool IsPhysicalCompletionVerified => Outcome == PrintJobOutcome.Completed;
 
+    /// <summary>Plain Vietnamese status for the operator (plan 13 H25).</summary>
     public string UserFacingStatus => Outcome switch
     {
-        PrintJobOutcome.Cancelled => "Print cancelled.",
-        PrintJobOutcome.SpoolAccepted => AppendSpoolEvidence("Print job accepted by the Windows spooler; physical completion is not verified."),
-        PrintJobOutcome.DeviceAcknowledged => AppendSpoolEvidence("Printer acknowledged the job; physical completion is not independently verified."),
-        PrintJobOutcome.Completed => "Print completed with device confirmation.",
-        PrintJobOutcome.Failed => string.IsNullOrWhiteSpace(ErrorMessage) ? "Print failed." : $"Print failed: {ErrorMessage}",
-        _ => string.IsNullOrWhiteSpace(ErrorMessage) ? "Print outcome is unknown; do not retry automatically." : $"Print outcome is unknown: {ErrorMessage}"
+        PrintJobOutcome.Cancelled => "Đã hủy in.",
+        PrintJobOutcome.SpoolAccepted => AppendSpoolEvidence("Hàng đợi Windows đã nhận lệnh in; chưa xác minh tem đã ra."),
+        PrintJobOutcome.DeviceAcknowledged => AppendSpoolEvidence("Máy in đã xác nhận nhận lệnh; chưa xác minh độc lập tem đã ra."),
+        PrintJobOutcome.Completed => "Đã in xong, có xác nhận từ thiết bị.",
+        PrintJobOutcome.Failed => string.IsNullOrWhiteSpace(ErrorMessage) ? "In thất bại." : $"In thất bại: {ErrorMessage}",
+        _ => string.IsNullOrWhiteSpace(ErrorMessage) ? "Chưa rõ kết quả in; không tự in lại." : $"Chưa rõ kết quả in: {ErrorMessage}"
     };
 
     private string AppendSpoolEvidence(string message)
     {
         return HasSpoolIdentity
-            ? $"{message} Spool job #{SpoolJobId}."
-            : $"{message} No spool job identity was captured; queue status cannot be correlated safely. Do not retry automatically until the queue/device is reconciled.";
+            ? $"{message} Mã lệnh hàng đợi #{SpoolJobId}."
+            : $"{message} Không ghi nhận được mã lệnh hàng đợi nên không đối chiếu được trạng thái. Không tự in lại cho tới khi đã đối soát hàng đợi và máy in.";
     }
 }

@@ -2,6 +2,35 @@
 
 Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 
+## ADR-023 — Chỉ lệnh in chưa rõ kết quả mới cần người vận hành đối soát
+
+- Status: Accepted (2026-10-13, kế hoạch 13 QĐ-10). Bổ sung ADR-016 và ADR-017, không thay thế.
+- Context:
+  - Chỉ Completed, Failed và Cancelled là trạng thái kết thúc, và Completed cần xác minh vật lý. Vì vậy mọi lệnh in thành công (`SpoolAccepted`, hoặc `QueueObserved` với hàng đợi `Retained`) đều nằm mãi trong “Xem lại N lệnh in”.
+  - Log thật của máy vận hành: 6/6 lệnh thành công nằm trong danh sách.
+  - Cảnh báo in trùng ở Xem trước chỉ đánh dấu dòng khi có xác minh vật lý nên không bao giờ bật.
+  - ADR-017 chỉ yêu cầu đối soát các lệnh mơ hồ; cách làm cũ đã áp dụng rộng hơn quyết định đó.
+- Decision:
+  - **Danh sách cần đối soát chỉ gồm:**
+    - `Dispatching` (dừng giữa lúc gửi) và `Unknown`;
+    - `SpoolAccepted`/`QueueObserved` khi hàng đợi báo lỗi hoặc trạng thái mơ hồ: Error, Offline, PaperOut, UserIntervention, Blocked, Paused, Deleted, NotFound, Unknown;
+    - mọi lệnh có chuỗi thao tác của người vận hành (ghi nhận, yêu cầu in lại, duyệt in lại).
+  - **Không liệt kê:**
+    - `SpoolAccepted`/`QueueObserved` bình thường (Pending, Spooling, Printing, Completed, Retained);
+    - lệnh chưa từng gửi (Created, Preparing, PreflightPassed). Bằng chứng trước khi gửi là bắt buộc, nên lệnh chưa có `Dispatching` thì chưa được gửi.
+  - Dòng đã được hàng đợi nhận được đánh dấu “đã gửi”, để in lại cùng dòng trong phiên sẽ hỏi lại vì có thể tạo tem trùng.
+- Không đổi:
+  - Spool accepted không có nghĩa là tem đã ra; Completed vẫn cần bằng chứng thiết bị.
+  - Không tự in lại; in lại vẫn là thao tác có chủ đích.
+  - Máy trạng thái, bằng chứng job và manifest giữ nguyên.
+- Alternatives:
+  - Giữ danh sách mọi lệnh in: cảnh báo thành nhiễu và bị bỏ qua, kể cả cảnh báo thật.
+  - Tự ghi nhận mọi lệnh: tạo bằng chứng giả.
+- Consequences: chip trạng thái và Trung tâm in chỉ đếm lệnh chưa rõ kết quả. Lịch sử in vẫn giữ mọi lệnh.
+- Evidence required:
+  - Unit `NormalOrNeverSentJobsAreNotReviewCandidates`, `UncertainJobsStayReviewCandidates`, `OpenReprintRequestStaysAReviewCandidateEvenAfterANormalOutcome`, `PersistedQueueFaultStateRequiresOperatorDecision` (gồm Deleted, NotFound), `AmbiguousQueueEvidenceStillRequiresOperatorDecision`.
+  - Áp dụng lên log thật: 6 lệnh `Retained` không còn bị liệt kê; 4 lệnh Failed vẫn là trạng thái kết thúc.
+
 ## ADR-022 — Cải tổ tập trung lõi: khóa nền, gọn phạm vi, ổn định trước tính năng
 
 - Status: Accepted (2026-10-13: chủ sản phẩm chỉ thị thực thi theo phương án đề xuất)

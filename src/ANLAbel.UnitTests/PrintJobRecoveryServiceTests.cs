@@ -17,15 +17,16 @@ public sealed class PrintJobRecoveryServiceTests
         {
             var store = new PrintJobStateStore(path);
             await AppendDispatchPrefixAsync(store, "job-reconcile", spoolJobId: 77, printerName: "Zebra Test");
+            await store.AppendAsync(Transition("job-reconcile", PrintJobLifecycleState.SpoolAccepted, PrintJobLifecycleState.Unknown, "queue status lost after restart", "Zebra Test", 77));
 
             var report = await PrintJobRecoveryService.LoadAsync(store);
 
             var candidate = Assert.Single(report.Candidates);
-            Assert.Equal(PrintJobLifecycleState.SpoolAccepted, candidate.State);
+            Assert.Equal(PrintJobLifecycleState.Unknown, candidate.State);
             Assert.Equal(PrintJobRecoveryAction.ReconcileQueue, candidate.Action);
             Assert.False(candidate.AutomaticRetryAllowed);
             Assert.False(report.AutomaticRetryAllowed);
-            Assert.Contains("reconciliation", report.UserFacingSummary, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("đối soát", report.UserFacingSummary, StringComparison.Ordinal);
         }
         finally
         {
@@ -34,7 +35,7 @@ public sealed class PrintJobRecoveryServiceTests
     }
 
     [Fact]
-    public async Task TerminalQueueEvidenceStillRequiresOperatorDecision()
+    public async Task AmbiguousQueueEvidenceStillRequiresOperatorDecision()
     {
         var directory = CreateDirectory();
         var path = Path.Combine(directory, "events.jsonl");
@@ -50,7 +51,7 @@ public sealed class PrintJobRecoveryServiceTests
                 "queue removed the job",
                 printerName: "Zebra Test",
                 spoolJobId: 78,
-                queueState: SpoolJobState.Completed.ToString()));
+                queueState: SpoolJobState.Deleted.ToString()));
 
             var report = await PrintJobRecoveryService.LoadAsync(store);
 
@@ -75,6 +76,7 @@ public sealed class PrintJobRecoveryServiceTests
         {
             var store = new PrintJobStateStore(path);
             await AppendDispatchPrefixAsync(store, "job-no-identity", spoolJobId: null, printerName: "");
+            await store.AppendAsync(Transition("job-no-identity", PrintJobLifecycleState.SpoolAccepted, PrintJobLifecycleState.Unknown, "outcome unknown", "", null));
 
             var report = await PrintJobRecoveryService.LoadAsync(store);
 
@@ -104,7 +106,7 @@ public sealed class PrintJobRecoveryServiceTests
                     "queue observation",
                     "Zebra Test",
                     79,
-                    SpoolJobState.Printing.ToString(),
+                    SpoolJobState.Error.ToString(),
                     "doc",
                     "scene",
                     "contract",
@@ -120,7 +122,7 @@ public sealed class PrintJobRecoveryServiceTests
         Assert.Equal(PrintJobRecoveryAction.RepairEventLog, candidate.Action);
         Assert.True(report.RequiresRepair);
         Assert.False(report.AutomaticRetryAllowed);
-        Assert.Contains("repair", report.UserFacingSummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Nhật ký lệnh in bị hỏng", report.UserFacingSummary, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -168,7 +170,7 @@ public sealed class PrintJobRecoveryServiceTests
 
             Assert.Empty(report.Candidates);
             Assert.False(report.HasPendingJobs);
-            Assert.Equal("No print jobs need reconciliation.", report.UserFacingSummary);
+            Assert.Equal("Không có lệnh in nào cần đối soát.", report.UserFacingSummary);
         }
         finally
         {
@@ -259,7 +261,8 @@ public sealed class PrintJobRecoveryServiceTests
     [InlineData(SpoolJobState.UserIntervention)]
     [InlineData(SpoolJobState.Blocked)]
     [InlineData(SpoolJobState.Paused)]
-    [InlineData(SpoolJobState.Retained)]
+    [InlineData(SpoolJobState.Deleted)]
+    [InlineData(SpoolJobState.NotFound)]
     public void PersistedQueueFaultStateRequiresOperatorDecision(SpoolJobState faultState)
     {
         var snapshot = new PrintJobRecoverySnapshot(
@@ -359,6 +362,75 @@ public sealed class PrintJobRecoveryServiceTests
         Assert.Equal(PrintJobReconciliationOutcome.InvalidCandidate, result.Outcome);
         Assert.Equal(0, reader.ReadCount);
         Assert.False(result.AutomaticRetryAllowed);
+    }
+
+    [Theory]
+    [InlineData(PrintJobLifecycleState.SpoolAccepted, "")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "Pending")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "Spooling")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "Printing")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "Completed")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "Retained")]
+    [InlineData(PrintJobLifecycleState.Created, "")]
+    [InlineData(PrintJobLifecycleState.Preparing, "")]
+    [InlineData(PrintJobLifecycleState.PreflightPassed, "")]
+    public void NormalOrNeverSentJobsAreNotReviewCandidates(PrintJobLifecycleState state, string queueState)
+    {
+        // ADR-023 / plan 13 QĐ-10: a normal spool outcome is not an operator task,
+        // and a job that never reached Dispatching was never sent.
+        var report = PrintJobRecoveryService.Analyze(SnapshotOf(state, queueState, PrintJobOperatorAction.None));
+
+        Assert.Empty(report.Candidates);
+        Assert.False(report.HasPendingJobs);
+    }
+
+    [Theory]
+    [InlineData(PrintJobLifecycleState.Dispatching, "")]
+    [InlineData(PrintJobLifecycleState.Unknown, "")]
+    [InlineData(PrintJobLifecycleState.SpoolAccepted, "Error")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "PaperOut")]
+    [InlineData(PrintJobLifecycleState.QueueObserved, "Unknown")]
+    public void UncertainJobsStayReviewCandidates(PrintJobLifecycleState state, string queueState)
+    {
+        var report = PrintJobRecoveryService.Analyze(SnapshotOf(state, queueState, PrintJobOperatorAction.None));
+
+        var candidate = Assert.Single(report.Candidates);
+        Assert.False(candidate.AutomaticRetryAllowed);
+    }
+
+    [Fact]
+    public void OpenReprintRequestStaysAReviewCandidateEvenAfterANormalOutcome()
+    {
+        var report = PrintJobRecoveryService.Analyze(SnapshotOf(PrintJobLifecycleState.QueueObserved, "Retained", PrintJobOperatorAction.ReprintRequested));
+
+        var candidate = Assert.Single(report.Candidates);
+        Assert.Equal(PrintJobRecoveryAction.OperatorDecision, candidate.Action);
+    }
+
+    private static PrintJobRecoverySnapshot SnapshotOf(PrintJobLifecycleState state, string queueState, PrintJobOperatorAction operatorAction)
+    {
+        return new PrintJobRecoverySnapshot(
+            new[]
+            {
+                new PrintJobStateEvent(
+                    "job-policy",
+                    5,
+                    PrintJobLifecycleState.Dispatching,
+                    state,
+                    DateTimeOffset.UtcNow,
+                    "policy fixture",
+                    "Zebra Test",
+                    91,
+                    queueState,
+                    "doc",
+                    "scene",
+                    "contract",
+                    false,
+                    "previous",
+                    "hash",
+                    operatorAction)
+            },
+            Array.Empty<string>());
     }
 
     private static async Task AppendDispatchPrefixAsync(

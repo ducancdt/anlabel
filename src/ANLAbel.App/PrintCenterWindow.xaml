@@ -99,6 +99,7 @@
                     <Button x:Name="RequestReprintButton" Content="Yêu cầu in lại" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Request linked reprint" Click="RequestReprintButton_Click"/>
                     <Button x:Name="ApproveButton" Content="Duyệt in lại" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Approve linked reprint" Click="ApproveButton_Click"/>
                     <Button x:Name="PreviewButton" Content="Mở xem trước đã duyệt" Padding="13,6" Margin="0,0,8,0" AutomationProperties.Name="Open approved preview" Click="PreviewButton_Click"/>
+                    <Button x:Name="RepairLogButton" Content="Lưu trữ nhật ký hỏng và bắt đầu nhật ký mới" Padding="13,6" Margin="0,0,8,0" Visibility="Collapsed" AutomationProperties.Name="Archive damaged print log" AutomationProperties.AutomationId="PrintCenter.RepairLog" Click="RepairLogButton_Click"/>
                     <Button x:Name="ExportSupportButton" Content="Xuất bằng chứng hỗ trợ" Padding="13,6" AutomationProperties.Name="Export redacted support evidence" Click="ExportSupportButton_Click"/>
                 </StackPanel>
             </Grid>
