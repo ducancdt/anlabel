@@ -1,5 +1,71 @@
 # ANLAbel Phase 1 Plan
 
+## v0.309 — Kiểm tra toàn ứng dụng: không mất dữ liệu, in đúng thứ đã xem, giao diện tiếng Việt
+
+**In ấn**
+
+- Xem trước so dữ liệu với lần nhập thật (trước đây so tệp với chính nó): tệp
+  Excel đổi sau khi nhập thì Xem trước không in dữ liệu cũ.
+- Lỗi xảy ra trong lúc gửi lệnh (spooler khởi động lại, rút cáp) được ghi là
+  “chưa rõ kết quả” và đưa vào Trung tâm in để đối soát. ANLAbel không tự in lại.
+- In nhanh:
+  - từ chối mẫu có trường dữ liệu khi chưa có dòng dữ liệu (trước đây in ra chữ
+    “{Trường}” và mã hóa nó vào mã vạch);
+  - hai lệnh in nhanh dùng chung một khóa;
+  - giới hạn 100.000 tem như Xem trước;
+  - nêu các dòng có số bản bằng 0.
+- Xem trước không in thiết lập máy in hoặc lựa chọn mà người vận hành chưa thấy:
+  làm mới và báo lại.
+- Danh sách máy in không còn treo khi Print Spooler bị treo: sau 20 giây có thông
+  báo; bấm lại không chồng thêm luồng.
+- Lịch sử in ghi đúng mẫu đã in (không phải bản sửa trong lúc gửi) và được dựng
+  ngoài luồng giao diện. Làm mới Xem trước ngay sau khi in không còn làm mất lịch sử.
+- Gỡ các lối in cũ nằm ngoài đường in có theo dõi (không còn nơi nào gọi).
+
+**Dữ liệu và tệp**
+
+- Một lần nhập bị thay thế không còn xóa dữ liệu mới hơn. Khôi phục liên kết thất
+  bại không còn làm “Cập nhật Excel” báo nhầm “đã mới nhất”. Nguồn dùng chung chỉ
+  được lưu vào mẫu sau khi nhập thành công.
+- Tệp dữ liệu bị ghi lại trong lúc đọc bị từ chối, kèm giải thích.
+- Danh sách nguồn dữ liệu dùng chung gộp thay đổi của cửa sổ khác. Tệp không đọc
+  được hoặc do bản mới hơn ghi thì không bị ghi đè.
+- Cập nhật phần mềm, đăng xuất Windows và mở mẫu chậm không còn làm mất thay đổi
+  chưa lưu. Bản phục hồi chỉ bị xóa khi đã có bản mới.
+- Mẫu do bản ANLAbel mới hơn ghi giữ nguyên các trường lạ ở mọi cấp. Tệp chính
+  không đọc được được lưu trữ trước khi bị ghi đè. Lưu đè lên bản mà cửa sổ hoặc
+  máy khác vừa lưu sẽ hỏi trước.
+- Cài đặt (giao diện, trình thiết kế, máy in) ghi nguyên tử. Lịch sử in và nhật ký
+  lệnh in chịu được mất điện và cửa sổ khác đang ghi. Bản lưu trữ phiên bản vừa tạo
+  luôn được giữ, kể cả khi đồng hồ bị lùi; một bản cũ không xóa được không còn làm
+  hỏng việc lưu. Tên nhật ký lỗi không trùng nhau.
+
+**Giao diện tiếng Việt**
+
+- Tiếng Việt ở: thanh trạng thái, chip máy in, thông báo in và trạng thái hàng
+  đợi, lỗi mở/lưu mẫu, kiểm tra liên kết Excel, Bảng thuộc tính (tên loại đối
+  tượng, danh sách chọn, lỗi công thức và mã vạch), bảng thiết kế (lời nhắc vẽ,
+  nhãn hít, tên đối tượng mới), Xem trước, Cài đặt máy in, Trung tâm in, Lịch sử
+  in, Phiên bản mẫu tem, cập nhật phần mềm, tên mẫu trong Thư viện và Hướng dẫn sử
+  dụng.
+- Thông điệp lõi giữ tiếng Anh cho nhật ký và bằng chứng; chi tiết kỹ thuật để
+  riêng. Gate ngôn ngữ neo từng quy tắc vào thông điệp lõi.
+- Chưa đổi (thuộc hợp đồng Text/TextBox, cần chủ sản phẩm duyệt): banner và các
+  tùy chọn của Ô chữ trong Bảng thuộc tính.
+
+**Kho mã**
+
+- Ngừng theo dõi dữ liệu khách hàng và ảnh tài liệu bên thứ ba; chúng vẫn còn
+  trong lịch sử cũ. Thêm `.gitattributes`; quy tắc bỏ qua neo ở thư mục gốc. Kiểm
+  tra mẫu thật bỏ qua khi máy không có thư mục. Bộ lọc tên khách hàng chỉ lưu mã băm.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1188/1188; regression 252 PASS / 0 FAIL. Mutation gate không
+  bắt buộc: không đổi contract Core nào trong danh sách mutation.
+- Chưa có bằng chứng in vật lý mới. Chưa thử trên máy 4 GB và Windows scaling
+  125/150 %.
+
 ## v0.308 — In báo rõ, dữ liệu không in sai, thiết kế nhẹ hơn (kế hoạch 13, GĐ3–GĐ5)
 
 **In ấn (GĐ5)**
