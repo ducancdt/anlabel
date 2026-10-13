@@ -123,6 +123,12 @@ public partial class App : Application
         }
     }
 
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        base.OnSessionEnding(e);
+        (MainWindow as MainWindow)?.PrepareForSessionEnd();
+    }
+
     private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
     {
         CrashReporter.AppendErrorLog(e.Exception, "Tác vụ nền lỗi mà không có nơi xử lý");

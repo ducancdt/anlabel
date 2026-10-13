@@ -233,6 +233,65 @@ internal static class DocumentLifecycleRegression
         }
     }
 
+    public static async Task EditsWhileTheLinkedDataLoadsStayUnsaved()
+    {
+        var root = CreateRoot();
+        try
+        {
+            var data = Path.Combine(root, "big.csv");
+            var content = new System.Text.StringBuilder("Code,Qty\n");
+            for (var row = 0; row < 400_000; row++)
+            {
+                content.Append('P').Append(row).Append(",1\n");
+            }
+
+            await File.WriteAllTextAsync(data, content.ToString());
+            var templatePath = Path.Combine(root, "linked.anlabel");
+            var template = new LabelTemplate { Name = "Đang mở", WidthMm = 50, HeightMm = 30 };
+            template.Objects.Add(Rectangle("edit-me", 5));
+            template.DatabaseConfig.FilePath = data;
+            template.DatabaseConfig.SheetName = ANLAbel.Data.Excel.ExcelDataService.CsvSheetName;
+            await new ProjectFileService().SaveAsync(template, templatePath);
+
+            // A link that only refreshes keeps the opened document clean.
+            var clean = new MainViewModel();
+            await clean.OpenAsync(templatePath);
+            Require(!clean.IsDirty, "Opening a linked template must not mark it changed.");
+
+            var vm = new MainViewModel();
+            var opening = vm.OpenAsync(templatePath);
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (vm.Template.Name != "Đang mở" && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(5);
+            }
+
+            Require(!opening.IsCompleted, "The fixture must edit while the linked data is still loading.");
+            vm.Template.Objects.Single().XMm = 9;
+            await opening;
+            Require(vm.IsDirty, "An edit made while the linked data loaded must stay unsaved.");
+
+            var lifecycle = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.DocumentLifecycle.cs")).Replace("\r\n", "\n");
+            var closed = lifecycle[lifecycle.IndexOf("private void MainWindow_Closed(", StringComparison.Ordinal)..];
+            closed = closed[..closed.IndexOf("private void AutosaveTimer_Tick(", StringComparison.Ordinal)];
+            Require(closed.Contains("if (_closeConfirmed)", StringComparison.Ordinal) && closed.Contains("TryWriteRecoveryNow()", StringComparison.Ordinal),
+                "Closing without a confirmed answer must keep the edits as a recovery copy.");
+            Require(lifecycle.Contains("if (TryWriteRecoveryNow())", StringComparison.Ordinal),
+                "An opened recovery copy may be deleted only after this session wrote its own.");
+            var app = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "App.xaml.cs"));
+            Require(app.Contains("OnSessionEnding", StringComparison.Ordinal) && app.Contains("PrepareForSessionEnd()", StringComparison.Ordinal),
+                "Windows logoff must keep unsaved edits as a recovery copy.");
+            var update = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "UpdateWindow.xaml.cs"));
+            Require(update.IndexOf("PrepareForUpdateInstallAsync()", StringComparison.Ordinal) is > 0 and var ask
+                    && update.IndexOf("AppUpdateService.LaunchInstaller(", StringComparison.Ordinal) > ask,
+                "The update must ask to save before the installer closes ANLAbel.");
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
     private static MainViewModel CreateViewModel(IProjectFileService files, string registryPath)
     {
         return new MainViewModel(

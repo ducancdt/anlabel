@@ -155,6 +155,16 @@ public partial class UpdateWindow : Window
 
             if (confirm == MessageBoxResult.OK)
             {
+                // Ask to save first, as Close does: shutting down for the installer
+                // ignores the save prompt's answer (audit 2026-10-13).
+                if (Application.Current.MainWindow is MainWindow main && !await main.PrepareForUpdateInstallAsync())
+                {
+                    CloseButton.IsEnabled = true;
+                    InstallButton.IsEnabled = true;
+                    CheckAgainButton.IsEnabled = true;
+                    return;
+                }
+
                 if (!AppUpdateService.LaunchInstaller(filePath, closeAppOnLaunch: true))
                 {
                     MessageBox.Show(
@@ -162,6 +172,9 @@ public partial class UpdateWindow : Window
                         "Lỗi khởi chạy cài đặt",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
+                    CloseButton.IsEnabled = true;
+                    InstallButton.IsEnabled = true;
+                    CheckAgainButton.IsEnabled = true;
                 }
             }
             else

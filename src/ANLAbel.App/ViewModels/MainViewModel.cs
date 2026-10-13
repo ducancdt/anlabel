@@ -1746,9 +1746,27 @@ public sealed class MainViewModel : ObservableObject
         // relative data-source paths resolve beside the original document.
         CurrentFilePath = filePath;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
-        await RestoreLinkedExcelDataAsync();
+        // The file as read is the saved state. The data restore below can take
+        // up to the read timeout while the label is already editable; edits
+        // made meanwhile must stay unsaved (audit 2026-10-13). Only the data
+        // link the restore itself refreshes is treated as clean.
         MarkDocumentClean();
+        var loadedDesign = CaptureDesignSnapshot();
+        await RestoreLinkedExcelDataAsync();
+        if (CaptureDesignSnapshot() == loadedDesign)
+        {
+            MarkDocumentClean();
+        }
+
         return loadResult;
+    }
+
+    /// <summary>The template without its data link, to tell edits from a link refresh.</summary>
+    private string CaptureDesignSnapshot()
+    {
+        var node = JsonSerializer.SerializeToNode(Template, HistoryJsonOptions)!.AsObject();
+        node.Remove(nameof(LabelTemplate.DatabaseConfig));
+        return node.ToJsonString();
     }
 
     /// <summary>

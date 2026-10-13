@@ -46,6 +46,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("unsaved marker follows edits, undo and save", DocumentLifecycleRegression.UnsavedMarkerFollowsEditsUndoAndSave),
     ("save writes a snapshot and refuses a concurrent save", DocumentLifecycleRegression.SaveWritesSnapshotAndRefusesConcurrentSave),
     ("recovery copy is offered once and opens unsaved", DocumentLifecycleRegression.RecoveryCopyIsOfferedOnceAndOpensUnsaved),
+    ("edits while the linked data loads stay unsaved", DocumentLifecycleRegression.EditsWhileTheLinkedDataLoadsStayUnsaved),
     ("corrupt data-source registry is quarantined at startup", DocumentLifecycleRegression.CorruptRegistryIsQuarantinedAtStartup),
     ("explorer argument opens only existing documents", DocumentLifecycleRegression.ExplorerArgumentOpensOnlyExistingDocuments),
     ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),

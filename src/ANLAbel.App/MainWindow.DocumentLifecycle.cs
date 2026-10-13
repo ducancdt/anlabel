@@ -70,6 +70,13 @@ public partial class MainWindow
     /// <summary>Runs after the window is shown: notices, recovery offer, Explorer file, autosave.</summary>
     private async Task CompleteStartupAsync()
     {
+        // Autosave starts first: opening a file or the recovery offer can wait
+        // on the spooler or a slow share, and the session must be protected
+        // meanwhile (audit 2026-10-13).
+        _autosaveTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = AutosaveInterval };
+        _autosaveTimer.Tick += AutosaveTimer_Tick;
+        _autosaveTimer.Start();
+
         foreach (var notice in _viewModel.StartupNotices)
         {
             OperatorDialog.Ask(
@@ -93,10 +100,33 @@ public partial class MainWindow
                 await OpenDocumentPathAsync(StartupFilePath);
             }
         }
+    }
 
-        _autosaveTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = AutosaveInterval };
-        _autosaveTimer.Tick += AutosaveTimer_Tick;
-        _autosaveTimer.Start();
+    /// <summary>
+    /// Before the update installer closes ANLAbel: ask to save like Close does.
+    /// Returns false when the operator cancels; the installer must not start.
+    /// </summary>
+    internal async Task<bool> PrepareForUpdateInstallAsync()
+    {
+        if (!await ConfirmDocumentCanBeReplacedAsync("cài đặt bản cập nhật"))
+        {
+            return false;
+        }
+
+        _closeConfirmed = true;
+        return true;
+    }
+
+    /// <summary>
+    /// Windows is logging off or shutting down: there is no time to ask, and a
+    /// prompt's answer would be ignored. Keep the edits as a recovery copy that
+    /// is offered at the next start.
+    /// </summary>
+    internal void PrepareForSessionEnd()
+    {
+        CommitFocusedEdit();
+        TryWriteRecoveryNow();
+        SuppressClosePrompt = true;
     }
 
     private async void SaveAs_Click(object sender, RoutedEventArgs e)
@@ -260,6 +290,13 @@ public partial class MainWindow
     {
         if (await SaveDocumentAsync(saveAs: false))
         {
+            CommitFocusedEdit();
+            if (_viewModel.HasUnsavedChanges())
+            {
+                _viewModel.StatusText = "Đã lưu, nhưng có thay đổi mới trong lúc lưu. ANLAbel chưa đóng để bạn lưu tiếp.";
+                return;
+            }
+
             _closeConfirmed = true;
             Close();
         }
@@ -268,10 +305,17 @@ public partial class MainWindow
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
         _autosaveTimer?.Stop();
-        if (!SuppressClosePrompt)
+        if (_closeConfirmed)
         {
-            // Saved or explicitly discarded: nothing left to recover.
+            // Saved, explicitly discarded, or nothing unsaved: nothing to recover.
             _recovery.DeleteSession();
+        }
+        else if (!SuppressClosePrompt)
+        {
+            // Closed without an answer that took effect (application shutdown
+            // ignores Cancel and drops an async save): keep the edits so the
+            // next start offers them (audit 2026-10-13).
+            TryWriteRecoveryNow();
         }
     }
 
@@ -381,9 +425,16 @@ public partial class MainWindow
             {
                 await _viewModel.OpenRecoveredAsync(entry.DocumentPath, entry.OriginalFilePath, entry.DocumentName);
                 await _viewModel.RefreshPrinterQueueStatusAsync();
-                // This session now protects the recovered content before the old copy goes.
-                TryWriteRecoveryNow();
-                DocumentRecoveryService.Delete(entry);
+                // This session must protect the recovered content before the old copy goes.
+                if (TryWriteRecoveryNow())
+                {
+                    DocumentRecoveryService.Delete(entry);
+                }
+                else
+                {
+                    _viewModel.StatusText = "Đã mở bản phục hồi. Chưa ghi được bản phục hồi mới nên bản cũ vẫn được giữ; hãy lưu mẫu sớm.";
+                }
+
                 return true;
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
