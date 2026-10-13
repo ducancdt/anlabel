@@ -434,21 +434,21 @@ public sealed class MainViewModel : ObservableObject
     public IReadOnlyList<BarcodeSymbology> BarcodeSymbologies { get; } = Enum.GetValues<BarcodeSymbology>();
     public IReadOnlyList<BarcodeSymbologyOption> BarcodeSymbologyOptions { get; } =
     [
-        new(BarcodeSymbology.Code128, "1D Barcode", "Code 128"),
-        new(BarcodeSymbology.Code39, "1D Barcode", "Code 39"),
-        new(BarcodeSymbology.Code93, "1D Barcode", "Code 93"),
-        new(BarcodeSymbology.Ean13, "1D Barcode", "EAN-13"),
-        new(BarcodeSymbology.Ean8, "1D Barcode", "EAN-8"),
-        new(BarcodeSymbology.UpcA, "1D Barcode", "UPC-A"),
-        new(BarcodeSymbology.UpcE, "1D Barcode", "UPC-E"),
-        new(BarcodeSymbology.ITF, "1D Barcode", "ITF"),
-        new(BarcodeSymbology.Codabar, "1D Barcode", "Codabar"),
-        new(BarcodeSymbology.MSI, "1D Barcode", "MSI"),
-        new(BarcodeSymbology.Plessey, "1D Barcode", "Plessey"),
-        new(BarcodeSymbology.QRCode, "2D QR / Matrix", "QR Code"),
-        new(BarcodeSymbology.DataMatrix, "2D QR / Matrix", "Data Matrix"),
-        new(BarcodeSymbology.Aztec, "2D QR / Matrix", "Aztec"),
-        new(BarcodeSymbology.Pdf417, "2D QR / Matrix", "PDF417")
+        new(BarcodeSymbology.Code128, "Mã vạch 1D", "Code 128"),
+        new(BarcodeSymbology.Code39, "Mã vạch 1D", "Code 39"),
+        new(BarcodeSymbology.Code93, "Mã vạch 1D", "Code 93"),
+        new(BarcodeSymbology.Ean13, "Mã vạch 1D", "EAN-13"),
+        new(BarcodeSymbology.Ean8, "Mã vạch 1D", "EAN-8"),
+        new(BarcodeSymbology.UpcA, "Mã vạch 1D", "UPC-A"),
+        new(BarcodeSymbology.UpcE, "Mã vạch 1D", "UPC-E"),
+        new(BarcodeSymbology.ITF, "Mã vạch 1D", "ITF"),
+        new(BarcodeSymbology.Codabar, "Mã vạch 1D", "Codabar"),
+        new(BarcodeSymbology.MSI, "Mã vạch 1D", "MSI"),
+        new(BarcodeSymbology.Plessey, "Mã vạch 1D", "Plessey"),
+        new(BarcodeSymbology.QRCode, "Mã 2D", "QR Code"),
+        new(BarcodeSymbology.DataMatrix, "Mã 2D", "Data Matrix"),
+        new(BarcodeSymbology.Aztec, "Mã 2D", "Aztec"),
+        new(BarcodeSymbology.Pdf417, "Mã 2D", "PDF417")
     ];
     public IReadOnlyList<string> FontFamilies { get; } = GetIndustrialFontFamilies();
     public IReadOnlyList<double> FontSizes { get; } = TextStylePickerCatalog.StandardSizesPt;

@@ -225,6 +225,10 @@ Mọi mẫu cũ phải **mở và in đúng** như trước. Đề xuất (chờ
   hiện hành.
 - UPC-E, Codabar, MSI và Plessey rời danh sách tạo mới cho tới khi có fixture
   dương/âm và decode round-trip.
+- *Cập nhật 2026-10-13:* điều kiện trên đã đạt cho cả bốn loại. Từ v0.306,
+  `ImportedBarcodeRoundTripTests` chạy đủ 15 loại, và fixture âm đã có sẵn. Vì
+  vậy không loại nào bị ẩn. Xem ma trận B01–B07 trong
+  [`../CORE_STANDARD_EVIDENCE_AUDIT.md`](../CORE_STANDARD_EVIDENCE_AUDIT.md).
 
 ---
 
@@ -505,7 +509,7 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 - [x] 1.2 Đưa automation thả file và NiceLabel JOB ra khỏi bản phát hành `[chờ QĐ-5]` — xong 2026-10-13 (`a699825`). Giữ `FileDropPreparedBatchIdentity` vì manifest đã ghi cần kiểm chứng được.
 - [x] 1.3 Gỡ `TRIAL_BUILD`, installer Trial/Commercial và `tools/KeyProvisioner` `[chờ QĐ-6]` — xong 2026-10-13 (`a699825`); `tools/KeyProvisioner` không còn trong repo.
 - [x] 1.4 Chuyển tài liệu ngoài phạm vi vào `docs/archive/` và đồng bộ các tài liệu dẫn đường `[chờ QĐ-11]` — xong 2026-10-13 (`59acbcf`): 42 tài liệu, liên kết đã viết lại.
-- [ ] 1.5 Danh sách mã vạch tạo mới theo bằng chứng `[chờ QĐ-8]`
+- [x] 1.5 Danh sách mã vạch tạo mới theo bằng chứng `[chờ QĐ-8]` — xong 2026-10-13: cả 15 loại đã có fixture dương/âm và decode round-trip, nên không loại nào bị ẩn (§3.3). `BarcodeEvidenceMatrixTests` (30 ca) chặn loại mới thiếu bằng chứng. Tên nhóm đổi thành “Mã vạch 1D” và “Mã 2D”. Trên thẻ Figma `37:142`, chỉ phần tên nhóm còn áp dụng.
 
 **GĐ2 — File**
 
@@ -548,7 +552,7 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 - [x] P07 Unknown sau khi gửi; P08 chặn khi lỗi lưu bằng chứng; P04 thứ tự record/copy — xong 2026-10-13: P07 `d61d6db`, gate `failure after spool acceptance is unknown, not failed`; P08 cả hai đường in dùng `PrintJobEvidenceAppend`, unit `RequiredPreDispatchAppendFailureBlocksSend`; P04 unit `TryExpand_KeepsRecordAndCopyIdentityInPrintOrder` và `TwoThenOneCopyOrdinalsChangeTheManifestAndAMissingSequenceStaysV3`. P05: `DispatchRevalidationContractTests`; P06: gate `print preview busy gate blocks duplicate dispatch`, `async relay command rejects re-entry until the first call completes`.
 - [x] Log in ghi mẫu; thông báo lỗi in tiếng Việt kèm việc cần làm — xong 2026-10-13: log đã có danh tính mẫu (xem đính chính H24); `PrintFailureExplainer` và `PreflightIssueText` nêu vấn đề, dòng dữ liệu/đối tượng và việc cần làm, chi tiết kỹ thuật để riêng; gate `print stops are explained in plain Vietnamese`, `preflight issues name the data row in Vietnamese`. Bố cục dùng hộp thoại F03 (`36:188`); nội dung chữ ở handoff §3.
 - [ ] Tên driver khác máy: ca tái hiện và ADR `[chờ QĐ-12]` — chưa có ca tái hiện (cần máy thứ hai); giữ hành vi chặn hiện tại theo QĐ-12.
-- [ ] Matrix B01–B07 cho các loại mã được giữ
+- [x] Matrix B01–B07 cho các loại mã được giữ — xong 2026-10-13: bảng theo từng loại trong `CORE_STANDARD_EVIDENCE_AUDIT.md`, gồm fixture dương/âm, round-trip CSV/XLSX × 203/300/600 DPI và bộ đọc dùng. Mức phần mềm có đủ; mức vật lý vẫn Not verified vì cùng thư viện ZXing (Plessey dùng bộ đọc trong test) và chưa quét tem thật.
 
 **GĐ6 — Nghiệm thu thật**
 

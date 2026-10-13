@@ -291,6 +291,54 @@ Các hàng Pass/Partial cũ trong ma trận trên **không còn là kết luận
 | Barcode | Not verified; 11/15 decode cùng ZXing; 4 loại chưa có imported decode | Không công bố production-ready; cần decoder độc lập + matrix vật lý |
 | Print | Not verified; P08/P07/P04 có mâu thuẫn nguồn, chưa chạy Fail | Không in thật, không đổi printer; cần fault inject persistence/dispatch và driver matrix |
 
+### Ma trận mã vạch B01–B07 theo từng loại (2026-10-13, plan 13 GĐ5 và QĐ-8)
+
+Thay cho câu “11/15 decode” ở bảng trên: từ v0.306,
+[ImportedBarcodeRoundTripTests](../src/ANLAbel.UnitTests/ImportedBarcodeRoundTripTests.cs)
+chạy cả 15 loại. Mỗi ca đi từ ô CSV hoặc XLSX, qua binding và renderer, tới decode
+khớp từng ký tự ở 203, 300 và 600 DPI, tổng 90 ca. Fixture âm lấy từ
+[BarcodeApplicationContractTests](../src/ANLAbel.UnitTests/BarcodeApplicationContractTests.cs).
+[BarcodeEvidenceMatrixTests](../src/ANLAbel.UnitTests/BarcodeEvidenceMatrixTests.cs) lấy
+danh sách loại từ enum runtime và buộc mỗi loại có fixture dương, fixture âm và
+đủ sáu ca round-trip. Loại mới thiếu một trong ba sẽ làm test đỏ.
+
+Kết quả chạy: unit 1141/1141 cùng `BarcodeEvidenceMatrixTests` 30/30 tại
+`329af79` + slice này (2026-10-13).
+
+| Loại | Fixture dương (round-trip) | Fixture âm bị từ chối | Bộ đọc trong test | Ghi chú |
+| --- | --- | --- | --- | --- |
+| Code 128 | ` 000123 ` (giữ khoảng trắng, số 0 đầu) | ký tự NBSP | ZXing | GS1 FNC1: `Gs1Code128Fnc1RoundTripTests` |
+| QR Code | ` 000123⏎Lô A ` (Unicode, xuống dòng) | rỗng | ZXing | GS1 subset (B03) |
+| Data Matrix | `LOT-2026-X` | rỗng | ZXing (`PURE_BARCODE`) | GS1 subset (B03) |
+| Code 39 | `CODE-39` | `CODE39@BAD` | ZXing | tỉ lệ và vùng trống: `Code39RatioContractTests` |
+| Code 93 | `CODE93` | ký tự NBSP | ZXing | — |
+| EAN-13 | `5901234123457` | sai số kiểm tra | ZXing | `RetailCheckDigitRenderTests` |
+| EAN-8 | `96385074` | sai số kiểm tra | ZXing | — |
+| UPC-A | `036000291452` | sai số kiểm tra | ZXing | — |
+| UPC-E | `01234565` | `01234A` | ZXing | test dùng vùng trống 6 mô-đun |
+| ITF | `1234567890` | độ dài lẻ | ZXing | — |
+| Codabar | `A123456B` | `123@456` | ZXing (giữ start/stop) | — |
+| PDF417 | `PDF417-2026` | rỗng | ZXing | — |
+| Aztec | `AZTEC-2026` | rỗng | ZXing | — |
+| MSI | `123456` | `12345A` | ZXing | — |
+| Plessey | `98765` | `9876F` | bộ đọc viết trong test (ZXing không đọc Plessey) | bằng chứng yếu hơn các loại khác |
+
+| ID | Bằng chứng phần mềm hiện có | Còn thiếu | Trạng thái |
+| --- | --- | --- | --- |
+| B01 | Fixture âm theo từng loại ở trên; preflight chặn payload sai | Decoder độc lập với encoder | Not verified (vật lý) |
+| B02 | Round-trip giữ nguyên payload từ ô dữ liệu tới decode | Như trên | Not verified (vật lý) |
+| B03 | `BarcodeApplicationContractTests` (AI, độ dài, số kiểm tra, separator), `Gs1Code128Fnc1RoundTripTests` | Quét GS1 vật lý | Not verified |
+| B04 | `LinearBarcodeModuleContractTests`, `MatrixSquareModuleFitTests`, `QrSizingCalculatorTests`, `Code39RatioContractTests` | Đo trên tem in thật ở 203/300 DPI | Not verified |
+| B05 | `BarcodeHriLayoutTests`, `DeviceBarcodeLayoutTests` | Xoay × HRI × mép in trên output thật | Not verified |
+| B06 | Designer, preflight và bản in cùng dùng `ZxingBarcodeRenderer` với cùng tùy chọn mã; designer vẽ ở `QrDpi` của đối tượng, xem trước và in vẽ ở DPI hiệu dụng của máy in | Một ca so sánh designer–xem trước–in cho cùng payload khi DPI khác nhau | Not verified |
+| B07 | Danh sách lấy từ runtime; mỗi loại có fixture dương/âm và round-trip | Quét bằng máy đọc thật | Not verified |
+
+Áp dụng QĐ-8: điều kiện ở §3.3 của plan 13 (fixture dương/âm và decode
+round-trip) đã đạt cho cả 15 loại, nên **không loại nào bị bỏ khỏi danh sách tạo
+mới**. Không loại nào được ghi là đã nghiệm thu cho sản xuất. Lý do: encoder và
+bộ đọc là cùng thư viện ZXing (riêng Plessey là bộ đọc viết trong test), và chưa
+có tem vật lý được quét.
+
 ### D06 checkpoint after 0.287 (lịch sử; không phải Pass hiện tại)
 - **Strict raw-legacy signature**: Yêu cầu đầy đủ chữ ký PascalCase do serializer cũ sinh gồm `Id` (string), `Name` (string), `WidthMm` (number), `HeightMm` (number), `Dpi` (number), và `Objects` (array) khi thiếu `schemaVersion`; loại bỏ fallback unversioned payload tùy tiện để đảm bảo fail-closed.
 - **Missing / Malformed / Future schema behavior**: Mọi payload thiếu hoặc sai kiểu `schemaVersion` (như string `"2"`, số thập phân `2.5`) đều bị từ chối bằng `InvalidDataException`. Đối với future schema version (`CurrentSchemaVersion + 1`), `LoadAsync` bọc trong `InvalidDataException` với `InnerException` là `UnsupportedProjectSchemaException` để tương thích caller hiện tại, trong khi `LoadWithRecoveryAsync` giữ nguyên `UnsupportedProjectSchemaException` nhằm chống downgrade backup sai lệch.
