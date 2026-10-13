@@ -77,6 +77,45 @@ internal static class PrintSafetyRegression
         return Task.CompletedTask;
     }
 
+    public static async Task QuickPrintRefusesPlaceholdersAndRunsOneJobAtATime()
+    {
+        // A bound label with no data row must not print "{PartNo}" as text.
+        var vm = new ANLAbel.App.ViewModels.MainViewModel();
+        vm.Template.PrinterProfile.PrinterName = "Audit-Queue";
+        vm.Template.Objects.Add(new ANLAbel.Core.Models.LabelObject
+        {
+            Id = "bound",
+            Type = ANLAbel.Core.Enums.ObjectType.Text,
+            Name = "Mã",
+            Text = "{PartNo}",
+            BindingExpression = "{PartNo}",
+            XMm = 2,
+            YMm = 2,
+            WidthMm = 20,
+            HeightMm = 5
+        });
+        await ((ANLAbel.App.ViewModels.AsyncRelayCommand)vm.PrintCurrentRowCommand).ExecuteAsync(null);
+        Require(vm.StatusText.StartsWith("Đã chặn in: mẫu có trường dữ liệu nhưng chưa có dòng dữ liệu", StringComparison.Ordinal),
+            "Quick print must refuse a bound label without data: " + vm.StatusText);
+        Require(!vm.IsQuickPrinting, "The print gate must be released after a refused print.");
+
+        // Both quick-print commands share one gate and release it in finally.
+        var source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs")).Replace("\r\n", "\n");
+        foreach (var name in new[] { "private async Task PrintCurrentRowAsync()", "private async Task PrintAllRowsAsync()" })
+        {
+            var body = Method(Path.Combine("src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"), name);
+            Require(body.Contains("if (!TryBeginQuickPrint())", StringComparison.Ordinal)
+                    && body.Contains("IsQuickPrinting = false;", StringComparison.Ordinal),
+                name + " must take the shared quick-print gate and release it.");
+        }
+
+        var printClick = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async void Print_Click(");
+        var drift = printClick.IndexOf("if (_previewPlan is not null && !(outputUnchanged && quantityUnchanged))", StringComparison.Ordinal);
+        Require(drift > 0 && printClick.IndexOf("RefreshPreview();", drift, StringComparison.Ordinal) > drift
+                && printClick.IndexOf("return;", drift, StringComparison.Ordinal) < printClick.IndexOf("PrintRowsWithResultAsync(", StringComparison.Ordinal),
+            "Print Preview must show a changed setup or selection again instead of printing it unseen.");
+    }
+
     public static Task PrintStopsAreExplainedInPlainVietnamese()
     {
         // The first two are the XP-DT426B stops recorded in print-operations.jsonl.

@@ -77,6 +77,23 @@ public sealed class QuickPrintQuantityTests
     }
 
     [Fact]
+    public void TryExpand_RefusesAJobAboveThePreviewLabelLimit()
+    {
+        // Audit 2026-10-13 (DB08): quick print must refuse what Print Preview refuses.
+        var database = new DatabaseConfig { CopiesField = "Qty" };
+        var rows = Enumerable.Range(1, 101)
+            .Select(row => (row, (IReadOnlyDictionary<string, string>?)new Dictionary<string, string> { ["Qty"] = "999" }))
+            .ToArray();
+
+        Assert.False(QuickPrintQuantity.TryExpand(database, fallbackCopies: 1, rows, out var expanded, out var error));
+        Assert.Empty(expanded);
+        Assert.Contains("cannot exceed 100000 labels", error, StringComparison.Ordinal);
+
+        Assert.False(QuickPrintQuantity.TryExpand(null, fallbackCopies: 999, rows, out _, out var manualError));
+        Assert.Contains("cannot exceed 100000 labels", manualError, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TryExpand_KeepsRecordAndCopyIdentityInPrintOrder()
     {
         // P04: A×2, B×1 → A1, A2, B1 — the same order the manifest records.

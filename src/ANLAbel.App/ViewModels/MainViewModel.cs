@@ -63,6 +63,7 @@ public sealed class MainViewModel : ObservableObject
     private readonly HashSet<LabelObject> _applyingQrAutoSize = new();
     private readonly Stack<string> _undoStack = new();
     private IReadOnlyList<LabelObject> _missingResourceObjects = Array.Empty<LabelObject>();
+    private bool _isQuickPrinting;
     private int _importGeneration;
     private bool _selectedObjectRefreshDeferred;
     private readonly Stack<string> _redoStack = new();
@@ -2997,8 +2998,53 @@ public sealed class MainViewModel : ObservableObject
         RaiseCommandCanExecuteChanged(RefreshExcelDataCommand);
     }
 
+    /// <summary>
+    /// True while a quick print is being prepared or sent. Both quick-print
+    /// commands share it, so "In dòng hiện tại" and "In tất cả" cannot send two
+    /// jobs at once (P06, audit 2026-10-13).
+    /// </summary>
+    public bool IsQuickPrinting
+    {
+        get => _isQuickPrinting;
+        private set => SetProperty(ref _isQuickPrinting, value);
+    }
+
+    private bool TryBeginQuickPrint()
+    {
+        if (IsQuickPrinting)
+        {
+            StatusText = "Đang gửi lệnh in trước, vui lòng đợi.";
+            return false;
+        }
+
+        IsQuickPrinting = true;
+        StatusText = "Đang chuẩn bị và gửi lệnh in…";
+        return true;
+    }
+
+    /// <summary>Vietnamese text for a copies/quantity refusal, naming each data row.</summary>
+    private static string QuantityProblemText(string error)
+    {
+        var lines = error.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var head = lines.Length == 0 ? error : lines[0];
+        var rows = lines.Skip(1)
+            .Select(line => System.Text.RegularExpressions.Regex.Match(line, @"^- Row (?<row>\d+), field '[^']*': (?<message>.+)$"))
+            .Where(match => match.Success)
+            .Select(match => $"dòng {match.Groups["row"].Value}: {ANLAbel.App.Services.PreflightIssueText.Message(match.Groups["message"].Value)}")
+            .ToArray();
+        var known = ANLAbel.App.Services.PrintFailureExplainer.Explain(head);
+        var problem = known.IsGeneric ? ANLAbel.App.Services.PreflightIssueText.Sentence(head) : known.Problem;
+        var detail = rows.Length == 0 ? string.Empty : " " + string.Join("; ", rows) + ".";
+        return "Đã chặn in: " + problem + detail + (known.IsGeneric ? string.Empty : " " + known.NextAction);
+    }
+
     private async Task PrintCurrentRowAsync()
     {
+        if (!TryBeginQuickPrint())
+        {
+            return;
+        }
+
         try
         {
             if (IsExcelDataStale || await LinkedDataChangedSinceImportAsync())
@@ -3010,6 +3056,14 @@ public sealed class MainViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(DataTransformError))
             {
                 StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {DataTransformError}";
+                return;
+            }
+
+            // A bound label without a data row would print the "{Field}"
+            // placeholders as text and encode them in barcodes (audit 2026-10-13).
+            if (PreviewRow is null && Template.Objects.Any(item => item.IsVisible && EvaluateBinding(item).UsedFields.Count > 0))
+            {
+                StatusText = "Đã chặn in: mẫu có trường dữ liệu nhưng chưa có dòng dữ liệu nào. Hãy nhập hoặc cập nhật Excel (hoặc bỏ trường dữ liệu khỏi đối tượng) rồi in lại.";
                 return;
             }
 
@@ -3036,7 +3090,7 @@ public sealed class MainViewModel : ObservableObject
 
             if (!QuickPrintQuantity.TryExpand(copiesDatabase, PrintCopies, quantityRows, out var expandedRows, out var sequence, out var copiesError))
             {
-                StatusText = copiesError;
+                StatusText = QuantityProblemText(copiesError);
                 return;
             }
 
@@ -3074,10 +3128,19 @@ public sealed class MainViewModel : ObservableObject
             StatusText = "In thất bại: " + ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message).StatusLine;
             LogPrintOperation("Current row", PreviewRow is null ? 0 : 1, 0, success: false, ex.Message);
         }
+        finally
+        {
+            IsQuickPrinting = false;
+        }
     }
 
     private async Task PrintAllRowsAsync()
     {
+        if (!TryBeginQuickPrint())
+        {
+            return;
+        }
+
         try
         {
             if (ExcelDataView is null || ExcelDataView.Count == 0)
@@ -3110,17 +3173,23 @@ public sealed class MainViewModel : ObservableObject
             DataTransformError = string.Empty;
             if (!QuickPrintQuantity.TryExpand(Template.DatabaseConfig, PrintCopies, quantityRows, out var expandedRows, out var sequence, out var copiesError))
             {
-                StatusText = copiesError;
+                StatusText = QuantityProblemText(copiesError);
                 return;
             }
 
             var rows = expandedRows.ToArray();
+            // Rows whose copies column is 0 are not printed; say which (DB08).
+            var printedRows = sequence.Select(copy => copy.SourceRowNumber).ToHashSet();
+            var zeroCopyRows = quantityRows.Select(entry => entry.SourceRowNumber).Where(row => !printedRows.Contains(row)).ToArray();
+            var zeroCopyNote = zeroCopyRows.Length == 0
+                ? string.Empty
+                : $" Không in {zeroCopyRows.Length} dòng có số bản bằng 0: dòng {string.Join(", ", zeroCopyRows.Take(10))}{(zeroCopyRows.Length > 10 ? "…" : string.Empty)}.";
 
             var tracked = await DispatchTrackedPrintAsync(rows, $"{Template.Name} labels", sequence: sequence);
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus);
+                StatusText = AppendQueueStatus(result.UserFacingStatus, tracked.SpoolStatus) + zeroCopyNote;
                 _ = WritePrintLogAsync(
                     "All rows",
                     rows,
@@ -3148,6 +3217,10 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusText = "In thất bại: " + ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message).StatusLine;
             LogPrintOperation("All rows", ExcelDataView?.Count ?? 0, 0, success: false, ex.Message);
+        }
+        finally
+        {
+            IsQuickPrinting = false;
         }
     }
 

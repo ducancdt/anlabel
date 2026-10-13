@@ -56,6 +56,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
     ("failure while sending is uncertain, not failed", PrintSafetyRegression.FailureWhileSendingIsUncertainNotFailed),
+    ("quick print refuses placeholders and runs one job at a time", PrintSafetyRegression.QuickPrintRefusesPlaceholdersAndRunsOneJobAtATime),
     ("print stops are explained in plain Vietnamese", PrintSafetyRegression.PrintStopsAreExplainedInPlainVietnamese),
     ("preflight issues name the data row in Vietnamese", PrintSafetyRegression.PreflightIssuesNameTheDataRowInVietnamese),
     ("print history regression suite", PrintHistoryRegression.Run),
@@ -9444,13 +9445,13 @@ static async Task TestQuickPrintUsesDatabaseCopiesField()
     AssertEqual(true, vm.CurrentExcelRowText.Contains("Dòng 2", StringComparison.Ordinal), "Setup: the selected data-view row must be row 2, not row 1 of 2: " + vm.CurrentExcelRowText);
 
     await ((AsyncRelayCommand)vm.PrintCurrentRowCommand).ExecuteAsync(null);
-    AssertEqual(true, vm.StatusText.Contains("Row 2", StringComparison.Ordinal), "Print current row must name the selected data row, not Row 1: " + vm.StatusText);
+    AssertEqual(true, vm.StatusText.Contains("dòng 2:", StringComparison.Ordinal), "Print current row must name the selected data row, not Row 1: " + vm.StatusText);
     AssertEqual(false, vm.StatusText.Contains("Row 1", StringComparison.Ordinal), "Print current row must not relabel the selected row as Row 1: " + vm.StatusText);
-    AssertEqual(true, vm.StatusText.Contains("blank", StringComparison.OrdinalIgnoreCase), "Print current row must report the blank copies cell: " + vm.StatusText);
+    AssertEqual(true, vm.StatusText.Contains("đang trống", StringComparison.Ordinal), "Print current row must report the blank copies cell: " + vm.StatusText);
 
     await ((AsyncRelayCommand)vm.PrintAllRowsCommand).ExecuteAsync(null);
-    AssertEqual(true, vm.StatusText.Contains("Row 2", StringComparison.Ordinal), "Print all rows must block on the blank copies cell at row 2: " + vm.StatusText);
-    AssertEqual(true, vm.StatusText.Contains("blank", StringComparison.OrdinalIgnoreCase), "Print all rows must report the blank copies cell: " + vm.StatusText);
+    AssertEqual(true, vm.StatusText.Contains("dòng 2:", StringComparison.Ordinal), "Print all rows must block on the blank copies cell at row 2: " + vm.StatusText);
+    AssertEqual(true, vm.StatusText.Contains("đang trống", StringComparison.Ordinal), "Print all rows must report the blank copies cell: " + vm.StatusText);
 
     try { Directory.Delete(dir, true); } catch { }
 }

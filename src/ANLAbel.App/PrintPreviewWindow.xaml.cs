@@ -427,6 +427,28 @@ public partial class PrintPreviewWindow : Window
             _previewTrustLevel = PreviewInitializationTrust.RetainForCurrentSnapshot(
                 _previewTrustLevel,
                 outputUnchanged && quantityUnchanged && _previewPlan is not null);
+            if (_previewPlan is not null && !(outputUnchanged && quantityUnchanged))
+            {
+                // The operator prints what the preview shows: a printer setting or
+                // selection that changed since it was prepared is shown first
+                // (audit 2026-10-13). Nothing is sent on this click.
+                _previewPlan = effectivePlan;
+                _previewPlanPrinterName = _selectedPrinterName ?? string.Empty;
+                _previewPlanIssue = null;
+                OnPropertyChanged();
+                RefreshPreview();
+                OperatorDialog.Ask(
+                    this,
+                    "Bản xem trước đã được cập nhật",
+                    [
+                        "Cài đặt máy in hoặc các dòng và số bản đã thay đổi so với bản đang xem trước. ANLAbel đã làm mới bản xem trước và chưa gửi lệnh in.",
+                        "Kiểm tra lại các tem rồi bấm In."
+                    ],
+                    null,
+                    OperatorDialogTone.Normal,
+                    new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
+                return;
+            }
             // Đợt 4 item 11 — "chống trùng tem": warn before re-sending a row that was
             // already printed earlier in this same preview session.
             // Keep the exact effective queue/driver plan for any preview

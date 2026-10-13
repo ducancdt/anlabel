@@ -60,6 +60,14 @@ public static class QuickPrintQuantity
                 return false;
             }
 
+            if (labels.Count > QuantityPlan.MaximumPreparedLabelCount)
+            {
+                expanded = Array.Empty<IReadOnlyDictionary<string, string>?>();
+                sequence = Array.Empty<PrintDispatchCopy>();
+                error = $"A print job cannot exceed {QuantityPlan.MaximumPreparedLabelCount} labels; the selected rows need {labels.Count}.";
+                return false;
+            }
+
             expanded = labels;
             sequence = identities;
             error = string.Empty;
@@ -71,6 +79,14 @@ public static class QuickPrintQuantity
             expanded = Array.Empty<IReadOnlyDictionary<string, string>?>();
             sequence = Array.Empty<PrintDispatchCopy>();
             error = $"Copies must be a whole number from 1 to {QuantityPlan.MaximumCopiesPerRecord}. The current value is {fallbackCopies}.";
+            return false;
+        }
+
+        if ((long)sourceRows.Count * fallbackCopies > QuantityPlan.MaximumPreparedLabelCount)
+        {
+            expanded = Array.Empty<IReadOnlyDictionary<string, string>?>();
+            sequence = Array.Empty<PrintDispatchCopy>();
+            error = $"A print job cannot exceed {QuantityPlan.MaximumPreparedLabelCount} labels; the selected rows need {(long)sourceRows.Count * fallbackCopies}.";
             return false;
         }
 

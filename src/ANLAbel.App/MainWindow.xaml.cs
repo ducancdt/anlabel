@@ -636,10 +636,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_viewModel.PrintCurrentRowCommand.CanExecute(null))
-        {
-            _viewModel.PrintCurrentRowCommand.Execute(null);
-        }
+        await RunQuickPrintAsync(_viewModel.PrintCurrentRowCommand, "Không có dòng nào để in.");
     }
 
     private async void PrintAllRows_Click(object sender, RoutedEventArgs e)
@@ -649,9 +646,36 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_viewModel.PrintAllRowsCommand.CanExecute(null))
+        await RunQuickPrintAsync(_viewModel.PrintAllRowsCommand, "Không có dòng Excel nào để in.");
+    }
+
+    /// <summary>
+    /// Runs a quick-print command to its end with a wait cursor, and says why a
+    /// click did nothing instead of ignoring it (audit 2026-10-13).
+    /// </summary>
+    private async Task RunQuickPrintAsync(System.Windows.Input.ICommand command, string nothingToPrint)
+    {
+        if (!command.CanExecute(null))
         {
-            _viewModel.PrintAllRowsCommand.Execute(null);
+            _viewModel.StatusText = _viewModel.IsQuickPrinting ? "Đang gửi lệnh in trước, vui lòng đợi." : nothingToPrint;
+            return;
+        }
+
+        Mouse.OverrideCursor = Cursors.Wait;
+        try
+        {
+            if (command is AsyncRelayCommand asyncCommand)
+            {
+                await asyncCommand.ExecuteAsync(null);
+            }
+            else
+            {
+                command.Execute(null);
+            }
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
         }
     }
 
