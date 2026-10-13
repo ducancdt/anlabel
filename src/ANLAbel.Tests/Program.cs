@@ -51,6 +51,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),
     ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
+    ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
+    ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
     ("print history regression suite", PrintHistoryRegression.Run),
     ("release version script projects one public version", ReleaseVersionScriptRegression.Run),
     ("mm to WPF DIP conversion", TestMmToDip),
@@ -7758,7 +7760,7 @@ static Task TestPrintPreviewBusyGate()
         "Print without a selected printer must open Printer Setup instead of ignoring the click");
 
     var shellCode = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml.cs"));
-    AssertEqual(true, shellCode.Contains("TryEnsurePrinterSelected()", StringComparison.Ordinal),
+    AssertEqual(true, shellCode.Contains("TryEnsurePrinterSelectedAsync()", StringComparison.Ordinal),
         "Ribbon Print must ask for a printer instead of failing in the status bar");
     return Task.CompletedTask;
 }
@@ -7781,7 +7783,7 @@ static Task TestPreviewReadyDropsWhenSnapshotChanges()
         "Ready remains only while the prepared snapshot is unchanged");
 
     var previewCode = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"));
-    var staleAt = previewCode.IndexOf("private bool TryBlockStaleLinkedExcelData()", StringComparison.Ordinal);
+    var staleAt = previewCode.IndexOf("private async Task<bool> TryBlockStaleLinkedExcelDataAsync()", StringComparison.Ordinal);
     var filterAt = previewCode.IndexOf("private void ApplyRowFilter()", StringComparison.Ordinal);
     var printClickAt = previewCode.IndexOf("private async void Print_Click", StringComparison.Ordinal);
     var nextMethodAt = previewCode.IndexOf("private void LogPrintOperation", printClickAt, StringComparison.Ordinal);

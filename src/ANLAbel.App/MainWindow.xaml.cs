@@ -615,7 +615,7 @@ public partial class MainWindow : Window
 
     private async void PrinterSetup_Click(object sender, RoutedEventArgs e)
     {
-        ShowPrinterSetupDialog();
+        await ShowPrinterSetupDialogAsync();
         await _viewModel.RefreshPrinterQueueStatusAsync();
     }
 
@@ -624,9 +624,9 @@ public partial class MainWindow : Window
         OpenPrintPreview();
     }
 
-    private void PrintCurrent_Click(object sender, RoutedEventArgs e)
+    private async void PrintCurrent_Click(object sender, RoutedEventArgs e)
     {
-        if (!TryEnsurePrinterSelected())
+        if (!await TryEnsurePrinterSelectedAsync())
         {
             return;
         }
@@ -637,9 +637,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PrintAllRows_Click(object sender, RoutedEventArgs e)
+    private async void PrintAllRows_Click(object sender, RoutedEventArgs e)
     {
-        if (!TryEnsurePrinterSelected())
+        if (!await TryEnsurePrinterSelectedAsync())
         {
             return;
         }
@@ -650,14 +650,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private bool TryEnsurePrinterSelected()
+    private async Task<bool> TryEnsurePrinterSelectedAsync()
     {
         if (!string.IsNullOrWhiteSpace(_viewModel.Template.PrinterProfile.PrinterName))
         {
             return true;
         }
 
-        ShowPrinterSetupDialog();
+        await ShowPrinterSetupDialogAsync();
         return !string.IsNullOrWhiteSpace(_viewModel.Template.PrinterProfile.PrinterName);
     }
 
@@ -827,18 +827,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        ShowPrinterSetupDialog();
+        await ShowPrinterSetupDialogAsync();
         await _viewModel.RefreshPrinterQueueStatusAsync();
     }
 
-    private void ShowPrinterSetupDialog()
+    private async Task ShowPrinterSetupDialogAsync()
     {
         try
         {
-            var printers = _viewModel.GetInstalledPrinters();
-            if (printers.Count == 0)
+            var printers = await ANLAbel.App.Services.PrinterQueueLoader.LoadForDialogAsync(this, _viewModel.DiscoverInstalledPrinters);
+            if (printers is null)
             {
-                MessageBox.Show(this, "Không tìm thấy máy in Windows nào.", "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 

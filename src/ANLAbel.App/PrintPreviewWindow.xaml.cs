@@ -242,12 +242,11 @@ public partial class PrintPreviewWindow : Window
         }
     }
 
-    private void LabelPrinterSetup_Click(object sender, RoutedEventArgs e)
+    private async void LabelPrinterSetup_Click(object sender, RoutedEventArgs e)
     {
-        var printers = _printerDiscoveryService.GetInstalledPrinters();
-        if (printers.Count == 0)
+        var printers = await ANLAbel.App.Services.PrinterQueueLoader.LoadForDialogAsync(this, _printerDiscoveryService.DiscoverInstalledPrinters);
+        if (printers is null)
         {
-            MessageBox.Show(this, "Không tìm thấy máy in Windows nào.", "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -340,6 +339,7 @@ public partial class PrintPreviewWindow : Window
         OnPropertyChanged();
         var printJobId = string.Empty;
         PrintJobManifest? manifest = null;
+        PrintJobResult? dispatchedPrintResult = null;
         try
         {
             if (_isPreviewBusy)
@@ -347,7 +347,7 @@ public partial class PrintPreviewWindow : Window
                 return;
             }
 
-            if (TryBlockStaleLinkedExcelData())
+            if (await TryBlockStaleLinkedExcelDataAsync())
             {
                 return;
             }
@@ -521,7 +521,7 @@ public partial class PrintPreviewWindow : Window
             // finish after the initial click-time check. Revalidate immediately
             // before a job/manifest is created, so a stale source never crosses
             // the durable dispatch boundary.
-            if (TryBlockStaleLinkedExcelData())
+            if (await TryBlockStaleLinkedExcelDataAsync())
             {
                 return;
             }
@@ -618,6 +618,7 @@ public partial class PrintPreviewWindow : Window
                     $"{_template.Name} preview print",
                     expectedOutputContractHash: effectivePlan.OutputContractHash))
                 with { ManifestFingerprint = manifest.Fingerprint, Manifest = manifest };
+            dispatchedPrintResult = printResult;
             printResult = await _printService.ResolveSpoolJobIdentityAsync(
                 printResult,
                 timeout: TimeSpan.FromSeconds(1),
@@ -732,16 +733,20 @@ public partial class PrintPreviewWindow : Window
         }
         catch (Exception ex)
         {
+            // P07: after the spooler accepted the job, a later failure leaves the
+            // outcome uncertain. Recording Failed would invite a duplicate reprint.
+            var acceptedBeforeFailure = dispatchedPrintResult?.IsAccepted == true;
+            var failureState = acceptedBeforeFailure ? PrintJobLifecycleState.Unknown : PrintJobLifecycleState.Failed;
             if (!string.IsNullOrWhiteSpace(printJobId))
             {
                 var currentState = _printJobStateStore.GetCurrentState(printJobId);
                 if (currentState is PrintJobLifecycleState current
-                    && PrintJobStateMachine.CanTransition(current, PrintJobLifecycleState.Failed))
+                    && PrintJobStateMachine.CanTransition(current, failureState))
                 {
                     await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
                         printJobId,
                         current,
-                        PrintJobLifecycleState.Failed,
+                        failureState,
                         DateTimeOffset.UtcNow,
                         ex.Message,
                         PrinterName: _selectedPrinterName,
@@ -750,8 +755,20 @@ public partial class PrintPreviewWindow : Window
                 }
             }
 
-            LogPrintOperation(0, new PrintJobResult(PrintJobOutcome.Failed, _selectedPrinterName, $"{_template.Name} preview print", 0, ex.Message, ManifestFingerprint: manifest?.Fingerprint ?? string.Empty, Manifest: manifest), jobId: printJobId);
-            MessageBox.Show(this, ex.Message, "In thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+            LogPrintOperation(0, new PrintJobResult(acceptedBeforeFailure ? PrintJobOutcome.Unknown : PrintJobOutcome.Failed, _selectedPrinterName, $"{_template.Name} preview print", 0, ex.Message, ManifestFingerprint: manifest?.Fingerprint ?? string.Empty, Manifest: manifest), jobId: printJobId);
+            if (acceptedBeforeFailure)
+            {
+                MessageBox.Show(
+                    this,
+                    $"Hàng đợi đã nhận lệnh in nhưng sau đó gặp lỗi: {ex.Message}\n\nChưa rõ tem đã ra hay chưa. ANLAbel không tự in lại; hãy kiểm tra máy in và đối soát lệnh trong Trung tâm in trước khi in lại.",
+                    "Chưa rõ kết quả in",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            else
+            {
+                MessageBox.Show(this, ex.Message, "In thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         finally
         {
@@ -855,14 +872,21 @@ public partial class PrintPreviewWindow : Window
     /// Stale data is a hard print-preparation block; preview pages remain a visual
     /// record of the captured snapshot only.
     /// </summary>
-    private bool IsLinkedExcelDataStale()
+    private async Task<bool> IsLinkedExcelDataStaleAsync()
     {
-        return IsSourceSnapshotStale(_excelKnownSourceIdentity, TryGetExcelSourceIdentity());
+        if (_excelKnownSourceIdentity is null)
+        {
+            return false;
+        }
+
+        // Hashing a large workbook must not freeze the preview (plan 13 H17).
+        var current = await Task.Run(TryGetExcelSourceIdentity).ConfigureAwait(true);
+        return IsSourceSnapshotStale(_excelKnownSourceIdentity, current);
     }
 
-    private bool TryBlockStaleLinkedExcelData()
+    private async Task<bool> TryBlockStaleLinkedExcelDataAsync()
     {
-        if (!IsLinkedExcelDataStale())
+        if (!await IsLinkedExcelDataStaleAsync())
         {
             return false;
         }

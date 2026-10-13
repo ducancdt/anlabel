@@ -22,7 +22,12 @@ public sealed record FileSourceIdentity(long Length, DateTime LastWriteTimeUtc, 
             var lengthBeforeRead = info.Length;
             var writeTimeBeforeRead = info.LastWriteTimeUtc;
 
-            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            // Excel keeps an open workbook with write access. Asking for
+            // FileShare.Read would fail while the operator has the file open and
+            // turn an unchanged source into a false "stale" print block (plan 13
+            // H15). Reading with ReadWrite sharing is safe: the length/time check
+            // below still rejects a file that changes while it is hashed.
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             var sha256 = Convert.ToHexString(SHA256.HashData(stream));
             info.Refresh();
             if (info.Length != lengthBeforeRead || info.LastWriteTimeUtc != writeTimeBeforeRead)

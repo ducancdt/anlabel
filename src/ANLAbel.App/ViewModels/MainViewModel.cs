@@ -4593,7 +4593,11 @@ public sealed class MainViewModel : ObservableObject
         IReadOnlyList<PrintDispatchCopy>? sequence = null)
     {
         var jobId = string.IsNullOrWhiteSpace(existingJobId) ? Guid.NewGuid().ToString("N") : existingJobId;
-        var printerName = Template.PrinterProfile.PrinterName;
+        // Plan 13 GD5 (H17/H22, P03/P05): one immutable snapshot feeds the
+        // printer contract, preflight, manifest and dispatch, so an edit made
+        // while the driver or validation is busy cannot mix two label states.
+        var printTemplate = PrintSessionTemplateContract.Capture(Template);
+        var printerName = printTemplate.PrinterProfile.PrinterName;
         if (string.IsNullOrWhiteSpace(printerName))
         {
             throw new InvalidOperationException(
@@ -4606,7 +4610,9 @@ public sealed class MainViewModel : ObservableObject
         // the paginator will receive.  This also prevents the old overload that
         // opened a second print dialog and could send to a different queue than
         // the one named in the manifest.
-        var effectivePlan = _printService.CreateEffectivePlan(Template, printerName);
+        // Drivers can block while opening a queue; resolve the contract off the
+        // UI thread like Print Preview does (H17).
+        var effectivePlan = await _printService.CreateEffectivePlanAsync(printTemplate, printerName).ConfigureAwait(true);
         if (!effectivePlan.SceneCompilationVerified)
         {
             var detail = string.IsNullOrWhiteSpace(effectivePlan.SceneDiagnostics)
@@ -4616,7 +4622,7 @@ public sealed class MainViewModel : ObservableObject
                 $"Print preparation stopped because the label design is invalid ({detail}). Fix the design and try again.");
         }
 
-        var preflight = _printService.ValidateRows(Template, rows, effectivePlan);
+        var preflight = await _printService.ValidateRowsAsync(printTemplate, rows, effectivePlan).ConfigureAwait(true);
         if (!preflight.IsSuccess)
         {
             throw new InvalidOperationException(preflight.ToUserMessage());
@@ -4626,14 +4632,14 @@ public sealed class MainViewModel : ObservableObject
             rows.Count,
             sourceRowCount);
         var manifest = PrintJobManifest.Create(
-            Template.Name,
+            printTemplate.Name,
             CurrentFilePath,
             description,
             printerName,
-            Template.WidthMm,
-            Template.HeightMm,
-            effectivePlan.DpiX > 0 ? effectivePlan.DpiX : Template.PrinterProfile.Dpi,
-            effectivePlan.DpiY > 0 ? effectivePlan.DpiY : Template.PrinterProfile.Dpi,
+            printTemplate.WidthMm,
+            printTemplate.HeightMm,
+            effectivePlan.DpiX > 0 ? effectivePlan.DpiX : printTemplate.PrinterProfile.Dpi,
+            effectivePlan.DpiY > 0 ? effectivePlan.DpiY : printTemplate.PrinterProfile.Dpi,
             labelCount,
             resolvedSourceRowCount,
             rows,
@@ -4689,16 +4695,17 @@ public sealed class MainViewModel : ObservableObject
             ManifestFingerprint: manifest.Fingerprint,
             Manifest: manifest));
 
+        PrintJobResult? dispatched = null;
         PrintJobResult result;
         try
         {
-            result = await _printService.PrintRowsWithResultAsync(
-                Template,
+            dispatched = await _printService.PrintRowsWithResultAsync(
+                printTemplate,
                 rows,
                 printerName,
                 description,
                 expectedOutputContractHash: effectivePlan.OutputContractHash);
-            result = result with { ManifestFingerprint = manifest.Fingerprint, Manifest = manifest };
+            result = dispatched with { ManifestFingerprint = manifest.Fingerprint, Manifest = manifest };
             result = await _printService.ResolveSpoolJobIdentityAsync(
                 result,
                 timeout: TimeSpan.FromSeconds(1),
@@ -4706,14 +4713,20 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            // P07: once the spooler accepted the job, a later failure (for
+            // example while reading its queue identity) leaves the outcome
+            // uncertain. Recording Failed would invite a duplicate reprint.
+            var failureState = dispatched?.IsAccepted == true
+                ? PrintJobLifecycleState.Unknown
+                : PrintJobLifecycleState.Failed;
             var current = _printJobStateStore.GetCurrentState(jobId);
             if (current is PrintJobLifecycleState currentState
-                && PrintJobStateMachine.CanTransition(currentState, PrintJobLifecycleState.Failed))
+                && PrintJobStateMachine.CanTransition(currentState, failureState))
             {
                 await RecordPrintJobTransitionAsync(new PrintJobStateTransition(
                     jobId,
                     currentState,
-                    PrintJobLifecycleState.Failed,
+                    failureState,
                     DateTimeOffset.UtcNow,
                     ex.Message,
                     PrinterName: printerName,
