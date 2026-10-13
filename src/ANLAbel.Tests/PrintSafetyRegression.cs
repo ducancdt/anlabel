@@ -77,6 +77,40 @@ internal static class PrintSafetyRegression
         return Task.CompletedTask;
     }
 
+    public static async Task PrinterListWaitIsBoundedAndReusesAStuckEnumeration()
+    {
+        // Audit 2026-10-13: a hung Print Spooler left a wait cursor and no
+        // answer, and every further click stacked another stuck thread.
+        var release = new ManualResetEventSlim();
+        var calls = 0;
+        ANLAbel.Printing.PrinterProfiles.PrinterDiscoveryResult Stuck()
+        {
+            Interlocked.Increment(ref calls);
+            release.Wait();
+            return new ANLAbel.Printing.PrinterProfiles.PrinterDiscoveryResult(Array.Empty<ANLAbel.Printing.PrinterProfiles.PrinterInfo>());
+        }
+
+        try
+        {
+            var first = await ANLAbel.App.Services.PrinterQueueLoader.DiscoverAsync(Stuck, TimeSpan.FromMilliseconds(100));
+            Require(first is null, "A printer list Windows does not return must stop waiting instead of hanging.");
+            var second = await ANLAbel.App.Services.PrinterQueueLoader.DiscoverAsync(Stuck, TimeSpan.FromMilliseconds(100));
+            Require(second is null, "A second attempt on a hung spooler must also stop waiting.");
+            Require(Volatile.Read(ref calls) == 1, "Opening the dialog again must not stack another enumeration on a hung spooler.");
+        }
+        finally
+        {
+            release.Set();
+        }
+
+        var recovered = await ANLAbel.App.Services.PrinterQueueLoader.DiscoverAsync(
+            () => new ANLAbel.Printing.PrinterProfiles.PrinterDiscoveryResult(Array.Empty<ANLAbel.Printing.PrinterProfiles.PrinterInfo>()),
+            TimeSpan.FromSeconds(10));
+        Require(recovered is { IsSuccess: true }, "Once Windows answers, the printer list is used.");
+        Require(ANLAbel.App.Services.PrinterQueueLoader.DefaultTimeout <= TimeSpan.FromSeconds(30),
+            "The operator must get an answer within half a minute.");
+    }
+
     public static async Task QuickPrintRefusesPlaceholdersAndRunsOneJobAtATime()
     {
         // A bound label with no data row must not print "{PartNo}" as text.

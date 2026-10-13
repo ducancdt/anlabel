@@ -58,6 +58,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
     ("failure while sending is uncertain, not failed", PrintSafetyRegression.FailureWhileSendingIsUncertainNotFailed),
     ("quick print refuses placeholders and runs one job at a time", PrintSafetyRegression.QuickPrintRefusesPlaceholdersAndRunsOneJobAtATime),
+    ("printer list wait is bounded and reuses a stuck enumeration", PrintSafetyRegression.PrinterListWaitIsBoundedAndReusesAStuckEnumeration),
     ("print stops are explained in plain Vietnamese", PrintSafetyRegression.PrintStopsAreExplainedInPlainVietnamese),
     ("preflight issues name the data row in Vietnamese", PrintSafetyRegression.PreflightIssuesNameTheDataRowInVietnamese),
     ("print history regression suite", PrintHistoryRegression.Run),
@@ -235,6 +236,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("quick print uses the template copies field and the selected row number", TestQuickPrintUsesDatabaseCopiesField),
     ("print operation log records job-level trace", TestPrintOperationLogRecordsJob),
     ("quick print log carries bounded queue observation", TestQuickPrintLogCarriesQueueObservation),
+    ("print history records the printed label, not a later edit", TestPrintHistoryRecordsThePrintedTemplate),
     ("preview and print render the same geometry, offset by the plan", TestPreviewAndPrintRenderSameGeometry),
     ("preflight warns when barcode module too small at real print dpi", TestPreflightWarnsSmallModuleAtPrintDpi),
     ("preflight reports non-square effective printer DPI", TestPreflightReportsNonSquareDpi),
@@ -9589,6 +9591,44 @@ static async Task TestQuickPrintLogCarriesQueueObservation()
     AssertEqual(true, lines[0].Contains("\"SpoolState\":\"Printing\"", StringComparison.Ordinal), "Quick print log must preserve the queue state");
     AssertEqual(true, lines[0].Contains("\"SpoolStatusPollCount\":2", StringComparison.Ordinal), "Quick print log must preserve bounded poll evidence");
     AssertEqual(true, lines[0].Contains("\"SpoolStatusTimedOut\":false", StringComparison.Ordinal), "A completed observation must not be marked timed out");
+
+    try { Directory.Delete(dir, true); } catch { }
+}
+
+static async Task TestPrintHistoryRecordsThePrintedTemplate()
+{
+    // Audit 2026-10-13: quick-print history rows are built off the UI thread
+    // from the template snapshot that was printed. An edit made while the job
+    // was sending must not appear in the history as printed content.
+    var dir = Path.Combine(Environment.CurrentDirectory, "TestOutput", $"history-snapshot-{Guid.NewGuid():N}");
+    Directory.CreateDirectory(dir);
+    var historyPath = Path.Combine(dir, "print-history.csv");
+    var printOperationLogService = new PrintOperationLogService(Path.Combine(dir, "print-operations.jsonl"));
+    var vm = new MainViewModel(
+        new ANLAbel.Project.SaveLoad.ProjectFileService(),
+        new ExcelDataService(),
+        new ANLAbel.Printing.PrinterProfiles.PrintService(),
+        new ANLAbel.Printing.PrinterProfiles.PrinterDiscoveryService(),
+        new PrintLogService(historyPath),
+        new DataOperationLogService(),
+        dataSourceRegistry: null,
+        printOperationLogService: printOperationLogService);
+
+    var printed = new LabelTemplate { Name = "Printed label", WidthMm = 50, HeightMm = 30 };
+    printed.Objects.Add(new LabelObject { Id = "part", Name = "Part", Text = "PRINTED-VALUE", XMm = 1, YMm = 1, WidthMm = 20, HeightMm = 5 });
+    vm.Template.Name = "Edited label";
+    vm.Template.Objects.Add(new LabelObject { Id = "part", Name = "Part", Text = "EDITED-VALUE", XMm = 1, YMm = 1, WidthMm = 20, HeightMm = 5 });
+
+    var rows = new IReadOnlyDictionary<string, string>?[] { new Dictionary<string, string> { ["PartNo"] = "PN-1" } };
+    var result = new PrintJobResult(PrintJobOutcome.SpoolAccepted, "Test Printer", "Current row", 1);
+    await vm.WritePrintLogAsync("Current row", rows, rowCount: 1, labelCount: 1, result: result, jobId: "history-snapshot", printedTemplate: printed);
+    await printOperationLogService.WaitForPendingWritesAsync();
+
+    var history = File.ReadAllText(historyPath);
+    AssertEqual(true, history.Contains("Part=PRINTED-VALUE", StringComparison.Ordinal) && history.Contains("Printed label", StringComparison.Ordinal),
+        "Print history must record the label that was printed");
+    AssertEqual(false, history.Contains("EDITED-VALUE", StringComparison.Ordinal) || history.Contains("Edited label", StringComparison.Ordinal),
+        "An edit made while the job was sending must not appear as printed content");
 
     try { Directory.Delete(dir, true); } catch { }
 }

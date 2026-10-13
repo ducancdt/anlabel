@@ -1673,42 +1673,77 @@ public partial class PrintPreviewWindow : Window
 
     // ==================== Print history ====================
 
-    private PrintLogEntry CreatePrintLogEntry(IReadOnlyDictionary<string, string>? row, int labelCount, int labelIndex, string outcomeStatus)
+    /// <summary>
+    /// What a print-history row needs from this window, read once on the UI
+    /// thread. The rows are built on the history writer's thread and must not
+    /// read live state: a preview refresh right after printing used to clear
+    /// the row list mid-read and lose the job's history (audit 2026-10-13).
+    /// </summary>
+    private sealed record PrintHistoryContext(
+        DateTime PrintedAt,
+        string TemplateName,
+        string TemplateFilePath,
+        string PrinterName,
+        double LabelWidthMm,
+        double LabelHeightMm,
+        int Dpi,
+        int RowCount,
+        string ExcelFilePath,
+        string ExcelSheetName,
+        (string Name, string Text, string BindingExpression)[] VisibleObjects);
+
+    private PrintHistoryContext CapturePrintHistoryContext() => new(
+        DateTime.Now,
+        _template.Name,
+        _templateFilePath,
+        PrinterName,
+        _template.WidthMm,
+        _template.HeightMm,
+        _template.PrinterProfile.Dpi,
+        _trackingRows.Count(r => r.IsSelected),
+        _template.DatabaseConfig.FilePath,
+        _template.DatabaseConfig.SheetName,
+        _template.Objects
+            .Where(item => item.IsVisible)
+            .OrderBy(item => item.ZIndex)
+            .Select(item => (item.Name, item.Text, item.BindingExpression))
+            .ToArray());
+
+    private static PrintLogEntry CreatePrintLogEntry(PrintHistoryContext context, IReadOnlyDictionary<string, string>? row, int labelCount, int labelIndex, string outcomeStatus)
     {
         return new PrintLogEntry
         {
-            TemplateName = _template.Name,
-            TemplateFilePath = _templateFilePath,
-            PrinterName = PrinterName,
-            LabelWidthMm = _template.WidthMm,
-            LabelHeightMm = _template.HeightMm,
-            Dpi = _template.PrinterProfile.Dpi,
+            PrintedAt = context.PrintedAt,
+            TemplateName = context.TemplateName,
+            TemplateFilePath = context.TemplateFilePath,
+            PrinterName = context.PrinterName,
+            LabelWidthMm = context.LabelWidthMm,
+            LabelHeightMm = context.LabelHeightMm,
+            Dpi = context.Dpi,
             PrintMode = "Selected rows",
-            RowCount = _trackingRows.Count(r => r.IsSelected),
+            RowCount = context.RowCount,
             LabelCount = labelCount,
             LabelIndex = labelIndex,
-            ExcelFilePath = _template.DatabaseConfig.FilePath,
-            ExcelSheetName = _template.DatabaseConfig.SheetName,
+            ExcelFilePath = context.ExcelFilePath,
+            ExcelSheetName = context.ExcelSheetName,
             PartNo = GetRowValue(row, "PartNo", "Part No", "PN", "MaHang", "Ma Hang", "Mã hàng"),
             ItemName = GetRowValue(row, "Name", "ItemName", "Item Name", "Ten", "Tên", "TenHang", "Ten Hang", "Tên hàng"),
             Lot = GetRowValue(row, "Lot", "LotNo", "Lot No", "Batch"),
             Quantity = GetRowValue(row, "Qty", "Quantity", "SoLuong", "So Luong", "Số lượng"),
-            LabelContent = CreateLabelContent(row),
+            LabelContent = CreateLabelContent(context.VisibleObjects, row),
             RowData = row is null ? string.Empty : string.Join("; ", row.Select(pair => $"{pair.Key}={pair.Value}")),
             Notes = $"Submitted from Ctrl+P preview. {outcomeStatus}"
         };
     }
 
-    private string CreateLabelContent(IReadOnlyDictionary<string, string>? row)
+    private static string CreateLabelContent(IEnumerable<(string Name, string Text, string BindingExpression)> visibleObjects, IReadOnlyDictionary<string, string>? row)
     {
-        return string.Join(" | ", _template.Objects
-            .Where(item => item.IsVisible)
-            .OrderBy(item => item.ZIndex)
+        return string.Join(" | ", visibleObjects
             .Select(item => CreateObjectContent(item, row))
             .Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
-    private static string CreateObjectContent(LabelObject item, IReadOnlyDictionary<string, string>? row)
+    private static string CreateObjectContent((string Name, string Text, string BindingExpression) item, IReadOnlyDictionary<string, string>? row)
     {
         var value = string.IsNullOrWhiteSpace(item.BindingExpression)
             ? item.Text
@@ -1732,13 +1767,15 @@ public partial class PrintPreviewWindow : Window
     {
         try
         {
-            await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(row, rows.Length, index + 1, outcomeStatus)));
+            var context = CapturePrintHistoryContext();
+            await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(context, row, rows.Length, index + 1, outcomeStatus)));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex)
         {
+            // Fire-and-forget: any failure is said here, never lost unobserved.
             await Dispatcher.InvokeAsync(() =>
             {
-                _previewProgressText = $"Đã gửi lệnh in nhưng không lưu được lịch sử in. {ex.Message}";
+                _previewProgressText = "Đã gửi lệnh in nhưng chưa ghi được lịch sử in. " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
                 OnPropertyChanged();
             });
         }

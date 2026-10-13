@@ -3135,7 +3135,8 @@ public sealed class MainViewModel : ObservableObject
                     rows.Length,
                     result: result,
                     jobId: tracked.JobId,
-                    spoolStatus: tracked.SpoolStatus);
+                    spoolStatus: tracked.SpoolStatus,
+                    printedTemplate: tracked.PrintedTemplate);
             }
             else if (result.Outcome != PrintJobOutcome.Cancelled)
             {
@@ -3225,7 +3226,8 @@ public sealed class MainViewModel : ObservableObject
                     rows.Length,
                     result: result,
                     jobId: tracked.JobId,
-                    spoolStatus: tracked.SpoolStatus);
+                    spoolStatus: tracked.SpoolStatus,
+                    printedTemplate: tracked.PrintedTemplate);
             }
             else if (result.Outcome != PrintJobOutcome.Cancelled)
             {
@@ -5187,7 +5189,7 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
-        return new TrackedPrintResult(jobId, result, spoolStatus);
+        return new TrackedPrintResult(jobId, result, spoolStatus, printTemplate);
     }
 
     private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
@@ -5203,7 +5205,8 @@ public sealed class MainViewModel : ObservableObject
         string notes = "",
         PrintJobResult? result = null,
         string jobId = "",
-        SpoolJobMonitorResult? spoolStatus = null)
+        SpoolJobMonitorResult? spoolStatus = null,
+        LabelTemplate? printedTemplate = null)
     {
         LogPrintOperation(
             printMode,
@@ -5219,13 +5222,17 @@ public sealed class MainViewModel : ObservableObject
             : notes;
         try
         {
-            var printedAt = DateTime.Now;
-            var entries = rows.Select((row, index) => CreatePrintLogEntry(printMode, row, rowCount, labelCount, index + 1, printedAt, effectiveNotes)).ToArray();
-            await _printLogService.AppendManyAsync(entries);
+            // Values are read once here, from the template that was printed;
+            // the rows are built on the history writer's thread. A job of
+            // thousands of labels no longer freezes the window, and an edit
+            // made while the job was sending does not appear as printed
+            // content (audit 2026-10-13).
+            var context = CapturePrintHistoryContext(printedTemplate ?? Template, printMode, rowCount, labelCount, effectiveNotes);
+            await _printLogService.AppendManyAsync(rows.Select((row, index) => CreatePrintLogEntry(context, row, index + 1)));
         }
         catch (Exception ex)
         {
-            StatusText = $"Đã gửi lệnh in, nhưng ghi nhật ký thất bại: {ex.Message}";
+            StatusText = "Đã gửi lệnh in, nhưng chưa ghi được lịch sử in. " + ANLAbel.App.Services.OperationFailureExplainer.Explain(ex).StatusLine;
         }
     }
 
@@ -5335,43 +5342,78 @@ public sealed class MainViewModel : ObservableObject
         return $"{status}\nTrạng thái hàng đợi: {spoolStatus.UserFacingStatus}";
     }
 
-    private PrintLogEntry CreatePrintLogEntry(string printMode, IReadOnlyDictionary<string, string>? row, int rowCount, int labelCount, int labelIndex, DateTime printedAt, string notes)
+    /// <summary>What a print-history row needs, read once on the UI thread.</summary>
+    private sealed record PrintHistoryContext(
+        DateTime PrintedAt,
+        string TemplateName,
+        string TemplateFilePath,
+        string PrinterName,
+        double LabelWidthMm,
+        double LabelHeightMm,
+        int Dpi,
+        string PrintMode,
+        int RowCount,
+        int LabelCount,
+        string ExcelFilePath,
+        string ExcelSheetName,
+        string Notes,
+        (string Name, string Text, string BindingExpression)[] VisibleObjects);
+
+    private PrintHistoryContext CapturePrintHistoryContext(LabelTemplate template, string printMode, int rowCount, int labelCount, string notes) => new(
+        DateTime.Now,
+        template.Name,
+        CurrentFilePath,
+        template.PrinterProfile.PrinterName,
+        template.PrinterProfile.LabelWidthMm,
+        template.PrinterProfile.LabelHeightMm,
+        template.PrinterProfile.Dpi,
+        printMode,
+        rowCount,
+        labelCount,
+        template.DatabaseConfig.FilePath,
+        template.DatabaseConfig.SheetName,
+        notes,
+        template.Objects
+            .Where(item => item.IsVisible)
+            .OrderBy(item => item.ZIndex)
+            .Select(item => (item.Name, item.Text, item.BindingExpression))
+            .ToArray());
+
+    private static PrintLogEntry CreatePrintLogEntry(PrintHistoryContext context, IReadOnlyDictionary<string, string>? row, int labelIndex)
     {
         return new PrintLogEntry
         {
-            PrintedAt = printedAt,
-            TemplateName = Template.Name,
-            TemplateFilePath = CurrentFilePath,
-            PrinterName = Template.PrinterProfile.PrinterName,
-            LabelWidthMm = Template.PrinterProfile.LabelWidthMm,
-            LabelHeightMm = Template.PrinterProfile.LabelHeightMm,
-            Dpi = Template.PrinterProfile.Dpi,
-            PrintMode = printMode,
-            RowCount = rowCount,
-            LabelCount = labelCount,
+            PrintedAt = context.PrintedAt,
+            TemplateName = context.TemplateName,
+            TemplateFilePath = context.TemplateFilePath,
+            PrinterName = context.PrinterName,
+            LabelWidthMm = context.LabelWidthMm,
+            LabelHeightMm = context.LabelHeightMm,
+            Dpi = context.Dpi,
+            PrintMode = context.PrintMode,
+            RowCount = context.RowCount,
+            LabelCount = context.LabelCount,
             LabelIndex = labelIndex,
-            ExcelFilePath = Template.DatabaseConfig.FilePath,
-            ExcelSheetName = Template.DatabaseConfig.SheetName,
+            ExcelFilePath = context.ExcelFilePath,
+            ExcelSheetName = context.ExcelSheetName,
             PartNo = GetRowValue(row, "PartNo", "Part No", "PN", "MaHang", "Ma Hang", "Mã hàng"),
             ItemName = GetRowValue(row, "Name", "ItemName", "Item Name", "Ten", "Tên", "TenHang", "Ten Hang", "Tên hàng"),
             Lot = GetRowValue(row, "Lot", "LotNo", "Lot No", "Batch"),
             Quantity = GetRowValue(row, "Qty", "Quantity", "SoLuong", "So Luong", "Số lượng"),
-            LabelContent = CreateLabelContent(row),
+            LabelContent = CreateLabelContent(context.VisibleObjects, row),
             RowData = row is null ? string.Empty : string.Join("; ", row.Select(pair => $"{pair.Key}={pair.Value}")),
-            Notes = notes
+            Notes = context.Notes
         };
     }
 
-    private string CreateLabelContent(IReadOnlyDictionary<string, string>? row)
+    private static string CreateLabelContent(IEnumerable<(string Name, string Text, string BindingExpression)> visibleObjects, IReadOnlyDictionary<string, string>? row)
     {
-        return string.Join(" | ", Template.Objects
-            .Where(item => item.IsVisible)
-            .OrderBy(item => item.ZIndex)
+        return string.Join(" | ", visibleObjects
             .Select(item => CreateObjectContent(item, row))
             .Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
-    private static string CreateObjectContent(LabelObject item, IReadOnlyDictionary<string, string>? row)
+    private static string CreateObjectContent((string Name, string Text, string BindingExpression) item, IReadOnlyDictionary<string, string>? row)
     {
         var value = string.IsNullOrWhiteSpace(item.BindingExpression)
             ? item.Text
@@ -5449,7 +5491,8 @@ public sealed class MainViewModel : ObservableObject
 public sealed record TrackedPrintResult(
     string JobId,
     PrintJobResult Result,
-    SpoolJobMonitorResult? SpoolStatus = null);
+    SpoolJobMonitorResult? SpoolStatus = null,
+    LabelTemplate? PrintedTemplate = null);
 
 public sealed record NewTemplateRequest(string Name, double WidthMm, double HeightMm, int Dpi);
 
