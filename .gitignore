@@ -39,5 +39,13 @@ Desktop.ini
 ## Logs
 *.log
 
-## Agent instructions
-agent.md
+## Repository agent instructions are versioned with the product rules.
+
+## Customer label data and third-party guides stay local (docs/COMMIT_WORKFLOW.md §5).
+TEM REDACTED-14 VN*/
+CUSTOMER-1/
+tem REDACTED-10/
+images/
+ug-NiceLabel_*.md
+ug-NiceLabel_*.pdf
+__pycache__/
