@@ -33,4 +33,10 @@ public sealed class ExcelDataReadException : Exception
     public string FilePath { get; }
 
     public string? SheetName { get; }
+
+    /// <summary>Source row (1-based, as Excel/CSV numbers it) when the problem is in one row.</summary>
+    public int? RowNumber { get; init; }
+
+    /// <summary>Source column (1-based) when the problem is in one cell.</summary>
+    public int? ColumnNumber { get; init; }
 }

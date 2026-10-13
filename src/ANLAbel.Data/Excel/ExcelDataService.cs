@@ -320,7 +320,30 @@ public sealed class ExcelDataService
                 sheetName);
         }
 
+        // DB04: a formula saved without its calculated value reads as an empty
+        // cell. Printing it would put a blank where the workbook expects data.
+        if (IsOpenXmlWorkbook(filePath)
+            && XlsxFormulaValueInspector.FindFormulaWithoutValue(filePath, sheetName, headerRowIndex, cancellationToken) is { } formula)
+        {
+            throw new ExcelDataReadException(
+                ExcelDataReadError.InvalidData,
+                $"Excel sheet '{sheetName}', row {formula.RowNumber}, column {formula.ColumnNumber} ({formula.Reference}) has a formula without a calculated value. Open the workbook in Excel, let it calculate, save it and import again.",
+                filePath,
+                sheetName)
+            {
+                RowNumber = formula.RowNumber,
+                ColumnNumber = formula.ColumnNumber
+            };
+        }
+
         return table;
+    }
+
+    private static bool IsOpenXmlWorkbook(string filePath)
+    {
+        var extension = Path.GetExtension(filePath);
+        return string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".xlsm", StringComparison.OrdinalIgnoreCase);
     }
 
     private static DataTable LoadCsv(string filePath, string sheetName, int headerRowIndex, CancellationToken cancellationToken)
@@ -391,10 +414,13 @@ public sealed class ExcelDataService
                 }
                 else if (rowNumber > headerRowIndex)
                 {
-                    if (cells.Length > table.Columns.Count)
+                    // ADR-024: padding a short record would shift every later value
+                    // into the wrong column; only a completely empty line is skipped.
+                    if (cells.Length != table.Columns.Count && cells.Any(cell => cell.Length > 0))
                     {
                         throw CreateInvalidCsvException(filePath,
-                            $"Record {rowNumber} has {cells.Length} fields; the header defines {table.Columns.Count}.");
+                            $"Record {rowNumber} has {cells.Length} fields; the header defines {table.Columns.Count}.",
+                            rowNumber);
                     }
 
                     var dataRow = table.NewRow();
@@ -610,11 +636,14 @@ public sealed class ExcelDataService
         }
     }
 
-    private static ExcelDataReadException CreateInvalidCsvException(string filePath, string detail)
+    private static ExcelDataReadException CreateInvalidCsvException(string filePath, string detail, int? rowNumber = null)
         => new(
             ExcelDataReadError.InvalidData,
             $"CSV file '{Path.GetFileName(filePath)}' is invalid: {detail}",
-            filePath);
+            filePath)
+        {
+            RowNumber = rowNumber
+        };
 
     private static readonly char[] CandidateDelimiters = { ',', ';', '\t' };
 
@@ -833,7 +862,11 @@ public sealed class ExcelDataService
                         ExcelDataReadError.InvalidData,
                         $"Excel sheet '{sheetName}', row {rowNumber}, column {column + 1} contains an Excel error ({FormatCellError(cellError)}). Correct the source cell before importing.",
                         filePath ?? string.Empty,
-                        sheetName);
+                        sheetName)
+                    {
+                        RowNumber = rowNumber,
+                        ColumnNumber = column + 1
+                    };
                 }
 
                 cells[column] = FormatCellError(cellError);
@@ -1018,7 +1051,11 @@ public sealed class ExcelDataService
                         ExcelDataReadError.InvalidData,
                         $"Excel sheet '{sheetName}', row {rowNumber}, column {column + 1} uses an unsupported number format ('{formatCode}'). Correct the source cell's format before importing.",
                         filePath ?? string.Empty,
-                        sheetName);
+                        sheetName)
+                    {
+                        RowNumber = rowNumber,
+                        ColumnNumber = column + 1
+                    };
                 }
 
                 // Preview (DB04 truthfulness): sheetName/filePath are null and rowNumber 0

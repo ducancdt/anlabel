@@ -2,6 +2,23 @@
 
 Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 
+## ADR-024 — Nhập CSV: mỗi dòng phải có đúng số trường của dòng tiêu đề
+
+- Status: Accepted (2026-10-13, kế hoạch 13 GĐ4). Thay cho đề xuất trong [`../CSV_PARSER_FAILURE_POLICY_ADR.md`](../CSV_PARSER_FAILURE_POLICY_ADR.md). Đề xuất đó viết cho `CsvAutomationSourceParser`, mà parser này đã bị gỡ cùng automation thả file ở bước 1.2.
+- Context:
+  - Đường nhập tương tác (`ExcelDataService.LoadCsv`) báo lỗi khi một dòng có nhiều trường hơn tiêu đề, nhưng lại âm thầm thêm ô rỗng khi dòng có ít trường hơn.
+  - Từ dữ liệu không phân biệt được hai trường hợp: thiếu ô cuối, hay thiếu một ô ở giữa. Nếu thiếu ô ở giữa, mọi giá trị sau đó dịch sang cột bên trái. Ví dụ `Code,Lot,Qty` với dòng `A2,3` sẽ in số lượng vào ô số lô.
+- Decision:
+  - Dòng có số trường khác số trường của tiêu đề (nhiều hơn hay ít hơn) sẽ chặn việc nhập. Thông báo nêu số dòng, số trường của dòng và số trường của tiêu đề, kèm cách sửa: ô trống vẫn cần dấu phân cách.
+  - Dòng rỗng hoàn toàn được bỏ qua như trước.
+- Alternatives:
+  - Đệm ô rỗng (cách cũ): có thể in sai cột mà không ai biết.
+  - Bỏ dòng lỗi rồi nhập tiếp: thiếu tem mà không có điểm dừng, trái DB10.
+- Consequences:
+  - Tệp CSV do Excel hoặc phần mềm ERP xuất luôn ghi đủ dấu phân cách nên không bị ảnh hưởng.
+  - Tệp viết tay mà thiếu ô cuối phải sửa trước khi nhập.
+- Evidence required: unit `A_csv_record_with_fewer_fields_than_the_header_is_rejected_with_its_row`, `Empty_lines_and_explicit_empty_fields_still_import`. Gate `data failures name the file, row and column`.
+
 ## ADR-023 — Chỉ lệnh in chưa rõ kết quả mới cần người vận hành đối soát
 
 - Status: Accepted (2026-10-13, kế hoạch 13 QĐ-10). Bổ sung ADR-016 và ADR-017, không thay thế.

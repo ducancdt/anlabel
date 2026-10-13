@@ -1,6 +1,6 @@
 # ADR: Chính sách xử lý lỗi cho trình phân tích CSV (CSV Parser Failure Policy)
 
-- Trạng thái: Đề xuất (Proposed)
+- Trạng thái: Superseded (2026-10-13) bởi ADR-024 trong [`reinvention/DECISIONS.md`](reinvention/DECISIONS.md). `CsvAutomationSourceParser` đã bị gỡ ở kế hoạch 13 bước 1.2; đường nhập tương tác nay chặn mọi dòng có số trường khác tiêu đề.
 - Ngày: 2026-09-14
 - Phạm vi: `CsvAutomationSourceParser` so với đường nhập CSV tương tác trong `ExcelDataService`
 
