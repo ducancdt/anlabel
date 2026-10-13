@@ -247,6 +247,85 @@ internal static class DataSourceRegression
         }
     }
 
+    public static async Task PrintPreviewComparesTheFileWithTheImportedRows()
+    {
+        var directory = NewDirectory();
+        try
+        {
+            var path = Path.Combine(directory, "lot.csv");
+            await File.WriteAllTextAsync(path, "Code,Lot\nA1,111\n");
+            var vm = new MainViewModel();
+            await vm.ImportExcelAsync(path, ExcelDataService.CsvSheetName, 1);
+            var imported = vm.ImportedExcelDataSourceIdentity;
+            Require(imported is not null, "The import must capture the file identity.");
+
+            // The file changes after import; the rows in memory still say 111.
+            await File.WriteAllTextAsync(path, "Code,Lot\nA1,222\n");
+            Require(vm.TryBuildPrintPreviewRows(out var rows, out _), "Preview rows must build.");
+
+            bool staleWithImportBaseline = false, staleWithoutBaseline = false;
+            Exception? failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var check = typeof(ANLAbel.App.PrintPreviewWindow).GetMethod("IsLinkedExcelDataStaleAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                    var window = new ANLAbel.App.PrintPreviewWindow(vm.Template, vm.PreviewRow, vm.ExcelDataView, new ANLAbel.Printing.PrinterProfiles.PrintService(queueLookup: new MissingPrinterQueueLookup()), vm.PrintLogService, vm.CurrentFilePath, preparedRows: rows, excelSourceIdentity: imported);
+                    staleWithImportBaseline = Wait((Task<bool>)check.Invoke(window, null)!);
+                    window.Close();
+
+                    // Linked rows without an import identity cannot be proven current.
+                    var unknown = new ANLAbel.App.PrintPreviewWindow(vm.Template, vm.PreviewRow, vm.ExcelDataView, new ANLAbel.Printing.PrinterProfiles.PrintService(queueLookup: new MissingPrinterQueueLookup()), vm.PrintLogService, vm.CurrentFilePath, preparedRows: rows, excelSourceIdentity: null);
+                    staleWithoutBaseline = Wait((Task<bool>)check.Invoke(unknown, null)!);
+                    unknown.Close();
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            if (failure is not null)
+            {
+                throw failure;
+            }
+
+            Require(staleWithImportBaseline, "Print Preview must block rows imported before the file changed.");
+            Require(staleWithoutBaseline, "Print Preview must block linked rows whose import identity is unknown.");
+            var mainWindow = File.ReadAllText(Path.Combine(FindRoot(), "src", "ANLAbel.App", "MainWindow.xaml.cs"));
+            Require(mainWindow.Contains("_viewModel.ImportedExcelDataSourceIdentity", StringComparison.Ordinal),
+                "Print Preview must receive the identity captured at import.");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static bool Wait(Task<bool> task)
+    {
+        while (!task.IsCompleted)
+        {
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            Thread.Sleep(5);
+        }
+
+        return task.GetAwaiter().GetResult();
+    }
+
+    private static string FindRoot()
+    {
+        var root = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(root, "ANLAbel.slnx")))
+        {
+            root = Path.GetDirectoryName(root.TrimEnd(Path.DirectorySeparatorChar))!;
+        }
+
+        return root;
+    }
+
     private static PrintFailureExplanation Explain(Exception exception) => OperationFailureExplainer.Explain(exception);
 
     private static async Task<Exception> Capture(Func<Task> action)

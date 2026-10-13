@@ -56,6 +56,7 @@ public partial class PrintPreviewWindow : Window
     private string _previewProgressText = string.Empty;
     private CancellationTokenSource? _previewOperationCts;
     private readonly FileSourceIdentity? _excelKnownSourceIdentity;
+    private readonly bool _excelBaselineMissing;
     private IReadOnlyDictionary<string, string>?[] _allRowsCache = Array.Empty<IReadOnlyDictionary<string, string>?>();
     private readonly DispatcherTimer _filterDebounceTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private const string AllColumnsFilterOption = "(Tất cả cột)";
@@ -101,7 +102,12 @@ public partial class PrintPreviewWindow : Window
         _preparedRows = preparedRows;
         _selectedPrinterName = DocumentPrinterIdentityContract.QueueNameFromDocument(
             template.PrinterProfile.PrinterName) ?? string.Empty;
-        _excelKnownSourceIdentity = excelSourceIdentity ?? TryGetExcelSourceIdentity();
+        // The baseline is the identity captured when the rows were imported
+        // (DB06). Linked rows without one cannot be proven current.
+        _excelKnownSourceIdentity = excelSourceIdentity;
+        _excelBaselineMissing = excelSourceIdentity is null
+            && excelDataView is { Count: > 0 }
+            && !string.IsNullOrWhiteSpace(template.DatabaseConfig.FilePath);
 
         DataContext = this;
         _filterDebounceTimer.Tick += (_, _) =>
@@ -676,6 +682,30 @@ public partial class PrintPreviewWindow : Window
             }
 
             LogPrintOperation(rows.Length, printResult, spoolStatus, printJobId);
+            if (printResult.Outcome == PrintJobOutcome.Unknown)
+            {
+                // P07: part of the job may have printed. Mark the rows as sent so a
+                // second print in this session warns about duplicates, and send the
+                // operator to reconcile instead of retrying.
+                var uncertainRows = selected.Select(entry => entry.SourceRowNumber).ToHashSet();
+                foreach (var row in _trackingRows.Where(item => uncertainRows.Contains(item.SourceRowNumber)))
+                {
+                    row.IsPrinted = true;
+                }
+
+                var uncertain = ANLAbel.App.Services.PrintFailureExplainer.Explain(printResult.ErrorMessage);
+                OperatorDialog.Ask(
+                    this,
+                    "Chưa rõ kết quả in",
+                    uncertain.IsGeneric
+                        ? ["Không xác định được lệnh in đã ra máy in hay chưa.", "Kiểm tra máy in và đối soát lệnh này trong Trung tâm in trước khi in lại. ANLAbel không tự in lại."]
+                        : [uncertain.Problem, uncertain.NextAction],
+                    string.IsNullOrWhiteSpace(printResult.ErrorMessage) ? null : $"Chi tiết kỹ thuật: {printResult.ErrorMessage}",
+                    OperatorDialogTone.Warning,
+                    new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
+                return;
+            }
+
             if (!printResult.IsAccepted)
             {
                 if (printResult.Outcome == PrintJobOutcome.Failed && !string.IsNullOrWhiteSpace(printResult.ErrorMessage))
@@ -888,6 +918,11 @@ public partial class PrintPreviewWindow : Window
     /// </summary>
     private async Task<bool> IsLinkedExcelDataStaleAsync()
     {
+        if (_excelBaselineMissing)
+        {
+            return true;
+        }
+
         if (_excelKnownSourceIdentity is null)
         {
             return false;
@@ -911,7 +946,7 @@ public partial class PrintPreviewWindow : Window
         OnPropertyChanged();
         MessageBox.Show(
             this,
-            "Tệp Excel được liên kết đã thay đổi kể từ khi mở xem trước. Chuẩn bị in bị chặn vì các dòng hiển thị có thể đã lỗi thời.\n\nĐóng cửa sổ này, nhấn Cập nhật Excel, rồi mở lại Xem trước khi in.",
+            "Tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần nhập dữ liệu cuối. Việc in bị chặn vì các dòng đang hiển thị có thể đã lỗi thời.\n\nĐóng cửa sổ này, bấm Cập nhật Excel, rồi mở lại Xem trước khi in.",
             "Dữ liệu Excel đã thay đổi",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);

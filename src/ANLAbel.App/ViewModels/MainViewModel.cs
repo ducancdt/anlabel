@@ -263,12 +263,12 @@ public sealed class MainViewModel : ObservableObject
         return true;
     }
 
-    public FileSourceIdentity? GetExcelDataSourceIdentity()
-    {
-        return FileSourceIdentity.TryCapture(Template.DatabaseConfig?.FilePath, out var identity)
-            ? identity
-            : null;
-    }
+    /// <summary>
+    /// Content identity of the linked file captured when the current rows were
+    /// imported (DB06). Print Preview compares the file against this, not
+    /// against the file as it is when the preview opens.
+    /// </summary>
+    public FileSourceIdentity? ImportedExcelDataSourceIdentity => _excelDataSourceIdentity;
 
     public async Task<HistorySnapshot> ReadPrintHistorySnapshotAsync(CancellationToken cancellationToken = default)
     {
@@ -2926,7 +2926,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (IsExcelDataStale || await LinkedDataChangedSinceImportAsync())
             {
-                StatusText = "Đã chặn in: tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần đọc cuối. Hãy bấm Cập nhật Excel rồi in lại (hoặc dùng Xem trước khi in để kiểm tra).";
+                StatusText = "Đã chặn in: tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần đọc cuối. Hãy bấm Cập nhật Excel rồi in lại.";
                 return;
             }
 
@@ -3011,7 +3011,7 @@ public sealed class MainViewModel : ObservableObject
 
             if (IsExcelDataStale || await LinkedDataChangedSinceImportAsync())
             {
-                StatusText = "Đã chặn in: tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần đọc cuối. Hãy bấm Cập nhật Excel rồi in lại (hoặc dùng Xem trước khi in để kiểm tra).";
+                StatusText = "Đã chặn in: tệp dữ liệu liên kết đã thay đổi hoặc không đọc được kể từ lần đọc cuối. Hãy bấm Cập nhật Excel rồi in lại.";
                 return;
             }
 
@@ -4772,9 +4772,15 @@ public sealed class MainViewModel : ObservableObject
     private async Task<bool> LinkedDataChangedSinceImportAsync()
     {
         var known = _excelDataSourceIdentity;
-        if (known is null || ExcelDataView is null)
+        if (ExcelDataView is null || ExcelDataView.Count == 0 || string.IsNullOrWhiteSpace(Template.DatabaseConfig.FilePath))
         {
             return false;
+        }
+
+        if (known is null)
+        {
+            IsExcelDataStale = true;
+            return true;
         }
 
         var path = Template.DatabaseConfig.FilePath;

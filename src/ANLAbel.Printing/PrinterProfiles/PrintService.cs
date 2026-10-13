@@ -453,6 +453,46 @@ public sealed class PrintService
         }
     }
 
+    /// <summary>Error text that starts every uncertain-dispatch result (P07).</summary>
+    public const string UncertainDispatchPrefix = "The print job failed while it was being sent";
+
+    /// <summary>
+    /// P07: once PrintDocument has been called, pages may already be in the
+    /// spooler or on the printer, so a failure from that call is an outcome to
+    /// reconcile, never a plain "not printed" that invites a reprint.
+    /// </summary>
+    private static PrintJobResult CreateUncertainDispatchResult(
+        string queueName,
+        string description,
+        int labelCount,
+        PrintRenderPlan plan,
+        IReadOnlyList<SpoolJobIdentityCandidate>? knownSpoolJobs,
+        Exception exception)
+    {
+        return new PrintJobResult(
+            PrintJobOutcome.Unknown,
+            queueName,
+            description,
+            labelCount,
+            $"{UncertainDispatchPrefix}; part of it may already be in the queue or printed ({exception.Message}).",
+            DpiX: plan.DpiX,
+            DpiY: plan.DpiY,
+            PrintableAreaVerified: plan.PrintableAreaVerified,
+            OutputContractHash: plan.OutputContractHash,
+            OutputContractTicketVerified: plan.OutputContractTicketVerified,
+            DocumentHash: plan.DocumentHash,
+            SceneHash: plan.SceneHash,
+            SceneCompilationVerified: plan.SceneCompilationVerified,
+            TextResourceFingerprint: plan.TextResourceFingerprint,
+            ImageRasterFingerprint: plan.ImageRasterFingerprint)
+        {
+            ThermalRasterGoldenFingerprint = plan.ThermalRasterGolden?.Fingerprint ?? string.Empty,
+            SubmissionEvidence = knownSpoolJobs is null
+                ? null
+                : new SpoolJobSubmissionEvidence(queueName, description, knownSpoolJobs, DateTimeOffset.UtcNow)
+        };
+    }
+
     private static PrintJobResult CreateFailedResult(string? printerName, string description, Exception exception)
     {
         var message = string.IsNullOrWhiteSpace(exception.Message)
@@ -560,7 +600,18 @@ public sealed class PrintService
             pageSize,
             pageNumber => _renderer.Render(template, rowList[pageNumber], plan));
 
-        dialog.PrintDocument(paginator, description);
+        try
+        {
+            dialog.PrintDocument(paginator, description);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return AttachSupportEvidence(
+                CreateUncertainDispatchResult(dialog.PrintQueue.FullName, description, rowList.Length, plan, knownSpoolJobs, ex),
+                plan,
+                durableJobIdHint: description);
+        }
+
         var spoolJobId = TryFindNewSpoolJobId(dialog.PrintQueue, knownSpoolJobs, description);
         var result = new PrintJobResult(PrintJobOutcome.SpoolAccepted, dialog.PrintQueue.FullName, description, rowList.Length, DpiX: plan.DpiX, DpiY: plan.DpiY, PrintableAreaVerified: plan.PrintableAreaVerified, SpoolJobId: spoolJobId, OutputContractHash: plan.OutputContractHash, OutputContractTicketVerified: plan.OutputContractTicketVerified, DocumentHash: plan.DocumentHash, SceneHash: plan.SceneHash, SceneCompilationVerified: plan.SceneCompilationVerified, TextResourceFingerprint: plan.TextResourceFingerprint, ImageRasterFingerprint: plan.ImageRasterFingerprint)
         {
@@ -695,7 +746,18 @@ public sealed class PrintService
             CreatePageSize(plan),
             _ => _renderer.RenderCalibration(plan));
 
-        dialog.PrintDocument(paginator, $"{template.Name} calibration");
+        try
+        {
+            dialog.PrintDocument(paginator, $"{template.Name} calibration");
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return AttachSupportEvidence(
+                CreateUncertainDispatchResult(queue.FullName, $"{template.Name} calibration", 1, plan, knownSpoolJobs, ex),
+                plan,
+                durableJobIdHint: $"{template.Name} calibration");
+        }
+
         var spoolJobId = TryFindNewSpoolJobId(queue, knownSpoolJobs, $"{template.Name} calibration");
         var result = new PrintJobResult(PrintJobOutcome.SpoolAccepted, queue.FullName, $"{template.Name} calibration", 1, DpiX: plan.DpiX, DpiY: plan.DpiY, PrintableAreaVerified: plan.PrintableAreaVerified, SpoolJobId: spoolJobId, OutputContractHash: plan.OutputContractHash, OutputContractTicketVerified: plan.OutputContractTicketVerified, DocumentHash: plan.DocumentHash, SceneHash: plan.SceneHash, SceneCompilationVerified: plan.SceneCompilationVerified, TextResourceFingerprint: plan.TextResourceFingerprint, ImageRasterFingerprint: plan.ImageRasterFingerprint)
         {

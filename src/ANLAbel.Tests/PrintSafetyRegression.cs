@@ -46,6 +46,37 @@ internal static class PrintSafetyRegression
         return Task.CompletedTask;
     }
 
+    public static Task FailureWhileSendingIsUncertainNotFailed()
+    {
+        // P07: an exception from PrintDocument may come after pages reached the
+        // spooler or printer. It must be recorded as Unknown (listed for review,
+        // rows marked as sent), never as Failed with a "try again" message.
+        var service = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.Printing", "PrinterProfiles", "PrintService.cs")).Replace("\r\n", "\n");
+        var sends = 0;
+        for (var at = service.IndexOf("dialog.PrintDocument(", StringComparison.Ordinal); at >= 0; at = service.IndexOf("dialog.PrintDocument(", at + 1, StringComparison.Ordinal))
+        {
+            sends++;
+            var before = service[Math.Max(0, at - 80)..at];
+            var after = service.Substring(at, Math.Min(600, service.Length - at));
+            Require(before.TrimEnd().EndsWith("{", StringComparison.Ordinal) && before.Contains("try", StringComparison.Ordinal)
+                    && after.Contains("CreateUncertainDispatchResult(", StringComparison.Ordinal),
+                "Every PrintDocument call must turn its exception into an uncertain (Unknown) result.");
+        }
+
+        Require(sends == 2, $"Expected the batch and calibration sends, found {sends}.");
+        var explanation = ANLAbel.App.Services.PrintFailureExplainer.Explain(
+            ANLAbel.Printing.PrinterProfiles.PrintService.UncertainDispatchPrefix + "; part of it may already be in the queue or printed (The RPC server is unavailable).");
+        Require(!explanation.IsGeneric && explanation.Problem.Contains("Có thể một phần tem đã được in", StringComparison.Ordinal)
+                && explanation.NextAction.Contains("không tự in lại", StringComparison.OrdinalIgnoreCase),
+            "An uncertain send must tell the operator to reconcile, not to retry: " + explanation.Problem);
+
+        var printClick = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async void Print_Click(");
+        var unknownAt = printClick.IndexOf("printResult.Outcome == PrintJobOutcome.Unknown", StringComparison.Ordinal);
+        Require(unknownAt > 0 && printClick.IndexOf("row.IsPrinted = true", unknownAt, StringComparison.Ordinal) > unknownAt,
+            "Print Preview must mark rows of an uncertain job as sent so a reprint warns about duplicates.");
+        return Task.CompletedTask;
+    }
+
     public static Task PrintStopsAreExplainedInPlainVietnamese()
     {
         // The first two are the XP-DT426B stops recorded in print-operations.jsonl.

@@ -54,6 +54,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
+    ("failure while sending is uncertain, not failed", PrintSafetyRegression.FailureWhileSendingIsUncertainNotFailed),
     ("print stops are explained in plain Vietnamese", PrintSafetyRegression.PrintStopsAreExplainedInPlainVietnamese),
     ("preflight issues name the data row in Vietnamese", PrintSafetyRegression.PreflightIssuesNameTheDataRowInVietnamese),
     ("print history regression suite", PrintHistoryRegression.Run),
@@ -200,6 +201,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("overlapping imports publish only the latest", DataSourceRegression.OverlappingImportsPublishOnlyTheLatest),
     ("record numbers follow the source file, not the grid sort", DataSourceRegression.RecordNumbersFollowTheSourceFileNotTheGridSort),
     ("quick print rechecks the linked file before printing", DataSourceRegression.QuickPrintRechecksTheLinkedFileBeforePrinting),
+    ("print preview compares the file with the imported rows", DataSourceRegression.PrintPreviewComparesTheFileWithTheImportedRows),
     ("invalid barcode data in a file blocks printing", DataSourceRegression.InvalidBarcodeDataInAFileBlocksPrinting),
     ("import and preview cost is measured for 1, 1000 and 10000 rows", DataVolumeRegression.ImportAndPreviewCostIsMeasured),
     ("excel read honors cancellation", TestExcelReadHonorsCancellation),
@@ -7908,7 +7910,7 @@ static async Task TestCtrlPPreviewOpenDoesNotCrash()
                 vm.PrintLogService,
                 vm.CurrentFilePath,
                 preparedRows: rows,
-                excelSourceIdentity: vm.GetExcelDataSourceIdentity());
+                excelSourceIdentity: vm.ImportedExcelDataSourceIdentity);
             window.Close();
         }
         catch (Exception ex)
@@ -7936,7 +7938,7 @@ static async Task TestCtrlPPreviewOpenDoesNotCrash()
                 vm.PrintLogService,
                 vm.CurrentFilePath,
                 preparedRows: rows,
-                excelSourceIdentity: vm.GetExcelDataSourceIdentity());
+                excelSourceIdentity: vm.ImportedExcelDataSourceIdentity);
             PumpDispatcherUntil(() => !window.IsPreviewBusy, TimeSpan.FromSeconds(2));
 
             if (window.PreviewProgressText.Contains("calling thread cannot access", StringComparison.OrdinalIgnoreCase)

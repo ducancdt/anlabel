@@ -804,7 +804,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var dialog = new PrintPreviewWindow(_viewModel.Template, _viewModel.PreviewRow, _viewModel.ExcelDataView, _viewModel.PrintService, _viewModel.PrintLogService, _viewModel.CurrentFilePath, approvedReprintJobId, approvedReprintManifest, preparedRows, _viewModel.GetExcelDataSourceIdentity()) { Owner = this };
+            var dialog = new PrintPreviewWindow(_viewModel.Template, _viewModel.PreviewRow, _viewModel.ExcelDataView, _viewModel.PrintService, _viewModel.PrintLogService, _viewModel.CurrentFilePath, approvedReprintJobId, approvedReprintManifest, preparedRows, _viewModel.ImportedExcelDataSourceIdentity) { Owner = this };
             dialog.ShowDialog();
         }
         catch (Exception ex)
