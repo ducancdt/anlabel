@@ -88,6 +88,86 @@ public sealed class PrintJobLogRepairTests : IDisposable
         Assert.Single(snapshot.LatestEvents);
     }
 
+    [Fact]
+    public async Task A_large_settled_log_is_archived_whole_and_a_new_log_starts()
+    {
+        var path = Path.Combine(_directory, "print-job-events.jsonl");
+        var writer = new PrintJobStateStore(path);
+        await AppendPath(writer, "job-e", PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing, PrintJobLifecycleState.Failed);
+        await AppendPath(writer, "job-f", PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing, PrintJobLifecycleState.PreflightPassed,
+            PrintJobLifecycleState.Dispatching, PrintJobLifecycleState.SpoolAccepted);
+        var original = File.ReadAllBytes(path);
+
+        var store = new PrintJobStateStore(path, settledArchiveThresholdBytes: 1);
+        var snapshot = await store.ReadRecoverySnapshotAsync();
+
+        Assert.Empty(snapshot.LatestEvents);
+        Assert.Empty(snapshot.RepairNotices ?? Array.Empty<string>());
+        var archive = Assert.Single(Directory.GetFiles(_directory, "print-job-events.luu-*.jsonl"));
+        Assert.Equal(original, File.ReadAllBytes(archive));
+        var next = await store.AppendAsync(Transition("job-g", PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing));
+        Assert.Equal(1, next.Sequence);
+        Assert.Single((await store.ReadRecoverySnapshotAsync()).LatestEvents);
+        Assert.Single(Directory.GetFiles(_directory, "print-job-events.luu-*.jsonl"));
+    }
+
+    [Theory]
+    [InlineData(PrintJobLifecycleState.Unknown)]
+    [InlineData(PrintJobLifecycleState.Dispatching)]
+    [InlineData(PrintJobLifecycleState.Preparing)]
+    public async Task A_log_with_an_open_job_is_never_archived(PrintJobLifecycleState lastState)
+    {
+        var path = Path.Combine(_directory, "print-job-events.jsonl");
+        var writer = new PrintJobStateStore(path);
+        await AppendPath(writer, "job-h", PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing, PrintJobLifecycleState.Failed);
+        var states = new[]
+        {
+            PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing, PrintJobLifecycleState.PreflightPassed,
+            PrintJobLifecycleState.Dispatching, PrintJobLifecycleState.Unknown
+        };
+        await AppendPath(writer, "job-i", states[..(Array.IndexOf(states, lastState) + 1)]);
+
+        var snapshot = await new PrintJobStateStore(path, settledArchiveThresholdBytes: 1).ReadRecoverySnapshotAsync();
+
+        Assert.Equal(2, snapshot.LatestEvents.Count);
+        Assert.True(File.Exists(path));
+        Assert.Empty(Directory.GetFiles(_directory, "*.luu-*"));
+    }
+
+    [Fact]
+    public async Task A_preparation_abandoned_days_ago_does_not_keep_the_log_active()
+    {
+        var path = Path.Combine(_directory, "print-job-events.jsonl");
+        var writer = new PrintJobStateStore(path);
+        await writer.AppendAsync(Transition("job-k", PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing)
+            with { TimestampUtc = DateTimeOffset.UtcNow.AddDays(-2) });
+
+        var snapshot = await new PrintJobStateStore(path, settledArchiveThresholdBytes: 1).ReadRecoverySnapshotAsync();
+
+        Assert.Empty(snapshot.LatestEvents);
+        Assert.Single(Directory.GetFiles(_directory, "print-job-events.luu-*.jsonl"));
+    }
+
+    [Fact]
+    public async Task A_small_log_is_not_archived()
+    {
+        var path = Path.Combine(_directory, "print-job-events.jsonl");
+        await AppendPath(new PrintJobStateStore(path), "job-j", PrintJobLifecycleState.Created, PrintJobLifecycleState.Preparing, PrintJobLifecycleState.Failed);
+
+        var snapshot = await new PrintJobStateStore(path).ReadRecoverySnapshotAsync();
+
+        Assert.Single(snapshot.LatestEvents);
+        Assert.Empty(Directory.GetFiles(_directory, "*.luu-*"));
+    }
+
+    private static async Task AppendPath(PrintJobStateStore store, string jobId, params PrintJobLifecycleState[] states)
+    {
+        for (var index = 1; index < states.Length; index++)
+        {
+            await store.AppendAsync(Transition(jobId, states[index - 1], states[index]));
+        }
+    }
+
     private static PrintJobStateTransition Transition(string jobId, PrintJobLifecycleState from, PrintJobLifecycleState to)
     {
         return new PrintJobStateTransition(

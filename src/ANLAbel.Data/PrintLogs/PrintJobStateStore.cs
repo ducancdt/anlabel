@@ -13,6 +13,13 @@ namespace ANLAbel.Data.PrintLogs;
 /// </summary>
 public sealed class PrintJobStateStore
 {
+    /// <summary>
+    /// Size above which a log with nothing left to reconcile is archived the
+    /// first time the store reads its recovery snapshot (plan 13 H18). 16 MB is
+    /// roughly 1,800 print jobs.
+    /// </summary>
+    public const long SettledArchiveThresholdBytes = 16L * 1024 * 1024;
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> SharedWriteGates = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _writeGate;
@@ -27,13 +34,15 @@ public sealed class PrintJobStateStore
     private long _loadedLength;
     private DateTime _loadedLastWriteUtc;
     private TornTail? _tornTail;
+    private readonly long _settledArchiveThresholdBytes;
+    private bool _settledArchiveChecked;
 
     public PrintJobStateStore()
         : this(AppDataPaths.Log("print-job-events.jsonl"))
     {
     }
 
-    public PrintJobStateStore(string logFilePath)
+    public PrintJobStateStore(string logFilePath, long settledArchiveThresholdBytes = SettledArchiveThresholdBytes)
     {
         if (string.IsNullOrWhiteSpace(logFilePath))
         {
@@ -41,6 +50,7 @@ public sealed class PrintJobStateStore
         }
 
         LogFilePath = Path.GetFullPath(logFilePath);
+        _settledArchiveThresholdBytes = settledArchiveThresholdBytes;
         _writeGate = SharedWriteGates.GetOrAdd(LogFilePath, static _ => new SemaphoreSlim(1, 1));
     }
 
@@ -251,6 +261,11 @@ public sealed class PrintJobStateStore
                 await Task.Run(ReloadFromDisk, cancellationToken).ConfigureAwait(false);
             }
 
+            if (await Task.Run(TryArchiveSettledLog, cancellationToken).ConfigureAwait(false))
+            {
+                await Task.Run(ReloadFromDisk, cancellationToken).ConfigureAwait(false);
+            }
+
             lock (_states)
             {
                 return new PrintJobRecoverySnapshot(
@@ -302,7 +317,7 @@ public sealed class PrintJobStateStore
                 }
 
                 var bytes = ReadAllBytesWithRetry(LogFilePath);
-                var archive = CreateArchivePath();
+                var archive = CreateArchivePath("hong");
                 File.WriteAllBytes(archive, bytes);
                 var temporary = LogFilePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
                 using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
@@ -373,7 +388,7 @@ public sealed class PrintJobStateStore
                 return false;
             }
 
-            var archive = CreateArchivePath();
+            var archive = CreateArchivePath("hong");
             File.WriteAllBytes(archive, bytes);
             using (var stream = new FileStream(LogFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
             {
@@ -395,15 +410,77 @@ public sealed class PrintJobStateStore
         }
     }
 
-    private string CreateArchivePath()
+    /// <summary>
+    /// Once per store, after its first full replay: a large log in which every
+    /// job is settled — nothing to reconcile under ADR-023 and nothing part-way
+    /// through preparation during the last day — is renamed to
+    /// <c>print-job-events.luu-&lt;time&gt;.jsonl</c> and a new log starts, so
+    /// replay time and memory stay bounded. The archive is kept as evidence; a
+    /// log with any open job stays active as a whole.
+    /// </summary>
+    private bool TryArchiveSettledLog()
+    {
+        PrintJobRecoverySnapshot snapshot;
+        long expectedLength;
+        lock (_states)
+        {
+            if (_settledArchiveChecked)
+            {
+                return false;
+            }
+
+            _settledArchiveChecked = true;
+            if (_recoveryDiagnostics.Count > 0 || _tornTail is not null || _loadedLength < _settledArchiveThresholdBytes)
+            {
+                return false;
+            }
+
+            var recent = DateTimeOffset.UtcNow.AddDays(-1);
+            if (_states.Values.Any(state =>
+                    (state.State is PrintJobLifecycleState.Created
+                        or PrintJobLifecycleState.Preparing
+                        or PrintJobLifecycleState.PreflightPassed)
+                    && state.LastEvent.TimestampUtc > recent))
+            {
+                return false;
+            }
+
+            snapshot = new PrintJobRecoverySnapshot(_states.Values.Select(state => state.LastEvent).ToArray(), Array.Empty<string>());
+            expectedLength = _loadedLength;
+        }
+
+        if (PrintJobRecoveryService.Analyze(snapshot).Candidates.Count > 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            // Another window may have appended since the replay.
+            var info = new FileInfo(LogFilePath);
+            if (!info.Exists || info.Length != expectedLength)
+            {
+                return false;
+            }
+
+            File.Move(LogFilePath, CreateArchivePath("luu"));
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private string CreateArchivePath(string kind)
     {
         var directory = Path.GetDirectoryName(LogFilePath) ?? ".";
         var stem = Path.GetFileNameWithoutExtension(LogFilePath);
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
-        var archive = Path.Combine(directory, $"{stem}.hong-{stamp}.jsonl");
+        var archive = Path.Combine(directory, $"{stem}.{kind}-{stamp}.jsonl");
         for (var counter = 1; File.Exists(archive); counter++)
         {
-            archive = Path.Combine(directory, $"{stem}.hong-{stamp}-{counter}.jsonl");
+            archive = Path.Combine(directory, $"{stem}.{kind}-{stamp}-{counter}.jsonl");
         }
 
         return archive;
