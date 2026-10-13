@@ -1,5 +1,67 @@
 # ANLAbel Phase 1 Plan
 
+## v0.308 — In báo rõ, dữ liệu không in sai, thiết kế nhẹ hơn (kế hoạch 13, GĐ3–GĐ5)
+
+**In ấn (GĐ5)**
+
+- In nhanh dùng một bản chụp mẫu cho contract, kiểm tra, manifest và lệnh gửi
+  (như Xem trước). Contract và kiểm tra chạy ngoài luồng giao diện.
+- Danh sách máy in đọc trên luồng riêng, không đứng hình. Khi spooler tắt, app báo
+  đúng là spooler tắt.
+- Excel đang mở không còn gây chặn nhầm “dữ liệu đã đổi”.
+- Lỗi xảy ra sau khi hàng đợi đã nhận lệnh được ghi là “chưa rõ kết quả”, không
+  phải “thất bại”. ANLAbel không tự in lại.
+- Nhật ký lệnh in:
+  - chỉ đọc lại khi tệp thay đổi;
+  - dòng cuối ghi dở (mất điện) được tự cất sang tệp riêng;
+  - có nút lưu trữ nhật ký hỏng;
+  - nhật ký trên 16 MB mà mọi lệnh đã xong được lưu nguyên tệp và bắt đầu tệp mới.
+- “Xem lại” chỉ còn lệnh in chưa rõ kết quả (ADR-023). Dòng đã gửi được đánh dấu
+  để cảnh báo in trùng.
+- In thử không còn sửa mẫu đang mở khi bấm Hủy.
+- Thông báo dừng in và chặn in là tiếng Việt: nêu vấn đề, dòng dữ liệu hoặc đối
+  tượng, việc cần làm. Chi tiết kỹ thuật để riêng.
+
+**Dữ liệu (GĐ4)**
+
+- Ô có công thức nhưng tệp chưa lưu giá trị đã tính trước đây in thành ô trống;
+  nay việc nhập dừng lại và nêu đúng ô.
+- Dòng CSV thiếu hoặc thừa trường so với tiêu đề bị chặn và báo số dòng (ADR-024),
+  vì trước đây giá trị có thể bị dồn sang cột khác.
+- Lỗi nhập hoặc Cập nhật Excel được báo bằng tiếng Việt: tệp bị khóa, hết thời gian,
+  thiếu sheet, ô lỗi. Thông báo nêu tệp, sheet, ô và cách sửa.
+- Dòng tiêu đề và đường dẫn chỉ được ghi sau khi đọc thành công; nhập lỗi giữ nguyên
+  liên kết đang dùng.
+- Hai lần nhập chồng nhau: chỉ lần mới nhất được dùng.
+- In nhanh băm lại tệp liên kết ngay trước khi in.
+- Số dòng và thứ tự in theo tệp nguồn, không đổi khi sắp xếp bảng.
+
+**Thiết kế (GĐ3)**
+
+- Undo/Redo không còn âm thầm trả liên kết dữ liệu về giá trị cũ. Dán nhiều đối
+  tượng là một bước undo.
+- Thanh trạng thái báo phông chữ chưa cài và ảnh không có dữ liệu; bấm để chọn đối
+  tượng.
+- Lịch sử undo giữ mỗi ảnh một lần.
+- Ảnh trên 10 MB, trên 25 megapixel hoặc không đọc được bị từ chối khi chèn.
+- Kéo hoặc đổi kích thước không còn làm mới toàn bộ bảng thuộc tính ở mọi nhịp, và
+  không còn kiểm lại mọi mã vạch ở mỗi khung hình (200 đối tượng: 48,7 → 6 ms/nhịp).
+- Menu chuột phải và thông báo trạng thái của canvas là tiếng Việt; bỏ mục dành
+  cho lập trình viên.
+- Nhóm mã vạch: “Mã vạch 1D”, “Mã 2D”. Cả 15 loại đã có fixture dương/âm và decode
+  round-trip, nên không loại nào bị ẩn (QĐ-8).
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1175/1175; regression 243 PASS / 0 FAIL.
+- Đo trên máy phát triển: nhập 10.000 dòng XLSX 0,45 s; mở Xem trước 1.000 tem
+  2,2 s. Bảng “Measured limits” nằm trong `docs/LOCAL_LABEL_PRODUCT_CONTRACT.md`.
+- Mẫu thật (`form tem nhãn`): cả 5 mở, lưu, vẽ được. Hai mẫu 75×100 qua kiểm tra
+  với driver XP-DT426B (chỉ đọc). Hai mẫu 100×70 bị chặn vì khung chữ dòng cuối dư
+  0,18 mm; việc này chờ chủ sản phẩm quyết định.
+- Chưa có bằng chứng in vật lý mới. Chưa thử trên máy 4 GB và Windows scaling
+  125/150 %.
+
 ## v0.307 — Không mất thiết kế; gọn phạm vi; một nguồn việc (kế hoạch 13, GĐ0–GĐ2)
 
 **Vòng đời tệp (GĐ2, F01–F07)**
