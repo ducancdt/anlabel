@@ -192,6 +192,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("undo history keeps each image once and restores it", DesignHistoryRegression.UndoHistoryKeepsEachImageOnceAndRestoresIt),
     ("canvas gesture refreshes the property panel once", DesignHistoryRegression.CanvasGestureRefreshesThePropertyPanelOnce),
     ("oversized or unreadable images are refused on insert", DesignHistoryRegression.OversizedOrUnreadableImagesAreRefusedOnInsert),
+    ("design stays responsive with 200 objects", DesignLatencyRegression.DesignStaysResponsiveWith200Objects),
+    ("handle resize keeps millimetres at every zoom", DesignInteractionRegression.HandleResizeKeepsMillimetresAtEveryZoom),
     ("excel read honors cancellation", TestExcelReadHonorsCancellation),
     ("excel refresh skips unchanged file", TestExcelRefreshSkipsUnchangedFile),
     ("database config full round trip", TestDatabaseConfigRoundTrip),

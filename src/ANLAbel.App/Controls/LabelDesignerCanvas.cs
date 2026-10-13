@@ -84,6 +84,7 @@ public sealed class LabelDesignerCanvas : Canvas
     private readonly HashSet<LabelObject> _matrixAutoSizingObjects = new();
     private readonly HashSet<LabelObject> _textAutoSizingObjects = new();
     private readonly List<LabelObject> _clipboardObjects = new();
+    private readonly Dictionary<LabelObject, bool> _gestureObjectErrorStates = new();
     private readonly Dictionary<LabelObject, (double X, double Y, double EndX, double EndY)> _groupDragStarts = new();
     private readonly Dictionary<LabelObject, GroupResizeObjectSnapshot> _groupResizeStarts = new();
     private readonly Dictionary<LabelObject, (double X, double Y, double EndX, double EndY)> _nudgeStarts = new();
@@ -1726,9 +1727,29 @@ public sealed class LabelDesignerCanvas : Canvas
         {
             DashStyle = DashStyles.Dash
         };
+        // Checking an object renders its barcode or measures its text. During
+        // a drag or resize only the selected objects change, so the others
+        // keep the result from the first frame of the gesture instead of being
+        // re-checked on every pointer tick (plan 13 GĐ3 latency).
+        var gestureActive = IsTransformGestureActive;
+        if (!gestureActive)
+        {
+            _gestureObjectErrorStates.Clear();
+        }
+
         foreach (var item in Template.Objects.Where(item => item.IsVisible))
         {
-            if (GetObjectError(item) is null)
+            var manipulated = ReferenceEquals(item, SelectedObject) || _selectedObjects.Contains(item);
+            if (!gestureActive || manipulated || !_gestureObjectErrorStates.TryGetValue(item, out var hasError))
+            {
+                hasError = GetObjectError(item) is not null;
+                if (gestureActive)
+                {
+                    _gestureObjectErrorStates[item] = hasError;
+                }
+            }
+
+            if (!hasError)
             {
                 continue;
             }
