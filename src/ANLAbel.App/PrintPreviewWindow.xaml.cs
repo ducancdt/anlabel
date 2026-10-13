@@ -293,7 +293,7 @@ public partial class PrintPreviewWindow : Window
                 }
                 catch (InvalidOperationException ex)
                 {
-                    MessageBox.Show(this, ex.Message, "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(ex.Message), "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
@@ -365,7 +365,7 @@ public partial class PrintPreviewWindow : Window
                 OnPropertyChanged();
                 MessageBox.Show(
                     this,
-                    CopiesFieldContract.ToUserMessage(copiesIssues),
+                    ANLAbel.App.Services.PreflightIssueText.Describe(ToCopiesPreflightResult(copiesIssues)),
                     "Lệnh in bị chặn",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -392,12 +392,16 @@ public partial class PrintPreviewWindow : Window
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                var contractStop = ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message);
+                OperatorDialog.Ask(
                     this,
-                    $"Quá trình chuẩn bị in đã dừng vì hợp đồng máy in đã chọn không thể kiểm chứng.\n\n{ex.Message}",
-                    "Hợp đồng máy in không khả dụng",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    "Chưa xác nhận được cài đặt máy in",
+                    contractStop.IsGeneric
+                        ? ["ANLAbel chưa xác nhận được cài đặt của máy in đã chọn nên đã dừng chuẩn bị in. Chưa có tem nào được gửi.", "Kiểm tra máy in đang bật, mở Cài đặt máy in rồi thử lại."]
+                        : [contractStop.Problem, contractStop.NextAction],
+                    $"Chi tiết kỹ thuật: {contractStop.Technical}",
+                    OperatorDialogTone.Warning,
+                    new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
                 return;
             }
 
@@ -468,14 +472,14 @@ public partial class PrintPreviewWindow : Window
                         _previewTrustLevel = PreviewTrustLevel.EffectiveBlocked;
                     }
                     OnPropertyChanged();
-                    MessageBox.Show(this, preflight.ToUserMessage(), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Describe(preflight, SourceRowOf(selected)), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 var remainingCount = totalSelectedRows - badSourceRows.Length;
                 var choice = MessageBox.Show(
                     this,
-                    $"{badSourceRows.Length} dòng gặp lỗi tiền kiểm và sẽ bị bỏ qua:\nDòng {string.Join(", ", badSourceRows)}\n\n{preflight.ToUserMessage(5)}\n\nTiếp tục in {remainingCount} dòng còn lại?",
+                    $"{badSourceRows.Length} dòng có lỗi và sẽ được bỏ qua: dòng {string.Join(", ", badSourceRows)}.\n\n{string.Join("\n", ANLAbel.App.Services.PreflightIssueText.Lines(preflight, SourceRowOf(selected)))}\n\nTiếp tục in {remainingCount} dòng còn lại?",
                     "Một số dòng bị chặn",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Warning);
@@ -512,7 +516,7 @@ public partial class PrintPreviewWindow : Window
                         _previewTrustLevel = PreviewTrustLevel.EffectiveBlocked;
                     }
                     OnPropertyChanged();
-                    MessageBox.Show(this, preflight.ToUserMessage(), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Describe(preflight, SourceRowOf(selected)), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
@@ -674,7 +678,16 @@ public partial class PrintPreviewWindow : Window
             LogPrintOperation(rows.Length, printResult, spoolStatus, printJobId);
             if (!printResult.IsAccepted)
             {
-                MessageBox.Show(this, printResult.UserFacingStatus, "Lệnh in chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (printResult.Outcome == PrintJobOutcome.Failed && !string.IsNullOrWhiteSpace(printResult.ErrorMessage))
+                {
+                    var notCompleted = ANLAbel.App.Services.PrintFailureExplainer.Explain(printResult.ErrorMessage);
+                    OperatorDialog.Ask(this, "Lệnh in chưa hoàn tất", [notCompleted.Problem, notCompleted.NextAction], $"Chi tiết kỹ thuật: {notCompleted.Technical}", OperatorDialogTone.Warning, new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
+                }
+                else
+                {
+                    MessageBox.Show(this, printResult.UserFacingStatus, "Lệnh in chưa hoàn tất", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
                 return;
             }
 
@@ -760,14 +773,15 @@ public partial class PrintPreviewWindow : Window
             {
                 MessageBox.Show(
                     this,
-                    $"Hàng đợi đã nhận lệnh in nhưng sau đó gặp lỗi: {ex.Message}\n\nChưa rõ tem đã ra hay chưa. ANLAbel không tự in lại; hãy kiểm tra máy in và đối soát lệnh trong Trung tâm in trước khi in lại.",
+                    $"Hàng đợi Windows đã nhận lệnh in nhưng sau đó gặp lỗi.\n\nChưa rõ tem đã ra hay chưa. ANLAbel không tự in lại; hãy kiểm tra máy in và đối soát lệnh trong Trung tâm in trước khi in lại.\n\nChi tiết kỹ thuật: {ex.Message}",
                     "Chưa rõ kết quả in",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
             else
             {
-                MessageBox.Show(this, ex.Message, "In thất bại", MessageBoxButton.OK, MessageBoxImage.Error);
+                var failure = ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message);
+                OperatorDialog.Ask(this, "In thất bại", [failure.Problem, failure.NextAction], $"Chi tiết kỹ thuật: {failure.Technical}", OperatorDialogTone.Error, new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
             }
         }
         finally
@@ -1248,7 +1262,7 @@ public partial class PrintPreviewWindow : Window
             if (IsCurrentPreviewOperation(operation))
             {
                 keepStatus = true;
-                _previewProgressText = $"Preview render failed: {ex.Message}";
+                _previewProgressText = $"Không vẽ được bản xem trước: {ex.Message}";
                 OnPropertyChanged();
             }
         }
@@ -1480,13 +1494,19 @@ public partial class PrintPreviewWindow : Window
             out blockingIssues);
     }
 
+    private const string CopiesIssueObjectType = "Copies";
+
+    // Validator issue rows are label ordinals; the operator sees data rows.
+    private static Func<int, int> SourceRowOf((IReadOnlyDictionary<string, string>? Row, int SourceRowNumber, PrintDispatchCopy Copy)[] selected)
+        => row => row > 0 && row <= selected.Length ? selected[row - 1].SourceRowNumber : 0;
+
     private static PrintPreflightResult ToCopiesPreflightResult(IReadOnlyList<CopiesFieldIssue> issues)
     {
         return new PrintPreflightResult(issues
             .Select(issue => new PrintPreflightIssue(
                 issue.SourceRowNumber,
                 issue.FieldName,
-                "Copies",
+                CopiesIssueObjectType,
                 issue.Message,
                 IsBlocking: true))
             .ToArray());
@@ -1511,7 +1531,7 @@ public partial class PrintPreviewWindow : Window
             _template.PrinterProfile.PaperName);
         if (!stock.IsAllowed)
         {
-            MessageBox.Show(this, stock.Diagnostic, "Thiết lập nhãn", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(stock.Diagnostic), "Thiết lập nhãn", MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
@@ -1657,7 +1677,7 @@ public partial class PrintPreviewWindow : Window
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                _previewProgressText = $"Print sent, but history could not be saved. {ex.Message}";
+                _previewProgressText = $"Đã gửi lệnh in nhưng không lưu được lịch sử in. {ex.Message}";
                 OnPropertyChanged();
             });
         }

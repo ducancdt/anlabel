@@ -136,7 +136,7 @@ public partial class PrintPreviewWindow
                     .Concat(copiesIssues.Select(issue => new PrintPreflightIssue(
                         issue.SourceRowNumber,
                         issue.FieldName,
-                        "Copies",
+                        CopiesIssueObjectType,
                         issue.Message,
                         IsBlocking: true)))
                     .ToArray();
@@ -269,7 +269,7 @@ public partial class PrintPreviewWindow
                 PreviewTrustLevel.DesignOnly,
                 new PrintPreflightIssue(
                     0,
-                    "Hợp đồng máy in",
+                    "Máy in đã chọn",
                     "Output",
                     "Chưa chọn máy in. Bạn có thể xem nhãn và chọn dòng. Hãy chọn máy in trong Cài đặt máy in trước khi in."));
         }
@@ -301,7 +301,7 @@ public partial class PrintPreviewWindow
                 PreviewTrustLevel.EffectiveBlocked,
                 new PrintPreflightIssue(
                     0,
-                    "Hợp đồng máy in",
+                    "Máy in đã chọn",
                     "Output",
                     $"Cài đặt máy in cần chú ý. Bản xem trước này sử dụng thiết kế nhãn, chưa xác thực đầu ra máy in. Hãy mở Cài đặt máy in để xem lại hàng đợi, khổ giấy và trình điều khiển. Chi tiết: {ex.Message}"));
         }

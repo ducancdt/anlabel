@@ -37,6 +37,7 @@ Việc chỉ lấy từ mục 9 của kế hoạch; tài liệu này không tạ
 | D07 · Thiếu phông chữ / ảnh | `37:259` |
 | GĐ4 · “Cập nhật Excel” thất bại | `37:269` |
 | GĐ5 · Lệnh in chưa rõ, nhật ký hỏng, dòng đã gửi | `37:280` |
+| GĐ5 · Lệnh in bị dừng / bị chặn (giải thích tiếng Việt) | Chưa có node riêng: ngày 2026-10-13 hết lượt gọi Figma MCP (gói Starter). Bố cục là hộp thoại F03 `36:188` (tiêu đề, dòng vấn đề, dòng việc cần làm, “Chi tiết kỹ thuật”, một nút chính); nội dung chữ ở §3a. Tạo thẻ khi có lượt gọi |
 
 ## 3. Trạng thái
 
@@ -50,6 +51,24 @@ Việc chỉ lấy từ mục 9 của kế hoạch; tài liệu này không tạ
 | Lỗi không mong muốn | `36:188` | `App.OnDispatcherUnhandledException` | Tiếp tục làm việc |
 | Có bản phục hồi | `36:201` | `DocumentRecoveryService.FindOrphans()` | Mở bản phục hồi |
 | Cấu hình hỏng | `36:216` | `MainViewModel.StartupNotices` | Đã hiểu |
+
+### 3a. Lệnh in bị dừng hoặc bị chặn (GĐ5, H25)
+
+Thông điệp kỹ thuật tiếng Anh của lõi giữ nguyên trong nhật ký và test;
+giao diện ánh xạ chúng ở `Services/PrintFailureExplainer.cs` (lệnh in dừng)
+và `Services/PreflightIssueText.cs` (vấn đề kiểm tra trước khi in). Thông điệp
+chưa có quy tắc vẫn hiện nguyên văn, không bị giấu.
+
+| Trạng thái | Nguồn runtime | Nội dung |
+| --- | --- | --- |
+| In thất bại (Xem trước) | `PrintPreviewWindow.Print_Click`, `OperatorDialog` tông lỗi | Tiêu đề “In thất bại”; dòng 1 = vấn đề (kèm “Chưa có tem nào được gửi.” khi dừng trước khi gửi); dòng 2 = việc cần làm; “Chi tiết kỹ thuật: …”; nút “Đóng” |
+| Lệnh in chưa hoàn tất | `printResult.Outcome == Failed` | Như trên, tông cảnh báo |
+| Chưa xác nhận được cài đặt máy in | `CreateEffectivePlanAsync` lỗi | Vấn đề + “Kiểm tra máy in đang bật, mở Cài đặt máy in rồi thử lại.” |
+| Lệnh in bị chặn (kiểm tra trước khi in) | `PreflightIssueText.Describe` | “Kiểm tra trước khi in phát hiện N vấn đề. Chưa có tem nào được gửi.”; mỗi dòng `- Dòng 2 · “SKU” (mã QR): dữ liệu thiếu cột Part; đối tượng sẽ in trống`; số dòng là dòng dữ liệu, không phải số thứ tự tem |
+| Bỏ qua dòng lỗi | Hộp thoại Có/Không/Hủy | “N dòng có lỗi và sẽ được bỏ qua: dòng …” + danh sách như trên |
+| Danh sách “Vấn đề nội dung” | `PreviewContentIssue.Summary` / `NavigationText` | `PreflightIssueText.Line`; “Đi tới tem đầu tiên bị ảnh hưởng” hoặc “Xem lại thiết kế hoặc cài đặt tem” |
+| In nhanh | `MainViewModel.StatusText` | “In thất bại: ” + vấn đề + việc cần làm; với lỗi kiểm tra thì nêu đối tượng đầu tiên và “Mở Xem trước để xem các dòng và đối tượng bị lỗi” |
+| Lệnh bất đồng bộ thất bại | `App.ReportFailedOperation` | Cùng bộ giải thích; chi tiết ghi vào `logs\errors.log` |
 
 ## 4. Bố cục
 
@@ -83,6 +102,7 @@ Việc chỉ lấy từ mục 9 của kế hoạch; tài liệu này không tạ
 | Round-trip mẫu thư viện, hình học không đổi | `library templates round-trip without geometry change` — PASS |
 | Chuỗi tiếng Việt | `OperatorDialog.xaml` nằm trong danh sách cưỡng chế của bộ quét Việt hóa — PASS |
 | Thao tác chuột thật trên hộp thoại | Chưa kiểm tra bằng tay; hộp thoại dùng `ShowDialog` nên test tự động không bấm nút |
+| Lệnh in dừng/bị chặn nói tiếng Việt, đúng dòng dữ liệu | `print stops are explained in plain Vietnamese`, `preflight issues name the data row in Vietnamese` — PASS; mỗi quy tắc neo vào chuỗi lõi nên đổi chuỗi lõi sẽ làm gate đỏ |
 
 ## 7. Điều kiện hoàn tất
 

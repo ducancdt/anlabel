@@ -52,6 +52,13 @@ public partial class PrintPreviewWindow
             var affectedRows = group.Where(issue => issue.RowNumber > 0)
                 .Select(issue =>
                 {
+                    // Copies issues are numbered by data row already; validator
+                    // issues by label (see ToCopiesPreflightResult).
+                    if (string.Equals(issue.ObjectType, CopiesIssueObjectType, StringComparison.Ordinal))
+                    {
+                        return issue.RowNumber;
+                    }
+
                     if (sourceRows is not null
                         && issue.RowNumber <= sourceRows.Count)
                     {
@@ -66,15 +73,11 @@ public partial class PrintPreviewWindow
                 .Distinct()
                 .OrderBy(row => row)
                 .ToArray();
-            var location = affectedRows.Length == 0
-                ? "Template"
-                : $"Excel row{(affectedRows.Length == 1 ? string.Empty : "s")} {string.Join(", ", affectedRows.Take(5))}"
-                  + (affectedRows.Length > 5 ? $" (+{affectedRows.Length - 5} more)" : string.Empty);
             var labelNumber = affectedRows.Length > 0
                 && firstLabelBySource.TryGetValue(affectedRows[0], out var firstLabel) ? firstLabel : 0;
             groups.Add(new PreviewContentIssue(
                 labelNumber,
-                $"{location} · {group.Key.ObjectName} ({group.Key.ObjectType}): {group.Key.Message}"));
+                ANLAbel.App.Services.PreflightIssueText.Line(affectedRows, group.Key.ObjectName, group.Key.ObjectType, group.Key.Message)));
         }
         _contentIssues = groups;
     }
@@ -82,6 +85,6 @@ public partial class PrintPreviewWindow
     public sealed record PreviewContentIssue(int LabelNumber, string Summary)
     {
         public bool CanNavigate => LabelNumber > 0;
-        public string NavigationText => CanNavigate ? "Go to first affected label" : "Review label design or settings";
+        public string NavigationText => CanNavigate ? "Đi tới tem đầu tiên bị ảnh hưởng" : "Xem lại thiết kế hoặc cài đặt tem";
     }
 }

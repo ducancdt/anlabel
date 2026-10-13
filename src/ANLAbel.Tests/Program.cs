@@ -53,6 +53,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
+    ("print stops are explained in plain Vietnamese", PrintSafetyRegression.PrintStopsAreExplainedInPlainVietnamese),
+    ("preflight issues name the data row in Vietnamese", PrintSafetyRegression.PreflightIssuesNameTheDataRowInVietnamese),
     ("print history regression suite", PrintHistoryRegression.Run),
     ("release version script projects one public version", ReleaseVersionScriptRegression.Run),
     ("mm to WPF DIP conversion", TestMmToDip),
@@ -8033,8 +8035,9 @@ static Task TestPrintPreviewSeparatesPrinterAndContentIssues()
             AssertEqual(true, window.CanRequestPrint, "Print must stay clickable so the operator can choose a printer");
             AssertEqual(true, window.HasPreflightIssues, "Missing Excel field must remain a content issue");
             AssertEqual(1, window.PreflightIssues.Count, "100 copies of one missing field must display as one root issue");
-            AssertEqual(true, window.PreflightIssues[0].Summary.Contains("Excel row 1", StringComparison.Ordinal),
-                "The grouped issue must name the Excel row, not each copy: " + window.PreflightIssues[0].Summary);
+            AssertEqual(true, window.PreflightIssues[0].Summary.StartsWith("Dòng 1 · ", StringComparison.Ordinal)
+                    && window.PreflightIssues[0].Summary.Contains("dữ liệu thiếu cột", StringComparison.Ordinal),
+                "The grouped issue must name the data row in Vietnamese, not each copy: " + window.PreflightIssues[0].Summary);
             AssertEqual(false, window.PreflightStatusText.Contains("label content is not safe", StringComparison.OrdinalIgnoreCase),
                 "Content status must not reuse the old content-unsafe alarm: " + window.PreflightStatusText);
             AssertEqual(true, window.PrinterStatusText.Contains("No printer selected", StringComparison.OrdinalIgnoreCase)

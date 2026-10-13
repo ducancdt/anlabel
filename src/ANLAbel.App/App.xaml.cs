@@ -137,11 +137,12 @@ public partial class App : Application
         }
 
         CrashReporter.AppendErrorLog(exception, "Lệnh bất đồng bộ thất bại");
+        var explanation = PrintFailureExplainer.Explain(exception.Message);
         OperatorDialog.Ask(
             MainWindow,
             "Thao tác chưa hoàn tất",
-            [exception.Message],
-            "Chi tiết kỹ thuật đã ghi vào nhật ký lỗi của ANLAbel (logs\\errors.log).",
+            [explanation.Problem, explanation.NextAction],
+            $"Chi tiết kỹ thuật: {explanation.Technical} (đã ghi vào logs\\errors.log)",
             OperatorDialogTone.Error,
             new OperatorDialogChoice("ok", "Đóng", IsDefault: true, IsCancel: true));
     }

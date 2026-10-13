@@ -2879,7 +2879,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"In thất bại: {ex.Message}";
+            StatusText = "In thất bại: " + ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message).StatusLine;
             LogPrintOperation("Current row", PreviewRow is null ? 0 : 1, 0, success: false, ex.Message);
         }
     }
@@ -2958,7 +2958,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusText = $"In thất bại: {ex.Message}";
+            StatusText = "In thất bại: " + ANLAbel.App.Services.PrintFailureExplainer.Explain(ex.Message).StatusLine;
             LogPrintOperation("All rows", ExcelDataView?.Count ?? 0, 0, success: false, ex.Message);
         }
     }
