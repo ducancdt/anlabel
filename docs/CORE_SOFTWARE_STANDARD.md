@@ -71,6 +71,18 @@ Không tạo một lớp/service cho mỗi danh từ trong tài liệu. Chỉ t�
 | D06 | Save/load bảo toàn nội dung và tài nguyên | Round-trip giữ geometry, font, binding, barcode options; file hỏng/schema không hỗ trợ báo rõ và giữ document đang mở |
 | D07 | Lỗi hiển thị không làm mất phiên chỉnh sửa | Font/image thiếu, dữ liệu lỗi, render thất bại có diagnostic; không crash hay tự thay nội dung |
 
+Vòng đời tệp (bổ sung 2026-10-13 theo ADR-022, kế hoạch 13 QĐ-9):
+
+| ID | Bắt buộc | Nghiệm thu |
+| --- | --- | --- |
+| F01 | Không mất thay đổi chưa lưu | Tiêu đề có `*` khi khác bản đã lưu; Undo về bản đã lưu thì hết `*`; Tạo mới, Mở, Mở từ thư viện, Phiên bản, Đóng hỏi Lưu / Không lưu / Hủy |
+| F02 | Lưu thành và phím tắt đúng như quảng cáo | “Lưu thành…” (Ctrl+Shift+S); Ctrl+N/O/S hoạt động |
+| F03 | Lỗi bất ngờ không làm sập phiên một cách im lặng | Bắt lỗi toàn cục, crash log, bản phục hồi, thông báo tiếng Việt; lỗi lệnh bất đồng bộ không chỉ nằm trong Debug; model từ chối NaN/vô cực; không tự gửi lại lệnh in |
+| F04 | Bản phục hồi tự động | Lưu định kỳ khi có thay đổi; lần mở sau đề nghị khôi phục bản của phiên đã chết; tệp gốc không bị ghi đè |
+| F05 | Khởi động bền | Cấu hình hỏng hoặc schema mới hơn được cách ly; app vẫn mở và báo người dùng |
+| F06 | Mở tệp từ Explorer | Mở đúp `.anlabel` mở đúng tệp đó |
+| F07 | Lưu nhất quán | Lưu từ bản chụp; không lưu chồng; mọi lỗi lưu được báo rõ; khi chưa lưu trữ được bản trước thì không ghi đè tệp |
+
 Phạm vi thao tác lõi: tạo/chọn/xóa, di chuyển, resize, xoay, copy/paste, undo/redo, căn chỉnh và snap trên Text, TextBox, barcode, image, shape, line. Kiểm tra cả object đơn và nhóm, object xoay, nhãn nhỏ và nhiều object. Không dùng quy tắc tổng quát để vô hiệu hóa sizing có chủ đích đã được hợp đồng Text hoặc barcode hiện hành cho phép.
 
 ## 4. Hợp đồng Excel/CSV và binding

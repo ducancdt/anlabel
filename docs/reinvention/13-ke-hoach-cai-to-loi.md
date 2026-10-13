@@ -281,7 +281,7 @@ luồng lõi, nên phần sửa không chờ QĐ-9; chỉ phần UI cần node F
 | F04 | Bản phục hồi tự động | Lưu định kỳ vào `%LOCALAPPDATA%\ANLAbel\Recovered`. Lần mở sau đề nghị khôi phục hoặc bỏ. Bản cũ được dọn |
 | F05 | Khởi động bền | File cấu hình hoặc registry hỏng, hay có schema mới hơn, được cách ly (đổi tên); app dùng giá trị mặc định và báo cho người dùng. App vẫn mở |
 | F06 | Mở file từ Explorer | Mở đúp file `.anlabel` mở đúng file đó |
-| F07 | Lưu nhất quán | <ul><li>Lưu từ một bản chụp của mẫu.</li><li>Khóa nút Lưu khi đang lưu.</li><li>Lỗi ở phần lưu trữ phiên bản được báo rõ và không làm mất lần lưu chính (`.bak` vẫn giữ bản tốt trước đó).</li></ul> |
+| F07 | Lưu nhất quán | <ul><li>Lưu từ một bản chụp của mẫu.</li><li>Từ chối lần lưu thứ hai khi đang lưu.</li><li>Mọi lỗi lưu, kể cả lỗi lưu trữ phiên bản, được báo rõ bằng tiếng Việt; thay đổi vẫn còn trong app và trong bản phục hồi.</li><li>Giữ thiết kế an toàn hiện có của `ProjectFileService`: khi chưa lưu trữ được bản trước thì không ghi đè tệp (quyết định 2026-10-13, ưu tiên giữ dữ liệu hơn tính sẵn sàng).</li></ul> |
 | D06 | Round-trip mẫu | 22 mẫu thư viện, 5 mẫu trong `form tem nhãn/anlabel` và fixture có ảnh, xoay, nhóm: mở → lưu → mở lại, nội dung không đổi |
 
 ### GĐ3 — Thiết kế mượt và đúng (D01–D07)
@@ -509,14 +509,14 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 
 **GĐ2 — File**
 
-- [ ] F01 Trạng thái "chưa lưu" và hỏi lưu khi Tạo mới, Mở, Mở từ thư viện, Đóng
-- [ ] F02 "Lưu thành…" và gắn Ctrl+N/O/S, Ctrl+Shift+S
-- [ ] F03 Bắt lỗi toàn cục, crash log, bản phục hồi khi lỗi, xử lý lỗi mặc định cho lệnh bất đồng bộ, chặn NaN và vô cực
-- [ ] F04 Tự lưu bản phục hồi và đề nghị khôi phục khi mở lại
-- [ ] F05 File cấu hình hỏng hoặc có schema mới hơn không chặn khởi động
-- [ ] F06 Mở file `.anlabel` từ Explorer
-- [ ] F07 Lưu từ bản chụp, khóa nút Lưu khi đang lưu, lỗi lưu trữ phiên bản được báo rõ
-- [ ] D06 Round-trip toàn bộ mẫu thư viện và mẫu thật
+- [x] F01 Trạng thái "chưa lưu" và hỏi lưu khi Tạo mới, Mở, Mở từ thư viện, Đóng — xong 2026-10-13 (cả khi mở Phiên bản): gate `unsaved marker follows edits, undo and save`; Figma `36:141`, `36:150`.
+- [x] F02 "Lưu thành…" và gắn Ctrl+N/O/S, Ctrl+Shift+S — xong 2026-10-13: nút `Shell.QuickAccess.SaveAs`, icon `save_as.png`, `ApplicationCommands`; Trợ giúp cập nhật; Figma `36:165`.
+- [x] F03 Bắt lỗi toàn cục, crash log, bản phục hồi khi lỗi, xử lý lỗi mặc định cho lệnh bất đồng bộ, chặn NaN và vô cực — xong 2026-10-13: `App.xaml.cs`, `CrashReporter` (`logs/crash-*.log`, `logs/errors.log`); gate `async command failure reaches the operator`; unit `Non_finite_geometry_*`; Figma `36:188`.
+- [x] F04 Tự lưu bản phục hồi và đề nghị khôi phục khi mở lại — xong 2026-10-13: mỗi 60 giây khi có thay đổi, `%LOCALAPPDATA%\ANLAbel\Recovered`; gate `recovery copy is offered once and opens unsaved`; Figma `36:201`.
+- [x] F05 File cấu hình hỏng hoặc có schema mới hơn không chặn khởi động — xong 2026-10-13: `DataSourceRegistry.LoadOrQuarantine`; gate `corrupt data-source registry is quarantined at startup`; Figma `36:216`.
+- [x] F06 Mở file `.anlabel` từ Explorer — xong 2026-10-13: `MainWindow.FindDocumentArgument`; gate `explorer argument opens only existing documents`.
+- [x] F07 Lưu từ bản chụp, khóa nút Lưu khi đang lưu, lỗi lưu trữ phiên bản được báo rõ — xong 2026-10-13: gate `save writes a snapshot and refuses a concurrent save`; giữ fail-closed của bản lưu trữ phiên bản (xem bảng F ở GĐ2).
+- [x] D06 Round-trip toàn bộ mẫu thư viện và mẫu thật — mẫu thư viện xong 2026-10-13: gate `library templates round-trip without geometry change` (22 mẫu, byte-stable, mở→lưu qua editor không đổi X/Y/W/H/xoay/nội dung). Mẫu khách hàng kiểm cục bộ, không commit (xem GĐ6).
 
 **GĐ3 — Thiết kế**
 
