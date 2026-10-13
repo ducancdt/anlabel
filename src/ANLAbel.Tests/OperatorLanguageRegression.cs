@@ -119,6 +119,16 @@ internal static class OperatorLanguageRegression
                 $"The Print Center {column} column must show Vietnamese text.");
         }
 
+        var help = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "HelpWindow.xaml.cs"))
+                   + File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "HelpWindow.xaml"));
+        foreach (var stale in new[] { "Nhấn Import Excel", "trên ribbon", "Chọn ngôn ngữ English", "Thanh Ribbon", "Mở mục Calibration" })
+        {
+            Require(!help.Contains(stale, StringComparison.Ordinal), $"The guide must name the current Vietnamese controls, not '{stale}'.");
+        }
+
+        Require(help.Contains("Nguồn = “Trường Excel”", StringComparison.Ordinal) && help.Contains("Tìm phần Căn chỉnh khổ in", StringComparison.Ordinal),
+            "The guide must describe binding and calibration with the current controls.");
+
         var setup = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrinterSetupWindow.xaml.cs"));
         Require(!setup.Contains("Driver evidence:", StringComparison.Ordinal)
                 && !setup.Contains("driver media option(s)", StringComparison.Ordinal)

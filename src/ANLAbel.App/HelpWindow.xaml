@@ -26,7 +26,7 @@
                          FontSize="12" Padding="0,4">
                     <ListBoxItem Padding="10,7" IsSelected="True" Tag="overview">🏠 Tổng quan</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="quickstart">⚡ Hướng dẫn nhanh</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="ribbon">🔧 Thanh Ribbon</ListBoxItem>
+                    <ListBoxItem Padding="10,7" Tag="ribbon">🔧 Thanh công cụ</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="canvas">🎨 Bảng thiết kế</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="objects">📦 Đối tượng</ListBoxItem>
                     <ListBoxItem Padding="10,7" Tag="properties">🎛️ Bảng thuộc tính</ListBoxItem>
