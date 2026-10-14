@@ -539,7 +539,7 @@ ghi rõ phương án được chọn trong cột Trạng thái.
 - [x] Fixture dữ liệu chạy qua kiểm tra payload mã vạch B01/B02; payload lỗi chặn in — xong 2026-10-13. Payload từ ô CSV/XLSX tới decode: `ImportedBarcodeRoundTripTests` (15 loại, 90 ca). Một dòng CSV có EAN-13 sai số kiểm tra chặn đúng dòng đó ở kiểm tra trước khi in, và thông báo nêu “Dòng 2 · “EAN” (mã vạch)” (gate `invalid barcode data in a file blocks printing`).
 - [x] Chốt ADR CSV về dòng thiếu hoặc thừa cột — xong 2026-10-13: ADR-024. Dòng thiếu hay thừa trường so với tiêu đề đều chặn việc nhập và nêu số dòng.
 - [ ] Tái hiện và xử lý treo khi nhập Excel trên máy 4 GB — *chưa làm được, 2026-10-13:* cần máy 4 GB thật. Trên máy phát triển, bản hiện tại không treo: 10.000 dòng XLSX nhập trong 0,45 s và chỉ thêm 3,5 MB. Việc nhập chạy ngoài luồng giao diện, có Hủy và tự dừng sau 45 s (tệp mạng 30 s).
-- [x] Đo 1, 1.000 và 10.000 dòng; công bố giới hạn — xong 2026-10-13: bảng “Measured limits” trong [`../LOCAL_LABEL_PRODUCT_CONTRACT.md`](../LOCAL_LABEL_PRODUCT_CONTRACT.md). Nhập 10.000 dòng: XLSX 0,45 s, CSV 0,04 s. Mở Xem trước 10.000 tem: 16,6 s (đo một lần; gate thường chạy đến 1.000 dòng để bộ test không chậm).
+- [x] Đo 1, 1.000 và 10.000 dòng; công bố giới hạn — xong 2026-10-13: bảng “Measured limits” trong [`../LOCAL_LABEL_PRODUCT_CONTRACT.md`](../LOCAL_LABEL_PRODUCT_CONTRACT.md). Nhập 10.000 dòng: XLSX 0,45 s, CSV 0,04 s. Mở Xem trước 10.000 tem: 16,6 s (đo một lần; gate thường chạy đến 1.000 dòng để bộ test không chậm). Đo lại 2026-10-14 khi máy rảnh, ba lần: 1.000 tem 1,0–1,3 s, 10.000 tem 8,6–9,6 s; gate đo 10.000 tem khi đặt `ANLABEL_MEASURE_LARGE_PREVIEW=1`.
 
 **GĐ5 — Mã vạch, xem trước và in**
 

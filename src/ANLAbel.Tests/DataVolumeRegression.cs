@@ -19,6 +19,10 @@ internal static class DataVolumeRegression
     {
         var directory = Path.Combine(Path.GetTempPath(), "anlabel-volume-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
+        // Opening the preview for 10,000 rows takes several seconds, so it is
+        // measured only on request, for the published limits:
+        // ANLABEL_MEASURE_LARGE_PREVIEW=1.
+        var largestPreview = Environment.GetEnvironmentVariable("ANLABEL_MEASURE_LARGE_PREVIEW") == "1" ? 10_000 : 1_000;
         try
         {
             foreach (var rows in new[] { 1, 1_000, 10_000 })
@@ -52,7 +56,7 @@ internal static class DataVolumeRegression
 
                 var (xlsxMs, xlsxMb) = await MeasureImportAsync(xlsx, "Data");
                 var (csvMs, csvMb) = await MeasureImportAsync(csv, ExcelDataService.CsvSheetName);
-                var previewMs = rows <= 1_000 ? MeasurePreview(rows) : (double?)null;
+                var previewMs = rows <= largestPreview ? MeasurePreview(rows) : (double?)null;
                 Console.WriteLine(
                     $"MEASURE dữ liệu {rows:N0} dòng: nhập XLSX {xlsxMs:0} ms (+{xlsxMb:0.0} MB), nhập CSV {csvMs:0} ms (+{csvMb:0.0} MB)" +
                     (previewMs is { } ms ? $", mở xem trước {ms:0} ms" : string.Empty));

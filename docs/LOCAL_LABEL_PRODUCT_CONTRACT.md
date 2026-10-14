@@ -30,15 +30,18 @@ the safety contracts in the core standard.
 
 ## Measured limits
 
-Measured on 2026-10-13 on the development PC, not yet on the 4 GB operator PC.
-Source: regression gates `import and preview cost is measured for 1, 1000 and
-10000 rows` and `design stays responsive with 200 objects` (MEASURE lines).
+Measured on the development PC, not yet on the 4 GB operator PC: import on
+2026-10-13, Print Preview again on 2026-10-14 on an idle machine (three runs;
+the range is shown). Source: regression gates `import and preview cost is
+measured for 1, 1000 and 10000 rows` and `design stays responsive with 200
+objects` (MEASURE lines). The gate opens the preview for 10,000 rows only when
+`ANLABEL_MEASURE_LARGE_PREVIEW=1` is set.
 
 | Operation | 1 row | 1,000 rows | 10,000 rows |
 | --- | --- | --- | --- |
 | Import XLSX, 6 columns | 6 ms | 50 ms, +0.3 MB | 0.45 s, +3.5 MB |
 | Import CSV, 6 columns | 1 ms | 4 ms, +0.1 MB | 0.04 s, +1.3 MB |
-| Open Print Preview, every row checked (one text and one EAN-13 per label) | 0.07 s | 2.2 s | 16.6 s |
+| Open Print Preview, every row checked (one text and one EAN-13 per label) | 0.05 s; 0.55–0.74 s when it is the first window the process opens | 1.0–1.3 s | 8.6–9.6 s |
 
 - Import runs off the UI thread, with Cancel. It stops after 45 s for a local
   file and 30 s for a network file.
