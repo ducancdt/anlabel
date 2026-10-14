@@ -2,6 +2,24 @@
 
 Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 
+## ADR-026 — Chỉ in từ cột có tiêu đề riêng
+
+- Status: Accepted (2026-10-14, kế hoạch 13, đóng DB03 ở mức phần mềm).
+- Context:
+  - Tiêu đề trống được đặt tên theo vị trí (`Column3`), tiêu đề trùng theo thứ tự (`Part No`, `Part No_2`), và không có thông báo nào.
+  - Một liên kết tới tên như vậy chỉ nói cột nằm ở đâu. Thêm, bớt hoặc đảo cột trong tệp có thể làm tem in một cột khác mà không có gì thay đổi trên màn hình. Đảo hai cột cùng tiêu đề thì không thể phát hiện từ dòng tiêu đề.
+  - Cột bị đổi tên hay xóa đã chặn in qua kiểm tra “thiếu cột”, nhưng không nói cột đó trước nằm ở đâu.
+- Decision:
+  - Mỗi cột nhập vào mang vị trí và tiêu đề gốc (`DataColumnOrigin`).
+  - Đối tượng hoặc cột số bản đọc một cột có tiêu đề trống hay trùng (trực tiếp hoặc qua trường chuyển đổi) bị chặn in ở Xem trước và In nhanh. Cách sửa: đặt tiêu đề riêng cho cột trong tệp rồi Cập nhật Excel.
+  - Sau mỗi lần nhập, dòng trạng thái nêu bằng chữ cái cột: cột đang dùng không còn ở dòng tiêu đề (kèm cột của lần nhập trước), cột đang dùng có tiêu đề trống/trùng, hoặc chỉ nơi tiêu đề trống/trùng khi không dùng tới.
+- Không đổi: liên kết vẫn tìm cột theo tên như trước; cột có tiêu đề riêng không bị ảnh hưởng; tiêu đề trống/trùng không được dùng tới chỉ được báo, không chặn.
+- Alternatives:
+  - Chỉ báo, không chặn: không ngăn được tem in sai cột khi tệp đổi thứ tự cột.
+  - Lưu bố cục cột lần trước rồi chỉ chặn khi bố cục đổi: không phát hiện được việc đảo hai cột cùng tiêu đề.
+- Consequences: mẫu đang liên kết tới cột như vậy phải sửa tiêu đề trong tệp trước khi in. Khi quyết định, không mẫu thật hay mẫu thư viện nào có liên kết như vậy.
+- Evidence required: gate `columns known only by position are reported and cannot print`; unit `LoadSheet_RecordsWhereEachColumnCameFrom`, `LoadCsv_RecordsWhereEachColumnCameFrom`, `ColumnLetters_FollowTheSpreadsheet`; neo ngôn ngữ trong `printer, print, template and data failures read in Vietnamese`.
+
 ## ADR-025 — Designer vẽ mã vạch đúng như bản in
 
 - Status: Accepted (2026-10-14, kế hoạch 13, đóng B06 ở mức phần mềm). Thay phần “Designer vẫn render barcode theo `item.QrDpi`” của quy tắc 12 trong `agent.md`; quyết định 2026-07-03 cho Xem trước/In (DPI của `PrintRenderPlan`) giữ nguyên.

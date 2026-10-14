@@ -1913,6 +1913,9 @@ public sealed class MainViewModel : ObservableObject
             UpdateRelativePath(CurrentFilePath);
         }
 
+        // The columns of the previous import, so a column that is gone can be
+        // reported with the letter it had (DB03).
+        var previousFields = AvailableDatabaseFields.Select(field => field.Name).ToArray();
         SyncDatabaseFieldsFromTable(table);
         if (ExcelDataView.Count > 0)
         {
@@ -1940,7 +1943,10 @@ public sealed class MainViewModel : ObservableObject
         StartWatchingExcelFile(filePath);
 
         var issueCount = GetBindingIssues().Count;
-        var issueSuffix = issueCount > 0 ? $" — {issueCount} đối tượng có liên kết bị thiếu/hỏng" : string.Empty;
+        var headerNote = ANLAbel.App.Services.DataHeaderText.DescribeImport(Template, table, previousFields, headerRow);
+        var issueSuffix = headerNote.Length > 0
+            ? " — " + headerNote
+            : issueCount > 0 ? $" — {issueCount} đối tượng có liên kết bị thiếu/hỏng" : string.Empty;
         StatusText = $"Đã nhập {table.Rows.Count} dòng từ {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
         LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: true, errorMessage: string.Empty);
     }
@@ -4984,6 +4990,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var preflight = await _printService.ValidateRowsAsync(printTemplate, rows, effectivePlan).ConfigureAwait(true);
+        preflight = ANLAbel.App.Services.DataHeaderCheck.Append(preflight, printTemplate, ExcelDataView?.Table);
         if (!preflight.IsSuccess)
         {
             throw new InvalidOperationException(preflight.ToUserMessage());

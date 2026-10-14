@@ -220,6 +220,82 @@ public sealed class ExcelDataServiceReliabilityTests
     }
 
     [Fact]
+    public async Task LoadSheet_RecordsWhereEachColumnCameFrom()
+    {
+        var filePath = CreateWorkbook(workbook =>
+        {
+            var sheet = workbook.AddWorksheet("Data");
+            sheet.Cell(1, 1).Value = "Part No";
+            sheet.Cell(1, 2).Value = "Lot";
+            sheet.Cell(1, 3).Value = "";
+            sheet.Cell(1, 4).Value = "part no";
+            sheet.Cell(1, 5).Value = "Qty";
+            sheet.Cell(2, 1).Value = "A";
+            sheet.Cell(2, 3).Value = "C";
+        });
+
+        try
+        {
+            var table = await new ExcelDataService().LoadSheetAsync(filePath, "Data");
+            AssertOrigins(table);
+        }
+        finally
+        {
+            DeleteWorkbook(filePath);
+        }
+    }
+
+    [Fact]
+    public async Task LoadCsv_RecordsWhereEachColumnCameFrom()
+    {
+        var directory = CreateTemporaryDirectory();
+        var filePath = Path.Combine(directory, "origins.csv");
+        await File.WriteAllTextAsync(filePath, "Part No,Lot,,part no,Qty\nA,,C,,\n");
+
+        try
+        {
+            var table = await new ExcelDataService().LoadSheetAsync(filePath, ExcelDataService.CsvSheetName);
+            AssertOrigins(table);
+        }
+        finally
+        {
+            DeleteWorkbook(filePath);
+        }
+    }
+
+    [Theory]
+    [InlineData(1, "A")]
+    [InlineData(26, "Z")]
+    [InlineData(27, "AA")]
+    [InlineData(52, "AZ")]
+    [InlineData(53, "BA")]
+    [InlineData(702, "ZZ")]
+    [InlineData(703, "AAA")]
+    [InlineData(0, "")]
+    public void ColumnLetters_FollowTheSpreadsheet(int column, string letter)
+    {
+        Assert.Equal(letter, DataColumnOrigin.ToColumnLetter(column));
+    }
+
+    private static void AssertOrigins(System.Data.DataTable table)
+    {
+        var origins = DataColumnOrigin.Describe(table);
+        Assert.Equal(
+            new[]
+            {
+                new DataColumnOrigin("Part No", 1, "Part No", DataHeaderKind.Repeated),
+                new DataColumnOrigin("Lot", 2, "Lot", DataHeaderKind.Unique),
+                new DataColumnOrigin("Column3", 3, "", DataHeaderKind.Blank),
+                new DataColumnOrigin("part no_2", 4, "part no", DataHeaderKind.Repeated),
+                new DataColumnOrigin("Qty", 5, "Qty", DataHeaderKind.Unique)
+            },
+            origins);
+        Assert.Equal(new[] { "A", "B", "C", "D", "E" }, origins.Select(origin => origin.ColumnLetter));
+        Assert.Equal(new[] { true, false, true, true, false }, origins.Select(origin => origin.DependsOnPosition));
+        Assert.Equal("C", table.Rows[0]["Column3"]);
+    }
+
+    [Fact]
     public async Task LoadSheet_FileOpenWithReadWriteSharing_RemainsReadable()
     {
         var filePath = CreateWorkbook(workbook =>

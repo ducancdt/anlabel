@@ -31,6 +31,8 @@ public partial class PrintPreviewWindow
 
         var result = await _printService.ValidateRowsAsync(
             _template, uniqueRows, plan, cancellationToken, progress);
+        // DB03: a binding to a column known only by its position blocks the batch.
+        result = ANLAbel.App.Services.DataHeaderCheck.Append(result, _template, _excelDataView?.Table);
         return new PrintPreflightResult(result.Issues.Select(issue => issue.RowNumber > 0
             ? issue with { RowNumber = firstLabels[issue.RowNumber - 1] }
             : issue).ToArray());

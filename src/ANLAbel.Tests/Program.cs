@@ -58,6 +58,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
     ("real templates open, save, render and pass preflight", AcceptanceRegression.RealTemplatesOpenSaveRenderAndPassPreflight),
     ("designer, preview and print draw the same barcode", BarcodeParityRegression.DesignerPreviewAndPrintDrawTheSameBarcode),
+    ("columns known only by position are reported and cannot print", DataHeaderRegression.ColumnsKnownOnlyByPositionAreReportedAndCannotPrint),
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),

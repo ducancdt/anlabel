@@ -91,6 +91,13 @@ internal static class OperatorLanguageRegression
             "An unknown resolver message falls back to a Vietnamese status text.");
         Require(PreflightIssueText.Message(PreviewInitializationTrust.SceneBlockMessage("scene hash missing")).StartsWith("thiết kế tem có lỗi", StringComparison.Ordinal),
             "The preview's invalid-design stop must be Vietnamese.");
+        // DB03: a binding to a column that only its position identifies.
+        Require(PreflightIssueText.Message("Field 'Column3' reads column C, whose header cell is empty, so only its position identifies it. Give the column a header in the data file, then refresh the data.")
+                == "trường “Column3” lấy từ cột C không có tiêu đề nên chỉ nhận ra được theo vị trí cột; đặt tiêu đề cho cột này trong tệp dữ liệu rồi bấm Cập nhật Excel",
+            "A blank header must be explained in Vietnamese.");
+        Require(PreflightIssueText.Message("Field 'Part No_2' reads column D, whose header 'Part No' is repeated in columns A, D, so only its position identifies it. Give each column a unique header in the data file, then refresh the data.")
+                .StartsWith("trường “Part No_2” lấy từ cột D, nhưng tiêu đề “Part No” lặp ở các cột A, D", StringComparison.Ordinal),
+            "A repeated header must be explained in Vietnamese.");
         Require(new PrinterInfo { Name = "Zebra", IsDefault = true }.DisplayName == "Zebra (mặc định của Windows)",
             "The Windows default printer must be marked in Vietnamese.");
 
@@ -238,6 +245,8 @@ internal static class OperatorLanguageRegression
             "\"Printer queue\"",
             "\"Linked data\"",
             "differences.Add($\"{label}: primary '{primary}' · backup '{backup}'\");",
+            ", whose header cell is empty, so only its position identifies it.",
+            "' is repeated in columns ",
         ];
         foreach (var anchor in anchors)
         {

@@ -1104,9 +1104,21 @@ public sealed class ExcelDataService
 
     private static void AddAssignedColumns(DataTable table, IReadOnlyList<string> rawHeaders)
     {
-        foreach (var header in AssignColumnHeaders(rawHeaders))
+        var assigned = AssignColumnHeaders(rawHeaders);
+        var repeated = rawHeaders
+            .Where(raw => !string.IsNullOrWhiteSpace(raw))
+            .GroupBy(raw => raw, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < assigned.Length; index++)
         {
-            table.Columns.Add(header, typeof(string));
+            var raw = rawHeaders[index] ?? string.Empty;
+            var kind = string.IsNullOrWhiteSpace(raw)
+                ? DataHeaderKind.Blank
+                : repeated.Contains(raw) ? DataHeaderKind.Repeated : DataHeaderKind.Unique;
+            var column = table.Columns.Add(assigned[index], typeof(string));
+            DataColumnOrigin.Attach(column, new DataColumnOrigin(assigned[index], index + 1, raw, kind));
         }
     }
 
