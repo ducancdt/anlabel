@@ -1,5 +1,24 @@
 # ANLAbel Phase 1 Plan
 
+## v0.312 — Chặn dòng làm mã vạch tràn mép tem
+
+**In ấn (B05)**
+
+- Mã 1D đặt độ rộng theo vạch (“Size from X”) được in theo đúng chiều rộng mà dữ
+  liệu của từng dòng cần, nên dòng dài hơn mẫu làm mã rộng ra quá khung. Trước
+  đây kiểm tra trước khi in chỉ xét khung, nên một dòng có thể in ra mã bị cắt ở
+  mép tem mà kiểm tra vẫn đạt. Nay dòng đó bị chặn, kể cả khi mã xoay, kèm cách
+  sửa: rút ngắn dữ liệu, giảm độ rộng vạch hoặc dời mã vào trong tem.
+- Chưa mẫu thật hay mẫu thư viện nào dùng chế độ này, nên mẫu đang dùng không bị
+  ảnh hưởng.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.311 — Mã vạch trên màn hình đúng kích thước in; cột dữ liệu không trượt
 
 Hai ID cuối cùng của quy chuẩn lõi còn “Một phần” ở mức phần mềm (B06, DB03) nay

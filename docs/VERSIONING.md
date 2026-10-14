@@ -1,6 +1,6 @@
 # Version
 
-`eng/Version.props` is the one public version. The current public version is `0.311`.
+`eng/Version.props` is the one public version. The current public version is `0.312`.
 
 The version changes only in a release commit (ADR-022, plan 13 QĐ-2):
 
