@@ -4,7 +4,7 @@ Ngày: 2026-09-16. Phạm vi: `src/ANLAbel.Data/Excel/ExcelDataService.cs`.
 Quy chuẩn tham chiếu: [CORE_SOFTWARE_STANDARD.md](CORE_SOFTWARE_STANDARD.md), mục DB02 (không biến dạng mã) và DB04 (diagnostic ô lỗi).
 Bối cảnh: tài liệu này ghi **hành vi hiện tại** của `ExcelDataReader` 3.7.0 trên workbook thật, không dùng audit 2026-09-14 làm chứng cứ lỗi runtime.
 
-> **Cập nhật 2026-10-13 (`c6ddfcb`, kế hoạch 13 GĐ4):** khoảng trống “công thức thiếu cache” dưới đây đã đóng theo đúng cách mục “Ranh giới API” đề ra: `XlsxFormulaValueInspector` đọc XML của sheet, dừng việc nhập ở ô có `<f>` mà không có `<v>` và nêu ô đó (ví dụ B3). Ô trống và công thức đã tính ra chuỗi rỗng (`<v/>`) vẫn nhập được. Kiểm thử: `ExcelFormulaAndCsvShapeTests`. Phần còn lại của tài liệu là ghi nhận lịch sử ngày 2026-09-16.
+> **Cập nhật 2026-10-13 (`a496950`, kế hoạch 13 GĐ4):** khoảng trống “công thức thiếu cache” dưới đây đã đóng theo đúng cách mục “Ranh giới API” đề ra: `XlsxFormulaValueInspector` đọc XML của sheet, dừng việc nhập ở ô có `<f>` mà không có `<v>` và nêu ô đó (ví dụ B3). Ô trống và công thức đã tính ra chuỗi rỗng (`<v/>`) vẫn nhập được. Kiểm thử: `ExcelFormulaAndCsvShapeTests`. Phần còn lại của tài liệu là ghi nhận lịch sử ngày 2026-09-16.
 
 ## Phương pháp
 

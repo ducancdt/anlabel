@@ -69,7 +69,7 @@ its §8 were approved on 2026-10-13 (recommended options). Order:
 A reproduced fault that stops an operator's print run is handled immediately at
 any stage.
 
-Excel DB04 formula-without-cache is closed (2026-10-13, `c6ddfcb`):
+Excel DB04 formula-without-cache is closed (2026-10-13, `a496950`):
 ExcelDataReader 3.7.0 alone cannot tell a missing cache from a blank cell, so
 `XlsxFormulaValueInspector` reads the sheet XML and stops the import at a
 formula cell that has no `<v>`, naming the cell. A formula that cached an empty
