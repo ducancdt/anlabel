@@ -1,5 +1,46 @@
 # ANLAbel Phase 1 Plan
 
+## v0.315 — Sửa theo review mã nguồn: không mở nhầm, không lách chặn cột, mã 2D đúng khung
+
+Review mã nguồn độ kỹ cao các thay đổi B06, DB03 và B05 xác nhận 23 lỗi; bản
+này sửa các lỗi có tác động.
+
+**Tệp**
+
+- Mẫu có công thức chứa dấu gạch chéo (ví dụ `FIELD("W\H")`) có thể làm việc
+  mở mẫu dừng giữa chừng sau khi mẫu mới đã hiện, và lần Lưu sau có thể ghi đè
+  tệp cũ. Nay công thức được đọc đúng quy tắc của bộ công thức, không còn lỗi.
+
+**Dữ liệu (DB03)**
+
+- Không còn cách nào khác để in từ cột chỉ nhận ra theo vị trí: tên trường viết
+  có dấu cách trước ngoặc, ghép bằng CONCAT, tên trường chuyển đổi viết gần đúng,
+  tên khớp ngang nhau với hai tiêu đề gần giống (ví dụ “Part No” và “Part-No”),
+  hay cột số bản ghi trong ngoặc nhọn đều bị chặn như nhau. ANLAbel không còn tự
+  đổi liên kết sang cột đầu tiên trong số các tiêu đề gần giống.
+- Lời báo cột thiếu/trùng không còn bị mất khi mở mẫu, xác thực hay liên kết lại;
+  lời báo tiêu đề không dùng tới không che số liên kết hỏng; cột số bản và đầu vào
+  bị mất của trường chuyển đổi được nêu.
+- Xem trước không còn đề nghị “bỏ dòng lỗi” khi cả mẫu đang bị chặn.
+
+**Mã vạch**
+
+- Mã 2D (QR, Data Matrix, Aztec, PDF417) cần nhiều chấm in hơn khung bị chặn in,
+  và designer vẽ đúng như tem sẽ in (mã vuông bị bóp vào khung, PDF417 tràn khỏi
+  khung).
+- Chữ dưới mã 1D theo X được kiểm theo chiều rộng của chính dòng đó; đổi máy in
+  hoặc DPI thì designer vẽ lại mã vạch; nhiều dòng tràn mép tem được gộp thành
+  một mục “Dòng 2, 3 …”.
+- Giới hạn còn lại: khi trình điều khiển giữ thiết lập hoặc ép DPI khác, designer
+  vẫn vẽ theo DPI của mẫu; Xem trước luôn đúng như bản in.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1210/1210; regression 261 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.314 — Báo ảnh hỏng ngay khi thiết kế
 
 **Thiết kế (D07, bổ sung)**
