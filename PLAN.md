@@ -1,5 +1,36 @@
 # ANLAbel Phase 1 Plan
 
+## v0.311 — Mã vạch trên màn hình đúng kích thước in; cột dữ liệu không trượt
+
+Hai ID cuối cùng của quy chuẩn lõi còn “Một phần” ở mức phần mềm (B06, DB03) nay
+đạt, mỗi ID có gate đo được.
+
+**Thiết kế (B06, ADR-025)**
+
+- Mã vạch trên designer giờ có đúng kích thước sẽ in. Trước đây designer vẽ ở
+  DPI riêng của đối tượng (300) rồi kéo giãn vào khung, nên ở máy in 203 DPI mã
+  trên màn hình to hơn tem thật: QR khung 16 mm hiện 13,8 mm trong khi tem có
+  12,5 mm; Code 128 khung 45 mm hiện 33,9 mm vạch trong khi tem có 25,0 mm.
+- Sau khi cập nhật, mã trên designer có thể trông nhỏ hơn trước. Đó là kích
+  thước tem vẫn in ra từ trước tới nay; bản in và Xem trước không đổi.
+
+**Dữ liệu (DB03, ADR-026)**
+
+- Sau mỗi lần nhập hoặc Cập nhật Excel, dòng trạng thái nêu theo chữ cái cột:
+  cột đang dùng không còn ở dòng tiêu đề (và lần trước nó ở cột nào), cột đang
+  dùng có tiêu đề trống hoặc trùng, hoặc chỉ nơi tiêu đề trống/trùng.
+- Đối tượng (hoặc cột số bản) đọc cột không có tiêu đề hoặc có tiêu đề trùng bị
+  chặn in, vì thêm, bớt hay đảo cột trong tệp có thể làm tem in nhầm cột mà
+  không ai thấy. Cách sửa: đặt tiêu đề riêng cho cột trong tệp rồi Cập nhật
+  Excel. Cột có tiêu đề riêng không bị ảnh hưởng.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1199/1199; regression 258 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.310 — Hoàn tất kiểm tra toàn ứng dụng: đóng các lỗ hổng còn sót
 
 Đối chiếu lại năm báo cáo kiểm tra với các bản sửa của v0.309; những phần còn sót:
