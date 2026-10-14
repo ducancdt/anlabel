@@ -69,9 +69,12 @@ its §8 were approved on 2026-10-13 (recommended options). Order:
 A reproduced fault that stops an operator's print run is handled immediately at
 any stage.
 
-Excel DB04 formula-without-cache remains open: ExcelDataReader 3.7.0 cannot
-distinguish a missing cache from a blank cell or a formula that cached an empty
-string; see [`../EXCEL_NUMERIC_ERROR_GAP_AUDIT.md`](../EXCEL_NUMERIC_ERROR_GAP_AUDIT.md).
+Excel DB04 formula-without-cache is closed (2026-10-13, `c6ddfcb`):
+ExcelDataReader 3.7.0 alone cannot tell a missing cache from a blank cell, so
+`XlsxFormulaValueInspector` reads the sheet XML and stops the import at a
+formula cell that has no `<v>`, naming the cell. A formula that cached an empty
+string still imports. Background:
+[`../EXCEL_NUMERIC_ERROR_GAP_AUDIT.md`](../EXCEL_NUMERIC_ERROR_GAP_AUDIT.md).
 
 Do not open new product surfaces. If label-safety code changes, add at most one
 existing contract to mutation after the combined score stays ≥ 90.

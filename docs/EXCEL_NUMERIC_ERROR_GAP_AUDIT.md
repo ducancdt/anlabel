@@ -4,6 +4,8 @@ Ngày: 2026-09-16. Phạm vi: `src/ANLAbel.Data/Excel/ExcelDataService.cs`.
 Quy chuẩn tham chiếu: [CORE_SOFTWARE_STANDARD.md](CORE_SOFTWARE_STANDARD.md), mục DB02 (không biến dạng mã) và DB04 (diagnostic ô lỗi).
 Bối cảnh: tài liệu này ghi **hành vi hiện tại** của `ExcelDataReader` 3.7.0 trên workbook thật, không dùng audit 2026-09-14 làm chứng cứ lỗi runtime.
 
+> **Cập nhật 2026-10-13 (`c6ddfcb`, kế hoạch 13 GĐ4):** khoảng trống “công thức thiếu cache” dưới đây đã đóng theo đúng cách mục “Ranh giới API” đề ra: `XlsxFormulaValueInspector` đọc XML của sheet, dừng việc nhập ở ô có `<f>` mà không có `<v>` và nêu ô đó (ví dụ B3). Ô trống và công thức đã tính ra chuỗi rỗng (`<v/>`) vẫn nhập được. Kiểm thử: `ExcelFormulaAndCsvShapeTests`. Phần còn lại của tài liệu là ghi nhận lịch sử ngày 2026-09-16.
+
 ## Phương pháp
 
 Tái hiện bằng workbook OOXML thật (ClosedXML + chỉnh XML, và workbook ZIP tối thiểu) rồi đọc bằng cùng đường `ExcelDataService` / `ExcelDataReader.ExcelOpenXmlReader` 3.7.0. Probe tạm: `TestOutput/ExcelReliabilityProbe`.
@@ -46,7 +48,7 @@ Lookup format hỏng **có thể** làm mất padding `000123` → `123`, nhưng
 | --- | --- | --- |
 | Công thức cache hợp lệ (chuỗi, số padded, lỗi `#DIV/0!`) | Giữ / kiểm thử | `ExcelErrorCellTests.CachedFormula*` |
 | Ô lỗi Excel không-công-thức | Đã đóng trước đó | import fail-closed, preview token |
-| Công thức thiếu cache vs ô trống vs cache rỗng | **Không đóng DB04** | API reader không phân biệt |
+| Công thức thiếu cache vs ô trống vs cache rỗng | **Không đóng DB04** (2026-09-16); đã đóng 2026-10-13 bằng `XlsxFormulaValueInspector` | API reader không phân biệt; phải đọc XML của sheet |
 | Tra number-format ném exception | **Không tái hiện** | catch dead trên probe thật |
 | `numFmtId` dangling / style hỏng → mất padding | **Không đóng DB02** | reader trả `General` trước ANLAbel |
 | General `R` / scientific | Policy hiện hành, **không đổi** | `0.00000000001` → `1E-11` |
