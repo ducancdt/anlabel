@@ -294,6 +294,12 @@ internal static class DataHeaderRegression
                     && vm.SelectedObject.BindingStateDisplayText == "Tên khớp nhiều cột: PartNo",
                 $"The Properties status and the layer list must name the tie: {vm.SelectedBindingStatusText} | {vm.SelectedObject.BindingStateDisplayText}");
 
+            // A missing placeholder written with spaces is one missing field, named without them.
+            AddText(template, "spaced", "Cách", "{ Gone }");
+            Require(vm.BindingIssues.Single(issue => issue.ObjectName == "Cách").MissingFields.SequenceEqual(new[] { "Gone" }),
+                "{ Gone } must be one missing field: "
+                + string.Join(" | ", vm.BindingIssues.Single(issue => issue.ObjectName == "Cách").MissingFields));
+
             // A blank placeholder is not a missing column, and a status written after
             // the import keeps its count of broken links.
             var blankPath = Path.Combine(directory, "blank.xlsx");
@@ -304,6 +310,16 @@ internal static class DataHeaderRegression
             const string suffix = " — 1 đối tượng có liên kết bị thiếu/hỏng. Dòng tiêu đề 1 để trống ở cột C.";
             Require(blank.StatusText.EndsWith(suffix, StringComparison.Ordinal),
                 "A blank placeholder must not be named as a missing column: " + blank.StatusText);
+            // It is still a broken binding, and both the designer and the print stop say why.
+            var braces = blank.BindingIssues.Single();
+            Require(braces.MissingFields.Count == 0
+                    && braces.ErrorsSummary.StartsWith("Dấu ngoặc {} chưa có tên cột.", StringComparison.Ordinal)
+                    && blank.Template.Objects.Single().BindingStateDisplayText == "Lỗi liên kết",
+                $"Empty braces must be explained in the designer: {braces.ErrorsSummary} | {blank.Template.Objects.Single().BindingStateDisplayText}");
+            Require(blank.TryBuildPrintPreviewRows(out var blankRows, out _), "Preview rows must build.");
+            var bracesStop = PreflightIssueText.Describe(Check(blank, blankRows));
+            Require(bracesStop.Contains("dấu ngoặc {} chưa có tên cột", StringComparison.Ordinal),
+                "The print stop must explain empty braces: " + bracesStop);
             WriteSheet(blankPath, ["Part No", "Lot", ""], ["PN-2", "L-2", "y"]);
             await blank.VerifyExcelLinkAsync();
             Require(blank.StatusText.StartsWith("Đã cập nhật và xác thực Excel:", StringComparison.Ordinal)

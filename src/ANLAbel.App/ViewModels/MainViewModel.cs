@@ -76,6 +76,7 @@ public sealed class MainViewModel : ObservableObject
     // links), kept for the callers that write their own status line right after
     // importing (open, verify, relink, shared source).
     private string _lastImportIssueSuffix = string.Empty;
+    private const string EmptyPlaceholderError = "Dấu ngoặc {} chưa có tên cột. Nhập tên cột vào giữa hai dấu ngoặc hoặc xóa chúng.";
     private bool _selectedObjectRefreshDeferred;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
@@ -4503,8 +4504,15 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var usedFields = BindingExpressionEvaluator.GetFields(expression);
+        // Braces with nothing between them name no column: an error in the
+        // binding, not a column missing from the sheet.
+        var placeholderErrors = usedFields.Any(string.IsNullOrWhiteSpace)
+            ? new[] { EmptyPlaceholderError }
+            : Array.Empty<string>();
         var missingPlaceholderFields = usedFields
-            .Where(field => !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
+            .Where(field => !string.IsNullOrWhiteSpace(field)
+                            && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
+            .Select(field => field.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         return WithPositionalColumns(new BindingPreviewResult(
@@ -4512,8 +4520,8 @@ public sealed class MainViewModel : ObservableObject
             PreviewRow is null ? string.Empty : BindingExpressionEvaluator.Evaluate(expression, PreviewRow),
             usedFields,
             missingPlaceholderFields,
-            Array.Empty<string>(),
-            BuildBindingStatusText(missingPlaceholderFields, Array.Empty<string>(), PreviewRow is not null)), expression);
+            placeholderErrors,
+            BuildBindingStatusText(missingPlaceholderFields, placeholderErrors, PreviewRow is not null)), expression);
     }
 
     /// <summary>
@@ -4530,7 +4538,7 @@ public sealed class MainViewModel : ObservableObject
         // A data transform output is a known field, but the columns it reads must exist too.
         var missingInputs = ANLAbel.App.Services.DataHeaderCheck
             .MissingFields(expression, AvailableDatabaseFields.Select(field => field.Name).ToArray(), Template.DataTransforms)
-            .Where(field => !result.MissingFields.Contains(field, StringComparer.OrdinalIgnoreCase))
+            .Where(field => !result.MissingFields.Any(existing => string.Equals(existing.Trim(), field, StringComparison.OrdinalIgnoreCase)))
             .ToArray();
         if (positional.Length == 0 && missingInputs.Length == 0)
         {
@@ -4713,7 +4721,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         return issue.Errors.Count > 0
-            ? "Lỗi công thức"
+            ? issue.BindingKind == "Công thức" ? "Lỗi công thức" : "Lỗi liên kết"
             : issue.StatusText;
     }
 

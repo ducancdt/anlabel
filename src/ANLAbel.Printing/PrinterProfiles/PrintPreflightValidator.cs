@@ -136,8 +136,22 @@ public sealed class PrintPreflightValidator
             return true;
         }
 
-        var missing = BindingExpressionEvaluator.GetFields(item.BindingExpression)
+        var fields = BindingExpressionEvaluator.GetFields(item.BindingExpression);
+        // Braces with nothing between them name no column; say so instead of
+        // reporting a column with a blank name.
+        if (fields.Any(string.IsNullOrWhiteSpace))
+        {
+            issues.Add(new PrintPreflightIssue(
+                rowIndex + 1,
+                item.Name,
+                item.Type.ToString(),
+                "Placeholder {} has no field name, so this object would print blank. Type a column name between the braces or remove them."));
+            return false;
+        }
+
+        var missing = fields
             .Where(field => !FieldNameResolver.TryGetValue(row, field, out _, out _))
+            .Select(field => field.Trim())
             .ToArray();
         if (missing.Length > 0)
         {

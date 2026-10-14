@@ -107,6 +107,9 @@ internal static class OperatorLanguageRegression
         Require(PreflightIssueText.Message("Barcode for this row extends past the label edge at its X-dimension; the design label is 40 x 30 mm. Shorten the data, reduce the X-dimension or move the barcode inside the label.")
                 .StartsWith("mã vạch của dòng này tràn ra ngoài mép tem", StringComparison.Ordinal),
             "A linear symbol past the label edge must be explained in Vietnamese.");
+        Require(PreflightIssueText.Message("Placeholder {} has no field name, so this object would print blank. Type a column name between the braces or remove them.")
+                .StartsWith("dấu ngoặc {} chưa có tên cột", StringComparison.Ordinal),
+            "Empty braces must be explained in Vietnamese.");
         Require(new PrinterInfo { Name = "Zebra", IsDefault = true }.DisplayName == "Zebra (mặc định của Windows)",
             "The Windows default printer must be marked in Vietnamese.");
 
@@ -258,6 +261,7 @@ internal static class OperatorLanguageRegression
             "' is repeated in columns ",
             "Barcode for this row extends past the label edge at its X-dimension; the design label is ",
             "2D barcode for this row does not fit its frame at ",
+            "Placeholder {} has no field name, so this object would print blank.",
             "' matches columns ",
             " equally, so only their order decides which one prints.",
         ];
