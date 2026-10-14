@@ -34,12 +34,17 @@ function Wait-Until([scriptblock]$cond, [int]$seconds) {
     return $false
 }
 function Find-Dialog() {
-    $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'OperatorDialog')
-    # Walking the whole desktop can fail with a COM error while another window
-    # changes; that only means "not found yet" and the caller's wait retries.
+    # Search only this process's top-level windows. Walking every application on
+    # the desktop is slow under load and can fail while another window changes;
+    # such an error only means "not found yet" and the caller's wait retries.
     try {
-        $all = [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
-        foreach ($d in $all) { if ($d.Current.ProcessId -eq $script:p.Id) { return $d } }
+        $pidCond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, $script:p.Id)
+        $idCond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'OperatorDialog')
+        foreach ($window in [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, $pidCond)) {
+            if ($window.Current.AutomationId -eq 'OperatorDialog') { return $window }
+            $inner = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $idCond)
+            if ($null -ne $inner) { return $inner }
+        }
     } catch [System.Runtime.InteropServices.COMException], [System.Windows.Automation.ElementNotAvailableException] {
     }
     return $null
