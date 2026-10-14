@@ -32,11 +32,15 @@ internal static class DesignLatencyRegression
             Require(synthetic.CanvasBuildMs < 5000, $"Building the canvas took {synthetic.CanvasBuildMs:0} ms.");
             Require(synthetic.DragTickMs < 30, $"One drag tick took {synthetic.DragTickMs:0.0} ms.");
 
-            // The largest real template (form tem nhãn); measured when present.
-            var real = Path.Combine(FindRepositoryRoot(), "form tem nhãn", "anlabel", "tem ngoai REDACTED-14.anlabel");
-            if (File.Exists(real))
+            // The largest real template (form tem nhãn), measured when the local
+            // folder is present; chosen by size so no customer name is written here.
+            var realFolder = Path.Combine(FindRepositoryRoot(), "form tem nhãn", "anlabel");
+            var real = Directory.Exists(realFolder)
+                ? Directory.GetFiles(realFolder, "*.anlabel").OrderByDescending(file => new FileInfo(file).Length).FirstOrDefault()
+                : null;
+            if (real is not null)
             {
-                await MeasureAsync(real, "mẫu thật “tem ngoai REDACTED-14”");
+                await MeasureAsync(real, "mẫu thật lớn nhất");
             }
         }
         finally

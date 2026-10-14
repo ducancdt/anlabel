@@ -162,7 +162,7 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 ## Da xong trong dot audit nay
 
 1. **Fix treo khi Import Excel**: `ExcelImportWindow.Browse_Click` chuyen `GetExcelSheetNames` sang chay nen (`Task.Run`) + wait cursor, khong con block UI thread. Chi tiet: `docs/audit-2026-07-02.md` muc 1.
-2. **Fix template thu vien mat sample Excel/link**: 5 template `20_..24_...anlabel` (REDACTED-13/REDACTED-14) da duoc genericize (bo ten/ma khach hang, chi giu placeholder chung + bind vao `sample-data.xlsx`), bo khoi `Exclude` trong `ANLAbel.App.csproj` de duoc dong goi va hien trong Template Library nhu 12 template con lai. Chi tiet: `docs/audit-2026-07-02.md` muc 2.
+2. **Fix template thu vien mat sample Excel/link**: 5 template `20_..24_...anlabel` (lay tu mau that cua khach hang) da duoc genericize (bo ten/ma khach hang, chi giu placeholder chung + bind vao `sample-data.xlsx`), bo khoi `Exclude` trong `ANLAbel.App.csproj` de duoc dong goi va hien trong Template Library nhu 12 template con lai. Chi tiet: `docs/audit-2026-07-02.md` muc 2.
 3. Them 2 rule moi vao `agent.md` (so 7: cam I/O dong bo tren UI thread; so 8: quy tac genericize du lieu khach hang trong template thu vien) de tranh lap lai 2 loi tren.
 4. Ghi lai audit report rieng: `docs/audit-2026-07-02.md`, liet ke them 5 van de phu (git index co ~1000 file build artifact bi add nham, file rac o root, installer legacy 0.042 con sot lai, version rai rac nhieu noi, chua co huy/timeout khi doc Excel qua mang).
 5. **Don dep repo/git**: `git restore --staged publish_out/` (984 file), them `publish_out/` vao `.gitignore`, xoa 5 file rac o root, xoa 2 installer legacy 0.042. Commit `9939dda`, `12a30e5`.

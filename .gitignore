@@ -43,9 +43,8 @@ Desktop.ini
 
 ## Customer label data and third-party guides stay local (docs/COMMIT_WORKFLOW.md §5).
 ## Anchored to the repository root so a source folder with the same name is never hidden.
-/TEM REDACTED-14 VN*/
-/CUSTOMER-1/
-/tem REDACTED-10/
+## Folders named after customers are listed in .git/info/exclude on the machine
+## that holds them, so their names are not published with the repository.
 /images/
 /form tem nhãn/
 /datasheet pf bfv.xlsx

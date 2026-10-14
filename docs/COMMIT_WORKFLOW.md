@@ -76,7 +76,7 @@ vào `.gitignore` nếu chưa có:
 
 | Mục | Lý do |
 |-----|-------|
-| `TEM REDACTED-14 VN (1)/`, `CUSTOMER-1/`, `tem REDACTED-10/` | Dữ liệu nhãn của khách hàng |
+| Các thư mục dữ liệu nhãn mang tên khách hàng ở gốc repo (ghi trong `.git/info/exclude` của máy có dữ liệu, không ghi trong `.gitignore`) | Dữ liệu nhãn của khách hàng; tên khách hàng cũng không được đưa vào repo |
 | `form tem nhãn/`, `datasheet pf bfv.xlsx` | Mẫu tem và dữ liệu thật của khách hàng (kiểm tra chấp nhận chạy khi thư mục có trên máy; bỏ qua nếu không) |
 | `images/` (ảnh trích từ NiceLabel guide) | Tài liệu bên thứ ba, bản quyền |
 | `docs/assets/nicelabel-control-center/` | Ảnh trích từ hướng dẫn NiceLabel — tài liệu bên thứ ba, bản quyền |

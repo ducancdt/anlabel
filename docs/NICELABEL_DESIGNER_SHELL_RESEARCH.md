@@ -6,7 +6,7 @@
 
 **Research date:** 2026-08-11  
 **Scope:** Full **Desktop Designer main window shell** (workspace chrome). Not every NiceLabel modal, PowerForms, or Dynamic Data Manager surface.  
-**Account used for Figma:** `andd@REDACTED-13.com.vn` (plan `An Duong Duc's team`)  
+**Account used for Figma:** the owner's Figma account  
 **Path used:** Official Loftware Help + Figma MCP write into a dedicated design file.
 
 ## Official NiceLabel / Loftware sources
