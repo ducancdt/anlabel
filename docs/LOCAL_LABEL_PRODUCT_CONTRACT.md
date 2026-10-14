@@ -47,6 +47,9 @@ objects` (MEASURE lines). The gate opens the preview for 10,000 rows only when
   file and 30 s for a network file.
 - Print Preview shows progress and can be cancelled. Its time grows about
   linearly with rows × barcodes.
+- Starting the installed app with a template: the window shows in about 1 s and
+  the template is open in 1.3 s, with a working set of about 133 MB (warm start,
+  2026-10-14, v0.318).
 - A stray value far to the right of the data (for example in column XFD) does
   not slow import: a column with neither a header nor data is not a field.
   1,000 such rows import in about 0.6 s; before 2026-10-14 they took 25–31 s
