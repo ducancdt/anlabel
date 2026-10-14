@@ -1,5 +1,53 @@
 # ANLAbel Phase 1 Plan
 
+## v0.316 — Sửa theo review lần hai: giá trị in không bị trống, liên kết không bị đổi, lời báo đúng cách sửa
+
+Review mã nguồn lần hai các thay đổi của v0.311–v0.315 xác nhận 15 lỗi; bản này
+sửa cả 15.
+
+**In**
+
+- Designer, bước kiểm tra trước khi in và luồng in dùng chung bộ đọc công thức.
+  Khi hai bên đọc cùng lúc (ví dụ bấm chọn đối tượng trong lúc đang in), một tem
+  có thể in ra ô trống dù kiểm tra đã đạt. Nay mỗi lần đọc công thức độc lập.
+- Kiểm tra trước khi in mã 2D nhanh hơn: mỗi dòng chỉ mã hóa một lần (2.000 dòng
+  QR + Code 128: 3,3 s → 2,0 s).
+
+**Dữ liệu (DB03)**
+
+- Liên kết tới trường chuyển đổi (ví dụ `{LotNo}` khi tệp có cột “Lot No”) hoặc
+  tên khớp ngang nhau với hai cột không còn bị tự đổi sang cột trông giống khi
+  nhập hay cập nhật dữ liệu.
+- Tên gần giống khớp ngang nhau vẫn bị chặn khi cùng liên kết cũng đọc đúng tên
+  cột đó; cột số bản lấy qua trường chuyển đổi cũng được kiểm.
+- Dòng in giữ thứ tự cột của tệp rồi tới trường chuyển đổi, đúng thứ tự ANLAbel
+  kiểm tra.
+- Công thức có tên trường ghép từ dữ liệu (ví dụ `FIELD(CONCAT("Price_",
+  FIELD("Currency"))))`) và `{ }` không còn bị báo là thiếu cột.
+- Tên khớp ngang nhau được báo đúng cách sửa: “Tên khớp nhiều cột: PartNo” trong
+  danh sách Lớp, “đổi tên một trong các cột đó hoặc liên kết đúng tên tiêu đề”
+  trong Bảng thuộc tính. Sau Mở, Xác thực, Liên kết lại, dòng trạng thái giữ số
+  liên kết hỏng.
+
+**Mã vạch**
+
+- Designer đánh dấu mã 2D cần nhiều chấm in hơn khung (di chuột để xem lý do);
+  trước đây mã vuông bị bóp trông vẫn bình thường cho tới khi lệnh in bị chặn.
+- QR phiên bản cố định không chứa nổi dữ liệu chỉ báo một lỗi về dung lượng.
+- Mã 1D vượt ra ngoài tem được báo là “tràn ra ngoài mép tem”.
+
+**Đo lại**
+
+- Mở Xem trước 1.000 tem: 1,0–1,3 s; 10.000 tem: 8,6–9,6 s (ba lần, máy phát
+  triển rảnh). Số đã công bố trước đó là 2,2 s và 16,6 s.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mỗi kiểm tra mới đỏ khi gỡ đúng bản sửa của nó. Mutation gate
+  không bắt buộc: không đổi contract Core nào trong danh sách mutation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.315 — Sửa theo review mã nguồn: không mở nhầm, không lách chặn cột, mã 2D đúng khung
 
 Review mã nguồn độ kỹ cao các thay đổi B06, DB03 và B05 xác nhận 23 lỗi; bản
