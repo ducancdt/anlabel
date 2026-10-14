@@ -75,9 +75,8 @@ public sealed class PrintPreflightValidator
                         case ObjectType.BarcodeCode128:
                         case ObjectType.QRCode:
                         case ObjectType.DataMatrix:
-                            ValidateBarcode(item, data, rowIndex, issues, printDpi);
+                            ValidateBarcode(item, data, rowIndex, issues, printDpi, printDpiY ?? printDpi);
                             ValidateLinearSymbolWithinLabel(template, item, data, printDpi, rowIndex, issues);
-                            ValidateMatrixSymbolFitsFrame(item, data, printDpi, printDpiY ?? printDpi, rowIndex, issues);
                             break;
                         case ObjectType.TextBox:
                             ValidateTextBox(item, data, rowIndex, issues);
@@ -502,7 +501,7 @@ public sealed class PrintPreflightValidator
             "Text extends outside the design label for this row. Shorten the data, reduce font size, move the object, or use Text Box so preview and print do not clip it."));
     }
 
-    private void ValidateBarcode(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues, int? printDpi = null)
+    private void ValidateBarcode(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues, int? printDpi = null, int? printDpiY = null)
     {
         var applicationSymbology = GetEffectiveBarcodeSymbology(item);
         var applicationErrors = BarcodeApplicationContract.ValidateData(
@@ -534,7 +533,10 @@ public sealed class PrintPreflightValidator
             _ => BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
         };
 
-        var renderError = ValidateBarcodeCanRender(item, data, barcodeType, printDpi);
+        // Render as the print does: plan DPI, falling back to the object's own DPI.
+        var dpiX = printDpi is > 0 ? printDpi.Value : item.QrDpi > 0 ? item.QrDpi : 203;
+        var dpiY = printDpiY is > 0 ? printDpiY.Value : dpiX;
+        var renderError = ValidateBarcodeCanRender(item, data, barcodeType, dpiX, dpiY, out var rendered, out var symbolHeightMm);
         if (renderError is not null)
         {
             issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), $"Invalid {barcodeType} data. {renderError}"));
@@ -542,6 +544,7 @@ public sealed class PrintPreflightValidator
         }
 
         ValidateMatrixFrameForRow(item, data, rowIndex, issues);
+        ValidateMatrixSymbolFitsFrame(item, rendered, dpiX, dpiY, symbolHeightMm, rowIndex, issues);
 
         if (item.Type == ObjectType.QRCode && item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize)
         {
@@ -624,54 +627,27 @@ public sealed class PrintPreflightValidator
     /// A 2D symbol prints with at least one printer dot per module. When the row's
     /// data needs more modules than the frame holds, the print squeezes a square
     /// code below one dot per module or draws a PDF417 past its frame (B04: a
-    /// frame that is too small must block). Measured with the print renderer at
-    /// the plan DPI; QR and Data Matrix rows already blocked by the capacity check
-    /// are not reported twice.
+    /// frame that is too small must block). Uses the bitmap the render check just
+    /// drew at the plan DPI, so each row is encoded once; QR and Data Matrix rows
+    /// already blocked by the capacity check are not reported twice.
     /// </summary>
-    private void ValidateMatrixSymbolFitsFrame(
+    private static void ValidateMatrixSymbolFitsFrame(
         LabelObject item,
-        string data,
-        int? printDpiX,
-        int? printDpiY,
+        BarcodePixelImage? pixels,
+        int dpiX,
+        int dpiY,
+        double symbolHeightMm,
         int rowIndex,
         List<PrintPreflightIssue> issues)
     {
-        if (!item.IsSquare2DCodeLike() || string.IsNullOrWhiteSpace(data))
+        if (!item.IsSquare2DCodeLike() || pixels is null)
         {
             return;
         }
 
         if (issues.Any(issue => issue.RowNumber == rowIndex + 1
                                 && issue.ObjectName == item.Name
-                                && (issue.Message.StartsWith("2D barcode frame is too small", StringComparison.Ordinal)
-                                    || issue.Message.StartsWith("Invalid ", StringComparison.Ordinal))))
-        {
-            return;
-        }
-
-        var type = item.Type switch
-        {
-            ObjectType.QRCode => BarcodeType.QRCode,
-            ObjectType.DataMatrix => BarcodeType.DataMatrix,
-            _ => BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
-        };
-        var dpiX = printDpiX is > 0 ? printDpiX.Value : item.QrDpi > 0 ? item.QrDpi : 203;
-        var dpiY = printDpiY is > 0 ? printDpiY.Value : dpiX;
-        var hriLayout = BarcodeHriTextLayout.Measure(type, data, item.WidthMm, item.HeightMm, item.BarcodeHriPlacement, item.BarcodeTextFontSizePt);
-        if (!hriLayout.IsValid)
-        {
-            return;
-        }
-
-        var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
-        BarcodePixelImage pixels;
-        try
-        {
-            pixels = _barcodeRenderer is INonSquareBarcodeRenderer nonSquare
-                ? nonSquare.RenderBarcode(data, type, item.WidthMm, symbolHeightMm, dpiX, dpiY, CreateBarcodeRenderOptions(item))
-                : _barcodeRenderer.RenderBarcode(data, type, item.WidthMm, symbolHeightMm, dpiX, CreateBarcodeRenderOptions(item));
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
+                                && issue.Message.StartsWith("2D barcode frame is too small", StringComparison.Ordinal)))
         {
             return;
         }
@@ -742,8 +718,17 @@ public sealed class PrintPreflightValidator
         }
     }
 
-    private string? ValidateBarcodeCanRender(LabelObject item, string data, BarcodeType type, int? printDpi = null)
+    private string? ValidateBarcodeCanRender(
+        LabelObject item,
+        string data,
+        BarcodeType type,
+        int dpiX,
+        int dpiY,
+        out BarcodePixelImage? rendered,
+        out double symbolHeightMm)
     {
+        rendered = null;
+        symbolHeightMm = item.HeightMm;
         if (!_barcodeRenderer.ValidateData(data, type))
         {
             return "Check empty text, unsupported characters, or required length.";
@@ -751,8 +736,7 @@ public sealed class PrintPreflightValidator
 
         // Lay out and render as the print does: at the plan DPI and, for an
         // X-sized linear barcode, at this row's production width.
-        var dpi = printDpi is > 0 ? printDpi.Value : item.QrDpi > 0 ? item.QrDpi : 203;
-        var symbolWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, _barcodeRenderer, dpi, data);
+        var symbolWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, _barcodeRenderer, dpiX, data);
         var hriLayout = BarcodeHriTextLayout.Measure(
             type,
             data,
@@ -767,8 +751,11 @@ public sealed class PrintPreflightValidator
 
         try
         {
-            var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
-            _barcodeRenderer.RenderBarcode(data, type, symbolWidthMm, symbolHeightMm, dpi, CreateBarcodeRenderOptions(item));
+            symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            var options = CreateBarcodeRenderOptions(item);
+            rendered = dpiY != dpiX && _barcodeRenderer is INonSquareBarcodeRenderer nonSquare
+                ? nonSquare.RenderBarcode(data, type, symbolWidthMm, symbolHeightMm, dpiX, dpiY, options)
+                : _barcodeRenderer.RenderBarcode(data, type, symbolWidthMm, symbolHeightMm, dpiX, options);
             return null;
         }
         catch (ArgumentException ex)
