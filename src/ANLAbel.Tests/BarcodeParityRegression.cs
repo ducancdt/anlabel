@@ -3,6 +3,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ANLAbel.App.Controls;
 using ANLAbel.App.Services;
+using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
@@ -142,14 +143,15 @@ internal static class BarcodeParityRegression
             });
 
             var preflight = new PrintService().ValidateRows(template, rows);
-            var overflow = preflight.Issues
-                .Where(issue => issue.IsBlocking && issue.Message.StartsWith("Barcode for this row is ", StringComparison.Ordinal))
-                .ToArray();
-            Require(overflow.Select(issue => issue.RowNumber).Order().SequenceEqual(new[] { 2, 3 })
-                    && preflight.Issues.Where(issue => issue.IsBlocking).All(issue => issue.RowNumber is 2 or 3 or 4),
-                $"Rotation {rotation}: only the long rows may block for running past the label; the empty cell is not measured: {preflight.ToUserMessage()}");
+            var blocking = preflight.Issues.Where(issue => issue.IsBlocking).OrderBy(issue => issue.RowNumber).ToArray();
+            Require(blocking.Length == 3
+                    && blocking[0].RowNumber == 2 && blocking[1].RowNumber == 3
+                    && blocking.Take(2).All(issue => issue.Message.StartsWith("Barcode for this row extends past the label edge", StringComparison.Ordinal))
+                    && blocking[2].RowNumber == 4
+                    && blocking[2].Message.StartsWith("Code128 data cannot be empty", StringComparison.Ordinal),
+                $"Rotation {rotation}: the long rows must block for running past the label and the empty cell only for being empty: {preflight.ToUserMessage()}");
             // One message for every long row, so the rows group into one line.
-            Require(PreflightIssueText.Describe(preflight).Contains("Dòng 2, 3 · “C128 X” (mã vạch): mã vạch của dòng này rộng hơn tem", StringComparison.Ordinal),
+            Require(PreflightIssueText.Describe(preflight).Contains("Dòng 2, 3 · “C128 X” (mã vạch): mã vạch của dòng này tràn ra ngoài mép tem", StringComparison.Ordinal),
                 $"Rotation {rotation}: the long rows must be one Vietnamese line: {PreflightIssueText.Describe(preflight)}");
 
             // The print renderer really draws the long row past the label edge.
@@ -182,8 +184,9 @@ internal static class BarcodeParityRegression
     /// <summary>
     /// B04/B06: a 2D symbol whose row needs more printer dots than its frame holds
     /// blocks, and until fixed the designer shows what the print would do: a square
-    /// code squeezed into the frame, a PDF417 drawn from the frame's corner past it.
-    /// A printer or DPI change redraws the designer's barcodes.
+    /// code squeezed into the frame, a PDF417 drawn from the frame's corner past it,
+    /// with the object marked. A fixed QR version too small for the row is one
+    /// issue. A printer or DPI change redraws the designer's barcodes.
     /// </summary>
     public static Task OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint()
     {
@@ -216,6 +219,15 @@ internal static class BarcodeParityRegression
                 failures.Add($"{name}: a symbol larger than its frame must block.");
             }
 
+            // A squeezed code looks fine in the designer, so the object carries the
+            // error a short row does not.
+            var shortRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload };
+            var (shortErrors, longErrors) = RunOnSta(() => (DesignerErrors(template, shortRow), DesignerErrors(template, longRow)));
+            if (shortErrors.Count != 0 || !longErrors.Any(error => error.StartsWith("Mã 2D không vừa khung ở 203 DPI", StringComparison.Ordinal)))
+            {
+                failures.Add($"{name}: the designer must mark only the long row (short: {string.Join(" | ", shortErrors)}; long: {string.Join(" | ", longErrors)}).");
+            }
+
             var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
             var print = RunOnSta(() => Measure(new LabelVisualRenderer().Render(template, longRow, plan), template));
             var designer = RunOnSta(() => MeasureDesigner(template, longRow));
@@ -225,6 +237,28 @@ internal static class BarcodeParityRegression
             {
                 failures.Add($"{name}: the designer draws {Describe(designer)} but the label prints {Describe(print)}.");
             }
+        }
+
+        // A fixed QR version that cannot hold the row is reported once, as a capacity
+        // problem; the larger symbol the data would need is not reported on top of it.
+        var fixedTemplate = new LabelTemplate { Name = "B04 fixed version", WidthMm = 60, HeightMm = 40, Dpi = 203 };
+        fixedTemplate.PrinterProfile.Dpi = 203;
+        fixedTemplate.Objects.Add(new LabelObject
+        {
+            Id = "qr-fixed", Type = ObjectType.QRCode, Name = "QR v1", XMm = 5, YMm = 5, WidthMm = 8, HeightMm = 8,
+            BindingExpression = "{Code}", QrSizingMode = QrSizingMode.FixedVersionAndModuleSize, QrFixedVersion = 1,
+            QrModuleSizePx = 2, QrDpi = 203, Style = { BorderThicknessMm = 0 }
+        });
+        var hugeRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Code"] = string.Concat(Enumerable.Repeat("pn-000123|lot-77|", 18))
+        };
+        var fixedIssues = new PrintService().ValidateRows(fixedTemplate, new IReadOnlyDictionary<string, string>?[] { hugeRow })
+            .Issues.Where(issue => issue.IsBlocking && issue.RowNumber == 1).ToArray();
+        if (fixedIssues.Length != 1 || !fixedIssues[0].Message.StartsWith("Fixed QR capacity exceeded", StringComparison.Ordinal))
+        {
+            failures.Add("A fixed QR version that cannot hold the row must be one capacity issue: "
+                         + string.Join(" | ", fixedIssues.Select(issue => issue.Message)));
         }
 
         // A printer or DPI change redraws the designer's barcodes at the new DPI.
@@ -358,6 +392,32 @@ internal static class BarcodeParityRegression
             BindingExpression = "{Code}", BarcodeSymbology = BarcodeSymbology.Pdf417, ShowBarcodeText = false,
             Style = { BorderThicknessMm = 0 }
         }, BarcodeFormat.PDF_417);
+    }
+
+    /// <summary>The error tooltips the designer shows on its objects for this row.</summary>
+    private static IReadOnlyList<string> DesignerErrors(LabelTemplate template, IReadOnlyDictionary<string, string> row)
+    {
+        var canvas = new LabelDesignerCanvas { Template = template, Zoom = 1, PreviewRow = row };
+        var size = new Size(MmConverter.MmToDip(template.WidthMm), MmConverter.MmToDip(template.HeightMm));
+        canvas.Measure(size);
+        canvas.Arrange(new Rect(size));
+        canvas.UpdateLayout();
+        var errors = new List<string>();
+        Collect(canvas);
+        return errors;
+
+        void Collect(DependencyObject node)
+        {
+            if (node is FrameworkElement { ToolTip: string tip } && tip.Length > 0)
+            {
+                errors.Add(tip);
+            }
+
+            for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
+            {
+                Collect(VisualTreeHelper.GetChild(node, index));
+            }
+        }
     }
 
     private static Measurement MeasureDesigner(LabelTemplate template, IReadOnlyDictionary<string, string> row)

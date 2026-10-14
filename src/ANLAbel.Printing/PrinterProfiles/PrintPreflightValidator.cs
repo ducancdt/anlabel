@@ -543,26 +543,43 @@ public sealed class PrintPreflightValidator
             return;
         }
 
-        ValidateMatrixFrameForRow(item, data, rowIndex, issues);
-        ValidateMatrixSymbolFitsFrame(item, rendered, dpiX, dpiY, symbolHeightMm, rowIndex, issues);
-
-        if (item.Type == ObjectType.QRCode && item.QrSizingMode == QrSizingMode.FixedVersionAndModuleSize)
+        // One 2D size issue per row, the most basic first: a fixed QR version that
+        // cannot hold the data, then a frame below the symbol's minimum size, then
+        // a symbol that needs more printer dots than the frame has.
+        if (ValidateFixedQrCapacity(item, data, rowIndex, issues)
+            || ValidateMatrixFrameForRow(item, data, rowIndex, issues))
         {
-            var byteCount = Encoding.UTF8.GetByteCount(data);
-            var version = item.QrFixedVersion;
-            var capacity = QrVersionHelper.IsValidVersion(version)
-                ? QrCapacityProvider.GetByteModeCapacity(version, item.QrErrorCorrection)
-                : 0;
-            if (!QrVersionHelper.IsValidVersion(version)
-                || !QrCapacityProvider.CanEncodeByteMode(data, version, item.QrErrorCorrection))
-            {
-                issues.Add(new PrintPreflightIssue(
-                    rowIndex + 1,
-                    item.Name,
-                    item.Type.ToString(),
-                    $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size."));
-            }
+            return;
         }
+
+        ValidateMatrixSymbolFitsFrame(item, rendered, dpiX, dpiY, symbolHeightMm, rowIndex, issues);
+    }
+
+    /// <summary>Reports a fixed QR version that cannot hold this row's data; true when it did.</summary>
+    private static bool ValidateFixedQrCapacity(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)
+    {
+        if (item.Type != ObjectType.QRCode || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+        {
+            return false;
+        }
+
+        var version = item.QrFixedVersion;
+        if (QrVersionHelper.IsValidVersion(version)
+            && QrCapacityProvider.CanEncodeByteMode(data, version, item.QrErrorCorrection))
+        {
+            return false;
+        }
+
+        var byteCount = Encoding.UTF8.GetByteCount(data);
+        var capacity = QrVersionHelper.IsValidVersion(version)
+            ? QrCapacityProvider.GetByteModeCapacity(version, item.QrErrorCorrection)
+            : 0;
+        issues.Add(new PrintPreflightIssue(
+            rowIndex + 1,
+            item.Name,
+            item.Type.ToString(),
+            $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size."));
+        return true;
     }
 
     /// <summary>
@@ -615,12 +632,13 @@ public sealed class PrintPreflightValidator
         }
 
         // No per-row width in the text, so the same overflow on many rows groups
-        // into one line with its row numbers.
+        // into one line with its row numbers. The symbol may be narrower than the
+        // label and still run past its edge from where the frame starts.
         issues.Add(new PrintPreflightIssue(
             rowIndex + 1,
             item.Name,
             item.Type.ToString(),
-            $"Barcode for this row is wider than the label at its X-dimension and extends outside the design label bounds ({template.WidthMm:0.##} x {template.HeightMm:0.##} mm). Shorten the data, reduce the X-dimension or move the barcode inside the label."));
+            $"Barcode for this row extends past the label edge at its X-dimension; the design label is {template.WidthMm:0.##} x {template.HeightMm:0.##} mm. Shorten the data, reduce the X-dimension or move the barcode inside the label."));
     }
 
     /// <summary>
@@ -628,8 +646,7 @@ public sealed class PrintPreflightValidator
     /// data needs more modules than the frame holds, the print squeezes a square
     /// code below one dot per module or draws a PDF417 past its frame (B04: a
     /// frame that is too small must block). Uses the bitmap the render check just
-    /// drew at the plan DPI, so each row is encoded once; QR and Data Matrix rows
-    /// already blocked by the capacity check are not reported twice.
+    /// drew at the plan DPI, so each row is encoded once.
     /// </summary>
     private static void ValidateMatrixSymbolFitsFrame(
         LabelObject item,
@@ -640,21 +657,7 @@ public sealed class PrintPreflightValidator
         int rowIndex,
         List<PrintPreflightIssue> issues)
     {
-        if (!item.IsSquare2DCodeLike() || pixels is null)
-        {
-            return;
-        }
-
-        if (issues.Any(issue => issue.RowNumber == rowIndex + 1
-                                && issue.ObjectName == item.Name
-                                && issue.Message.StartsWith("2D barcode frame is too small", StringComparison.Ordinal)))
-        {
-            return;
-        }
-
-        var frameDotsX = Math.Max(1, (int)Math.Round(item.WidthMm / 25.4 * dpiX, MidpointRounding.AwayFromZero));
-        var frameDotsY = Math.Max(1, (int)Math.Round(symbolHeightMm / 25.4 * dpiY, MidpointRounding.AwayFromZero));
-        if (pixels.WidthPixels <= frameDotsX && pixels.HeightPixels <= frameDotsY)
+        if (pixels is null || MatrixSymbolFitsFrame(item, pixels, dpiX, dpiY, symbolHeightMm))
         {
             return;
         }
@@ -666,7 +669,27 @@ public sealed class PrintPreflightValidator
             $"2D barcode for this row does not fit its frame at {dpiX} DPI with one printer dot per module; it would be squeezed or cut off. Enlarge the frame or shorten the data."));
     }
 
-    private static void ValidateMatrixFrameForRow(
+    /// <summary>
+    /// True unless a 2D symbol drawn with one printer dot per module needs more
+    /// dots than its frame has (<paramref name="symbolHeightMm"/> is the frame
+    /// height left for the symbol). The designer marks the object with the same rule.
+    /// </summary>
+    public static bool MatrixSymbolFitsFrame(LabelObject item, BarcodePixelImage pixels, int dpiX, int dpiY, double symbolHeightMm)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(pixels);
+        if (!item.IsSquare2DCodeLike())
+        {
+            return true;
+        }
+
+        var frameDotsX = Math.Max(1, (int)Math.Round(item.WidthMm / 25.4 * dpiX, MidpointRounding.AwayFromZero));
+        var frameDotsY = Math.Max(1, (int)Math.Round(symbolHeightMm / 25.4 * dpiY, MidpointRounding.AwayFromZero));
+        return pixels.WidthPixels <= frameDotsX && pixels.HeightPixels <= frameDotsY;
+    }
+
+    /// <summary>Reports a frame below the symbol's minimum size for this row; true when it did.</summary>
+    private static bool ValidateMatrixFrameForRow(
         LabelObject item,
         string data,
         int rowIndex,
@@ -674,7 +697,7 @@ public sealed class PrintPreflightValidator
     {
         if (!item.IsSquare2DCodeLike())
         {
-            return;
+            return false;
         }
 
         // A bound row must fit the physical encoding/readability minimum, not
@@ -683,13 +706,13 @@ public sealed class PrintPreflightValidator
         var requiredSizeMm = QrObjectGeometryContract.ResolveMinimumSizeMm(item, data, QrCapacityProvider);
         if (requiredSizeMm is null)
         {
-            return;
+            return false;
         }
 
         var authoredSizeMm = Math.Min(item.WidthMm, item.HeightMm);
         if (requiredSizeMm.Value <= authoredSizeMm + QrObjectGeometryContract.SizeToleranceMm)
         {
-            return;
+            return false;
         }
 
         issues.Add(new PrintPreflightIssue(
@@ -697,6 +720,7 @@ public sealed class PrintPreflightValidator
             item.Name,
             item.Type.ToString(),
             $"2D barcode frame is too small for this row: requires at least {requiredSizeMm.Value:0.##} mm but the authored frame is {authoredSizeMm:0.##} mm. Increase the frame or choose a fixed module/version that fits."));
+        return true;
     }
 
     private static void ValidateTextBox(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)

@@ -104,6 +104,9 @@ internal static class OperatorLanguageRegression
         Require(PreflightIssueText.Message("2D barcode for this row does not fit its frame at 203 DPI with one printer dot per module; it would be squeezed or cut off. Enlarge the frame or shorten the data.")
                 .StartsWith("mã 2D của dòng này không vừa khung ở 203 DPI", StringComparison.Ordinal),
             "An oversized 2D symbol must be explained in Vietnamese.");
+        Require(PreflightIssueText.Message("Barcode for this row extends past the label edge at its X-dimension; the design label is 40 x 30 mm. Shorten the data, reduce the X-dimension or move the barcode inside the label.")
+                .StartsWith("mã vạch của dòng này tràn ra ngoài mép tem", StringComparison.Ordinal),
+            "A linear symbol past the label edge must be explained in Vietnamese.");
         Require(new PrinterInfo { Name = "Zebra", IsDefault = true }.DisplayName == "Zebra (mặc định của Windows)",
             "The Windows default printer must be marked in Vietnamese.");
 
@@ -253,7 +256,7 @@ internal static class OperatorLanguageRegression
             "differences.Add($\"{label}: primary '{primary}' · backup '{backup}'\");",
             ", whose header cell is empty, so only its position identifies it.",
             "' is repeated in columns ",
-            "Barcode for this row is wider than the label at its X-dimension and extends outside the design label bounds (",
+            "Barcode for this row extends past the label edge at its X-dimension; the design label is ",
             "2D barcode for this row does not fit its frame at ",
             "' matches columns ",
             " equally, so only their order decides which one prints.",

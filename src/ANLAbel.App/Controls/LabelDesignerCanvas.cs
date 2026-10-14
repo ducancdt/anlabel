@@ -3858,8 +3858,13 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
-            _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, planDpi, CreateBarcodeRenderOptions(item));
-            return null;
+            var pixels = _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, planDpi, CreateBarcodeRenderOptions(item));
+            // A square code that needs more printer dots than its frame is drawn
+            // squeezed into it, so the drawing alone does not show that the print
+            // blocks it (B04); the mark uses the preflight's rule.
+            return ANLAbel.Printing.PrinterProfiles.PrintPreflightValidator.MatrixSymbolFitsFrame(item, pixels, planDpi, planDpi, symbolHeightMm)
+                ? null
+                : $"Mã 2D không vừa khung ở {planDpi} DPI khi mỗi ô cần ít nhất một chấm in nên bản in sẽ bị bóp hoặc bị cắt. Nới khung hoặc rút ngắn dữ liệu.";
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
