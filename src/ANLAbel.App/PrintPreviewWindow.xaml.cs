@@ -493,8 +493,11 @@ public partial class PrintPreviewWindow : Window
                     .OrderBy(n => n)
                     .ToArray();
                 var totalSelectedRows = selected.Select(entry => entry.SourceRowNumber).Distinct().Count();
+                // A template-level stop (e.g. a column known only by position) blocks
+                // every row, so skipping the bad rows cannot let the rest print.
+                var templateBlocked = preflight.Issues.Any(issue => issue.IsBlocking && issue.RowNumber <= 0);
 
-                if (badSourceRows.Length == 0 || badSourceRows.Length >= totalSelectedRows)
+                if (templateBlocked || badSourceRows.Length == 0 || badSourceRows.Length >= totalSelectedRows)
                 {
                     SetPreflightResult(preflight, selected.Select(entry => entry.SourceRowNumber).ToArray());
                     if (_previewTrustLevel != PreviewTrustLevel.DesignOnly)

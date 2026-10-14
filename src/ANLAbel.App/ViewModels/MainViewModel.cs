@@ -72,6 +72,9 @@ public sealed class MainViewModel : ObservableObject
     internal static TimeSpan PrinterQueueLookupTimeout { get; set; } = TimeSpan.FromSeconds(20);
     private bool _isQuickPrinting;
     private int _importGeneration;
+    // DB03 header note of the latest import, kept for the callers that write
+    // their own status line right after importing (open, verify, relink, shared source).
+    private string _lastImportHeaderNote = string.Empty;
     private bool _selectedObjectRefreshDeferred;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
@@ -1974,9 +1977,18 @@ public sealed class MainViewModel : ObservableObject
 
         var issueCount = GetBindingIssues().Count;
         var headerNote = ANLAbel.App.Services.DataHeaderText.DescribeImport(Template, table, previousFields, headerRow);
-        var issueSuffix = headerNote.Length > 0
-            ? " — " + headerNote
-            : issueCount > 0 ? $" — {issueCount} đối tượng có liên kết bị thiếu/hỏng" : string.Empty;
+        _lastImportHeaderNote = headerNote.Text;
+        // A note about used columns already names the affected objects; a note about
+        // unused headers must not hide the count of broken links.
+        var issueSuffix = headerNote.AffectsLabel
+            ? " — " + headerNote.Text
+            : (issueCount > 0, headerNote.Text.Length > 0) switch
+            {
+                (true, true) => $" — {issueCount} đối tượng có liên kết bị thiếu/hỏng. {headerNote.Text}",
+                (true, false) => $" — {issueCount} đối tượng có liên kết bị thiếu/hỏng",
+                (false, true) => " — " + headerNote.Text,
+                _ => string.Empty
+            };
         StatusText = $"Đã nhập {table.Rows.Count} dòng từ {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
         LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: true, errorMessage: string.Empty);
     }
@@ -2058,7 +2070,7 @@ public sealed class MainViewModel : ObservableObject
                     "Verify",
                     cancellationToken);
                 IsExcelLinkBroken = false;
-                StatusText = $"Đã cập nhật và xác thực Excel: {LinkedExcelSourceText}";
+                StatusText = WithImportHeaderNote($"Đã cập nhật và xác thực Excel: {LinkedExcelSourceText}");
                 return;
             }
 
@@ -2085,6 +2097,10 @@ public sealed class MainViewModel : ObservableObject
             MarkExcelLinkVerificationFailed(ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex));
         }
     }
+
+    /// <summary>Appends the DB03 header note of the import that just finished, if any.</summary>
+    private string WithImportHeaderNote(string status)
+        => string.IsNullOrEmpty(_lastImportHeaderNote) ? status : $"{status} — {_lastImportHeaderNote}";
 
     private void MarkExcelLinkVerified(int rowCount, int columnCount)
     {
@@ -2342,7 +2358,7 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}. Đã khôi phục liên kết Excel: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}";
+        StatusText = WithImportHeaderNote($"Đã mở: {Path.GetFileName(CurrentFilePath)}. Đã khôi phục liên kết Excel: {Path.GetFileName(Template.DatabaseConfig.FilePath)} / {Template.DatabaseConfig.SheetName}");
         if (linkedSource is not null)
         {
             TryRecordDataSourceUsage(linkedSource);
@@ -2425,7 +2441,7 @@ public sealed class MainViewModel : ObservableObject
         {
             await ImportExcelAsync(filePath, sheetName, "Relink");
             IsExcelLinkBroken = false;
-            StatusText = $"Đã liên kết lại Excel: {Path.GetFileName(filePath)} / {sheetName}";
+            StatusText = WithImportHeaderNote($"Đã liên kết lại Excel: {Path.GetFileName(filePath)} / {sheetName}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -2543,7 +2559,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         Template.DatabaseConfig.DataSourceId = source.Id;
-        StatusText = $"Đang dùng nguồn dữ liệu dùng chung: {source.DisplayName}";
+        StatusText = WithImportHeaderNote($"Đang dùng nguồn dữ liệu dùng chung: {source.DisplayName}");
         TryRecordDataSourceUsage(source);
     }
 
@@ -2820,6 +2836,13 @@ public sealed class MainViewModel : ObservableObject
 
         foreach (var requested in requestedFieldNames.Where(name => !string.IsNullOrWhiteSpace(name)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
+            // A name that ties between lookalike headers stays as written: rewriting it
+            // to the first of them would pin the binding to a column by position (DB03).
+            if (FieldNameResolver.FindTies(requested, available).Count > 1)
+            {
+                continue;
+            }
+
             if (FieldNameResolver.TryResolveFieldName(requested, available, out var resolvedName))
             {
                 resolved[requested] = resolvedName;
@@ -2892,7 +2915,9 @@ public sealed class MainViewModel : ObservableObject
                 "FIELD\\(\\s*\"((?:\\\\.|[^\"])*)\"\\s*\\)",
                 match =>
                 {
-                    var requestedField = Regex.Unescape(match.Groups[1].Value);
+                    // The formula parser's own escape rules; Regex.Unescape throws on
+                    // escapes such as \H that the parser keeps as written.
+                    var requestedField = FormulaParser.UnescapeStringLiteral(match.Groups[1].Value);
                     if (!TryResolveMappedFieldName(requestedField, resolvedFieldMap, out var resolvedField))
                     {
                         return match.Value;
@@ -4490,21 +4515,29 @@ public sealed class MainViewModel : ObservableObject
     {
         var origins = DataColumnOrigin.Describe(ExcelDataView?.Table);
         var positional = ANLAbel.App.Services.DataHeaderCheck.ColumnsRead(expression, origins, Template.DataTransforms)
-            .Where(origin => origin.DependsOnPosition)
+            .Where(read => read.DependsOnPosition)
             .ToArray();
-        if (positional.Length == 0)
+        // A data transform output is a known field, but the columns it reads must exist too.
+        var missingInputs = ANLAbel.App.Services.DataHeaderCheck
+            .MissingFields(expression, AvailableDatabaseFields.Select(field => field.Name).ToArray(), Template.DataTransforms)
+            .Where(field => !result.MissingFields.Contains(field, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+        if (positional.Length == 0 && missingInputs.Length == 0)
         {
             return result;
         }
 
+        var missing = result.MissingFields.Concat(missingInputs).ToArray();
         return result with
         {
+            MissingFields = missing,
             Errors = result.Errors
-                .Concat(positional.Select(origin => ANLAbel.App.Services.DataHeaderText.DescribeColumn(origin, origins)))
+                .Concat(positional.Select(read => ANLAbel.App.Services.DataHeaderText.DescribeColumn(read, origins)))
                 .ToArray(),
-            PositionalFields = positional.Select(origin => origin.FieldName).ToArray(),
-            StatusText = result.MissingFields.Count > 0
-                ? result.StatusText
+            PositionalFields = positional.Select(read => read.Column.FieldName).ToArray(),
+            // A missing field or a formula error is the more basic problem; keep its wording.
+            StatusText = missing.Length > 0 || result.Errors.Count > 0
+                ? BuildBindingStatusText(missing, result.Errors, PreviewRow is not null)
                 : "Liên kết đọc cột chỉ nhận ra được theo vị trí nên chưa in được. Đặt tiêu đề riêng cho cột trong tệp rồi bấm Cập nhật Excel."
         };
     }
@@ -4640,7 +4673,11 @@ public sealed class MainViewModel : ObservableObject
 
     private static string BuildObjectTreeBindingIssueText(BindingIssueSummary issue)
     {
-        if (issue.MissingFields.Count == 0 && issue.PositionalFields is { Count: > 0 } positional)
+        // Position-only columns are named only when they are the whole problem; a
+        // formula error (one more entry in Errors) keeps its own label below.
+        if (issue.MissingFields.Count == 0
+            && issue.PositionalFields is { Count: > 0 } positional
+            && issue.Errors.Count == positional.Count)
         {
             return positional.Count == 1
                 ? $"Cột chỉ theo vị trí: {positional[0]}"
@@ -5035,6 +5072,9 @@ public sealed class MainViewModel : ObservableObject
         // printer contract, preflight, manifest and dispatch, so an edit made
         // while the driver or validation is busy cannot mix two label states.
         var printTemplate = PrintSessionTemplateContract.Capture(Template);
+        // The rows were built from this table. A refresh or unlink during the awaits
+        // below must not change which headers are checked (DB03).
+        var headerTable = ExcelDataView?.Table;
         var printerName = printTemplate.PrinterProfile.PrinterName;
         if (string.IsNullOrWhiteSpace(printerName))
         {
@@ -5061,7 +5101,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var preflight = await _printService.ValidateRowsAsync(printTemplate, rows, effectivePlan).ConfigureAwait(true);
-        preflight = ANLAbel.App.Services.DataHeaderCheck.Append(preflight, printTemplate, ExcelDataView?.Table);
+        preflight = ANLAbel.App.Services.DataHeaderCheck.Append(preflight, printTemplate, headerTable);
         if (!preflight.IsSuccess)
         {
             throw new InvalidOperationException(preflight.ToUserMessage());

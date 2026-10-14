@@ -98,6 +98,12 @@ internal static class OperatorLanguageRegression
         Require(PreflightIssueText.Message("Field 'Part No_2' reads column D, whose header 'Part No' is repeated in columns A, D, so only its position identifies it. Give each column a unique header in the data file, then refresh the data.")
                 .StartsWith("trường “Part No_2” lấy từ cột D, nhưng tiêu đề “Part No” lặp ở các cột A, D", StringComparison.Ordinal),
             "A repeated header must be explained in Vietnamese.");
+        Require(PreflightIssueText.Message("Field 'PartNo' matches columns A (Part No), D (Part-No) equally, so only their order decides which one prints. Rename one of them in the data file, or bind the exact header, then refresh the data.")
+                .StartsWith("trường “PartNo” khớp ngang nhau với các cột A (Part No), D (Part-No)", StringComparison.Ordinal),
+            "Lookalike headers must be explained in Vietnamese.");
+        Require(PreflightIssueText.Message("2D barcode for this row does not fit its frame at 203 DPI with one printer dot per module; it would be squeezed or cut off. Enlarge the frame or shorten the data.")
+                .StartsWith("mã 2D của dòng này không vừa khung ở 203 DPI", StringComparison.Ordinal),
+            "An oversized 2D symbol must be explained in Vietnamese.");
         Require(new PrinterInfo { Name = "Zebra", IsDefault = true }.DisplayName == "Zebra (mặc định của Windows)",
             "The Windows default printer must be marked in Vietnamese.");
 
@@ -247,7 +253,10 @@ internal static class OperatorLanguageRegression
             "differences.Add($\"{label}: primary '{primary}' · backup '{backup}'\");",
             ", whose header cell is empty, so only its position identifies it.",
             "' is repeated in columns ",
-            " mm wide at its X-dimension and extends outside the design label bounds (",
+            "Barcode for this row is wider than the label at its X-dimension and extends outside the design label bounds (",
+            "2D barcode for this row does not fit its frame at ",
+            "' matches columns ",
+            " equally, so only their order decides which one prints.",
         ];
         foreach (var anchor in anchors)
         {

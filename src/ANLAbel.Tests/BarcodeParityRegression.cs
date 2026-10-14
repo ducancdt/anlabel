@@ -51,8 +51,9 @@ internal static class BarcodeParityRegression
                     LabelHeightMm = template.HeightMm
                 };
 
-                // The paginator renders each page with LabelVisualRenderer and
-                // the effective plan; preview pages come from PrintService.
+                // "print" is LabelVisualRenderer with the plan, the call the paginator
+                // makes for each page (checked in the source below); the preview page
+                // from PrintService must be that same drawing.
                 var print = RunOnSta(() => Measure(new LabelVisualRenderer().Render(template, row, plan), template));
                 var preview = RunOnSta(() => Measure(new PrintService().CreatePreviewPage(template, row, 1, plan).Visual, template));
                 var designer = RunOnSta(() => MeasureDesigner(template, row));
@@ -63,7 +64,7 @@ internal static class BarcodeParityRegression
 
                 if (!print.Raw.AsSpan().SequenceEqual(preview.Raw))
                 {
-                    failures.Add($"{label}: the preview page is not the drawing the paginator prints.");
+                    failures.Add($"{label}: the preview page is not the renderer's drawing for the plan.");
                 }
 
                 foreach (var (name, output) in new[] { ("print", print), ("designer", designer) })
@@ -90,6 +91,21 @@ internal static class BarcodeParityRegression
             }
         }
 
+        // The paginator and the preview page both draw with the one renderer call
+        // and the same plan; a paginator that reused a preview bitmap would fail here.
+        var root = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(root, "ANLAbel.slnx")))
+        {
+            root = Path.GetDirectoryName(root.TrimEnd(Path.DirectorySeparatorChar))!;
+        }
+
+        var printService = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.Printing", "PrinterProfiles", "PrintService.cs"));
+        if (!printService.Contains("pageNumber => _renderer.Render(template, rowList[pageNumber], plan)", StringComparison.Ordinal)
+            || !printService.Contains("Visual = _renderer.Render(template, row, plan)", StringComparison.Ordinal))
+        {
+            failures.Add("The print paginator and the preview page must draw with the same renderer call and plan.");
+        }
+
         if (failures.Count > 0)
         {
             throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
@@ -105,10 +121,13 @@ internal static class BarcodeParityRegression
     /// </summary>
     public static Task LinearSymbolPastTheLabelEdgeBlocksItsRow()
     {
+        // A short row, two long rows of different lengths and an empty cell.
         var rows = new IReadOnlyDictionary<string, string>?[]
         {
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = "A1" },
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload }
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload + "-9" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = string.Empty }
         };
         foreach (var (rotation, labelWidth, labelHeight, x, y) in new[] { (0, 40.0, 30.0, 3.0, 5.0), (90, 40.0, 60.0, 10.0, 20.0) })
         {
@@ -123,13 +142,15 @@ internal static class BarcodeParityRegression
             });
 
             var preflight = new PrintService().ValidateRows(template, rows);
-            var blocking = preflight.Issues.Where(issue => issue.IsBlocking).ToArray();
-            Require(blocking.Length == 1
-                    && blocking[0].RowNumber == 2
-                    && blocking[0].Message.StartsWith("Barcode for this row is ", StringComparison.Ordinal),
-                $"Rotation {rotation}: only the long row may block, for running past the label: {preflight.ToUserMessage()}");
-            Require(PreflightIssueText.Describe(preflight).Contains("Dòng 2 · “C128 X” (mã vạch): mã vạch của dòng này rộng", StringComparison.Ordinal),
-                $"Rotation {rotation}: the operator must see the row in Vietnamese: {PreflightIssueText.Describe(preflight)}");
+            var overflow = preflight.Issues
+                .Where(issue => issue.IsBlocking && issue.Message.StartsWith("Barcode for this row is ", StringComparison.Ordinal))
+                .ToArray();
+            Require(overflow.Select(issue => issue.RowNumber).Order().SequenceEqual(new[] { 2, 3 })
+                    && preflight.Issues.Where(issue => issue.IsBlocking).All(issue => issue.RowNumber is 2 or 3 or 4),
+                $"Rotation {rotation}: only the long rows may block for running past the label; the empty cell is not measured: {preflight.ToUserMessage()}");
+            // One message for every long row, so the rows group into one line.
+            Require(PreflightIssueText.Describe(preflight).Contains("Dòng 2, 3 · “C128 X” (mã vạch): mã vạch của dòng này rộng hơn tem", StringComparison.Ordinal),
+                $"Rotation {rotation}: the long rows must be one Vietnamese line: {PreflightIssueText.Describe(preflight)}");
 
             // The print renderer really draws the long row past the label edge.
             var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = labelWidth, LabelHeightMm = labelHeight };
@@ -138,6 +159,108 @@ internal static class BarcodeParityRegression
                 DrawsInsideLabel(new LabelVisualRenderer().Render(template, rows[1], plan), template)));
             Require(shortInside && !longInside,
                 $"Rotation {rotation}: the short row must print inside the label and the long row past it (short {shortInside}, long {longInside}).");
+        }
+
+        // The human-readable text is laid out under the row's symbol, as printed,
+        // not under the narrower frame stored from the short sample.
+        var hriTemplate = new LabelTemplate { Name = "B05 HRI", WidthMm = 90, HeightMm = 40, Dpi = 203 };
+        hriTemplate.PrinterProfile.Dpi = 203;
+        hriTemplate.Objects.Add(new LabelObject
+        {
+            Id = "c128-x-hri", Type = ObjectType.BarcodeCode128, Name = "C128 X HRI", XMm = 3, YMm = 5, WidthMm = 12, HeightMm = 14,
+            Text = "A1", BindingExpression = "{Code}", BarcodeSymbology = BarcodeSymbology.Code128,
+            ShowBarcodeText = true, BarcodeHriPlacement = BarcodeHriPlacement.Below,
+            BarcodeWidthMode = BarcodeWidthMode.SizedFromX, BarcodeModuleWidthMm = 0.25, Style = { BorderThicknessMm = 0 }
+        });
+        var hriPreflight = new PrintService().ValidateRows(hriTemplate, rows[..2]);
+        Require(hriPreflight.IsSuccess,
+            "A long row whose text fits under its own symbol must not be blocked by the stored frame width: " + hriPreflight.ToUserMessage());
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// B04/B06: a 2D symbol whose row needs more printer dots than its frame holds
+    /// blocks, and until fixed the designer shows what the print would do: a square
+    /// code squeezed into the frame, a PDF417 drawn from the frame's corner past it.
+    /// A printer or DPI change redraws the designer's barcodes.
+    /// </summary>
+    public static Task OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint()
+    {
+        var longRow = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Code"] = string.Concat(Enumerable.Repeat("PN-000123|LOT-77|", 6))
+        };
+        var failures = new List<string>();
+        foreach (var (name, item, format) in new (string, LabelObject, BarcodeFormat)[]
+                 {
+                     ("PDF417", new LabelObject
+                     {
+                         Id = "pdf-small", Type = ObjectType.BarcodeCode128, Name = "PDF417", XMm = 20, YMm = 5, WidthMm = 22, HeightMm = 14,
+                         BindingExpression = "{Code}", BarcodeSymbology = BarcodeSymbology.Pdf417, ShowBarcodeText = false,
+                         Style = { BorderThicknessMm = 0 }
+                     }, BarcodeFormat.PDF_417),
+                     ("QR", new LabelObject
+                     {
+                         Id = "qr-small", Type = ObjectType.QRCode, Name = "QR", XMm = 20, YMm = 5, WidthMm = 5, HeightMm = 5,
+                         BindingExpression = "{Code}", Style = { BorderThicknessMm = 0 }
+                     }, BarcodeFormat.QR_CODE)
+                 })
+        {
+            var template = new LabelTemplate { Name = "B04 " + name, WidthMm = 60, HeightMm = 40, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.Objects.Add(item);
+            var preflight = new PrintService().ValidateRows(template, new IReadOnlyDictionary<string, string>?[] { longRow });
+            if (preflight.IsSuccess)
+            {
+                failures.Add($"{name}: a symbol larger than its frame must block.");
+            }
+
+            var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            var print = RunOnSta(() => Measure(new LabelVisualRenderer().Render(template, longRow, plan), template));
+            var designer = RunOnSta(() => MeasureDesigner(template, longRow));
+            Console.WriteLine($"MEASURE B04 {name} oversized: print {Describe(print)}; designer {Describe(designer)}");
+            if (Math.Abs(designer.LeftMm - print.LeftMm) > ToleranceMm || Math.Abs(designer.WidthMm - print.WidthMm) > ToleranceMm
+                || Math.Abs(designer.TopMm - print.TopMm) > ToleranceMm || Math.Abs(designer.HeightMm - print.HeightMm) > ToleranceMm)
+            {
+                failures.Add($"{name}: the designer draws {Describe(designer)} but the label prints {Describe(print)}.");
+            }
+        }
+
+        // A printer or DPI change redraws the designer's barcodes at the new DPI.
+        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload };
+        var dpiTemplate = new LabelTemplate { Name = "B06 DPI change", WidthMm = 60, HeightMm = 40, Dpi = 300 };
+        dpiTemplate.PrinterProfile.Dpi = 300;
+        dpiTemplate.Objects.Add(new LabelObject
+        {
+            Id = "c128-dpi", Type = ObjectType.BarcodeCode128, Name = "C128", XMm = 5, YMm = 5, WidthMm = 45, HeightMm = 10,
+            BindingExpression = "{Code}", BarcodeSymbology = BarcodeSymbology.Code128, ShowBarcodeText = false,
+            Style = { BorderThicknessMm = 0 }
+        });
+        var (before, after) = RunOnSta(() =>
+        {
+            var canvas = new LabelDesignerCanvas { Template = dpiTemplate, Zoom = 1, PreviewRow = row };
+            var size = new Size(MmConverter.MmToDip(dpiTemplate.WidthMm), MmConverter.MmToDip(dpiTemplate.HeightMm));
+            canvas.Measure(size);
+            canvas.Arrange(new Rect(size));
+            canvas.UpdateLayout();
+            var at300 = Measure(canvas, dpiTemplate);
+            dpiTemplate.PrinterProfile.Dpi = 203;
+            dpiTemplate.Dpi = 203;
+            canvas.UpdateLayout();
+            return (at300, Measure(canvas, dpiTemplate));
+        });
+        var printAt203 = RunOnSta(() => Measure(new LabelVisualRenderer().Render(dpiTemplate, row,
+            new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = dpiTemplate.WidthMm, LabelHeightMm = dpiTemplate.HeightMm }), dpiTemplate));
+        Console.WriteLine($"MEASURE B06 DPI change: designer at 300 {Describe(before)}; after the change {Describe(after)}; print at 203 {Describe(printAt203)}");
+        if (Math.Abs(after.WidthMm - printAt203.WidthMm) > ToleranceMm || Math.Abs(before.WidthMm - after.WidthMm) < 1)
+        {
+            failures.Add($"After the DPI change the designer draws {Describe(after)}, the label prints {Describe(printAt203)}.");
+        }
+
+        if (failures.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
         }
 
         return Task.CompletedTask;

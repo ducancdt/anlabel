@@ -12,29 +12,37 @@ namespace ANLAbel.App.Services;
 /// otherwise where the header row is blank or repeats a name. Positions are the
 /// column letters the operator sees in Excel.
 /// </summary>
+/// <summary>
+/// The import note and whether it is about columns the label uses (those block
+/// printing) or only about headers nothing reads.
+/// </summary>
+public sealed record DataImportNote(string Text, bool AffectsLabel)
+{
+    public static DataImportNote None { get; } = new(string.Empty, false);
+}
+
 public static class DataHeaderText
 {
-    public static string DescribeImport(LabelTemplate template, DataTable table, IReadOnlyList<string> previousFields, int headerRow)
+    private const int MaxLettersListed = 6;
+
+    public static DataImportNote DescribeImport(LabelTemplate template, DataTable table, IReadOnlyList<string> previousFields, int headerRow)
     {
         ArgumentNullException.ThrowIfNull(template);
         var origins = DataColumnOrigin.Describe(table);
         if (origins.Count == 0)
         {
-            return string.Empty;
+            return DataImportNote.None;
         }
 
-        var transformNames = template.DataTransforms
-            .Select(transform => transform.Name?.Trim() ?? string.Empty)
-            .Where(name => name.Length > 0)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var columnNames = origins.Select(origin => origin.FieldName).ToArray();
         var bound = template.Objects
             .Where(item => item.IsVisible && !string.IsNullOrWhiteSpace(item.BindingExpression))
             .ToArray();
         var parts = new List<string>();
 
         var missing = bound
-            .SelectMany(item => DataHeaderCheck.BindingFields(item.BindingExpression).Select(field => (Item: item, Field: field.Trim())))
-            .Where(use => use.Field.Length > 0 && !transformNames.Contains(use.Field) && DataHeaderCheck.Resolve(use.Field, origins) is null)
+            .SelectMany(item => DataHeaderCheck.MissingFields(item.BindingExpression, columnNames, template.DataTransforms)
+                .Select(field => (Item: item, Field: field)))
             .GroupBy(use => use.Field, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         if (missing.Length > 0)
@@ -49,78 +57,120 @@ public static class DataHeaderText
 
         var positional = bound
             .SelectMany(item => DataHeaderCheck.ColumnsRead(item.BindingExpression, origins, template.DataTransforms)
-                .Where(origin => origin.DependsOnPosition)
-                .Select(origin => (Item: item, Origin: origin)))
-            .ToArray();
-        if (positional.Length > 0)
+                .Where(read => read.DependsOnPosition)
+                .Select(read => (Item: (object)item, Read: read)))
+            .ToList();
+        var copies = DataHeaderCheck.CopiesColumn(template, origins);
+        if (copies is { DependsOnPosition: true })
         {
-            // One phrase per repeated header and one for all blank headers in use.
-            var groups = positional
-                .Select(use => use.Origin)
-                .Distinct()
-                .GroupBy(origin => origin.Kind == DataHeaderKind.Blank ? null : origin.SourceHeader.ToUpperInvariant())
-                .ToArray();
-            var phrases = groups.Take(3).Select(group => group.Key is null
-                ? $"{(group.Count() == 1 ? "cột" : "các cột")} {Join(group.Select(origin => origin.ColumnLetter))} không có tiêu đề (ANLAbel tạm gọi là {Names(group)})"
-                : Describe(group.First(), origins));
-            var more = groups.Length > 3 ? $"; và {groups.Length - 3} nhóm cột khác" : string.Empty;
-            var columnCount = positional.Select(use => use.Origin).Distinct().Count();
-            parts.Add($"{string.Join("; ", phrases)}{more}; {positional.Select(use => use.Item).Distinct().Count()} đối tượng dùng {(columnCount == 1 ? "cột này" : "các cột này")} chưa in được cho tới khi mỗi cột có tiêu đề riêng");
+            positional.Add((Item: template.DatabaseConfig, Read: copies));
         }
 
+        if (positional.Count > 0)
+        {
+            // One phrase per repeated header, one for the blank headers in use, and
+            // one per set of lookalike headers that tie.
+            var groups = positional
+                .Select(use => use.Read)
+                .GroupBy(read => read.Column.Kind switch
+                {
+                    DataHeaderKind.Blank => "blank",
+                    DataHeaderKind.Repeated => "repeated:" + read.Column.SourceHeader.ToUpperInvariant(),
+                    _ => "tie:" + string.Join("|", new[] { read.Column }.Concat(read.Rivals).Select(origin => origin.SourceColumn).Order())
+                })
+                .ToArray();
+            var phrases = groups.Take(3).Select(group => Describe(group.ToArray(), origins));
+            var more = groups.Length > 3 ? $"; và {groups.Length - 3} nhóm cột khác" : string.Empty;
+            var columnCount = positional.Select(use => use.Read.Column.SourceColumn).Distinct().Count();
+            var objectCount = positional.Select(use => use.Item).OfType<LabelObject>().Distinct().Count();
+            var users = new List<string>();
+            if (objectCount > 0)
+            {
+                users.Add($"{objectCount} đối tượng");
+            }
+
+            if (copies is { DependsOnPosition: true })
+            {
+                users.Add("cột số bản in");
+            }
+
+            parts.Add($"{string.Join("; ", phrases)}{more}; {string.Join(" và ", users)} dùng {(columnCount == 1 ? "cột này" : "các cột này")} chưa in được cho tới khi mỗi cột có tiêu đề riêng");
+        }
+
+        var affectsLabel = parts.Count > 0;
         if (parts.Count == 0)
         {
             var blanks = origins.Where(origin => origin.Kind == DataHeaderKind.Blank).Select(origin => origin.ColumnLetter).ToArray();
             if (blanks.Length > 0)
             {
-                parts.Add($"dòng tiêu đề {headerRow} để trống ở cột {Join(blanks)}");
+                parts.Add($"dòng tiêu đề {headerRow} để trống ở cột {Letters(blanks)}");
             }
 
             foreach (var repeat in origins.Where(origin => origin.Kind == DataHeaderKind.Repeated)
                          .GroupBy(origin => origin.SourceHeader, StringComparer.OrdinalIgnoreCase)
                          .Take(2))
             {
-                parts.Add($"tiêu đề “{repeat.First().SourceHeader}” lặp ở cột {Join(repeat.Select(origin => origin.ColumnLetter))}");
+                parts.Add($"tiêu đề “{repeat.First().SourceHeader}” lặp ở cột {Letters(repeat.Select(origin => origin.ColumnLetter).ToArray())}");
             }
         }
 
         if (parts.Count == 0)
         {
-            return string.Empty;
+            return DataImportNote.None;
         }
 
         var text = string.Join("; ", parts);
-        return char.ToUpperInvariant(text[0]) + text[1..] + ".";
+        return new DataImportNote(char.ToUpperInvariant(text[0]) + text[1..] + ".", affectsLabel);
     }
 
     /// <summary>One position-only column for the Properties panel, e.g. “Cột D có tiêu đề “Part No” trùng với cột A …”.</summary>
-    public static string DescribeColumn(DataColumnOrigin origin, IReadOnlyList<DataColumnOrigin> origins)
+    public static string DescribeColumn(DataColumnRead read, IReadOnlyList<DataColumnOrigin> origins)
     {
-        ArgumentNullException.ThrowIfNull(origin);
+        ArgumentNullException.ThrowIfNull(read);
+        var origin = read.Column;
         if (origin.Kind == DataHeaderKind.Blank)
         {
             return $"Cột {origin.ColumnLetter} không có tiêu đề (ANLAbel tạm gọi là “{origin.FieldName}”).";
         }
 
-        var others = origins
-            .Where(other => other.Kind == DataHeaderKind.Repeated
-                            && other.SourceColumn != origin.SourceColumn
-                            && string.Equals(other.SourceHeader, origin.SourceHeader, StringComparison.OrdinalIgnoreCase))
-            .Select(other => other.ColumnLetter);
-        return $"Cột {origin.ColumnLetter} có tiêu đề “{origin.SourceHeader}” trùng với cột {Join(others)} (ANLAbel tạm gọi là “{origin.FieldName}”).";
+        if (origin.Kind == DataHeaderKind.Repeated)
+        {
+            var others = origins
+                .Where(other => other.Kind == DataHeaderKind.Repeated
+                                && other.SourceColumn != origin.SourceColumn
+                                && string.Equals(other.SourceHeader, origin.SourceHeader, StringComparison.OrdinalIgnoreCase))
+                .Select(other => other.ColumnLetter);
+            return $"Cột {origin.ColumnLetter} có tiêu đề “{origin.SourceHeader}” trùng với cột {string.Join(", ", others)} (ANLAbel tạm gọi là “{origin.FieldName}”).";
+        }
+
+        return $"Tên “{read.RequestedName}” khớp ngang nhau với {Tied(read)}; chỉ thứ tự cột quyết định cột nào được in.";
     }
 
-    private static string Describe(DataColumnOrigin repeated, IReadOnlyList<DataColumnOrigin> origins)
+    private static string Describe(IReadOnlyList<DataColumnRead> group, IReadOnlyList<DataColumnOrigin> origins)
     {
-        var group = origins
-            .Where(other => other.Kind == DataHeaderKind.Repeated
-                            && string.Equals(other.SourceHeader, repeated.SourceHeader, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        return $"tiêu đề “{repeated.SourceHeader}” lặp ở cột {Join(group.Select(origin => origin.ColumnLetter))} (ANLAbel tạm gọi là {Names(group)})";
+        var first = group[0];
+        if (first.Column.Kind == DataHeaderKind.Blank)
+        {
+            var blanks = group.Select(read => read.Column).DistinctBy(origin => origin.SourceColumn).OrderBy(origin => origin.SourceColumn).ToArray();
+            return $"{(blanks.Length == 1 ? "cột" : "các cột")} {Letters(blanks.Select(origin => origin.ColumnLetter).ToArray())} không có tiêu đề (ANLAbel tạm gọi là {Names(blanks)})";
+        }
+
+        if (first.Column.Kind == DataHeaderKind.Repeated)
+        {
+            var repeated = origins
+                .Where(other => other.Kind == DataHeaderKind.Repeated
+                                && string.Equals(other.SourceHeader, first.Column.SourceHeader, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            return $"tiêu đề “{first.Column.SourceHeader}” lặp ở cột {Letters(repeated.Select(origin => origin.ColumnLetter).ToArray())} (ANLAbel tạm gọi là {Names(repeated)})";
+        }
+
+        return $"tên “{first.RequestedName}” khớp ngang nhau với {Tied(first)}";
     }
 
-    private static string Names(IEnumerable<DataColumnOrigin> origins)
-        => string.Join(", ", origins.Select(origin => $"“{origin.FieldName}”"));
+    private static string Tied(DataColumnRead read)
+        => string.Join(", ", new[] { read.Column }.Concat(read.Rivals)
+            .OrderBy(origin => origin.SourceColumn)
+            .Select(origin => $"cột {origin.ColumnLetter} (“{origin.SourceHeader}”)"));
 
     private static string PreviousColumn(string field, IReadOnlyList<string> previousFields)
     {
@@ -136,5 +186,12 @@ public static class DataHeaderText
         return $" (lần nhập trước ở cột {DataColumnOrigin.ToColumnLetter(index + 1)})";
     }
 
-    private static string Join(IEnumerable<string> letters) => string.Join(", ", letters);
+    private static string Names(IEnumerable<DataColumnOrigin> origins)
+        => string.Join(", ", origins.Select(origin => $"“{origin.FieldName}”"));
+
+    /// <summary>Column letters, at most six; a stray value far to the right can leave many blank headers.</summary>
+    private static string Letters(IReadOnlyList<string> letters)
+        => letters.Count <= MaxLettersListed
+            ? string.Join(", ", letters)
+            : $"{string.Join(", ", letters.Take(MaxLettersListed))} và {letters.Count - MaxLettersListed} cột khác";
 }

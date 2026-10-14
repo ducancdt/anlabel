@@ -12,6 +12,7 @@ Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 - Decision:
   - Mỗi cột nhập vào mang vị trí và tiêu đề gốc (`DataColumnOrigin`).
   - Đối tượng hoặc cột số bản đọc một cột có tiêu đề trống hay trùng (trực tiếp hoặc qua trường chuyển đổi) bị chặn in ở Xem trước và In nhanh. Cách sửa: đặt tiêu đề riêng cho cột trong tệp rồi Cập nhật Excel.
+  - Bổ sung sau review 2026-10-14: một tên khớp ngang nhau với nhiều tiêu đề gần giống (ví dụ `PartNo` với “Part No” và “Part-No”) cũng chỉ nhận ra được theo thứ tự cột, nên cũng bị chặn, và ANLAbel không tự viết lại liên kết sang cột đầu tiên. Trường được tìm đúng như khi in: công thức được chạy thử (kể cả dấu cách trước ngoặc và tên ghép bằng CONCAT), tên tra trên cả cột lẫn trường chuyển đổi, cột số bản chấp nhận dạng có ngoặc nhọn. In nhanh kiểm tra đúng bảng dữ liệu đã dùng để dựng các dòng in.
   - Sau mỗi lần nhập, dòng trạng thái nêu bằng chữ cái cột: cột đang dùng không còn ở dòng tiêu đề (kèm cột của lần nhập trước), cột đang dùng có tiêu đề trống/trùng, hoặc chỉ nơi tiêu đề trống/trùng khi không dùng tới.
 - Không đổi: liên kết vẫn tìm cột theo tên như trước; cột có tiêu đề riêng không bị ảnh hưởng; tiêu đề trống/trùng không được dùng tới chỉ được báo, không chặn.
 - Alternatives:
@@ -32,6 +33,8 @@ Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
   - Mã 2D và PDF417 hiện đúng kích thước đã chia module, đặt giữa khung, không kéo giãn. Mã 1D theo X hiện đúng chiều rộng sản xuất từ mép trái, kể cả khi dòng dữ liệu làm mã rộng hơn khung.
   - `QrDpi` vẫn dùng để tính kích thước module px và tự cỡ của mã 2D như trước.
 - Không đổi: bản in và Xem trước không đổi một điểm ảnh nào; dữ liệu mẫu không bị ghi lại.
+- Bổ sung sau review 2026-10-14: đổi máy in hoặc DPI thì designer vẽ lại mã vạch; mã 2D cần nhiều chấm hơn khung được vẽ như bản in (mã vuông bị bóp vào khung, PDF417 tràn từ góc trên trái) và kiểm tra trước khi in chặn trường hợp này.
+- Giới hạn: designer chỉ biết DPI của mẫu. Khi cài đặt máy in để trình điều khiển giữ thiết lập, hoặc trình điều khiển ép một DPI khác, bản in chạy theo DPI thực tế còn designer vẫn vẽ theo DPI của mẫu. Xem trước luôn vẽ đúng như bản in.
 - Consequences: sau khi cập nhật, mã trên designer có thể nhỏ hơn trước. Đó là kích thước tem vẫn in ra từ trước tới nay.
 - Evidence required: gate `designer, preview and print draw the same barcode` (QR, Data Matrix, PDF417, Code 128 theo khung và theo X, ở 203/300 DPI; 12/16 ca đỏ khi bỏ bản sửa).
 

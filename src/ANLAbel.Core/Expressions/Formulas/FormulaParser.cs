@@ -4,6 +4,53 @@ namespace ANLAbel.Core.Expressions.Formulas;
 
 public sealed class FormulaParser
 {
+    /// <summary>
+    /// Decodes the body of a string literal (the text between the quotes) with
+    /// the escape rules of <see cref="Parse"/>: a backslash before a quote, a
+    /// backslash, n, r or t is an escape; any other backslash is kept. Unlike
+    /// Regex.Unescape this never throws.
+    /// </summary>
+    public static string UnescapeStringLiteral(string? body)
+    {
+        var text = body ?? string.Empty;
+        var builder = new StringBuilder(text.Length);
+        for (var index = 0; index < text.Length; index++)
+        {
+            var character = text[index];
+            if (character != '\\' || index == text.Length - 1)
+            {
+                builder.Append(character);
+                continue;
+            }
+
+            var escaped = text[++index];
+            switch (escaped)
+            {
+                case '"':
+                    builder.Append('"');
+                    break;
+                case '\\':
+                    builder.Append('\\');
+                    break;
+                case 'n':
+                    builder.Append('\n');
+                    break;
+                case 'r':
+                    builder.Append('\r');
+                    break;
+                case 't':
+                    builder.Append('\t');
+                    break;
+                default:
+                    builder.Append('\\');
+                    builder.Append(escaped);
+                    break;
+            }
+        }
+
+        return builder.ToString();
+    }
+
     private readonly List<string> _errors = new();
     private string _text = string.Empty;
     private int _position;

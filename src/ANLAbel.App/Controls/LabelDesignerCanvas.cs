@@ -1923,6 +1923,7 @@ public sealed class LabelDesignerCanvas : Canvas
             oldTemplate.Objects.CollectionChanged -= ((LabelDesignerCanvas)d).ObjectsOnCollectionChanged;
             oldTemplate.Guides.CollectionChanged -= ((LabelDesignerCanvas)d).GuidesOnCollectionChanged;
             ((LabelDesignerCanvas)d).UnobserveGuides(oldTemplate);
+            ((LabelDesignerCanvas)d).ObservePrintDpi(oldTemplate, observe: false);
         }
 
         if (e.NewValue is LabelTemplate newTemplate)
@@ -1930,9 +1931,75 @@ public sealed class LabelDesignerCanvas : Canvas
             newTemplate.Objects.CollectionChanged += ((LabelDesignerCanvas)d).ObjectsOnCollectionChanged;
             newTemplate.Guides.CollectionChanged += ((LabelDesignerCanvas)d).GuidesOnCollectionChanged;
             ((LabelDesignerCanvas)d).ObserveGuides(newTemplate);
+            ((LabelDesignerCanvas)d).ObservePrintDpi(newTemplate, observe: true);
         }
 
         ((LabelDesignerCanvas)d).Rebuild();
+    }
+
+    private PrinterProfile? _observedPrinterProfile;
+
+    // Barcodes are drawn at the print plan DPI (ADR-025), so choosing another
+    // printer or DPI must redraw them, not only an edit of the object.
+    private void ObservePrintDpi(LabelTemplate template, bool observe)
+    {
+        if (_observedPrinterProfile is not null)
+        {
+            _observedPrinterProfile.PropertyChanged -= PrinterProfileOnPropertyChanged;
+            _observedPrinterProfile = null;
+        }
+
+        template.PropertyChanged -= TemplateOnPropertyChanged;
+        if (!observe)
+        {
+            return;
+        }
+
+        template.PropertyChanged += TemplateOnPropertyChanged;
+        _observedPrinterProfile = template.PrinterProfile;
+        if (_observedPrinterProfile is not null)
+        {
+            _observedPrinterProfile.PropertyChanged += PrinterProfileOnPropertyChanged;
+        }
+    }
+
+    private void TemplateOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is LabelTemplate template && e.PropertyName == nameof(LabelTemplate.PrinterProfile))
+        {
+            ObservePrintDpi(template, observe: true);
+            RefreshBarcodeElements();
+        }
+        else if (e.PropertyName == nameof(LabelTemplate.Dpi))
+        {
+            RefreshBarcodeElements();
+        }
+    }
+
+    private void PrinterProfileOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(PrinterProfile.Dpi))
+        {
+            RefreshBarcodeElements();
+        }
+    }
+
+    private void RefreshBarcodeElements()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(RefreshBarcodeElements);
+            return;
+        }
+
+        foreach (var item in _objectElements.Keys
+                     .Where(item => item.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
+                     .ToArray())
+        {
+            UpdateObjectElement(item);
+        }
+
+        InvalidateVisual();
     }
 
     private void ObjectsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -3876,13 +3943,38 @@ public sealed class LabelDesignerCanvas : Canvas
         // whole-dot module size at the print DPI and sits centred in the
         // frame instead of being stretched to fill it; a linear symbol keeps
         // its production width from the left edge of the frame.
+        image.Margin = new Thickness(0);
+        // The width the print draws from the frame's left edge: a SizedFromX
+        // symbol's production width, or an oversized PDF417's own width.
+        var drawnWidthMm = productionWidthMm;
         if (type is BarcodeType.QRCode or BarcodeType.DataMatrix or BarcodeType.Aztec or BarcodeType.Pdf417
             && image.Source is BitmapSource matrix
             && matrix.DpiX > 0
             && matrix.DpiY > 0)
         {
-            image.Width = MmToDip(matrix.PixelWidth * 25.4 / matrix.DpiX);
-            image.Height = MmToDip(matrix.PixelHeight * 25.4 / matrix.DpiY);
+            var naturalWidth = MmToDip(matrix.PixelWidth * 25.4 / matrix.DpiX);
+            var naturalHeight = MmToDip(matrix.PixelHeight * 25.4 / matrix.DpiY);
+            var frameWidth = MmToDip(productionWidthMm);
+            var frameHeight = MmToDip(hriLayout.IsEnabled && hriLayout.IsValid ? hriLayout.SymbolHeightMm : item.HeightMm);
+            if (type is BarcodeType.Pdf417)
+            {
+                // A PDF417 that needs more dots than its frame prints from the
+                // frame's top-left corner past its edge (preflight blocks it).
+                image.Width = naturalWidth;
+                image.Height = naturalHeight;
+                image.HorizontalAlignment = naturalWidth > frameWidth ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+                image.VerticalAlignment = naturalHeight > frameHeight ? VerticalAlignment.Top : VerticalAlignment.Center;
+                image.Margin = new Thickness(0, 0, 0, Math.Min(0, frameHeight - naturalHeight));
+                drawnWidthMm = Math.Max(drawnWidthMm, matrix.PixelWidth * 25.4 / matrix.DpiX);
+            }
+            else
+            {
+                // A square code that needs more dots than its frame is squeezed
+                // into the frame by the print (preflight blocks it).
+                image.Width = Math.Min(naturalWidth, frameWidth);
+                image.Height = Math.Min(naturalHeight, frameHeight);
+            }
+
             // The explicit size already carries the symbol's aspect. Uniform would
             // re-derive the width from a layout-rounded height (a 4:1 PDF417 lost 1.2 %).
             image.Stretch = Stretch.Fill;
@@ -3893,14 +3985,15 @@ public sealed class LabelDesignerCanvas : Canvas
             image.Height = double.NaN;
         }
 
-        // A bound row can make a SizedFromX symbol wider than the stored frame;
-        // the print draws it past the frame edge, so the designer does too.
-        var keepsProductionWidth = Math.Abs(productionWidthMm - item.WidthMm) > 0.01;
-        var productionWidthDip = Math.Max(1, MmToDip(productionWidthMm));
-        panel.Width = keepsProductionWidth ? productionWidthDip : double.NaN;
-        panel.HorizontalAlignment = keepsProductionWidth ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
-        panel.Margin = keepsProductionWidth && productionWidthDip > MmToDip(item.WidthMm)
-            ? new Thickness(0, 0, MmToDip(item.WidthMm) - productionWidthDip, 0)
+        // A bound row can make the drawn symbol wider than the stored frame; the
+        // print draws it past the frame edge, so the designer does too. The
+        // overflow sits on the panel: the frame does not clip it, a panel cell would.
+        var keepsDrawnWidth = Math.Abs(drawnWidthMm - item.WidthMm) > 0.01;
+        var drawnWidthDip = Math.Max(1, MmToDip(drawnWidthMm));
+        panel.Width = keepsDrawnWidth ? drawnWidthDip : double.NaN;
+        panel.HorizontalAlignment = keepsDrawnWidth ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        panel.Margin = keepsDrawnWidth && drawnWidthMm > item.WidthMm
+            ? new Thickness(0, 0, MmToDip(item.WidthMm) - drawnWidthDip, 0)
             : new Thickness(0);
 
         if (hriLayout.IsEnabled && hriLayout.IsValid)

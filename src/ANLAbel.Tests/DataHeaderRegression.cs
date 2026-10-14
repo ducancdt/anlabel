@@ -123,10 +123,96 @@ internal static class DataHeaderRegression
             }
 
             var preview = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrintPreviewWindow.Diagnostics.cs"));
+            var previewWindow = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"));
             var viewModel = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"));
+            // Quick print checks the table its rows were built from, captured before
+            // the driver and preflight awaits during which a refresh could run.
+            var dispatch = viewModel[viewModel.IndexOf("private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(", StringComparison.Ordinal)..];
+            var captured = dispatch.IndexOf("var headerTable = ExcelDataView?.Table;", StringComparison.Ordinal);
             Require(preview.Contains("DataHeaderCheck.Append(result, _template, _excelDataView?.Table)", StringComparison.Ordinal)
-                    && viewModel.Contains("DataHeaderCheck.Append(preflight, printTemplate, ExcelDataView?.Table)", StringComparison.Ordinal),
-                "Print Preview and quick print must both block position-only columns.");
+                    && captured > 0
+                    && captured < dispatch.IndexOf("await ", StringComparison.Ordinal)
+                    && dispatch.Contains("DataHeaderCheck.Append(preflight, printTemplate, headerTable)", StringComparison.Ordinal),
+                "Print Preview and quick print must both block position-only columns, quick print on the table its rows came from.");
+            Require(previewWindow.Contains("if (templateBlocked || badSourceRows.Length == 0", StringComparison.Ordinal),
+                "A template-level stop must not be offered as 'skip the bad rows'.");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Code review 2026-10-14 of DB03: fields are found and matched the way
+    /// printing reads them, so no other spelling of a binding slips past the
+    /// check, and a backslash in a formula can no longer break opening or importing.
+    /// </summary>
+    public static async Task PositionOnlyColumnsCannotBeReachedAnotherWay()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-db03-review-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            // C blank, Qty repeated in D and F, lookalike headers Part No (A) and Part-No (E).
+            var path = Path.Combine(directory, "data.xlsx");
+            WriteSheet(path, ["Part No", "Lot", "", "Qty", "Part-No", "Qty"], ["PN-1", "L-1", "C-1", "5", "PN-OLD", "6"]);
+
+            var vm = new MainViewModel();
+            var template = vm.Template;
+            template.WidthMm = 60;
+            template.HeightMm = 60;
+            AddText(template, "slash", "Gạch chéo", "FIELD(\"W\\H\")");
+            AddText(template, "spaced", "Cách", "CONCAT(FIELD (\"Column3\"), \"-x\")");
+            AddText(template, "computed", "Ghép tên", "FIELD(CONCAT(\"Col\", \"umn3\"))");
+            template.DataTransforms.Add(new DataTransformDefinition("Code2", "FIELD(\"Column3\")"));
+            AddText(template, "loose", "Tên lỏng", "{code 2}");
+            AddText(template, "lookalike", "Gần giống", "{PartNo}");
+            template.DataTransforms.Add(new DataTransformDefinition("Gone2", "FIELD(\"Gone\")"));
+            AddText(template, "gone", "Mất cột", "{Gone2}");
+            template.DatabaseConfig.CopiesField = "{Qty_2}";
+
+            // A backslash escape the parser keeps (\H) used to throw from Regex.Unescape.
+            await vm.ImportExcelAsync(path, "Data", 1);
+            var issues = vm.BindingIssues.ToDictionary(issue => issue.ObjectName);
+
+            var blocked = DataHeaderCheck.FindPositionalBindings(template, vm.ExcelDataView?.Table);
+            Require(blocked.Select(issue => issue.ObjectName).Order().SequenceEqual(new[] { "Cách", "Ghép tên", "Tên lỏng", "Gần giống", "Qty_2" }.Order()),
+                "Spaced and computed FIELD calls, a loosely named transform, lookalike headers and a braced copies column must all block: "
+                + string.Join(" | ", blocked.Select(issue => issue.ObjectName + ": " + issue.Message)));
+            Require(blocked.Single(issue => issue.ObjectName == "Gần giống").Message
+                    .StartsWith("Field 'PartNo' matches columns A (Part No), E (Part-No) equally", StringComparison.Ordinal),
+                "Lookalike headers must be named with their letters.");
+            Require(template.Objects.Single(item => item.Name == "Gần giống").BindingExpression == "{PartNo}",
+                "A name that ties between lookalike headers must not be rewritten to the first of them.");
+            Require(issues.TryGetValue("Mất cột", out var gone) && gone.MissingFields.Contains("Gone")
+                    && issues.TryGetValue("Gạch chéo", out var slash) && slash.MissingFields.Contains("W\\H"),
+                "A transform's missing input and a field with a backslash must show as missing: "
+                + string.Join(" | ", issues.Values.Select(issue => issue.ObjectName + ": " + string.Join(",", issue.MissingFields))));
+            Require(vm.StatusText.Contains("khớp ngang nhau với cột A (“Part No”), cột E (“Part-No”)", StringComparison.Ordinal)
+                    && vm.StatusText.Contains("cột số bản in dùng các cột này chưa in được", StringComparison.Ordinal)
+                    && vm.StatusText.Contains("“Gone”", StringComparison.Ordinal),
+                "The import note must name lookalikes, the copies column and a transform's missing input: " + vm.StatusText);
+
+            // Verify, relink, open and a shared source write their own status line
+            // after importing; the header note must survive it.
+            WriteSheet(path, ["Part No", "Lot", "", "Qty", "Part-No", "Qty"], ["PN-2", "L-2", "C-2", "7", "PN-OLD", "8"]);
+            await vm.VerifyExcelLinkAsync();
+            Require(vm.StatusText.StartsWith("Đã cập nhật và xác thực Excel:", StringComparison.Ordinal)
+                    && vm.StatusText.Contains("cột số bản in", StringComparison.Ordinal),
+                "A verify that re-imports must keep the header note: " + vm.StatusText);
+
+            // An advisory note about unused headers must not hide a broken link, and a
+            // long run of blank headers is shortened.
+            var advisoryPath = Path.Combine(directory, "advisory.xlsx");
+            WriteSheet(advisoryPath, ["Part No", "Lot", "", "", "", "", "", "", "", ""], ["PN-1", "L-1", "", "", "", "", "", "", "", "J-1"]);
+            var advisory = new MainViewModel();
+            AddText(advisory.Template, "broken", "Hỏng", "CONCAT(FIELD(\"Lot\"), FIELD(\"\"))");
+            await advisory.ImportExcelAsync(advisoryPath, "Data", 1);
+            Require(advisory.StatusText.EndsWith(
+                    "— 1 đối tượng có liên kết bị thiếu/hỏng. Dòng tiêu đề 1 để trống ở cột C, D, E, F, G, H và 2 cột khác.",
+                    StringComparison.Ordinal),
+                "The broken-link count must stay next to an advisory note: " + advisory.StatusText);
         }
         finally
         {

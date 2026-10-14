@@ -63,6 +63,66 @@ public static partial class FieldNameResolver
         return true;
     }
 
+    /// <summary>
+    /// The available names that tie for <paramref name="requestedFieldName"/> under the
+    /// ranking of <see cref="TryResolveFieldName"/>, in the given order; the first is the
+    /// one it picks. More than one means only the order of the names (the column order
+    /// of the file) decides which field is read.
+    /// </summary>
+    public static IReadOnlyList<string> FindTies(string? requestedFieldName, IEnumerable<string> availableFieldNames)
+    {
+        if (string.IsNullOrWhiteSpace(requestedFieldName))
+        {
+            return Array.Empty<string>();
+        }
+
+        var candidates = availableFieldNames
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var exact = candidates.FirstOrDefault(name => string.Equals(name, requestedFieldName, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(exact))
+        {
+            return new[] { exact };
+        }
+
+        var normalizedRequested = Normalize(requestedFieldName);
+        if (string.IsNullOrWhiteSpace(normalizedRequested))
+        {
+            return Array.Empty<string>();
+        }
+
+        var requestedHasSeparators = ContainsSeparator(requestedFieldName);
+        if (requestedHasSeparators)
+        {
+            var requestedTokenKey = string.Join("|", Tokenize(requestedFieldName));
+            var tokenMatches = candidates
+                .Where(name => string.Join("|", Tokenize(name)) == requestedTokenKey)
+                .ToArray();
+            if (tokenMatches.Length > 0)
+            {
+                return ClosestInLength(tokenMatches, requestedFieldName);
+            }
+        }
+
+        var normalized = candidates
+            .Where(name => string.Equals(Normalize(name), normalizedRequested, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (normalized.Length == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var sameSeparators = normalized.Where(name => ContainsSeparator(name) == requestedHasSeparators).ToArray();
+        return ClosestInLength(sameSeparators.Length > 0 ? sameSeparators : normalized, requestedFieldName);
+    }
+
+    private static string[] ClosestInLength(string[] names, string requested)
+    {
+        var best = names.Min(name => Math.Abs(name.Length - requested.Length));
+        return names.Where(name => Math.Abs(name.Length - requested.Length) == best).ToArray();
+    }
+
     public static bool TryGetValue(IReadOnlyDictionary<string, string> row, string? requestedFieldName, out string value, out string resolvedFieldName)
     {
         value = string.Empty;
