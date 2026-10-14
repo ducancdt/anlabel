@@ -1,5 +1,26 @@
 # ANLAbel Phase 1 Plan
 
+## v0.318 — Một ô lạc ở cột xa không còn làm việc nhập Excel chậm và tốn bộ nhớ
+
+**Dữ liệu**
+
+- Một ô có chữ nằm xa bên phải dữ liệu (ví dụ ở cột XFD) từng làm mọi cột trống
+  trước nó thành trường: 16.384 trường; nhập 1.000 dòng mất 25–31 s và tới
+  1,4 GB bộ nhớ, rồi lưới dữ liệu còn tạo một cột cho mỗi trường. Đây là một
+  nguyên nhân có thể làm treo máy 4 GB. Nay cột không có tiêu đề và không có dữ
+  liệu không thành trường: cùng tệp nhập trong 0,5 s, 74 MB. Tệp CSV lưu từ trang
+  tính như vậy cũng được xử lý như thế.
+- Khi có cột trống ở giữa, lời báo cột thiếu vẫn nêu đúng chữ cái cột cũ: mỗi
+  trường nhớ cột gốc của nó.
+- Đã đo: bộ nhớ không tăng sau nhiều lần Cập nhật Excel, nhập lại hay mở mẫu.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1213/1213; regression 263 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Chưa kiểm chứng trên máy 4 GB thật; chưa có bằng chứng in vật lý mới.
+
 ## v0.317 — Lời báo đúng cách sửa cho QR phiên bản cố định và dấu ngoặc trống
 
 Review lần ba các thay đổi của v0.316 không thấy lỗi mức vừa hay cao. Bản này
