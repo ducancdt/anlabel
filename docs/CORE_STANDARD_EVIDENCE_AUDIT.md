@@ -32,6 +32,7 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 - **Cập nhật 2026-10-14 tại `4aac991` (v0.316, sửa theo review lần hai):** bộ phân tích công thức an toàn khi nhiều luồng dùng chung; DB03, B04, B05 như trên. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.316.
 - **Cập nhật 2026-10-14 tại `4fd3977` (v0.317, sửa theo review lần ba):** lời báo QR phiên bản cố định và dấu ngoặc trống. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.317.
 - **Cập nhật 2026-10-14 tại `828858d` (v0.318):** cột không có tiêu đề và không có dữ liệu không thành trường (Excel và CSV). Build 0/0; unit 1213/1213; regression 263 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.318, script smoke nay tự kết luận.
+- **Cập nhật 2026-10-14 tại `c7a9fb1` (v0.319):** máy in rút cáp (hàng đợi “work offline”) chặn trước khi gửi. Build 0/0; unit 1217/1217; regression 264 PASS / 0 FAIL. Chuột thật ở 150 % trên bản cài v0.318: kéo, dời, hoàn tác và tooltip đạt.
 
 | ID | Phần mềm | Tương tác | Vật lý | Bằng chứng chính / phần còn thiếu |
 | --- | --- | --- | --- | --- |
@@ -63,7 +64,7 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 | P02 | Pass | — | Quan sát capability: Pass | `PrinterMediaResolverTests`. Driver XP-DT426B (chỉ đọc) xác minh ticket cho hai mẫu 75×100; mẫu 110×150 bị báo khổ 75×100 vì đó là cuộn tem đang lắp |
 | P03 | Pass | — | — | `PrintSessionTemplateContractTests`, `quick print uses one snapshot and the async driver contract`, `calibration print uses an isolated copy of the label` |
 | P04 | Pass | — | Not verified | `TryExpand_KeepsRecordAndCopyIdentityInPrintOrder`, `TwoThenOneCopyOrdinalsChangeTheManifestAndAMissingSequenceStaysV3` |
-| P05 | Pass | — | Not verified | `DispatchRevalidationContractTests`, `queue health blocks shipped plan before ticket merge`. Thiếu: đổi ticket sau xem trước trên driver thật |
+| P05 | Pass | — | Not verified | `DispatchRevalidationContractTests`, `queue health blocks shipped plan before ticket merge`; 2026-10-14: hàng đợi “work offline” (máy in USB rút cáp, quan sát thật trên XP-DT426B) cũng chặn trước khi gửi (`WorkOfflineAttributeIsRead`, gate `print stops are explained in plain Vietnamese`). Thiếu: đổi ticket sau xem trước trên driver thật |
 | P06 | Pass | Not verified | — | `print preview busy gate blocks duplicate dispatch`, `async relay command rejects re-entry until the first call completes`. Thiếu: nhấp đúp thật khi driver chậm |
 | P07 | Pass | — | Not verified | `failure after spool acceptance is unknown, not failed`, `PrintJobRecoveryServiceTests` (ADR-023). Spool accepted ≠ tem đã ra |
 | P08 | Pass | — | — | `RequiredPreDispatchAppendFailureBlocksSend`, `PrintJobLogRepairTests` (10) |
