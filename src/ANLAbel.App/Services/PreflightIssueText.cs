@@ -27,6 +27,8 @@ public static class PreflightIssueText
         (Rx(@"^Fixed text frame overflow"), _ => "chữ tràn khung đã khóa; nới khung hoặc giảm cỡ chữ"),
         (Rx(@"^Text box overflow"), _ => "chữ tràn khung chữ; nới khung hoặc giảm cỡ chữ"),
         (Rx(@"^Object extends outside the design label bounds"), _ => "đối tượng nằm ngoài khung tem; kéo vào trong tem"),
+        (Rx(@"^Barcode for this row is (?<w>[\d.,]+) mm wide at its X-dimension and extends outside the design label bounds"),
+            m => $"mã vạch của dòng này rộng {m.Groups["w"].Value} mm theo độ rộng vạch nên tràn ra ngoài tem; rút ngắn dữ liệu, giảm độ rộng vạch hoặc dời mã vào trong tem"),
         (Rx(@"^Font '(?<r>[^']*)' is not installed on this machine\. Preview and print will use '(?<f>[^']*)'"),
             m => $"phông “{m.Groups["r"].Value}” chưa cài trên máy này nên sẽ in bằng “{m.Groups["f"].Value}”; cài phông hoặc chọn phông khác"),
         (Rx(@"^Font '(?<f>[^']*)' has no glyph\(s\) for (?<g>.+?)\. Install"),

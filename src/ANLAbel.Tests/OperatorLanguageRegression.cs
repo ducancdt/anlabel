@@ -247,6 +247,7 @@ internal static class OperatorLanguageRegression
             "differences.Add($\"{label}: primary '{primary}' · backup '{backup}'\");",
             ", whose header cell is empty, so only its position identifies it.",
             "' is repeated in columns ",
+            " mm wide at its X-dimension and extends outside the design label bounds (",
         ];
         foreach (var anchor in anchors)
         {

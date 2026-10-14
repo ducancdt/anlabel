@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ANLAbel.App.Controls;
+using ANLAbel.App.Services;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
@@ -95,6 +96,99 @@ internal static class BarcodeParityRegression
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// B05: a SizedFromX symbol prints at the width its row needs, past the
+    /// frame. A row that pushes it over the label edge must block, also when
+    /// the barcode is rotated, and a short row must not.
+    /// </summary>
+    public static Task LinearSymbolPastTheLabelEdgeBlocksItsRow()
+    {
+        var rows = new IReadOnlyDictionary<string, string>?[]
+        {
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = "A1" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload }
+        };
+        foreach (var (rotation, labelWidth, labelHeight, x, y) in new[] { (0, 40.0, 30.0, 3.0, 5.0), (90, 40.0, 60.0, 10.0, 20.0) })
+        {
+            var template = new LabelTemplate { Name = "B05 rotation " + rotation, WidthMm = labelWidth, HeightMm = labelHeight, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.Objects.Add(new LabelObject
+            {
+                Id = "c128-x", Type = ObjectType.BarcodeCode128, Name = "C128 X", XMm = x, YMm = y, WidthMm = 20, HeightMm = 10,
+                Rotation = rotation, Text = "A1", BindingExpression = "{Code}", BarcodeSymbology = BarcodeSymbology.Code128,
+                ShowBarcodeText = false, BarcodeWidthMode = BarcodeWidthMode.SizedFromX, BarcodeModuleWidthMm = 0.25,
+                Style = { BorderThicknessMm = 0 }
+            });
+
+            var preflight = new PrintService().ValidateRows(template, rows);
+            var blocking = preflight.Issues.Where(issue => issue.IsBlocking).ToArray();
+            Require(blocking.Length == 1
+                    && blocking[0].RowNumber == 2
+                    && blocking[0].Message.StartsWith("Barcode for this row is ", StringComparison.Ordinal),
+                $"Rotation {rotation}: only the long row may block, for running past the label: {preflight.ToUserMessage()}");
+            Require(PreflightIssueText.Describe(preflight).Contains("Dòng 2 · “C128 X” (mã vạch): mã vạch của dòng này rộng", StringComparison.Ordinal),
+                $"Rotation {rotation}: the operator must see the row in Vietnamese: {PreflightIssueText.Describe(preflight)}");
+
+            // The print renderer really draws the long row past the label edge.
+            var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = labelWidth, LabelHeightMm = labelHeight };
+            var (shortInside, longInside) = RunOnSta(() => (
+                DrawsInsideLabel(new LabelVisualRenderer().Render(template, rows[0], plan), template),
+                DrawsInsideLabel(new LabelVisualRenderer().Render(template, rows[1], plan), template)));
+            Require(shortInside && !longInside,
+                $"Rotation {rotation}: the short row must print inside the label and the long row past it (short {shortInside}, long {longInside}).");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>True when no dark pixel of the drawing falls outside the label.</summary>
+    private static bool DrawsInsideLabel(Visual visual, LabelTemplate template)
+    {
+        const double marginMm = 40;
+        var marginDip = MmConverter.MmToDip(marginMm);
+        var widthPx = (int)Math.Ceiling((template.WidthMm + 2 * marginMm) / 25.4 * 203);
+        var heightPx = (int)Math.Ceiling((template.HeightMm + 2 * marginMm) / 25.4 * 203);
+        var shifted = new DrawingVisual();
+        using (var context = shifted.RenderOpen())
+        {
+            context.DrawRectangle(Brushes.White, null, new Rect(0, 0, widthPx * 96.0 / 203, heightPx * 96.0 / 203));
+            context.PushTransform(new TranslateTransform(marginDip, marginDip));
+            context.DrawDrawing(((DrawingVisual)visual).Drawing);
+            context.Pop();
+        }
+
+        var bitmap = new RenderTargetBitmap(widthPx, heightPx, 203, 203, PixelFormats.Pbgra32);
+        bitmap.Render(shifted);
+        var pixels = new byte[widthPx * heightPx * 4];
+        bitmap.CopyPixels(pixels, widthPx * 4, 0);
+        var labelLeft = (int)Math.Floor(marginMm / 25.4 * 203);
+        var labelTop = labelLeft;
+        var labelRight = (int)Math.Ceiling((marginMm + template.WidthMm) / 25.4 * 203);
+        var labelBottom = (int)Math.Ceiling((marginMm + template.HeightMm) / 25.4 * 203);
+        for (var py = 0; py < heightPx; py++)
+        {
+            for (var px = 0; px < widthPx; px++)
+            {
+                var index = (py * widthPx + px) * 4;
+                var dark = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3 < 64;
+                if (dark && (px < labelLeft || px >= labelRight || py < labelTop || py >= labelBottom))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
     }
 
     private static IEnumerable<Case> CreateCases()

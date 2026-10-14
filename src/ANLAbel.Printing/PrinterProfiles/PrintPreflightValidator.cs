@@ -76,6 +76,7 @@ public sealed class PrintPreflightValidator
                         case ObjectType.QRCode:
                         case ObjectType.DataMatrix:
                             ValidateBarcode(item, data, rowIndex, issues);
+                            ValidateLinearSymbolWithinLabel(template, item, data, printDpi, rowIndex, issues);
                             break;
                         case ObjectType.TextBox:
                             ValidateTextBox(item, data, rowIndex, issues);
@@ -558,6 +559,60 @@ public sealed class PrintPreflightValidator
                     $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size."));
             }
         }
+    }
+
+    /// <summary>
+    /// A SizedFromX linear symbol prints at its production width for this row
+    /// (X-dimension × modules), from the left edge of its frame, so a long value
+    /// runs past the frame. The frame-only bounds check cannot see that, and a
+    /// symbol cut off at the label edge does not scan (B05).
+    /// </summary>
+    private void ValidateLinearSymbolWithinLabel(
+        LabelTemplate template,
+        LabelObject item,
+        string data,
+        int? printDpi,
+        int rowIndex,
+        List<PrintPreflightIssue> issues)
+    {
+        if (!LinearBarcodeProductionWidth.IsLinearBarcodeObject(item))
+        {
+            return;
+        }
+
+        var dpi = printDpi is > 0 ? printDpi.Value : item.QrDpi > 0 ? item.QrDpi : 203;
+        var symbolWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, _barcodeRenderer, dpi, data);
+        if (!double.IsFinite(symbolWidthMm) || symbolWidthMm <= item.WidthMm + 0.01)
+        {
+            return;
+        }
+
+        // The print rotates the symbol with its frame, about the frame centre.
+        var halfWidth = item.WidthMm / 2;
+        var halfHeight = item.HeightMm / 2;
+        var centerX = item.XMm + halfWidth;
+        var centerY = item.YMm + halfHeight;
+        var (left, top, right, bottom) = TransformedBoundsContract.NormalizeRotation(item.Rotation) switch
+        {
+            90 => (centerX - halfHeight, centerY - halfWidth, centerX + halfHeight, centerY - halfWidth + symbolWidthMm),
+            180 => (centerX + halfWidth - symbolWidthMm, centerY - halfHeight, centerX + halfWidth, centerY + halfHeight),
+            270 => (centerX - halfHeight, centerY + halfWidth - symbolWidthMm, centerX + halfHeight, centerY + halfWidth),
+            _ => (item.XMm, item.YMm, item.XMm + symbolWidthMm, item.YMm + item.HeightMm)
+        };
+        const double toleranceMm = 0.01;
+        if (left >= -toleranceMm
+            && top >= -toleranceMm
+            && right <= template.WidthMm + toleranceMm
+            && bottom <= template.HeightMm + toleranceMm)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            rowIndex + 1,
+            item.Name,
+            item.Type.ToString(),
+            $"Barcode for this row is {symbolWidthMm:0.##} mm wide at its X-dimension and extends outside the design label bounds ({template.WidthMm:0.##} x {template.HeightMm:0.##} mm). Shorten the data, reduce the X-dimension or move the barcode inside the label."));
     }
 
     private static void ValidateMatrixFrameForRow(

@@ -50,7 +50,7 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 | B02 | Pass | — | Not verified | `ImportedBarcodeRoundTripTests` (15 loại × CSV/XLSX × 203/300/600 DPI) |
 | B03 | Pass | — | Not verified | `BarcodeApplicationContractTests` (GS1), `Gs1Code128Fnc1RoundTripTests` |
 | B04 | Pass | — | Not verified | `LinearBarcodeModuleContractTests`, `MatrixSquareModuleFitTests`, `code 39 wide narrow ratio and physical quiet zone preflight`. (Audit 2026-10-13: `QrSizingCalculatorTests` đã bỏ khỏi bằng chứng — lớp `QrSizingCalculator` không được ứng dụng gọi.) |
-| B05 | Pass | — | Not verified | `BarcodeHriLayoutTests`, `DeviceBarcodeLayoutTests` |
+| B05 | Pass | — | Not verified | `BarcodeHriLayoutTests`, `DeviceBarcodeLayoutTests`; gate `a linear symbol past the label edge blocks its row` (2026-10-14): mã 1D theo X có dữ liệu dài hơn mẫu, xoay 0° và 90°, chặn đúng dòng tràn mép tem, đối chiếu với bản vẽ thật của renderer |
 | B06 | Pass | — | Not verified | `designer, preview and print draw the same barcode` (2026-10-14): QR, Data Matrix, PDF417, Code 128 theo khung và theo X (cả khi dòng dữ liệu làm mã rộng hơn khung) × 203/300 DPI; đo phần mã tối và decode trên cả ba đầu ra, designer lệch bản in ≤ 0,3 mm; trang Xem trước trùng từng byte với bản vẽ của paginator. Trước bản sửa designer vẽ ở `QrDpi` rồi kéo giãn vào khung (Code 128 khung 45 mm: designer 33,9 mm, tem 25,0 mm) — ADR-025 |
 | B07 | Pass | — | Not verified | Ma trận theo từng loại (mục dưới); không loại nào được ghi là đã nghiệm thu sản xuất |
 | P01 | Pass | — | Not verified | `named queue resolve does not pick the Windows default`, `printer setup does not select a queue when the document has none` |
