@@ -57,6 +57,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("async command failure reaches the operator", DocumentLifecycleRegression.AsyncCommandFailureReachesTheOperator),
     ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
     ("real templates open, save, render and pass preflight", AcceptanceRegression.RealTemplatesOpenSaveRenderAndPassPreflight),
+    ("designer, preview and print draw the same barcode", BarcodeParityRegression.DesignerPreviewAndPrintDrawTheSameBarcode),
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
@@ -3097,8 +3098,8 @@ static Task TestPrintBarcodeUsesPlanDpi()
     // Preview/Print must render barcode modules at the printer's real DPI (the plan),
     // not the object's own QrDpi, so module dots are physically sized correctly on the
     // label that actually comes out of the printer. This intentionally supersedes the
-    // older "match the Designer's QrDpi" rule (see agent.md rule 12) — the Designer
-    // canvas still renders barcodes at the object's own QrDpi independently.
+    // older "match the Designer's QrDpi" rule (see agent.md rule 12). Since ADR-025 the
+    // Designer canvas uses the same plan DPI ("designer, preview and print draw the same barcode").
     var template = new LabelTemplate
     {
         Name = "Barcode DPI Test",

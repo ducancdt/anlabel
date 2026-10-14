@@ -2,6 +2,21 @@
 
 Trạng thái: `Proposed`, `Accepted`, `Superseded`, `Rejected`.
 
+## ADR-025 — Designer vẽ mã vạch đúng như bản in
+
+- Status: Accepted (2026-10-14, kế hoạch 13, đóng B06 ở mức phần mềm). Thay phần “Designer vẫn render barcode theo `item.QrDpi`” của quy tắc 12 trong `agent.md`; quyết định 2026-07-03 cho Xem trước/In (DPI của `PrintRenderPlan`) giữ nguyên.
+- Context:
+  - Xem trước và In vẽ mã ở DPI in và chia module theo số chấm nguyên: mã 2D có kích thước khớp nguyên module, đặt giữa khung; mã 1D có số chấm nguyên mỗi module, phần dư thành lề hai bên.
+  - Designer vẽ ở `QrDpi` của đối tượng (mặc định 300) rồi kéo giãn ảnh vào khung. Ở máy 203 DPI, designer cho thấy mã to hơn tem in: QR khung 16 mm hiện 13,8 mm trong khi tem có 12,5 mm; Code 128 khung 45 mm hiện 33,9 mm trong khi tem có 25,0 mm.
+  - Người vận hành chỉnh khung theo hình trên designer, nên cách cũ trái B06 và dễ làm sai kích thước mã trên tem.
+- Decision:
+  - Designer vẽ mã vạch ở DPI của kế hoạch in (máy in của mẫu → DPI của mẫu → `QrDpi` → 203), cùng thứ tự với `PrintService.CreatePlan`.
+  - Mã 2D và PDF417 hiện đúng kích thước đã chia module, đặt giữa khung, không kéo giãn. Mã 1D theo X hiện đúng chiều rộng sản xuất từ mép trái, kể cả khi dòng dữ liệu làm mã rộng hơn khung.
+  - `QrDpi` vẫn dùng để tính kích thước module px và tự cỡ của mã 2D như trước.
+- Không đổi: bản in và Xem trước không đổi một điểm ảnh nào; dữ liệu mẫu không bị ghi lại.
+- Consequences: sau khi cập nhật, mã trên designer có thể nhỏ hơn trước. Đó là kích thước tem vẫn in ra từ trước tới nay.
+- Evidence required: gate `designer, preview and print draw the same barcode` (QR, Data Matrix, PDF417, Code 128 theo khung và theo X, ở 203/300 DPI; 12/16 ca đỏ khi bỏ bản sửa).
+
 ## ADR-024 — Nhập CSV: mỗi dòng phải có đúng số trường của dòng tiêu đề
 
 - Status: Accepted (2026-10-13, kế hoạch 13 GĐ4). Thay cho đề xuất trong [`../CSV_PARSER_FAILURE_POLICY_ADR.md`](../CSV_PARSER_FAILURE_POLICY_ADR.md). Đề xuất đó viết cho `CsvAutomationSourceParser`, mà parser này đã bị gỡ cùng automation thả file ở bước 1.2.

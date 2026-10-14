@@ -3791,7 +3791,7 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
-            _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
+            _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, planDpi, CreateBarcodeRenderOptions(item));
             return null;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -3871,6 +3871,38 @@ public sealed class LabelDesignerCanvas : Canvas
         image.HorizontalAlignment = HorizontalAlignment.Center;
         image.VerticalAlignment = VerticalAlignment.Center;
         image.Source = CreateBarcodeImageSource(item, hriLayout, productionWidthMm);
+
+        // B06: show what LabelVisualRenderer prints. A 2D symbol keeps its
+        // whole-dot module size at the print DPI and sits centred in the
+        // frame instead of being stretched to fill it; a linear symbol keeps
+        // its production width from the left edge of the frame.
+        if (type is BarcodeType.QRCode or BarcodeType.DataMatrix or BarcodeType.Aztec or BarcodeType.Pdf417
+            && image.Source is BitmapSource matrix
+            && matrix.DpiX > 0
+            && matrix.DpiY > 0)
+        {
+            image.Width = MmToDip(matrix.PixelWidth * 25.4 / matrix.DpiX);
+            image.Height = MmToDip(matrix.PixelHeight * 25.4 / matrix.DpiY);
+            // The explicit size already carries the symbol's aspect. Uniform would
+            // re-derive the width from a layout-rounded height (a 4:1 PDF417 lost 1.2 %).
+            image.Stretch = Stretch.Fill;
+        }
+        else
+        {
+            image.Width = double.NaN;
+            image.Height = double.NaN;
+        }
+
+        // A bound row can make a SizedFromX symbol wider than the stored frame;
+        // the print draws it past the frame edge, so the designer does too.
+        var keepsProductionWidth = Math.Abs(productionWidthMm - item.WidthMm) > 0.01;
+        var productionWidthDip = Math.Max(1, MmToDip(productionWidthMm));
+        panel.Width = keepsProductionWidth ? productionWidthDip : double.NaN;
+        panel.HorizontalAlignment = keepsProductionWidth ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        panel.Margin = keepsProductionWidth && productionWidthDip > MmToDip(item.WidthMm)
+            ? new Thickness(0, 0, MmToDip(item.WidthMm) - productionWidthDip, 0)
+            : new Thickness(0);
+
         if (hriLayout.IsEnabled && hriLayout.IsValid)
         {
             // Match print contract: Above puts HRI in row 0; Below keeps HRI under the bars.
@@ -3956,12 +3988,14 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
-            var pixels = _barcodeRenderer.RenderBarcode(data, type, widthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
+            // Same DPI as the print plan, so modules are quantized to the same
+            // whole printer dots that the label will carry (B06).
+            var pixels = _barcodeRenderer.RenderBarcode(data, type, widthMm, symbolHeightMm, planDpi, CreateBarcodeRenderOptions(item));
             var source = BitmapSource.Create(
                 pixels.WidthPixels,
                 pixels.HeightPixels,
-                item.QrDpi,
-                item.QrDpi,
+                planDpi,
+                planDpi,
                 PixelFormats.Bgra32,
                 null,
                 pixels.BgraPixels,
