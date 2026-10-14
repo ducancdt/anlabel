@@ -35,9 +35,19 @@ function Wait-Until([scriptblock]$cond, [int]$seconds) {
 }
 function Find-Dialog() {
     $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'OperatorDialog')
-    $all = [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
-    foreach ($d in $all) { if ($d.Current.ProcessId -eq $script:p.Id) { return $d } }
+    # Walking the whole desktop can fail with a COM error while another window
+    # changes; that only means "not found yet" and the caller's wait retries.
+    try {
+        $all = [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
+        foreach ($d in $all) { if ($d.Current.ProcessId -eq $script:p.Id) { return $d } }
+    } catch [System.Runtime.InteropServices.COMException], [System.Windows.Automation.ElementNotAvailableException] {
+    }
     return $null
+}
+function Wait-Dialog([int]$seconds, [string]$failure) {
+    $script:dialog = $null
+    if (-not (Wait-Until { $script:dialog = Find-Dialog; $null -ne $script:dialog } $seconds)) { throw $failure }
+    return $script:dialog
 }
 function Invoke-Choice($dialog, [string]$id) {
     $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, "OperatorDialog.Choice.$id")
@@ -67,14 +77,12 @@ try {
     $results['A_title_dirty'] = $win.Current.Name
     $wp = $win.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
     $wp.Close()
-    if (-not (Wait-Until { $null -ne (Find-Dialog) } 10)) { throw 'Save prompt did not appear' }
-    Invoke-Choice (Find-Dialog) 'cancel'
+    Invoke-Choice (Wait-Dialog 10 'Save prompt did not appear') 'cancel'
     Start-Sleep -Seconds 1
     $script:p.Refresh()
     $results['A_alive_after_cancel'] = -not $script:p.HasExited
     $wp.Close()
-    if (-not (Wait-Until { $null -ne (Find-Dialog) } 10)) { throw 'Save prompt did not appear again' }
-    Invoke-Choice (Find-Dialog) 'discard'
+    Invoke-Choice (Wait-Dialog 10 'Save prompt did not appear again') 'discard'
     $results['A_exited_after_discard'] = Wait-Until { $script:p.Refresh(); $script:p.HasExited } 15
     $results['A_document_unchanged'] = ((Get-FileHash $doc).Hash -eq (Get-FileHash $Template).Hash)
     # Scenario B: crash after an autosave, then recover at the next start.
@@ -87,8 +95,8 @@ try {
     Stop-Process -Id $script:p.Id -Force
     [void](Wait-Until { $script:p.HasExited } 10)
     $win = Start-App @()
-    $results['B_offer_shown'] = Wait-Until { $null -ne (Find-Dialog) } 20
-    $offer = Find-Dialog
+    $offer = Wait-Dialog 20 'Recovery offer did not appear'
+    $results['B_offer_shown'] = $null -ne $offer
     $results['B_offer_title'] = $offer.Current.Name
     Invoke-Choice $offer 'open'
     [void](Wait-Until { $win.Current.Name -like 'smoke`**' } 20)
@@ -96,8 +104,7 @@ try {
     $results['B_original_untouched'] = ((Get-FileHash $doc).Hash -eq (Get-FileHash $Template).Hash)
     # Scenario C: save through the close prompt.
     $win.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close()
-    if (-not (Wait-Until { $null -ne (Find-Dialog) } 10)) { throw 'Save prompt did not appear' }
-    Invoke-Choice (Find-Dialog) 'save'
+    Invoke-Choice (Wait-Dialog 10 'Save prompt did not appear') 'save'
     $results['C_exited_after_save'] = Wait-Until { $script:p.Refresh(); $script:p.HasExited } 20
     $results['C_document_saved'] = ((Get-FileHash $doc).Hash -ne (Get-FileHash $Template).Hash)
     $results['C_backup_written'] = Test-Path ($doc + '.bak')
