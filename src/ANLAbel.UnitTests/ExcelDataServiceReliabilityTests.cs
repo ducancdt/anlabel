@@ -245,6 +245,45 @@ public sealed class ExcelDataServiceReliabilityTests
         }
     }
 
+    // One stray cell far to the right (column XFD) used to make every empty
+    // column before it a field: 16,384 fields, 1.4 GB and half a minute for
+    // 1,000 rows in the designer before its data grid drew them all.
+    [Fact]
+    public async Task LoadSheet_ColumnsWithNeitherHeaderNorDataAreNotFields()
+    {
+        var filePath = CreateWorkbook(workbook =>
+        {
+            var sheet = workbook.AddWorksheet("Data");
+            sheet.Cell(1, 1).Value = "Part";
+            sheet.Cell(1, 2).Value = "Lot";
+            sheet.Cell(1, 4).Value = "Qty";
+            sheet.Cell(1, 16384).Value = "Note";
+            sheet.Cell(2, 1).Value = "P1";
+            sheet.Cell(2, 2).Value = "L1";
+            sheet.Cell(2, 4).Value = "1";
+            sheet.Cell(3, 1).Value = "P2";
+            sheet.Cell(3, 5).Value = "late";
+        });
+
+        try
+        {
+            var table = await new ExcelDataService().LoadSheetAsync(filePath, "Data");
+            var origins = DataColumnOrigin.Describe(table);
+
+            // C has no header and no data; E has no header but a value in the second record.
+            Assert.Equal(new[] { "A", "B", "D", "E", "XFD" }, origins.Select(origin => origin.ColumnLetter));
+            Assert.Equal(new[] { "Part", "Lot", "Qty", "Column5", "Note" }, origins.Select(origin => origin.FieldName));
+            Assert.Equal(DataHeaderKind.Blank, origins[3].Kind);
+            Assert.Equal(string.Empty, table.Rows[0]["Column5"]);
+            Assert.Equal("late", table.Rows[1]["Column5"]);
+            Assert.Equal(string.Empty, table.Rows[1]["Qty"]);
+        }
+        finally
+        {
+            DeleteWorkbook(filePath);
+        }
+    }
+
     [Fact]
     public async Task LoadCsv_RecordsWhereEachColumnCameFrom()
     {

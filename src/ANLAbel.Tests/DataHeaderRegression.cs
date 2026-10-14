@@ -205,7 +205,7 @@ internal static class DataHeaderRegression
             // An advisory note about unused headers must not hide a broken link, and a
             // long run of blank headers is shortened.
             var advisoryPath = Path.Combine(directory, "advisory.xlsx");
-            WriteSheet(advisoryPath, ["Part No", "Lot", "", "", "", "", "", "", "", ""], ["PN-1", "L-1", "", "", "", "", "", "", "", "J-1"]);
+            WriteSheet(advisoryPath, ["Part No", "Lot", "", "", "", "", "", "", "", ""], ["PN-1", "L-1", "c", "d", "e", "f", "g", "h", "i", "J-1"]);
             var advisory = new MainViewModel();
             AddText(advisory.Template, "broken", "Hỏng", "CONCAT(FIELD(\"Lot\"), FIELD(\"\"))");
             await advisory.ImportExcelAsync(advisoryPath, "Data", 1);
@@ -325,6 +325,60 @@ internal static class DataHeaderRegression
             Require(blank.StatusText.StartsWith("Đã cập nhật và xác thực Excel:", StringComparison.Ordinal)
                     && blank.StatusText.EndsWith(suffix, StringComparison.Ordinal),
                 "A verify that re-imports must keep the broken-link count: " + blank.StatusText);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Plan 13 GĐ4, the Excel import that hung on a 4 GB PC: a column with neither
+    /// a header nor data is not a field. Before 2026-10-14 one stray cell in column
+    /// XFD made 16,384 fields, 1.4 GB and half a minute for 1,000 rows, and the data
+    /// grid then generated a column for each. A field keeps the column it came from,
+    /// so a later import still names the right column when the field is gone.
+    /// </summary>
+    public static async Task StrayFarCellsMakeNoFieldsAndLettersStayRight()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-stray-column-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            // Part in A, an empty spacer column B, Lot in C, and a stray note in XFD1.
+            var path = Path.Combine(directory, "wide.xlsx");
+            using (var workbook = new XLWorkbook())
+            {
+                var sheet = workbook.AddWorksheet("Data");
+                sheet.Cell(1, 1).Value = "Part";
+                sheet.Cell(1, 3).Value = "Lot";
+                sheet.Cell(1, 16384).Value = "x";
+                for (var row = 0; row < 1_000; row++)
+                {
+                    sheet.Cell(row + 2, 1).Value = $"PN-{row:0000}";
+                    sheet.Cell(row + 2, 3).Value = $"L-{row % 7}";
+                }
+
+                workbook.SaveAs(path);
+            }
+
+            var vm = new MainViewModel();
+            AddText(vm.Template, "lot", "Số lô", "{Lot}");
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            await vm.ImportExcelAsync(path, "Data", 1);
+            watch.Stop();
+            var fields = vm.AvailableDatabaseFields.Select(field => $"{field.Name}@{field.SourceColumn}").ToArray();
+            Console.WriteLine($"MEASURE stray far cell: 1,000 rows imported in {watch.ElapsedMilliseconds} ms with {fields.Length} fields");
+            Require(fields.SequenceEqual(new[] { "Part@1", "Lot@3", "x@16384" }) && vm.ExcelDataView?.Count == 1_000,
+                "Only columns with a header or data may be fields: " + string.Join(", ", fields.Take(8)) + $" ({fields.Length} fields)");
+            Require(watch.Elapsed < TimeSpan.FromSeconds(20), $"The import took {watch.Elapsed.TotalSeconds:0.0} s.");
+
+            // Lot is renamed: the note names column C, where it was, not B (its
+            // place in the field list once the empty spacer is not a field).
+            WriteSheet(path, ["Part", "", "Batch"], ["PN-0000", "", "B-1"]);
+            await vm.RefreshExcelDataAsync();
+            Require(vm.StatusText.Contains("“Lot” (lần nhập trước ở cột C)", StringComparison.Ordinal),
+                "A missing field must be named with the column it had: " + vm.StatusText);
         }
         finally
         {

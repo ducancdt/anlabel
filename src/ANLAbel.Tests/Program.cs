@@ -63,6 +63,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("columns known only by position are reported and cannot print", DataHeaderRegression.ColumnsKnownOnlyByPositionAreReportedAndCannotPrint),
     ("position-only columns cannot be reached another way", DataHeaderRegression.PositionOnlyColumnsCannotBeReachedAnotherWay),
     ("ties, transforms and copies are checked as printing reads them", DataHeaderRegression.TiesTransformsAndCopiesAreCheckedAsPrintingReadsThem),
+    ("a stray far cell makes no fields and letters stay right", DataHeaderRegression.StrayFarCellsMakeNoFieldsAndLettersStayRight),
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),

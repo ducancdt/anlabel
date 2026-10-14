@@ -1950,7 +1950,7 @@ public sealed class MainViewModel : ObservableObject
 
         // The columns of the previous import, so a column that is gone can be
         // reported with the letter it had (DB03).
-        var previousFields = AvailableDatabaseFields.Select(field => field.Name).ToArray();
+        var previousFields = AvailableDatabaseFields.Select(CloneDatabaseField).ToArray();
         SyncDatabaseFieldsFromTable(table);
         if (ExcelDataView.Count > 0)
         {
@@ -2764,7 +2764,7 @@ public sealed class MainViewModel : ObservableObject
         AvailableDatabaseFields.Clear();
         foreach (DataColumn column in table.Columns)
         {
-            AvailableDatabaseFields.Add(CreateDatabaseField(column.ColumnName, table));
+            AvailableDatabaseFields.Add(CreateDatabaseField(column, table));
         }
 
         var requestedFieldNames = existingLabelFields
@@ -2803,6 +2803,7 @@ public sealed class MainViewModel : ObservableObject
                     existing.Name = availableField.Name;
                     existing.DisplayName = availableField.DisplayName;
                     existing.SampleValue = availableField.SampleValue;
+                    existing.SourceColumn = availableField.SourceColumn;
                 }
             }
         }
@@ -2822,15 +2823,22 @@ public sealed class MainViewModel : ObservableObject
         RaiseDatabaseFieldStateChanged();
     }
 
-    private static DatabaseField CreateDatabaseField(string fieldName, DataTable table)
+    private static DatabaseField CreateDatabaseField(DataColumn column, DataTable table)
     {
-        var sampleValue = table.Rows.Count == 0 ? string.Empty : table.Rows[0][fieldName]?.ToString() ?? string.Empty;
-        return new DatabaseField { Name = fieldName, DisplayName = fieldName, SampleValue = sampleValue };
+        var fieldName = column.ColumnName;
+        var sampleValue = table.Rows.Count == 0 ? string.Empty : table.Rows[0][column]?.ToString() ?? string.Empty;
+        return new DatabaseField
+        {
+            Name = fieldName,
+            DisplayName = fieldName,
+            SampleValue = sampleValue,
+            SourceColumn = DataColumnOrigin.Of(column)?.SourceColumn ?? 0
+        };
     }
 
     private static DatabaseField CloneDatabaseField(DatabaseField field)
     {
-        return new DatabaseField { Name = field.Name, DisplayName = field.DisplayName, SampleValue = field.SampleValue };
+        return new DatabaseField { Name = field.Name, DisplayName = field.DisplayName, SampleValue = field.SampleValue, SourceColumn = field.SourceColumn };
     }
 
     private static Dictionary<string, string> BuildResolvedFieldMap(

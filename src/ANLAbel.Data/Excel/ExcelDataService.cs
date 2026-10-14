@@ -287,40 +287,73 @@ public sealed class ExcelDataService
 
         var table = new DataTable(sheetName);
         string[]? headerCells = null;
+        HeaderColumns? header = null;
+        // Source position -> table column. A column whose header cell is empty
+        // becomes a field only once a row puts data in it: one stray cell far to
+        // the right (column XFD) used to turn 16,378 empty columns into fields,
+        // 1.4 GB and half a minute for 1,000 rows before the data grid even drew.
+        var columns = Array.Empty<DataColumn?>();
+        string[]? reusable = null;
         var rowNumber = 0;
         while (reader.Read())
         {
             cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
-            var cells = ReadRowCells(reader, failClosedOnCellError: true, sheetName, rowNumber, filePath);
+            var cells = ReadRowCells(reader, failClosedOnCellError: true, sheetName, rowNumber, filePath, rowNumber == headerRowIndex ? null : reusable);
             if (rowNumber == headerRowIndex)
             {
                 headerCells = cells;
-                AddAssignedColumns(table, headerCells.Select(CleanCellText).ToArray());
-            }
-            else if (rowNumber > headerRowIndex)
-            {
-                // Materialize each record as it is read. Keeping every string[]
-                // until the end doubles peak memory for large workbooks, despite
-                // using a forward-only reader.
-                var dataRow = table.NewRow();
-                var hasValue = false;
-                for (var column = 0; column < table.Columns.Count; column++)
+                header = new HeaderColumns(headerCells.Select(CleanCellText).ToArray());
+                columns = new DataColumn?[headerCells.Length];
+                for (var index = 0; index < columns.Length; index++)
                 {
-                    var value = column < cells.Length ? cells[column] : string.Empty;
-                    if (!string.IsNullOrEmpty(value))
+                    if (!string.IsNullOrWhiteSpace(header.Raw[index]))
                     {
-                        hasValue = true;
+                        columns[index] = header.AddColumn(table, columns, index);
                     }
-
-                    dataRow[column] = value;
                 }
 
-                if (hasValue)
+                continue;
+            }
+
+            // Rows other than the header are copied out right away, so one array
+            // serves them all; a wide sheet allocated a large one per row.
+            reusable = cells;
+            if (rowNumber < headerRowIndex || header is null)
+            {
+                continue;
+            }
+
+            // Materialize each record as it is read. Keeping every string[]
+            // until the end doubles peak memory for large workbooks, despite
+            // using a forward-only reader.
+            var hasValue = false;
+            for (var index = 0; index < columns.Length && index < cells.Length; index++)
+            {
+                if (string.IsNullOrEmpty(cells[index]))
                 {
-                    table.Rows.Add(dataRow);
+                    continue;
+                }
+
+                hasValue = true;
+                columns[index] ??= header.AddColumn(table, columns, index);
+            }
+
+            if (!hasValue)
+            {
+                continue;
+            }
+
+            var dataRow = table.NewRow();
+            for (var index = 0; index < columns.Length; index++)
+            {
+                if (columns[index] is { } column)
+                {
+                    dataRow[column] = index < cells.Length ? cells[index] : string.Empty;
                 }
             }
+
+            table.Rows.Add(dataRow);
         }
 
         if (rowNumber == 0)
@@ -867,10 +900,12 @@ public sealed class ExcelDataService
         bool failClosedOnCellError,
         string? sheetName = null,
         int rowNumber = 0,
-        string? filePath = null)
+        string? filePath = null,
+        string[]? reusable = null)
     {
         var fieldCount = reader.FieldCount;
-        var cells = new string[fieldCount];
+        // Every cell is written below, so a reused array keeps nothing of its last row.
+        var cells = reusable?.Length == fieldCount ? reusable : new string[fieldCount];
         for (var column = 0; column < fieldCount; column++)
         {
             if (reader.GetCellError(column) is { } cellError)
@@ -1104,21 +1139,63 @@ public sealed class ExcelDataService
 
     private static void AddAssignedColumns(DataTable table, IReadOnlyList<string> rawHeaders)
     {
-        var assigned = AssignColumnHeaders(rawHeaders);
-        var repeated = rawHeaders
-            .Where(raw => !string.IsNullOrWhiteSpace(raw))
-            .GroupBy(raw => raw, StringComparer.OrdinalIgnoreCase)
-            .Where(group => group.Count() > 1)
-            .Select(group => group.Key)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        for (var index = 0; index < assigned.Length; index++)
+        var header = new HeaderColumns(rawHeaders);
+        var columns = new DataColumn?[rawHeaders.Count];
+        for (var index = 0; index < columns.Length; index++)
         {
-            var raw = rawHeaders[index] ?? string.Empty;
+            columns[index] = header.AddColumn(table, columns, index);
+        }
+    }
+
+    /// <summary>
+    /// Names and header kinds for a header row, worked out once for every source
+    /// position, so a column added later gets the same name and origin it would
+    /// have had if it had been added with the others.
+    /// </summary>
+    private sealed class HeaderColumns
+    {
+        private readonly string[] _assigned;
+        private readonly HashSet<string> _repeated;
+
+        public HeaderColumns(IReadOnlyList<string> rawHeaders)
+        {
+            Raw = rawHeaders;
+            _assigned = AssignColumnHeaders(rawHeaders);
+            _repeated = rawHeaders
+                .Where(raw => !string.IsNullOrWhiteSpace(raw))
+                .GroupBy(raw => raw, StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public IReadOnlyList<string> Raw { get; }
+
+        /// <summary>
+        /// Adds the column at source position <paramref name="index"/> in front of
+        /// every column further right, so the table keeps the file's column order.
+        /// Rows already read get an empty value in it.
+        /// </summary>
+        public DataColumn AddColumn(DataTable table, IReadOnlyList<DataColumn?> columns, int index)
+        {
+            var raw = Raw[index] ?? string.Empty;
             var kind = string.IsNullOrWhiteSpace(raw)
                 ? DataHeaderKind.Blank
-                : repeated.Contains(raw) ? DataHeaderKind.Repeated : DataHeaderKind.Unique;
-            var column = table.Columns.Add(assigned[index], typeof(string));
-            DataColumnOrigin.Attach(column, new DataColumnOrigin(assigned[index], index + 1, raw, kind));
+                : _repeated.Contains(raw) ? DataHeaderKind.Repeated : DataHeaderKind.Unique;
+            var column = new DataColumn(_assigned[index], typeof(string)) { DefaultValue = string.Empty };
+            table.Columns.Add(column);
+            var ordinal = 0;
+            for (var left = 0; left < index; left++)
+            {
+                if (columns[left] is not null)
+                {
+                    ordinal++;
+                }
+            }
+
+            column.SetOrdinal(ordinal);
+            DataColumnOrigin.Attach(column, new DataColumnOrigin(_assigned[index], index + 1, raw, kind));
+            return column;
         }
     }
 

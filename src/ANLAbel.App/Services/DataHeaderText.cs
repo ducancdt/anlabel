@@ -25,7 +25,7 @@ public static class DataHeaderText
 {
     private const int MaxLettersListed = 6;
 
-    public static DataImportNote DescribeImport(LabelTemplate template, DataTable table, IReadOnlyList<string> previousFields, int headerRow)
+    public static DataImportNote DescribeImport(LabelTemplate template, DataTable table, IReadOnlyList<DatabaseField> previousFields, int headerRow)
     {
         ArgumentNullException.ThrowIfNull(template);
         var origins = DataColumnOrigin.Describe(table);
@@ -183,18 +183,20 @@ public static class DataHeaderText
             .OrderBy(origin => origin.SourceColumn)
             .Select(origin => $"cột {origin.ColumnLetter} (“{origin.SourceHeader}”)"));
 
-    private static string PreviousColumn(string field, IReadOnlyList<string> previousFields)
+    private static string PreviousColumn(string field, IReadOnlyList<DatabaseField> previousFields)
     {
-        if (!FieldNameResolver.TryResolveFieldName(field, previousFields, out var previous))
+        if (!FieldNameResolver.TryResolveFieldName(field, previousFields.Select(previous => previous.Name), out var name))
         {
             return string.Empty;
         }
 
         var index = previousFields
-            .Select((name, position) => (name, position))
-            .First(entry => string.Equals(entry.name, previous, StringComparison.OrdinalIgnoreCase))
-            .position;
-        return $" (lần nhập trước ở cột {DataColumnOrigin.ToColumnLetter(index + 1)})";
+            .Select((previous, position) => (previous, position))
+            .First(entry => string.Equals(entry.previous.Name, name, StringComparison.OrdinalIgnoreCase));
+        // Fields saved by an older ANLAbel have no column; their place in the list
+        // was their column then, since every column was a field.
+        var column = index.previous.SourceColumn > 0 ? index.previous.SourceColumn : index.position + 1;
+        return $" (lần nhập trước ở cột {DataColumnOrigin.ToColumnLetter(column)})";
     }
 
     private static string Names(IEnumerable<DataColumnOrigin> origins)

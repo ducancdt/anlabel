@@ -7,6 +7,7 @@ public sealed class DatabaseField : ObservableObject
     private string _name = string.Empty;
     private string _displayName = string.Empty;
     private string _sampleValue = string.Empty;
+    private int _sourceColumn;
 
     public string Name
     {
@@ -24,6 +25,20 @@ public sealed class DatabaseField : ObservableObject
     {
         get => _sampleValue;
         set => SetProperty(ref _sampleValue, value);
+    }
+
+    /// <summary>
+    /// The field's 1-based column in the data file at the last import, so the next
+    /// import can name the column a missing field had (DB03); columns with neither
+    /// a header nor data are not fields, so a field's place in the list is not its
+    /// column. 0 when unknown (saved by an older ANLAbel); not written then, so an
+    /// older template still loads and saves byte for byte.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public int SourceColumn
+    {
+        get => _sourceColumn;
+        set => SetProperty(ref _sourceColumn, value);
     }
 
     /// <summary>
