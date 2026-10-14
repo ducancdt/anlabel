@@ -93,6 +93,23 @@ public static class DataHeaderText
         return char.ToUpperInvariant(text[0]) + text[1..] + ".";
     }
 
+    /// <summary>One position-only column for the Properties panel, e.g. “Cột D có tiêu đề “Part No” trùng với cột A …”.</summary>
+    public static string DescribeColumn(DataColumnOrigin origin, IReadOnlyList<DataColumnOrigin> origins)
+    {
+        ArgumentNullException.ThrowIfNull(origin);
+        if (origin.Kind == DataHeaderKind.Blank)
+        {
+            return $"Cột {origin.ColumnLetter} không có tiêu đề (ANLAbel tạm gọi là “{origin.FieldName}”).";
+        }
+
+        var others = origins
+            .Where(other => other.Kind == DataHeaderKind.Repeated
+                            && other.SourceColumn != origin.SourceColumn
+                            && string.Equals(other.SourceHeader, origin.SourceHeader, StringComparison.OrdinalIgnoreCase))
+            .Select(other => other.ColumnLetter);
+        return $"Cột {origin.ColumnLetter} có tiêu đề “{origin.SourceHeader}” trùng với cột {Join(others)} (ANLAbel tạm gọi là “{origin.FieldName}”).";
+    }
+
     private static string Describe(DataColumnOrigin repeated, IReadOnlyList<DataColumnOrigin> origins)
     {
         var group = origins

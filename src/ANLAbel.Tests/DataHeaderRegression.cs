@@ -67,6 +67,20 @@ internal static class DataHeaderRegression
             Require(vm.StatusText == "Đã nhập 1 dòng từ repeated.xlsx / Data — Tiêu đề “Part No” lặp ở cột A, D (ANLAbel tạm gọi là “Part No”, “Part No_2”); "
                     + "cột C không có tiêu đề (ANLAbel tạm gọi là “Column3”); 3 đối tượng dùng các cột này chưa in được cho tới khi mỗi cột có tiêu đề riêng.",
                 "Bound repeated and blank columns must be reported by letter: " + vm.StatusText);
+            // The Properties panel and the layer list agree with the print block,
+            // and a data transform output is not reported as a missing column.
+            var issues = vm.BindingIssues.ToDictionary(issue => issue.ObjectName);
+            Require(issues.Keys.Order().SequenceEqual(new[] { "Mã phụ", "Mã sau", "Mã đầu" }.Order()),
+                "Exactly the three objects that read position-only columns have a binding issue: " + string.Join(", ", issues.Keys));
+            Require(issues["Mã sau"].ErrorsSummary == "Cột D có tiêu đề “Part No” trùng với cột A (ANLAbel tạm gọi là “Part No_2”)."
+                    && issues["Mã phụ"].ErrorsSummary == "Cột C không có tiêu đề (ANLAbel tạm gọi là “Column3”)."
+                    && issues["Mã phụ"].MissingFields.Count == 0,
+                "Each object must name its column: " + string.Join(" | ", issues.Values.Select(issue => issue.ErrorsSummary)));
+            Require(template.Objects.Single(item => item.Name == "Mã sau").BindingStateDisplayText == "Cột chỉ theo vị trí: Part No_2"
+                    && template.Objects.Single(item => item.Name == "Mã phụ").BindingStateDisplayText == "Cột chỉ theo vị trí: Column3"
+                    && !template.Objects.Single(item => item.Name == "Số lô").HasBindingIssue,
+                "The layer list must mark the objects that cannot print.");
+
             Require(vm.TryBuildPrintPreviewRows(out var ambiguousRows, out _), "Preview rows must build.");
             var ambiguous = Check(vm, ambiguousRows);
             var blocked = ambiguous.Issues.Where(issue => issue.IsBlocking && issue.RowNumber == 0).ToArray();

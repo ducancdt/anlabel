@@ -4406,7 +4406,12 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var expression = item.BindingExpression;
-        var knownFields = AvailableDatabaseFields.Select(field => field.Name).ToArray();
+        // Data transform outputs are fields of every row too; without them a
+        // binding to one was reported as a missing column that prints fine.
+        var knownFields = AvailableDatabaseFields.Select(field => field.Name)
+            .Concat(Template.DataTransforms.Select(transform => transform.Name))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToArray();
         if (FormulaBindingEvaluator.LooksLikeFormula(expression))
         {
             var analysisRow = CreateBindingAnalysisRow();
@@ -4423,13 +4428,13 @@ public sealed class MainViewModel : ObservableObject
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
-            return new BindingPreviewResult(
+            return WithPositionalColumns(new BindingPreviewResult(
                 "Công thức",
                 PreviewRow is null ? string.Empty : previewEvaluation.Value,
                 analysis.UsedFields,
                 missingFields,
                 errors,
-                BuildBindingStatusText(missingFields, errors, PreviewRow is not null));
+                BuildBindingStatusText(missingFields, errors, PreviewRow is not null)), expression);
         }
 
         var usedFields = BindingExpressionEvaluator.GetFields(expression);
@@ -4437,13 +4442,41 @@ public sealed class MainViewModel : ObservableObject
             .Where(field => !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        return new BindingPreviewResult(
+        return WithPositionalColumns(new BindingPreviewResult(
             "Trường giữ chỗ",
             PreviewRow is null ? string.Empty : BindingExpressionEvaluator.Evaluate(expression, PreviewRow),
             usedFields,
             missingPlaceholderFields,
             Array.Empty<string>(),
-            BuildBindingStatusText(missingPlaceholderFields, Array.Empty<string>(), PreviewRow is not null));
+            BuildBindingStatusText(missingPlaceholderFields, Array.Empty<string>(), PreviewRow is not null)), expression);
+    }
+
+    /// <summary>
+    /// DB03: a binding that reads a column with a blank or repeated header blocks
+    /// printing, so the Properties panel and the layer list say so too instead of
+    /// showing the link as fine until the print stops.
+    /// </summary>
+    private BindingPreviewResult WithPositionalColumns(BindingPreviewResult result, string expression)
+    {
+        var origins = DataColumnOrigin.Describe(ExcelDataView?.Table);
+        var positional = ANLAbel.App.Services.DataHeaderCheck.ColumnsRead(expression, origins, Template.DataTransforms)
+            .Where(origin => origin.DependsOnPosition)
+            .ToArray();
+        if (positional.Length == 0)
+        {
+            return result;
+        }
+
+        return result with
+        {
+            Errors = result.Errors
+                .Concat(positional.Select(origin => ANLAbel.App.Services.DataHeaderText.DescribeColumn(origin, origins)))
+                .ToArray(),
+            PositionalFields = positional.Select(origin => origin.FieldName).ToArray(),
+            StatusText = result.MissingFields.Count > 0
+                ? result.StatusText
+                : "Liên kết đọc cột chỉ nhận ra được theo vị trí nên chưa in được. Đặt tiêu đề riêng cho cột trong tệp rồi bấm Cập nhật Excel."
+        };
     }
 
     private IReadOnlyList<BindingIssueSummary> GetBindingIssues()
@@ -4459,7 +4492,8 @@ public sealed class MainViewModel : ObservableObject
                 result.Binding.KindText,
                 result.Binding.StatusText,
                 result.Binding.MissingFields,
-                result.Binding.Errors))
+                result.Binding.Errors,
+                result.Binding.PositionalFields))
             .ToArray();
     }
 
@@ -4576,6 +4610,13 @@ public sealed class MainViewModel : ObservableObject
 
     private static string BuildObjectTreeBindingIssueText(BindingIssueSummary issue)
     {
+        if (issue.MissingFields.Count == 0 && issue.PositionalFields is { Count: > 0 } positional)
+        {
+            return positional.Count == 1
+                ? $"Cột chỉ theo vị trí: {positional[0]}"
+                : $"{positional.Count} cột chỉ theo vị trí";
+        }
+
         if (issue.MissingFields.Count > 0)
         {
             return issue.MissingFields.Count == 1
@@ -5502,7 +5543,8 @@ public sealed record BindingPreviewResult(
     IReadOnlyList<string> UsedFields,
     IReadOnlyList<string> MissingFields,
     IReadOnlyList<string> Errors,
-    string StatusText)
+    string StatusText,
+    IReadOnlyList<string>? PositionalFields = null)
 {
     public static BindingPreviewResult Empty { get; } = new(string.Empty, string.Empty, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), string.Empty);
 }
@@ -5514,7 +5556,8 @@ public sealed record BindingIssueSummary(
     string BindingKind,
     string StatusText,
     IReadOnlyList<string> MissingFields,
-    IReadOnlyList<string> Errors)
+    IReadOnlyList<string> Errors,
+    IReadOnlyList<string>? PositionalFields = null)
 {
     public string Title => $"{ObjectName} ({ANLAbel.App.Services.PreflightIssueText.ObjectType(ObjectType)})";
     public string MissingFieldsSummary => MissingFields.Count == 0 ? string.Empty : $"Thiếu: {string.Join(", ", MissingFields)}";
