@@ -284,6 +284,31 @@ public sealed class ExcelDataServiceReliabilityTests
         }
     }
 
+    // The same sheet saved as CSV: every line carries the empty tail up to the stray cell.
+    [Fact]
+    public async Task LoadCsv_ColumnsWithNeitherHeaderNorDataAreNotFields()
+    {
+        var directory = CreateTemporaryDirectory();
+        var filePath = Path.Combine(directory, "wide.csv");
+        var tail = new string(',', 2000);
+        await File.WriteAllTextAsync(filePath, $"Part,Lot,{tail}x\nP1,L1,{tail}\nP2,,{tail}\n");
+
+        try
+        {
+            var table = await new ExcelDataService().LoadSheetAsync(filePath, ExcelDataService.CsvSheetName);
+            var origins = DataColumnOrigin.Describe(table);
+
+            Assert.Equal(new[] { "Part", "Lot", "x" }, origins.Select(origin => origin.FieldName));
+            Assert.Equal(new[] { 1, 2, 2003 }, origins.Select(origin => origin.SourceColumn));
+            Assert.Equal(2, table.Rows.Count);
+            Assert.Equal(string.Empty, table.Rows[1]["Lot"]);
+        }
+        finally
+        {
+            DeleteWorkbook(filePath);
+        }
+    }
+
     [Fact]
     public async Task LoadCsv_RecordsWhereEachColumnCameFrom()
     {

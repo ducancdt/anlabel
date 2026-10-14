@@ -444,6 +444,8 @@ public sealed class ExcelDataService
         var delimiter = DetectCsvDelimiter(sampleRecords, headerIsAuthoritative: true);
         var rowNumber = headerRowIndex - 1;
         var foundHeader = false;
+        HeaderColumns? header = null;
+        var columns = Array.Empty<DataColumn?>();
         using var stream = OpenFileStream(filePath, cancellationToken);
         using var reader = OpenStrictCsvReader(stream);
         // Preamble records do not define the table schema or its delimiter.
@@ -462,30 +464,53 @@ public sealed class ExcelDataService
                 if (rowNumber == headerRowIndex)
                 {
                     foundHeader = true;
-                    AddAssignedColumns(table, cells.Select(CleanCellText).ToArray());
+                    // As in a workbook: a column without a header is a field only
+                    // once a record puts data in it. Saving a sheet with one stray
+                    // far cell as CSV gives every line thousands of empty fields.
+                    header = new HeaderColumns(cells.Select(CleanCellText).ToArray());
+                    columns = new DataColumn?[cells.Length];
+                    for (var index = 0; index < columns.Length; index++)
+                    {
+                        if (!string.IsNullOrWhiteSpace(header.Raw[index]))
+                        {
+                            columns[index] = header.AddColumn(table, columns, index);
+                        }
+                    }
                 }
-                else if (rowNumber > headerRowIndex)
+                else if (rowNumber > headerRowIndex && header is not null)
                 {
                     // ADR-024: padding a short record would shift every later value
                     // into the wrong column; only a completely empty line is skipped.
-                    if (cells.Length != table.Columns.Count && cells.Any(cell => cell.Length > 0))
+                    if (cells.Length != columns.Length && cells.Any(cell => cell.Length > 0))
                     {
                         throw CreateInvalidCsvException(filePath,
-                            $"Record {rowNumber} has {cells.Length} fields; the header defines {table.Columns.Count}.",
+                            $"Record {rowNumber} has {cells.Length} fields; the header defines {columns.Length}.",
                             rowNumber);
                     }
 
-                    var dataRow = table.NewRow();
                     var hasValue = false;
-                    for (var column = 0; column < table.Columns.Count; column++)
+                    for (var index = 0; index < columns.Length && index < cells.Length; index++)
                     {
-                        var value = column < cells.Length ? cells[column] : string.Empty;
-                        hasValue |= !string.IsNullOrEmpty(value);
-                        dataRow[column] = value;
+                        if (string.IsNullOrEmpty(cells[index]))
+                        {
+                            continue;
+                        }
+
+                        hasValue = true;
+                        columns[index] ??= header.AddColumn(table, columns, index);
                     }
 
                     if (hasValue)
                     {
+                        var dataRow = table.NewRow();
+                        for (var index = 0; index < columns.Length; index++)
+                        {
+                            if (columns[index] is { } column)
+                            {
+                                dataRow[column] = index < cells.Length ? cells[index] : string.Empty;
+                            }
+                        }
+
                         table.Rows.Add(dataRow);
                     }
                 }
@@ -1135,16 +1160,6 @@ public sealed class ExcelDataService
             .Replace("\r", " ")
             .Replace("\n", " ")
             .Trim();
-    }
-
-    private static void AddAssignedColumns(DataTable table, IReadOnlyList<string> rawHeaders)
-    {
-        var header = new HeaderColumns(rawHeaders);
-        var columns = new DataColumn?[rawHeaders.Count];
-        for (var index = 0; index < columns.Length; index++)
-        {
-            columns[index] = header.AddColumn(table, columns, index);
-        }
     }
 
     /// <summary>
