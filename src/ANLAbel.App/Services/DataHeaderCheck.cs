@@ -26,13 +26,15 @@ public sealed record DataColumnRead(string RequestedName, DataColumnOrigin Colum
 /// label print another column without any visible change, and a swap of two
 /// columns with the same header cannot be detected at all. Such a binding blocks
 /// printing until the header is unique. Fields are found and matched the way
-/// printing reads them: formulas are evaluated, and names resolve over the
-/// columns and the data transform outputs. Messages stay English for logs and
-/// tests; <see cref="PreflightIssueText"/> words them for the operator.
+/// printing reads them: FIELD names are decoded and computed as the formula
+/// does, and names resolve over the columns and then the data transform
+/// outputs, the order of a print row. Messages stay English for logs and tests;
+/// <see cref="PreflightIssueText"/> words them for the operator.
 /// </summary>
 public static class DataHeaderCheck
 {
-    private static readonly IReadOnlyDictionary<string, string> EmptyRow = new Dictionary<string, string>();
+    private static readonly FormulaEngine Formulas = new();
+    private static readonly IReadOnlyDictionary<string, string?> EmptyRow = new Dictionary<string, string?>();
 
     /// <summary>Template-level blocking issues for every binding that reads a position-only column.</summary>
     public static IReadOnlyList<PrintPreflightIssue> FindPositionalBindings(LabelTemplate template, DataTable? table)
@@ -54,9 +56,10 @@ public static class DataHeaderCheck
         }
 
         // The copies column decides how many labels print, so it must be as unambiguous.
-        if (CopiesColumn(template, origins) is { DependsOnPosition: true } copies)
+        var copiesField = QuickPrintQuantity.NormalizeField(template.DatabaseConfig.CopiesField);
+        foreach (var copies in CopiesColumns(template, origins).Where(read => read.DependsOnPosition))
         {
-            issues.Add(new PrintPreflightIssue(0, copies.Column.FieldName, "Copies", Message(copies, origins)));
+            issues.Add(new PrintPreflightIssue(0, copiesField, "Copies", Message(copies, origins)));
         }
 
         return issues;
@@ -70,15 +73,19 @@ public static class DataHeaderCheck
         return positional.Count == 0 ? result : new PrintPreflightResult(positional.Concat(result.Issues).ToArray());
     }
 
-    /// <summary>The copies column, named the way quick print reads it (braces allowed).</summary>
-    public static DataColumnRead? CopiesColumn(LabelTemplate template, IReadOnlyList<DataColumnOrigin> origins)
+    /// <summary>
+    /// The columns the copies field reads. Quick print looks it up by its exact
+    /// name (braces allowed), so it is a column, or a data transform output that
+    /// is followed to the columns it reads.
+    /// </summary>
+    public static IReadOnlyList<DataColumnRead> CopiesColumns(LabelTemplate template, IReadOnlyList<DataColumnOrigin> origins)
     {
         ArgumentNullException.ThrowIfNull(template);
         var field = QuickPrintQuantity.NormalizeField(template.DatabaseConfig.CopiesField);
-        var column = field.Length == 0
-            ? null
-            : origins.FirstOrDefault(origin => string.Equals(origin.FieldName, field, StringComparison.OrdinalIgnoreCase));
-        return column is null ? null : new DataColumnRead(field, column, Array.Empty<DataColumnOrigin>());
+        var exact = field.Length > 0
+                    && (origins.Any(origin => string.Equals(origin.FieldName, field, StringComparison.OrdinalIgnoreCase))
+                        || template.DataTransforms.Any(transform => string.Equals(transform.Name?.Trim(), field, StringComparison.OrdinalIgnoreCase)));
+        return exact ? Reads([field], origins, template.DataTransforms) : Array.Empty<DataColumnRead>();
     }
 
     /// <summary>
@@ -90,20 +97,33 @@ public static class DataHeaderCheck
         string? expression,
         IReadOnlyList<DataColumnOrigin> origins,
         IEnumerable<DataTransformDefinition>? transforms)
+        => Reads(BindingFields(expression), origins, transforms);
+
+    private static IReadOnlyList<DataColumnRead> Reads(
+        IReadOnlyList<string> fields,
+        IReadOnlyList<DataColumnOrigin> origins,
+        IEnumerable<DataTransformDefinition>? transforms)
     {
         var read = new List<DataColumnRead>();
-        Walk(expression, origins.Select(origin => origin.FieldName).ToArray(), transforms, (field, ties) =>
+        Walk(fields, origins.Select(origin => origin.FieldName).ToArray(), transforms, (field, ties) =>
         {
             var column = origins.First(origin => string.Equals(origin.FieldName, ties[0], StringComparison.OrdinalIgnoreCase));
-            if (read.Any(existing => existing.Column == column))
-            {
-                return;
-            }
-
+            // A data transform output sits after every column in a print row, so it
+            // never wins a tie with a column; only lookalike columns are rivals.
             var rivals = ties.Skip(1)
                 .Select(name => origins.FirstOrDefault(origin => string.Equals(origin.FieldName, name, StringComparison.OrdinalIgnoreCase)))
                 .OfType<DataColumnOrigin>()
                 .ToArray();
+            // A blank or repeated header is reported once per column. A lookalike name
+            // that ties is reported even when the binding also reads the same column
+            // by its exact name.
+            if (read.Any(existing => existing.Column == column
+                                     && (column.DependsOnPosition
+                                         || existing.Rivals.Select(other => other.SourceColumn).SequenceEqual(rivals.Select(other => other.SourceColumn)))))
+            {
+                return;
+            }
+
             read.Add(new DataColumnRead(field, column, rivals));
         }, missing: null);
         return read;
@@ -119,7 +139,7 @@ public static class DataHeaderCheck
         IEnumerable<DataTransformDefinition>? transforms)
     {
         var missing = new List<string>();
-        Walk(expression, columnNames, transforms, (_, _) => { }, field =>
+        Walk(BindingFields(expression), columnNames, transforms, (_, _) => { }, field =>
         {
             if (!missing.Contains(field, StringComparer.OrdinalIgnoreCase))
             {
@@ -137,13 +157,14 @@ public static class DataHeaderCheck
             return Array.Empty<string>();
         }
 
+        // A blank placeholder such as { } reads no column; it prints empty.
         return FormulaBindingEvaluator.LooksLikeFormula(expression)
             ? FormulaFields(expression)
-            : BindingExpressionEvaluator.GetFields(expression);
+            : BindingExpressionEvaluator.GetFields(expression).Where(field => !string.IsNullOrWhiteSpace(field)).ToArray();
     }
 
     private static void Walk(
-        string? expression,
+        IReadOnlyList<string> fields,
         IReadOnlyList<string> columnNames,
         IEnumerable<DataTransformDefinition>? transforms,
         Action<string, IReadOnlyList<string>> onColumn,
@@ -168,7 +189,7 @@ public static class DataHeaderCheck
                 var ties = FieldNameResolver.FindTies(field, names);
                 if (ties.Count == 0)
                 {
-                    missing?.Invoke(field);
+                    missing?.Invoke(field.Trim());
                 }
                 else if (transformByName.TryGetValue(ties[0], out var transform))
                 {
@@ -184,27 +205,55 @@ public static class DataHeaderCheck
             }
         }
 
-        Visit(BindingFields(expression));
+        Visit(fields);
     }
 
     /// <summary>
-    /// Every field a formula reads, found by evaluating it: the language has no
-    /// branches (FIELD and CONCAT), so each FIELD runs and records its name,
-    /// decoded and computed exactly as printing does.
+    /// The fields a formula reads, found in its syntax tree, with each name
+    /// decoded and computed as printing does. A FIELD whose name is built from
+    /// another FIELD reads whichever column the row's data names, so only the
+    /// fields inside it are listed: computing it from an empty row named a column
+    /// that is never read.
     /// </summary>
     private static IReadOnlyList<string> FormulaFields(string? formula)
     {
-        if (string.IsNullOrWhiteSpace(formula))
+        if (string.IsNullOrWhiteSpace(formula) || Formulas.Parse(formula).Root is not { } root)
         {
             return Array.Empty<string>();
         }
 
-        return FormulaBindingEvaluator.Evaluate(formula, EmptyRow).UsedFields
-            .Select(field => field.Trim())
-            .Where(field => field.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var fields = new List<string>();
+        Collect(root);
+        return fields.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+        void Collect(FormulaNode node)
+        {
+            if (node is not FormulaFunctionCallNode call)
+            {
+                return;
+            }
+
+            foreach (var argument in call.Arguments)
+            {
+                Collect(argument);
+            }
+
+            if (IsField(call) && call.Arguments.Count == 1 && !ReadsField(call.Arguments[0]))
+            {
+                var name = Formulas.Evaluate(call.Arguments[0], EmptyRow).Value.Trim();
+                if (name.Length > 0)
+                {
+                    fields.Add(name);
+                }
+            }
+        }
     }
+
+    private static bool IsField(FormulaFunctionCallNode call)
+        => string.Equals(call.Name, "FIELD", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ReadsField(FormulaNode node)
+        => node is FormulaFunctionCallNode call && (IsField(call) || call.Arguments.Any(ReadsField));
 
     private static string Message(DataColumnRead read, IReadOnlyList<DataColumnOrigin> origins)
     {

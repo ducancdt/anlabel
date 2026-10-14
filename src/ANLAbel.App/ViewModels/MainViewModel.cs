@@ -72,9 +72,10 @@ public sealed class MainViewModel : ObservableObject
     internal static TimeSpan PrinterQueueLookupTimeout { get; set; } = TimeSpan.FromSeconds(20);
     private bool _isQuickPrinting;
     private int _importGeneration;
-    // DB03 header note of the latest import, kept for the callers that write
-    // their own status line right after importing (open, verify, relink, shared source).
-    private string _lastImportHeaderNote = string.Empty;
+    // What the latest import found (the DB03 header note and the count of broken
+    // links), kept for the callers that write their own status line right after
+    // importing (open, verify, relink, shared source).
+    private string _lastImportIssueSuffix = string.Empty;
     private bool _selectedObjectRefreshDeferred;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
@@ -1977,7 +1978,6 @@ public sealed class MainViewModel : ObservableObject
 
         var issueCount = GetBindingIssues().Count;
         var headerNote = ANLAbel.App.Services.DataHeaderText.DescribeImport(Template, table, previousFields, headerRow);
-        _lastImportHeaderNote = headerNote.Text;
         // A note about used columns already names the affected objects; a note about
         // unused headers must not hide the count of broken links.
         var issueSuffix = headerNote.AffectsLabel
@@ -1989,6 +1989,7 @@ public sealed class MainViewModel : ObservableObject
                 (false, true) => " — " + headerNote.Text,
                 _ => string.Empty
             };
+        _lastImportIssueSuffix = issueSuffix;
         StatusText = $"Đã nhập {table.Rows.Count} dòng từ {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
         LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: true, errorMessage: string.Empty);
     }
@@ -2098,9 +2099,11 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>Appends the DB03 header note of the import that just finished, if any.</summary>
-    private string WithImportHeaderNote(string status)
-        => string.IsNullOrEmpty(_lastImportHeaderNote) ? status : $"{status} — {_lastImportHeaderNote}";
+    /// <summary>
+    /// Appends what the import that just finished found: the DB03 header note and
+    /// the count of broken links, as its own status line showed them.
+    /// </summary>
+    private string WithImportHeaderNote(string status) => status + _lastImportIssueSuffix;
 
     private void MarkExcelLinkVerified(int rowCount, int columnCount)
     {
@@ -2766,7 +2769,10 @@ public sealed class MainViewModel : ObservableObject
         var requestedFieldNames = existingLabelFields
             .Select(field => field.Name)
             .Concat(GetReferencedTemplateFieldNames());
-        var resolvedFieldMap = BuildResolvedFieldMap(requestedFieldNames, AvailableDatabaseFields.Select(field => field.Name));
+        var resolvedFieldMap = BuildResolvedFieldMap(
+            requestedFieldNames,
+            AvailableDatabaseFields.Select(field => field.Name),
+            Template.DataTransforms.Select(transform => transform.Name));
 
         for (var i = LabelDatabaseFields.Count - 1; i >= 0; i--)
         {
@@ -2826,26 +2832,34 @@ public sealed class MainViewModel : ObservableObject
         return new DatabaseField { Name = field.Name, DisplayName = field.DisplayName, SampleValue = field.SampleValue };
     }
 
-    private static Dictionary<string, string> BuildResolvedFieldMap(IEnumerable<string> requestedFieldNames, IEnumerable<string> availableFieldNames)
+    private static Dictionary<string, string> BuildResolvedFieldMap(
+        IEnumerable<string> requestedFieldNames,
+        IEnumerable<string> availableFieldNames,
+        IEnumerable<string> transformNames)
     {
         var resolved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var available = availableFieldNames
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var transforms = transformNames
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Printing resolves a name over the columns, then the data transform outputs.
+        var names = available.Concat(transforms).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
         foreach (var requested in requestedFieldNames.Where(name => !string.IsNullOrWhiteSpace(name)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            // A name that ties between lookalike headers stays as written: rewriting it
-            // to the first of them would pin the binding to a column by position (DB03).
-            if (FieldNameResolver.FindTies(requested, available).Count > 1)
+            // Only a name that resolves to exactly one column is rewritten. A name that
+            // ties between lookalike headers stays as written, since rewriting it to the
+            // first would pin the binding to a column by position (DB03), and so does
+            // a name that resolves to a data transform output: it reads the transform,
+            // not the raw column it resembles.
+            var ties = FieldNameResolver.FindTies(requested, names);
+            if (ties.Count == 1 && !transforms.Contains(ties[0]))
             {
-                continue;
-            }
-
-            if (FieldNameResolver.TryResolveFieldName(requested, available, out var resolvedName))
-            {
-                resolved[requested] = resolvedName;
+                resolved[requested] = ties[0];
             }
         }
 
@@ -2942,20 +2956,16 @@ public sealed class MainViewModel : ObservableObject
 
     private static bool TryResolveMappedFieldName(string requestedField, IReadOnlyDictionary<string, string> resolvedFieldMap, out string resolvedField)
     {
-        if (resolvedFieldMap.TryGetValue(requestedField, out var mappedField) && !string.IsNullOrWhiteSpace(mappedField))
+        // The map holds every name a binding reads that resolves to one column; a
+        // FIELD name is trimmed as the formula trims it. A looser match here, by
+        // normalized name, used to rewrite the tied and transform names the map
+        // leaves out to a lookalike column (DB03).
+        if ((resolvedFieldMap.TryGetValue(requestedField, out var mappedField)
+             || resolvedFieldMap.TryGetValue(requestedField.Trim(), out mappedField))
+            && !string.IsNullOrWhiteSpace(mappedField))
         {
             resolvedField = mappedField;
             return true;
-        }
-
-        var normalizedRequested = FieldNameResolver.Normalize(requestedField);
-        foreach (var pair in resolvedFieldMap)
-        {
-            if (string.Equals(FieldNameResolver.Normalize(pair.Key), normalizedRequested, StringComparison.OrdinalIgnoreCase))
-            {
-                resolvedField = pair.Value;
-                return true;
-            }
         }
 
         resolvedField = string.Empty;
@@ -4534,11 +4544,16 @@ public sealed class MainViewModel : ObservableObject
             Errors = result.Errors
                 .Concat(positional.Select(read => ANLAbel.App.Services.DataHeaderText.DescribeColumn(read, origins)))
                 .ToArray(),
-            PositionalFields = positional.Select(read => read.Column.FieldName).ToArray(),
+            PositionalReads = positional,
             // A missing field or a formula error is the more basic problem; keep its wording.
             StatusText = missing.Length > 0 || result.Errors.Count > 0
                 ? BuildBindingStatusText(missing, result.Errors, PreviewRow is not null)
-                : "Liên kết đọc cột chỉ nhận ra được theo vị trí nên chưa in được. Đặt tiêu đề riêng cho cột trong tệp rồi bấm Cập nhật Excel."
+                : (positional.Any(read => read.Column.DependsOnPosition), positional.Any(read => !read.Column.DependsOnPosition)) switch
+                {
+                    (true, true) => "Liên kết đọc cột chỉ nhận ra được theo vị trí nên chưa in được. Đặt tiêu đề riêng cho cột, đổi tên một trong các cột khớp ngang nhau hoặc liên kết đúng tên tiêu đề, rồi bấm Cập nhật Excel.",
+                    (false, true) => "Tên trong liên kết khớp ngang nhau với nhiều cột nên chưa in được. Đổi tên một trong các cột đó trong tệp hoặc liên kết đúng tên tiêu đề, rồi bấm Cập nhật Excel.",
+                    _ => "Liên kết đọc cột chỉ nhận ra được theo vị trí nên chưa in được. Đặt tiêu đề riêng cho cột trong tệp rồi bấm Cập nhật Excel."
+                }
         };
     }
 
@@ -4556,7 +4571,7 @@ public sealed class MainViewModel : ObservableObject
                 result.Binding.StatusText,
                 result.Binding.MissingFields,
                 result.Binding.Errors,
-                result.Binding.PositionalFields))
+                result.Binding.PositionalReads))
             .ToArray();
     }
 
@@ -4676,12 +4691,18 @@ public sealed class MainViewModel : ObservableObject
         // Position-only columns are named only when they are the whole problem; a
         // formula error (one more entry in Errors) keeps its own label below.
         if (issue.MissingFields.Count == 0
-            && issue.PositionalFields is { Count: > 0 } positional
+            && issue.PositionalReads is { Count: > 0 } positional
             && issue.Errors.Count == positional.Count)
         {
-            return positional.Count == 1
-                ? $"Cột chỉ theo vị trí: {positional[0]}"
-                : $"{positional.Count} cột chỉ theo vị trí";
+            // A lookalike name that ties is named as written: no column has that name.
+            var ties = positional.All(read => !read.Column.DependsOnPosition);
+            return (positional.Count, ties) switch
+            {
+                (1, true) => $"Tên khớp nhiều cột: {positional[0].RequestedName}",
+                (1, false) => $"Cột chỉ theo vị trí: {positional[0].Column.FieldName}",
+                (_, true) => $"{positional.Count} tên khớp nhiều cột",
+                _ => $"{positional.Count} cột chỉ theo vị trí"
+            };
         }
 
         if (issue.MissingFields.Count > 0)
@@ -5009,7 +5030,19 @@ public sealed class MainViewModel : ObservableObject
             return source;
         }
 
-        return transformed.Record.Values.ToDictionary(pair => pair.Key, pair => pair.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+        // The columns in file order, then the transform outputs in template order.
+        // A name that matches several fields loosely resolves to the first of them,
+        // so the order must be the one DB03 checks, not the record's hash order.
+        var ordered = new Dictionary<string, string>(source, StringComparer.OrdinalIgnoreCase);
+        foreach (var transform in Template.DataTransforms)
+        {
+            if (transformed.Record.Values.TryGetValue(transform.Name, out var value))
+            {
+                ordered.TryAdd(transform.Name, value ?? string.Empty);
+            }
+        }
+
+        return ordered;
     }
 
     /// <summary>
@@ -5614,7 +5647,7 @@ public sealed record BindingPreviewResult(
     IReadOnlyList<string> MissingFields,
     IReadOnlyList<string> Errors,
     string StatusText,
-    IReadOnlyList<string>? PositionalFields = null)
+    IReadOnlyList<ANLAbel.App.Services.DataColumnRead>? PositionalReads = null)
 {
     public static BindingPreviewResult Empty { get; } = new(string.Empty, string.Empty, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>(), string.Empty);
 }
@@ -5627,7 +5660,7 @@ public sealed record BindingIssueSummary(
     string StatusText,
     IReadOnlyList<string> MissingFields,
     IReadOnlyList<string> Errors,
-    IReadOnlyList<string>? PositionalFields = null)
+    IReadOnlyList<ANLAbel.App.Services.DataColumnRead>? PositionalReads = null)
 {
     public string Title => $"{ObjectName} ({ANLAbel.App.Services.PreflightIssueText.ObjectType(ObjectType)})";
     public string MissingFieldsSummary => MissingFields.Count == 0 ? string.Empty : $"Thiếu: {string.Join(", ", MissingFields)}";

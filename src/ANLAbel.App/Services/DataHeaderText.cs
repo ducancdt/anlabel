@@ -6,13 +6,6 @@ using ANLAbel.Data.Excel;
 namespace ANLAbel.App.Services;
 
 /// <summary>
-/// DB03 status after an import or refresh, in Vietnamese: which columns the
-/// label uses are not in the header row (renamed or deleted, with the column
-/// they had last time), which used columns only their position identifies, and
-/// otherwise where the header row is blank or repeats a name. Positions are the
-/// column letters the operator sees in Excel.
-/// </summary>
-/// <summary>
 /// The import note and whether it is about columns the label uses (those block
 /// printing) or only about headers nothing reads.
 /// </summary>
@@ -21,6 +14,13 @@ public sealed record DataImportNote(string Text, bool AffectsLabel)
     public static DataImportNote None { get; } = new(string.Empty, false);
 }
 
+/// <summary>
+/// DB03 status after an import or refresh, in Vietnamese: which columns the
+/// label uses are not in the header row (renamed or deleted, with the column
+/// they had last time), which used columns only their position identifies, and
+/// otherwise where the header row is blank or repeats a name. Positions are the
+/// column letters the operator sees in Excel.
+/// </summary>
 public static class DataHeaderText
 {
     private const int MaxLettersListed = 6;
@@ -60,11 +60,8 @@ public static class DataHeaderText
                 .Where(read => read.DependsOnPosition)
                 .Select(read => (Item: (object)item, Read: read)))
             .ToList();
-        var copies = DataHeaderCheck.CopiesColumn(template, origins);
-        if (copies is { DependsOnPosition: true })
-        {
-            positional.Add((Item: template.DatabaseConfig, Read: copies));
-        }
+        var copies = DataHeaderCheck.CopiesColumns(template, origins).Where(read => read.DependsOnPosition).ToArray();
+        positional.AddRange(copies.Select(read => (Item: (object)template.DatabaseConfig, Read: read)));
 
         if (positional.Count > 0)
         {
@@ -81,7 +78,11 @@ public static class DataHeaderText
                 .ToArray();
             var phrases = groups.Take(3).Select(group => Describe(group.ToArray(), origins));
             var more = groups.Length > 3 ? $"; và {groups.Length - 3} nhóm cột khác" : string.Empty;
-            var columnCount = positional.Select(use => use.Read.Column.SourceColumn).Distinct().Count();
+            var columnCount = positional
+                .SelectMany(use => new[] { use.Read.Column }.Concat(use.Read.Rivals))
+                .Select(origin => origin.SourceColumn)
+                .Distinct()
+                .Count();
             var objectCount = positional.Select(use => use.Item).OfType<LabelObject>().Distinct().Count();
             var users = new List<string>();
             if (objectCount > 0)
@@ -89,12 +90,22 @@ public static class DataHeaderText
                 users.Add($"{objectCount} đối tượng");
             }
 
-            if (copies is { DependsOnPosition: true })
+            if (copies.Length > 0)
             {
                 users.Add("cột số bản in");
             }
 
-            parts.Add($"{string.Join("; ", phrases)}{more}; {string.Join(" và ", users)} dùng {(columnCount == 1 ? "cột này" : "các cột này")} chưa in được cho tới khi mỗi cột có tiêu đề riêng");
+            // A blank or repeated header needs a header of its own; a lookalike name
+            // that ties needs to match one column only.
+            var headers = positional.Any(use => use.Read.Column.DependsOnPosition);
+            var ties = positional.Any(use => !use.Read.Column.DependsOnPosition);
+            var until = (headers, ties) switch
+            {
+                (true, true) => "mỗi cột có tiêu đề riêng và mỗi tên chỉ khớp một cột",
+                (false, true) => "mỗi tên chỉ khớp một cột",
+                _ => "mỗi cột có tiêu đề riêng"
+            };
+            parts.Add($"{string.Join("; ", phrases)}{more}; {string.Join(" và ", users)} dùng {(columnCount == 1 ? "cột này" : "các cột này")} chưa in được cho tới khi {until}");
         }
 
         var affectsLabel = parts.Count > 0;

@@ -220,6 +220,102 @@ internal static class DataHeaderRegression
         }
     }
 
+    /// <summary>
+    /// Second code review 2026-10-14 of DB03: a lookalike tie is caught whatever
+    /// else reads the column, a binding to a data transform output or a tied name
+    /// is never rewritten to a column it resembles, print rows keep the file's
+    /// column order, a FIELD name built from the row's data and a blank
+    /// placeholder are not missing columns, the copies field is followed through
+    /// a transform, each place words a tie as a tie, and statuses written after
+    /// an import keep its count of broken links.
+    /// </summary>
+    public static async Task TiesTransformsAndCopiesAreCheckedAsPrintingReadsThem()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-db03-review2-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            // Lookalike headers Part No (A) and Part-No (E); Qty repeated in D and F.
+            var path = Path.Combine(directory, "data.xlsx");
+            string[] headers = ["Part No", "Lot No", "Currency", "Qty", "Part-No", "Qty", "Price_USD"];
+            WriteSheet(path, headers, ["PN-1", "L-1", "USD", "5", "PN-OLD", "6", "9.50"]);
+
+            var vm = new MainViewModel();
+            var template = vm.Template;
+            template.WidthMm = 60;
+            template.HeightMm = 60;
+            AddText(template, "both", "Cả hai", "CONCAT(FIELD(\"Part No\"), FIELD(\"PartNo\"))");
+            AddText(template, "price", "Giá", "FIELD(CONCAT(\"Price_\", FIELD(\"Currency\")))");
+            template.DataTransforms.Add(new DataTransformDefinition("LotNo", "CONCAT(\"LOT-\", FIELD(\"Lot No\"))"));
+            AddText(template, "lot", "Số lô", "{LotNo}");
+            // A label field named like column A must not pin the tied name to it.
+            template.DatabaseConfig.LabelFields.Add(new DatabaseField { Name = "Part No", DisplayName = "Part No" });
+            AddText(template, "tie", "Gần giống", "{PartNo}");
+            template.DataTransforms.Add(new DataTransformDefinition("Copies", "FIELD(\"Qty_2\")"));
+            template.DatabaseConfig.CopiesField = "Copies";
+            await vm.ImportExcelAsync(path, "Data", 1);
+
+            Require(template.Objects.Single(item => item.Name == "Gần giống").BindingExpression == "{PartNo}"
+                    && template.Objects.Single(item => item.Name == "Cả hai").BindingExpression == "CONCAT(FIELD(\"Part No\"), FIELD(\"PartNo\"))"
+                    && template.Objects.Single(item => item.Name == "Số lô").BindingExpression == "{LotNo}",
+                "Tied names and a transform output must stay as written: "
+                + string.Join(" | ", template.Objects.Select(item => item.Name + ": " + item.BindingExpression)));
+
+            var blocked = DataHeaderCheck.FindPositionalBindings(template, vm.ExcelDataView?.Table);
+            Require(blocked.Select(issue => issue.ObjectName).Order().SequenceEqual(new[] { "Cả hai", "Copies", "Gần giống" }.Order())
+                    && blocked.Single(issue => issue.ObjectName == "Copies").ObjectType == "Copies",
+                "The tie read after an exact read and the copies field through a transform must block; the computed name must not: "
+                + string.Join(" | ", blocked.Select(issue => issue.ObjectName + ": " + issue.Message)));
+            var issues = vm.BindingIssues.ToDictionary(issue => issue.ObjectName);
+            Require(!issues.ContainsKey("Giá") && !issues.ContainsKey("Số lô"),
+                "A FIELD name built from Currency and a transform output are not broken links: "
+                + string.Join(" | ", issues.Values.Select(issue => issue.ObjectName + ": " + issue.MissingFieldsSummary + " " + issue.ErrorsSummary)));
+            Require(vm.StatusText.Contains("chưa in được cho tới khi mỗi cột có tiêu đề riêng và mỗi tên chỉ khớp một cột.", StringComparison.Ordinal),
+                "A note about a repeated header and a tie must ask for both fixes: " + vm.StatusText);
+
+            // Print rows list the columns in file order, then the transform outputs.
+            Require(vm.TryBuildPrintPreviewRows(out var rows, out _)
+                    && rows[0] is { } first
+                    && first.Keys.SequenceEqual(new[] { "Part No", "Lot No", "Currency", "Qty", "Part-No", "Qty_2", "Price_USD", "LotNo", "Copies" })
+                    && BindingExpressionEvaluator.Evaluate("{LotNo}", first) == "LOT-L-1",
+                "A print row must keep the order DB03 checks: " + string.Join(", ", rows.FirstOrDefault()?.Keys ?? Array.Empty<string>()));
+
+            // Only lookalike names: the note, the status and the layer list say it is a tie.
+            WriteSheet(path, ["Part No", "Lot No", "Currency", "Qty", "Part-No", "Count", "Price_USD"], ["PN-1", "L-1", "USD", "5", "PN-OLD", "6", "9.50"]);
+            template.DatabaseConfig.CopiesField = string.Empty;
+            template.DataTransforms.RemoveAt(1);
+            await vm.RefreshExcelDataAsync();
+            Require(vm.StatusText.EndsWith(
+                    "— Tên “PartNo” khớp ngang nhau với cột A (“Part No”), cột E (“Part-No”); 2 đối tượng dùng các cột này chưa in được cho tới khi mỗi tên chỉ khớp một cột.",
+                    StringComparison.Ordinal),
+                "A tie must not ask for a header of its own: " + vm.StatusText);
+            vm.SelectedObject = template.Objects.Single(item => item.Name == "Gần giống");
+            Require(vm.SelectedBindingStatusText.StartsWith("Tên trong liên kết khớp ngang nhau với nhiều cột", StringComparison.Ordinal)
+                    && vm.SelectedObject.BindingStateDisplayText == "Tên khớp nhiều cột: PartNo",
+                $"The Properties status and the layer list must name the tie: {vm.SelectedBindingStatusText} | {vm.SelectedObject.BindingStateDisplayText}");
+
+            // A blank placeholder is not a missing column, and a status written after
+            // the import keeps its count of broken links.
+            var blankPath = Path.Combine(directory, "blank.xlsx");
+            WriteSheet(blankPath, ["Part No", "Lot", ""], ["PN-1", "L-1", "x"]);
+            var blank = new MainViewModel();
+            AddText(blank.Template, "braces", "Ngoặc trống", "Size: { }");
+            await blank.ImportExcelAsync(blankPath, "Data", 1);
+            const string suffix = " — 1 đối tượng có liên kết bị thiếu/hỏng. Dòng tiêu đề 1 để trống ở cột C.";
+            Require(blank.StatusText.EndsWith(suffix, StringComparison.Ordinal),
+                "A blank placeholder must not be named as a missing column: " + blank.StatusText);
+            WriteSheet(blankPath, ["Part No", "Lot", ""], ["PN-2", "L-2", "y"]);
+            await blank.VerifyExcelLinkAsync();
+            Require(blank.StatusText.StartsWith("Đã cập nhật và xác thực Excel:", StringComparison.Ordinal)
+                    && blank.StatusText.EndsWith(suffix, StringComparison.Ordinal),
+                "A verify that re-imports must keep the broken-link count: " + blank.StatusText);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static PrintPreflightResult Check(MainViewModel vm, IReadOnlyList<IReadOnlyDictionary<string, string>?> rows)
         => DataHeaderCheck.Append(new PrintService().ValidateRows(vm.Template, rows), vm.Template, vm.ExcelDataView?.Table);
 
