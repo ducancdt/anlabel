@@ -152,6 +152,18 @@ internal static class DesignHistoryRegression
         vm.CommitTemplateEditGesture();
         Require(!vm.HasMissingResources && vm.MissingResourcesText.Length == 0, "Fixing both must clear the chip.");
 
+        // An image with data that cannot be read is shown too, not only when
+        // printing is blocked; a readable image is not.
+        const string onePixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        vm.BeginTemplateEditGesture();
+        vm.Template.Objects.Add(new LabelObject { Id = "damaged-image", Type = ObjectType.Image, Name = "Ảnh hỏng", ImageDataBase64 = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }), XMm = 2, YMm = 10, WidthMm = 10, HeightMm = 10 });
+        vm.Template.Objects.Add(new LabelObject { Id = "readable-image", Type = ObjectType.Image, Name = "Ảnh tốt", ImageDataBase64 = onePixelPng, XMm = 20, YMm = 10, WidthMm = 10, HeightMm = 10 });
+        vm.CommitTemplateEditGesture();
+        Require(vm.MissingResourcesText == "1 ảnh hỏng"
+                && vm.MissingResourcesDetail == "Ảnh “Ảnh hỏng” bị hỏng, không đọc được; hãy chèn lại ảnh."
+                && vm.MissingResourceObjects.Single().Id == "damaged-image",
+            "A damaged image must show in the chip, a readable one must not: " + vm.MissingResourcesText + " / " + vm.MissingResourcesDetail);
+
         var root = AppContext.BaseDirectory;
         while (!File.Exists(Path.Combine(root, "ANLAbel.slnx")))
         {

@@ -1139,7 +1139,7 @@ public sealed class MainViewModel : ObservableObject
         RefreshMissingResources();
     }
 
-    /// <summary>Objects whose font is not installed or whose image has no data (plan 13 D07).</summary>
+    /// <summary>Objects whose font is not installed or whose image has no data or cannot be read (plan 13 D07).</summary>
     public IReadOnlyList<LabelObject> MissingResourceObjects => _missingResourceObjects;
 
     public bool HasMissingResources => _missingResourceObjects.Count > 0;
@@ -1169,6 +1169,7 @@ public sealed class MainViewModel : ObservableObject
         var lines = new List<string>();
         var fonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var images = 0;
+        var damagedImages = 0;
         foreach (var item in Template.Objects.OrderBy(item => item.ZIndex))
         {
             if (item.Type is ObjectType.Text or ObjectType.TextBox
@@ -1186,6 +1187,12 @@ public sealed class MainViewModel : ObservableObject
                 affected.Add(item);
                 lines.Add($"Ảnh “{item.Name}” không có dữ liệu ảnh; hãy chèn lại ảnh.");
             }
+            else if (item.Type == ObjectType.Image && !ImageDataIsReadable(item.ImageDataBase64))
+            {
+                damagedImages++;
+                affected.Add(item);
+                lines.Add($"Ảnh “{item.Name}” bị hỏng, không đọc được; hãy chèn lại ảnh.");
+            }
         }
 
         var parts = new List<string>();
@@ -1200,6 +1207,11 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var text = parts.Count == 0 ? string.Empty : "Thiếu " + string.Join(", ", parts);
+        if (damagedImages > 0)
+        {
+            text = text.Length == 0 ? $"{damagedImages} ảnh hỏng" : $"{text}; {damagedImages} ảnh hỏng";
+        }
+
         var detail = string.Join(Environment.NewLine, lines);
         if (text == MissingResourcesText && detail == MissingResourcesDetail)
         {
@@ -1214,6 +1226,24 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasMissingResources));
         OnPropertyChanged(nameof(MissingResourcesText));
         OnPropertyChanged(nameof(MissingResourcesDetail));
+    }
+
+    // An image is decoded once per payload string; the string only changes when
+    // the image is inserted or replaced, so an edit does not decode every image.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<string, object> ImagePayloadChecks = new();
+    private static readonly object ReadableImage = new();
+    private static readonly object DamagedImage = new();
+
+    private static bool ImageDataIsReadable(string base64)
+    {
+        if (ImagePayloadChecks.TryGetValue(base64, out var known))
+        {
+            return ReferenceEquals(known, ReadableImage);
+        }
+
+        var readable = ImageRasterizer.Decode(base64, ImageRasterMode.DriverManaged) is not null;
+        ImagePayloadChecks.AddOrUpdate(base64, readable ? ReadableImage : DamagedImage);
+        return readable;
     }
 
     public string StatusText
