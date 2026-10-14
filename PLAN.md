@@ -1,5 +1,24 @@
 # ANLAbel Phase 1 Plan
 
+## v0.313 — Bảng thuộc tính báo cột trùng/trống tiêu đề ngay khi mở mẫu
+
+**Dữ liệu (DB03, bổ sung)**
+
+- Kiểm tra v0.312 trên bản cài cho thấy: khi mở mẫu có liên kết dữ liệu, cảnh báo
+  máy in ghi đè dòng trạng thái báo cột trùng/trống tiêu đề, còn Bảng thuộc tính
+  vẫn báo liên kết khớp. Người vận hành chỉ biết khi bấm in.
+- Nay đối tượng đọc cột như vậy được báo ngay trong Bảng thuộc tính, ví dụ “Cột D
+  có tiêu đề “Part No” trùng với cột A (ANLAbel tạm gọi là “Part No_2”).”, và
+  được đánh dấu trong danh sách Lớp (“Cột chỉ theo vị trí: Part No_2”).
+- Trường chuyển đổi dữ liệu không còn bị báo nhầm là “Thiếu trường”: mọi dòng in
+  đều có trường đó.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL. Gate ghi nhật ký dữ
+  liệu không còn đỏ chập chờn khi máy bận (đọc log trong lúc app đang ghi).
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.312 — Chặn dòng làm mã vạch tràn mép tem
 
 **In ấn (B05)**
