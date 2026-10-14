@@ -232,6 +232,11 @@ internal static class PrintSafetyRegression
                 "(thiết lập driver thực tế, thiết lập đã chuẩn bị)"),
             ("The printer reports a paper/media jam.", "kẹt giấy"),
             ("The printer queue reports offline.", "ngoại tuyến"),
+            // An unplugged USB XP-DT426B (2026-10-14): Windows still has the queue.
+            ("Requested printer 'Xprinter XP-DT426B' is unavailable. The printer queue reports offline. Resolve the queue/device condition and prepare again; no label was submitted. Select a verified queue before printing; the Windows default queue will not be used implicitly.",
+                "Máy in “Xprinter XP-DT426B” đang ngoại tuyến (offline). Chưa có tem nào được gửi."),
+            ("Requested printer 'Zebra ZT411' is unavailable. The requested Windows printer queue is unavailable. Select a verified queue before printing; the Windows default queue will not be used implicitly.",
+                "Không tìm thấy máy in “Zebra ZT411” trong Windows."),
             ("Printer queue 'Microsoft Print to PDF' was inherited from Windows' default and was not explicitly selected. Choose a verified industrial queue or save it in Printer Setup before printing.",
                 "“Microsoft Print to PDF”"),
             ("Printing is blocked. Resolve the following issues:\n- Row 3, Barcode1 (BarcodeCode128): Invalid Code 128 data. Value is empty.\n- ...and 2 more distinct issue(s).",

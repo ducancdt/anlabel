@@ -80,6 +80,10 @@ public static class PrintFailureExplainer
         (Rx(@"^Printer queue '(?<queue>[^']*)' was inherited from Windows' default"),
             (m, _) => ($"Máy in “{m.Groups["queue"].Value}” chỉ là máy in mặc định của Windows, chưa được chọn cho mẫu này.",
                        "Mở Cài đặt máy in để chọn và lưu máy in tem.")),
+        // The saved queue exists but Windows says it cannot print now (an unplugged
+        // USB printer is "offline"): name that condition, not a missing printer.
+        (Rx(@"^Requested printer '(?<queue>[^']*)' is unavailable\. (?<reason>The printer .+)$"),
+            (m, _) => QueueCondition(m.Groups["queue"].Value, m.Groups["reason"].Value)),
         (Rx(@"^Requested printer '(?<queue>[^']*)' is unavailable"),
             (m, _) => ($"Không tìm thấy máy in “{m.Groups["queue"].Value}” trong Windows. {NotSent}",
                        "Bật máy in hoặc chọn lại hàng đợi máy in trong Cài đặt máy in.")),
@@ -179,6 +183,26 @@ public static class PrintFailureExplainer
     }
 
     private static Regex Rx(string pattern) => new(pattern, RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    /// <summary>A queue condition (offline, paused, out of media…) worded for the named queue.</summary>
+    private static (string Problem, string Action) QueueCondition(string queue, string reason)
+    {
+        var explained = Explain(reason);
+        if (explained.IsGeneric)
+        {
+            return ($"Máy in “{queue}” chưa sẵn sàng. {NotSent}", "Kiểm tra máy in và hàng đợi của nó trong Windows rồi in lại.");
+        }
+
+        foreach (var subject in new[] { "Hàng đợi máy in", "Máy in" })
+        {
+            if (explained.Problem.StartsWith(subject + " ", StringComparison.Ordinal))
+            {
+                return ($"{subject} “{queue}”{explained.Problem[subject.Length..]}", explained.NextAction);
+            }
+        }
+
+        return ($"Máy in “{queue}”: {explained.Problem}", explained.NextAction);
+    }
 
     private static string Fields(Match match)
     {

@@ -15,6 +15,19 @@ public sealed class PrinterQueueHealthContractTests
         Assert.Contains("not physical-output verification", result.Diagnostic, StringComparison.OrdinalIgnoreCase);
     }
 
+    // 7744 is what the unplugged Xprinter XP-DT426B queue reported on 2026-10-14
+    // (local, bidi, raw only, complete first and work offline) while Windows
+    // still called its status ready; a test label then waited in the spooler.
+    [Theory]
+    [InlineData(7744, true)]
+    [InlineData(7744 - PrinterQueueHealthContract.WorkOfflineAttribute, false)]
+    [InlineData(PrinterQueueHealthContract.WorkOfflineAttribute, true)]
+    [InlineData(0, false)]
+    public void WorkOfflineAttributeIsRead(int queueAttributes, bool worksOffline)
+    {
+        Assert.Equal(worksOffline, PrinterQueueHealthContract.WorksOffline(queueAttributes));
+    }
+
     [Theory]
     [InlineData(false, false, false, true, false, false, PrinterQueueHealthState.PaperJam)]
     [InlineData(false, false, true, false, false, false, PrinterQueueHealthState.PaperOut)]

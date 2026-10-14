@@ -26,6 +26,16 @@ public sealed record PrinterQueueHealthObservation(
 /// </summary>
 public static class PrinterQueueHealthContract
 {
+    /// <summary>PRINTER_ATTRIBUTE_WORK_OFFLINE; System.Printing has no name for it.</summary>
+    public const int WorkOfflineAttribute = 0x400;
+
+    /// <summary>
+    /// True when Windows holds the queue's jobs instead of sending them, which it
+    /// sets when a USB printer is unplugged or "Use Printer Offline" is chosen. The
+    /// queue status then still reads ready, so a job would print later, unseen.
+    /// </summary>
+    public static bool WorksOffline(int queueAttributes) => (queueAttributes & WorkOfflineAttribute) != 0;
+
     public static PrinterQueueHealthObservation Evaluate(
         bool readSucceeded,
         bool isPaused,

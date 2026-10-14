@@ -11,10 +11,12 @@ internal static class PrinterQueueHealthReader
         try
         {
             queue.Refresh();
+            // An unplugged USB printer is marked "work offline" while its status
+            // stays clear: a job sent then waits in the spooler and prints later.
             return PrinterQueueHealthContract.Evaluate(
                 readSucceeded: true,
                 queue.IsPaused,
-                queue.IsOffline,
+                queue.IsOffline || PrinterQueueHealthContract.WorksOffline((int)queue.QueueAttributes),
                 queue.IsOutOfPaper,
                 queue.IsPaperJammed,
                 queue.NeedUserIntervention,
