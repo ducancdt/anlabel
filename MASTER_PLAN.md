@@ -165,10 +165,10 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 2. **Fix template thu vien mat sample Excel/link**: 5 template `20_..24_...anlabel` (lay tu mau that cua khach hang) da duoc genericize (bo ten/ma khach hang, chi giu placeholder chung + bind vao `sample-data.xlsx`), bo khoi `Exclude` trong `ANLAbel.App.csproj` de duoc dong goi va hien trong Template Library nhu 12 template con lai. Chi tiet: `docs/audit-2026-07-02.md` muc 2.
 3. Them 2 rule moi vao `agent.md` (so 7: cam I/O dong bo tren UI thread; so 8: quy tac genericize du lieu khach hang trong template thu vien) de tranh lap lai 2 loi tren.
 4. Ghi lai audit report rieng: `docs/audit-2026-07-02.md`, liet ke them 5 van de phu (git index co ~1000 file build artifact bi add nham, file rac o root, installer legacy 0.042 con sot lai, version rai rac nhieu noi, chua co huy/timeout khi doc Excel qua mang).
-5. **Don dep repo/git**: `git restore --staged publish_out/` (984 file), them `publish_out/` vao `.gitignore`, xoa 5 file rac o root, xoa 2 installer legacy 0.042. Commit `9939dda`, `12a30e5`.
-6. **Dong bo version**: tao `build-common.ps1` doc `Version` tu `.csproj`, sua `build-trial.ps1` + `build-license-system.ps1` goi `build-common.ps1`, sua `deploy-desktop.ps1` lay version tu `.csproj`, sua 3 installer `.iss` dong bo version `0.057`. Commit `6212fa0`.
-7. **Ra soat UI thread + Cancel Excel import**: kiem tra printer enumeration (OK — local nhan), them `CancelButton` + `CancellationTokenSource` cho `ExcelImportWindow` khi doc file Excel qua mang. Commit `f9f4047`.
-8. **Template Library unit test**: them test `template library links sample-data.xlsx` kiem tra tat ca `*.anlabel` trong `TemplateLibrary/` co `DatabaseConfig.FilePath` tro toi `sample-data.xlsx`. 18/18 test PASS. Commit `69549a2`.
+5. **Don dep repo/git**: `git restore --staged publish_out/` (984 file), them `publish_out/` vao `.gitignore`, xoa 5 file rac o root, xoa 2 installer legacy 0.042. Commit `82700a9`, `12a30e5`.
+6. **Dong bo version**: tao `build-common.ps1` doc `Version` tu `.csproj`, sua `build-trial.ps1` + `build-license-system.ps1` goi `build-common.ps1`, sua `deploy-desktop.ps1` lay version tu `.csproj`, sua 3 installer `.iss` dong bo version `0.057`. Commit `ca15597`.
+7. **Ra soat UI thread + Cancel Excel import**: kiem tra printer enumeration (OK — local nhan), them `CancelButton` + `CancellationTokenSource` cho `ExcelImportWindow` khi doc file Excel qua mang. Commit `851b3d1`.
+8. **Template Library unit test**: them test `template library links sample-data.xlsx` kiem tra tat ca `*.anlabel` trong `TemplateLibrary/` co `DatabaseConfig.FilePath` tro toi `sample-data.xlsx`. 18/18 test PASS. Commit `5f2386a`.
 9. **GĐ1 database-plan — sua ho loi "mat link" Excel** (`docs/database-plan.md` muc 1-3, 3b):
    - `DatabaseConfig.RelativePath` + `ResolveExcelPath()` (absolute → relative → same dir → broken) trong `MainViewModel.cs`.
    - `UpdateRelativePath()` tu tinh RelativePath khi Save/Import Excel.
@@ -382,7 +382,7 @@ ANLAbel la phan mem thiet ke & in tem nhan (label designer) cho may in tem nhan 
 
 1. **Day manh phan gan database + siet tin cay database**: Giai doan TC1-TC7, Giai doan 2 (item 4-6), va Database Manager M1-M3+M4a da hoan tat toan bo (v0.080; xem muc 26-32 ben tren). Chi con theo nhu cau thuc te: CSV, lazy-load file lon, ODBC/SQL, filter/sort truoc khi in (M4b).
 2. **Siet tin cay In & Preview**: DA XONG TOAN BO phan code kha thi (Dot 1, 2, 4 + Dot 3 muc 8; xem muc 22-25 ben tren). Chi con muc 9 (Dot 3) can test tay tren may in that truoc khi release rong.
-3. **Template thu vien KHONG tu gan Excel nua**: DA XONG (commit `c3da135`) — sample-data.xlsx bi go khoi bundle, DatabaseConfig cua 17 template de trong, test `template library standalone (no sample-data link)` bao ve. Rule 8 `agent.md` da cap nhat theo quyet dinh nay.
+3. **Template thu vien KHONG tu gan Excel nua**: DA XONG (commit `04789ec`) — sample-data.xlsx bi go khoi bundle, DatabaseConfig cua 17 template de trong, test `template library standalone (no sample-data link)` bao ve. Rule 8 `agent.md` da cap nhat theo quyet dinh nay.
 4. **Kiem tra & sap xep lai Properties panel**: DA XONG TOAN BO (dot A/B/C, v0.059-0.068; xem muc 12, 20, 21 ben tren).
 
 ## Viec can lam tiep (uu tien de xuat, chua ai duyet — hoi nguoi dung truoc khi lam)

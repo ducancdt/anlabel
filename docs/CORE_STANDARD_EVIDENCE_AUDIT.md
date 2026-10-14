@@ -7,12 +7,12 @@ Base commit: `d408fe8191d8cbd9aece3b69b706deced7c00833`, worktree có nhiều th
 >
 > Phiên này chỉ đọc source/assertion và sửa tài liệu này; không chạy build, test, Fast, mutation, WPF, driver hay máy in. Không chứng nhận thay đổi Excel đang do chủ sở hữu khác thực hiện. `Not verified` là thiếu bằng chứng thực thi hiện tại, **không đồng nghĩa có bug**; mâu thuẫn xác định qua source được ghi riêng, chưa gọi là test Fail.
 
-## Trạng thái hiện hành theo commit đã khóa — `fd87cf5` (v0.308, 2026-10-13)
+## Trạng thái hiện hành theo commit đã khóa — `60be98c` (v0.308, 2026-10-13)
 
 Phần này thay cho “Kết luận mapping hiện tại (2026-09-16)” ở dưới. Các phần lịch
 sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chuẩn:
 
-- **Commit:** `fd87cf5` (`release: v0.308`), worktree sạch, Windows 11, .NET 8,
+- **Commit:** `60be98c` (`release: v0.308`), worktree sạch, Windows 11, .NET 8,
   máy phát triển.
 - **Lệnh:**
   - `dotnet build ANLAbel.slnx -c Debug` → 0 cảnh báo, 0 lỗi.
@@ -25,14 +25,14 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
   - **Vật lý:** máy in và tem thật. Mức này chia ba: quan sát capability, spool
     và xác minh tem ra.
 - Không mức nào được suy ra từ mức khác. `Not verified` không đóng gate.
-- **Cập nhật 2026-10-14 tại `4da7b1b` (v0.311):** B06 và DB03 lên Pass ở mức phần mềm, nên cả 39 ID (32 ID lõi và F01–F07) đều có gate tự động. Lệnh: build 0/0; unit 1199/1199; regression 258 PASS / 0 FAIL; Fast quality loop đạt; `scripts/Invoke-ANLAbelLifecycleSmoke.ps1` trên bản cài 0.311 → 15/15.
-- **Cập nhật 2026-10-14 tại `758deb1` (v0.312):** thêm gate B05 cho mã 1D theo X tràn mép tem. Build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.312.
-- **Cập nhật 2026-10-14 tại `72d2e41` (v0.313):** DB03 hiển thị trong Bảng thuộc tính và danh sách Lớp; build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.313.
-- **Cập nhật 2026-10-14 tại `a73082f` (v0.315, sửa theo review mã nguồn):** build 0/0; unit 1210/1210; regression 261 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.315.
-- **Cập nhật 2026-10-14 tại `b7583ff` (v0.316, sửa theo review lần hai):** bộ phân tích công thức an toàn khi nhiều luồng dùng chung; DB03, B04, B05 như trên. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.316.
-- **Cập nhật 2026-10-14 tại `7983ade` (v0.317, sửa theo review lần ba):** lời báo QR phiên bản cố định và dấu ngoặc trống. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.317.
-- **Cập nhật 2026-10-14 tại `839233f` (v0.318):** cột không có tiêu đề và không có dữ liệu không thành trường (Excel và CSV). Build 0/0; unit 1213/1213; regression 263 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.318, script smoke nay tự kết luận.
-- **Cập nhật 2026-10-14 tại `8ebf228` (v0.319):** máy in rút cáp (hàng đợi “work offline”) chặn trước khi gửi. Build 0/0; unit 1217/1217; regression 264 PASS / 0 FAIL. Chuột thật ở 150 % trên bản cài v0.318: kéo, dời, hoàn tác và tooltip đạt.
+- **Cập nhật 2026-10-14 tại `5da82f1` (v0.311):** B06 và DB03 lên Pass ở mức phần mềm, nên cả 39 ID (32 ID lõi và F01–F07) đều có gate tự động. Lệnh: build 0/0; unit 1199/1199; regression 258 PASS / 0 FAIL; Fast quality loop đạt; `scripts/Invoke-ANLAbelLifecycleSmoke.ps1` trên bản cài 0.311 → 15/15.
+- **Cập nhật 2026-10-14 tại `1297073` (v0.312):** thêm gate B05 cho mã 1D theo X tràn mép tem. Build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.312.
+- **Cập nhật 2026-10-14 tại `661dbfb` (v0.313):** DB03 hiển thị trong Bảng thuộc tính và danh sách Lớp; build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.313.
+- **Cập nhật 2026-10-14 tại `aad88de` (v0.315, sửa theo review mã nguồn):** build 0/0; unit 1210/1210; regression 261 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.315.
+- **Cập nhật 2026-10-14 tại `91f3538` (v0.316, sửa theo review lần hai):** bộ phân tích công thức an toàn khi nhiều luồng dùng chung; DB03, B04, B05 như trên. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.316.
+- **Cập nhật 2026-10-14 tại `1690d0a` (v0.317, sửa theo review lần ba):** lời báo QR phiên bản cố định và dấu ngoặc trống. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.317.
+- **Cập nhật 2026-10-14 tại `ce8ad8e` (v0.318):** cột không có tiêu đề và không có dữ liệu không thành trường (Excel và CSV). Build 0/0; unit 1213/1213; regression 263 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.318, script smoke nay tự kết luận.
+- **Cập nhật 2026-10-14 tại `215f19c` (v0.319):** máy in rút cáp (hàng đợi “work offline”) chặn trước khi gửi. Build 0/0; unit 1217/1217; regression 264 PASS / 0 FAIL. Chuột thật ở 150 % trên bản cài v0.318: kéo, dời, hoàn tác và tooltip đạt.
 
 | ID | Phần mềm | Tương tác | Vật lý | Bằng chứng chính / phần còn thiếu |
 | --- | --- | --- | --- | --- |
@@ -383,7 +383,7 @@ danh sách loại từ enum runtime và buộc mỗi loại có fixture dương,
 đủ sáu ca round-trip. Loại mới thiếu một trong ba sẽ làm test đỏ.
 
 Kết quả chạy: unit 1141/1141 cùng `BarcodeEvidenceMatrixTests` 30/30 tại
-`e424901` + slice này (2026-10-13).
+`17bce1d` + slice này (2026-10-13).
 
 | Loại | Fixture dương (round-trip) | Fixture âm bị từ chối | Bộ đọc trong test | Ghi chú |
 | --- | --- | --- | --- | --- |

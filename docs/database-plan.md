@@ -8,7 +8,7 @@
 
 1. **Đẩy mạnh phần gắn database (binding)** — đây là tính năng lõi của sản phẩm; ưu tiên hoàn thiện luồng gắn dữ liệu vào object (Excel field / formula) mượt và rõ ràng hơn.
 2. **Siết chặt độ tin cậy phần database** — mọi thao tác dữ liệu (import, refresh, relink, restore khi mở file) phải đoán được, không mất dữ liệu, không treo, sai ở đâu báo rõ ở đó. Xem "Giai đoạn TC — Siết tin cậy" bên dưới, làm **trước** phần mở rộng (GĐ3).
-3. **Template thư viện KHÔNG tự gắn Excel nữa** — ✅ đã thực hiện (commit `c3da135`): gỡ `sample-data.xlsx` khỏi bundle, `DatabaseConfig.FilePath/SheetName` của mọi template thư viện để trống, test `template library standalone (no sample-data link)` bảo vệ quyết định này. Người dùng mở template rồi tự Import Excel của họ; `BindingExpression` placeholder giữ nguyên để map vào cột thật. Rule 8 trong `agent.md` đã cập nhật theo.
+3. **Template thư viện KHÔNG tự gắn Excel nữa** — ✅ đã thực hiện (commit `04789ec`): gỡ `sample-data.xlsx` khỏi bundle, `DatabaseConfig.FilePath/SheetName` của mọi template thư viện để trống, test `template library standalone (no sample-data link)` bảo vệ quyết định này. Người dùng mở template rồi tự Import Excel của họ; `BindingExpression` placeholder giữ nguyên để map vào cột thật. Rule 8 trong `agent.md` đã cập nhật theo.
 
 ## Hiện trạng (đã audit)
 
@@ -18,7 +18,7 @@ Luồng dữ liệu hiện tại của một template `.anlabel`:
 - Import qua dialog `Import Excel` (`ExcelImportWindow`) → `ExcelDataService` (ClosedXML) đọc header dòng 1 + toàn bộ rows thành chuỗi.
 - Mở lại template: nếu file Excel còn tồn tại đúng đường dẫn thì tự restore data + row cuối đã chọn; mất file thì báo link hỏng nhưng template vẫn mở được.
 - Binding `{Field}` / `FIELD("...")` có cơ chế match mềm (bỏ khoảng trắng/gạch/hoa-thường) và tự repair khi header đổi nhẹ.
-- Template thư viện: **từ commit `c3da135` không còn ship `sample-data.xlsx` và không tự gắn link Excel** — `DatabaseConfig` để trống, người dùng tự Import Excel sau khi mở template (quyết định chủ dự án 2026-07-02).
+- Template thư viện: **từ commit `04789ec` không còn ship `sample-data.xlsx` và không tự gắn link Excel** — `DatabaseConfig` để trống, người dùng tự Import Excel sau khi mở template (quyết định chủ dự án 2026-07-02).
 
 ### Điểm yếu chính
 

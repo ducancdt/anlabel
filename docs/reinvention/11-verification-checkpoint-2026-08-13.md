@@ -1,7 +1,7 @@
 # ANLAbel — current verification checkpoint (2026-08-13)
 
 **Status:** evidence snapshot; not a release approval
-**Documentation checkpoint:** `96f6ab5` (`docs: reconcile barcode execution status`)
+**Documentation checkpoint:** `d23f977` (`docs: reconcile barcode execution status`)
 **Scope:** record the current source/test/version evidence without staging the broad implementation wave already present in the worktree.
 
 ## Why this file exists
