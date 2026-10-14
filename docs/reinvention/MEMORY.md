@@ -1,7 +1,7 @@
 # Current facts
 
 - Tree: `H:\00_REPOS_PROJECTS\ANLABEL`. Do not recreate C: clones.
-- Version: `0.316`.
+- Version: `0.317`.
 - Product: compact local label designer. Basics only. Stability first.
 - Direction (2026-09-15): industrial reliability and simple, understandable
   operation. NiceLabel is selective reference only; no parity backlog.

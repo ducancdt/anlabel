@@ -1,5 +1,33 @@
 # ANLAbel Phase 1 Plan
 
+## v0.317 — Lời báo đúng cách sửa cho QR phiên bản cố định và dấu ngoặc trống
+
+Review lần ba các thay đổi của v0.316 không thấy lỗi mức vừa hay cao. Bản này
+sửa hai lỗi nhỏ review tìm ra và một lời khuyên sai của v0.316.
+
+**Mã vạch**
+
+- QR đặt phiên bản cố định mà dữ liệu vượt dung lượng: designer nay báo như khi
+  in, “Dữ liệu (… byte) vượt dung lượng phiên bản QR đã chọn; chọn phiên bản lớn
+  hơn hoặc Tự động”. v0.316 khuyên nới khung, nhưng ở chế độ này khung do phiên
+  bản quyết định.
+
+**Dữ liệu**
+
+- Dấu ngoặc không có tên cột ở giữa (ví dụ `Size: { }`) vẫn chặn in, nay nói rõ
+  “dấu ngoặc {} chưa có tên cột nên đối tượng sẽ in trống; nhập tên cột vào giữa
+  hai dấu ngoặc hoặc xóa chúng”. Danh sách Lớp hiện “Lỗi liên kết” thay vì một
+  cột thiếu không có tên.
+- Liên kết viết có dấu cách như `{ Lot }` khi tệp không có cột đó được đếm là
+  một trường thiếu (trước hiện “Thiếu 2 trường”).
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.316 — Sửa theo review lần hai: giá trị in không bị trống, liên kết không bị đổi, lời báo đúng cách sửa
 
 Review mã nguồn lần hai các thay đổi của v0.311–v0.315 xác nhận 15 lỗi; bản này
@@ -23,7 +51,8 @@ sửa cả 15.
 - Dòng in giữ thứ tự cột của tệp rồi tới trường chuyển đổi, đúng thứ tự ANLAbel
   kiểm tra.
 - Công thức có tên trường ghép từ dữ liệu (ví dụ `FIELD(CONCAT("Price_",
-  FIELD("Currency"))))`) và `{ }` không còn bị báo là thiếu cột.
+  FIELD("Currency")))`) không còn bị báo là thiếu cột, và lời báo sau khi nhập
+  không còn nêu `{ }` là một cột thiếu (lệnh in vẫn dừng; v0.317 nói rõ lý do).
 - Tên khớp ngang nhau được báo đúng cách sửa: “Tên khớp nhiều cột: PartNo” trong
   danh sách Lớp, “đổi tên một trong các cột đó hoặc liên kết đúng tên tiêu đề”
   trong Bảng thuộc tính. Sau Mở, Xác thực, Liên kết lại, dòng trạng thái giữ số
