@@ -1,5 +1,20 @@
 # ANLAbel Phase 1 Plan
 
+## v0.314 — Báo ảnh hỏng ngay khi thiết kế
+
+**Thiết kế (D07, bổ sung)**
+
+- Ảnh có dữ liệu nhưng không đọc được trước đây chỉ hiện ô trống trên canvas và
+  chỉ bị báo khi lệnh in bị chặn. Nay chip trên thanh trạng thái báo “1 ảnh hỏng”;
+  di chuột lên chip để xem ảnh nào, bấm vào chip để chọn ảnh đó rồi chèn lại.
+- Mỗi ảnh chỉ được đọc thử một lần, nên thao tác sửa không chậm đi.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL. Smoke giao diện (UIA)
+  không còn dừng vì lỗi COM thoáng qua của UI Automation.
+- Chưa có bằng chứng in vật lý mới.
+
 ## v0.313 — Bảng thuộc tính báo cột trùng/trống tiêu đề ngay khi mở mẫu
 
 **Dữ liệu (DB03, bổ sung)**
