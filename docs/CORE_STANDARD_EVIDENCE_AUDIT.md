@@ -31,6 +31,7 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 - **Cập nhật 2026-10-14 tại `829b50e` (v0.315, sửa theo review mã nguồn):** build 0/0; unit 1210/1210; regression 261 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.315.
 - **Cập nhật 2026-10-14 tại `4aac991` (v0.316, sửa theo review lần hai):** bộ phân tích công thức an toàn khi nhiều luồng dùng chung; DB03, B04, B05 như trên. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.316.
 - **Cập nhật 2026-10-14 tại `4fd3977` (v0.317, sửa theo review lần ba):** lời báo QR phiên bản cố định và dấu ngoặc trống. Build 0/0; unit 1211/1211; regression 262 PASS / 0 FAIL; smoke 15/15 hai lần trên bản cài 0.317.
+- **Cập nhật 2026-10-14 tại `828858d` (v0.318):** cột không có tiêu đề và không có dữ liệu không thành trường (Excel và CSV). Build 0/0; unit 1213/1213; regression 263 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.318, script smoke nay tự kết luận.
 
 | ID | Phần mềm | Tương tác | Vật lý | Bằng chứng chính / phần còn thiếu |
 | --- | --- | --- | --- | --- |
