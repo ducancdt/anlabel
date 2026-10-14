@@ -261,6 +261,13 @@ internal static class BarcodeParityRegression
                          + string.Join(" | ", fixedIssues.Select(issue => issue.Message)));
         }
 
+        // The designer gives the same advice: a larger version, not a larger frame.
+        var fixedErrors = RunOnSta(() => DesignerErrors(fixedTemplate, hugeRow));
+        if (!fixedErrors.Any(error => error.StartsWith("Dữ liệu (306 byte) vượt dung lượng phiên bản QR đã chọn", StringComparison.Ordinal)))
+        {
+            failures.Add("The designer must name the fixed version's capacity: " + string.Join(" | ", fixedErrors));
+        }
+
         // A printer or DPI change redraws the designer's barcodes at the new DPI.
         var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Code"] = Payload };
         var dpiTemplate = new LabelTemplate { Name = "B06 DPI change", WidthMm = 60, HeightMm = 40, Dpi = 300 };

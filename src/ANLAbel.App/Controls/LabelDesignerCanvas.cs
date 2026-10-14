@@ -3859,6 +3859,14 @@ public sealed class LabelDesignerCanvas : Canvas
 
             var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
             var pixels = _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, planDpi, CreateBarcodeRenderOptions(item));
+            // A fixed QR version too small for the data is the cause the print
+            // reports, so its advice comes first (a larger version, not a larger
+            // frame).
+            if (ANLAbel.Printing.PrinterProfiles.PrintPreflightValidator.FixedQrCapacityProblem(item, data) is { } capacity)
+            {
+                return ANLAbel.App.Services.PreflightIssueText.Sentence(capacity);
+            }
+
             // A square code that needs more printer dots than its frame is drawn
             // squeezed into it, so the drawing alone does not show that the print
             // blocks it (B04); the mark uses the preflight's rule.

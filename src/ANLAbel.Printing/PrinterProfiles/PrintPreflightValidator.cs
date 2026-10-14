@@ -558,28 +558,40 @@ public sealed class PrintPreflightValidator
     /// <summary>Reports a fixed QR version that cannot hold this row's data; true when it did.</summary>
     private static bool ValidateFixedQrCapacity(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues)
     {
-        if (item.Type != ObjectType.QRCode || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+        if (FixedQrCapacityProblem(item, data) is not { } problem)
         {
             return false;
+        }
+
+        issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), problem));
+        return true;
+    }
+
+    /// <summary>
+    /// The issue text when the QR's fixed version cannot hold <paramref name="data"/>,
+    /// otherwise null. The designer marks the object with the same text, so a
+    /// fixed-version code is not told to enlarge a frame its version decides.
+    /// </summary>
+    public static string? FixedQrCapacityProblem(LabelObject item, string data)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (item.Type != ObjectType.QRCode || item.QrSizingMode != QrSizingMode.FixedVersionAndModuleSize)
+        {
+            return null;
         }
 
         var version = item.QrFixedVersion;
         if (QrVersionHelper.IsValidVersion(version)
             && QrCapacityProvider.CanEncodeByteMode(data, version, item.QrErrorCorrection))
         {
-            return false;
+            return null;
         }
 
         var byteCount = Encoding.UTF8.GetByteCount(data);
         var capacity = QrVersionHelper.IsValidVersion(version)
             ? QrCapacityProvider.GetByteModeCapacity(version, item.QrErrorCorrection)
             : 0;
-        issues.Add(new PrintPreflightIssue(
-            rowIndex + 1,
-            item.Name,
-            item.Type.ToString(),
-            $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size."));
-        return true;
+        return $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size.";
     }
 
     /// <summary>
