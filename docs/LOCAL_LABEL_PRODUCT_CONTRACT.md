@@ -46,7 +46,8 @@ objects` (MEASURE lines). The gate opens the preview for 10,000 rows only when
 - Import runs off the UI thread, with Cancel. It stops after 45 s for a local
   file and 30 s for a network file.
 - Print Preview shows progress and can be cancelled. Its time grows about
-  linearly with rows × barcodes.
+  linearly with rows × barcodes. The whole measurement run, the 10,000-label
+  preview included, peaks at about 170 MB working set (2026-10-14).
 - Starting the installed app with a template: the window shows in about 1 s and
   the template is open in 1.3 s, with a working set of about 133 MB (warm start,
   2026-10-14, v0.318).
