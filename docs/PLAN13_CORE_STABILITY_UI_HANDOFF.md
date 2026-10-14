@@ -131,7 +131,7 @@ chỉ hộp thoại `OperatorDialog` sẵn có, dòng trạng thái và chữ tr
 | Thao tác chuột thật trên hộp thoại | Chưa kiểm tra bằng tay; hộp thoại dùng `ShowDialog` nên test tự động không bấm nút |
 | Lệnh in dừng/bị chặn nói tiếng Việt, đúng dòng dữ liệu | `print stops are explained in plain Vietnamese`, `preflight issues name the data row in Vietnamese` — PASS; mỗi quy tắc neo vào chuỗi lõi nên đổi chuỗi lõi sẽ làm gate đỏ |
 | Chữ mục 3b (v0.309) | `printer, print, template and data failures read in Vietnamese` — PASS; `saving over another window's save asks first`, `printer list wait is bounded and reuses a stuck enumeration` — PASS; UIA smoke 15/15 trên bản cài v0.309 |
-| Chữ mục 3b sau review lần hai (2026-10-14) | `ties, transforms and copies are checked as printing reads them`, `a linear symbol past the label edge blocks its row`, `an oversized 2D symbol blocks and the designer draws it like the print`, `printer, print, template and data failures read in Vietnamese` — PASS |
+| Chữ mục 3b sau review lần hai (2026-10-14) | `ties, transforms and copies are checked as printing reads them`, `a linear symbol past the label edge blocks its row`, `an oversized 2D symbol blocks and the designer draws it like the print`, `printer, print, template and data failures read in Vietnamese` — PASS; trên bản cài 0.316, QR khung 5 mm liên kết giá trị dài có khung lỗi đỏ (chụp cửa sổ, chưa rê chuột thật để xem tooltip) |
 
 ## 7. Điều kiện hoàn tất
 
