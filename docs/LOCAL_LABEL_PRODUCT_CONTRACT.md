@@ -47,6 +47,10 @@ objects` (MEASURE lines). The gate opens the preview for 10,000 rows only when
   file and 30 s for a network file.
 - Print Preview shows progress and can be cancelled. Its time grows about
   linearly with rows × barcodes.
+- A stray value far to the right of the data (for example in column XFD) does
+  not slow import: a column with neither a header nor data is not a field.
+  1,000 such rows import in about 0.6 s; before 2026-10-14 they took 25–31 s
+  and 1.4 GB, with 16,384 fields.
 - With 200 objects, a drag costs about 6 ms per frame. With the largest real
   template (49 objects), it costs under 1 ms.
 
