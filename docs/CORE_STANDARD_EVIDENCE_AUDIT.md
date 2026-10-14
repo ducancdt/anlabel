@@ -398,10 +398,18 @@ Kết quả chạy: unit 1141/1141 cùng `BarcodeEvidenceMatrixTests` 30/30 tạ
 | MSI | `123456` | `12345A` | ZXing | — |
 | Plessey | `98765` | `9876F` | bộ đọc viết trong test (ZXing không đọc Plessey) | bằng chứng yếu hơn các loại khác |
 
+**Đối chiếu bằng bộ đọc độc lập (2026-10-14, một lần, không phải gate tự động).** Các fixture dương ở trên được render bằng `ZxingBarcodeRenderer.RenderBarcode` (khung 60×40 mm, thêm lề trắng 40 px) ở 203, 300 và 600 DPI. Sau đó ảnh được giải mã bằng ZBar (`libzbar-64.dll` đi kèm pyzbar 0.1.9), một mã nguồn độc lập với ZXing. Kết quả 30/30 ca cho 10 loại ZBar đọc được:
+
+- Code 128 (giữ cả dấu cách đầu/cuối), QR (tiếng Việt, xuống dòng), Code 39, Code 93, EAN-13, EAN-8, ITF và Codabar khớp từng ký tự.
+- UPC-A được ZBar báo theo mặc định dưới dạng EAN-13 có số 0 đầu (`0036000291452`).
+- UPC-E được ZBar mở rộng thành mã UPC-A tương đương theo quy tắc GS1 (`0012345000065`); phép mở rộng được tính lại trong script, không suy đoán.
+
+ZBar không đọc Data Matrix, Aztec, PDF417, MSI và Plessey, nên năm loại này vẫn chỉ có bộ đọc trong test.
+
 | ID | Bằng chứng phần mềm hiện có | Còn thiếu | Trạng thái |
 | --- | --- | --- | --- |
-| B01 | Fixture âm theo từng loại ở trên; preflight chặn payload sai | Decoder độc lập với encoder | Not verified (vật lý) |
-| B02 | Round-trip giữ nguyên payload từ ô dữ liệu tới decode | Như trên | Not verified (vật lý) |
+| B01 | Fixture âm theo từng loại ở trên; preflight chặn payload sai; 10 loại đã đối chiếu bằng ZBar (2026-10-14) | Bộ đọc độc lập cho Data Matrix, Aztec, PDF417, MSI, Plessey; tem in thật | Not verified (vật lý) |
+| B02 | Round-trip giữ nguyên payload từ ô dữ liệu tới decode; ZBar đọc lại đúng từng ký tự (kể cả dấu cách đầu/cuối của Code 128, chữ có dấu và xuống dòng của QR) | Như trên | Not verified (vật lý) |
 | B03 | `BarcodeApplicationContractTests` (AI, độ dài, số kiểm tra, separator), `Gs1Code128Fnc1RoundTripTests` | Quét GS1 vật lý | Not verified |
 | B04 | `LinearBarcodeModuleContractTests`, `MatrixSquareModuleFitTests`, `QrSizingCalculatorTests`, `Code39RatioContractTests` | Đo trên tem in thật ở 203/300 DPI | Not verified |
 | B05 | `BarcodeHriLayoutTests`, `DeviceBarcodeLayoutTests` | Xoay × HRI × mép in trên output thật | Not verified |
