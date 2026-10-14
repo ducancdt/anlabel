@@ -73,9 +73,10 @@ function Add-TextObject($win) {
     throw 'Text tool not found'
 }
 try {
-    # Scenario A: cancel then discard at the close prompt.
+    # Scenario A: cancel then discard at the close prompt. The first start
+    # after an update can be slow while the new files are scanned.
     $win = Start-App @('"' + $doc + '"')
-    [void](Wait-Until { $win.Current.Name -like 'smoke*' } 20)
+    [void](Wait-Until { $win.Current.Name -like 'smoke*' } 60)
     $results['A_title_after_open'] = $win.Current.Name
     Add-TextObject $win
     [void](Wait-Until { $win.Current.Name -like 'smoke`**' } 10)
@@ -120,3 +121,28 @@ finally {
     $results.GetEnumerator() | ForEach-Object { '{0} = {1}' -f $_.Key, $_.Value }
     Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
 }
+
+# The verdict: a wrong value fails the run instead of passing as a printed line.
+$checks = [ordered]@{
+    A_title_after_open = ($results['A_title_after_open'] -like 'smoke*') -and ($results['A_title_after_open'] -notlike 'smoke`**')
+    A_title_dirty = $results['A_title_dirty'] -like 'smoke`**'
+    A_alive_after_cancel = $results['A_alive_after_cancel'] -eq $true
+    A_exited_after_discard = $results['A_exited_after_discard'] -eq $true
+    A_document_unchanged = $results['A_document_unchanged'] -eq $true
+    B_title_dirty = $results['B_title_dirty'] -like 'smoke`**'
+    B_autosave_written = $results['B_autosave_written'] -eq $true
+    B_offer_shown = $results['B_offer_shown'] -eq $true
+    B_offer_title = $results['B_offer_title'] -like 'Tìm thấy bản phục hồi*'
+    B_title_after_recovery = $results['B_title_after_recovery'] -like 'smoke`**'
+    B_original_untouched = $results['B_original_untouched'] -eq $true
+    C_exited_after_save = $results['C_exited_after_save'] -eq $true
+    C_document_saved = $results['C_document_saved'] -eq $true
+    C_backup_written = $results['C_backup_written'] -eq $true
+    C_recovery_files_left = $results['C_recovery_files_left'] -eq 0
+}
+$failed = @($checks.GetEnumerator() | Where-Object { -not $_.Value } | ForEach-Object { $_.Key })
+if ($failed.Count -gt 0) {
+    Write-Host ('SMOKE FAIL {0}/{1}: {2}' -f ($checks.Count - $failed.Count), $checks.Count, ($failed -join ', '))
+    exit 1
+}
+Write-Host ('SMOKE PASS {0}/{0}' -f $checks.Count)
