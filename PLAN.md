@@ -1,5 +1,28 @@
 # ANLAbel Phase 1 Plan
 
+## v0.319 — Máy in rút cáp thì dừng in, không gửi lệnh vào hàng đợi
+
+**In**
+
+- Khi máy in USB bị rút cáp, Windows đánh dấu hàng đợi là “làm việc ngoại tuyến”
+  nhưng trạng thái vẫn báo sẵn sàng. ANLAbel trước đây vẫn gửi lệnh in: lệnh nằm
+  chờ trong hàng đợi và tự in ra lúc máy in được cắm lại, có thể in trùng nếu
+  người vận hành đã in lại. Nay lệnh in dừng trước khi gửi với lời báo “Máy in
+  “Xprinter XP-DT426B” đang ngoại tuyến (offline). Chưa có tem nào được gửi.” và
+  cách sửa “Bật máy in, kiểm tra cáp hoặc mạng rồi in lại.”
+- Máy in còn trong Windows nhưng chưa in được (ngoại tuyến, tạm dừng, hết tem…)
+  không còn bị báo là “Không tìm thấy máy in”.
+- Tìm ra khi in thử có phép trên XP-DT426B ngày 2026-10-14; lúc đó trong hàng đợi
+  còn một lệnh từ 2026-10-01 chưa in.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1217/1217; regression 264 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Đã kiểm chuột thật ở 150 % trên bản cài v0.318 (kéo, dời, hoàn tác, tooltip).
+  Tem in thử chưa ra vì máy in đang rút cáp.
+
 ## v0.318 — Một ô lạc ở cột xa không còn làm việc nhập Excel chậm và tốn bộ nhớ
 
 **Dữ liệu**
