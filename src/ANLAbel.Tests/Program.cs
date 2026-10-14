@@ -9019,13 +9019,21 @@ static async Task<string[]> WaitForLogLinesAsync(string logPath, int minLineCoun
 {
     for (var attempt = 0; attempt < 40; attempt++)
     {
-        if (File.Exists(logPath))
+        // The import logs fire-and-forget; reading while that append still
+        // holds the file throws a sharing violation, which only means "not yet".
+        try
         {
-            var lines = (await File.ReadAllLinesAsync(logPath)).Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
-            if (lines.Length >= minLineCount)
+            if (File.Exists(logPath))
             {
-                return lines;
+                var lines = (await File.ReadAllLinesAsync(logPath)).Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+                if (lines.Length >= minLineCount)
+                {
+                    return lines;
+                }
             }
+        }
+        catch (IOException)
+        {
         }
 
         await Task.Delay(50);
