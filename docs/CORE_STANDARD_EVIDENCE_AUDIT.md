@@ -27,6 +27,7 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 - Không mức nào được suy ra từ mức khác. `Not verified` không đóng gate.
 - **Cập nhật 2026-10-14 tại `59467f9` (v0.311):** B06 và DB03 lên Pass ở mức phần mềm, nên cả 39 ID (32 ID lõi và F01–F07) đều có gate tự động. Lệnh: build 0/0; unit 1199/1199; regression 258 PASS / 0 FAIL; Fast quality loop đạt; `scripts/Invoke-ANLAbelLifecycleSmoke.ps1` trên bản cài 0.311 → 15/15.
 - **Cập nhật 2026-10-14 tại `98cd7ac` (v0.312):** thêm gate B05 cho mã 1D theo X tràn mép tem. Build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.312.
+- **Cập nhật 2026-10-14 tại `788579e` (v0.313):** DB03 hiển thị trong Bảng thuộc tính và danh sách Lớp; build 0/0; unit 1199/1199; regression 259 PASS / 0 FAIL; smoke 15/15 trên bản cài 0.313.
 
 | ID | Phần mềm | Tương tác | Vật lý | Bằng chứng chính / phần còn thiếu |
 | --- | --- | --- | --- | --- |
