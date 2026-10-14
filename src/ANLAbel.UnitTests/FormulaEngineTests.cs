@@ -124,4 +124,37 @@ public sealed class FormulaEngineTests
         var result = Evaluate("CONCAT(CONCAT(FIELD(\"A\"), \"|\"), FIELD(\"B\"))", row);
         Assert.Equal("x|y", result);
     }
+
+    // The designer, preflight and print threads share the static engines. A
+    // shared parse position once let a printed page read an empty value after
+    // preflight had passed, so each parse must see only its own formula.
+    [Fact]
+    public void SharedEngineParsesEachFormulaOnItsOwnUnderConcurrentUse()
+    {
+        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Part"] = "P-100",
+            ["Lot"] = "L42"
+        };
+        var cases = new[]
+        {
+            ("FIELD(\"Part\")", "P-100"),
+            ("CONCAT(FIELD(\"Part\"), \"/\", FIELD(\"Lot\"), \"/\", \"a longer literal widens the window\")",
+                "P-100/L42/a longer literal widens the window"),
+            ("CONCAT(\"Lot \", FIELD(\"Lot\"))", "Lot L42")
+        };
+        var wrong = 0;
+
+        Parallel.For(0, 30_000, new ParallelOptions { MaxDegreeOfParallelism = 8 }, index =>
+        {
+            var (formula, expected) = cases[index % cases.Length];
+            var result = FormulaBindingEvaluator.Evaluate(formula, row);
+            if (result.Value != expected || result.Errors.Count != 0)
+            {
+                Interlocked.Increment(ref wrong);
+            }
+        });
+
+        Assert.Equal(0, wrong);
+    }
 }
