@@ -37,7 +37,7 @@ Việc chỉ lấy từ mục 9 của kế hoạch; tài liệu này không tạ
 | D07 · Thiếu phông chữ / ảnh | `37:259`. WPF: chip `Shell.Status.MissingResources` (binding `MissingResourcesText`/`MissingResourcesDetail`), bấm để chọn đối tượng đầu tiên |
 | GĐ4 · “Cập nhật Excel” thất bại | `37:269`. WPF: `OperatorDialog` “Chưa đọc được dữ liệu” (lệnh Cập nhật/Liên kết lại) và “Nhập dữ liệu thất bại” (cửa sổ nhập), nội dung từ `DataFailureExplainer` |
 | GĐ5 · Lệnh in chưa rõ, nhật ký hỏng, dòng đã gửi | `37:280` |
-| GĐ5 · Lệnh in bị dừng / bị chặn (giải thích tiếng Việt) | Chưa có node riêng: ngày 2026-10-13 hết lượt gọi Figma MCP (gói Starter). Bố cục là hộp thoại F03 `36:188` (tiêu đề, dòng vấn đề, dòng việc cần làm, “Chi tiết kỹ thuật”, một nút chính); nội dung chữ ở §3a. Tạo thẻ khi có lượt gọi |
+| GĐ5 · Lệnh in bị dừng / bị chặn (giải thích tiếng Việt) | Chưa có node riêng: ngày 2026-10-13 hết lượt gọi Figma MCP (gói Starter). Bố cục là hộp thoại F03 `36:188` (tiêu đề, dòng vấn đề, dòng việc cần làm, “Chi tiết kỹ thuật”, một nút chính); nội dung chữ ở §3a. Tạo thẻ khi có lượt gọi. Ngày 2026-10-14: tài khoản Figma của MCP chỉ có ghế View nên không ghi được tệp; cần tài khoản có quyền sửa |
 
 ## 3. Trạng thái
 
