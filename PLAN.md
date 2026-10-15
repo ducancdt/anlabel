@@ -1686,7 +1686,7 @@ regression 211 PASS/0 FAIL. Chưa có bằng chứng in vật lý.
 - Callout noi ro ngay trong panel:
   - Text: free-flowing, dung TextBox neu can gioi han vung in.
   - TextBox: fixed frame, wrap, khong bao gio in ra ngoai object.
-- Bo `AutoFit`, `AdjustHeight` va `AllowOverflow` khoi lua chon TextBox; label UI dung ngon ngu theo tac vu: `Wrap in fixed frame`, `Reduce font size to fit`, `Compress width to fit`, `Block print and warn`, `Clip excess content`, `End with ellipsis`.
+- Bo `AutoFit`, `AdjustHeight` va `AllowOverflow` khoi lua chon TextBox; label UI dung ngon ngu theo tac vu. Tu 2026-10-15 (chu san pham duyet, chi doi chu hien thi): `Xuống dòng, giữ cỡ phông`, `Đổi cỡ phông cho vừa khung`, `Co giãn chiều ngang chữ cho vừa`, `Chặn in và cảnh báo`, `Cắt bỏ phần chữ dư (không in)`, `Thêm dấu ba chấm ở dòng cuối`; banner Text/TextBox va loi tran chu tren canvas cung tieng Viet. Bang doi chieu trong `docs/NICELABEL_TEXTBOX_RESEARCH.md`; gate `text box overflow is reported in Vietnamese on the canvas`.
 - Cac tuy chon it dung/ky thuat phai nam sau nhom chinh hoac trong Advanced de panel ngan, de scan.
 - Figma mockup phai dung icon SVG/asset tu codebase, auto-layout, section ro rang va validate screenshot rieng cho summary, content, typography va TextBox frame.
 

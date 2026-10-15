@@ -149,6 +149,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("pointer frame telemetry remains bounded by zoom and display scale", TestPointerFrameTelemetry),
     ("pointer telemetry overlay is opt-in and render-safe", TestPointerTelemetryOverlay),
     ("canvas context menu is Vietnamese without developer items", DesignerLanguageRegression.CanvasContextMenuIsVietnameseWithoutDeveloperItems),
+    ("text box overflow is reported in Vietnamese on the canvas", DesignerLanguageRegression.TextBoxOverflowIsReportedInVietnamese),
     ("designer style edits refresh the text visual", TestDesignerStyleEditsRefreshVisual),
     ("text autofit includes authored physical padding", TestTextAutoFitIncludesPhysicalPadding),
     ("text box does not resize object from text content", TestTextBoxDoesNotResizeFromText),

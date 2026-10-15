@@ -1711,10 +1711,10 @@
                                                 <TextBlock Grid.Column="1" FontSize="10.5" Foreground="#0C4A6E" TextWrapping="Wrap">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="Free Text follows its content and may extend horizontally. Use Text Box when print content must stay inside a fixed area."/>
+                                                            <Setter Property="Text" Value="Chữ tự do theo nội dung và có thể dài ra theo chiều ngang. Dùng Ô chữ khi nội dung in phải nằm gọn trong một vùng cố định."/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
-                                                                    <Setter Property="Text" Value="Bounded Text Box: drag or enter Width/Height to design the frame. Text wraps or fits inside and never changes or prints outside that frame."/>
+                                                                    <Setter Property="Text" Value="Ô chữ có khung: kéo hoặc nhập Rộng/Cao để định khung. Chữ xuống dòng hoặc co cho vừa bên trong, không làm đổi khung và không bao giờ in ra ngoài khung."/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -1808,10 +1808,10 @@
                                                         <TextBlock>
                                                             <TextBlock.Style>
                                                                 <Style TargetType="TextBlock">
-                                                                    <Setter Property="Text" Value="Wrap in fixed frame"/>
+                                                                    <Setter Property="Text" Value="Xuống dòng, giữ cỡ phông"/>
                                                                     <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ShrinkFont}"><Setter Property="Text" Value="Reduce font size to fit"/></DataTrigger>
-                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ScaleWidth}"><Setter Property="Text" Value="Fit by scaling font width"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ShrinkFont}"><Setter Property="Text" Value="Đổi cỡ phông cho vừa khung"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ScaleWidth}"><Setter Property="Text" Value="Co giãn chiều ngang chữ cho vừa"/></DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </TextBlock.Style>
@@ -1828,10 +1828,10 @@
                                                         <TextBlock>
                                                             <TextBlock.Style>
                                                                 <Style TargetType="TextBlock">
-                                                                    <Setter Property="Text" Value="Block print and warn"/>
+                                                                    <Setter Property="Text" Value="Chặn in và cảnh báo"/>
                                                                     <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextOverflowMode.Clip}"><Setter Property="Text" Value="Ignore excessive content (discard)"/></DataTrigger>
-                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextOverflowMode.Ellipsis}"><Setter Property="Text" Value="End with ellipsis (ANLAbel)"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextOverflowMode.Clip}"><Setter Property="Text" Value="Cắt bỏ phần chữ dư (không in)"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextOverflowMode.Ellipsis}"><Setter Property="Text" Value="Thêm dấu ba chấm ở dòng cuối"/></DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </TextBlock.Style>

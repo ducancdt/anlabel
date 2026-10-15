@@ -3816,10 +3816,10 @@ public sealed class LabelDesignerCanvas : Canvas
             ObjectType.Text when TextBoxOverflowDetector.ShouldBlockOverflow(item)
                 && TextBoxOverflowDetector.ShouldConstrainToBox(item)
                 && IsTextBoxOverflowing(item, MmConverter.MmToDip(item.WidthMm), MmConverter.MmToDip(item.HeightMm)) =>
-                "Text exceeds the fixed text frame. Increase the frame or reduce text/font size.",
+                "Chữ tràn khung đã khóa. Nới khung, bớt chữ hoặc giảm cỡ chữ.",
             ObjectType.TextBox when TextBoxOverflowDetector.ShouldBlockOverflow(item)
                 && IsTextBoxOverflowing(item, MmConverter.MmToDip(item.WidthMm), MmConverter.MmToDip(item.HeightMm)) =>
-                "Text exceeds this text box. Increase the object size or reduce text/font size.",
+                "Chữ tràn ra ngoài khung Ô chữ. Nới khung, bớt chữ hoặc giảm cỡ chữ.",
             ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix => GetBarcodeError(item),
             _ => null
         };

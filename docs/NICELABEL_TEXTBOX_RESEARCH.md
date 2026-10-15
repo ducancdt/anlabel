@@ -80,6 +80,25 @@ Same-size group la lop dieu phoi bo sung cho font-size fit hoac font-scale fit. 
 | Anchor/relative position | Rotation/position co; variable-size anchor/relative chain chua co | Gap cap 2 |
 | Ellipsis | `TextOverflow.Ellipsis` | Mo rong rieng ANLAbel, khong gan nhan NiceLabel |
 
+### Nhan UI tieng Viet (chu san pham duyet 2026-10-15)
+
+Chi doi chu hien thi trong Bang thuoc tinh va loi bao tran chu tren canvas. Hanh vi, enum, gia tri luu file va preset padding khong doi.
+
+| Enum | Nhan cu | Nhan moi |
+| --- | --- | --- |
+| `TextSizing.FixedFrame` | Wrap in fixed frame | `Xuống dòng, giữ cỡ phông` |
+| `TextSizing.ShrinkFont` | Reduce font size to fit | `Đổi cỡ phông cho vừa khung` (fit co the tang hoac giam trong min/max, nen khong goi la "giam") |
+| `TextSizing.ScaleWidth` | Fit by scaling font width | `Co giãn chiều ngang chữ cho vừa` |
+| `TextOverflow.Error` | Block print and warn | `Chặn in và cảnh báo` |
+| `TextOverflow.Clip` | Ignore excessive content (discard) | `Cắt bỏ phần chữ dư (không in)`: van noi ro phan du bi bo, dung quyet dinh o muc Source va print safety |
+| `TextOverflow.Ellipsis` | End with ellipsis (ANLAbel) | `Thêm dấu ba chấm ở dòng cuối` |
+
+- Banner Text: `Chữ tự do theo nội dung và có thể dài ra theo chiều ngang. Dùng Ô chữ khi nội dung in phải nằm gọn trong một vùng cố định.`
+- Banner TextBox: `Ô chữ có khung: kéo hoặc nhập Rộng/Cao để định khung. Chữ xuống dòng hoặc co cho vừa bên trong, không làm đổi khung và không bao giờ in ra ngoài khung.`
+- Canvas: `Chữ tràn ra ngoài khung Ô chữ. Nới khung, bớt chữ hoặc giảm cỡ chữ.` (Text khoa khung: `Chữ tràn khung đã khóa. …`.)
+- Giu nguyen: placeholder `Text Box` cua Ô chữ moi (invariant 5 cua hop dong) va chu mau khi them Chữ moi.
+- Gate: `text box overflow is reported in Vietnamese on the canvas`; scanner Viet hoa nay doc ca `Setter Value` cua Text/Content/ToolTip/Header, la cho sau tuy chon va hai banner tieng Anh da lot qua.
+
 ## Thuat toan ANLAbel duoc phep dung
 
 1. Resolve data cua tung row truoc khi layout.

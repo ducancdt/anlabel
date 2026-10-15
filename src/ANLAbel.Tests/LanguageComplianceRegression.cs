@@ -162,10 +162,15 @@ internal static class LanguageComplianceRegression
             // is not read as Content="Height"; ToolTipService.ToolTip still matches.
             "(?<!\\w)(?<attr>" + string.Join("|", VisibleAttributes) + ")=\"(?<val>[^\"]*)\"",
             RegexOptions.CultureInvariant);
+        // A style or trigger sets visible text too: six English TextBox options in
+        // the Properties panel were set this way and passed the scan (2026-10-15).
+        var setterPattern = new Regex(
+            "<Setter\\s+Property=\"(?<attr>" + string.Join("|", VisibleAttributes) + ")\"\\s+Value=\"(?<val>[^\"]*)\"",
+            RegexOptions.CultureInvariant);
 
         for (var i = 0; i < lines.Length; i++)
         {
-            foreach (Match m in attrPattern.Matches(lines[i]))
+            foreach (Match m in attrPattern.Matches(lines[i]).Concat(setterPattern.Matches(lines[i])))
             {
                 var value = m.Groups["val"].Value;
                 if (IsMarkupOrEmpty(value))
