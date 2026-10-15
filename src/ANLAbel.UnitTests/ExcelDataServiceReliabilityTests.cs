@@ -445,24 +445,30 @@ public sealed class ExcelDataServiceReliabilityTests
     }
 
     // The test above passes for a read that finishes within the grace period
-    // anyway; this read only ends when it is told to stop.
+    // anyway; this read only ends when it is told to stop. A read the thread pool
+    // had not started when the timeout fired is cancelled before it runs, which
+    // is also a stop, so the check applies to a read that did start.
     [Fact]
     public async Task TimedOutRead_IsToldToStop()
     {
-        var service = new ExcelDataService(TimeSpan.FromMilliseconds(1));
-        var stopped = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new ExcelDataService(TimeSpan.FromMilliseconds(200));
+        var started = false;
+        var sawStop = false;
 
         await Assert.ThrowsAsync<TimeoutException>(() => service.ReadAsync<int>(
             "local.xlsx",
             token =>
             {
-                stopped.TrySetResult(token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)));
+                Volatile.Write(ref started, true);
+                Volatile.Write(ref sawStop, token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)));
                 token.ThrowIfCancellationRequested();
                 return 0;
             },
             CancellationToken.None));
 
-        Assert.True(await stopped.Task, "The timed-out read was not asked to stop.");
+        // The timeout waits for a read that stops; one that was not told to stop
+        // is still waiting here.
+        Assert.True(!Volatile.Read(ref started) || Volatile.Read(ref sawStop), "The timed-out read was not asked to stop.");
     }
 
     // Cancel pressed while a timed-out read is still letting go of the file is a
@@ -470,18 +476,26 @@ public sealed class ExcelDataServiceReliabilityTests
     [Fact]
     public async Task CancelWhileATimedOutReadStops_IsACancel()
     {
-        var service = new ExcelDataService(TimeSpan.FromMilliseconds(1));
-        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ReadAsync<int>(
+        var service = new ExcelDataService(TimeSpan.FromMilliseconds(500));
+        using var cancel = new CancellationTokenSource();
+        var started = false;
+        var read = service.ReadAsync<int>(
             "local.xlsx",
             _ =>
             {
+                Volatile.Write(ref started, true);
                 // A step that cannot see the stop request, like the Excel reader's opening scan.
                 Thread.Sleep(3000);
                 return 0;
             },
-            cancel.Token));
+            cancel.Token);
+
+        // After the timeout (500 ms), inside the 2 s the read gets to stop.
+        await Task.Delay(1200);
+        cancel.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => read);
+        Assert.True(Volatile.Read(ref started), "The read never started, so the case was not exercised.");
     }
 
     private static string CreateWorkbook(Action<XLWorkbook> configure)
