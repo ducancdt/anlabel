@@ -149,7 +149,7 @@ internal static class XlsxFormulaValueInspector
 
             if (hasFormula && !hasValue && rowNumber >= firstRow)
             {
-                return new FormulaCell(reference ?? $"{ColumnName(columnNumber)}{rowNumber}", rowNumber, columnNumber);
+                return new FormulaCell(reference ?? $"{DataColumnOrigin.ToColumnLetter(columnNumber)}{rowNumber}", rowNumber, columnNumber);
             }
         }
 
@@ -177,16 +177,5 @@ internal static class XlsxFormulaValueInspector
         }
 
         return column > 0;
-    }
-
-    private static string ColumnName(int column)
-    {
-        var name = string.Empty;
-        for (var value = column; value > 0; value = (value - 1) / 26)
-        {
-            name = (char)('A' + (value - 1) % 26) + name;
-        }
-
-        return name;
     }
 }

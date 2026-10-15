@@ -72,7 +72,7 @@ public static class DataFailureExplainer
     private static (string Problem, string Action) ExplainInvalidData(ExcelDataReadException data, string file, string sheet, string message)
     {
         var cell = data.RowNumber is { } row
-            ? data.ColumnNumber is { } column ? $"ô {ColumnName(column)}{row} (dòng {row}, cột {column})" : $"dòng {row}"
+            ? data.ColumnNumber is { } column ? $"ô {DataColumnOrigin.ToColumnLetter(column)}{row} (dòng {row}, cột {column})" : $"dòng {row}"
             : "một ô";
 
         if (Regex.Match(message, @"contains an Excel error \((?<error>[^)]*)\)", RegexOptions.CultureInvariant) is { Success: true } error)
@@ -124,17 +124,6 @@ public static class DataFailureExplainer
     }
 
     private static string Capitalize(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
-
-    private static string ColumnName(int column)
-    {
-        var name = string.Empty;
-        for (var value = column; value > 0; value = (value - 1) / 26)
-        {
-            name = (char)('A' + (value - 1) % 26) + name;
-        }
-
-        return name;
-    }
 }
 
 /// <summary>
