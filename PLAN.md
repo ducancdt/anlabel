@@ -1,5 +1,27 @@
 # ANLAbel Phase 1 Plan
 
+## v0.323 — Sửa theo review: Hủy khi nhập quá giờ, chữ tiếng Việt còn sót
+
+**Dữ liệu**
+
+- Bấm Hủy trong lúc việc nhập quá giờ đang nhả tệp nay được hiểu là Hủy, không
+  hiện thêm lời báo hết giờ.
+- Lỗi thật của một lượt đọc đã bị bỏ dở lại được ghi vào `logs\errors.log`.
+
+**Thiết kế**
+
+- Chữ mới thêm bắt đầu bằng “Chữ tự do dài ra theo nội dung” thay cho câu tiếng
+  Anh; gỡ liên kết của một đối tượng trống điền “Chữ”. Hai lời báo dùng “trình
+  điều khiển” và “tệp” như phần còn lại của app.
+
+**Kiểm tra:**
+
+- Review độc lập các thay đổi ngày 2026-10-15: không có lỗi mức vừa hay cao; năm
+  điểm mức thấp đã sửa, hai unit mới đỏ khi gỡ bản sửa.
+- Build 0/0; unit 1220/1220; regression 265 PASS / 0 FAIL, gồm bảy gate
+  Text/TextBox. Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+
 ## v0.322 — Chiều chữ và tên đối tượng trong mẫu thư viện bằng tiếng Việt
 
 **Thiết kế**
