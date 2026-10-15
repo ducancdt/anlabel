@@ -411,6 +411,39 @@ public sealed class ExcelDataServiceReliabilityTests
         }
     }
 
+    // A read that ran past the timeout used to carry on in the background,
+    // holding the file open (Excel cannot save over it) and doubling the work
+    // when the operator tried again.
+    [Fact]
+    public async Task TimedOutRead_StopsAndReleasesTheFile()
+    {
+        var directory = CreateTemporaryDirectory();
+        var filePath = Path.Combine(directory, "large.csv");
+        using (var writer = new StreamWriter(filePath))
+        {
+            writer.WriteLine("PartNo,Qty,Lot");
+            for (var row = 1; row <= 300_000; row++)
+            {
+                writer.WriteLine($"P-{row:D6},{row % 50 + 1},L{row:D7}");
+            }
+        }
+
+        try
+        {
+            var service = new ExcelDataService(TimeSpan.FromMilliseconds(1));
+
+            await Assert.ThrowsAsync<TimeoutException>(
+                () => service.LoadSheetAsync(filePath, ExcelDataService.CsvSheetName));
+
+            using var exclusive = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            Assert.True(exclusive.Length > 0);
+        }
+        finally
+        {
+            DeleteWorkbook(filePath);
+        }
+    }
+
     private static string CreateWorkbook(Action<XLWorkbook> configure)
     {
         var directory = CreateTemporaryDirectory();

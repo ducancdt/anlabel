@@ -46,9 +46,9 @@ public sealed class ExcelDataService
     /// Previously only UNC/network paths got a timeout; a local read had none at all, so a stuck
     /// call (inside ExcelDataReader itself, or anywhere in this class) could hang forever with no
     /// recovery except killing the process. This does not fix whatever the underlying stuck
-    /// condition is — the background Task.Run may keep running after this fires — but it
-    /// guarantees the UI always gets back control with a clear, actionable error instead of an
-    /// unrecoverable freeze.
+    /// condition is, but it guarantees the UI always gets back control with a clear, actionable
+    /// error instead of an unrecoverable freeze. Since 2026-10-15 the read is also told to stop
+    /// (see <see cref="ReadAsync{T}"/>); only a call stuck where it cannot see that keeps running.
     /// </summary>
     private static readonly TimeSpan DefaultLocalTimeout = TimeSpan.FromSeconds(45);
 
@@ -61,6 +61,61 @@ public sealed class ExcelDataService
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
     }
 
+    private readonly TimeSpan _localTimeout;
+
+    public ExcelDataService()
+        : this(DefaultLocalTimeout)
+    {
+    }
+
+    /// <summary>A shorter local timeout lets tests reach the timeout path.</summary>
+    internal ExcelDataService(TimeSpan localTimeout)
+    {
+        _localTimeout = localTimeout;
+    }
+
+    private TimeSpan TimeoutFor(string filePath) => IsNetworkPath(filePath) ? DefaultNetworkTimeout : _localTimeout;
+
+    private static readonly TimeSpan StopGrace = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Runs a read on a worker thread. When the safety timeout fires, the read is
+    /// told to stop too: it used to carry on in the background, holding the file
+    /// open (Excel could not save over it) and doubling the work when the operator
+    /// tried again. A call stuck where it cannot see the request still runs on,
+    /// but the caller gets its answer either way.
+    /// </summary>
+    private async Task<T> ReadAsync<T>(string filePath, Func<CancellationToken, T> read, CancellationToken cancellationToken)
+    {
+        var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var readTask = Task.Run(() => read(stop.Token), CancellationToken.None);
+        try
+        {
+            return await readTask.WaitAsync(TimeoutFor(filePath), cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            stop.Cancel();
+            // A moment for the read to close the file before the timeout is reported.
+            await Task.WhenAny(readTask, Task.Delay(StopGrace));
+            throw;
+        }
+        finally
+        {
+            // Nobody waits for an abandoned read; observe its end so a stopped
+            // read is not logged as an unhandled background failure.
+            _ = readTask.ContinueWith(
+                task =>
+                {
+                    _ = task.Exception;
+                    stop.Dispose();
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+    }
+
     /// <summary>
     /// Returns sheet names from the workbook. Runs on a background thread so it
     /// is safe to call from the UI thread. Supports cancellation and opens files
@@ -71,30 +126,28 @@ public sealed class ExcelDataService
     {
         if (IsCsvFile(filePath))
         {
-            return await Task.Run(() =>
+            return await ReadAsync(filePath, token =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                using var stream = OpenFileStream(filePath, cancellationToken);
+                token.ThrowIfCancellationRequested();
+                using var stream = OpenFileStream(filePath, token);
                 return (IReadOnlyList<string>)new[] { CsvSheetName };
-            }, CancellationToken.None).WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+            }, cancellationToken);
         }
 
-        var readTask = Task.Run(() =>
+        return await ReadAsync(filePath, token =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var stream = OpenFileStream(filePath, cancellationToken);
+            token.ThrowIfCancellationRequested();
+            using var stream = OpenFileStream(filePath, token);
             using var reader = OpenReader(stream, filePath);
             var names = new List<string>();
             do
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
                 names.Add(reader.Name);
             } while (reader.NextResult());
 
             return (IReadOnlyList<string>)names;
-        }, CancellationToken.None);
-
-        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -149,12 +202,13 @@ public sealed class ExcelDataService
         if (IsCsvFile(filePath))
         {
             EnsureCsvSheet(sheetName, filePath);
-            return await Task.Run(
-                () =>
+            return await ReadAsync(
+                filePath,
+                token =>
                 {
                     try
                     {
-                        return (IReadOnlyList<ExcelPreviewRow>)ReadCsvRows(filePath, maxRows, cancellationToken)
+                        return (IReadOnlyList<ExcelPreviewRow>)ReadCsvRows(filePath, maxRows, token)
                             .Select((cells, index) => new ExcelPreviewRow(index + 1, cells))
                             .ToArray();
                     }
@@ -163,15 +217,15 @@ public sealed class ExcelDataService
                         throw CreateInvalidCsvEncodingException(filePath, sheetName, ex);
                     }
                 },
-                CancellationToken.None).WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+                cancellationToken);
         }
 
-        var readTask = Task.Run(() =>
+        return await ReadAsync(filePath, token =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var stream = OpenFileStream(filePath, cancellationToken);
+            token.ThrowIfCancellationRequested();
+            using var stream = OpenFileStream(filePath, token);
             using var reader = OpenReader(stream, filePath);
-            if (!SeekToSheet(reader, sheetName, out var availableSheets))
+            if (!SeekToSheet(reader, sheetName, token, out var availableSheets))
             {
                 throw new ExcelDataReadException(
                     ExcelDataReadError.MissingSheet,
@@ -180,10 +234,8 @@ public sealed class ExcelDataService
                     sheetName);
             }
 
-            return (IReadOnlyList<ExcelPreviewRow>)ReadPreviewRows(reader, maxRows, cancellationToken);
-        }, CancellationToken.None);
-
-        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+            return (IReadOnlyList<ExcelPreviewRow>)ReadPreviewRows(reader, maxRows, token);
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -204,23 +256,21 @@ public sealed class ExcelDataService
             return new[] { new ExcelSheetPreview(CsvSheetName, rows) };
         }
 
-        var readTask = Task.Run(() =>
+        return await ReadAsync(filePath, token =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            using var stream = OpenFileStream(filePath, cancellationToken);
+            token.ThrowIfCancellationRequested();
+            using var stream = OpenFileStream(filePath, token);
             using var reader = OpenReader(stream, filePath);
             var result = new List<ExcelSheetPreview>();
             do
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
                 var sheetName = reader.Name;
-                result.Add(new ExcelSheetPreview(sheetName, ReadPreviewRows(reader, maxRows, cancellationToken)));
+                result.Add(new ExcelSheetPreview(sheetName, ReadPreviewRows(reader, maxRows, token)));
             } while (reader.NextResult());
 
             return (IReadOnlyList<ExcelSheetPreview>)result;
-        }, CancellationToken.None);
-
-        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -252,23 +302,22 @@ public sealed class ExcelDataService
             throw new ArgumentOutOfRangeException(nameof(headerRowIndex), "Excel header row must be 1 or greater.");
         }
 
-        var readTask = Task.Run(
-            () =>
+        return await ReadAsync(
+            filePath,
+            token =>
             {
                 try
                 {
                     return IsCsvFile(filePath)
-                        ? LoadCsv(filePath, sheetName, headerRowIndex, cancellationToken)
-                        : LoadSheet(filePath, sheetName, headerRowIndex, cancellationToken);
+                        ? LoadCsv(filePath, sheetName, headerRowIndex, token)
+                        : LoadSheet(filePath, sheetName, headerRowIndex, token);
                 }
                 catch (DecoderFallbackException ex)
                 {
                     throw CreateInvalidCsvEncodingException(filePath, sheetName, ex);
                 }
             },
-            CancellationToken.None);
-
-        return await readTask.WaitAsync(IsNetworkPath(filePath) ? DefaultNetworkTimeout : DefaultLocalTimeout, cancellationToken);
+            cancellationToken);
     }
 
     private static DataTable LoadSheet(string filePath, string sheetName, int headerRowIndex, CancellationToken cancellationToken = default)
@@ -276,7 +325,7 @@ public sealed class ExcelDataService
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = OpenFileStream(filePath, cancellationToken);
         using var reader = OpenReader(stream, filePath);
-        if (!SeekToSheet(reader, sheetName, out var availableSheets))
+        if (!SeekToSheet(reader, sheetName, cancellationToken, out var availableSheets))
         {
             throw new ExcelDataReadException(
                 ExcelDataReadError.MissingSheet,
@@ -963,11 +1012,13 @@ public sealed class ExcelDataService
     /// (case-insensitive, matching Excel's own sheet-name uniqueness rule). Streaming means
     /// sheets before the match are never read row-by-row — only their names are touched.
     /// </summary>
-    private static bool SeekToSheet(IExcelDataReader reader, string sheetName, out string availableSheets)
+    private static bool SeekToSheet(IExcelDataReader reader, string sheetName, CancellationToken cancellationToken, out string availableSheets)
     {
         var names = new List<string>();
         do
         {
+            // Opening each sheet reads it through once, so a stop request is checked between sheets.
+            cancellationToken.ThrowIfCancellationRequested();
             names.Add(reader.Name);
             if (string.Equals(reader.Name, sheetName, StringComparison.OrdinalIgnoreCase))
             {
@@ -1016,7 +1067,13 @@ public sealed class ExcelDataService
                 innerException: ex);
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            // Close it now: a handle left to the finalizer keeps Excel from saving the file.
+            stream.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
         return stream;
     }
 

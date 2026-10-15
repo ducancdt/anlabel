@@ -44,7 +44,9 @@ objects` (MEASURE lines). The gate opens the preview for 10,000 rows only when
 | Open Print Preview, every row checked (one text and one EAN-13 per label) | 0.05 s; 0.55–0.74 s when it is the first window the process opens | 1.0–1.3 s | 8.6–9.6 s |
 
 - Import runs off the UI thread, with Cancel. It stops after 45 s for a local
-  file and 30 s for a network file.
+  file and 30 s for a network file. Since 2026-10-15 the read itself stops then
+  too and lets go of the file, so Excel can save over it at once; before, it ran
+  on in the background until the end of the file.
 - Print Preview shows progress and can be cancelled. Its time grows about
   linearly with rows × barcodes. The whole measurement run, the 10,000-label
   preview included, peaks at about 170 MB working set (2026-10-14).
@@ -55,6 +57,13 @@ objects` (MEASURE lines). The gate opens the preview for 10,000 rows only when
   not slow import: a column with neither a header nor data is not a field.
   1,000 such rows import in about 0.6 s; before 2026-10-14 they took 25–31 s
   and 1.4 GB, with 16,384 fields.
+- Rows and sheets cost time, not memory (2026-10-15, 1,000 data rows unless
+  noted). A stray value in the last row (1,048,576): import 0.6 s. Empty rows
+  with borders down to the last row: preview 3.0 s, import 6.5 s, because the
+  Excel reader reads a sheet through once when it opens it. A workbook of 12
+  sheets × 20,000 rows: preview 2.4 s, import of the last sheet 2.5 s. None went
+  above 90 MB. Blank rows are not records; a stray value far below the data is
+  one, and shows as the last row of the data grid.
 - With 200 objects, a drag costs about 6 ms per frame. With the largest real
   template (49 objects), it costs under 1 ms.
 
