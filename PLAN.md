@@ -1,5 +1,32 @@
 # ANLAbel Phase 1 Plan
 
+## v0.321 — Thẻ Ô chữ trong Bảng thuộc tính bằng tiếng Việt
+
+**Thiết kế** (chủ sản phẩm duyệt 2026-10-15; hợp đồng Text/TextBox, chỉ đổi chữ)
+
+- Sáu tùy chọn của “Vừa trong khung” và “Khi nội dung quá cao”, hai banner giải
+  thích Chữ và Ô chữ, và lời báo tràn chữ trên canvas nay là tiếng Việt. Ví dụ:
+  “Chặn in và cảnh báo”, “Cắt bỏ phần chữ dư (không in)”, “Chữ tràn ra ngoài khung
+  Ô chữ. Nới khung, bớt chữ hoặc giảm cỡ chữ.” Hành vi, giá trị lưu tệp và preset
+  không đổi; chữ mẫu “Text Box” của Ô chữ mới giữ nguyên theo hợp đồng.
+- Bộ quét Việt hóa nay đọc cả chữ đặt qua Style/Trigger, chỗ các chữ này đã lọt
+  qua.
+
+**Bên trong** (không đổi hành vi, đối chiếu ngẫu nhiên với mã cũ: 0 khác biệt)
+
+- Lệnh in và phần kiểm tra tên khớp ngang nhau dùng chung một quy tắc chọn tên
+  trường; giải mã ký tự thoát trong chuỗi công thức và đổi số cột ra chữ cái cột
+  mỗi thứ còn một chỗ.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1218/1218; regression 265 PASS / 0 FAIL, gồm bảy gate
+  Text/TextBox và gate mới `text box overflow is reported in Vietnamese on the
+  canvas`. Mutation gate không bắt buộc: không đổi contract Core nào trong danh
+  sách mutation.
+- Hai mẫu thật 100×70 qua kiểm tra trước khi in sau khi dời dòng cuối 0,2 mm
+  (sửa tệp mẫu của khách, không phải mã).
+
 ## v0.320 — Nhập Excel quá giờ thì dừng đọc và nhả tệp ngay
 
 **Dữ liệu**
