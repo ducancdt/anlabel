@@ -1731,7 +1731,7 @@ regression 211 PASS/0 FAIL. Chưa có bằng chứng in vật lý.
 #### Layout TextBox
 
 - Khung mac dinh phai compact va phu thuoc kho tem: toi da 32 x 6 mm, inset theo 4% canh ngan (clamp 0.5-2 mm), va luon nam tron trong label. Font 9 pt, vertical Center, padding compact 0.2 mm bon canh, khong ve outline line.
-- Noi dung khoi tao chi la `Text Box`, khong dung doan huong dan dai lam object vua tao overflow va chiem dien tich thiet ke.
+- Noi dung khoi tao chi la `Ô chữ` (chu san pham duyet 2026-10-15; truoc la `Text Box`), khong dung doan huong dan dai lam object vua tao overflow va chiem dien tich thiet ke.
 - Muc tieu dien tich: tren frame 20 x 6 mm, content rectangle mac dinh phai dat it nhat 90% dien tich frame. Properties co preset Tight 0 / Compact 0.2 / Comfort 1 de doi nhanh theo kich thuoc tem.
 - Tay nam selection giu hit target 10 DIP de de keo nhung marker chi 5 DIP, tranh che kin chu tren object thap; marker chi la designer chrome va khong tham gia print geometry.
 - Content width = frame width - left/right padding; content height = frame height - top/bottom padding.

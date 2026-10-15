@@ -96,7 +96,7 @@ Chi doi chu hien thi trong Bang thuoc tinh va loi bao tran chu tren canvas. Hanh
 - Banner Text: `Chữ tự do theo nội dung và có thể dài ra theo chiều ngang. Dùng Ô chữ khi nội dung in phải nằm gọn trong một vùng cố định.`
 - Banner TextBox: `Ô chữ có khung: kéo hoặc nhập Rộng/Cao để định khung. Chữ xuống dòng hoặc co cho vừa bên trong, không làm đổi khung và không bao giờ in ra ngoài khung.`
 - Canvas: `Chữ tràn ra ngoài khung Ô chữ. Nới khung, bớt chữ hoặc giảm cỡ chữ.` (Text khoa khung: `Chữ tràn khung đã khóa. …`.)
-- Giu nguyen: placeholder `Text Box` cua Ô chữ moi (invariant 5 cua hop dong) va chu mau khi them Chữ moi.
+- Placeholder cua Ô chữ moi: `Ô chữ` thay cho `Text Box` (chu san pham duyet 2026-10-15; invariant 5 trong AGENTS.md va gate `new text box uses compact label-aware frame` cap nhat cung luc). Chu ngan hon nen khung 32 x 6 mm va tem 20 x 8 mm van khong overflow. Chu mau khi them Chữ moi: `Chữ tự do dài ra theo nội dung`.
 - Gate: `text box overflow is reported in Vietnamese on the canvas`; scanner Viet hoa nay doc ca `Setter Value` cua Text/Content/ToolTip/Header, la cho sau tuy chon va hai banner tieng Anh da lot qua.
 
 ## Thuat toan ANLAbel duoc phep dung

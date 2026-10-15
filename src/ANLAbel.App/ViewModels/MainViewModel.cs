@@ -3347,8 +3347,8 @@ public sealed class MainViewModel : ObservableObject
         AddObject(new LabelObject
         {
             Type = ObjectType.TextBox,
-            Name = "Text Box",
-            Text = "Text Box",
+            Name = "Ô chữ",
+            Text = "Ô chữ",
             BindingExpression = string.Empty,
             XMm = marginMm,
             YMm = marginMm,

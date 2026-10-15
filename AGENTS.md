@@ -48,7 +48,7 @@ Authoritative invariants:
 2. `TextBox` is user-frame-owned. Only an explicit user resize or Width/Height edit changes its frame. Content, binding values, and PreviewRow changes never mutate Width/Height.
 3. TextBox wraps/reflows inside the authored width and is always clipped at the authored frame in designer, preview, and print.
 4. A normal mouse-up commits resize through `Thumb.DragCompleted`; `LostMouseCapture` must not restore the start frame. Dragged width/height must remain after release.
-5. New TextBox defaults are label-aware and compact: maximum `32 x 6 mm`, adaptive inset margin `4%` of the short label edge clamped to `0.5-2 mm`, placeholder `Text Box`, font `9 pt`, vertical Center, padding `0.2 mm`, no outline.
+5. New TextBox defaults are label-aware and compact: maximum `32 x 6 mm`, adaptive inset margin `4%` of the short label edge clamped to `0.5-2 mm`, placeholder `Ô chữ` (owner-approved change from `Text Box` on 2026-10-15), font `9 pt`, vertical Center, padding `0.2 mm`, no outline.
 6. The default content rectangle must retain at least 90% of a `20 x 6 mm` frame. Padding presets remain `Tight 0`, `Compact 0.2`, and `Comfort 1`.
 7. Selection handles retain a `10 DIP` hit target with a `5 DIP` visible marker so compact text remains visible while resize stays usable.
 8. Existing authored padding and frame geometry are data. Do not migrate or overwrite them merely because new-object defaults differ.

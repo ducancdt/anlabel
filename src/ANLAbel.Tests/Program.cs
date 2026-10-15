@@ -4952,7 +4952,7 @@ static Task TestNewTextBoxUsesCompactLabelAwareFrame()
             var regular = regularVm.Template.Objects.Last(item => item.Type == ObjectType.TextBox);
             AssertNear(32, regular.WidthMm, 0.001, "Regular label must use the compact TextBox width");
             AssertNear(6, regular.HeightMm, 0.001, "Regular label must use a one-line compact TextBox height");
-            AssertEqual("Text Box", regular.Text, "New TextBox must not reserve space for instructional sample copy");
+            AssertEqual("Ô chữ", regular.Text, "New TextBox must not reserve space for instructional sample copy");
             AssertNear(0.2, regular.Style.TextPaddingMm, 0.001, "New TextBox must use compact physical padding");
             AssertEqual(TextVerticalAlignmentMode.Center, regular.Style.VerticalAlignment,
                 "Compact one-line TextBox must align its initial text with the frame");
