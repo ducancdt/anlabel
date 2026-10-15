@@ -6,68 +6,21 @@ public static partial class FieldNameResolver
 {
     public static bool TryResolveFieldName(string? requestedFieldName, IEnumerable<string> availableFieldNames, out string resolvedFieldName)
     {
-        resolvedFieldName = string.Empty;
-        if (string.IsNullOrWhiteSpace(requestedFieldName))
-        {
-            return false;
-        }
-
-        var candidates = availableFieldNames
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        if (candidates.Length == 0)
-        {
-            return false;
-        }
-
-        var exact = candidates.FirstOrDefault(name => string.Equals(name, requestedFieldName, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrWhiteSpace(exact))
-        {
-            resolvedFieldName = exact;
-            return true;
-        }
-
-        var normalizedRequested = Normalize(requestedFieldName);
-        if (string.IsNullOrWhiteSpace(normalizedRequested))
-        {
-            return false;
-        }
-
-        var requestedHasSeparators = ContainsSeparator(requestedFieldName);
-        if (requestedHasSeparators)
-        {
-            var requestedTokenKey = string.Join("|", Tokenize(requestedFieldName));
-            var tokenMatch = candidates
-                .Where(name => string.Join("|", Tokenize(name)) == requestedTokenKey)
-                .OrderBy(name => Math.Abs(name.Length - requestedFieldName.Length))
-                .FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(tokenMatch))
-            {
-                resolvedFieldName = tokenMatch;
-                return true;
-            }
-        }
-
-        var normalized = candidates
-            .Where(name => string.Equals(Normalize(name), normalizedRequested, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(name => ContainsSeparator(name) == requestedHasSeparators)
-            .ThenBy(name => Math.Abs(name.Length - requestedFieldName.Length))
-            .FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(normalized))
-        {
-            return false;
-        }
-
-        resolvedFieldName = normalized;
-        return true;
+        // One ranking for printing and for the tie check: a second copy of it
+        // could drift, and then the check would vouch for a different column
+        // than the one printed.
+        var ties = FindTies(requestedFieldName, availableFieldNames);
+        resolvedFieldName = ties.Count > 0 ? ties[0] : string.Empty;
+        return ties.Count > 0;
     }
 
     /// <summary>
-    /// The available names that tie for <paramref name="requestedFieldName"/> under the
-    /// ranking of <see cref="TryResolveFieldName"/>, in the given order; the first is the
-    /// one it picks. More than one means only the order of the names (the column order
-    /// of the file) decides which field is read.
+    /// The available names that tie for <paramref name="requestedFieldName"/>, in the
+    /// given order; the first is the one <see cref="TryResolveFieldName"/> picks. An
+    /// exact name (ignoring case) wins, then the same words, then the same letters and
+    /// digits, preferring a name with separators like the request and the closest
+    /// length. More than one means only the order of the names (the column order of
+    /// the file) decides which field is read.
     /// </summary>
     public static IReadOnlyList<string> FindTies(string? requestedFieldName, IEnumerable<string> availableFieldNames)
     {

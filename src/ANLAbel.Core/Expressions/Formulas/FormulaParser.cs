@@ -23,32 +23,40 @@ public sealed class FormulaParser
                 continue;
             }
 
-            var escaped = text[++index];
-            switch (escaped)
-            {
-                case '"':
-                    builder.Append('"');
-                    break;
-                case '\\':
-                    builder.Append('\\');
-                    break;
-                case 'n':
-                    builder.Append('\n');
-                    break;
-                case 'r':
-                    builder.Append('\r');
-                    break;
-                case 't':
-                    builder.Append('\t');
-                    break;
-                default:
-                    builder.Append('\\');
-                    builder.Append(escaped);
-                    break;
-            }
+            AppendEscaped(builder, text[++index]);
         }
 
         return builder.ToString();
+    }
+
+    // The escapes of a string literal, shared by Parse and UnescapeStringLiteral
+    // so that a decoded name always matches the parsed one.
+    private static void AppendEscaped(StringBuilder builder, char escaped)
+    {
+        switch (escaped)
+        {
+            case '"':
+                builder.Append('"');
+                break;
+            case '\\':
+                builder.Append('\\');
+                break;
+            case 'n':
+                builder.Append('\n');
+                break;
+            case 'r':
+                builder.Append('\r');
+                break;
+            case 't':
+                builder.Append('\t');
+                break;
+            default:
+                // Unknown escape: preserve the backslash so paths/label text like
+                // "C:\data" survive intact instead of silently dropping the '\'.
+                builder.Append('\\');
+                builder.Append(escaped);
+                break;
+        }
     }
 
     /// <summary>
@@ -182,31 +190,7 @@ public sealed class FormulaParser
                     return null;
                 }
 
-                var escaped = Advance();
-                switch (escaped)
-                {
-                    case '"':
-                        builder.Append('"');
-                        break;
-                    case '\\':
-                        builder.Append('\\');
-                        break;
-                    case 'n':
-                        builder.Append('\n');
-                        break;
-                    case 'r':
-                        builder.Append('\r');
-                        break;
-                    case 't':
-                        builder.Append('\t');
-                        break;
-                    default:
-                        // Unknown escape: preserve the backslash so paths/label text like
-                        // "C:\data" survive intact instead of silently dropping the '\'.
-                        builder.Append('\\');
-                        builder.Append(escaped);
-                        break;
-                }
+                AppendEscaped(builder, Advance());
             }
 
             _errors.Add("Unterminated string literal.");
