@@ -1,5 +1,25 @@
 # ANLAbel Phase 1 Plan
 
+## v0.324 — Ô chữ mới mang chữ “Ô chữ”; hướng dẫn sử dụng viết lại
+
+**Thiết kế** (chủ sản phẩm duyệt 2026-10-15; đổi bất biến 5 của hợp đồng Text/TextBox)
+
+- Ô chữ mới thêm có tên và nội dung mẫu “Ô chữ” thay cho “Text Box”. Khung mặc định
+  (tối đa 32 × 6 mm, lề 4 %), cỡ 9 pt, căn giữa dọc, đệm 0,2 mm không đổi. Mẫu đã
+  lưu không bị đổi.
+
+**Tài liệu**
+
+- Hướng dẫn sử dụng đi kèm bộ cài (Start menu → Huong dan su dung) được viết lại
+  theo app hiện tại; bản cũ vẫn mô tả bản beta v0.042.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1220/1220; regression 265 PASS / 0 FAIL, gồm bảy gate
+  Text/TextBox (gate `new text box uses compact label-aware frame` nay kiểm “Ô
+  chữ”). Mutation gate không bắt buộc: không đổi contract Core nào trong danh
+  sách mutation.
+
 ## v0.323 — Sửa theo review: Hủy khi nhập quá giờ, chữ tiếng Việt còn sót
 
 **Dữ liệu**
