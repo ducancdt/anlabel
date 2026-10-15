@@ -36,9 +36,9 @@ sử bên dưới được giữ nguyên. Cách lập theo mục 7 của quy chu
 
 | ID | Phần mềm | Tương tác | Vật lý | Bằng chứng chính / phần còn thiếu |
 | --- | --- | --- | --- | --- |
-| D01 | Pass | Not verified | — | `handle resize keeps millimetres at every zoom` (50/100/200 %), `snap tolerance and hysteresis remain stable across zoom`, `ResizeGeometryContractTests`. Thiếu: chuột thật, Windows scaling 125/150 % |
-| D02 | Pass | Not verified | — | `canvas edit gesture is one undo step and cancel restores`, `rotation and multi-object gestures are one undo step`, `canvas paste and group resize are single gestures`, `undo and redo keep the current data link`, `keyboard nudge uses physical steps and one gesture` |
-| D03 | Pass | Not verified | — | `normal resize capture release does not cancel gesture`; cancel trả đúng hình học. Thiếu: Esc/mất capture bằng chuột thật |
+| D01 | Pass | Pass | — | `handle resize keeps millimetres at every zoom` (50/100/200 %), `snap tolerance and hysteresis remain stable across zoom`, `ResizeGeometryContractTests`. Chuột thật trên bản cài ở Windows scaling 150 % (2026-10-14, v0.318) và 125 % (2026-10-15, v0.323): kéo đổi kích thước và kéo dời theo đúng khoảng con trỏ, số mm lưu lệch dưới một điểm ảnh màn hình; giữ Alt thì bỏ bắt điểm |
+| D02 | Pass | Một phần | — | Chuột thật ở 150 % và 125 %: một lần kéo đổi kích thước là một bước Ctrl+Z / Ctrl+Y; xoay, nhóm và dán chưa kiểm bằng chuột thật. `canvas edit gesture is one undo step and cancel restores`, `rotation and multi-object gestures are one undo step`, `canvas paste and group resize are single gestures`, `undo and redo keep the current data link`, `keyboard nudge uses physical steps and one gesture` |
+| D03 | Pass | Một phần | — | `normal resize capture release does not cancel gesture`; cancel trả đúng hình học. Chuột thật ở 150 % và 125 %: thả chuột bình thường giữ kích thước đã kéo. Thiếu: Esc/mất capture bằng chuột thật |
 | D04 | Pass | Not verified | — | Bảy gate Text/TextBox được bảo vệ |
 | D05 | Pass | Not verified | — | `designer preview row keeps object geometry`, `bound rows preserve preview and print geometry identity` |
 | D06 | Pass | Pass | — | `library templates round-trip without geometry change` (22 mẫu), `real templates open, save, render and pass preflight` (5 mẫu thật, byte-stable), `failed template open preserves the current document`, `corrupt template with backup does not replace the open document`; smoke A/C |
