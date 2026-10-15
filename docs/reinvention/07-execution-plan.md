@@ -45,9 +45,9 @@ L4  local file-drop on the same spine
 Do not add a parallel path. Fail closed on missing queue, stale data, or
 ambiguous print outcome.
 
-## Now (0.319)
+## Now (0.320)
 
-Public version `0.319`. Printer/paper stock, authored DPI, document queue
+Public version `0.320`. Printer/paper stock, authored DPI, document queue
 identity, and print scale fail closed
 ([`PRINT_PRINTER_PAPER_FAIL_CLOSED.md`](../PRINT_PRINTER_PAPER_FAIL_CLOSED.md)).
 Fast loop is the everyday gate. Mutation stays at 90 on the existing

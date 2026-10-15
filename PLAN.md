@@ -1,5 +1,29 @@
 # ANLAbel Phase 1 Plan
 
+## v0.320 — Nhập Excel quá giờ thì dừng đọc và nhả tệp ngay
+
+**Dữ liệu**
+
+- Khi việc đọc tệp Excel hoặc CSV vượt giới hạn (45 s với tệp trên máy, 30 s với
+  tệp mạng), người vận hành nhận lời báo hết giờ nhưng việc đọc vẫn chạy ngầm tới
+  hết tệp. Trong lúc đó tệp bị giữ nên Excel không lưu đè được, và nếu bấm thử
+  lại thì hai lượt đọc chạy cùng lúc. Trên máy yếu, đây là kiểu chồng tải trông
+  như treo. Nay việc đọc dừng theo và tệp được nhả trước khi lời báo hiện.
+- Đã thử thêm các kiểu tệp có thể làm treo máy 4 GB: ô lạc ở dòng cuối trang tính,
+  dòng trống có kẻ khung tới cuối trang tính, và 12 sheet × 20.000 dòng. Không
+  kiểu nào treo hay tốn bộ nhớ (tối đa 90 MB). Chậm nhất là dòng có kẻ khung tới
+  cuối trang tính: xem trước 3,0 s, nhập 6,5 s. Số đo ghi trong “Measured limits”
+  của `docs/LOCAL_LABEL_PRODUCT_CONTRACT.md`.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1218/1218; regression 264 PASS / 0 FAIL (gồm bảy gate
+  Text/TextBox). Mutation gate không bắt buộc: không đổi contract Core nào trong
+  danh sách mutation.
+- Unit `TimedOutRead_StopsAndReleasesTheFile` đỏ trên bản cũ. Với .xlsx (đo bằng
+  probe tạm), tệp được nhả cùng lúc báo lỗi thay vì 6,6 s sau.
+- Chưa kiểm chứng trên máy 4 GB thật.
+
 ## v0.319 — Máy in rút cáp thì dừng in, không gửi lệnh vào hàng đợi
 
 **In**
