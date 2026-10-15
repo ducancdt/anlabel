@@ -11,7 +11,7 @@
     {
       "Id": "46414aa29cee42bc9976b6666604822c",
       "Type": "Text",
-      "Name": "hdr: Company",
+      "Name": "Đầu tem: Company",
       "XMm": 3,
       "YMm": 2,
       "WidthMm": 48,
@@ -51,7 +51,7 @@
     {
       "Id": "b4c4d55fd63645189f4d4b14a0fb2076",
       "Type": "Text",
-      "Name": "hdr: Company2",
+      "Name": "Đầu tem: Company2",
       "XMm": 3,
       "YMm": 9,
       "WidthMm": 48,
@@ -91,7 +91,7 @@
     {
       "Id": "402bdf1ed7464735bea91048fea555a9",
       "Type": "Text",
-      "Name": "lbl: Type",
+      "Name": "Chú thích: Type",
       "XMm": 54,
       "YMm": 2,
       "WidthMm": 28,
@@ -131,7 +131,7 @@
     {
       "Id": "a9525bfa26cf4c4ea4942f25b080ae89",
       "Type": "Text",
-      "Name": "val: Type",
+      "Name": "Giá trị: Type",
       "XMm": 84,
       "YMm": 2,
       "WidthMm": 14,
@@ -171,7 +171,7 @@
     {
       "Id": "7e9993cfe75d4a2cbea2bc2b1a7d1c87",
       "Type": "Text",
-      "Name": "lbl: ShipTo",
+      "Name": "Chú thích: ShipTo",
       "XMm": 54,
       "YMm": 16,
       "WidthMm": 28,
@@ -211,7 +211,7 @@
     {
       "Id": "c21d8118f8d0427a86bdcb7e69ba92e1",
       "Type": "TextBox",
-      "Name": "val: ShipTo",
+      "Name": "Giá trị: ShipTo",
       "XMm": 54,
       "YMm": 19.5,
       "WidthMm": 43,
@@ -291,7 +291,7 @@
     {
       "Id": "709f050ea09e46cbb725f48bda697ced",
       "Type": "Text",
-      "Name": "lbl: PO",
+      "Name": "Chú thích: PO",
       "XMm": 3,
       "YMm": 34,
       "WidthMm": 28,
@@ -331,7 +331,7 @@
     {
       "Id": "737dbd25b01f4fa0b2252bc0b5ff7170",
       "Type": "BarcodeCode128",
-      "Name": "bc: PO",
+      "Name": "Mã vạch: PO",
       "XMm": 48,
       "YMm": 34,
       "WidthMm": 48,
@@ -371,7 +371,7 @@
     {
       "Id": "998358381de14457a557ac532acfd76f",
       "Type": "Text",
-      "Name": "val: PO",
+      "Name": "Giá trị: PO",
       "XMm": 48,
       "YMm": 41.2,
       "WidthMm": 48,
@@ -411,7 +411,7 @@
     {
       "Id": "f3844e24fbed440ca42cf97b3405e23f",
       "Type": "Text",
-      "Name": "lbl: SupplierNo",
+      "Name": "Chú thích: SupplierNo",
       "XMm": 3,
       "YMm": 45.5,
       "WidthMm": 32,
@@ -451,7 +451,7 @@
     {
       "Id": "da8df22e3c1b40a7a4fb0f5697238533",
       "Type": "Text",
-      "Name": "lbl: Serial",
+      "Name": "Chú thích: Serial",
       "XMm": 52,
       "YMm": 45.5,
       "WidthMm": 28,
@@ -491,7 +491,7 @@
     {
       "Id": "1c2063831ccc4a6384032ca80a1f53ce",
       "Type": "BarcodeCode128",
-      "Name": "bc: SupplierNo",
+      "Name": "Mã vạch: SupplierNo",
       "XMm": 3,
       "YMm": 49.5,
       "WidthMm": 44,
@@ -531,7 +531,7 @@
     {
       "Id": "94ad3b71ccb647798aa66ec017db9b94",
       "Type": "BarcodeCode128",
-      "Name": "bc: Serial",
+      "Name": "Mã vạch: Serial",
       "XMm": 52,
       "YMm": 49.5,
       "WidthMm": 44,
@@ -571,7 +571,7 @@
     {
       "Id": "8319bcfa551c4319877d3e4c1f6215fb",
       "Type": "Text",
-      "Name": "val: SupplierNo",
+      "Name": "Giá trị: SupplierNo",
       "XMm": 3,
       "YMm": 56.8,
       "WidthMm": 44,
@@ -611,7 +611,7 @@
     {
       "Id": "dfa96d7ccb864ee5878bc644b8b87c6c",
       "Type": "Text",
-      "Name": "val: Serial",
+      "Name": "Giá trị: Serial",
       "XMm": 52,
       "YMm": 56.8,
       "WidthMm": 44,
@@ -651,7 +651,7 @@
     {
       "Id": "e511e1ed79e74e2f9ee9ec2eda9c6734",
       "Type": "Text",
-      "Name": "lbl: PartNo",
+      "Name": "Chú thích: PartNo",
       "XMm": 3,
       "YMm": 61,
       "WidthMm": 36,
@@ -691,7 +691,7 @@
     {
       "Id": "23a473dc64b64102a72275d6fa2de560",
       "Type": "Text",
-      "Name": "lbl: Qty",
+      "Name": "Chú thích: Qty",
       "XMm": 52,
       "YMm": 61,
       "WidthMm": 20,
@@ -731,7 +731,7 @@
     {
       "Id": "9d392509deb447eaa997a135f0f79c08",
       "Type": "BarcodeCode128",
-      "Name": "bc: PartNo",
+      "Name": "Mã vạch: PartNo",
       "XMm": 3,
       "YMm": 65,
       "WidthMm": 44,
@@ -771,7 +771,7 @@
     {
       "Id": "39f79852956b492d8f8e6f5fcd3f2fd7",
       "Type": "BarcodeCode128",
-      "Name": "bc: Qty",
+      "Name": "Mã vạch: Qty",
       "XMm": 52,
       "YMm": 65,
       "WidthMm": 28,
@@ -811,7 +811,7 @@
     {
       "Id": "f0e221e7946144fda8daa7e31593fcfa",
       "Type": "Text",
-      "Name": "val: PartNo",
+      "Name": "Giá trị: PartNo",
       "XMm": 3,
       "YMm": 72.2,
       "WidthMm": 44,
@@ -851,7 +851,7 @@
     {
       "Id": "d4bb65c91c4a4fcc94063550c5441215",
       "Type": "Text",
-      "Name": "val: Qty",
+      "Name": "Giá trị: Qty",
       "XMm": 52,
       "YMm": 72.2,
       "WidthMm": 20,
@@ -891,7 +891,7 @@
     {
       "Id": "8f4e6e2241884966913be968074050e0",
       "Type": "Text",
-      "Name": "val: Uom",
+      "Name": "Giá trị: Uom",
       "XMm": 74,
       "YMm": 72.2,
       "WidthMm": 12,
@@ -931,7 +931,7 @@
     {
       "Id": "d87a87e704fa485e8a8444e27871f423",
       "Type": "Text",
-      "Name": "lbl: MPN",
+      "Name": "Chú thích: MPN",
       "XMm": 3,
       "YMm": 76.5,
       "WidthMm": 40,
@@ -971,7 +971,7 @@
     {
       "Id": "5f7df39b2556448da55ca24774d76e7b",
       "Type": "Text",
-      "Name": "lbl: Lot",
+      "Name": "Chú thích: Lot",
       "XMm": 52,
       "YMm": 76.5,
       "WidthMm": 28,
@@ -1011,7 +1011,7 @@
     {
       "Id": "3bb0af1984544a018b58fb179d37d32c",
       "Type": "BarcodeCode128",
-      "Name": "bc: MPN",
+      "Name": "Mã vạch: MPN",
       "XMm": 3,
       "YMm": 80.5,
       "WidthMm": 44,
@@ -1051,7 +1051,7 @@
     {
       "Id": "b50a2f3b18524751b09072e464facca0",
       "Type": "BarcodeCode128",
-      "Name": "bc: Lot",
+      "Name": "Mã vạch: Lot",
       "XMm": 52,
       "YMm": 80.5,
       "WidthMm": 44,
@@ -1091,7 +1091,7 @@
     {
       "Id": "7a5d6aa03ea14018a150764f2e06fdc4",
       "Type": "Text",
-      "Name": "val: MPN",
+      "Name": "Giá trị: MPN",
       "XMm": 3,
       "YMm": 87.8,
       "WidthMm": 44,
@@ -1131,7 +1131,7 @@
     {
       "Id": "57ebc85c2df4460da2c97689f147b293",
       "Type": "Text",
-      "Name": "val: Lot",
+      "Name": "Giá trị: Lot",
       "XMm": 52,
       "YMm": 87.8,
       "WidthMm": 44,
@@ -1171,7 +1171,7 @@
     {
       "Id": "c61682557be94839ad554278cdff36e0",
       "Type": "Text",
-      "Name": "lbl: Desc",
+      "Name": "Chú thích: Desc",
       "XMm": 3,
       "YMm": 92,
       "WidthMm": 28,
@@ -1211,7 +1211,7 @@
     {
       "Id": "e8ed390fd0b84513b243a11a34bee2a6",
       "Type": "TextBox",
-      "Name": "val: Desc",
+      "Name": "Giá trị: Desc",
       "XMm": 3,
       "YMm": 95.5,
       "WidthMm": 94,
@@ -1251,7 +1251,7 @@
     {
       "Id": "b7ec102caa5144a89fb0ea99bb95ab9f",
       "Type": "Text",
-      "Name": "lbl: DN",
+      "Name": "Chú thích: DN",
       "XMm": 3,
       "YMm": 104.5,
       "WidthMm": 40,
@@ -1291,7 +1291,7 @@
     {
       "Id": "32be27523ae04080b4ff6d2be14d7898",
       "Type": "BarcodeCode128",
-      "Name": "bc: DN",
+      "Name": "Mã vạch: DN",
       "XMm": 3,
       "YMm": 108.5,
       "WidthMm": 58,
@@ -1331,7 +1331,7 @@
     {
       "Id": "a9474cd34bf54e9093306008da04a36b",
       "Type": "Text",
-      "Name": "val: DN",
+      "Name": "Giá trị: DN",
       "XMm": 3,
       "YMm": 116.8,
       "WidthMm": 58,
@@ -1371,7 +1371,7 @@
     {
       "Id": "bd177362f533445f819efbf60b582aa8",
       "Type": "QRCode",
-      "Name": "qr: QRData",
+      "Name": "Mã QR: QRData",
       "XMm": 68,
       "YMm": 104.5,
       "WidthMm": 28,
@@ -1411,7 +1411,7 @@
     {
       "Id": "da1fd03fc419403a8662721912ba0dcd",
       "Type": "Text",
-      "Name": "lbl: MfgDate",
+      "Name": "Chú thích: MfgDate",
       "XMm": 3,
       "YMm": 121,
       "WidthMm": 22,
@@ -1451,7 +1451,7 @@
     {
       "Id": "051a8ba8032c4fc5a05f5218c6e26cda",
       "Type": "BarcodeCode128",
-      "Name": "bc: MfgDate",
+      "Name": "Mã vạch: MfgDate",
       "XMm": 3,
       "YMm": 125,
       "WidthMm": 40,
@@ -1491,7 +1491,7 @@
     {
       "Id": "7b06b6f0af1d4ebfb54433e4204e3864",
       "Type": "Text",
-      "Name": "val: MfgDate",
+      "Name": "Giá trị: MfgDate",
       "XMm": 3,
       "YMm": 132.2,
       "WidthMm": 40,
@@ -1531,7 +1531,7 @@
     {
       "Id": "b7762120cda244af866d394c78b4a444",
       "Type": "Text",
-      "Name": "lbl: Net",
+      "Name": "Chú thích: Net",
       "XMm": 46,
       "YMm": 121,
       "WidthMm": 18,
@@ -1571,7 +1571,7 @@
     {
       "Id": "a744c22581a64d5499b36e63a450029b",
       "Type": "Text",
-      "Name": "val: Net",
+      "Name": "Giá trị: Net",
       "XMm": 46,
       "YMm": 125,
       "WidthMm": 18,
@@ -1611,7 +1611,7 @@
     {
       "Id": "710957fc46a7494290efe4f33c9b81a8",
       "Type": "Text",
-      "Name": "lbl: Gross",
+      "Name": "Chú thích: Gross",
       "XMm": 46,
       "YMm": 131,
       "WidthMm": 18,
@@ -1651,7 +1651,7 @@
     {
       "Id": "397f3bbc8b08464899734cc855938267",
       "Type": "Text",
-      "Name": "val: Gross",
+      "Name": "Giá trị: Gross",
       "XMm": 46,
       "YMm": 135,
       "WidthMm": 18,

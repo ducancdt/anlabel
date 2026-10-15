@@ -11,7 +11,7 @@
     {
       "Id": "3bc253ad3b2c47129f98431c2e7b13b8",
       "Type": "Text",
-      "Name": "Field: PartName",
+      "Name": "Trường: PartName",
       "XMm": 2,
       "YMm": 2,
       "WidthMm": 36,
@@ -51,7 +51,7 @@
     {
       "Id": "a8769ea4c20d43d4acfe1053c0d869e2",
       "Type": "QRCode",
-      "Name": "QR: SerialNo",
+      "Name": "Mã QR: SerialNo",
       "XMm": 13,
       "YMm": 8,
       "WidthMm": 14,
@@ -91,7 +91,7 @@
     {
       "Id": "9bbff80119124a648b189ce4a7bc388f",
       "Type": "Text",
-      "Name": "Field: SerialNo",
+      "Name": "Trường: SerialNo",
       "XMm": 2,
       "YMm": 23,
       "WidthMm": 36,

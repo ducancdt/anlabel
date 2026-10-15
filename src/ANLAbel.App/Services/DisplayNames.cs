@@ -53,6 +53,9 @@ public static class DisplayNames
         ImageRasterMode.DriverManaged => "Trình điều khiển xử lý",
         ImageRasterMode.MonochromeThreshold => "Đơn sắc theo ngưỡng",
         ImageRasterMode.MonochromeOrderedDither => "Đơn sắc hòa sắc",
+        TextDirectionMode.Auto => "Tự động",
+        TextDirectionMode.LeftToRight => "Trái sang phải",
+        TextDirectionMode.RightToLeft => "Phải sang trái",
         _ => value.ToString() ?? string.Empty,
     };
 }

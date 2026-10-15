@@ -11,7 +11,7 @@
     {
       "Id": "e66afd0f8dae428f8ec1283a01d2e144",
       "Type": "Text",
-      "Name": "Field: PartName",
+      "Name": "Trường: PartName",
       "XMm": 2,
       "YMm": 1.2,
       "WidthMm": 36,
@@ -51,7 +51,7 @@
     {
       "Id": "35c79c7473974cacb1fcfb8adefbfed6",
       "Type": "BarcodeCode128",
-      "Name": "Barcode: PartNo",
+      "Name": "Mã vạch: PartNo",
       "XMm": 2,
       "YMm": 5.5,
       "WidthMm": 36,

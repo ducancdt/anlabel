@@ -1968,7 +1968,7 @@
                                             </Border>
                                         </StackPanel>
                                         <TextBlock Text="Chiều chữ" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
-                                        <ComboBox ItemsSource="{Binding TextDirections}" SelectedItem="{Binding SelectedObject.Style.TextDirection, Mode=TwoWay}" Margin="0,0,0,3"/>
+                                        <ComboBox ItemsSource="{Binding TextDirections}" SelectedItem="{Binding SelectedObject.Style.TextDirection, Mode=TwoWay}" ItemTemplate="{StaticResource DisplayNameItem}" Margin="0,0,0,3"/>
                                         <TextBlock Text="Chiều cao dòng (pt; 0 = Tự động)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
                                         <TextBox Text="{Binding SelectedObject.Style.LineHeightPt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
                                                  ToolTip="Dùng 0 cho chiều cao dòng tự nhiên của phông, hoặc nhập chiều cao hộp dòng tối thiểu theo pt."

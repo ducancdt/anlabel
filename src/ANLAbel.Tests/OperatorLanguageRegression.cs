@@ -64,7 +64,8 @@ internal static class OperatorLanguageRegression
             "Object types must use the toolbox names.");
         Require(DisplayNames.For(ANLAbel.Core.Enums.OutlineStyle.Dash) == "Gạch"
                 && DisplayNames.For(ANLAbel.Core.Enums.ImageRasterMode.MonochromeOrderedDither) == "Đơn sắc hòa sắc"
-                && DisplayNames.For(ANLAbel.Core.Enums.BarcodeHriPlacement.Below) == "Dưới",
+                && DisplayNames.For(ANLAbel.Core.Enums.BarcodeHriPlacement.Below) == "Dưới"
+                && DisplayNames.For(ANLAbel.Core.Enums.TextDirectionMode.Auto) == "Tự động",
             "Option lists must show Vietnamese names.");
         Require(FormulaErrorText.Translate("Field 'Qty' was not found.") == "Không tìm thấy trường “Qty”.",
             "Formula errors must be Vietnamese.");

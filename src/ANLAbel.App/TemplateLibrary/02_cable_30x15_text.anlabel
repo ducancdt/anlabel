@@ -51,7 +51,7 @@
     {
       "Id": "4d9ff221087943719e18b524abc5ef8d",
       "Type": "Text",
-      "Name": "Field: PartNo",
+      "Name": "Trường: PartNo",
       "XMm": 8,
       "YMm": 1.5,
       "WidthMm": 20,
@@ -131,7 +131,7 @@
     {
       "Id": "807f17a93690440287ad6d5951859e26",
       "Type": "Text",
-      "Name": "Field: Rev",
+      "Name": "Trường: Rev",
       "XMm": 10,
       "YMm": 6,
       "WidthMm": 18,
@@ -171,7 +171,7 @@
     {
       "Id": "bed395ddfff24bf1a426dea722521fee",
       "Type": "Text",
-      "Name": "Field: Lot",
+      "Name": "Trường: Lot",
       "XMm": 2,
       "YMm": 10.5,
       "WidthMm": 26,

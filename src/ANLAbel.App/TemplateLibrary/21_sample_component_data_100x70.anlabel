@@ -11,7 +11,7 @@
     {
       "Id": "feed78583c864daca8e007c48e50da85",
       "Type": "Rectangle",
-      "Name": "border 1",
+      "Name": "Khung viền 1",
       "XMm": 3.37,
       "YMm": 11.79,
       "WidthMm": 93.51,
@@ -51,7 +51,7 @@
     {
       "Id": "f5ce14071fa54d609891f144b03354d0",
       "Type": "Line",
-      "Name": "line 1",
+      "Name": "Đường kẻ 1",
       "XMm": 63.44,
       "YMm": 11.79,
       "WidthMm": 0.5,
@@ -91,7 +91,7 @@
     {
       "Id": "6ff8bc543af1450a82d9690bd0e664cd",
       "Type": "Line",
-      "Name": "line 2",
+      "Name": "Đường kẻ 2",
       "XMm": 3.37,
       "YMm": 34.4,
       "WidthMm": 93.13,
@@ -131,7 +131,7 @@
     {
       "Id": "da894a7f16d1431c903ded353ef931e1",
       "Type": "QRCode",
-      "Name": "qr 1",
+      "Name": "Mã QR 1",
       "XMm": 75.97,
       "YMm": 50.99,
       "WidthMm": 15.62,
@@ -171,7 +171,7 @@
     {
       "Id": "abd7ec10ab404c4c8d486c4cf9ce222b",
       "Type": "Text",
-      "Name": "txt: Company",
+      "Name": "Chữ: Company",
       "XMm": 3.12,
       "YMm": 1.0,
       "WidthMm": 28.36,
@@ -211,7 +211,7 @@
     {
       "Id": "87c35c3e0154498489ac499a4a91d03a",
       "Type": "Text",
-      "Name": "txt: P/N:",
+      "Name": "Chữ: P/N:",
       "XMm": 5.15,
       "YMm": 12.09,
       "WidthMm": 10.14,
@@ -251,7 +251,7 @@
     {
       "Id": "aac9953dbaba4c92bef901b875d55042",
       "Type": "Text",
-      "Name": "txt: Q'ty:",
+      "Name": "Chữ: Q'ty:",
       "XMm": 65.57,
       "YMm": 12.09,
       "WidthMm": 10.44,
@@ -291,7 +291,7 @@
     {
       "Id": "adffaacb5b6a4d839449c9e5448a8cd1",
       "Type": "Text",
-      "Name": "txt: PartNo",
+      "Name": "Chữ: PartNo",
       "XMm": 5.15,
       "YMm": 17.87,
       "WidthMm": 28.69,
@@ -331,7 +331,7 @@
     {
       "Id": "42223284192541d88c5729918093ffa7",
       "Type": "Text",
-      "Name": "txt: Qty",
+      "Name": "Chữ: Qty",
       "XMm": 65.56,
       "YMm": 18.68,
       "WidthMm": 6.78,
@@ -371,7 +371,7 @@
     {
       "Id": "f4801b300055403287142d1385c42569",
       "Type": "Text",
-      "Name": "txt: REV:",
+      "Name": "Chữ: REV:",
       "XMm": 5.4,
       "YMm": 55.87,
       "WidthMm": 12.03,
@@ -411,7 +411,7 @@
     {
       "Id": "779b7438fb1e40ab957b561cc2d467f4",
       "Type": "Text",
-      "Name": "txt: MFG Date:",
+      "Name": "Chữ: MFG Date:",
       "XMm": 5.4,
       "YMm": 63.49,
       "WidthMm": 24.71,
@@ -451,7 +451,7 @@
     {
       "Id": "ccdc516e89054fef85c5e5f6085ce24f",
       "Type": "Text",
-      "Name": "txt: Rev",
+      "Name": "Chữ: Rev",
       "XMm": 24.83,
       "YMm": 55.87,
       "WidthMm": 3.8,
@@ -491,7 +491,7 @@
     {
       "Id": "7b55fcdf124f4442a3acb13cc9c576cc",
       "Type": "Text",
-      "Name": "txt: MfgDate",
+      "Name": "Chữ: MfgDate",
       "XMm": 30.17,
       "YMm": 63.49,
       "WidthMm": 19.8,

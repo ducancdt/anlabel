@@ -11,7 +11,7 @@
     {
       "Id": "98f72838ce8543d2b6fe1f0546584707",
       "Type": "Text",
-      "Name": "Field: Vendor",
+      "Name": "Trường: Vendor",
       "XMm": 2,
       "YMm": 2,
       "WidthMm": 96,
@@ -91,7 +91,7 @@
     {
       "Id": "052c18da7fdf475c987cb37f636af6cf",
       "Type": "Text",
-      "Name": "Field: Location",
+      "Name": "Trường: Location",
       "XMm": 22,
       "YMm": 10,
       "WidthMm": 40,
@@ -171,7 +171,7 @@
     {
       "Id": "9893440f6916423b900728c763d25fd1",
       "Type": "Text",
-      "Name": "Field: Qty",
+      "Name": "Trường: Qty",
       "XMm": 74,
       "YMm": 10,
       "WidthMm": 24,
@@ -211,7 +211,7 @@
     {
       "Id": "89f2f0eaab114deebfc2ec6ba9bcd60e",
       "Type": "BarcodeCode128",
-      "Name": "Barcode: SerialNo",
+      "Name": "Mã vạch: SerialNo",
       "XMm": 2,
       "YMm": 16,
       "WidthMm": 96,
@@ -251,7 +251,7 @@
     {
       "Id": "4ce733eddd9a4b849ea090ece1602b48",
       "Type": "Text",
-      "Name": "Field: SerialNo",
+      "Name": "Trường: SerialNo",
       "XMm": 2,
       "YMm": 39,
       "WidthMm": 96,

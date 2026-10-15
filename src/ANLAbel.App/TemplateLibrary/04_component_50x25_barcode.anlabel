@@ -11,7 +11,7 @@
     {
       "Id": "d946ec0f4a9648f5af6dc147cf37aa6f",
       "Type": "Text",
-      "Name": "Field: Description",
+      "Name": "Trường: Description",
       "XMm": 2,
       "YMm": 1.5,
       "WidthMm": 46,
@@ -51,7 +51,7 @@
     {
       "Id": "7b3b122dc2ca40d39c2a4c5e1c1a6506",
       "Type": "BarcodeCode128",
-      "Name": "Barcode: PartNo",
+      "Name": "Mã vạch: PartNo",
       "XMm": 2,
       "YMm": 6,
       "WidthMm": 30,
@@ -131,7 +131,7 @@
     {
       "Id": "523e7c873e8741d69bb520b1b86500b8",
       "Type": "Text",
-      "Name": "Field: Lot",
+      "Name": "Trường: Lot",
       "XMm": 34,
       "YMm": 10.5,
       "WidthMm": 14,
@@ -171,7 +171,7 @@
     {
       "Id": "e2bd0fbf37344b62af9fd0b5a8de071f",
       "Type": "Text",
-      "Name": "Field: Qty",
+      "Name": "Trường: Qty",
       "XMm": 34,
       "YMm": 15,
       "WidthMm": 14,

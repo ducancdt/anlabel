@@ -11,7 +11,7 @@
     {
       "Id": "2e3c4a46868a4a8580c7bf384e806c75",
       "Type": "Text",
-      "Name": "Field: PartNo",
+      "Name": "Trường: PartNo",
       "XMm": 2,
       "YMm": 1.5,
       "WidthMm": 36,
@@ -51,7 +51,7 @@
     {
       "Id": "65af0fb2f27543d0bb24820e022ede7e",
       "Type": "QRCode",
-      "Name": "QR: QRData",
+      "Name": "Mã QR: QRData",
       "XMm": 7,
       "YMm": 6.5,
       "WidthMm": 26,
@@ -91,7 +91,7 @@
     {
       "Id": "1bbda9f2140142f5b01c5f44e641af55",
       "Type": "Text",
-      "Name": "Field: Lot",
+      "Name": "Trường: Lot",
       "XMm": 2,
       "YMm": 34,
       "WidthMm": 36,

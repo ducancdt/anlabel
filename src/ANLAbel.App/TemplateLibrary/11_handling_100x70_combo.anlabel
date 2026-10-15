@@ -11,7 +11,7 @@
     {
       "Id": "4ed0115c29e94af096391931c32ec7fc",
       "Type": "Text",
-      "Name": "Field: Vendor",
+      "Name": "Trường: Vendor",
       "XMm": 2,
       "YMm": 2,
       "WidthMm": 72,
@@ -51,7 +51,7 @@
     {
       "Id": "12cf20c1864d41bf9ad5b06faa7f6c94",
       "Type": "QRCode",
-      "Name": "QR: QRData",
+      "Name": "Mã QR: QRData",
       "XMm": 78,
       "YMm": 2,
       "WidthMm": 20,
@@ -91,7 +91,7 @@
     {
       "Id": "89a8343275a34ec7b4740eb7c2d4122b",
       "Type": "Rectangle",
-      "Name": "box",
+      "Name": "Hộp",
       "XMm": 2,
       "YMm": 10,
       "WidthMm": 74,
@@ -171,7 +171,7 @@
     {
       "Id": "c9cef7667e0e4ffeb1d88226a1f0ddde",
       "Type": "Text",
-      "Name": "Field: PartNo",
+      "Name": "Trường: PartNo",
       "XMm": 20,
       "YMm": 12,
       "WidthMm": 54,
@@ -251,7 +251,7 @@
     {
       "Id": "0e35a04e4fcb433c8146202f1ef515c8",
       "Type": "Text",
-      "Name": "Field: PartName",
+      "Name": "Trường: PartName",
       "XMm": 20,
       "YMm": 17,
       "WidthMm": 54,
@@ -331,7 +331,7 @@
     {
       "Id": "dc9bdfab58d34742868bba91d3d5361c",
       "Type": "Text",
-      "Name": "Field: MPN",
+      "Name": "Trường: MPN",
       "XMm": 20,
       "YMm": 22,
       "WidthMm": 54,
@@ -411,7 +411,7 @@
     {
       "Id": "c4cd3d4f3fe749b5bb194d642bc01760",
       "Type": "Text",
-      "Name": "Field: Qty",
+      "Name": "Trường: Qty",
       "XMm": 20,
       "YMm": 27,
       "WidthMm": 30,
@@ -491,7 +491,7 @@
     {
       "Id": "2ffd75d6c6c54a97a82c7ddb36e68ce3",
       "Type": "Text",
-      "Name": "Field: Lot",
+      "Name": "Trường: Lot",
       "XMm": 20,
       "YMm": 32,
       "WidthMm": 30,
@@ -571,7 +571,7 @@
     {
       "Id": "3710d3e1d4884e84b974d5a1da64e1e0",
       "Type": "Text",
-      "Name": "Field: MfgDate",
+      "Name": "Trường: MfgDate",
       "XMm": 20,
       "YMm": 37,
       "WidthMm": 40,
@@ -611,7 +611,7 @@
     {
       "Id": "76c0ad0d3b6545ffb260a886c343c968",
       "Type": "BarcodeCode128",
-      "Name": "Barcode: PartNo",
+      "Name": "Mã vạch: PartNo",
       "XMm": 4,
       "YMm": 44,
       "WidthMm": 68,
@@ -651,7 +651,7 @@
     {
       "Id": "b262e51140574668bc75dacc8b8bd2d3",
       "Type": "QRCode",
-      "Name": "QR: SerialNo",
+      "Name": "Mã QR: SerialNo",
       "XMm": 80,
       "YMm": 26,
       "WidthMm": 18,
