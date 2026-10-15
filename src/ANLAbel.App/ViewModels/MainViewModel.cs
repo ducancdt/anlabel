@@ -3316,7 +3316,7 @@ public sealed class MainViewModel : ObservableObject
         {
             Type = ObjectType.Text,
             Name = "Chữ",
-            Text = "Long text can overflow horizontally",
+            Text = "Chữ tự do dài ra theo nội dung",
             BindingExpression = string.Empty,
             XMm = 5,
             YMm = 5,
@@ -3571,7 +3571,7 @@ public sealed class MainViewModel : ObservableObject
         SelectedObject.BindingExpression = string.Empty;
         if (string.IsNullOrWhiteSpace(SelectedObject.Text))
         {
-            SelectedObject.Text = "Text";
+            SelectedObject.Text = "Chữ";
         }
 
         if (SelectedObject.Type is ObjectType.Text or ObjectType.TextBox)

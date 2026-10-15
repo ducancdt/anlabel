@@ -9,6 +9,27 @@ def gid():
     return uuid.uuid4().hex
 
 
+# Object names show in the Layers list and the binding check, so they use the
+# app's Vietnamese prefixes (2026-10-15); short codes such as r1 stay as written.
+VI_PREFIXES = [
+    ("Barcode: ", "Mã vạch: "), ("barcode: ", "Mã vạch: "), ("bc: ", "Mã vạch: "),
+    ("QR: ", "Mã QR: "), ("qr: ", "Mã QR: "), ("Field: ", "Trường: "), ("txt: ", "Chữ: "),
+    ("lbl: ", "Chú thích: "), ("val: ", "Giá trị: "), ("hdr: ", "Đầu tem: "),
+]
+VI_NAMES = {"border": "Khung viền", "border 1": "Khung viền 1", "box": "Hộp", "frame": "Khung", "qr 1": "Mã QR 1"}
+
+
+def vi_name(name):
+    if name in VI_NAMES:
+        return VI_NAMES[name]
+    if name.startswith("line ") and name[5:].isdigit():
+        return "Đường kẻ " + name[5:]
+    for old, new in VI_PREFIXES:
+        if name.startswith(old):
+            return new + name[len(old):]
+    return name
+
+
 def style(size=8, bold=False, align="Left", border=0.0, outline="None"):
     return {
         "FontFamily": "Arial",
@@ -49,7 +70,7 @@ def obj(
     return {
         "Id": gid(),
         "Type": typ,
-        "Name": name,
+        "Name": vi_name(name),
         "XMm": round(x, 2),
         "YMm": round(y, 2),
         "WidthMm": round(w, 2),

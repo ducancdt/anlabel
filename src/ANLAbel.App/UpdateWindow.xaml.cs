@@ -168,7 +168,7 @@ public partial class UpdateWindow : Window
                 if (!AppUpdateService.LaunchInstaller(filePath, closeAppOnLaunch: true))
                 {
                     MessageBox.Show(
-                        $"Không thể tự động chạy bộ cài đặt tại:\n{filePath}\n\nVui lòng mở file trên để cài đặt thủ công.",
+                        $"Không thể tự động chạy bộ cài đặt tại:\n{filePath}\n\nVui lòng mở tệp trên để cài đặt thủ công.",
                         "Lỗi khởi chạy cài đặt",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);

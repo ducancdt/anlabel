@@ -2163,7 +2163,7 @@ regression 211 PASS/0 FAIL. Chưa có bằng chứng in vật lý.
 - Đọc và phân tích toàn bộ Chương 9.1 `Command Files` (đặc biệt mục 9.1.1 `JOB Command File`) trong `ug-NiceLabel_2019_PowerForms_User_Guide-en.md`.
 - File kịch bản `.job` là giao thức tích hợp công nghiệp chuẩn của NiceLabel dành cho ERP (SAP, Oracle, Infor), MES và WMS để in nhãn tự động qua cơ chế file drop hoặc pipeline.
 - Tập lệnh NiceLabel JOB gồm 18 lệnh cốt lõi: `LABEL`, `PRINTER`, `SET`, `CLEARVARIABLEVALUES`, `PRINT`, `PORT`, `PRINTJOBNAME`, `SETPRINTPARAM`, `SESSIONSTART`, `SESSIONPRINT`, `SESSIONEND`, `IGNOREERROR`, `CREATEFILE`, `DELETEFILE`, `TEXTQUALIFIER`, `COMMENT (;)`.
-- Chốt tài liệu kiến trúc và lộ trình thực thi tại `docs/NICELABEL_JOB_COMMAND_ARCHITECTURE.md`.
+- Chốt tài liệu kiến trúc và lộ trình thực thi tại `docs/archive/NICELABEL_JOB_COMMAND_ARCHITECTURE.md`.
 - Nguyên tắc thiết kế:
   1. Bảo vệ nghiêm ngặt hợp đồng `Text / TextBox` theo `AGENTS.md` (không đổi ownership, frame size, padding, clipping hay layout renderer).
   2. Parser phân tích cú pháp bất biến (Immutable AST: `IJobCommand`), hỗ trợ quoted strings, escape `\r\n` và text qualifiers.

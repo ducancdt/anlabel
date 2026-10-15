@@ -164,8 +164,10 @@ internal static class LanguageComplianceRegression
             RegexOptions.CultureInvariant);
         // A style or trigger sets visible text too: six English TextBox options in
         // the Properties panel were set this way and passed the scan (2026-10-15).
+        // Attributes in any order, others in between, and owner-qualified
+        // properties such as ToolTipService.ToolTip.
         var setterPattern = new Regex(
-            "<Setter\\s+Property=\"(?<attr>" + string.Join("|", VisibleAttributes) + ")\"\\s+Value=\"(?<val>[^\"]*)\"",
+            "<Setter\\b(?=[^>]*\\bProperty=\"(?:\\w+\\.)?(?<attr>" + string.Join("|", VisibleAttributes) + ")\")[^>]*\\bValue=\"(?<val>[^\"]*)\"",
             RegexOptions.CultureInvariant);
 
         for (var i = 0; i < lines.Length; i++)

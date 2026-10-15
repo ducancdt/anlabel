@@ -80,7 +80,7 @@ public static class PrinterQueueLoader
                 "Chưa có máy in",
                 [
                     "Windows chưa có hàng đợi máy in nào.",
-                    "Hãy cài driver máy in tem (hoặc kết nối máy in mạng) rồi mở lại Cài đặt máy in."
+                    "Hãy cài trình điều khiển máy in tem (hoặc kết nối máy in mạng) rồi mở lại Cài đặt máy in."
                 ],
                 null,
                 OperatorDialogTone.Warning,
