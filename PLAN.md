@@ -1,5 +1,23 @@
 # ANLAbel Phase 1 Plan
 
+## v0.322 — Chiều chữ và tên đối tượng trong mẫu thư viện bằng tiếng Việt
+
+**Thiết kế**
+
+- Danh sách “Chiều chữ” trong Bảng thuộc tính hiện “Tự động”, “Trái sang phải”,
+  “Phải sang trái” thay cho tên enum “Auto”…
+- Tên đối tượng trong 22 mẫu thư viện, hiện ở danh sách Lớp và thẻ Kiểm tra ràng
+  buộc, dùng tiền tố tiếng Việt: “Trường: PartName”, “Mã vạch: PartNo”, “Chú thích:
+  Qty”, “Giá trị: Lot”, “Đường kẻ 1”… (329 tên). Chỉ đổi tên hiển thị; mã viết tắt
+  như `r1` giữ nguyên. Mẫu đã lưu từ trước không bị đổi.
+- Tìm ra khi chụp Bảng thuộc tính trên bản cài v0.321.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1218/1218; regression 265 PASS / 0 FAIL, gồm bảy gate
+  Text/TextBox và hai gate mẫu thư viện. Mutation gate không bắt buộc: không đổi
+  contract Core nào trong danh sách mutation.
+
 ## v0.321 — Thẻ Ô chữ trong Bảng thuộc tính bằng tiếng Việt
 
 **Thiết kế** (chủ sản phẩm duyệt 2026-10-15; hợp đồng Text/TextBox, chỉ đổi chữ)
