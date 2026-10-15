@@ -83,12 +83,17 @@ public sealed class ExcelDataService
     /// told to stop too: it used to carry on in the background, holding the file
     /// open (Excel could not save over it) and doubling the work when the operator
     /// tried again. A call stuck where it cannot see the request still runs on,
-    /// but the caller gets its answer either way.
+    /// but the caller gets its answer either way. Internal so tests can give it
+    /// a read that only ends when it is told to stop.
     /// </summary>
-    private async Task<T> ReadAsync<T>(string filePath, Func<CancellationToken, T> read, CancellationToken cancellationToken)
+    internal async Task<T> ReadAsync<T>(string filePath, Func<CancellationToken, T> read, CancellationToken cancellationToken)
     {
         var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var readTask = Task.Run(() => read(stop.Token), CancellationToken.None);
+        var token = stop.Token;
+        // The task carries the stop token, so a read that stops on request ends
+        // as cancelled and is not logged as a background failure, while a real
+        // failure of a read nobody waits for still reaches the error log.
+        var readTask = Task.Run(() => read(token), token);
         try
         {
             return await readTask.WaitAsync(TimeoutFor(filePath), cancellationToken);
@@ -96,20 +101,16 @@ public sealed class ExcelDataService
         catch (TimeoutException)
         {
             stop.Cancel();
-            // A moment for the read to close the file before the timeout is reported.
-            await Task.WhenAny(readTask, Task.Delay(StopGrace));
+            // A moment for the read to close the file before the timeout is
+            // reported; Cancel during that moment is still a cancel.
+            await Task.WhenAny(readTask, Task.Delay(StopGrace, cancellationToken));
+            cancellationToken.ThrowIfCancellationRequested();
             throw;
         }
         finally
         {
-            // Nobody waits for an abandoned read; observe its end so a stopped
-            // read is not logged as an unhandled background failure.
             _ = readTask.ContinueWith(
-                task =>
-                {
-                    _ = task.Exception;
-                    stop.Dispose();
-                },
+                _ => stop.Dispose(),
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);

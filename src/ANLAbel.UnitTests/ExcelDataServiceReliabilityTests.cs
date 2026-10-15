@@ -444,6 +444,46 @@ public sealed class ExcelDataServiceReliabilityTests
         }
     }
 
+    // The test above passes for a read that finishes within the grace period
+    // anyway; this read only ends when it is told to stop.
+    [Fact]
+    public async Task TimedOutRead_IsToldToStop()
+    {
+        var service = new ExcelDataService(TimeSpan.FromMilliseconds(1));
+        var stopped = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await Assert.ThrowsAsync<TimeoutException>(() => service.ReadAsync<int>(
+            "local.xlsx",
+            token =>
+            {
+                stopped.TrySetResult(token.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)));
+                token.ThrowIfCancellationRequested();
+                return 0;
+            },
+            CancellationToken.None));
+
+        Assert.True(await stopped.Task, "The timed-out read was not asked to stop.");
+    }
+
+    // Cancel pressed while a timed-out read is still letting go of the file is a
+    // cancel, not a timeout message.
+    [Fact]
+    public async Task CancelWhileATimedOutReadStops_IsACancel()
+    {
+        var service = new ExcelDataService(TimeSpan.FromMilliseconds(1));
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ReadAsync<int>(
+            "local.xlsx",
+            _ =>
+            {
+                // A step that cannot see the stop request, like the Excel reader's opening scan.
+                Thread.Sleep(3000);
+                return 0;
+            },
+            cancel.Token));
+    }
+
     private static string CreateWorkbook(Action<XLWorkbook> configure)
     {
         var directory = CreateTemporaryDirectory();
