@@ -218,6 +218,20 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         try
         {
             data = NormalizeData(data, type, options);
+            if (TryGetCode39Geometry(type, options, out var ratio, out var gapModules))
+            {
+                // An explicit ratio makes wide elements ratio × X, not ZXing's 2 × X,
+                // and a wider gap adds (gap - 1) × X between characters.
+                var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options));
+                var elements = ReadCode39Elements(native);
+                var wide = elements.Count(element => element.Wide);
+                return Core.Barcode.Code39RatioContract.LogicalModules(
+                    elements.Count - wide,
+                    wide,
+                    options.QuietZoneModules,
+                    ratio) + (CountGaps(elements) * (gapModules - 1));
+            }
+
             // Request a 1×1 target so ZXing returns the unscaled pure module
             // matrix (native column count including quiet-zone margin modules).
             var matrix = EncodeMatrix(
@@ -308,6 +322,11 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
             hints[EncodeHintType.GS1_FORMAT] = true;
         }
 
+        if (type == BarcodeType.Code128 && options.Code128CodeSet is Core.Enums.Code128CodeSet.A or Core.Enums.Code128CodeSet.B or Core.Enums.Code128CodeSet.C)
+        {
+            hints[EncodeHintType.FORCE_CODE_SET] = options.Code128CodeSet.ToString();
+        }
+
         return hints;
     }
 
@@ -350,24 +369,105 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
 
     private static BitMatrix EncodeMatrix(string data, BarcodeType type, int widthPixels, int heightPixels, BarcodeRenderOptions options)
     {
-        if (type != BarcodeType.Code39 || options.Code39WideNarrowRatio == Core.Enums.Code39WideNarrowRatio.LegacyEngineDefault)
+        if (type == BarcodeType.Code128 && options.Code128CodeSet == Core.Enums.Code128CodeSet.Manual)
         {
-            return new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));
+            if (options.IsGs1)
+            {
+                throw new ArgumentException("Manual Code 128 code sets cannot be combined with GS1 encoding.");
+            }
+
+            return new Code128ManualWriter().encode(data, BarcodeFormat.CODE_128, widthPixels, heightPixels, CreateHints(type, options));
         }
 
-        var ratio = Core.Barcode.Code39RatioContract.ToValue(options.Code39WideNarrowRatio);
-        if (ratio is null)
+        if (!TryGetCode39Geometry(type, options, out var ratio, out var gapModules))
         {
-            throw new ArgumentException("Unsupported Code 39 wide:narrow ratio.");
+            return new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));
         }
 
         // Classify wide/narrow elements from ZXing's native 1/2-unit matrix,
         // never from a frame-scaled matrix where both runs may be many pixels.
         var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options));
-        return RescaleCode39Runs(native, Math.Max(0, options.QuietZoneModules), ratio.Value, widthPixels, heightPixels);
+        return RescaleCode39Runs(native, Math.Max(0, options.QuietZoneModules), ratio, gapModules, widthPixels, heightPixels);
     }
 
-    private static BitMatrix RescaleCode39Runs(BitMatrix source, int quietZoneModules, double ratio, int targetWidth, int targetHeight)
+    /// <summary>
+    /// Code 39 needs whole-dot rebuilding when the operator chose a ratio or a
+    /// wider intercharacter gap; the legacy engine pattern is 2:1 with a 1X gap.
+    /// </summary>
+    private static bool TryGetCode39Geometry(BarcodeType type, BarcodeRenderOptions options, out double ratio, out int gapModules)
+    {
+        ratio = 2.0;
+        gapModules = Math.Clamp(options.Code39IntercharacterGapModules, 1, 5);
+        if (type != BarcodeType.Code39)
+        {
+            return false;
+        }
+
+        if (options.Code39WideNarrowRatio != Core.Enums.Code39WideNarrowRatio.LegacyEngineDefault)
+        {
+            ratio = Core.Barcode.Code39RatioContract.ToValue(options.Code39WideNarrowRatio)
+                ?? throw new ArgumentException("Unsupported Code 39 wide:narrow ratio.");
+            return true;
+        }
+
+        return gapModules > 1;
+    }
+
+    /// <summary>Each Code 39 character is 9 elements followed by a gap space before the next one.</summary>
+    private static bool IsIntercharacterGap(int elementIndex) => elementIndex % 10 == 9;
+
+    private static int CountGaps(IReadOnlyList<(bool Black, bool Wide)> elements)
+        => Enumerable.Range(0, elements.Count).Count(IsIntercharacterGap);
+
+    private static BitMatrix RescaleCode39Runs(BitMatrix source, int quietZoneModules, double ratio, int gapModules, int targetWidth, int targetHeight)
+    {
+        // Every narrow element gets the same whole number of dots and every
+        // wide element the same legal multiple of it, so the printed ratio is
+        // the one preflight checked. The largest narrow width that fits the
+        // target is used; the remainder is centred like ZXing's integer scaling.
+        var elements = ReadCode39Elements(source);
+        var wideCount = elements.Count(element => element.Wide);
+        var narrowCount = elements.Count - wideCount;
+        var extraGapUnits = CountGaps(elements) * (gapModules - 1);
+        var margin = Math.Max(0, quietZoneModules);
+        int SymbolWidth(int narrow) =>
+            ((2 * margin) + narrowCount + extraGapUnits) * narrow
+            + (wideCount * Core.Barcode.Code39RatioContract.ResolveWideDots(narrow, ratio));
+
+        var narrowDots = 1;
+        while (SymbolWidth(narrowDots + 1) <= targetWidth)
+        {
+            narrowDots++;
+        }
+
+        var wideDots = Core.Barcode.Code39RatioContract.ResolveWideDots(narrowDots, ratio);
+        var symbolWidth = SymbolWidth(narrowDots);
+        var outputWidth = Math.Max(targetWidth, symbolWidth);
+        var height = Math.Max(1, targetHeight);
+        var target = new BitMatrix(outputWidth, height);
+        var cursor = ((outputWidth - symbolWidth) / 2) + (margin * narrowDots);
+        for (var index = 0; index < elements.Count; index++)
+        {
+            var element = elements[index];
+            var length = element.Wide
+                ? wideDots
+                : IsIntercharacterGap(index) ? narrowDots * gapModules : narrowDots;
+            if (element.Black)
+            {
+                target.setRegion(cursor, 0, length, height);
+            }
+
+            cursor += length;
+        }
+
+        return target;
+    }
+
+    /// <summary>
+    /// Bars and spaces of ZXing's native Code 39 row without its outer margins.
+    /// ZXing encodes narrow elements as one unit and wide elements as two.
+    /// </summary>
+    private static List<(bool Black, bool Wide)> ReadCode39Elements(BitMatrix source)
     {
         var runs = new List<(bool Black, int Length)>();
         var current = source[0, 0];
@@ -382,27 +482,13 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         }
         runs.Add((current, length));
 
-        // ZXing Code 39 uses a 1/2 narrow/wide pattern. Preserve the two outer
-        // margins and reweight interior two-unit runs to the approved ratio.
-        var weights = runs.Select((run, index) =>
-            index == 0 || index == runs.Count - 1
-                ? Math.Max(0, quietZoneModules)
-                : run.Length >= 2 ? ratio : 1d).ToArray();
-        var total = weights.Sum();
-        var target = new BitMatrix(targetWidth, targetHeight);
-        var cursor = 0;
-        for (var index = 0; index < runs.Count; index++)
-        {
-            var next = index == runs.Count - 1
-                ? targetWidth
-                : (int)Math.Round((weights.Take(index + 1).Sum() / total) * targetWidth, MidpointRounding.AwayFromZero);
-            if (runs[index].Black && next > cursor)
-            {
-                target.setRegion(cursor, 0, next - cursor, targetHeight);
-            }
-            cursor = next;
-        }
-        return target;
+        var first = runs[0].Black ? 0 : 1;
+        var last = runs[^1].Black ? runs.Count - 1 : runs.Count - 2;
+        return runs
+            .Skip(first)
+            .Take(Math.Max(0, last - first + 1))
+            .Select(run => (run.Black, run.Length >= 2))
+            .ToList();
     }
 
     private static ErrorCorrectionLevel ParseQrErrorCorrection(string value)

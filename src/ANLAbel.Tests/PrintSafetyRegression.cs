@@ -346,6 +346,40 @@ internal static class PrintSafetyRegression
         Require(!text.Contains("Logo", StringComparison.Ordinal), "Advisory issues must not be listed as print blockers: " + text);
         Require(ANLAbel.App.Services.PreflightIssueText.Message("A brand-new validator message.") == "A brand-new validator message.",
             "An unmapped validator message must be shown unchanged, not hidden.");
+
+        // Check-digit messages are produced by the contract itself, not retyped here.
+        var customItf = new ANLAbel.Core.Models.LabelObject
+        {
+            Type = ANLAbel.Core.Enums.ObjectType.BarcodeCode128,
+            BarcodeSymbology = ANLAbel.Core.Enums.BarcodeSymbology.ITF,
+            BarcodeCheckDigitPolicy = ANLAbel.Core.Enums.BarcodeCheckDigitPolicy.Generate,
+            CheckDigitModulus = 1
+        };
+        var producedMessages = new List<string>();
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(ANLAbel.Core.Enums.BarcodeSymbology.ITF, "", ANLAbel.Core.Enums.BarcodeCheckDigitPolicy.Generate));
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(ANLAbel.Core.Enums.BarcodeSymbology.ITF, "12", ANLAbel.Core.Enums.BarcodeCheckDigitPolicy.Generate));
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(ANLAbel.Core.Enums.BarcodeSymbology.ITF, "1A", ANLAbel.Core.Enums.BarcodeCheckDigitPolicy.Generate));
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(ANLAbel.Core.Enums.BarcodeSymbology.Code39, "a#", ANLAbel.Core.Enums.BarcodeCheckDigitPolicy.Generate));
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(customItf, ANLAbel.Core.Enums.BarcodeSymbology.ITF, "123"));
+        customItf.CheckDigitModulus = 10;
+        customItf.CheckDigitWeights = "x";
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(customItf, ANLAbel.Core.Enums.BarcodeSymbology.ITF, "123"));
+        customItf.CheckDigitWeights = "3,1";
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(customItf, ANLAbel.Core.Enums.BarcodeSymbology.ITF, "12A"));
+        customItf.BarcodeCheckDigitPolicy = ANLAbel.Core.Enums.BarcodeCheckDigitPolicy.Verify;
+        producedMessages.AddRange(ANLAbel.Core.Barcode.BarcodeCheckDigitContract.Validate(customItf, ANLAbel.Core.Enums.BarcodeSymbology.ITF, "1230"));
+        Require(producedMessages.Count == 8, $"Expected 8 check-digit messages, got {producedMessages.Count}.");
+        foreach (var produced in producedMessages)
+        {
+            Require(ANLAbel.App.Services.PreflightIssueText.IsKnown(produced),
+                $"Check-digit message has no Vietnamese rule: {produced}");
+        }
+
+        Require(ANLAbel.App.Services.PreflightIssueText.IsKnown(
+                "Frame bearer bars are 2 mm thick but the quiet zone is only 1 mm (2 modules), so the side bars cover the first and last bars of the barcode. Increase quiet zone to at least 4 modules, make the bearer thinner, or use top/bottom bearer bars.")
+            && ANLAbel.App.Services.PreflightIssueText.IsKnown(
+                "Bar width reduction of 2 dot(s) leaves the narrow bar 1 dot(s) wide (3 dot(s) at 203 DPI), below the 2-dot minimum, so the barcode may not scan. Use at most 1 dot(s) of reduction or increase X-dimension."),
+            "Bearer overlap and bar width reduction messages need Vietnamese rules.");
         Require(ANLAbel.App.Services.PreflightIssueText.Sentence("Copies field 'Qty' value '2,5' is not a whole number.")
                 == "Số bản in “2,5” (cột “Qty”) không phải số nguyên.",
             "Copies problems must be worded for the operator.");
@@ -376,6 +410,20 @@ internal static class PrintSafetyRegression
             " data cannot be empty or whitespace.",
             " check-digit policy is Verify but the barcode data is empty.",
             " check-digit policy is Verify: payload does not end with a valid check digit.",
+            " check-digit policy is Verify: payload does not end with a valid custom check digit.",
+            " check-digit policy is Generate but the barcode data is empty.",
+            "Code 39 check digit cannot be generated",
+            "ITF check digit cannot be generated",
+            "A custom check digit can only be generated for data made of digits",
+            "ITF needs an even number of digits including the check digit; ",
+            "Custom check digit modulus must be",
+            "Custom check digit weights ",
+            "Custom check digit value map ",
+            "Frame bearer bars are ",
+            "HRI mask has ",
+            "HRI mask character must be a single character.",
+            "HRI mask is longer than ",
+            "Bar width reduction of ",
             "GS1 data is empty.",
             "GS1 data must use (AI)value notation",
             "GS1 AI {ai}",
@@ -386,6 +434,8 @@ internal static class PrintSafetyRegression
             "below the industrial floor",
             " module(s); this profile requires at least ",
             "Code 39 quiet zone is ",
+            " magnification (X ",
+            " is thinner than one printer dot (",
             "Code 39 wide:narrow ratio",
             "Bearer bars are only supported on 1D",
             "Bearer bar thickness is ",
@@ -416,6 +466,155 @@ internal static class PrintSafetyRegression
                 && !printClick.Contains("CopiesFieldContract.ToUserMessage(", StringComparison.Ordinal)
                 && printClick.Contains("PreflightIssueText.Describe(preflight, SourceRowOf(selected))", StringComparison.Ordinal),
             "Print blocks must name data rows and problems in Vietnamese.");
+        return Task.CompletedTask;
+    }
+
+    public static Task SerialNumbersAreReservedBeforeTheManifestAndExplainedInVietnamese()
+    {
+        var quickPrint = Method(Path.Combine("src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"), "private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(");
+        var apply = quickPrint.IndexOf("SerialCounterContract.TryApply(", StringComparison.Ordinal);
+        var preflight = quickPrint.IndexOf("_printService.ValidateRowsAsync(", StringComparison.Ordinal);
+        var reserve = quickPrint.IndexOf("SerialCounterStore.ForCounter(counter).TryReserve(", StringComparison.Ordinal);
+        var manifest = quickPrint.IndexOf("PrintJobManifest.Create(", StringComparison.Ordinal);
+        Require(apply > 0 && apply < preflight && preflight < reserve && reserve < manifest,
+            "Quick print must number rows before preflight and reserve serials after preflight but before the manifest.");
+
+        var previewPrint = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async void Print_Click(");
+        var previewReserve = previewPrint.IndexOf("SerialCounterStore.ForCounter(counter).TryReserve(", StringComparison.Ordinal);
+        var previewManifest = previewPrint.IndexOf("PrintJobManifest.Create(", StringComparison.Ordinal);
+        Require(previewReserve > 0 && previewReserve < previewManifest,
+            "Print Preview must reserve serial numbers before it creates the manifest.");
+        Require(previewPrint.Contains("SerialCounterContract.IsActive(_template) && _approvedReprintJobId is null", StringComparison.Ordinal),
+            "A reprint must reuse the original job's serials, never reserve new ones.");
+        Require(previewPrint.Contains("_serialFirstValue != _serialPreviewedFirstValue", StringComparison.Ordinal),
+            "Print Preview must refuse to print serials other than the ones it showed.");
+        var viewModelSource = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"));
+        Require(viewModelSource.Contains("return new TrackedPrintResult(jobId, result, spoolStatus, printTemplate, _printEvidenceDropped, rows);", StringComparison.Ordinal)
+                && System.Text.RegularExpressions.Regex.Matches(viewModelSource, @"WritePrintLogAsync\(\s*""(?:Current row|All rows)"",\s*tracked\.PrintedRows \?\? rows,").Count == 2,
+            "Quick print history must record the numbered rows that were printed, including each serial.");
+
+        var counter = new ANLAbel.Core.Models.SerialCounterDefinition
+        {
+            Enabled = true,
+            StartValue = 98,
+            MaximumValue = 99
+        };
+        var produced = new List<string>();
+        produced.AddRange(ANLAbel.Core.Printing.SerialCounterContract.ValidateDefinition(new ANLAbel.Core.Models.SerialCounterDefinition
+        {
+            Step = 0,
+            ChangeEvery = 0,
+            MinimumValue = 5,
+            MaximumValue = 4,
+            Digits = 40,
+            Prefix = new string('x', 40)
+        }));
+        produced.AddRange(ANLAbel.Core.Printing.SerialCounterContract.ValidateDefinition(new ANLAbel.Core.Models.SerialCounterDefinition
+        {
+            Enabled = true,
+            StartValue = 100,
+            MaximumValue = 99
+        }));
+        ANLAbel.Core.Printing.SerialCounterContract.TryApply(counter, 98, new IReadOnlyDictionary<string, string>?[3], out _, out var overflow);
+        produced.Add(overflow);
+
+        var directory = Path.Combine(Path.GetTempPath(), $"anl-serial-reg-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var store = new ANLAbel.Data.PrintLogs.SerialCounterStore(Path.Combine(directory, "r.jsonl"));
+            store.TryReserve(counter, "job-a", 98, 1, out _, out _);
+            store.TryReserve(counter, "job-b", 98, 1, out _, out var changed);
+            store.TryReserve(counter, "job-a", 50, 9, out _, out var alreadyReserved);
+            produced.Add(changed);
+            produced.Add(alreadyReserved);
+            File.WriteAllText(Path.Combine(directory, "bad.jsonl"), "x\n");
+            try
+            {
+                new ANLAbel.Data.PrintLogs.SerialCounterStore(Path.Combine(directory, "bad.jsonl")).PeekNextValue(counter);
+            }
+            catch (InvalidDataException exception)
+            {
+                produced.Add(exception.Message);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        Require(produced.Count >= 10, $"Expected every serial counter message to be produced, got {produced.Count}.");
+        foreach (var message in produced)
+        {
+            Require(!string.IsNullOrWhiteSpace(message) && ANLAbel.App.Services.SerialCounterText.IsKnown(message),
+                $"Serial counter message has no Vietnamese rule: {message}");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public static Task JobValuesAreRecordedBeforeTheManifestAndExplainedInVietnamese()
+    {
+        var quickPrint = Method(Path.Combine("src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"), "private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(");
+        var apply = quickPrint.IndexOf("JobVariableContract.TryApply(", StringComparison.Ordinal);
+        var preflight = quickPrint.IndexOf("_printService.ValidateRowsAsync(", StringComparison.Ordinal);
+        var record = quickPrint.IndexOf("_printJobValueStore.Record(", StringComparison.Ordinal);
+        var manifest = quickPrint.IndexOf("PrintJobManifest.Create(", StringComparison.Ordinal);
+        Require(apply > 0 && apply < preflight && preflight < record && record < manifest,
+            "Quick print must fill job values before preflight and record them after preflight but before the manifest.");
+
+        var previewPrint = Method(Path.Combine("src", "ANLAbel.App", "PrintPreviewWindow.xaml.cs"), "private async void Print_Click(");
+        var previewRecord = previewPrint.IndexOf("_printJobValueStore.Record(", StringComparison.Ordinal);
+        var previewManifest = previewPrint.IndexOf("PrintJobManifest.Create(", StringComparison.Ordinal);
+        Require(previewRecord > 0 && previewRecord < previewManifest,
+            "Print Preview must record job values before it creates the manifest.");
+        Require(previewPrint.Contains("JobVariableContract.UsesJobVariables(_template) && _approvedReprintJobId is null", StringComparison.Ordinal)
+                && previewPrint.Contains("!SameJobValues(_currentJobValues, _previewedJobValues)", StringComparison.Ordinal),
+            "Print Preview must reuse a reprint's values and refuse values other than the ones it showed.");
+        var openPreview = Method(Path.Combine("src", "ANLAbel.App", "MainWindow.xaml.cs"), "private void OpenPrintPreviewDialog(");
+        Require(openPreview.Contains("approvedReprintJobId is null && prompts.Count > 0", StringComparison.Ordinal),
+            "A reprint must not ask for new prompt values.");
+
+        var template = new ANLAbel.Core.Models.LabelTemplate();
+        template.Objects.Add(new ANLAbel.Core.Models.LabelObject { BindingExpression = "{?Lot}{#NOW:MM}{#NOW:mm}" });
+        var produced = new List<string>();
+        var definition = new ANLAbel.Core.Models.PromptVariableDefinition { Name = "Lot", MaxLength = 2, DigitsOnly = true };
+        produced.Add(ANLAbel.Core.Printing.JobVariableContract.ValidatePromptValue(definition, ""));
+        produced.Add(ANLAbel.Core.Printing.JobVariableContract.ValidatePromptValue(definition, "123"));
+        produced.Add(ANLAbel.Core.Printing.JobVariableContract.ValidatePromptValue(definition, "a"));
+        ANLAbel.Core.Printing.JobVariableContract.TryFormatDate("#NOW+1x", DateTimeOffset.Now, out _, out var badToken);
+        produced.Add(badToken);
+        ANLAbel.Core.Printing.JobVariableContract.TryFormatDate("#NOW:%", DateTimeOffset.Now, out _, out var badFormat);
+        produced.Add(badFormat);
+        ANLAbel.Core.Printing.JobVariableContract.TryResolveValues(template, DateTimeOffset.Now, new Dictionary<string, string> { ["Lot"] = "1" }, out _, out var clash);
+        produced.Add(clash);
+        var directory = Path.Combine(Path.GetTempPath(), $"anl-jobvars-reg-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "v.jsonl");
+            File.WriteAllText(path, "x\n");
+            try
+            {
+                new ANLAbel.Data.PrintLogs.PrintJobValueStore(path).Find("job");
+            }
+            catch (InvalidDataException exception)
+            {
+                produced.Add(exception.Message);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        Require(produced.Count == 7, $"Expected 7 job value messages, got {produced.Count}.");
+        foreach (var message in produced)
+        {
+            Require(!string.IsNullOrWhiteSpace(message) && ANLAbel.App.Services.JobVariableText.IsKnown(message),
+                $"Job value message has no Vietnamese rule: {message}");
+        }
+
         return Task.CompletedTask;
     }
 

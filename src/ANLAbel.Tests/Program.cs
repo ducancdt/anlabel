@@ -58,6 +58,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("library templates round-trip without geometry change", DocumentLifecycleRegression.LibraryTemplatesRoundTripWithoutGeometryChange),
     ("real templates open, save, render and pass preflight", AcceptanceRegression.RealTemplatesOpenSaveRenderAndPassPreflight),
     ("designer, preview and print draw the same barcode", BarcodeParityRegression.DesignerPreviewAndPrintDrawTheSameBarcode),
+    ("virtual print scans serial, date, check digit and reduced bars", BarcodeParityRegression.VirtualPrintScansSerialDateCheckDigitAndReducedBars),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),
     ("columns known only by position are reported and cannot print", DataHeaderRegression.ColumnsKnownOnlyByPositionAreReportedAndCannotPrint),
@@ -66,6 +67,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("a stray far cell makes no fields and letters stay right", DataHeaderRegression.StrayFarCellsMakeNoFieldsAndLettersStayRight),
     ("a template from another printer driver stops until Printer Setup", DriverIdentityRegression.TemplateFromAnotherDriverStopsUntilPrinterSetup),
     ("calibration print uses an isolated copy of the label", PrintSafetyRegression.CalibrationPrintUsesAnIsolatedCopy),
+    ("serial numbers are reserved before the manifest", PrintSafetyRegression.SerialNumbersAreReservedBeforeTheManifestAndExplainedInVietnamese),
+    ("job dates and entered values are recorded before the manifest", PrintSafetyRegression.JobValuesAreRecordedBeforeTheManifestAndExplainedInVietnamese),
     ("quick print uses one snapshot and the async driver contract", PrintSafetyRegression.QuickPrintUsesOneSnapshotAndAsyncContract),
     ("failure after spool acceptance is unknown, not failed", PrintSafetyRegression.FailureAfterSpoolAcceptanceIsUnknownNotFailed),
     ("failure while sending is uncertain, not failed", PrintSafetyRegression.FailureWhileSendingIsUncertainNotFailed),
@@ -10223,6 +10226,176 @@ static Task TestItfBearerBarsPreflightAndLayout()
     };
     var resultInvalid2D = validator.Validate(templateInvalid2D, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
     AssertEqual(true, resultInvalid2D.Issues.Any(i => i.Message.Contains("Bearer bars are only supported on 1D linear barcodes")), "2D matrix code with BearerBarStyle must fail preflight");
+
+    // 3. Frame side bars wider than the quiet zone cover the outer bars
+    LabelTemplate FramedItf(int quietZoneModules) => new()
+    {
+        WidthMm = 120,
+        HeightMm = 60,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "ITF_Framed",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.ITF,
+                Text = "12345678901231",
+                BarcodeModuleWidthMm = 0.5,
+                QrQuietZoneModules = quietZoneModules,
+                WidthMm = 80,
+                HeightMm = 35,
+                BearerBarStyle = BearerBarStyle.Frame,
+                BearerBarThicknessMm = 2.0
+            }
+        ]
+    };
+    var narrowQuietZone = validator.Validate(FramedItf(2), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, narrowQuietZone.Issues.Any(i => i.IsBlocking && i.Message.Contains("cover the first and last bars")), "Frame bearer wider than the quiet zone must fail preflight");
+    var wideQuietZone = validator.Validate(FramedItf(10), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(false, wideQuietZone.Issues.Any(i => i.Message.Contains("cover the first and last bars")), "Frame bearer inside a 10X quiet zone must not report overlap");
+
+    // 4. Generate appends the ITF check digit: 13 data digits print as a valid 14-digit symbol
+    LabelTemplate GeneratedItf(string body) => new()
+    {
+        WidthMm = 120,
+        HeightMm = 60,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "ITF_Generated",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.ITF,
+                Text = body,
+                QrQuietZoneModules = 10,
+                WidthMm = 80,
+                HeightMm = 35,
+                BarcodeCheckDigitPolicy = BarcodeCheckDigitPolicy.Generate
+            }
+        ]
+    };
+    var generated = validator.Validate(GeneratedItf("1234567890123"), [new Dictionary<string, string>()], 300);
+    AssertEqual(0, generated.Issues.Count, "ITF Generate with 13 data digits must pass preflight: " + string.Join(" | ", generated.Issues.Select(i => i.Message)));
+    var evenBody = validator.Validate(GeneratedItf("12345678901231"), [new Dictionary<string, string>()], 300);
+    AssertEqual(true, evenBody.Issues.Any(i => i.Message.Contains("ITF needs an even number of digits")), "ITF Generate with an even data length must explain the odd total");
+
+    // 5. Bar width reduction must stay below the narrow bar's dot width
+    LabelTemplate ReducedItf(int reductionDots) => new()
+    {
+        WidthMm = 120,
+        HeightMm = 60,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "ITF_Reduced",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.ITF,
+                Text = "12345678901231",
+                BarcodeModuleWidthMm = 0.254,
+                QrQuietZoneModules = 10,
+                WidthMm = 80,
+                HeightMm = 35,
+                BarcodeBarWidthReductionDots = reductionDots
+            }
+        ]
+    };
+    var mildReduction = validator.Validate(ReducedItf(1), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(false, mildReduction.Issues.Any(i => i.Message.Contains("Bar width reduction")), "1-dot reduction on a 3-dot narrow bar is allowed");
+    var fullReduction = validator.Validate(ReducedItf(3), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, fullReduction.Issues.Any(i => i.IsBlocking && i.Message.Contains("Bar width reduction")), "Reduction equal to the narrow bar must block printing");
+    var sliverReduction = validator.Validate(ReducedItf(2), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(true, sliverReduction.Issues.Any(i => i.IsBlocking && i.Message.Contains("leaves the narrow bar 1 dot(s) wide")), "A reduction leaving a 1-dot narrow bar must block printing (it did not scan in the virtual print)");
+
+    // 6. An HRI mask must cover every data character of each row
+    LabelTemplate MaskedCode128(string mask) => new()
+    {
+        WidthMm = 120,
+        HeightMm = 60,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Masked",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                BindingExpression = "{Phone}",
+                QrQuietZoneModules = 10,
+                WidthMm = 90,
+                HeightMm = 25,
+                BarcodeHriPlacement = BarcodeHriPlacement.Below,
+                BarcodeHriMask = mask
+            }
+        ]
+    };
+    IReadOnlyDictionary<string, string>[] phoneRows = [new Dictionary<string, string> { ["Phone"] = "0123456789" }];
+    var fittingMask = validator.Validate(MaskedCode128("(***) ***-****"), phoneRows, 300);
+    AssertEqual(false, fittingMask.Issues.Any(i => i.Message.StartsWith("HRI mask", StringComparison.Ordinal)), "A mask with one position per character passes: " + string.Join(" | ", fittingMask.Issues.Select(i => i.Message)));
+    var shortMask = validator.Validate(MaskedCode128("***-***"), phoneRows, 300);
+    var maskIssue = shortMask.Issues.FirstOrDefault(i => i.Message.StartsWith("HRI mask has", StringComparison.Ordinal));
+    AssertEqual(true, maskIssue is { IsBlocking: true, RowNumber: 1 }, "A mask that would drop characters must block the row");
+    AssertEqual(true, ANLAbel.App.Services.PreflightIssueText.IsKnown(maskIssue!.Message), "The mask problem needs a Vietnamese rule");
+
+    // 7. EAN/UPC outside GS1 80-200 % magnification is advice, never a print block
+    LabelTemplate Ean13AtX(double x) => new()
+    {
+        WidthMm = 120,
+        HeightMm = 60,
+        Dpi = 300,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Retail",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Ean13,
+                Text = "6291041500213",
+                BarcodeModuleWidthMm = x,
+                QrQuietZoneModules = 11,
+                WidthMm = 60,
+                HeightMm = 25
+            }
+        ]
+    };
+    var shrunkEan = validator.Validate(Ean13AtX(0.254), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    var magnificationIssue = shrunkEan.Issues.FirstOrDefault(i => i.Message.Contains(" magnification (X ", StringComparison.Ordinal));
+    AssertEqual(true, magnificationIssue is { IsBlocking: false }, "A shrunk EAN-13 must get non-blocking GS1 magnification advice");
+    AssertEqual(true, ANLAbel.App.Services.PreflightIssueText.IsKnown(magnificationIssue!.Message), "The magnification advice needs a Vietnamese rule");
+    var nominalEan = validator.Validate(Ean13AtX(0.33), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    AssertEqual(false, nominalEan.Issues.Any(i => i.Message.Contains(" magnification (X ", StringComparison.Ordinal)), "A nominal EAN-13 gets no magnification advice");
+
+    // 8. A rule thinner than one printer dot is advice (it may vanish on paper)
+    LabelTemplate RuleOf(double thicknessMm) => new()
+    {
+        WidthMm = 100,
+        HeightMm = 50,
+        Dpi = 203,
+        Objects =
+        [
+            new LabelObject
+            {
+                Name = "Rule",
+                Type = ObjectType.Line,
+                XMm = 5,
+                YMm = 10,
+                WidthMm = 80,
+                HeightMm = 0,
+                LineEndXMm = 85,
+                LineEndYMm = 10,
+                Style = new ObjectStyle { BorderThicknessMm = thicknessMm, OutlineStyle = OutlineStyle.Solid }
+            }
+        ]
+    };
+    var hairline = validator.Validate(RuleOf(0.05), Array.Empty<IReadOnlyDictionary<string, string>>(), 203);
+    var hairlineIssue = hairline.Issues.FirstOrDefault(i => i.Message.Contains(" is thinner than one printer dot (", StringComparison.Ordinal));
+    AssertEqual(true, hairlineIssue is { IsBlocking: false }, "A 0.05 mm rule at 203 DPI must get non-blocking advice");
+    AssertEqual(true, ANLAbel.App.Services.PreflightIssueText.IsKnown(hairlineIssue!.Message), "The thin line advice needs a Vietnamese rule");
+    var solidRule = validator.Validate(RuleOf(0.2), Array.Empty<IReadOnlyDictionary<string, string>>(), 203);
+    AssertEqual(false, solidRule.Issues.Any(i => i.Message.Contains(" is thinner than one printer dot (", StringComparison.Ordinal)), "A 0.2 mm rule gets no thin line advice");
 
     return Task.CompletedTask;
 }

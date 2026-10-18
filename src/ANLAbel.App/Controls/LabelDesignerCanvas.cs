@@ -3827,7 +3827,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private string? GetBarcodeError(LabelObject item)
     {
-        var data = ResolveObjectData(item);
+        var data = ResolveBarcodePayload(item);
         var type = item.Type switch
         {
             ObjectType.QRCode => BarcodeType.QRCode,
@@ -3847,7 +3847,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 item, _barcodeRenderer, planDpi, data);
             var hriLayout = BarcodeHriTextLayout.Measure(
                 type,
-                data,
+                BarcodeCheckDigitContract.HriMeasureText(item, data),
                 productionWidthMm,
                 item.HeightMm,
                 item.BarcodeHriPlacement,
@@ -3927,7 +3927,7 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
-        var data = ResolveObjectData(item);
+        var data = ResolveBarcodePayload(item);
         var type = item.Type switch
         {
             ObjectType.QRCode => BarcodeType.QRCode,
@@ -3939,7 +3939,7 @@ public sealed class LabelDesignerCanvas : Canvas
             item, _barcodeRenderer, planDpi, data);
         var hriLayout = BarcodeHriTextLayout.Measure(
             type,
-            data,
+            BarcodeCheckDigitContract.HriMeasureText(item, data),
             productionWidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
@@ -4036,11 +4036,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 ObjectType.DataMatrix => BarcodeSymbology.DataMatrix,
                 _ => item.BarcodeSymbology
             };
-            hri.Text = BarcodeCheckDigitContract.FormatHriText(
-                symbology,
-                data,
-                item.BarcodeCheckDigitPolicy,
-                item.BarcodeHriShowCheckDigit);
+            hri.Text = BarcodeCheckDigitContract.FormatHriText(item, symbology, data);
             hri.FontSize = item.BarcodeTextFontSizePt;
             hri.Height = MmToDip(hriLayout.HriHeightMm);
             hri.Visibility = Visibility.Visible;
@@ -4063,7 +4059,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private ImageSource? CreateBarcodeImageSource(LabelObject item, BarcodeHriLayout? measuredLayout = null, double? productionWidthMm = null)
     {
-        var data = ResolveObjectData(item);
+        var data = ResolveBarcodePayload(item);
         var type = item.Type switch
         {
             ObjectType.QRCode => BarcodeType.QRCode,
@@ -4083,7 +4079,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 ?? LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, _barcodeRenderer, planDpi, data);
             var hriLayout = measuredLayout ?? BarcodeHriTextLayout.Measure(
                 type,
-                data,
+                BarcodeCheckDigitContract.HriMeasureText(item, data),
                 widthMm,
                 item.HeightMm,
                 item.BarcodeHriPlacement,
@@ -4133,17 +4129,7 @@ public sealed class LabelDesignerCanvas : Canvas
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
-    {
-        return new BarcodeRenderOptions
-        {
-            ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
-            Code39WideNarrowRatio = item.Code39WideNarrowRatio,
-            BearerBarStyle = item.BearerBarStyle,
-            BearerBarThicknessMm = item.BearerBarThicknessMm
-        };
-    }
+        => BarcodeRenderOptions.FromObject(item);
 
     /// <summary>
     /// Same DPI priority as preflight / MainViewModel SizedFromX apply:
@@ -4199,6 +4185,9 @@ public sealed class LabelDesignerCanvas : Canvas
 
         return true;
     }
+
+    private string ResolveBarcodePayload(LabelObject item)
+        => BarcodeCheckDigitContract.ToEncodedPayload(item, ResolveObjectData(item));
 
     private string ResolveObjectData(LabelObject item)
     {

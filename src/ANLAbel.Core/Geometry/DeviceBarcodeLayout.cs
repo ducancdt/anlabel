@@ -45,7 +45,8 @@ public sealed class DeviceBarcodeLayout
         int dpiX,
         int dpiY,
         int totalModules,
-        IReadOnlyList<bool> rowBits)
+        IReadOnlyList<bool> rowBits,
+        int barWidthReductionDots = 0)
     {
         ArgumentNullException.ThrowIfNull(rowBits);
         if (totalModules <= 0)
@@ -130,6 +131,18 @@ public sealed class DeviceBarcodeLayout
             else
             {
                 darkRuns.Add(candidate);
+            }
+        }
+
+        if (barWidthReductionDots > 0)
+        {
+            // Thermal gain widens every bar by about the same amount. Trim the
+            // trailing edge of each bar so leading edges, and therefore the
+            // edge-to-similar-edge distances scanners measure, stay on the grid.
+            for (var i = 0; i < darkRuns.Count; i++)
+            {
+                var run = darkRuns[i];
+                darkRuns[i] = run with { WidthDots = Math.Max(1, run.WidthDots - barWidthReductionDots) };
             }
         }
 

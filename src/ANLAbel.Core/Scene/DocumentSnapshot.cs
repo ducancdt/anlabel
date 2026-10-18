@@ -36,6 +36,10 @@ public sealed record DocumentSnapshot
     public ImmutableArray<LabelGuideSnapshot> Guides { get; init; } = ImmutableArray<LabelGuideSnapshot>.Empty;
     public string ExtensionFingerprint { get; init; } = string.Empty;
     public string DataTransformFingerprint { get; init; } = string.Empty;
+    /// <summary>Canonical serial counter definition; empty when the counter is off.</summary>
+    public string SerialCounterFingerprint { get; init; } = string.Empty;
+    /// <summary>Canonical prompt definitions; empty when the template has none.</summary>
+    public string PromptVariableFingerprint { get; init; } = string.Empty;
 
     public string DocumentHash => SceneHash.ComputeDocumentHash(this);
 
@@ -74,8 +78,47 @@ public sealed record DocumentSnapshot
                 .Select(LabelGuideSnapshot.Capture)
                 .ToImmutableArray(),
             ExtensionFingerprint = TemplateExtensionContract.ComputeFingerprint(template.ExtensionData),
-            DataTransformFingerprint = DataTransformPipeline.ComputeFingerprint(template.DataTransforms)
+            DataTransformFingerprint = DataTransformPipeline.ComputeFingerprint(template.DataTransforms),
+            SerialCounterFingerprint = SerialCounterFingerprintOf(template.SerialCounter),
+            PromptVariableFingerprint = PromptVariableFingerprintOf(template.PromptVariables)
         };
+    }
+
+    private static string PromptVariableFingerprintOf(IEnumerable<PromptVariableDefinition>? prompts)
+    {
+        var parts = (prompts ?? Enumerable.Empty<PromptVariableDefinition>())
+            .Select(item => string.Join(
+                "|",
+                item.Name.Length + ":" + item.Name,
+                item.Prompt.Length + ":" + item.Prompt,
+                item.DefaultValue.Length + ":" + item.DefaultValue,
+                item.MaxLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                item.DigitsOnly ? "1" : "0",
+                item.Required ? "1" : "0"))
+            .ToArray();
+        return parts.Length == 0 ? string.Empty : string.Join("\n", parts);
+    }
+
+    private static string SerialCounterFingerprintOf(SerialCounterDefinition? counter)
+    {
+        if (counter is not { Enabled: true })
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            "|",
+            counter.CounterId,
+            counter.StartValue.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            counter.Step.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            counter.ChangeEvery.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            counter.MinimumValue.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            counter.MaximumValue.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            counter.Rollover ? "1" : "0",
+            counter.Digits.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            counter.Prefix.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + counter.Prefix,
+            counter.Suffix.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + counter.Suffix)
+            + (counter.SharedFolder.Length == 0 ? string.Empty : "|shared:" + counter.SharedFolder);
     }
 }
 
@@ -234,6 +277,20 @@ public sealed record SceneObjectSnapshot
     public Code39WideNarrowRatio Code39WideNarrowRatio { get; init; }
     public BearerBarStyle BearerBarStyle { get; init; }
     public double BearerBarThicknessMm { get; init; }
+    public int BarcodeBarWidthReductionDots { get; init; }
+    public int Code39IntercharacterGapModules { get; init; } = 1;
+    public int BearerBarThicknessModules { get; init; }
+    public Code128CodeSet Code128CodeSet { get; init; }
+    public string BarcodeHriMask { get; init; } = string.Empty;
+    public string BarcodeHriMaskCharacter { get; init; } = "*";
+    public int CheckDigitModulus { get; init; }
+    public string CheckDigitWeights { get; init; } = "3,1";
+    public bool CheckDigitWeightsFromRight { get; init; } = true;
+    public bool CheckDigitSumDigitsOfProducts { get; init; }
+    public bool CheckDigitComplement { get; init; } = true;
+    public bool CheckDigitKeepAllDigits { get; init; }
+    public bool CheckDigitZeroRemainderAsModulus { get; init; }
+    public string CheckDigitValueMap { get; init; } = string.Empty;
     /// <summary>
     /// Embedded image bytes are retained in the immutable render snapshot so a
     /// compiled presenter never has to read the mutable authoring object again.
@@ -289,6 +346,20 @@ public sealed record SceneObjectSnapshot
             Code39WideNarrowRatio = item.Code39WideNarrowRatio,
             BearerBarStyle = item.BearerBarStyle,
             BearerBarThicknessMm = item.BearerBarThicknessMm,
+            BarcodeBarWidthReductionDots = item.BarcodeBarWidthReductionDots,
+            Code39IntercharacterGapModules = item.Code39IntercharacterGapModules,
+            BearerBarThicknessModules = item.BearerBarThicknessModules,
+            Code128CodeSet = item.Code128CodeSet,
+            BarcodeHriMask = item.BarcodeHriMask,
+            BarcodeHriMaskCharacter = item.BarcodeHriMaskCharacter,
+            CheckDigitModulus = item.CheckDigitModulus,
+            CheckDigitWeights = item.CheckDigitWeights,
+            CheckDigitWeightsFromRight = item.CheckDigitWeightsFromRight,
+            CheckDigitSumDigitsOfProducts = item.CheckDigitSumDigitsOfProducts,
+            CheckDigitComplement = item.CheckDigitComplement,
+            CheckDigitKeepAllDigits = item.CheckDigitKeepAllDigits,
+            CheckDigitZeroRemainderAsModulus = item.CheckDigitZeroRemainderAsModulus,
+            CheckDigitValueMap = item.CheckDigitValueMap,
             ImageDataBase64 = imageData,
             ImageDataFingerprint = imageFingerprint,
             ImageDataLength = imageData.Length,
@@ -489,6 +560,18 @@ internal static class SceneHash
         Append(builder, snapshot.DatabaseConfig.RelativePath);
         Append(builder, snapshot.ExtensionFingerprint);
         Append(builder, snapshot.DataTransformFingerprint);
+        if (!string.IsNullOrEmpty(snapshot.SerialCounterFingerprint))
+        {
+            // Only templates using a counter carry it, so older document hashes are unchanged.
+            Append(builder, "serial-counter");
+            Append(builder, snapshot.SerialCounterFingerprint);
+        }
+
+        if (!string.IsNullOrEmpty(snapshot.PromptVariableFingerprint))
+        {
+            Append(builder, "prompt-variables");
+            Append(builder, snapshot.PromptVariableFingerprint);
+        }
 
         if (includeAuthoringGuides)
         {
@@ -548,6 +631,54 @@ internal static class SceneHash
         Append(builder, item.Code39WideNarrowRatio.ToString());
         Append(builder, item.BearerBarStyle.ToString());
         Append(builder, item.BearerBarThicknessMm);
+        if (item.BarcodeBarWidthReductionDots != 0)
+        {
+            // Appended only when used so documents saved before this field keep their fingerprint.
+            Append(builder, "bwr");
+            Append(builder, item.BarcodeBarWidthReductionDots);
+        }
+
+        if (item.Code128CodeSet != Code128CodeSet.Auto)
+        {
+            Append(builder, "c128-set");
+            Append(builder, item.Code128CodeSet.ToString());
+        }
+
+        if (item.BearerBarThicknessModules != 0)
+        {
+            Append(builder, "bearer-x");
+            Append(builder, item.BearerBarThicknessModules);
+        }
+
+        if (item.Code39IntercharacterGapModules != 1)
+        {
+            Append(builder, "c39-gap");
+            Append(builder, item.Code39IntercharacterGapModules);
+        }
+
+        if (!string.IsNullOrEmpty(item.BarcodeHriMask))
+        {
+            Append(builder, "hri-mask");
+            Append(builder, item.BarcodeHriMask);
+            Append(builder, item.BarcodeHriMaskCharacter);
+        }
+
+        if (item.CheckDigitModulus != 0)
+        {
+            Append(builder, "ccd");
+            Append(builder, item.CheckDigitModulus);
+            Append(builder, item.CheckDigitWeights);
+            Append(builder, item.CheckDigitWeightsFromRight);
+            Append(builder, item.CheckDigitSumDigitsOfProducts);
+            Append(builder, item.CheckDigitComplement);
+            Append(builder, item.CheckDigitKeepAllDigits);
+            if (item.CheckDigitZeroRemainderAsModulus || item.CheckDigitValueMap.Length > 0)
+            {
+                Append(builder, "ccd-map");
+                Append(builder, item.CheckDigitZeroRemainderAsModulus);
+                Append(builder, item.CheckDigitValueMap);
+            }
+        }
         Append(builder, item.ImageDataFingerprint);
         Append(builder, item.ImageDataLength);
         Append(builder, item.ImageRasterMode.ToString());

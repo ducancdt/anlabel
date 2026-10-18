@@ -53,6 +53,8 @@ public sealed class MainViewModel : ObservableObject
     private readonly DataOperationLogService _dataOperationLogService;
     private readonly PrintOperationLogService _printOperationLogService;
     private readonly PrintJobStateStore _printJobStateStore = new();
+    private readonly PrintJobValueStore _printJobValueStore = new();
+    private IReadOnlyDictionary<string, string> _lastPromptValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private PrintJobRecoveryReport _printRecoveryReport = PrintJobRecoveryReport.Empty;
     private PrinterQueueLookupResult _printerQueueStatus = PrinterQueueLookupResult.Missing(
         string.Empty,
@@ -238,6 +240,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(SelectedKeyFieldName));
                 OnPropertyChanged(nameof(SelectedCopiesFieldName));
                 OnPropertyChanged(nameof(DataTransforms));
+                RaiseSerialCounterPreviewChanged();
             }
         }
     }
@@ -446,6 +449,7 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _previewRow, value))
             {
+                OnPropertyChanged(nameof(DesignPreviewRow));
                 RaiseFormulaPreviewChanged();
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
             }
@@ -493,7 +497,33 @@ public sealed class MainViewModel : ObservableObject
     [
         BarcodeCheckDigitPolicy.None,
         BarcodeCheckDigitPolicy.Auto,
-        BarcodeCheckDigitPolicy.Verify
+        BarcodeCheckDigitPolicy.Verify,
+        BarcodeCheckDigitPolicy.Generate
+    ];
+    public IReadOnlyList<string> CheckDigitPresetOptions => CustomCheckDigitPresets.Names;
+
+    /// <summary>Loads a published check digit scheme into the selected object; the list then resets.</summary>
+    public string? SelectedCheckDigitPreset
+    {
+        get => null;
+        set
+        {
+            if (SelectedObject is { } item && CustomCheckDigitPresets.Apply(item, value))
+            {
+                StatusText = $"Đã nạp mẫu số kiểm tra “{value}”. Chọn Xác minh hoặc Tự sinh ở mục Số kiểm tra để dùng.";
+            }
+
+            OnPropertyChanged();
+        }
+    }
+
+    public IReadOnlyList<Code128CodeSet> Code128CodeSetOptions { get; } =
+    [
+        Code128CodeSet.Auto,
+        Code128CodeSet.A,
+        Code128CodeSet.B,
+        Code128CodeSet.C,
+        Code128CodeSet.Manual
     ];
     public IReadOnlyList<Code39WideNarrowRatio> Code39WideNarrowRatioOptions { get; } =
     [
@@ -635,18 +665,16 @@ public sealed class MainViewModel : ObservableObject
                 }
                 else
                 {
-                    var sample = string.IsNullOrEmpty(item.Text) ? "0" : item.Text;
+                    var sample = BarcodeCheckDigitContract.ToEncodedPayload(
+                        item,
+                        string.IsNullOrEmpty(item.Text) ? "0" : item.Text);
                     var type = ANLAbel.App.Controls.BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology);
                     if (!_barcodeValidator.ValidateData(sample, type))
                     {
                         return string.Empty;
                     }
 
-                    var options = new BarcodeRenderOptions
-                    {
-                        QuietZoneModules = Math.Max(0, item.QrQuietZoneModules),
-                        IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
-                    };
+                    var options = BarcodeRenderOptions.FromObject(item);
                     var modules = _barcodeValidator.CountLinearModules(sample, type, options);
                     if (modules is null or <= 0 || item.WidthMm <= 0)
                     {
@@ -3170,7 +3198,7 @@ public sealed class MainViewModel : ObservableObject
                 StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked);
                 _ = WritePrintLogAsync(
                     "Current row",
-                    rows,
+                    tracked.PrintedRows ?? rows,
                     PreviewRow is null ? 0 : 1,
                     rows.Length,
                     result: result,
@@ -3261,7 +3289,7 @@ public sealed class MainViewModel : ObservableObject
                 StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked) + zeroCopyNote;
                 _ = WritePrintLogAsync(
                     "All rows",
-                    rows,
+                    tracked.PrintedRows ?? rows,
                     ExcelDataView.Count,
                     rows.Length,
                     result: result,
@@ -3929,6 +3957,12 @@ public sealed class MainViewModel : ObservableObject
     {
         template.PropertyChanged += TemplateOnPropertyChanged;
         template.PrinterProfile.PropertyChanged += PrinterProfileOnPropertyChanged;
+        template.SerialCounter.PropertyChanged += SerialCounterOnPropertyChanged;
+        template.PromptVariables.CollectionChanged += PromptVariablesOnCollectionChanged;
+        foreach (var prompt in template.PromptVariables)
+        {
+            prompt.PropertyChanged += SerialCounterOnPropertyChanged;
+        }
         template.Objects.CollectionChanged += ObjectsOnCollectionChanged;
         template.Guides.CollectionChanged += GuidesOnCollectionChanged;
         foreach (var item in template.Objects)
@@ -3948,6 +3982,12 @@ public sealed class MainViewModel : ObservableObject
     {
         template.PropertyChanged -= TemplateOnPropertyChanged;
         template.PrinterProfile.PropertyChanged -= PrinterProfileOnPropertyChanged;
+        template.SerialCounter.PropertyChanged -= SerialCounterOnPropertyChanged;
+        template.PromptVariables.CollectionChanged -= PromptVariablesOnCollectionChanged;
+        foreach (var prompt in template.PromptVariables)
+        {
+            prompt.PropertyChanged -= SerialCounterOnPropertyChanged;
+        }
         template.Objects.CollectionChanged -= ObjectsOnCollectionChanged;
         template.Guides.CollectionChanged -= GuidesOnCollectionChanged;
         foreach (var item in template.Objects)
@@ -3999,6 +4039,119 @@ public sealed class MainViewModel : ObservableObject
         }
 
         RecordTemplateChange();
+    }
+
+    private void PromptVariablesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        foreach (var removed in e.OldItems?.OfType<PromptVariableDefinition>() ?? Enumerable.Empty<PromptVariableDefinition>())
+        {
+            removed.PropertyChanged -= SerialCounterOnPropertyChanged;
+        }
+
+        foreach (var added in e.NewItems?.OfType<PromptVariableDefinition>() ?? Enumerable.Empty<PromptVariableDefinition>())
+        {
+            added.PropertyChanged += SerialCounterOnPropertyChanged;
+        }
+
+        RecordTemplateChange();
+        RaiseSerialCounterPreviewChanged();
+    }
+
+    private void SerialCounterOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        RecordTemplateChange();
+        RaiseSerialCounterPreviewChanged();
+    }
+
+    private void RaiseSerialCounterPreviewChanged()
+    {
+        OnPropertyChanged(nameof(DesignPreviewRow));
+        OnPropertyChanged(nameof(SerialCounterStatusText));
+    }
+
+    /// <summary>
+    /// The row the designer canvas renders: <see cref="PreviewRow"/> plus the
+    /// next serial value when the template's counter is on, so <c>{#SERIAL}</c>
+    /// shows a real number instead of a blank while designing.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? DesignPreviewRow
+    {
+        get
+        {
+            var row = JobVariableContract.ApplyForDesign(Template, PreviewRow, DateTimeOffset.Now, _lastPromptValues);
+            if (!SerialCounterContract.IsActive(Template)
+                || SerialCounterContract.ValidateDefinition(Template.SerialCounter).Count > 0)
+            {
+                return row;
+            }
+
+            try
+            {
+                var next = SerialCounterStore.ForCounter(Template.SerialCounter).PeekNextValue(Template.SerialCounter);
+                return SerialCounterContract.TryApply(Template.SerialCounter, next, new[] { row }, out var rows, out _)
+                    ? rows[0]
+                    : row;
+            }
+            catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+            {
+                return row;
+            }
+        }
+    }
+
+    /// <summary>Plain-language state of the serial counter for the data settings panel.</summary>
+    public string SerialCounterStatusText
+    {
+        get
+        {
+            var counter = Template.SerialCounter;
+            if (!counter.Enabled)
+            {
+                return "Bộ đếm đang tắt. Bật để in số serial bằng {#SERIAL}.";
+            }
+
+            var errors = SerialCounterContract.ValidateDefinition(counter);
+            if (errors.Count > 0)
+            {
+                return string.Join(" ", errors.Select(ANLAbel.App.Services.SerialCounterText.Message));
+            }
+
+            try
+            {
+                var next = SerialCounterStore.ForCounter(counter).PeekNextValue(counter);
+                return SerialCounterContract.ValueAt(counter, next, 0) is null
+                    ? $"Bộ đếm đã dùng hết khoảng {counter.MinimumValue} – {counter.MaximumValue}. Nới giới hạn, bật quay vòng hoặc đặt lại."
+                    : $"Số kế tiếp: {SerialCounterContract.Format(counter, next)}. Dùng {{{SerialCounterContract.Token}}} trong liên kết dữ liệu của đối tượng.";
+            }
+            catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+            {
+                return ANLAbel.App.Services.SerialCounterText.Message(exception.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Asks the operator for {?Name} values before a quick print; returns null
+    /// when the operator cancels. Set by the main window.
+    /// </summary>
+    public Func<IReadOnlyList<PromptVariableDefinition>, IReadOnlyDictionary<string, string>, IReadOnlyDictionary<string, string>?>? PromptValuesRequested { get; set; }
+
+    /// <summary>The answers given at the last print, offered again next time.</summary>
+    public IReadOnlyDictionary<string, string> LastPromptValues
+    {
+        get => _lastPromptValues;
+        set
+        {
+            _lastPromptValues = value ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            OnPropertyChanged(nameof(DesignPreviewRow));
+        }
+    }
+
+    /// <summary>Starts a new number sequence at the start value (operator-confirmed).</summary>
+    public void ResetSerialCounter()
+    {
+        Template.SerialCounter.Reset();
+        RaiseSerialCounterPreviewChanged();
     }
 
     private void PrinterProfileOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -4167,6 +4320,10 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.Code39WideNarrowRatio)
                 or nameof(LabelObject.BearerBarStyle)
                 or nameof(LabelObject.BearerBarThicknessMm)
+                or nameof(LabelObject.BarcodeBarWidthReductionDots)
+                or nameof(LabelObject.Code39IntercharacterGapModules)
+                or nameof(LabelObject.Code128CodeSet)
+                or nameof(LabelObject.BearerBarThicknessModules)
                 or nameof(LabelObject.WidthMm)
                 or nameof(LabelObject.Text)
                 or nameof(LabelObject.QrQuietZoneModules)
@@ -4335,8 +4492,12 @@ public sealed class MainViewModel : ObservableObject
             item.QrQuietZoneModules,
             item.ShowBarcodeText,
             item.BarcodeTextFontSizePt);
-        var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
-        var dataErrors = BarcodeApplicationContract.ValidateData(item.BarcodeApplicationProfile, symbology, data);
+        var authoredData = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
+        var checkDigitErrors = BarcodeCheckDigitContract.Validate(item, symbology, authoredData);
+        var data = BarcodeCheckDigitContract.ToEncodedPayload(item, authoredData);
+        var dataErrors = checkDigitErrors.Count > 0 && item.BarcodeCheckDigitPolicy == BarcodeCheckDigitPolicy.Generate
+            ? checkDigitErrors
+            : BarcodeApplicationContract.ValidateData(item.BarcodeApplicationProfile, symbology, data);
         var errors = geometryErrors.Concat(dataErrors).ToList();
         var type = item.Type switch
         {
@@ -4346,7 +4507,7 @@ public sealed class MainViewModel : ObservableObject
         };
         var hriLayout = BarcodeHriTextLayout.Measure(
             type,
-            data,
+            BarcodeCheckDigitContract.HriMeasureText(item, data),
             item.WidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
@@ -4410,7 +4571,7 @@ public sealed class MainViewModel : ObservableObject
 
         var hriLayout = BarcodeHriTextLayout.Measure(
             type,
-            data,
+            BarcodeCheckDigitContract.HriMeasureText(item, data),
             item.WidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
@@ -4441,14 +4602,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
-    {
-        return new BarcodeRenderOptions
-        {
-            ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
-        };
-    }
+        => BarcodeRenderOptions.FromObject(item);
 
     private FormulaEvaluationResult EvaluateSelectedFormula()
     {
@@ -5149,11 +5303,79 @@ public sealed class MainViewModel : ObservableObject
                 $"Print preparation stopped because the label design is invalid ({detail}). Fix the design and try again.");
         }
 
+        // Job time and entered values are the same on every label of the job;
+        // they go into each row before preflight, like serial numbers below.
+        DateTimeOffset? jobTime = null;
+        IReadOnlyDictionary<string, string> promptValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (JobVariableContract.UsesJobVariables(printTemplate))
+        {
+            var prompts = JobVariableContract.RequiredPrompts(printTemplate);
+            if (prompts.Count > 0)
+            {
+                promptValues = PromptValuesRequested?.Invoke(prompts, _lastPromptValues)
+                    ?? throw new InvalidOperationException("Đã hủy in: chưa nhập giá trị cho lệnh in.");
+                LastPromptValues = promptValues;
+            }
+
+            jobTime = DateTimeOffset.Now;
+            if (!JobVariableContract.TryApply(printTemplate, rows, jobTime.Value, promptValues, out var valueRows, out var valueError))
+            {
+                throw new InvalidOperationException(ANLAbel.App.Services.JobVariableText.Message(valueError));
+            }
+
+            rows = valueRows;
+        }
+
+        // Serial numbers are part of each label's data: give every row its
+        // value before preflight so the manifest hashes what will be printed.
+        long? serialFirstValue = null;
+        if (SerialCounterContract.IsActive(printTemplate))
+        {
+            var counter = printTemplate.SerialCounter;
+            var counterErrors = SerialCounterContract.ValidateDefinition(counter);
+            if (counterErrors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(" ", counterErrors.Select(ANLAbel.App.Services.SerialCounterText.Message)));
+            }
+
+            serialFirstValue = await Task.Run(() => SerialCounterStore.ForCounter(counter).PeekNextValue(counter)).ConfigureAwait(true);
+            if (!SerialCounterContract.TryApply(counter, serialFirstValue.Value, rows, out var serialRows, out var serialError))
+            {
+                throw new InvalidOperationException(ANLAbel.App.Services.SerialCounterText.Message(serialError));
+            }
+
+            rows = serialRows;
+        }
+
         var preflight = await _printService.ValidateRowsAsync(printTemplate, rows, effectivePlan).ConfigureAwait(true);
         preflight = ANLAbel.App.Services.DataHeaderCheck.Append(preflight, printTemplate, headerTable);
         if (!preflight.IsSuccess)
         {
             throw new InvalidOperationException(preflight.ToUserMessage());
+        }
+
+        if (serialFirstValue is long expectedFirst)
+        {
+            // Reserve before the job exists; the numbers are never given back,
+            // so a failed or uncertain job leaves a gap, never a duplicate.
+            var counter = printTemplate.SerialCounter;
+            var labelsToReserve = rows.Count;
+            var reserved = await Task.Run(() => SerialCounterStore.ForCounter(counter).TryReserve(
+                counter, jobId, expectedFirst, labelsToReserve, out _, out var reserveError)
+                ? string.Empty
+                : reserveError).ConfigureAwait(true);
+            if (!string.IsNullOrEmpty(reserved))
+            {
+                throw new InvalidOperationException(ANLAbel.App.Services.SerialCounterText.Message(reserved));
+            }
+        }
+
+        if (jobTime is DateTimeOffset recordedTime)
+        {
+            // Stored before the job exists so a reprint repeats this date and these answers.
+            var recordJobId = jobId;
+            var recordedPrompts = promptValues;
+            await Task.Run(() => _printJobValueStore.Record(recordJobId, recordedTime, recordedPrompts)).ConfigureAwait(true);
         }
 
         var (labelCount, resolvedSourceRowCount) = PrintJobEvidencePolicy.ResolveManifestCounts(
@@ -5322,7 +5544,7 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
-        return new TrackedPrintResult(jobId, result, spoolStatus, printTemplate, _printEvidenceDropped);
+        return new TrackedPrintResult(jobId, result, spoolStatus, printTemplate, _printEvidenceDropped, rows);
     }
 
     private async Task RecordPrintJobTransitionAsync(PrintJobStateTransition transition)
@@ -5637,7 +5859,8 @@ public sealed record TrackedPrintResult(
     PrintJobResult Result,
     SpoolJobMonitorResult? SpoolStatus = null,
     LabelTemplate? PrintedTemplate = null,
-    bool EvidenceIncomplete = false);
+    bool EvidenceIncomplete = false,
+    IReadOnlyList<IReadOnlyDictionary<string, string>?>? PrintedRows = null);
 
 public sealed record NewTemplateRequest(string Name, double WidthMm, double HeightMm, int Dpi);
 

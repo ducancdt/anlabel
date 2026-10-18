@@ -180,6 +180,20 @@ public sealed class LabelVisualRenderer
             Code39WideNarrowRatio = snapshot.Code39WideNarrowRatio,
             BearerBarStyle = snapshot.BearerBarStyle,
             BearerBarThicknessMm = snapshot.BearerBarThicknessMm,
+            BarcodeBarWidthReductionDots = snapshot.BarcodeBarWidthReductionDots,
+            Code39IntercharacterGapModules = snapshot.Code39IntercharacterGapModules,
+            BearerBarThicknessModules = snapshot.BearerBarThicknessModules,
+            Code128CodeSet = snapshot.Code128CodeSet,
+            BarcodeHriMask = snapshot.BarcodeHriMask,
+            BarcodeHriMaskCharacter = snapshot.BarcodeHriMaskCharacter,
+            CheckDigitModulus = snapshot.CheckDigitModulus,
+            CheckDigitWeights = snapshot.CheckDigitWeights,
+            CheckDigitWeightsFromRight = snapshot.CheckDigitWeightsFromRight,
+            CheckDigitSumDigitsOfProducts = snapshot.CheckDigitSumDigitsOfProducts,
+            CheckDigitComplement = snapshot.CheckDigitComplement,
+            CheckDigitKeepAllDigits = snapshot.CheckDigitKeepAllDigits,
+            CheckDigitZeroRemainderAsModulus = snapshot.CheckDigitZeroRemainderAsModulus,
+            CheckDigitValueMap = snapshot.CheckDigitValueMap,
             ImageDataBase64 = snapshot.ImageDataBase64,
             ImageRasterMode = snapshot.ImageRasterMode,
             ImagePixelWidth = snapshot.ImagePixelWidth,
@@ -366,7 +380,7 @@ public sealed class LabelVisualRenderer
 
     private void DrawBarcode(DrawingContext dc, LabelObject item, Rect rect, IReadOnlyDictionary<string, string>? row, int dpiX, int dpiY, double labelWidthMm, double labelHeightMm)
     {
-        var data = ResolveData(item, row);
+        var data = BarcodeCheckDigitContract.ToEncodedPayload(item, ResolveData(item, row));
         var type = item.Type switch
         {
             ObjectType.QRCode => BarcodeType.QRCode,
@@ -398,7 +412,7 @@ public sealed class LabelVisualRenderer
 
         var hriLayout = BarcodeHriTextLayout.Measure(
             type,
-            data,
+            BarcodeCheckDigitContract.HriMeasureText(item, data),
             productionWidthMm,
             MmConverter.DipToMm(objectRect.Height),
             item.BarcodeHriPlacement,
@@ -430,8 +444,8 @@ public sealed class LabelVisualRenderer
             var vectorData = _barcodeRenderer.RenderBarcodeVector(data, type, widthMm, heightMm, barcodeDpi, CreateBarcodeRenderOptions(item));
             if (vectorData is not null)
             {
-                DrawVectorBarcode(dc, vectorData, symbolRect, dpiX, dpiY);
-                DrawBearerBars(dc, item, symbolRect);
+                DrawVectorBarcode(dc, vectorData, symbolRect, dpiX, dpiY, item.BarcodeBarWidthReductionDots);
+                DrawBearerBars(dc, item, symbolRect, ResolveBearerThicknessMm(item, data, type, productionWidthMm, barcodeDpi));
                 DrawHri(dc, data, item, hriLayout, objectRect);
                 return;
             }
@@ -478,7 +492,7 @@ public sealed class LabelVisualRenderer
             dc.PushGuidelineSet(guidelines);
             dc.DrawImage(source, dest);
             dc.Pop();
-            DrawBearerBars(dc, item, symbolRect);
+            DrawBearerBars(dc, item, symbolRect, ResolveBearerThicknessMm(item, data, type, productionWidthMm, barcodeDpi));
             DrawHri(dc, data, item, hriLayout, objectRect);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -526,11 +540,7 @@ public sealed class LabelVisualRenderer
             ObjectType.DataMatrix => BarcodeSymbology.DataMatrix,
             _ => item.BarcodeSymbology
         };
-        var hriValue = BarcodeCheckDigitContract.FormatHriText(
-            symbology,
-            value,
-            item.BarcodeCheckDigitPolicy,
-            item.BarcodeHriShowCheckDigit);
+        var hriValue = BarcodeCheckDigitContract.FormatHriText(item, symbology, value);
         var fontSizePt = item.BarcodeTextFontSizePt;
         var text = BarcodeHriTextLayout.CreateText(hriValue, fontSizePt, Brushes.Black);
         var hriTopDip = frame.Top + MmConverter.MmToDip(layout.HriTopMm);
@@ -544,7 +554,7 @@ public sealed class LabelVisualRenderer
         dc.Pop();
     }
 
-    private static void DrawVectorBarcode(DrawingContext dc, BarcodeVectorData vectorData, Rect rect, int dpiX, int dpiY)
+    private static void DrawVectorBarcode(DrawingContext dc, BarcodeVectorData vectorData, Rect rect, int dpiX, int dpiY, int barWidthReductionDots)
     {
         // Keep all printer-grid decisions in the platform-neutral layout seam.
         // WPF only paints the already-quantized runs; it never rounds DIP
@@ -557,7 +567,8 @@ public sealed class LabelVisualRenderer
             dpiX,
             dpiY,
             vectorData.WidthModules,
-            vectorData.RowBits);
+            vectorData.RowBits,
+            barWidthReductionDots);
         var snappedLeft = DeviceDotQuantizer.DotsToDip(layout.LeftDot, dpiX);
         var snappedRight = DeviceDotQuantizer.DotsToDip(layout.LeftDot + layout.WidthDots, dpiX);
         var snappedTop = DeviceDotQuantizer.DotsToDip(layout.TopDot, dpiY);
@@ -642,26 +653,38 @@ public sealed class LabelVisualRenderer
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
+        => BarcodeRenderOptions.FromObject(item);
+
+    /// <summary>Same X resolution as preflight: authored X, else frame / logical modules.</summary>
+    private double ResolveBearerThicknessMm(LabelObject item, string data, BarcodeType type, double productionWidthMm, int dpi)
     {
-        return new BarcodeRenderOptions
+        if (item.BearerBarStyle == BearerBarStyle.None || item.BearerBarThicknessModules <= 0)
         {
-            ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
-            Code39WideNarrowRatio = item.Code39WideNarrowRatio,
-            BearerBarStyle = item.BearerBarStyle,
-            BearerBarThicknessMm = item.BearerBarThicknessMm
-        };
+            return BearerBarContract.ResolveThicknessMm(item, null);
+        }
+
+        var planDpi = dpi > 0 ? dpi : 203;
+        double? effectiveX = null;
+        if (item.BarcodeModuleWidthMm > 0)
+        {
+            effectiveX = LinearBarcodeModuleContract.Resolve(item.BarcodeModuleWidthMm, planDpi).EffectiveModuleWidthMm;
+        }
+        else if (_barcodeRenderer.CountLinearModules(data, type, CreateBarcodeRenderOptions(item)) is int modules and > 0
+                 && productionWidthMm > 0)
+        {
+            effectiveX = LinearBarcodeModuleContract.ResolveForObject(0, productionWidthMm, modules, planDpi).EffectiveModuleWidthMm;
+        }
+
+        return BearerBarContract.ResolveThicknessMm(item, effectiveX);
     }
 
-    private static void DrawBearerBars(DrawingContext dc, LabelObject item, Rect symbolRect)
+    private static void DrawBearerBars(DrawingContext dc, LabelObject item, Rect symbolRect, double thicknessMm)
     {
         if (item.BearerBarStyle == BearerBarStyle.None)
         {
             return;
         }
 
-        var thicknessMm = item.BearerBarThicknessMm > 0 ? item.BearerBarThicknessMm : 1.0;
         var thicknessDip = MmConverter.MmToDip(thicknessMm);
         if (thicknessDip <= 0 || symbolRect.Width <= 0 || symbolRect.Height <= 0)
         {

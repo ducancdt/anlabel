@@ -11,9 +11,9 @@ public enum BarcodeCheckDigitPolicy
     None = 0,
 
     /// <summary>
-    /// Accept payloads with or without a trailing check character. When a
-    /// trailing character validates as the check digit it is treated as such
-    /// for HRI formatting; otherwise the whole string is data.
+    /// Accept payloads with or without a trailing check character. The whole
+    /// string is shown in HRI: a data character that happens to validate as a
+    /// check digit must not be hidden.
     /// </summary>
     Auto = 1,
 
@@ -21,5 +21,11 @@ public enum BarcodeCheckDigitPolicy
     /// Fail closed unless the payload ends with a correct check digit for the
     /// symbology. Preflight blocks dispatch when verification fails.
     /// </summary>
-    Verify = 2
+    Verify = 2,
+
+    /// <summary>
+    /// The authored data is the body; the symbology check digit is computed
+    /// and appended to the encoded payload (and to HRI unless hidden).
+    /// </summary>
+    Generate = 3
 }

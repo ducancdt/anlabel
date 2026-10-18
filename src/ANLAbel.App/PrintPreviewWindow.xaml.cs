@@ -39,6 +39,15 @@ public partial class PrintPreviewWindow : Window
     private readonly PrinterDiscoveryService _printerDiscoveryService = new();
     private readonly string _templateFilePath;
     private readonly string? _approvedReprintJobId;
+    private long? _serialFirstValue;
+    private long? _serialPreviewedFirstValue;
+    private string _serialProblem = string.Empty;
+    private readonly PrintJobValueStore _printJobValueStore = new();
+    private IReadOnlyDictionary<string, string> _promptValues;
+    private DateTimeOffset _jobTime = DateTimeOffset.Now;
+    private string _jobValueProblem = string.Empty;
+    private IReadOnlyDictionary<string, string>? _currentJobValues;
+    private IReadOnlyDictionary<string, string>? _previewedJobValues;
     private readonly PrintJobManifest? _approvedReprintManifest;
     private readonly IReadOnlyList<IReadOnlyDictionary<string, string>?>? _preparedRows;
     private string _selectedPrinterName = string.Empty;
@@ -79,8 +88,10 @@ public partial class PrintPreviewWindow : Window
         string? approvedReprintJobId = null,
         PrintJobManifest? approvedReprintManifest = null,
         IReadOnlyList<IReadOnlyDictionary<string, string>?>? preparedRows = null,
-        FileSourceIdentity? excelSourceIdentity = null)
+        FileSourceIdentity? excelSourceIdentity = null,
+        IReadOnlyDictionary<string, string>? promptValues = null)
     {
+        _promptValues = promptValues ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         InitializeComponent();
         _sourceTemplate = template;
         _template = PrintSessionTemplateContract.Capture(template);
@@ -381,6 +392,44 @@ public partial class PrintPreviewWindow : Window
             }
 
             ApplyPrintSetup();
+            ResolveJobValues();
+            if (!string.IsNullOrEmpty(_jobValueProblem))
+            {
+                MessageBox.Show(this, _jobValueProblem, "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!SameJobValues(_currentJobValues, _previewedJobValues))
+            {
+                MessageBox.Show(
+                    this,
+                    "Ngày giờ in trên tem đã thay đổi kể từ lúc xem trước. Xem trước sẽ được làm mới; hãy kiểm tra lại rồi bấm In.",
+                    "Ngày giờ đã thay đổi",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                _ = RefreshPreviewAsync(rebuildTrackingRows: false);
+                return;
+            }
+
+            ResolveSerialFirstValue();
+            if (!string.IsNullOrEmpty(_serialProblem))
+            {
+                MessageBox.Show(this, _serialProblem, "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_serialFirstValue != _serialPreviewedFirstValue)
+            {
+                MessageBox.Show(
+                    this,
+                    "Số serial đã thay đổi kể từ lúc xem trước (một lệnh in khác vừa dùng các số này). Xem trước sẽ được làm mới; hãy kiểm tra lại rồi bấm In.",
+                    "Số serial đã thay đổi",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                _ = RefreshPreviewAsync(rebuildTrackingRows: false);
+                return;
+            }
+
             var selected = GetSelectedRowsWithSource();
             if (selected.Length == 0)
             {
@@ -564,6 +613,51 @@ public partial class PrintPreviewWindow : Window
             }
 
             printJobId = _approvedReprintJobId ?? Guid.NewGuid().ToString("N");
+            if (SerialCounterContract.IsActive(_template) && _approvedReprintJobId is null)
+            {
+                // Reserve before the job exists; the numbers are never given back,
+                // so a failed or uncertain job leaves a gap, never a duplicate.
+                var counter = _template.SerialCounter;
+                var expectedFirst = _serialFirstValue ?? counter.StartValue;
+                var labelsToReserve = rows.Length;
+                var reserveJobId = printJobId;
+                string reserveError = string.Empty;
+                bool reservedOk;
+                try
+                {
+                    reservedOk = await Task.Run(() => SerialCounterStore.ForCounter(counter).TryReserve(
+                        counter, reserveJobId, expectedFirst, labelsToReserve, out _, out reserveError));
+                }
+                catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+                {
+                    reservedOk = false;
+                    reserveError = exception.Message;
+                }
+
+                if (!reservedOk)
+                {
+                    MessageBox.Show(this, ANLAbel.App.Services.SerialCounterText.Message(reserveError), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _ = RefreshPreviewAsync(rebuildTrackingRows: false);
+                    return;
+                }
+            }
+
+            if (JobVariableContract.UsesJobVariables(_template) && _approvedReprintJobId is null)
+            {
+                // Stored before the job exists so a reprint repeats this date and these answers.
+                var recordJobId = printJobId;
+                var recordTime = _jobTime;
+                var recordPrompts = _promptValues;
+                try
+                {
+                    await Task.Run(() => _printJobValueStore.Record(recordJobId, recordTime, recordPrompts));
+                }
+                catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+                {
+                    MessageBox.Show(this, ANLAbel.App.Services.JobVariableText.Message(exception.Message), "Lệnh in bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
             var (previewLabelCount, previewSourceRowCount) = PrintJobEvidencePolicy.ResolveManifestCounts(
                 rows.Length,
                 selected.Select(entry => entry.SourceRowNumber).Distinct().Count());
@@ -1412,7 +1506,7 @@ public partial class PrintPreviewWindow : Window
     }
 
 
-    private static PreparedPreviewRows BuildPreparedRowsFromTracking(
+    private PreparedPreviewRows BuildPreparedRowsFromTracking(
         IReadOnlyList<TrackingRowViewModel> trackingRows,
         IReadOnlyList<IReadOnlyDictionary<string, string>?> allRows)
     {
@@ -1433,7 +1527,132 @@ public partial class PrintPreviewWindow : Window
             instance.SourceRowNumber > 0 && instance.SourceRowNumber <= allRows.Count
                 ? allRows[instance.SourceRowNumber - 1]
                 : null).ToArray();
+        // Job time and entered values are the same on every label of the job.
+        if (JobVariableContract.UsesJobVariables(_template) && string.IsNullOrEmpty(_jobValueProblem))
+        {
+            if (JobVariableContract.TryApply(_template, rows, _jobTime, _promptValues, out var withValues, out var valueError))
+            {
+                rows = withValues;
+            }
+            else
+            {
+                _jobValueProblem = ANLAbel.App.Services.JobVariableText.Message(valueError);
+            }
+        }
+
+        // One row per label in print order, so label i gets serial value i.
+        if (SerialCounterContract.IsActive(_template)
+            && _serialFirstValue is long first
+            && string.IsNullOrEmpty(_serialProblem))
+        {
+            if (SerialCounterContract.TryApply(_template.SerialCounter, first, rows, out var withSerials, out var serialError))
+            {
+                rows = withSerials;
+            }
+            else
+            {
+                _serialProblem = ANLAbel.App.Services.SerialCounterText.Message(serialError);
+            }
+        }
+
         return new PreparedPreviewRows(rows, instances);
+    }
+
+    /// <summary>
+    /// The job time and entered values for this window's labels: those stored
+    /// with the job being reprinted, or now and the values entered on opening.
+    /// </summary>
+    private void ResolveJobValues()
+    {
+        _jobValueProblem = string.Empty;
+        _currentJobValues = null;
+        if (!JobVariableContract.UsesJobVariables(_template))
+        {
+            return;
+        }
+
+        try
+        {
+            if (_approvedReprintJobId is not null)
+            {
+                var stored = _printJobValueStore.Find(_approvedReprintJobId);
+                if (stored is null)
+                {
+                    _jobValueProblem = "Không tìm thấy ngày giờ và giá trị đã nhập của lệnh in gốc nên không thể in lại đúng nội dung cũ.";
+                    return;
+                }
+
+                _jobTime = stored.JobTime;
+                _promptValues = stored.PromptValues;
+            }
+            else
+            {
+                _jobTime = DateTimeOffset.Now;
+            }
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+        {
+            _jobValueProblem = ANLAbel.App.Services.JobVariableText.Message(exception.Message);
+            return;
+        }
+
+        if (JobVariableContract.TryResolveValues(_template, _jobTime, _promptValues, out var values, out var error))
+        {
+            _currentJobValues = values;
+        }
+        else
+        {
+            _jobValueProblem = ANLAbel.App.Services.JobVariableText.Message(error);
+        }
+    }
+
+    private static bool SameJobValues(IReadOnlyDictionary<string, string>? left, IReadOnlyDictionary<string, string>? right)
+        => (left is null && right is null)
+           || (left is not null && right is not null && left.Count == right.Count
+               && left.All(pair => right.TryGetValue(pair.Key, out var value) && string.Equals(value, pair.Value, StringComparison.Ordinal)));
+
+    /// <summary>
+    /// First serial value for this window's labels: the reserved values of the
+    /// job being reprinted, or the next free value for a new job.
+    /// </summary>
+    private void ResolveSerialFirstValue()
+    {
+        _serialFirstValue = null;
+        _serialProblem = string.Empty;
+        if (!SerialCounterContract.IsActive(_template))
+        {
+            return;
+        }
+
+        var counter = _template.SerialCounter;
+        var definitionErrors = SerialCounterContract.ValidateDefinition(counter);
+        if (definitionErrors.Count > 0)
+        {
+            _serialProblem = string.Join(" ", definitionErrors.Select(ANLAbel.App.Services.SerialCounterText.Message));
+            return;
+        }
+
+        try
+        {
+            if (_approvedReprintJobId is not null)
+            {
+                var reservation = SerialCounterStore.ForCounter(counter).FindReservation(counter.CounterId, _approvedReprintJobId);
+                if (reservation is null)
+                {
+                    _serialProblem = "Không tìm thấy dải số serial của lệnh in gốc nên không thể in lại đúng số cũ.";
+                    return;
+                }
+
+                _serialFirstValue = reservation.FirstValue;
+                return;
+            }
+
+            _serialFirstValue = SerialCounterStore.ForCounter(counter).PeekNextValue(counter);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+        {
+            _serialProblem = ANLAbel.App.Services.SerialCounterText.Message(exception.Message);
+        }
     }
 
     /// <summary>

@@ -262,7 +262,7 @@ public sealed class BarcodeCheckDigitContractTests
         Assert.True(BarcodeCheckDigitContract.HasValidTrailingCheckDigit(
             BarcodeSymbology.Code39, "AA"));
         Assert.Equal("A", BarcodeCheckDigitContract.FormatHriText(
-            BarcodeSymbology.Code39, "AA", BarcodeCheckDigitPolicy.Auto, showCheckDigit: false));
+            BarcodeSymbology.Code39, "AA", BarcodeCheckDigitPolicy.Verify, showCheckDigit: false));
         Assert.Empty(BarcodeCheckDigitContract.Validate(
             BarcodeSymbology.Code39, "AA", BarcodeCheckDigitPolicy.Verify));
 
@@ -273,6 +273,69 @@ public sealed class BarcodeCheckDigitContractTests
             BarcodeSymbology.ITF, "17", BarcodeCheckDigitPolicy.Verify, showCheckDigit: false));
         Assert.Empty(BarcodeCheckDigitContract.Validate(
             BarcodeSymbology.ITF, "17", BarcodeCheckDigitPolicy.Verify));
+    }
+
+    [Theory]
+    [InlineData(BarcodeSymbology.ITF, "1236")]
+    [InlineData(BarcodeSymbology.Code39, "1236")]
+    [InlineData(BarcodeSymbology.Code39, "AA")]
+    public void FormatHri_AutoNeverHidesADataCharacterThatLooksLikeACheckDigit(BarcodeSymbology symbology, string payload)
+    {
+        // "1236" is a plain lot number whose last digit happens to equal the
+        // check digit of "123"; HRI must still print what the bars encode.
+        Assert.True(BarcodeCheckDigitContract.HasValidTrailingCheckDigit(symbology, payload));
+        Assert.Equal(payload, BarcodeCheckDigitContract.FormatHriText(
+            symbology, payload, BarcodeCheckDigitPolicy.Auto, showCheckDigit: false));
+    }
+
+    [Theory]
+    [InlineData(BarcodeSymbology.ITF, "123", "1236")]
+    [InlineData(BarcodeSymbology.Code39, "WIDGET", null)]
+    public void Generate_AppendsTheComputedCheckDigit(BarcodeSymbology symbology, string body, string? expected)
+    {
+        expected ??= body + BarcodeCheckDigitContract.ComputeCode39CheckDigit(body);
+
+        var encoded = BarcodeCheckDigitContract.ToEncodedPayload(symbology, body, BarcodeCheckDigitPolicy.Generate);
+
+        Assert.Equal(expected, encoded);
+        Assert.Empty(BarcodeCheckDigitContract.Validate(symbology, body, BarcodeCheckDigitPolicy.Generate));
+        Assert.True(BarcodeCheckDigitContract.HasValidTrailingCheckDigit(symbology, encoded));
+        Assert.Equal(encoded, BarcodeCheckDigitContract.FormatHriText(
+            symbology, encoded, BarcodeCheckDigitPolicy.Generate, showCheckDigit: true));
+        Assert.Equal(body, BarcodeCheckDigitContract.FormatHriText(
+            symbology, encoded, BarcodeCheckDigitPolicy.Generate, showCheckDigit: false));
+    }
+
+    [Theory]
+    [InlineData(BarcodeSymbology.ITF, "")]
+    [InlineData(BarcodeSymbology.ITF, "12")]
+    [InlineData(BarcodeSymbology.ITF, "12A")]
+    [InlineData(BarcodeSymbology.Code39, "lot#1")]
+    public void Generate_ReportsBodiesThatCannotTakeACheckDigitAndLeavesThemUnchanged(BarcodeSymbology symbology, string body)
+    {
+        Assert.NotEmpty(BarcodeCheckDigitContract.Validate(symbology, body, BarcodeCheckDigitPolicy.Generate));
+        Assert.Equal(body, BarcodeCheckDigitContract.ToEncodedPayload(symbology, body, BarcodeCheckDigitPolicy.Generate));
+    }
+
+    [Fact]
+    public void Generate_OnlyAppliesToLinearCode39AndItfObjects()
+    {
+        Assert.Equal("123", BarcodeCheckDigitContract.ToEncodedPayload(
+            BarcodeSymbology.Code128, "123", BarcodeCheckDigitPolicy.Generate));
+        var qr = new Core.Models.LabelObject
+        {
+            Type = ObjectType.QRCode,
+            BarcodeSymbology = BarcodeSymbology.ITF,
+            BarcodeCheckDigitPolicy = BarcodeCheckDigitPolicy.Generate
+        };
+        Assert.Equal("123", BarcodeCheckDigitContract.ToEncodedPayload(qr, "123"));
+        var itf = new Core.Models.LabelObject
+        {
+            Type = ObjectType.BarcodeCode128,
+            BarcodeSymbology = BarcodeSymbology.ITF,
+            BarcodeCheckDigitPolicy = BarcodeCheckDigitPolicy.Generate
+        };
+        Assert.Equal("1236", BarcodeCheckDigitContract.ToEncodedPayload(itf, "123"));
     }
 
     [Fact]
@@ -296,7 +359,7 @@ public sealed class BarcodeCheckDigitContractTests
         Assert.Equal(payload, BarcodeCheckDigitContract.FormatHriText(
             BarcodeSymbology.ITF, payload, BarcodeCheckDigitPolicy.Auto, showCheckDigit: true));
         Assert.Equal(body, BarcodeCheckDigitContract.FormatHriText(
-            BarcodeSymbology.ITF, payload, BarcodeCheckDigitPolicy.Auto, showCheckDigit: false));
+            BarcodeSymbology.ITF, payload, BarcodeCheckDigitPolicy.Verify, showCheckDigit: false));
         Assert.Equal("1", BarcodeCheckDigitContract.FormatHriText(
             BarcodeSymbology.ITF, "1", BarcodeCheckDigitPolicy.Verify, showCheckDigit: false));
         Assert.Equal("ABC", BarcodeCheckDigitContract.FormatHriText(

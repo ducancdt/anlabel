@@ -41,6 +41,20 @@ public sealed class LabelObject : ObservableObject
     private BarcodeWidthMode _barcodeWidthMode = BarcodeWidthMode.FrameOwned;
     private BearerBarStyle _bearerBarStyle = BearerBarStyle.None;
     private double _bearerBarThicknessMm = 1.0;
+    private int _barcodeBarWidthReductionDots;
+    private int _code39IntercharacterGapModules = 1;
+    private int _bearerBarThicknessModules;
+    private Code128CodeSet _code128CodeSet = Code128CodeSet.Auto;
+    private string _barcodeHriMask = string.Empty;
+    private string _barcodeHriMaskCharacter = "*";
+    private int _checkDigitModulus;
+    private string _checkDigitWeights = "3,1";
+    private bool _checkDigitWeightsFromRight = true;
+    private bool _checkDigitSumDigitsOfProducts;
+    private bool _checkDigitComplement = true;
+    private bool _checkDigitKeepAllDigits;
+    private bool _checkDigitZeroRemainderAsModulus;
+    private string _checkDigitValueMap = string.Empty;
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
     private string _bindingStateDisplayText = string.Empty;
@@ -407,7 +421,8 @@ public sealed class LabelObject : ObservableObject
 
     /// <summary>
     /// Optional check-digit policy for Code 39 / ITF. Default <see cref="BarcodeCheckDigitPolicy.None"/>
-    /// keeps legacy templates open. <see cref="BarcodeCheckDigitPolicy.Verify"/> fails closed in preflight.
+    /// keeps legacy templates open. <see cref="BarcodeCheckDigitPolicy.Verify"/> fails closed in preflight;
+    /// <see cref="BarcodeCheckDigitPolicy.Generate"/> appends the computed check digit when encoding.
     /// </summary>
     public BarcodeCheckDigitPolicy BarcodeCheckDigitPolicy
     {
@@ -505,6 +520,125 @@ public sealed class LabelObject : ObservableObject
             normalized = Math.Round(normalized, 2, MidpointRounding.AwayFromZero);
             SetProperty(ref _bearerBarThicknessMm, normalized);
         }
+    }
+
+    /// <summary>
+    /// Bar width reduction for linear barcodes: whole printer dots removed from
+    /// every dark bar to compensate thermal print gain. 0 (default) prints bars
+    /// at their nominal width; clamped to 0 - 10 dots.
+    /// </summary>
+    public int BarcodeBarWidthReductionDots
+    {
+        get => _barcodeBarWidthReductionDots;
+        set => SetProperty(ref _barcodeBarWidthReductionDots, Math.Clamp(value, 0, 10));
+    }
+
+    /// <summary>Code 128 code-set choice; Auto (default) lets the encoder choose.</summary>
+    public Code128CodeSet Code128CodeSet
+    {
+        get => _code128CodeSet;
+        set => SetProperty(ref _code128CodeSet, Enum.IsDefined(value) ? value : Code128CodeSet.Auto);
+    }
+
+    /// <summary>
+    /// Bearer bar thickness as a multiple of the narrow bar (1 - 10). 0
+    /// (default) uses <see cref="BearerBarThicknessMm"/>.
+    /// </summary>
+    public int BearerBarThicknessModules
+    {
+        get => _bearerBarThicknessModules;
+        set => SetProperty(ref _bearerBarThicknessModules, Math.Clamp(value, 0, 10));
+    }
+
+    /// <summary>
+    /// Code 39 space between characters, in narrow-bar widths (1 - 5, default
+    /// 1). ISO/IEC 16388 allows at least X and at most 5.3X for small X.
+    /// </summary>
+    public int Code39IntercharacterGapModules
+    {
+        get => _code39IntercharacterGapModules;
+        set => SetProperty(ref _code39IntercharacterGapModules, Math.Clamp(value, 1, 5));
+    }
+
+    /// <summary>
+    /// Optional HRI mask, e.g. "(***) ***-***": each mask character takes the
+    /// next HRI character, others are formatting. Empty (default) prints the
+    /// HRI text as is.
+    /// </summary>
+    public string BarcodeHriMask
+    {
+        get => _barcodeHriMask;
+        set => SetProperty(ref _barcodeHriMask, value ?? string.Empty);
+    }
+
+    /// <summary>Character in <see cref="BarcodeHriMask"/> that stands for one data character (default "*").</summary>
+    public string BarcodeHriMaskCharacter
+    {
+        get => _barcodeHriMaskCharacter;
+        set => SetProperty(ref _barcodeHriMaskCharacter, string.IsNullOrEmpty(value) ? "*" : value);
+    }
+
+    /// <summary>
+    /// Custom check digit modulus for numeric data (2 - 99). 0 (default) uses
+    /// the symbology's standard check digit. Applies with the Verify and
+    /// Generate check digit policies.
+    /// </summary>
+    public int CheckDigitModulus
+    {
+        get => _checkDigitModulus;
+        set => SetProperty(ref _checkDigitModulus, Math.Clamp(value, 0, 99));
+    }
+
+    /// <summary>Comma-separated weights for the custom check digit, repeated cyclically (default "3,1").</summary>
+    public string CheckDigitWeights
+    {
+        get => _checkDigitWeights;
+        set => SetProperty(ref _checkDigitWeights, value ?? string.Empty);
+    }
+
+    /// <summary>When true (default) the first weight applies to the rightmost data digit.</summary>
+    public bool CheckDigitWeightsFromRight
+    {
+        get => _checkDigitWeightsFromRight;
+        set => SetProperty(ref _checkDigitWeightsFromRight, value);
+    }
+
+    /// <summary>When true, the digits of each weighted product are summed (Luhn style).</summary>
+    public bool CheckDigitSumDigitsOfProducts
+    {
+        get => _checkDigitSumDigitsOfProducts;
+        set => SetProperty(ref _checkDigitSumDigitsOfProducts, value);
+    }
+
+    /// <summary>When true (default) the check value is modulus minus the remainder (0 stays 0).</summary>
+    public bool CheckDigitComplement
+    {
+        get => _checkDigitComplement;
+        set => SetProperty(ref _checkDigitComplement, value);
+    }
+
+    /// <summary>When true, a check value of 10 or more is written in full instead of its last digit.</summary>
+    public bool CheckDigitKeepAllDigits
+    {
+        get => _checkDigitKeepAllDigits;
+        set => SetProperty(ref _checkDigitKeepAllDigits, value);
+    }
+
+    /// <summary>
+    /// With complement, a remainder of 0 gives the modulus itself (UPU S10:
+    /// 11, then mapped to 5) instead of 0.
+    /// </summary>
+    public bool CheckDigitZeroRemainderAsModulus
+    {
+        get => _checkDigitZeroRemainderAsModulus;
+        set => SetProperty(ref _checkDigitZeroRemainderAsModulus, value);
+    }
+
+    /// <summary>Check values printed as other characters, e.g. "10=X" or "10=0;11=5".</summary>
+    public string CheckDigitValueMap
+    {
+        get => _checkDigitValueMap;
+        set => SetProperty(ref _checkDigitValueMap, value ?? string.Empty);
     }
 
     private static int NormalizeRotation(int value)

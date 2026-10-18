@@ -108,4 +108,26 @@ public sealed class DeviceBarcodeLayoutTests
         Assert.Throws<ArgumentOutOfRangeException>(() => DeviceBarcodeLayout.Create(0, 0, 0, 4, 203, 203, 1, new[] { true }));
         Assert.Throws<ArgumentOutOfRangeException>(() => DeviceBarcodeLayout.Create(0, 0, 10, 4, 203, 203, 0, Array.Empty<bool>()));
     }
+
+    [Fact]
+    public void BarWidthReductionTrimsTrailingEdgesAndKeepsLeadingEdges()
+    {
+        // 1 module = 1 DIP at 96 DPI-equivalent spacing; use 300 DPI and 4-dot modules.
+        var bits = new[] { true, false, true, true, false, true, true, true, false, true };
+        var widthDip = bits.Length * 4 * 96.0 / 300;
+
+        var nominal = DeviceBarcodeLayout.Create(0, 0, widthDip, 10, 300, 300, bits.Length, bits);
+        var reduced = DeviceBarcodeLayout.Create(0, 0, widthDip, 10, 300, 300, bits.Length, bits, barWidthReductionDots: 1);
+        var oversized = DeviceBarcodeLayout.Create(0, 0, widthDip, 10, 300, 300, bits.Length, bits, barWidthReductionDots: 50);
+
+        Assert.Equal(nominal.DarkRuns.Count, reduced.DarkRuns.Count);
+        for (var i = 0; i < nominal.DarkRuns.Count; i++)
+        {
+            Assert.Equal(nominal.DarkRuns[i].StartDot, reduced.DarkRuns[i].StartDot);
+            Assert.Equal(nominal.DarkRuns[i].WidthDots - 1, reduced.DarkRuns[i].WidthDots);
+            Assert.Equal(1, oversized.DarkRuns[i].WidthDots);
+        }
+
+        Assert.Equal(nominal.WidthDots, reduced.WidthDots);
+    }
 }

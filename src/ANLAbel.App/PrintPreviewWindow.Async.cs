@@ -60,6 +60,10 @@ public partial class PrintPreviewWindow
             ApplyPrintSetup();
             operation.Token.ThrowIfCancellationRequested();
 
+            ResolveJobValues();
+            _previewedJobValues = _currentJobValues;
+            ResolveSerialFirstValue();
+            _serialPreviewedFirstValue = _serialFirstValue;
             IReadOnlyDictionary<string, string>?[] rows;
             IReadOnlyList<LabelInstance> instances;
             IReadOnlyDictionary<string, string>?[]? refreshedAllRows = null;

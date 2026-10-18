@@ -39,7 +39,9 @@ public static class LinearBarcodeProductionWidth
         var data = resolvedData;
         if (string.IsNullOrEmpty(data))
         {
-            data = string.IsNullOrEmpty(item.Text) ? "0" : item.Text;
+            data = BarcodeCheckDigitContract.ToEncodedPayload(
+                item,
+                string.IsNullOrEmpty(item.Text) ? "0" : item.Text);
         }
 
         var type = BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology);
@@ -97,9 +99,5 @@ public static class LinearBarcodeProductionWidth
     }
 
     private static BarcodeRenderOptions CreateOptions(LabelObject item)
-        => new()
-        {
-            QuietZoneModules = Math.Max(0, item.QrQuietZoneModules),
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1
-        };
+        => BarcodeRenderOptions.FromObject(item);
 }

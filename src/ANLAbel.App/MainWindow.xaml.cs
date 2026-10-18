@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = _viewModel;
+        _viewModel.PromptValuesRequested = (prompts, previous) => PromptValuesWindow.Ask(this, prompts, previous);
         InitializeDocumentLifecycle();
         DesignerCanvas.EditGestureStarted += (_, _) => _viewModel.BeginTemplateEditGesture();
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
@@ -472,6 +473,21 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void ResetSerialCounter_Click(object sender, RoutedEventArgs e)
+    {
+        var answer = MessageBox.Show(
+            this,
+            "Đặt lại bộ đếm sẽ bắt đầu một dãy số mới từ giá trị Bắt đầu. Các số đã in trước đó có thể bị in lại (trùng số). Tiếp tục?",
+            "Đặt lại bộ đếm serial",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (answer == MessageBoxResult.Yes)
+        {
+            _viewModel.ResetSerialCounter();
+        }
+    }
+
     private void ManageDataSources_Click(object sender, RoutedEventArgs e)
     {
         ShowDatabaseManager();
@@ -820,7 +836,22 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var dialog = new PrintPreviewWindow(_viewModel.Template, _viewModel.PreviewRow, _viewModel.ExcelDataView, _viewModel.PrintService, _viewModel.PrintLogService, _viewModel.CurrentFilePath, approvedReprintJobId, approvedReprintManifest, preparedRows, _viewModel.ImportedExcelDataSourceIdentity) { Owner = this };
+            // A new job asks for its {?Name} values once, before preview; a
+            // reprint takes the original job's values from the record instead.
+            IReadOnlyDictionary<string, string>? promptValues = null;
+            var prompts = JobVariableContract.RequiredPrompts(_viewModel.Template);
+            if (approvedReprintJobId is null && prompts.Count > 0)
+            {
+                promptValues = PromptValuesWindow.Ask(this, prompts, _viewModel.LastPromptValues);
+                if (promptValues is null)
+                {
+                    return;
+                }
+
+                _viewModel.LastPromptValues = promptValues;
+            }
+
+            var dialog = new PrintPreviewWindow(_viewModel.Template, _viewModel.PreviewRow, _viewModel.ExcelDataView, _viewModel.PrintService, _viewModel.PrintLogService, _viewModel.CurrentFilePath, approvedReprintJobId, approvedReprintManifest, preparedRows, _viewModel.ImportedExcelDataSourceIdentity, promptValues) { Owner = this };
             dialog.ShowDialog();
         }
         catch (Exception ex)

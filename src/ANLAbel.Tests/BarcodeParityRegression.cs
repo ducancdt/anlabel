@@ -307,6 +307,130 @@ internal static class BarcodeParityRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Virtual print: the label goes through the print renderer at 203 DPI with
+    /// serial, job date, generated check digit and bar width reduction applied
+    /// the way the print paths apply them, and the raster must scan back to the
+    /// exact expected data. This is the software half of a physical test.
+    /// </summary>
+    public static Task VirtualPrintScansSerialDateCheckDigitAndReducedBars()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"anl-virtual-print-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var failures = new List<string>();
+        try
+        {
+            var jobTime = new DateTimeOffset(2026, 1, 31, 9, 0, 0, TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 1, 31, 9, 0, 0)));
+            var store = new ANLAbel.Data.PrintLogs.SerialCounterStore(Path.Combine(directory, "serial.jsonl"));
+            foreach (var reductionDots in new[] { 0, 1, 2 })
+            {
+                if (reductionDots == 2)
+                {
+                    // A 3-dot narrow bar reduced by 2 dots did not scan; preflight must stop it.
+                    var blocked = new LabelTemplate { Name = "Virtual blocked", WidthMm = 80, HeightMm = 30, Dpi = 203 };
+                    blocked.Objects.Add(new LabelObject
+                    {
+                        Name = "Serial",
+                        Type = ObjectType.BarcodeCode128,
+                        BarcodeSymbology = BarcodeSymbology.Code128,
+                        Text = "000041260131",
+                        BarcodeModuleWidthMm = 0.375,
+                        BarcodeBarWidthReductionDots = 2,
+                        QrQuietZoneModules = 10,
+                        XMm = 5,
+                        YMm = 5,
+                        WidthMm = 70,
+                        HeightMm = 18
+                    });
+                    var preflight = new PrintPreflightValidator(new ANLAbel.Barcode.Renderers.ZxingBarcodeRenderer())
+                        .Validate(blocked, Array.Empty<IReadOnlyDictionary<string, string>>(), 203);
+                    if (!preflight.Issues.Any(issue => issue.IsBlocking && issue.Message.Contains("leaves the narrow bar 1 dot(s) wide", StringComparison.Ordinal)))
+                    {
+                        failures.Add("A 2-dot reduction of a 3-dot narrow bar must be blocked by preflight.");
+                    }
+
+                    continue;
+                }
+
+                var serialTemplate = new LabelTemplate { Name = "Virtual serial", WidthMm = 80, HeightMm = 30, Dpi = 203 };
+                serialTemplate.SerialCounter = new SerialCounterDefinition { Enabled = true, StartValue = 41, Digits = 6 };
+                serialTemplate.Objects.Add(new LabelObject
+                {
+                    Name = "Serial",
+                    Type = ObjectType.BarcodeCode128,
+                    BarcodeSymbology = BarcodeSymbology.Code128,
+                    BindingExpression = "{#SERIAL}{#NOW:yyMMdd}",
+                    BarcodeModuleWidthMm = 0.375,
+                    BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                    BarcodeBarWidthReductionDots = reductionDots,
+                    BarcodeHriPlacement = BarcodeHriPlacement.None,
+                    QrQuietZoneModules = 10,
+                    XMm = 5,
+                    YMm = 5,
+                    WidthMm = 70,
+                    HeightMm = 18
+                });
+                var first = store.PeekNextValue(serialTemplate.SerialCounter);
+                IReadOnlyDictionary<string, string>?[] rows = [null, null];
+                Require(ANLAbel.Core.Printing.JobVariableContract.TryApply(serialTemplate, rows, jobTime, new Dictionary<string, string>(), out var dated, out var dateError), dateError);
+                Require(ANLAbel.Core.Printing.SerialCounterContract.TryApply(serialTemplate.SerialCounter, first, dated, out var numbered, out var serialError), serialError);
+                Require(store.TryReserve(serialTemplate.SerialCounter, $"virtual-{reductionDots}", first, numbered.Length, out _, out var reserveError), reserveError);
+                var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = 80, LabelHeightMm = 30 };
+                for (var label = 0; label < numbered.Length; label++)
+                {
+                    var expected = $"{first + label:000000}260131";
+                    var raster = RunOnSta(() => Measure(new LabelVisualRenderer().Render(serialTemplate, numbered[label], plan), serialTemplate));
+                    var decoded = Decode(raster, BarcodeFormat.CODE_128);
+                    Console.WriteLine($"MEASURE virtual print serial label {label + 1} reduction {reductionDots} dot(s): decoded '{decoded}'");
+                    if (decoded != expected)
+                    {
+                        failures.Add($"Serial label {label + 1} with {reductionDots}-dot reduction decodes as '{decoded}', expected '{expected}'.");
+                    }
+                }
+            }
+
+            var itfTemplate = new LabelTemplate { Name = "Virtual ITF", WidthMm = 100, HeightMm = 30, Dpi = 203 };
+            var itf = new LabelObject
+            {
+                Name = "Carton",
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.ITF,
+                Text = "1234567890123",
+                BarcodeCheckDigitPolicy = BarcodeCheckDigitPolicy.Generate,
+                BarcodeModuleWidthMm = 0.5,
+                BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                BarcodeBarWidthReductionDots = 1,
+                BarcodeHriPlacement = BarcodeHriPlacement.None,
+                QrQuietZoneModules = 10,
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 90,
+                HeightMm = 18
+            };
+            itfTemplate.Objects.Add(itf);
+            var itfPlan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = 100, LabelHeightMm = 30 };
+            var itfRaster = RunOnSta(() => Measure(new LabelVisualRenderer().Render(itfTemplate, null, itfPlan), itfTemplate));
+            var itfExpected = BarcodeCheckDigitContract.ToEncodedPayload(itf, "1234567890123");
+            var itfDecoded = Decode(itfRaster, BarcodeFormat.ITF);
+            Console.WriteLine($"MEASURE virtual print ITF generate: decoded '{itfDecoded}', expected '{itfExpected}'");
+            if (itfExpected.Length != 14 || itfDecoded != itfExpected)
+            {
+                failures.Add($"ITF with a generated check digit decodes as '{itfDecoded}', expected '{itfExpected}'.");
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        if (failures.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+        }
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>True when no dark pixel of the drawing falls outside the label.</summary>
     private static bool DrawsInsideLabel(Visual visual, LabelTemplate template)
     {

@@ -249,6 +249,17 @@ public sealed class ProjectFileServiceTests
             Assert.False(loadedObj.BarcodeHriShowCheckDigit);
             Assert.Equal("Bahnschrift", loadedObj.Style.FontFamily);
             Assert.Equal(13, loadedObj.Style.FontSizePt);
+
+            obj.BarcodeCheckDigitPolicy = BarcodeCheckDigitPolicy.Generate;
+            obj.BarcodeBarWidthReductionDots = 2;
+            await _sut.SaveAsync(template, tempFile);
+            var reloaded = await _sut.LoadAsync(tempFile);
+            Assert.Equal(BarcodeCheckDigitPolicy.Generate, reloaded.Objects[0].BarcodeCheckDigitPolicy);
+            Assert.Equal(2, reloaded.Objects[0].BarcodeBarWidthReductionDots);
+            Assert.Equal(2, Core.Models.LabelObjectCloner.Clone(reloaded.Objects[0]).BarcodeBarWidthReductionDots);
+            Assert.Equal(2, Core.Scene.SceneObjectSnapshot.Capture(reloaded.Objects[0]).BarcodeBarWidthReductionDots);
+            reloaded.Objects[0].BarcodeBarWidthReductionDots = 99;
+            Assert.Equal(10, reloaded.Objects[0].BarcodeBarWidthReductionDots);
         }
         finally
         {

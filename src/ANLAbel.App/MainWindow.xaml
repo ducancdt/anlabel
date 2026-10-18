@@ -1015,6 +1015,85 @@
                                     </Border>
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
                                         <StackPanel>
+                                            <TextBlock Text="Bộ đếm số serial" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
+                                                       Text="Mỗi tem in một số theo thứ tự in. Dải số được giữ cho từng lệnh in trước khi gửi máy in nên hai lệnh không bao giờ trùng số; in lại dùng đúng số cũ. Số được lưu theo người dùng Windows trên máy này."/>
+                                            <CheckBox Content="Bật bộ đếm" IsChecked="{Binding Template.SerialCounter.Enabled, Mode=TwoWay}" Margin="0,0,0,4"/>
+                                            <Grid Margin="0,2,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Bắt đầu" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.StartValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Giá trị đầu của dãy số. Tăng giá trị này sẽ nhảy tới; muốn quay lại số nhỏ hơn phải bấm Đặt lại."/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Bước" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.Step, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Mỗi lần đổi cộng thêm bước này; số âm để đếm lùi. Không được bằng 0."/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="Đổi sau mỗi (tem)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.ChangeEvery, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Số tem liên tiếp dùng chung một giá trị (1 - 999)."/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Nhỏ nhất" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.MinimumValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Lớn nhất" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.MaximumValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="Số chữ số" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.Digits, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Đệm số 0 phía trước cho đủ số chữ số (0 = không đệm)."/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Tiền tố" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.Prefix, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Hậu tố" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding Template.SerialCounter.Suffix, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock Text="Thư mục dùng chung (tùy chọn)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
+                                            <TextBox Text="{Binding Template.SerialCounter.SharedFolder, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                     ToolTip="Để trống: dãy số lưu trên máy này cho người dùng Windows này. Nhập thư mục mạng (ví dụ \\maychu\tem) để nhiều máy dùng chung một dãy số mà không trùng; mọi máy phải ghi được vào thư mục đó."/>
+                                            <CheckBox Content="Quay vòng khi vượt giới hạn" IsChecked="{Binding Template.SerialCounter.Rollover, Mode=TwoWay}" Margin="0,4,0,0"
+                                                      ToolTip="Bật: vượt Lớn nhất thì quay về Nhỏ nhất (đếm lùi thì ngược lại). Tắt: chặn in khi hết số."/>
+                                            <TextBlock Text="{Binding SerialCounterStatusText}" FontSize="10.5" Foreground="#334155" TextWrapping="Wrap" Margin="0,4,0,4"/>
+                                            <Button Content="Đặt lại bộ đếm..." Click="ResetSerialCounter_Click" HorizontalAlignment="Left" Padding="6,2"
+                                                    ToolTip="Bắt đầu một dãy số mới từ giá trị Bắt đầu. Có thể tạo số trùng với tem đã in trước đó."/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Giá trị nhập khi in và ngày giờ" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
+                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
+                                                       Text="Dùng {?Tên} trong liên kết dữ liệu để hỏi người vận hành khi bấm In (ví dụ {?Lot}), và {#NOW:dd/MM/yyyy} hoặc {#NOW+30d:dd/MM/yyyy} để in ngày giờ hoặc hạn dùng (đơn vị d, w, mo, y, h). Giá trị được lưu theo lệnh in nên in lại ra đúng như cũ. Khai báo thêm điều kiện cho từng tên ở bảng dưới (không bắt buộc)."/>
+                                            <DataGrid ItemsSource="{Binding Template.PromptVariables}" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
+                                                      HeadersVisibility="Column" MinHeight="60" MaxHeight="160" FontSize="11">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Tên" Binding="{Binding Name, UpdateSourceTrigger=LostFocus}" Width="70"/>
+                                                    <DataGridTextColumn Header="Câu hỏi" Binding="{Binding Prompt, UpdateSourceTrigger=LostFocus}" Width="*"/>
+                                                    <DataGridTextColumn Header="Mặc định" Binding="{Binding DefaultValue, UpdateSourceTrigger=LostFocus}" Width="70"/>
+                                                    <DataGridTextColumn Header="Tối đa" Binding="{Binding MaxLength, UpdateSourceTrigger=LostFocus}" Width="45"/>
+                                                    <DataGridCheckBoxColumn Header="Số" Binding="{Binding DigitsOnly, UpdateSourceTrigger=PropertyChanged}" Width="32"/>
+                                                    <DataGridCheckBoxColumn Header="Bắt buộc" Binding="{Binding Required, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
+                                        <StackPanel>
                                             <TextBlock Text="Nguồn dữ liệu dùng chung" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
                                                        Text="Dùng lại một tệp/trang Excel cho nhiều mẫu tem. Liên kết lại nguồn dùng chung một lần sẽ sửa cho mọi mẫu tem đang dùng nó."/>
@@ -1149,7 +1228,7 @@
                             <controls:LabelDesignerCanvas x:Name="DesignerCanvas"
                                                           Template="{Binding Template}"
                                                           SelectedObject="{Binding SelectedObject, Mode=TwoWay}"
-                                                          PreviewRow="{Binding PreviewRow}"
+                                                          PreviewRow="{Binding DesignPreviewRow}"
                                                           DrawingTool="{Binding DrawingTool, Mode=TwoWay}"
                                                           DrawingCommandText="{Binding DrawingCommandText, Mode=TwoWay}"
                                                           InteractionStatusText="{Binding StatusText, Mode=TwoWay}"
@@ -2119,20 +2198,79 @@
                                             <TextBox Grid.Column="2" Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" Width="58" HorizontalAlignment="Left"/>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Mặt nạ HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBox Text="{Binding SelectedObject.BarcodeHriMask, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         ToolTip="Định dạng chữ dưới mã. Mỗi ký tự đại diện được thay bằng một ký tự dữ liệu, ký tự khác chỉ để trình bày. Ví dụ (***) ***-***. Số ký tự đại diện phải bằng số ký tự dữ liệu. Để trống = không dùng."/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Ký tự đại diện" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBox Text="{Binding SelectedObject.BarcodeHriMaskCharacter, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Width="40" MaxLength="1" HorizontalAlignment="Left"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="Số kiểm tra" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
-                                                          ToolTip="Chỉ Code 39 / ITF. Không = không yêu cầu. Tự động = chấp nhận có hoặc không số kiểm tra cuối. Xác minh = kiểm tra trước chặn nếu thiếu hoặc sai số kiểm tra. Code 128 bỏ qua mục này."
+                                                          ToolTip="Code 39 / ITF (Code 128 khi dùng thuật toán riêng). Không = không yêu cầu. Tự động = chấp nhận có hoặc không số kiểm tra cuối, HRI luôn hiện đủ. Xác minh = kiểm tra trước chặn nếu thiếu hoặc sai số kiểm tra. Tự sinh = dữ liệu là phần thân, phần mềm tự tính và nối số kiểm tra."
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="Số kiểm tra HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <CheckBox Content="Hiện trong HRI"
                                                           IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"
-                                                          ToolTip="Khi bỏ chọn, số kiểm tra cuối đã xác thực chỉ bị ẩn trong phần chữ người đọc được. Ký hiệu mã hóa luôn dùng trọn dữ liệu."
+                                                          ToolTip="Khi bỏ chọn (chỉ với Xác minh hoặc Tự sinh), số kiểm tra cuối chỉ bị ẩn trong phần chữ người đọc được. Ký hiệu mã hóa luôn dùng trọn dữ liệu."
                                                           Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Thuật toán riêng: modulo" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBox Text="{Binding SelectedObject.CheckDigitModulus, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         ToolTip="0 = dùng số kiểm tra chuẩn của loại mã. 2 - 99 = thuật toán riêng cho dữ liệu chỉ gồm chữ số (ví dụ 10 cho mod 10, 11 cho mod 11)."
+                                                         Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Trọng số" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBox Text="{Binding SelectedObject.CheckDigitWeights, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         ToolTip="Danh sách trọng số cách nhau bởi dấu phẩy, lặp vòng (ví dụ 3,1 hoặc 2,1 hoặc 7,6,5,4,3,2)."
+                                                         Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <WrapPanel Margin="0,2,0,0">
+                                            <CheckBox Content="Trọng số từ phải" Margin="0,2,10,0"
+                                                      IsChecked="{Binding SelectedObject.CheckDigitWeightsFromRight, Mode=TwoWay}"
+                                                      ToolTip="Trọng số đầu tiên áp cho chữ số ngoài cùng bên phải (kiểu GS1). Bỏ chọn để bắt đầu từ bên trái."/>
+                                            <CheckBox Content="Cộng chữ số của tích" Margin="0,2,10,0"
+                                                      IsChecked="{Binding SelectedObject.CheckDigitSumDigitsOfProducts, Mode=TwoWay}"
+                                                      ToolTip="Cộng từng chữ số của mỗi tích (kiểu Luhn) thay vì cộng cả tích."/>
+                                            <CheckBox Content="Lấy phần bù" Margin="0,2,10,0"
+                                                      IsChecked="{Binding SelectedObject.CheckDigitComplement, Mode=TwoWay}"
+                                                      ToolTip="Số kiểm tra = modulo trừ số dư (số dư 0 giữ 0). Bỏ chọn để dùng chính số dư."/>
+                                            <CheckBox Content="Giữ đủ chữ số" Margin="0,2,10,0"
+                                                      IsChecked="{Binding SelectedObject.CheckDigitKeepAllDigits, Mode=TwoWay}"
+                                                      ToolTip="Khi số kiểm tra từ 10 trở lên, ghi đủ (ví dụ 10) thay vì chỉ chữ số cuối."/>
+                                            <CheckBox Content="Số dư 0 → modulo" Margin="0,2,10,0"
+                                                      IsChecked="{Binding SelectedObject.CheckDigitZeroRemainderAsModulus, Mode=TwoWay}"
+                                                      ToolTip="Khi lấy phần bù, số dư 0 cho giá trị bằng modulo (ví dụ 11) thay vì 0. Dùng cho UPU S10 cùng ánh xạ 11=5."/>
+                                        </WrapPanel>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Ánh xạ kết quả" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBox Text="{Binding SelectedObject.CheckDigitValueMap, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         ToolTip="Giá trị số kiểm tra in thành ký tự khác, ví dụ 10=X hoặc 10=0;11=5. Để trống = không ánh xạ."
+                                                         Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Nạp mẫu có sẵn" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding CheckDigitPresetOptions}" SelectedItem="{Binding SelectedCheckDigitPreset, Mode=TwoWay}"
+                                                          ToolTip="Điền sẵn modulo, trọng số và các tùy chọn theo một chuẩn đã công bố. Chọn xong vẫn có thể sửa từng ô."
+                                                          Margin="0,1,0,0"/>
                                             </StackPanel>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
@@ -2154,6 +2292,22 @@
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <StackPanel>
+                                                <TextBlock Text="Khe giữa ký tự Code 39 (X)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <TextBox Text="{Binding SelectedObject.Code39IntercharacterGapModules, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         ToolTip="Khoảng trắng giữa hai ký tự Code 39, tính bằng số lần vạch hẹp (1 - 5, chuẩn là 1)."
+                                                         Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Bộ mã Code 128" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding Code128CodeSetOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                          SelectedItem="{Binding SelectedObject.Code128CodeSet, Mode=TwoWay}"
+                                                          ToolTip="Tự động = bộ mã hóa tự chọn ngắn nhất. Bộ A/B/C = ép cả mã dùng một bộ. Thủ công = dữ liệu tự chuyển bộ bằng &lt;MODEA&gt;, &lt;MODEB&gt;, &lt;MODEC&gt; (không in ra chữ dưới mã)."
+                                                          Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
                                                 <TextBlock Text="Vạch bao" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding BearerBarStyleOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.BearerBarStyle, Mode=TwoWay}"
@@ -2166,6 +2320,23 @@
                                                          ToolTip="Độ dày của vạch bao / bảo vệ theo mi-li-mét (mặc định 1.0 mm)."
                                                          Margin="0,1,0,0"/>
                                             </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Độ dày vạch bao (× vạch hẹp)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBox Grid.Column="2"
+                                                     Text="{Binding SelectedObject.BearerBarThicknessModules, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                     ToolTip="Độ dày vạch bao bằng số lần vạch hẹp hiệu dụng (1 - 10), tự theo cỡ X và DPI. 0 = dùng độ dày mm ở trên."
+                                                     Margin="0,1,0,0"/>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <TextBlock Text="Bù loang vạch (chấm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
+                                                       ToolTip="Số chấm máy in cắt bớt khỏi mỗi vạch đen của mã vạch 1D để bù mực loang khi in nhiệt. 0 = không bù. Phải nhỏ hơn số chấm của vạch hẹp; kiểm tra bằng máy quét trên tem in thật."/>
+                                            <TextBox Grid.Column="2"
+                                                     Text="{Binding SelectedObject.BarcodeBarWidthReductionDots, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                     ToolTip="Số chấm cắt bớt mỗi vạch đen (0 - 10)."
+                                                     Margin="0,1,0,0"/>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

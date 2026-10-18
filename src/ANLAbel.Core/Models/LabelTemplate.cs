@@ -19,6 +19,7 @@ public sealed class LabelTemplate : ObservableObject
     private LabelOrientation _orientation = LabelOrientation.Portrait;
     private PrinterProfile _printerProfile = new();
     private DatabaseConfig _databaseConfig = new();
+    private SerialCounterDefinition _serialCounter = new();
 
     public string Id
     {
@@ -80,6 +81,9 @@ public sealed class LabelTemplate : ObservableObject
     /// <summary>Persisted typed-record transforms applied by the data workflow.</summary>
     public ObservableCollection<DataTransformDefinition> DataTransforms { get; set; } = new();
 
+    /// <summary>Values the operator enters when printing, used as {?Name}.</summary>
+    public ObservableCollection<PromptVariableDefinition> PromptVariables { get; set; } = new();
+
     public PrinterProfile PrinterProfile
     {
         get => _printerProfile;
@@ -90,6 +94,13 @@ public sealed class LabelTemplate : ObservableObject
     {
         get => _databaseConfig;
         set => SetProperty(ref _databaseConfig, value);
+    }
+
+    /// <summary>Serial counter printed through <c>{#SERIAL}</c>; off by default.</summary>
+    public SerialCounterDefinition SerialCounter
+    {
+        get => _serialCounter;
+        set => SetProperty(ref _serialCounter, value ?? new SerialCounterDefinition());
     }
 
     /// <summary>

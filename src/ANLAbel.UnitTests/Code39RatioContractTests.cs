@@ -121,6 +121,102 @@ public sealed class Code39RatioContractTests
         Assert.False(legacy!.RowBits.SequenceEqual(ratio!.RowBits));
     }
 
+    [Theory]
+    [InlineData(1, 2.2, 3)]
+    [InlineData(2, 2.2, 5)]
+    [InlineData(3, 2.2, 7)]
+    [InlineData(2, 2.5, 5)]
+    [InlineData(3, 2.5, 8)]
+    [InlineData(1, 2.0, 2)]
+    [InlineData(2, 3.0, 6)]
+    public void ResolveWideDots_StaysInsideTheLegalRealizedBand(int narrowDots, double ratio, int expectedWideDots)
+    {
+        var wide = Code39RatioContract.ResolveWideDots(narrowDots, ratio);
+
+        Assert.Equal(expectedWideDots, wide);
+        Assert.InRange(
+            (double)wide / narrowDots,
+            Code39RatioContract.MinimumRealizedRatio(ratio) - 1e-9,
+            Code39RatioContract.MaximumRealizedRatio + 1e-9);
+    }
+
+    [Theory]
+    [InlineData(Code39WideNarrowRatio.Ratio2_2, 203)]
+    [InlineData(Code39WideNarrowRatio.Ratio2_2, 300)]
+    [InlineData(Code39WideNarrowRatio.Ratio2_5, 203)]
+    [InlineData(Code39WideNarrowRatio.Ratio3_0, 300)]
+    [InlineData(Code39WideNarrowRatio.Ratio2_0, 600)]
+    public void ExplicitRatioPrintsUniformWholeDotElements(Code39WideNarrowRatio ratio, int dpi)
+    {
+        var renderer = new ZxingBarcodeRenderer();
+        var options = new BarcodeRenderOptions { QuietZoneModules = 10, Code39WideNarrowRatio = ratio };
+
+        var vector = renderer.RenderBarcodeVector("ABC123", BarcodeType.Code39, 37, 10, dpi, options);
+
+        Assert.NotNull(vector);
+        var widths = InteriorRunLengths(vector!.RowBits).Distinct().Order().ToArray();
+        Assert.Equal(2, widths.Length);
+        Assert.InRange(
+            (double)widths[1] / widths[0],
+            Code39RatioContract.MinimumRealizedRatio(Code39RatioContract.ToValue(ratio)!.Value) - 1e-9,
+            Code39RatioContract.MaximumRealizedRatio + 1e-9);
+    }
+
+    [Fact]
+    public void ExplicitRatioWithoutQuietZoneKeepsTheOuterBars()
+    {
+        var renderer = new ZxingBarcodeRenderer();
+        var options = new BarcodeRenderOptions { QuietZoneModules = 0, Code39WideNarrowRatio = Code39WideNarrowRatio.Ratio2_5 };
+
+        var vector = renderer.RenderBarcodeVector("ABC", BarcodeType.Code39, 30, 10, 300, options);
+
+        Assert.NotNull(vector);
+        var bits = vector!.RowBits;
+        var firstBar = Array.IndexOf(bits, true);
+        var lastBar = Array.LastIndexOf(bits, true);
+        Assert.True(firstBar >= 0);
+        Assert.Equal(bits.Length - 1 - lastBar, firstBar, tolerance: 1);
+        Assert.Equal(2, InteriorRunLengths(bits).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(Code39WideNarrowRatio.Ratio2_2)]
+    [InlineData(Code39WideNarrowRatio.Ratio2_5)]
+    [InlineData(Code39WideNarrowRatio.Ratio3_0)]
+    public void ExplicitRatioCountsModulesInXUnits(Code39WideNarrowRatio ratio)
+    {
+        var renderer = new ZxingBarcodeRenderer();
+        var legacy = renderer.CountLinearModules("ABC123", BarcodeType.Code39, new BarcodeRenderOptions { QuietZoneModules = 10 });
+        var explicitRatio = renderer.CountLinearModules(
+            "ABC123",
+            BarcodeType.Code39,
+            new BarcodeRenderOptions { QuietZoneModules = 10, Code39WideNarrowRatio = ratio });
+
+        Assert.NotNull(legacy);
+        Assert.NotNull(explicitRatio);
+        // ZXing's legacy count uses wide = 2X; an explicit ratio widens every wide element.
+        Assert.True(explicitRatio > legacy, $"explicit={explicitRatio} legacy={legacy}");
+    }
+
+    private static List<int> InteriorRunLengths(bool[] bits)
+    {
+        var first = Array.IndexOf(bits, true);
+        var last = Array.LastIndexOf(bits, true);
+        var runs = new List<int>();
+        var length = 0;
+        for (var x = first; x <= last; x++)
+        {
+            length++;
+            if (x == last || bits[x + 1] != bits[x])
+            {
+                runs.Add(length);
+                length = 0;
+            }
+        }
+
+        return runs;
+    }
+
     [Fact]
     public void ClonerAndSnapshotPreserveCode39WideNarrowRatio()
     {

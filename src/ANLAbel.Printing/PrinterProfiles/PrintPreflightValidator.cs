@@ -58,7 +58,8 @@ public sealed class PrintPreflightValidator
             ValidateLinearBarcodeModuleAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
             ValidateBarcodeApplicationGeometry(item, issues);
             ValidateCode39RatioAndQuietZone(item, printDpi, printDpiY ?? printDpi, issues);
-            ValidateBearerBars(item, issues);
+            ValidateBearerBars(item, printDpi, printDpiY ?? printDpi, issues);
+            ValidateStrokeAtPrintDpi(item, printDpi, printDpiY ?? printDpi, issues);
             for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -220,7 +221,51 @@ public sealed class PrintPreflightValidator
         }
 
         var dpi = Math.Min(printDpiX.Value, printDpiY.Value);
-        LinearBarcodeModuleResolution resolution;
+        if (!TryResolveLinearModule(item, dpi, out var resolution))
+        {
+            return;
+        }
+
+        var retailAdvice = RetailMagnificationContract.Check(GetEffectiveBarcodeSymbology(item), resolution.EffectiveModuleWidthMm, resolution.Dpi);
+        if (!string.IsNullOrEmpty(retailAdvice))
+        {
+            issues.Add(new PrintPreflightIssue(0, item.Name, item.Type.ToString(), retailAdvice, IsBlocking: false));
+        }
+
+        // A virtual print at 203 DPI showed a 3-dot narrow bar reduced by 2 dots no
+        // longer scans; keep the same 2-dot floor as the module check below.
+        var remainingNarrowDots = resolution.ModuleDots - item.BarcodeBarWidthReductionDots;
+        if (item.BarcodeBarWidthReductionDots > 0
+            && remainingNarrowDots < LinearBarcodeModuleContract.MinimumModuleDots)
+        {
+            var allowed = Math.Max(0, resolution.ModuleDots - LinearBarcodeModuleContract.MinimumModuleDots);
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Bar width reduction of {item.BarcodeBarWidthReductionDots} dot(s) leaves the narrow bar {Math.Max(0, remainingNarrowDots)} dot(s) wide ({resolution.ModuleDots} dot(s) at {resolution.Dpi} DPI), below the {LinearBarcodeModuleContract.MinimumModuleDots}-dot minimum, so the barcode may not scan. Use at most {allowed} dot(s) of reduction or increase X-dimension."));
+        }
+
+        if (!resolution.HasIndustrialRisk)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            0,
+            item.Name,
+            item.Type.ToString(),
+            LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution),
+            IsBlocking: item.BarcodeModuleWidthMm > 0));
+    }
+
+    /// <summary>
+    /// Effective linear X at <paramref name="dpi"/>: the authored module width when
+    /// set, otherwise frame width / logical module count for the static sample.
+    /// </summary>
+    private bool TryResolveLinearModule(LabelObject item, int dpi, out LinearBarcodeModuleResolution resolution)
+    {
+        resolution = default;
         try
         {
             if (item.BarcodeModuleWidthMm > 0)
@@ -238,20 +283,22 @@ public sealed class PrintPreflightValidator
                     && string.IsNullOrEmpty(item.BindingExpression))
                 {
                     // Bound rows are validated per-row; static empty data cannot estimate modules.
-                    return;
+                    return false;
                 }
 
-                var sample = string.IsNullOrEmpty(item.Text) ? "0" : item.Text;
+                var sample = BarcodeCheckDigitContract.ToEncodedPayload(
+                    item,
+                    string.IsNullOrEmpty(item.Text) ? "0" : item.Text);
                 if (!_barcodeRenderer.ValidateData(sample, barcodeType))
                 {
-                    return;
+                    return false;
                 }
 
                 var options = CreateBarcodeRenderOptions(item);
                 var logicalModules = _barcodeRenderer.CountLinearModules(sample, barcodeType, options);
                 if (logicalModules is null or <= 0)
                 {
-                    return;
+                    return false;
                 }
 
                 resolution = LinearBarcodeModuleContract.ResolveForObject(
@@ -263,20 +310,10 @@ public sealed class PrintPreflightValidator
         }
         catch
         {
-            return;
+            return false;
         }
 
-        if (!resolution.HasIndustrialRisk)
-        {
-            return;
-        }
-
-        issues.Add(new PrintPreflightIssue(
-            0,
-            item.Name,
-            item.Type.ToString(),
-            LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution),
-            IsBlocking: item.BarcodeModuleWidthMm > 0));
+        return true;
     }
 
     private static void ValidateObjectWithinLabel(LabelTemplate template, LabelObject item, List<PrintPreflightIssue> issues)
@@ -518,6 +555,20 @@ public sealed class PrintPreflightValidator
     private void ValidateBarcode(LabelObject item, string data, int rowIndex, List<PrintPreflightIssue> issues, int? printDpi = null, int? printDpiY = null)
     {
         var applicationSymbology = GetEffectiveBarcodeSymbology(item);
+        var checkDigitErrors = BarcodeCheckDigitContract.Validate(item, applicationSymbology, data);
+        foreach (var checkDigitError in checkDigitErrors)
+        {
+            issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), checkDigitError));
+        }
+
+        if (checkDigitErrors.Count > 0 && item.BarcodeCheckDigitPolicy == BarcodeCheckDigitPolicy.Generate)
+        {
+            // No check digit can be generated; the data errors above already say why.
+            return;
+        }
+
+        // Validate, render and size the payload the symbol will actually encode.
+        data = BarcodeCheckDigitContract.ToEncodedPayload(item, data);
         var applicationErrors = BarcodeApplicationContract.ValidateData(
             item.BarcodeApplicationProfile,
             applicationSymbology,
@@ -532,12 +583,20 @@ public sealed class PrintPreflightValidator
             return;
         }
 
-        foreach (var checkDigitError in BarcodeCheckDigitContract.Validate(
-                     applicationSymbology,
-                     data,
-                     item.BarcodeCheckDigitPolicy))
+        if (item.BarcodeHriPlacement != BarcodeHriPlacement.None
+            && BarcodeHriMaskContract.IsUsed(item.BarcodeHriMask))
         {
-            issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), checkDigitError));
+            var unmaskedHri = BarcodeCheckDigitContract.FormatHriText(
+                applicationSymbology,
+                data,
+                item.BarcodeCheckDigitPolicy,
+                item.BarcodeHriShowCheckDigit,
+                CustomCheckDigitAlgorithm.FromObject(item));
+            var maskError = BarcodeHriMaskContract.Validate(item.BarcodeHriMask, item.BarcodeHriMaskCharacter, unmaskedHri);
+            if (!string.IsNullOrEmpty(maskError))
+            {
+                issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), maskError));
+            }
         }
 
         var barcodeType = item.Type switch
@@ -789,7 +848,7 @@ public sealed class PrintPreflightValidator
         var symbolWidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(item, _barcodeRenderer, dpiX, data);
         var hriLayout = BarcodeHriTextLayout.Measure(
             type,
-            data,
+            BarcodeCheckDigitContract.HriMeasureText(item, data),
             symbolWidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
@@ -855,19 +914,39 @@ public sealed class PrintPreflightValidator
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)
+        => BarcodeRenderOptions.FromObject(item);
+
+    /// <summary>
+    /// A line or outline thinner than one printer dot prints faint or not at
+    /// all, while the designer still draws it at least one screen pixel wide.
+    /// Reported as advice: the operator may want a hairline on a fine printer.
+    /// </summary>
+    private static void ValidateStrokeAtPrintDpi(LabelObject item, int? printDpiX, int? printDpiY, List<PrintPreflightIssue> issues)
     {
-        return new BarcodeRenderOptions
+        if (item.Type is not (ObjectType.Line or ObjectType.Rectangle or ObjectType.Ellipse)
+            || item.Style.OutlineStyle == OutlineStyle.None
+            || item.Style.BorderThicknessMm <= 0
+            || printDpiX is not > 0)
         {
-            ErrorCorrection = item.QrErrorCorrection.ToString(),
-            QuietZoneModules = item.QrQuietZoneModules,
-            IsGs1 = item.BarcodeApplicationProfile == BarcodeApplicationProfile.Gs1,
-            Code39WideNarrowRatio = item.Code39WideNarrowRatio,
-            BearerBarStyle = item.BearerBarStyle,
-            BearerBarThicknessMm = item.BearerBarThicknessMm
-        };
+            return;
+        }
+
+        var dpi = Math.Max(printDpiX.Value, printDpiY is > 0 ? printDpiY.Value : printDpiX.Value);
+        var dotMm = LinearBarcodeModuleContract.OnePrinterDotMm(dpi);
+        if (item.Style.BorderThicknessMm + 1e-9 >= dotMm)
+        {
+            return;
+        }
+
+        issues.Add(new PrintPreflightIssue(
+            0,
+            item.Name,
+            item.Type.ToString(),
+            $"Line thickness {item.Style.BorderThicknessMm:0.###} mm is thinner than one printer dot ({dotMm:0.###} mm at {dpi} DPI), so it may print faint or not at all although the designer shows it. Use at least {Math.Ceiling(dotMm * 1000) / 1000:0.###} mm.",
+            IsBlocking: false));
     }
 
-    private static void ValidateBearerBars(LabelObject item, List<PrintPreflightIssue> issues)
+    private void ValidateBearerBars(LabelObject item, int? printDpiX, int? printDpiY, List<PrintPreflightIssue> issues)
     {
         if (item.BearerBarStyle == BearerBarStyle.None)
         {
@@ -884,13 +963,39 @@ public sealed class PrintPreflightValidator
             return;
         }
 
-        if (item.BearerBarThicknessMm < 0.2 || item.BearerBarThicknessMm > 5.0)
+        LinearBarcodeModuleResolution? x = null;
+        if (printDpiX is > 0 && printDpiY is > 0
+            && TryResolveLinearModule(item, Math.Min(printDpiX.Value, printDpiY.Value), out var resolved))
+        {
+            x = resolved;
+        }
+
+        var thicknessMm = BearerBarContract.ResolveThicknessMm(item, x?.EffectiveModuleWidthMm);
+        if (thicknessMm < 0.2 || thicknessMm > 5.0)
         {
             issues.Add(new PrintPreflightIssue(
                 0,
                 item.Name,
                 item.Type.ToString(),
-                $"Bearer bar thickness is {item.BearerBarThicknessMm:0.##} mm, outside the standard range of 0.2 to 5.0 mm."));
+                $"Bearer bar thickness is {thicknessMm:0.##} mm, outside the standard range of 0.2 to 5.0 mm."));
+        }
+
+        // Frame bearers are drawn at the symbol edges; when the quiet zone is
+        // narrower than the bar, the vertical bearers cover the outer bars.
+        if (item.BearerBarStyle != BearerBarStyle.Frame || x is not { } module)
+        {
+            return;
+        }
+
+        var quietZoneMm = Math.Max(0, item.QrQuietZoneModules) * module.EffectiveModuleWidthMm;
+        if (quietZoneMm + 1e-6 < thicknessMm)
+        {
+            var requiredModules = (int)Math.Ceiling((thicknessMm / module.EffectiveModuleWidthMm) - 1e-9);
+            issues.Add(new PrintPreflightIssue(
+                0,
+                item.Name,
+                item.Type.ToString(),
+                $"Frame bearer bars are {thicknessMm:0.##} mm thick but the quiet zone is only {quietZoneMm:0.##} mm ({item.QrQuietZoneModules} modules), so the side bars cover the first and last bars of the barcode. Increase quiet zone to at least {requiredModules} modules, make the bearer thinner, or use top/bottom bearer bars."));
         }
     }
 
