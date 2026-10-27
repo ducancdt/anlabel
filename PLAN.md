@@ -1,5 +1,38 @@
 # ANLAbel Phase 1 Plan
 
+## v0.325 — Sửa mã vạch, số kiểm tra tự sinh, bộ đếm Serial và giá trị theo lệnh in
+
+**Mã vạch** (sửa lỗi tìm thấy khi đối chiếu với phần mềm tham chiếu)
+
+- Code 39 có tỉ lệ vạch đặt tay: in vạch đều theo số chấm nguyên, tỉ lệ thực
+  2,2–3,0:1 (ISO/IEC 16388); không còn mất vạch đầu khi vùng trống bằng 0.
+- Chế độ số kiểm tra Auto không còn giấu một ký tự dữ liệu thật trong dòng chữ
+  dưới mã (1/10 giá trị ITF).
+- Thanh bearer của khung đè lên vạch ngoài cùng: kiểm tra trước in nay chặn.
+
+**Tính năng mới** (chủ sản phẩm duyệt 2026-10-17; tất cả tắt sẵn, lưu trong mẫu)
+
+- Số kiểm tra `Generate` và số kiểm tra tùy chỉnh (modulus, trọng số, bảng giá
+  trị; mẫu có sẵn GS1 mod 10, Luhn, Mod 11 X, UPU S10).
+- Giảm bề rộng vạch theo số chấm nguyên; chặn khi vạch hẹp còn dưới 2 chấm.
+- Mặt nạ dòng chữ dưới mã, khoảng cách ký tự Code 39, độ dày bearer, chọn bộ mã
+  Code 128 (Auto/A/B/C/Manual).
+- Bộ đếm Serial `{#SERIAL}`: số được giữ chỗ cho từng lệnh in trước khi in, không
+  bao giờ dùng lại; in lại dùng đúng số cũ; có thể dùng chung qua thư mục mạng.
+- Giá trị theo lệnh in `{#NOW...}` và `{?Tên}`: ghi lại theo lệnh, in lại lặp
+  đúng giá trị cũ.
+- Cảnh báo (không chặn): EAN/UPC ngoài 80–200 % GS1; nét mảnh hơn một chấm máy in.
+
+Mẫu dùng các tính năng này cần bản này trở lên.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1344/1344; regression 268 PASS / 0 FAIL, gồm gate in ảo 203 DPI
+  giải mã lại bằng ZXing. Bộ đếm dùng chung đã chạy qua SMB với 4 tiến trình
+  (300 số, không trùng, liên tục).
+- Chưa kiểm: giảm bề rộng vạch trên máy quét/máy kiểm thật; in Serial trên hàng
+  đợi máy in thật; thư mục chung trên một PC khác.
+
 ## v0.324 — Ô chữ mới mang chữ “Ô chữ”; hướng dẫn sử dụng viết lại
 
 **Thiết kế** (chủ sản phẩm duyệt 2026-10-15; đổi bất biến 5 của hợp đồng Text/TextBox)
