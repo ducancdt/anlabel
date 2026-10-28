@@ -1028,3 +1028,51 @@ chế độ đơn sắc có hợp đồng và giới hạn giải mã trong pref
 có đường Excel/CSV riêng. **Không nhận gì từ ba module này.**
 
 [Agent: Muse Spark / Muse Code — phiên module phụ 2026-10-27]
+
+---
+
+# Phụ lục khảo sát 2026-10-27 (tiếp 8): ứng dụng Delphi và bản đồ hoàn tất
+
+## 32. NicePQManager5, Nbars, ndata5, nmmast5, smartkd5, nconf5
+
+Sáu chương trình còn lại đều là Delphi VCL (dấu `EAccessViolation`,
+`EInvalidOperation`, action mang tên `act*Execute` của Delphi):
+
+- `NicePQManager5.exe` là mặt tiền quản trị **Windows Spooler**: tạm
+  dừng/tiếp tục/khởi động lại/xóa job trong hàng đợi hệ điều hành, chuyển
+  job sang máy in khác, đổi thứ tự ưu tiên. Nó không sở hữu trạng thái job
+  riêng; mọi thao tác đánh thẳng vào spooler.
+- `ndata5.exe` là công cụ quản lý dữ liệu đi kèm; `nmmast5.exe`,
+  `smartkd5.exe`, `nconf5.exe` và `Nbars.dll` là tiện ích Delphi phụ trợ
+  (cấu hình, hỗ trợ nhập liệu, tài nguyên).
+- `ncplib5.dll`, `epds5.dll`, `nengine5.exe` chỉ có trong payload bộ cài,
+  không được cài vào thư mục `bin` của bản đang chạy trên máy này — bằng
+  chứng về chúng ở các phụ lục trước lấy từ payload đã trích, cùng bộ
+  NiceLabel Pro Suite 5.
+
+Đối chiếu ANLAbel: ANLAbel cố ý **không** quản trị spooler kiểu PQManager.
+Chuyển một job đã kết xuất sang máy in khác hoặc khởi động lại job trong
+spooler phá vỡ liên kết job ↔ bản kê ↔ khổ tem/driver đã kiểm chứng;
+ANLAbel giữ job của mình trong hàng đợi bền, in lại có chủ đích từ bản kê
+gốc. Không nhận tính năng nào từ cụm này.
+
+## 33. Bản đồ hoàn tất toàn bộ bộ cài
+
+| Module | Công nghệ | Mức bằng chứng | Kết luận cho ANLAbel |
+| :--- | :--- | :--- | :--- |
+| `bareng.dll` | Borland C++ | Decompile 9 hàm (§10, §22, §24, §26) | Nhận advisory chiều cao GS1; giữ BWR thay Space correction |
+| `cdalgo.dll` | Borland C++ | Decompile `TAlgo::Calc` (§27) | ANLAbel là tập bao; không nạp DLL thuật toán ngoài |
+| `nprint.dll` | Borland C++ | Decompile 3 hàm (§28, §30) | Không nhận banding/hủy-cờ-toàn-cục |
+| `nengine5.exe` (payload) | Borland C++ | Chuỗi/xref/parser job (§25, §29); thân hàm Load chưa tách được (TD32) | SESSION tương đương sẵn có; import `.lbl` chưa làm |
+| `nlabel5.exe` | Borland C++ | Resource/dialog/strings (§9, §12); thân hàm cùng giới hạn TD32 | Không sao chép hình thái dialog |
+| `ndata5.exe`, `NicePQManager5.exe`, `nmmast5.exe`, `smartkd5.exe`, `nconf5.exe`, `LblConv5.exe` | Delphi VCL | Khảo sát symbol/chuỗi (§31, §32) | Ngoài phạm vi lõi hoặc trái hợp đồng job bền |
+| `Ndibl.dll`, `datafilesconv.dll`, `Nbars.dll` | Delphi/thư viện | Khảo sát (§31, §32) | Giữ đường ảnh/dữ liệu riêng |
+| `OWL52F.DLL`, `CW3230.DLL`, `BDS52F.DLL`, `hasp*.dll`, `nlicreg.dll` | Runtime Borland/bảo vệ bản quyền bên thứ ba | Nhận diện theo tên/import | Không phân tích (không phải logic nhãn) |
+
+Phần thân hàm duy nhất chưa đọc được là họ `Load/Save(TIO&)` của mô hình
+nhãn trong `nengine5.exe`/`nlabel5.exe` vì tên hàm chỉ nằm trong thông tin
+debug TD32 (§25). Đây là giới hạn bằng chứng đã ghi, không phải phần việc
+bỏ sót: muốn đi tiếp cần parser TD32 đầy đủ hoặc thăm dò vi sai bằng bản
+cài đang chạy — cả hai đã được nêu là đường mở ở §21/§25.
+
+[Agent: Muse Spark / Muse Code — phiên bản đồ hoàn tất 2026-10-27]
