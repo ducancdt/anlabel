@@ -33,6 +33,12 @@ blocked: row 2 … invalid Code128 data")
   đã cài cho giá trị hai dòng.
 - Tệp Excel thật (17 dòng, 5 dòng có mã hàng) qua `PrintPreflightValidator`:
   5 dòng đạt, 12 dòng trống bị chặn đúng với thông báo tiếng Việt.
+- Trên app đã cài: tem 75 × 100 dựng theo ảnh báo lỗi (Vendor code, PO, khách hàng
+  P/No là Code 128) liên kết tệp đó, mở bằng UI Automation → Xem trước mở
+  bình thường, "Nhãn 1 / 17", mã Code 128 của dòng 1 vẽ được, bảng "Vấn đề
+  nội dung" nêu đúng "Dòng 6, 7, 8, 9, 10 (+7 dòng khác) · “khách hàng PN Copy”
+  (mã vạch): dữ liệu mã Code128 đang trống" kèm nút "Đi tới tem đầu tiên bị
+  ảnh hưởng". Chưa bấm In vì cần hàng đợi máy in thật.
 
 ## v0.325 — Sửa mã vạch, số kiểm tra tự sinh, bộ đếm Serial và giá trị theo lệnh in
 
