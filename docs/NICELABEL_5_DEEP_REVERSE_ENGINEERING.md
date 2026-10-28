@@ -1142,3 +1142,52 @@ bằng bản cài đang chạy trên máy. Cả hai là quyết định đầu t
 liệu này dừng ở đây với giới hạn nêu rõ, không suy diễn bố cục `.lbl`.
 
 [Agent: Muse Spark / Muse Code — phiên điểm dừng TD32 2026-10-27]
+
+---
+
+# Phụ lục đột phá 2026-10-27 (tiếp 11): TD32 đã phá, họ Load đã đọc
+
+## 36. Parser TD32 và kiến trúc nạp nhãn
+
+Phiên này viết parser TD32 đầy đủ (`.analysis/rea/td32_*.py`), đính chính
+kết luận "TD32 chỉ chứa tên" ở §25/§35:
+
+- Section `.debug` chứa đúng 6 subsection (thư mục 12-byte/entry nằm gần
+  cuối section, header 16 byte): module, entry points, symbols
+  (0x5019C byte), và pool tên 11720 mục (parse khớp chính xác tới byte
+  cuối). Pool là chuỗi Pascal tiền tố độ dài sau một u32 đếm.
+- Subsection symbols gồm 10555 bản ghi cố định 28 byte:
+  `{u32 kind=1, u32 type=0x0020001A, u64 0, u32 nameIndex, u32 0, u32 value}`,
+  sắp xếp tăng dần theo `value` — offset trong section CODE, địa chỉ thật
+  là `0x401000 + value`.
+- Quy tắc lệch một: hàm của tên thứ *i* trong pool nằm ở `value` của bản
+  ghi có `nameIndex = i + 1`. Kiểm chứng chéo: hàm tại địa chỉ của
+  `GetColor` làm toán kênh màu; hàm tại địa chỉ suy ra cho `LoadObjects`
+  là một vòng lặp tạo đối tượng theo nhóm; `TLabel::Load` là hàm rất lớn
+  tại 0x557606 (trước đây tưởng là hàm profile).
+
+Kiến trúc nạp đã đọc ở mức thân hàm (Ghidra headless + script tạo hàm tại
+địa chỉ TD32, `.analysis/rea/DecompileMany.java`):
+
+- `TLabel::LoadObjects` nạp theo **từng nhóm đối tượng**, mỗi nhóm chọn
+  một stream riêng qua `TIO::SetCurrentStream`: RECTANGLE, TEXT (rẽ hai
+  lớp theo giá trị loại `0x12D`), PARAGRAPH, RTFTEXT, một nhóm không tên
+  section ở chế độ stream, GRAPHICS (chỉ khi trường phiên bản > 0),
+  BARCODE (chỉ khi phiên bản > 4). Mỗi đối tượng được cấp phát rồi gọi
+  hàm ảo Load tại vtable `+0xC0`. Ở chế độ tương thích cũ, cùng các nhóm
+  này được đọc từ section INI qua `TProfileIO` ("RECTANGLE 1", "TEXT 1"…).
+- `TObject::Load` (0x4F8E81): kiểm tra loại đối tượng tại `this+0xD`
+  (0x12D/0x140), đọc thêm một trường khi phiên bản stream > 4, rồi đọc bốn
+  giá trị hình học qua các hàm đọc có kiểu của TIO (vtable +0x38/+0x40)
+  vào các trường double lệch nhau 16 byte bắt đầu tại `this+0x2D`.
+- `TText::Load`, `TVar::Load`, `TBarcode::Load` đều là chuỗi dài các lời
+  gọi đọc có kiểu qua vtable TIO (+0x18 chuỗi, +0x38, +0x58, +0x60, +0x68,
+  +0x70, +0x80) — thứ tự trường đã nằm trong tầm tay nhưng chưa gán nghĩa
+  từng trường.
+
+Hệ quả: đường import `.lbl` không còn bị chặn ở khâu định vị hàm. Việc
+còn lại để khóa bố cục là gán kiểu cho từng slot đọc của TIO và đi bộ
+từng thân hàm Load đối chiếu với các stream mẫu — một lát nghiên cứu tập
+trung tiếp theo, chưa phải mã sản phẩm. ANLAbel chưa thay đổi ở lát này.
+
+[Agent: Muse Spark / Muse Code — phiên đột phá TD32 2026-10-27]
