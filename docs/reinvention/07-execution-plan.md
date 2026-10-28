@@ -248,6 +248,24 @@ Files using these features need this version or later.
     full build, 1390 unit tests, regression suite and Fast loop pass. No
     physical scan evidence; not yet released, no version bump.
 
+17. **NiceLabel 5 .lbl header reader (foundation, 2026-10-27).** The
+    TD32 breakthrough in the reference review (decompiled
+    `TLabel::LoadObjects`, the per-category streams, the `TObject::Load`
+    read order, the full TIO vtable map and two sample record alignments)
+    supports a first fail-closed foundation reader in
+    `NiceLabel5LblReader`: it opens the OLE compound file, verifies the
+    `NicePower` magic and format version 29, reads the label size in
+    1/100 mm and lists embedded streams. Layout variants (for example
+    files whose description field shifts the header) are rejected with a
+    named reason instead of being guessed; no label objects are converted
+    yet. Evidence: all 65 installed sample labels swept (28 accepted with
+    plausible sizes, 37 variants rejected by design), regression gate
+    `niceLabel 5 lbl header reader accepts verified layout and rejects variants`
+    over a synthetic compound file; full build, 1406 unit tests and Fast
+    loop pass. Details in
+    [`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §36-44.
+    Not yet released, no version bump.
+
 **Reference spike (2026-10-19, no product code):** a stdlib-only CFBF
 reader parses all 65 sample `.lbl` files; label size (mm/100 integer pair
 plus display-unit doubles), title, printer strings, variable names,

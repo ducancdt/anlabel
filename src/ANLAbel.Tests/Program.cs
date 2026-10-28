@@ -307,6 +307,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
     ("ui catalog has valid vietnamese keys", TestUiCatalogHasValidVietnameseKeys),
+    ("niceLabel 5 lbl header reader accepts verified layout and rejects variants", TestNiceLabel5LblHeaderReader),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
     ("bộ quy chuẩn Việt hóa chặn tiếng Anh trên file đã enforce", LanguageComplianceRegression.Run)
@@ -11033,6 +11034,84 @@ static Task TestGs1IndustrialAiSubset()
     AssertEqual(0, errors.Count, "Valid industrial AI sequence must not report parse errors");
     AssertEqual(true, normalized.Contains(BarcodeApplicationContract.GroupSeparator),
         "Variable-length industrial fields must insert FNC1 group separators between AIs");
+    return Task.CompletedTask;
+}
+
+static Task TestNiceLabel5LblHeaderReader()
+{
+    // Synthetic OLE compound file holding one regular stream named Contents
+    // with the verified NiceLabel 5 version 29 fixed header layout.
+    static byte[] BuildLbl(byte[] contents)
+    {
+        const int sector = 512;
+        var contentSectors = (contents.Length + sector - 1) / sector;
+        var totalSectors = 1 + 1 + contentSectors; // FAT + directory + contents
+        var file = new byte[512 + totalSectors * sector];
+        new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }.CopyTo(file, 0);
+        BitConverter.GetBytes((ushort)9).CopyTo(file, 30); // 512-byte sectors
+        BitConverter.GetBytes((ushort)6).CopyTo(file, 32);
+        BitConverter.GetBytes((uint)1).CopyTo(file, 44); // one FAT sector
+        BitConverter.GetBytes((uint)1).CopyTo(file, 48); // directory = sector 1
+        BitConverter.GetBytes((uint)4096).CopyTo(file, 56); // mini cutoff
+        BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, 60);
+        BitConverter.GetBytes((uint)0).CopyTo(file, 64);
+        BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, 68);
+        BitConverter.GetBytes((uint)0).CopyTo(file, 72);
+        BitConverter.GetBytes((uint)0).CopyTo(file, 76); // DIFAT[0] = FAT sector 0
+        for (var i = 1; i < 109; i++) BitConverter.GetBytes((uint)0xFFFFFFFF).CopyTo(file, 76 + 4 * i);
+        var fat = 512;
+        BitConverter.GetBytes((uint)0xFFFFFFFD).CopyTo(file, fat); // FAT sector itself
+        BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, fat + 4); // directory chain end
+        for (var s = 0; s < contentSectors; s++)
+            BitConverter.GetBytes(s + 1 < contentSectors ? (uint)(s + 3) : 0xFFFFFFFE).CopyTo(file, fat + 8 + 4 * s);
+        var dir = 512 + sector;
+        var rootName = System.Text.Encoding.Unicode.GetBytes("Root Entry\0");
+        rootName.CopyTo(file, dir);
+        BitConverter.GetBytes((ushort)22).CopyTo(file, dir + 64);
+        file[dir + 66] = 5;
+        BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, dir + 116);
+        var entry = dir + 128;
+        var name = System.Text.Encoding.Unicode.GetBytes("Contents\0");
+        name.CopyTo(file, entry);
+        BitConverter.GetBytes((ushort)18).CopyTo(file, entry + 64);
+        file[entry + 66] = 2;
+        BitConverter.GetBytes((uint)2).CopyTo(file, entry + 116); // contents start at sector 2
+        BitConverter.GetBytes((long)contents.Length).CopyTo(file, entry + 120);
+        contents.CopyTo(file, 512 + 2 * sector);
+        return file;
+    }
+
+    static byte[] Contents(int width = 2540, int height = 1270, int third = 1270, ushort version = 29, string magic = "NicePower")
+    {
+        var data = new byte[5000];
+        BitConverter.GetBytes((ushort)(magic.Length + 1)).CopyTo(data, 0);
+        System.Text.Encoding.ASCII.GetBytes(magic).CopyTo(data, 2);
+        BitConverter.GetBytes(version).CopyTo(data, 2 + magic.Length + 1);
+        BitConverter.GetBytes(width).CopyTo(data, 0x23);
+        BitConverter.GetBytes(height).CopyTo(data, 0x27);
+        BitConverter.GetBytes(third).CopyTo(data, 0x2B);
+        return data;
+    }
+
+    var header = ANLAbel.Project.NiceLabel5.NiceLabel5LblReader.ReadHeader(new MemoryStream(BuildLbl(Contents())));
+    AssertEqual(29, header.FormatVersion, "The verified NiceLabel header version must be reported");
+    AssertEqual(2540, header.LabelWidthHundredthsMm, "Label width must be read in 1/100 mm");
+    AssertEqual(1270, header.LabelHeightHundredthsMm, "Label height must be read in 1/100 mm");
+    AssertEqual(true, header.StreamNames.Contains("Contents"), "The stream inventory must name Contents");
+
+    var rejected = 0;
+    foreach (var bad in new[]
+    {
+        BuildLbl(Contents(version: 28)),
+        BuildLbl(Contents(magic: "OtherPowr")),
+        BuildLbl(Contents(width: 10)),
+        new byte[] { 1, 2, 3, 4 }
+    })
+    {
+        try { ANLAbel.Project.NiceLabel5.NiceLabel5LblReader.ReadHeader(new MemoryStream(bad)); }
+        catch (InvalidDataException) { rejected++; }
+    }
+    AssertEqual(4, rejected, "Unverified versions, wrong magic, implausible dimensions and non-compound bytes must all be rejected");
     return Task.CompletedTask;
 }
 

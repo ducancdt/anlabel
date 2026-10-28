@@ -1409,3 +1409,34 @@ Kết luận từ vi sai:
   HIBIC dùng ký hiệu cố định.
 
 [Agent: Muse Spark / Muse Code — phiên vi sai ISBN 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 19): bộ đọc header .lbl fail-closed
+
+## 44. NiceLabel5LblReader đã vào mã nguồn
+
+Từ chuỗi bằng chứng §36–43, ANLAbel nhận lát nền đầu tiên của đường
+import: `src/ANLAbel.Project/NiceLabel5/NiceLabel5LblReader.cs` (kèm
+`NiceLabel5LblHeader`) — một bộ đọc OLE compound-file tối thiểu (FAT +
+mini-stream) chỉ để:
+
+- kiểm tra stream `Contents` bắt đầu bằng magic `NicePower` và phiên bản
+  định dạng đúng 29;
+- đọc khổ tem tại offset 0x23/0x27/0x2B (1/100 mm) với kiểm tra hợp lệ
+  100–50000;
+- liệt kê tên các stream trong tệp.
+
+Mọi biến thể khác — sai magic, phiên bản khác, kích thước không hợp lệ
+(bố cục có mô tả như `SSCC.lbl` làm lệch offset), không phải CFBF — đều
+bị từ chối bằng `InvalidDataException` có thông điệp rõ, không đoán.
+Bộ đọc chưa chuyển đổi đối tượng nào sang tem ANLAbel.
+
+Kiểm chứng: chạy trên toàn bộ 65 tệp mẫu của bộ cài — 28 tệp được chấp
+nhận với khổ hợp lệ (lớn nhất 15240 = 152,4 mm), 37 tệp biến thể bị từ
+chối đúng thiết kế; regression gate
+`niceLabel 5 lbl header reader accepts verified layout and rejects variants`
+dùng tệp CFBF tổng hợp (chấp nhận đúng khổ/phiên bản, từ chối cả bốn
+trường hợp xấu); build, 1406 unit test, Fast loop đều xanh.
+
+[Agent: Muse Spark / Muse Code — phiên reader .lbl 2026-10-27]
