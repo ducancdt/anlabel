@@ -1002,3 +1002,29 @@ người dùng bấm hủy. Mô hình này trung thực hơn cơ chế cờ toà
 **không nhận thay đổi nào** từ `nprint.dll`.
 
 [Agent: Muse Spark / Muse Code — phiên vòng đời in 2026-10-27]
+
+---
+
+# Phụ lục khảo sát 2026-10-27 (tiếp 7): module dữ liệu và ảnh
+
+## 31. datafilesconv.dll, Ndibl.dll, LblConv5.exe
+
+- `datafilesconv.dll` và `Ndibl.dll` không mang symbol Borland C++; dấu
+  vết `EAccessViolation` cho thấy chúng biên dịch bằng Delphi.
+  `Ndibl.dll` thực chất là thư viện ảnh ImageEn đóng gói (họ định dạng
+  `ie1g/ie8g/ie8p/ie24RGB`, lớp `TDIBReader/TDIBWriter`,
+  `TMonochromeLookup`, ngưỡng Threshold, Rotate) — mã của bên thứ ba được
+  NiceLabel đóng gói, không phải engine nhãn riêng.
+- `datafilesconv.dll` phục vụ chuyển đổi giữa các định dạng cơ sở dữ liệu
+  thời kỳ đó. Phạm vi dữ liệu của ANLAbel đã chốt chỉ Excel/CSV, không mở
+  SQL/ODBC (`docs/REFERENCE_POLICY.md`), nên không có hành vi nào cần nhận.
+- `LblConv5.exe` cũng là Delphi (VCL, khóa registry
+  `Software\EuroPlus\NiceLabel\5.0`), là tiện ích phụ trợ, không chứa họ
+  hàm `Load(TIO&)` của mô hình nhãn — đường đọc `.lbl` vẫn nằm trong
+  `nengine5.exe` như §25 đã ghi.
+
+Đối chiếu ANLAbel: ảnh đã có đường raster riêng (`ImageRasterizer` với các
+chế độ đơn sắc có hợp đồng và giới hạn giải mã trong preflight), dữ liệu đã
+có đường Excel/CSV riêng. **Không nhận gì từ ba module này.**
+
+[Agent: Muse Spark / Muse Code — phiên module phụ 2026-10-27]
