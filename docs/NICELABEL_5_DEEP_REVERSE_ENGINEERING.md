@@ -972,3 +972,33 @@ chế phiên** và không xây bộ thực thi tệp `.job` (ngoài phạm vi l�
 ở `docs/REFERENCE_POLICY.md`).
 
 [Agent: Muse Spark / Muse Code — phiên session 2026-10-27]
+
+---
+
+# Phụ lục decompile 2026-10-27 (tiếp 6): vòng đời in của TNiceBasePrinter
+
+## 30. Print, SetPageSizes và cơ chế hủy ở mức thân hàm
+
+- `TNiceBasePrinter::SetPageSizes(TPrintDC&)` (Evidence
+  `ev_d5bc90aef522a814e09d300c54715167c26e74fe0cc377b320def0baf67ba508`):
+  sao chép bốn số nguyên kích thước trang từ DC in vào các trường
+  `+0x2B..+0x37` của máy in — chính là các trường mà `CalcBandingFlags`
+  (§28) so sánh để phát hiện lệch khổ.
+- `TNiceBasePrinter::Print(TWindow*, TPrintout&, bool, bool, bool)`
+  (Evidence `ev_6995c9130387841045c25466691e1f13660cafcc35a9d7739fd278ccf826ea6a`):
+  trước khi in, gọi `SetAbortProc(HDC, abortProc)`; hỏi driver bằng
+  `Escape(HDC, QUERYESCSUPPORT=8, 4, {24})` xem có hỗ trợ escape 24
+  (BANDINFO) không và lưu kết quả vào cờ `+0x15` — cờ mà `CalcBandingFlags`
+  rẽ nhánh; gửi thêm `Escape(..., 17, ...)` đặt tham số job; khi dọn dẹp,
+  đặt lại biến toàn cục `UserAbortDC` về 0 rồi `DeleteDC`.
+- Cơ chế hủy vì vậy là: hộp thoại hủy đặt biến toàn cục, GDI gọi abort proc
+  giữa các dải/trang, abort proc đọc biến đó và yêu cầu hủy DC. Đây là hủy
+  hợp tác ở mức driver, không có khái niệm "đã gửi hay chưa" ở mức job.
+
+Đối chiếu ANLAbel: hủy in được mô hình hóa ở mức job bền — hủy trước khi
+gửi khác với kết quả không chắc chắn sau khi đã gửi (`PrintJobState`), và
+ANLAbel không bao giờ tuyên bố một job đã vào spooler là "đã hủy" chỉ vì
+người dùng bấm hủy. Mô hình này trung thực hơn cơ chế cờ toàn cục trên;
+**không nhận thay đổi nào** từ `nprint.dll`.
+
+[Agent: Muse Spark / Muse Code — phiên vòng đời in 2026-10-27]
