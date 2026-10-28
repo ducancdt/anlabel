@@ -940,3 +940,35 @@ bằng render vector và giới hạn giải mã ảnh trong preflight. Không t
 mã ở lát này.
 
 [Agent: Muse Spark / Muse Code — phiên nprint 2026-10-27]
+
+---
+
+# Phụ lục 2026-10-27 (tiếp 5): phiên in SESSION của nengine
+
+## 29. Bằng chứng và đối chiếu hàng đợi in
+
+- `Commands.ini` (bản trích nguyên văn): `SESSIONSTART` mở một luồng dữ
+  liệu in duy nhất, nhiều `SESSIONPRINT quantity [, skip]` nối vào cùng
+  luồng, `SESSIONEND` mới đóng luồng — mục đích là không sinh một data
+  stream hoàn chỉnh cho mỗi lệnh in.
+- Chuỗi lỗi trong `nengine5.exe`: "Invalid command during print session!
+  Only SESSIONPRINT and SET commands can be used!" — trong phiên chỉ được
+  đổi biến (`SET`) và in tiếp; không mở nhãn/cơ sở dữ liệu khác.
+- Bề mặt COM tương ứng: `niceDocument::FuncSessionStart/SessionPrint/
+  SessionEnd`, `TAutoLabel::SessionStart/SessionPrint(string)/SessionEnd`.
+- Xref của chuỗi lệnh `SESSIONPRINT` (0x605691) dẫn vào hàm phân tích tệp
+  job tại 0x4689AF (Evidence `ev_0d5b7782bd5860dba86bc2cc7f3401860e7b0753454521523eeea9c0cf6d790a`
+  cho xref, `ev_99cdac116272fe68463c3c6891af97c90d15847e75e2540fa3ab7ec04d5c7d76`
+  cho decompile hàm parser). Hàm parser rất lớn (xử lý cả LABEL/FILEOPEN)
+  nên ngữ nghĩa phiên được chốt từ `Commands.ini` + chuỗi lỗi + bề mặt COM
+  ở trên, không suy diễn thêm từ thân hàm.
+
+Đối chiếu ANLAbel: mỗi job in được nộp đúng một lần qua
+`PrintDocument(paginator)` với toàn bộ trang của job trong một
+`VisualDocumentPaginator` — tức một spool job duy nhất cho cả lô, tương
+đương ngữ nghĩa SESSION theo cấu trúc, cộng thêm bản kê/hàng đợi bền và
+trạng thái job trung thực mà NiceLabel 5 không có. **Không nhận thêm cơ
+chế phiên** và không xây bộ thực thi tệp `.job` (ngoài phạm vi lõi đã chốt
+ở `docs/REFERENCE_POLICY.md`).
+
+[Agent: Muse Spark / Muse Code — phiên session 2026-10-27]
