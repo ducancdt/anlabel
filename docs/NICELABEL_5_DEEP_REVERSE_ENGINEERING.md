@@ -907,3 +907,36 @@ không có là thuật toán ngoài qua DLL (`-10`) — **không nhận** theo h
 tin cậy: không nạp mã ngoài tùy ý vào đường in. Không thay đổi mã ở lát này.
 
 [Agent: Muse Spark / Muse Code — phiên cdalgo 2026-10-27]
+
+---
+
+# Phụ lục decompile 2026-10-27 (tiếp 4): CalcBandingFlags của nprint.dll
+
+## 28. Cơ chế chia dải in đã đọc ở mức thân hàm
+
+Decompile `TNiceBasePrinter::CalcBandingFlags(TPrintDC&)`
+(Evidence `ev_f2ddbad33c72378d6b6e283b5a878a5bdf5fa84b3792a4f7930d42193bc377ee`).
+Hàm chỉ tính một trường cờ 2 bit thấp tại `this+0x16` của đối tượng DC in:
+
+- Nếu cờ tại `+0x15` bật: hỏi driver bằng `Escape(HDC, 24, 18, NULL, out)`
+  (truy vấn hỗ trợ escape/banding của driver) và đặt bit thấp theo câu trả
+  lời của driver.
+- Ngược lại, suy từ hình học: khi khổ trang yêu cầu lệch với khổ vật lý của
+  DC (các cặp trường tại `+0x23/+0x2B` và `+0x27/+0x2F` khác nhau) hoặc còn
+  cờ phụ tại `+0x1A/+0x1B/+0x1F`, đặt cờ thành 1 hoặc 3; khi khớp hoàn toàn
+  đặt cờ thành 2 (in toàn trang, không chia dải).
+- Cuối hàm luôn xóa cờ phụ `+0x1A`.
+
+Tức quyết định chia dải dựa trên khả năng driver và độ lệch khổ, không dựa
+trên ngưỡng RAM tính từ DPI — phần chia dải thực tế nằm ở vòng lặp trang của
+OWL `TPrintDC`/`TPrintout`, ngoài hàm này.
+
+Đối chiếu ANLAbel: đường in hiện tại dựng mỗi trang bằng WPF
+`DrawingVisual` qua `VisualDocumentPaginator` và `PrintDocument` — chủ yếu
+là vector, bitmap chỉ ở mức từng đối tượng mã vạch/ảnh, nên bài toán RAM
+toàn trang mà banding GDI giải quyết không tồn tại cùng dạng. **Không nhận
+banding**; nhu cầu tương đương (tem rất lớn ở DPI cao) đã được kiểm soát
+bằng render vector và giới hạn giải mã ảnh trong preflight. Không thay đổi
+mã ở lát này.
+
+[Agent: Muse Spark / Muse Code — phiên nprint 2026-10-27]
