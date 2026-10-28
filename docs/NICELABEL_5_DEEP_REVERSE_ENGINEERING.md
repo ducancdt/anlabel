@@ -1379,3 +1379,33 @@ của mã vạch (điểm bắt đầu 0x410 hay sớm hơn) và vai trò trư�
 u16 = 6 vẫn cần một tệp mẫu thứ hai có mã vạch khác loại để vi sai.
 
 [Agent: Muse Spark / Muse Code — phiên bản ghi mã vạch 2026-10-27]
+
+---
+
+# Phụ lục vi sai 2026-10-27 (tiếp 18): bản ghi Ean-13 trong ISBN.lbl
+
+## 43. So sánh hai bản ghi mã vạch
+
+Bản ghi mã vạch của `ISBN.lbl` (quanh 0x800) đặt cạnh HIBIC (§42):
+
+| Trường | HIBIC Code-39 | ISBN Ean-13 |
+| :--- | :--- | :--- |
+| i32 trước chuỗi dữ liệu | 2001 | 2 |
+| Chuỗi dữ liệu | cờ 0 + đếm 16 + `+REFERENCESYMBOL` | cờ 0 + đếm 13 + 13 ký tự `?` (mặt nạ biến) |
+| Khối tên loại | u32 = 8, u16 = 6, u16 = 7, `Code-39\0` | u32 = 8, u16 = 1, u16 = 6, `Ean-13\0` |
+| Khối font | `… bc 02 … 03 02 01 22 Arial` | `… bc 02 … Arial` cùng khuôn, chiều cao font khác (`d0 ff` = −48 so với `d8 ff` = −40) |
+
+Kết luận từ vi sai:
+
+- Trường u16 giữa khối tên loại là **mã loại mã vạch nội bộ**: Ean-13 = 1,
+  Code-39 = 6 (u32 = 8 đứng trước là hằng số của khối, u16 cuối là số ký
+  tự tên).
+- Chuỗi dữ liệu luôn là `{u16 cờ, u16 số ký tự, byte trần}`; nội dung `?`
+  lặp lại là mặt nạ khi mã gắn với biến (biến `ISBN Num` trong cùng tệp),
+  còn `+REFERENCESYMBOL` là giá trị literal/ký hiệu tham chiếu.
+- i32 trước chuỗi dữ liệu (2 so với 2001) chưa gán được chắc chắn; ứng
+  viên mạnh nhất là trường liên kết biến/nguồn dữ liệu mà `TObject::Load`
+  đọc ở bước 8 (§40) — hai mã này khác nhau đúng ở điểm ISBN gắn biến còn
+  HIBIC dùng ký hiệu cố định.
+
+[Agent: Muse Spark / Muse Code — phiên vi sai ISBN 2026-10-27]
