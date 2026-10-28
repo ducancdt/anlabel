@@ -1349,3 +1349,33 @@ ghi mã vạch đã neo được; việc tách ranh giới từng trường tron
 mã vạch cần đi bộ `TBarcode::Load` đối chiếu từng offset — bước tiếp theo.
 
 [Agent: Muse Spark / Muse Code — phiên header Contents 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 17): bản ghi mã vạch HIBIC
+
+## 42. Căn chỉnh một phần bản ghi Code-39
+
+`TBarcode::Load` (0x522AFC) gọi `TObject::Load` rồi, ở chế độ stream,
+đọc một `std::string` (+0x70) và một `TNiceContents` (+0x80); nhánh
+phiên bản < 7 (thêm ulong/int/3 bool/int) không áp dụng cho tệp version
+29. Căn vào vùng 0x400–0x4B8 của `HIBIC.lbl`:
+
+| Offset | Byte / giá trị | Diễn giải |
+| :--- | :--- | :--- |
+| ~0x408 | đuôi một double ≈ 0.502 | Thuộc bốn double hình học của phần gốc |
+| 0x410 | i32 = 2001 | Một trường nguyên sau hình học (chưa gán tên) |
+| 0x414 | u16 = 0, u16 = 16, `"+REFERENCESYMBOL"` | Chuỗi dữ liệu mã vạch: cờ + số ký tự + 16 ký tự, không NUL |
+| 0x428 | u32 = 8, u16 = 6, u16 = 7, `"Code-39\0"` | Tên loại mã: 8 byte gồm NUL, 7 ký tự; trường u16 = 6 chưa rõ (ứng viên: mã loại nội bộ) |
+| 0x449 | `bc 02` = 700 | Độ đậm font kiểu LOGFONT (FW_BOLD) trước khối font |
+| 0x44F | `03 02 01 22 "Arial\0"` | Khối font, cùng khuôn với bản ghi chữ ở §34 |
+| 0x48D | u16 = 9, `"Modulo 43"` | Tên thuật toán check digit, 9 ký tự không NUL |
+
+Hai quy ước chuỗi cùng xuất hiện trong một bản ghi: chuỗi dữ liệu dùng
+cờ + đếm ký tự + byte trần, trong khi tên loại mã mang cả NUL — khớp việc
+hai họ quá tải `std::string`/`TNiceContents` cùng được dùng ở phần đuôi
+của `TBarcode::Load`. Ranh giới chính xác giữa phần gốc và phần riêng
+của mã vạch (điểm bắt đầu 0x410 hay sớm hơn) và vai trò trường 2001 /
+u16 = 6 vẫn cần một tệp mẫu thứ hai có mã vạch khác loại để vi sai.
+
+[Agent: Muse Spark / Muse Code — phiên bản ghi mã vạch 2026-10-27]
