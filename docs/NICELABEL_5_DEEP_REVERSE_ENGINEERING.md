@@ -1071,8 +1071,12 @@ gốc. Không nhận tính năng nào từ cụm này.
 
 Phần thân hàm duy nhất chưa đọc được là họ `Load/Save(TIO&)` của mô hình
 nhãn trong `nengine5.exe`/`nlabel5.exe` vì tên hàm chỉ nằm trong thông tin
-debug TD32 (§25). Đây là giới hạn bằng chứng đã ghi, không phải phần việc
-bỏ sót: muốn đi tiếp cần parser TD32 đầy đủ hoặc thăm dò vi sai bằng bản
-cài đang chạy — cả hai đã được nêu là đường mở ở §21/§25.
+debug TD32 (§25). Quét bổ sung theo mẫu bản ghi publics
+`{segment, offset, tên Pascal}` trong section `.debug` cho 0 kết quả
+(`.analysis/rea/td32_publics_scan.py`) — TD32 của bản này chỉ mang
+tên/kiểu, không mang địa chỉ hàm. Đây là giới hạn bằng chứng đã ghi,
+không phải phần việc bỏ sót: muốn đi tiếp cần parser TD32 đầy đủ hoặc
+thăm dò vi sai bằng bản cài đang chạy — cả hai đã được nêu là đường mở ở
+§21/§25.
 
 [Agent: Muse Spark / Muse Code — phiên bản đồ hoàn tất 2026-10-27]
