@@ -1291,3 +1291,34 @@ Vtable TIO như vậy đã gán xong 100%. Bước còn lại là đi bộ từn
 Load và lập bảng thứ tự trường đối chiếu với stream mẫu.
 
 [Agent: Muse Spark / Muse Code — phiên stub TIO 2026-10-27]
+
+---
+
+# Phụ lục 2026-10-27 (tiếp 15): trình tự đọc của TObject::Load
+
+## 40. Bảng thứ tự trường phần gốc đối tượng
+
+Đi bộ `TObject::Load` (0x4F8E81) với bảng vtable §38–39 cho ra trình tự
+đọc ở chế độ stream (cờ tương thích INI tắt):
+
+| # | Slot | Kiểu | Đích / ghi chú |
+| :--- | :--- | :--- | :--- |
+| 1 | +0x20 | `unsigned int` | Đọc khi loại đối tượng (trường `this+0xD`) khác 0x12D/0x140 — nhiều khả năng là cờ/loại bản ghi |
+| 2 | +0x18 | `int` | Chỉ khi phiên bản định dạng > 4; ghi vào `this+0x11` |
+| 3 | +0x38 ×4 | `long` | Bốn giá trị nguyên luôn đọc ở chế độ stream |
+| 4 | +0x40 ×4 | `double` | Chỉ khi phiên bản TIO ≥ 8; ghi vào bốn trường struct cách nhau 16 byte tại `this+0x2D/+0x3D/+0x5D/+0x4D` (double nằm lệch +4 trong struct) và so với hằng sentinel để đặt cờ `this+0x16A` |
+| 5 | +0x00 | buffer thô | Một khối byte qua `Read(void*, int)` |
+| 6 | +0x18 | `int` | |
+| 7 | +0x58 | `unsigned char` | Đọc từ stream khác: bao bởi `TIO::SetCurrentStream` / `ResetCurrentStream` |
+| 8 | +0x18 ×2 | `int` | Chỉ khi phiên bản > 2; giá trị thứ hai được so với 9999 để đặt cờ trên nhãn (`+0x1B4F`) — kèm giải quyết liên kết biến qua các hàm phụ |
+| 9 | +0x60, +0x70 | `bool`, `std::string` | Xuất hiện ở phần sau cùng các `int` +0x18 khác |
+
+Hai điểm chưa gán được nghĩa chắc chắn: bốn `long` ở bước 3 quan hệ thế
+nào với bốn `double` ở bước 4 (khả năng cao: định dạng cũ lưu hình học
+bằng long đơn vị 1/100 mm, định dạng ≥ 8 lưu thêm double chính xác — đối
+tượng tự chuyển đổi khi phiên bản < 8 qua hàm ảo `this+0x2C`), và khối
+thô ở bước 5. Đối chiếu số học với stream `Contents` của HIBIC/ISBN chưa
+thực hiện vì các nhóm đối tượng nằm ở stream riêng chưa tách khỏi
+`Contents` tổng.
+
+[Agent: Muse Spark / Muse Code — phiên TObject::Load 2026-10-27]
