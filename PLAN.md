@@ -45,15 +45,25 @@ blocked: row 2 … invalid Code128 data")
   đã cài cho giá trị hai dòng.
 - Tệp Excel thật (17 dòng, 5 dòng có mã hàng) qua `PrintPreflightValidator`:
   5 dòng đạt, 12 dòng trống bị chặn đúng với thông báo tiếng Việt.
-- Trên app đã cài: tem 75 × 100 dựng theo ảnh báo lỗi (Vendor code, PO, khách hàng
-  P/No là Code 128) liên kết tệp đó, mở bằng UI Automation → Xem trước mở
+- Trên app đã cài: tem 75 × 100 dựng theo ảnh báo lỗi (Vendor code, PO, mã
+  hàng khách là Code 128) liên kết tệp đó, mở bằng UI Automation → Xem trước mở
   bình thường, "Nhãn 1 / 17", mã Code 128 của dòng 1 vẽ được, bảng "Vấn đề
-  nội dung" nêu đúng "Dòng 6, 7, 8, 9, 10 (+7 dòng khác) · “khách hàng PN Copy”
+  nội dung" nêu đúng "Dòng 6, 7, 8, 9, 10 (+7 dòng khác) · “<mã hàng> Copy”
   (mã vạch): dữ liệu mã Code128 đang trống" kèm nút "Đi tới tem đầu tiên bị
   ảnh hưởng". Bấm In với hai hàng đợi tem trên máy (Xprinter XP-DT426B,
   Datamax E-4203, cả hai đang tắt): dừng ở "Chưa xác nhận được cài đặt máy
   in … đang ngoại tuyến. Chưa có tem nào được gửi"; hàng đợi 0 → 0 việc in,
-  không có bản ghi lệnh in. Bước hỏi bỏ qua dòng lỗi cần máy in bật.
+  không có bản ghi lệnh in.
+- Bước hỏi bỏ qua dòng lỗi (không có máy in thật): tạo tạm hàng đợi
+  "ANLAbel Test Datamax" dùng driver Datamax E-4203 có sẵn, cổng FILE:,
+  mẫu đặt khổ thủ công 75 × 100 (chế độ "tự động theo driver" giữ khổ mặc định
+  4 × 6 của driver nên bị chặn "driver đổi khổ giấy"). Xem trước báo "Cài đặt
+  máy in đã chọn đã được xác thực"; bấm In → hộp "Một số dòng bị chặn": "12
+  dòng có lỗi và sẽ được bỏ qua: dòng 6, 7, …, 17 · “PO”, “<mã hàng> Copy” (mã
+  vạch): dữ liệu mã Code128 đang trống. Tiếp tục in 5 dòng còn lại?" Đóng hộp
+  (Cancel): hàng đợi 0 → 0, không có print-operations.jsonl. Hàng đợi tạm đã
+  xóa. Còn sót: ba nút của hộp này là Yes / No / Cancel tiếng Anh (MessageBox
+  Win32), chưa Việt hóa.
 
 ## v0.325 — Sửa mã vạch, số kiểm tra tự sinh, bộ đếm Serial và giá trị theo lệnh in
 
