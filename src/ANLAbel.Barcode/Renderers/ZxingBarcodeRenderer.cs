@@ -316,6 +316,20 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         {
             hints[EncodeHintType.DATA_MATRIX_SHAPE] = SymbolShapeHint.FORCE_NONE;
         }
+        else if (type == BarcodeType.Pdf417)
+        {
+            // Auto (-1) passes no hints at all, so the rendered symbol stays
+            // byte-identical to templates saved before these fields existed.
+            if (options.Pdf417ErrorCorrectionLevel >= 0)
+            {
+                hints[EncodeHintType.ERROR_CORRECTION] = Math.Clamp(options.Pdf417ErrorCorrectionLevel, 0, 8);
+            }
+
+            if (options.Pdf417Truncated)
+            {
+                hints[EncodeHintType.PDF417_COMPACT] = true;
+            }
+        }
 
         if (options.IsGs1)
         {

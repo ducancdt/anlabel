@@ -1,3 +1,4 @@
+using ANLAbel.Core.Enums;
 using ANLAbel.Core.Mvvm;
 
 namespace ANLAbel.Core.Models;
@@ -22,6 +23,8 @@ public sealed class SerialCounterDefinition : ObservableObject
     private string _prefix = string.Empty;
     private string _suffix = string.Empty;
     private string _sharedFolder = string.Empty;
+    private SerialCounterAlphabet _alphabet = SerialCounterAlphabet.Numeric;
+    private string _customAlphabet = string.Empty;
 
     public bool Enabled
     {
@@ -115,6 +118,24 @@ public sealed class SerialCounterDefinition : ObservableObject
     {
         get => _sharedFolder;
         set => SetProperty(ref _sharedFolder, (value ?? string.Empty).Trim());
+    }
+
+    /// <summary>
+    /// Character sequence values are written in. The default
+    /// <see cref="SerialCounterAlphabet.Numeric"/> keeps the decimal printing
+    /// of existing templates; reservations stay numeric either way.
+    /// </summary>
+    public SerialCounterAlphabet Alphabet
+    {
+        get => _alphabet;
+        set => SetProperty(ref _alphabet, Enum.IsDefined(value) ? value : SerialCounterAlphabet.Numeric);
+    }
+
+    /// <summary>Characters of the sequence when <see cref="Alphabet"/> is Custom, lowest first.</summary>
+    public string CustomAlphabet
+    {
+        get => _customAlphabet;
+        set => SetProperty(ref _customAlphabet, value ?? string.Empty);
     }
 
     /// <summary>Starts a new number sequence at <see cref="StartValue"/>.</summary>

@@ -84,6 +84,8 @@ public static class PreflightIssueText
             m => $"vạch hẹp nhất chỉ {m.Groups["w"].Value} mm, dưới mức tối thiểu để quét ổn định; tăng độ rộng vạch"),
         (Rx(@"^Quiet zone is (?<q>\d+) module\(s\); this profile requires at least (?<r>\d+)"),
             m => $"vùng trống hai bên mã chỉ {m.Groups["q"].Value} mô-đun, cần ít nhất {m.Groups["r"].Value}"),
+        (Rx(@"^(?<s>Ean13|Ean8|UpcA|UpcE) object is (?<h>[\d.,]+) mm high, (?<d>shorter|taller) than the GS1 retail height range of (?<lo>[\d.,]+) to (?<hi>[\d.,]+) mm"),
+            m => $"mã {m.Groups["s"].Value} cao {m.Groups["h"].Value} mm, ngoài khoảng chiều cao {m.Groups["lo"].Value}–{m.Groups["hi"].Value} mm của GS1 cho bán lẻ; có thể vẫn quét được trong nhà máy nhưng không bảo đảm quét tại quầy; đặt chiều cao mã trong khoảng đó"),
         (Rx(@"^(?<s>Ean13|Ean8|UpcA|UpcE) prints at (?<m>\d+)% magnification"),
             m => $"mã {m.Groups["s"].Value} in ở độ phóng {m.Groups["m"].Value}%, ngoài khoảng 80–200% của GS1 cho bán lẻ (X 0,264–0,660 mm); có thể vẫn quét được trong nhà máy nhưng không bảo đảm quét tại quầy; đặt X trong khoảng đó"),
         (Rx(@"^Line thickness (?<t>[\d.,]+) mm is thinner than one printer dot \((?<d>[\d.,]+) mm at (?<dpi>\d+) DPI\)"),

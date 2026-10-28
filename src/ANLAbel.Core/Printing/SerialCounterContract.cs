@@ -1,4 +1,5 @@
 using System.Globalization;
+using ANLAbel.Core.Enums;
 using ANLAbel.Core.Models;
 
 namespace ANLAbel.Core.Printing;
@@ -15,6 +16,27 @@ public static class SerialCounterContract
     public const int MaximumChangeEvery = 999;
     public const int MaximumDigits = 18;
     public const int MaximumAffixLength = 32;
+    public const int MinimumCustomAlphabetLength = 2;
+    public const int MaximumCustomAlphabetLength = 64;
+
+    /// <summary>
+    /// The characters values are written in, lowest first. Null means plain
+    /// decimal (the historical behaviour); a custom sequence that cannot be
+    /// used also yields its raw text, and <see cref="ValidateDefinition"/>
+    /// reports why before any job relies on it.
+    /// </summary>
+    public static string? AlphabetCharacters(SerialCounterDefinition counter)
+    {
+        ArgumentNullException.ThrowIfNull(counter);
+        return counter.Alphabet switch
+        {
+            SerialCounterAlphabet.Hexadecimal => "0123456789ABCDEF",
+            SerialCounterAlphabet.Letters => "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            SerialCounterAlphabet.DigitsAndLetters => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            SerialCounterAlphabet.Custom => counter.CustomAlphabet,
+            _ => null
+        };
+    }
 
     public static bool IsActive(LabelTemplate template)
         => template?.SerialCounter is { Enabled: true } counter && !string.IsNullOrEmpty(counter.CounterId);
@@ -55,6 +77,28 @@ public static class SerialCounterContract
         if (counter.Prefix.Length > MaximumAffixLength || counter.Suffix.Length > MaximumAffixLength)
         {
             errors.Add($"Serial counter prefix and suffix are limited to {MaximumAffixLength} characters.");
+        }
+
+        if (counter.Alphabet != SerialCounterAlphabet.Numeric && counter.MinimumValue < 0)
+        {
+            errors.Add($"Serial counter minimum {counter.MinimumValue} must not be negative with a character sequence alphabet.");
+        }
+
+        if (counter.Alphabet == SerialCounterAlphabet.Custom)
+        {
+            var alphabet = counter.CustomAlphabet;
+            if (alphabet.Length is < MinimumCustomAlphabetLength or > MaximumCustomAlphabetLength)
+            {
+                errors.Add($"Serial counter custom alphabet must have {MinimumCustomAlphabetLength} to {MaximumCustomAlphabetLength} characters; it has {alphabet.Length}.");
+            }
+            else if (alphabet.Distinct().Count() != alphabet.Length)
+            {
+                errors.Add("Serial counter custom alphabet repeats a character, so two values could print the same serial.");
+            }
+            else if (alphabet.Any(character => char.IsWhiteSpace(character) || char.IsControl(character)))
+            {
+                errors.Add("Serial counter custom alphabet must not contain spaces or control characters.");
+            }
         }
 
         return errors;
@@ -112,9 +156,48 @@ public static class SerialCounterContract
     public static string Format(SerialCounterDefinition counter, long value)
     {
         ArgumentNullException.ThrowIfNull(counter);
-        var digits = Math.Abs(value).ToString(CultureInfo.InvariantCulture)
-            .PadLeft(Math.Clamp(counter.Digits, 0, MaximumDigits), '0');
-        return counter.Prefix + (value < 0 ? "-" : string.Empty) + digits + counter.Suffix;
+        var alphabet = AlphabetCharacters(counter);
+        var width = Math.Clamp(counter.Digits, 0, MaximumDigits);
+        string body;
+        if (alphabet is null)
+        {
+            body = Math.Abs(value).ToString(CultureInfo.InvariantCulture).PadLeft(width, '0');
+        }
+        else if (alphabet.Length >= MinimumCustomAlphabetLength)
+        {
+            body = RenderInAlphabet(alphabet, Math.Abs(value)).PadLeft(width, alphabet[0]);
+        }
+        else
+        {
+            // A sequence too short to count in is a definition error reported
+            // by ValidateDefinition before printing; refusing here as well
+            // keeps a broken definition from ever reaching a label as if it
+            // were decimal.
+            throw new InvalidOperationException(
+                "Serial counter custom alphabet is too short to write values in; fix the counter definition before printing.");
+        }
+
+        return counter.Prefix + (value < 0 ? "-" : string.Empty) + body + counter.Suffix;
+    }
+
+    /// <summary>Value 0 is the first character; higher values count up the sequence with carry, like positional digits.</summary>
+    private static string RenderInAlphabet(string alphabet, long value)
+    {
+        if (value == 0)
+        {
+            return alphabet[0].ToString();
+        }
+
+        var characters = new List<char>();
+        var remaining = (decimal)value;
+        while (remaining > 0)
+        {
+            characters.Add(alphabet[(int)(remaining % alphabet.Length)]);
+            remaining = Math.Floor(remaining / alphabet.Length);
+        }
+
+        characters.Reverse();
+        return new string(characters.ToArray());
     }
 
     /// <summary>

@@ -55,6 +55,9 @@ public sealed class LabelObject : ObservableObject
     private bool _checkDigitKeepAllDigits;
     private bool _checkDigitZeroRemainderAsModulus;
     private string _checkDigitValueMap = string.Empty;
+    /// <summary>-1 = Auto: the encoder default, exactly as templates before this field rendered.</summary>
+    private int _pdf417ErrorCorrectionLevel = -1;
+    private bool _pdf417Truncated;
     private bool _applyingQrAutoSize;
     private bool _hasBindingIssue;
     private string _bindingStateDisplayText = string.Empty;
@@ -639,6 +642,32 @@ public sealed class LabelObject : ObservableObject
     {
         get => _checkDigitValueMap;
         set => SetProperty(ref _checkDigitValueMap, value ?? string.Empty);
+    }
+
+    /// <summary>
+    /// PDF417 error-correction (security) level 0 - 8 per ISO/IEC 15438.
+    /// -1 (default) is Auto: no level is passed to the encoder, so existing
+    /// templates keep rendering the identical symbol. Higher levels tolerate
+    /// more damage but make the symbol bigger; data that no longer fits at
+    /// the chosen level fails closed in preflight instead of printing a
+    /// silently weaker symbol.
+    /// </summary>
+    public int Pdf417ErrorCorrectionLevel
+    {
+        get => _pdf417ErrorCorrectionLevel;
+        set => SetProperty(ref _pdf417ErrorCorrectionLevel, Math.Clamp(value, -1, 8));
+    }
+
+    /// <summary>
+    /// Truncated PDF417: omits the right row indicators and stop pattern for a
+    /// narrower symbol. False (default) keeps the full symbol. Only suitable
+    /// where label damage is unlikely and the scanner supports truncated
+    /// symbols.
+    /// </summary>
+    public bool Pdf417Truncated
+    {
+        get => _pdf417Truncated;
+        set => SetProperty(ref _pdf417Truncated, value);
     }
 
     private static int NormalizeRotation(int value)

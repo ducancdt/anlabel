@@ -187,6 +187,78 @@ contiguous. A share served by another physical PC was not tested.
 
 Files using these features need this version or later.
 
+14. **PDF417 error-correction level and truncated symbols (core only,
+    2026-10-19).** Continuing the NiceLabel 5 reference review
+    ([`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §13–15), PDF417 objects gain
+    `Pdf417ErrorCorrectionLevel` (-1 Auto, 0–8) and `Pdf417Truncated`, both
+    stored in the label file and off by default. Auto passes no encoder
+    hint, so existing templates render the identical symbol and keep their
+    document hash; data that no longer fits at the chosen level fails
+    closed in preflight. The owner was asked to pick the area, scope and
+    REA depth and did not answer in time; the recommended options were
+    used, so explicit owner approval is still outstanding. There is no
+    Properties UI yet (Figma gate), and no physical scan evidence.
+
+    Evidence: `Pdf417ContractTests` (decode round trips at levels 0/2/5/8,
+    truncated decode, capacity failure at level 8, clone/snapshot/save-load
+    and hash behaviour); full build, unit tests, regression suite and the
+    Fast loop pass. Not yet released; no version bump.
+
+15. **Serial counter character sequences (core only, 2026-10-19).** The
+    reference counter counts in data formats from `formats.def` (Hex,
+    Letters, Digits&Capitals, a custom Sequence). `{#SERIAL}` gains the
+    same choice: `Alphabet` (Numeric by default, Hexadecimal, Letters,
+    DigitsAndLetters, Custom) plus `CustomAlphabet`. Reservations stay
+    numeric, so the append-only store, reprint reuse, shared-folder
+    sequence and preview identity are unchanged; only the written form
+    of each reserved value changes (positional notation over the chosen
+    characters, padded with the first character). A repeating or
+    whitespace custom sequence and a negative range fail validation in
+    plain Vietnamese at the UI boundary. Same approval status as item
+    14: recommended defaults used after the question timed out, explicit
+    owner approval outstanding, no UI yet (Figma gate), no physical scan
+    evidence. Details in
+    [`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §16–18.
+
+    Evidence: `SerialCounterTests` additions (positional rendering,
+    disjoint reservations across the carry boundary, broken-sequence
+    validation, save/load, document hash); full build, unit tests,
+    regression suite and the Fast loop pass. Not yet released; no
+    version bump.
+
+16. **EAN/UPC height advice from decompiled reference check (2026-10-27).**
+    Ghidra 12.1.4 was already installed on this machine, so REA decompiled
+    `TBarcodeBase::IsBarcodeInStandard` in `bareng.dll` (Evidence
+    `ev_a26da947430bd52f83580b6266f1305bd36321a0ffd36f895714d1ac9767b90a`):
+    the reference engine compares both symbol width and height against the
+    `barcode.def` windows and only returns a flag. Item 10 covered the width
+    half through X; preflight now also advises, without blocking, when an
+    EAN-13/EAN-8/UPC-A/UPC-E object's authored height is outside the same
+    table (19.60-49.00 / 15.90-39.76 / 11.20-28.00 mm), with a Vietnamese
+    operator rule. No geometry, template data or print path changes.
+    `GetWhiteBits` proved to be a white-bit counter, not the Space
+    correction insertion site, so that non-adoption stands; `CalcBarWidth`
+    rounding remains unreadable through the x87 division and ANLAbel does
+    not depend on it. Details in
+    [`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §22-23.
+
+    Evidence: extended `RetailMagnificationContractTests` (boundary values
+    equal to the `barcode.def` table), regression gate 7b (short EAN-13 gets
+    non-blocking advice with a Vietnamese rule, nominal height gets none);
+    full build, 1390 unit tests, regression suite and Fast loop pass. No
+    physical scan evidence; not yet released, no version bump.
+
+**Reference spike (2026-10-19, no product code):** a stdlib-only CFBF
+reader parses all 65 sample `.lbl` files; label size (mm/100 integer pair
+plus display-unit doubles), title, printer strings, variable names,
+fixed texts, font and barcode-type strings are recoverable from
+`Contents`. Object-record layout is not yet decoded confidently (mixed
+string conventions, version-delta streams), so no `.lbl` import was
+added; a header-only import would silently drop objects. Next evidence
+routes need an owner decision: differential saves with the installed
+NiceLabel 5, or Ghidra decompilation. See
+[`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §19–21.
+
 No other new product surfaces. If label-safety code changes, add at most one
 existing contract to mutation after the combined score stays ≥ 90.
 

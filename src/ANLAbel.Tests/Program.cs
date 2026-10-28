@@ -10367,6 +10367,15 @@ static Task TestItfBearerBarsPreflightAndLayout()
     AssertEqual(true, ANLAbel.App.Services.PreflightIssueText.IsKnown(magnificationIssue!.Message), "The magnification advice needs a Vietnamese rule");
     var nominalEan = validator.Validate(Ean13AtX(0.33), Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
     AssertEqual(false, nominalEan.Issues.Any(i => i.Message.Contains(" magnification (X ", StringComparison.Ordinal)), "A nominal EAN-13 gets no magnification advice");
+    AssertEqual(false, nominalEan.Issues.Any(i => i.Message.Contains("GS1 retail height range", StringComparison.Ordinal)), "A nominal-height EAN-13 gets no height advice");
+
+    // 7b. EAN/UPC outside the GS1 retail height window is advice, never a print block
+    var shortEanTemplate = Ean13AtX(0.33);
+    shortEanTemplate.Objects[0].HeightMm = 12;
+    var shortEan = validator.Validate(shortEanTemplate, Array.Empty<IReadOnlyDictionary<string, string>>(), 300);
+    var heightIssue = shortEan.Issues.FirstOrDefault(i => i.Message.Contains("GS1 retail height range", StringComparison.Ordinal));
+    AssertEqual(true, heightIssue is { IsBlocking: false }, "A short EAN-13 must get non-blocking GS1 height advice");
+    AssertEqual(true, ANLAbel.App.Services.PreflightIssueText.IsKnown(heightIssue!.Message), "The height advice needs a Vietnamese rule");
 
     // 8. A rule thinner than one printer dot is advice (it may vanish on paper)
     LabelTemplate RuleOf(double thicknessMm) => new()

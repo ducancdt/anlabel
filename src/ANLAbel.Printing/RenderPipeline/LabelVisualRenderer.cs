@@ -194,6 +194,8 @@ public sealed class LabelVisualRenderer
             CheckDigitKeepAllDigits = snapshot.CheckDigitKeepAllDigits,
             CheckDigitZeroRemainderAsModulus = snapshot.CheckDigitZeroRemainderAsModulus,
             CheckDigitValueMap = snapshot.CheckDigitValueMap,
+            Pdf417ErrorCorrectionLevel = snapshot.Pdf417ErrorCorrectionLevel,
+            Pdf417Truncated = snapshot.Pdf417Truncated,
             ImageDataBase64 = snapshot.ImageDataBase64,
             ImageRasterMode = snapshot.ImageRasterMode,
             ImagePixelWidth = snapshot.ImagePixelWidth,

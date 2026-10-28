@@ -79,9 +79,12 @@ Text is content-owned. TextBox is frame-owned. Do not merge them. See
 
 ## UI
 
-User-visible UI needs a Figma file URL and node ID first
-([`figma-ui-handoff-template.md`](figma-ui-handoff-template.md)).
-Domain, save, parse, and tests do not.
+User-visible UI is designed directly in the existing shell (owner decision
+2026-10-19, replacing the earlier Figma-first rule): reuse the current
+panels, card patterns and control types, keep the operator path compact,
+and prove the result by running the app. A Figma file may still be used
+when it helps, but it is not a gate. Domain, save, parse, and tests never
+needed one.
 
 ## Done
 

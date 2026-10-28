@@ -22,6 +22,12 @@ public sealed class BarcodeRenderOptions
 
     public Code128CodeSet Code128CodeSet { get; init; } = Code128CodeSet.Auto;
 
+    /// <summary>PDF417 error-correction level 0 - 8; -1 (default) passes no level, keeping the encoder default.</summary>
+    public int Pdf417ErrorCorrectionLevel { get; init; } = -1;
+
+    /// <summary>Truncated PDF417 (narrower symbol without right row indicators/stop pattern).</summary>
+    public bool Pdf417Truncated { get; init; }
+
     /// <summary>
     /// The one place a label object's barcode settings become encoder options,
     /// so designer, preflight, sizing and print always encode the same symbol.
@@ -38,7 +44,9 @@ public sealed class BarcodeRenderOptions
             BearerBarStyle = item.BearerBarStyle,
             BearerBarThicknessMm = item.BearerBarThicknessMm,
             Code39IntercharacterGapModules = item.Code39IntercharacterGapModules,
-            Code128CodeSet = item.Code128CodeSet
+            Code128CodeSet = item.Code128CodeSet,
+            Pdf417ErrorCorrectionLevel = item.Pdf417ErrorCorrectionLevel,
+            Pdf417Truncated = item.Pdf417Truncated
         };
     }
 }

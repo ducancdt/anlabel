@@ -118,7 +118,11 @@ public sealed record DocumentSnapshot
             counter.Digits.ToString(System.Globalization.CultureInfo.InvariantCulture),
             counter.Prefix.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + counter.Prefix,
             counter.Suffix.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + counter.Suffix)
-            + (counter.SharedFolder.Length == 0 ? string.Empty : "|shared:" + counter.SharedFolder);
+            + (counter.SharedFolder.Length == 0 ? string.Empty : "|shared:" + counter.SharedFolder)
+            // Appended only when used so counters saved before this choice keep their fingerprint.
+            + (counter.Alphabet == ANLAbel.Core.Enums.SerialCounterAlphabet.Numeric
+                ? string.Empty
+                : "|alphabet:" + counter.Alphabet + ":" + counter.CustomAlphabet.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + counter.CustomAlphabet);
     }
 }
 
@@ -291,6 +295,9 @@ public sealed record SceneObjectSnapshot
     public bool CheckDigitKeepAllDigits { get; init; }
     public bool CheckDigitZeroRemainderAsModulus { get; init; }
     public string CheckDigitValueMap { get; init; } = string.Empty;
+    /// <summary>-1 = Auto (encoder default), matching templates saved before this field.</summary>
+    public int Pdf417ErrorCorrectionLevel { get; init; } = -1;
+    public bool Pdf417Truncated { get; init; }
     /// <summary>
     /// Embedded image bytes are retained in the immutable render snapshot so a
     /// compiled presenter never has to read the mutable authoring object again.
@@ -360,6 +367,8 @@ public sealed record SceneObjectSnapshot
             CheckDigitKeepAllDigits = item.CheckDigitKeepAllDigits,
             CheckDigitZeroRemainderAsModulus = item.CheckDigitZeroRemainderAsModulus,
             CheckDigitValueMap = item.CheckDigitValueMap,
+            Pdf417ErrorCorrectionLevel = item.Pdf417ErrorCorrectionLevel,
+            Pdf417Truncated = item.Pdf417Truncated,
             ImageDataBase64 = imageData,
             ImageDataFingerprint = imageFingerprint,
             ImageDataLength = imageData.Length,
@@ -679,6 +688,15 @@ internal static class SceneHash
                 Append(builder, item.CheckDigitValueMap);
             }
         }
+
+        if (item.Pdf417ErrorCorrectionLevel != -1 || item.Pdf417Truncated)
+        {
+            // Appended only when used so documents saved before this field keep their fingerprint.
+            Append(builder, "pdf417");
+            Append(builder, item.Pdf417ErrorCorrectionLevel);
+            Append(builder, item.Pdf417Truncated);
+        }
+
         Append(builder, item.ImageDataFingerprint);
         Append(builder, item.ImageDataLength);
         Append(builder, item.ImageRasterMode.ToString());

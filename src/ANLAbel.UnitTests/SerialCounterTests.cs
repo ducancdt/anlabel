@@ -336,4 +336,116 @@ public sealed class SerialCounterTests : IDisposable
              loaded.MinimumValue, loaded.MaximumValue, loaded.Rollover, loaded.Digits, loaded.Prefix, loaded.Suffix));
         Assert.Equal(template.SerialCounter.CounterId, PrintSessionTemplateContract.Capture(template).SerialCounter.CounterId);
     }
+
+    private static SerialCounterDefinition SequenceCounter(
+        ANLAbel.Core.Enums.SerialCounterAlphabet alphabet,
+        string custom = "",
+        int digits = 0,
+        long min = 0)
+    {
+        var counter = Counter(min: min, digits: digits);
+        counter.Alphabet = alphabet;
+        counter.CustomAlphabet = custom;
+        return counter;
+    }
+
+    [Theory]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Hexadecimal, "", 0, "0")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Hexadecimal, "", 15, "F")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Hexadecimal, "", 255, "FF")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Letters, "", 0, "A")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Letters, "", 25, "Z")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Letters, "", 26, "BA")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.DigitsAndLetters, "", 10, "A")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.DigitsAndLetters, "", 35, "Z")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.DigitsAndLetters, "", 36, "10")]
+    [InlineData(ANLAbel.Core.Enums.SerialCounterAlphabet.Custom, "ABC", 4, "BB")]
+    public void SequenceAlphabetsWriteValuesPositionally(
+        ANLAbel.Core.Enums.SerialCounterAlphabet alphabet, string custom, long value, string expected)
+    {
+        var counter = SequenceCounter(alphabet, custom);
+
+        Assert.Equal(expected, SerialCounterContract.Format(counter, value));
+        Assert.Empty(SerialCounterContract.ValidateDefinition(counter));
+    }
+
+    [Fact]
+    public void SequencePaddingUsesTheFirstCharacterAndNumericStaysDecimal()
+    {
+        var letters = SequenceCounter(ANLAbel.Core.Enums.SerialCounterAlphabet.Letters, digits: 3);
+        Assert.Equal("AAA", SerialCounterContract.Format(letters, 0));
+        Assert.Equal("AAB", SerialCounterContract.Format(letters, 1));
+
+        var numeric = Counter(digits: 3);
+        Assert.Equal(ANLAbel.Core.Enums.SerialCounterAlphabet.Numeric, numeric.Alphabet);
+        Assert.Equal("001", SerialCounterContract.Format(numeric, 1));
+    }
+
+    [Fact]
+    public void SequenceJobsReserveDisjointSerialsAcrossTheCarryBoundary()
+    {
+        var store = NewStore();
+        var counter = SequenceCounter(ANLAbel.Core.Enums.SerialCounterAlphabet.Letters, digits: 2);
+        counter.StartValue = 24;
+
+        Assert.True(store.TryReserve(counter, "job-a", 24, 3, out var first, out var error), error);
+        Assert.True(SerialCounterContract.TryApply(counter, first!.FirstValue, Rows(3), out var rowsA, out error), error);
+        var next = store.PeekNextValue(counter);
+        Assert.True(store.TryReserve(counter, "job-b", next, 2, out var second, out error), error);
+        Assert.True(SerialCounterContract.TryApply(counter, second!.FirstValue, Rows(2), out var rowsB, out error), error);
+
+        var serialsA = rowsA.Select(row => row![SerialCounterContract.Token]).ToArray();
+        var serialsB = rowsB.Select(row => row![SerialCounterContract.Token]).ToArray();
+        Assert.Equal(new[] { "AY", "AZ", "BA" }, serialsA);
+        Assert.Equal(new[] { "BB", "BC" }, serialsB);
+        Assert.Empty(serialsA.Intersect(serialsB));
+    }
+
+    [Theory]
+    [InlineData("A", "must have 2 to 64 characters")]
+    [InlineData("ABA", "repeats a character")]
+    [InlineData("A B", "must not contain spaces")]
+    public void BrokenCustomAlphabetsAreExplained(string custom, string expected)
+    {
+        var counter = SequenceCounter(ANLAbel.Core.Enums.SerialCounterAlphabet.Custom, custom);
+
+        var errors = SerialCounterContract.ValidateDefinition(counter);
+
+        Assert.Contains(errors, message => message.Contains(expected, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SequenceAlphabetRejectsNegativeMinimumAndUnusableCustomSequenceNeverPrints()
+    {
+        var letters = SequenceCounter(ANLAbel.Core.Enums.SerialCounterAlphabet.Letters, min: -1);
+        Assert.Contains(
+            SerialCounterContract.ValidateDefinition(letters),
+            message => message.Contains("must not be negative", StringComparison.Ordinal));
+
+        var custom = SequenceCounter(ANLAbel.Core.Enums.SerialCounterAlphabet.Custom, "A");
+        Assert.Throws<InvalidOperationException>(() => SerialCounterContract.Format(custom, 0));
+    }
+
+    [Fact]
+    public async Task SequenceChoiceSurvivesSaveLoadAndChangesTheDocumentHash()
+    {
+        var template = new LabelTemplate { Name = "Sequence" };
+        template.SerialCounter = SequenceCounter(ANLAbel.Core.Enums.SerialCounterAlphabet.Custom, "ACEG");
+        var numericHashTemplate = new LabelTemplate { Name = "Sequence" };
+        numericHashTemplate.SerialCounter.Enabled = true;
+        template.SerialCounter.CounterId = numericHashTemplate.SerialCounter.CounterId;
+
+        Assert.NotEqual(
+            DocumentSnapshot.Capture(numericHashTemplate).DocumentHash,
+            DocumentSnapshot.Capture(template).DocumentHash);
+
+        var path = Path.Combine(_directory, "sequence.anlabel");
+        var service = new ProjectFileService();
+        await service.SaveAsync(template, path);
+        var loaded = (await service.LoadAsync(path)).SerialCounter;
+
+        Assert.Equal(
+            (ANLAbel.Core.Enums.SerialCounterAlphabet.Custom, "ACEG"),
+            (loaded.Alphabet, loaded.CustomAlphabet));
+    }
 }

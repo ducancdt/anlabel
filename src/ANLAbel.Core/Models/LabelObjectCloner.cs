@@ -57,6 +57,8 @@ public static class LabelObjectCloner
             CheckDigitKeepAllDigits = source.CheckDigitKeepAllDigits,
             CheckDigitZeroRemainderAsModulus = source.CheckDigitZeroRemainderAsModulus,
             CheckDigitValueMap = source.CheckDigitValueMap,
+            Pdf417ErrorCorrectionLevel = source.Pdf417ErrorCorrectionLevel,
+            Pdf417Truncated = source.Pdf417Truncated,
             Style = CloneStyle(source.Style),
             // Type is assigned after its dependent binding/QR fields so its
             // own auto-size hook sees the complete source configuration.

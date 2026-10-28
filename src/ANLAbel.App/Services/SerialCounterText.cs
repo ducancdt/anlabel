@@ -31,6 +31,16 @@ public static class SerialCounterText
             m => $"sổ ghi bộ đếm serial bị hỏng ở dòng {m.Groups["l"].Value} nên không biết chắc số kế tiếp; khôi phục tệp từ bản sao lưu trước khi in số serial"),
         (Rx(@"^Another ANLAbel window is still reserving serial numbers"),
             _ => "một cửa sổ ANLAbel khác đang cấp số serial; thử lại sau giây lát"),
+        (Rx(@"^Serial counter minimum (?<min>-?\d+) must not be negative with a character sequence alphabet"),
+            m => $"giá trị nhỏ nhất {m.Groups["min"].Value} không được âm khi bộ đếm dùng dãy ký tự; đặt nhỏ nhất từ 0 trở lên"),
+        (Rx(@"^Serial counter custom alphabet must have (?<lo>\d+) to (?<hi>\d+) characters; it has (?<n>\d+)"),
+            m => $"dãy ký tự tự định nghĩa phải có {m.Groups["lo"].Value} – {m.Groups["hi"].Value} ký tự; hiện có {m.Groups["n"].Value}"),
+        (Rx(@"^Serial counter custom alphabet repeats a character"),
+            _ => "dãy ký tự tự định nghĩa có ký tự lặp lại nên hai giá trị có thể in trùng một số serial; bỏ ký tự lặp"),
+        (Rx(@"^Serial counter custom alphabet must not contain spaces"),
+            _ => "dãy ký tự tự định nghĩa không được chứa dấu cách hoặc ký tự điều khiển"),
+        (Rx(@"^Serial counter custom alphabet is too short"),
+            _ => "dãy ký tự tự định nghĩa quá ngắn để đếm; sửa định nghĩa bộ đếm trước khi in"),
     ];
 
     public static string Message(string? message)

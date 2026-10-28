@@ -227,9 +227,15 @@ public sealed class PrintPreflightValidator
         }
 
         var retailAdvice = RetailMagnificationContract.Check(GetEffectiveBarcodeSymbology(item), resolution.EffectiveModuleWidthMm, resolution.Dpi);
+        var retailHeightAdvice = RetailMagnificationContract.CheckHeight(GetEffectiveBarcodeSymbology(item), item.HeightMm);
         if (!string.IsNullOrEmpty(retailAdvice))
         {
             issues.Add(new PrintPreflightIssue(0, item.Name, item.Type.ToString(), retailAdvice, IsBlocking: false));
+        }
+
+        if (!string.IsNullOrEmpty(retailHeightAdvice))
+        {
+            issues.Add(new PrintPreflightIssue(0, item.Name, item.Type.ToString(), retailHeightAdvice, IsBlocking: false));
         }
 
         // A virtual print at 203 DPI showed a 3-dot narrow bar reduced by 2 dots no
