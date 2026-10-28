@@ -308,6 +308,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
     ("ui catalog has valid vietnamese keys", TestUiCatalogHasValidVietnameseKeys),
     ("niceLabel 5 lbl header reader accepts verified layout and rejects variants", TestNiceLabel5LblHeaderReader),
+    ("opening a niceLabel 5 lbl imports its label size as a new template", TestOpenNiceLabel5LblImportsLabelSize),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
     ("bộ quy chuẩn Việt hóa chặn tiếng Anh trên file đã enforce", LanguageComplianceRegression.Run)
@@ -11113,6 +11114,84 @@ static Task TestNiceLabel5LblHeaderReader()
     }
     AssertEqual(4, rejected, "Unverified versions, wrong magic, implausible dimensions and non-compound bytes must all be rejected");
     return Task.CompletedTask;
+}
+
+static async Task TestOpenNiceLabel5LblImportsLabelSize()
+{
+    var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-lbl-import-" + Guid.NewGuid().ToString("N")));
+    try
+    {
+        // Rebuild the same synthetic compound file the header-reader gate uses.
+        var contents = new byte[5000];
+        BitConverter.GetBytes((ushort)10).CopyTo(contents, 0);
+        System.Text.Encoding.ASCII.GetBytes("NicePower").CopyTo(contents, 2);
+        BitConverter.GetBytes((ushort)29).CopyTo(contents, 12);
+        BitConverter.GetBytes(2540).CopyTo(contents, 0x23);
+        BitConverter.GetBytes(1270).CopyTo(contents, 0x27);
+        BitConverter.GetBytes(1270).CopyTo(contents, 0x2B);
+        var lblPath = Path.Combine(directory.FullName, "Warehouse.lbl");
+        await File.WriteAllBytesAsync(lblPath, BuildSyntheticLblFile(contents));
+
+        var result = await new ProjectFileService().LoadWithRecoveryAsync(lblPath);
+        AssertEqual("Warehouse", result.Template.Name, "An imported NiceLabel label must be named after its source file");
+        AssertNear(25.4, result.Template.WidthMm, 0.001, "Imported width must come from the NiceLabel header");
+        AssertNear(12.7, result.Template.HeightMm, 0.001, "Imported height must come from the NiceLabel header");
+        AssertEqual(0, result.Template.Objects.Count, "Object conversion is not claimed yet: the imported template must start empty");
+        AssertEqual(false, result.RecoveredFromBackup, "A NiceLabel import is a primary read, not a recovery");
+
+        var badPath = Path.Combine(directory.FullName, "Broken.lbl");
+        await File.WriteAllBytesAsync(badPath, BuildSyntheticLblFile(contents, version: 12));
+        var rejected = false;
+        try { await new ProjectFileService().LoadWithRecoveryAsync(badPath); }
+        catch (InvalidDataException) { rejected = true; }
+        AssertEqual(true, rejected, "An unverified NiceLabel format version must be refused, not imported");
+    }
+    finally
+    {
+        directory.Delete(recursive: true);
+    }
+}
+
+static byte[] BuildSyntheticLblFile(byte[] contents, ushort version = 29)
+{
+    if (version != 29)
+    {
+        BitConverter.GetBytes(version).CopyTo(contents, 12);
+    }
+
+    const int sector = 512;
+    var contentSectors = (contents.Length + sector - 1) / sector;
+    var file = new byte[512 + (2 + contentSectors) * sector];
+    new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }.CopyTo(file, 0);
+    BitConverter.GetBytes((ushort)9).CopyTo(file, 30);
+    BitConverter.GetBytes((ushort)6).CopyTo(file, 32);
+    BitConverter.GetBytes((uint)1).CopyTo(file, 44);
+    BitConverter.GetBytes((uint)1).CopyTo(file, 48);
+    BitConverter.GetBytes((uint)4096).CopyTo(file, 56);
+    BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, 60);
+    BitConverter.GetBytes((uint)0).CopyTo(file, 64);
+    BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, 68);
+    BitConverter.GetBytes((uint)0).CopyTo(file, 72);
+    BitConverter.GetBytes((uint)0).CopyTo(file, 76);
+    for (var i = 1; i < 109; i++) BitConverter.GetBytes((uint)0xFFFFFFFF).CopyTo(file, 76 + 4 * i);
+    var fat = 512;
+    BitConverter.GetBytes((uint)0xFFFFFFFD).CopyTo(file, fat);
+    BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, fat + 4);
+    for (var s = 0; s < contentSectors; s++)
+        BitConverter.GetBytes(s + 1 < contentSectors ? (uint)(s + 3) : 0xFFFFFFFE).CopyTo(file, fat + 8 + 4 * s);
+    var dir = 512 + sector;
+    System.Text.Encoding.Unicode.GetBytes("Root Entry\0").CopyTo(file, dir);
+    BitConverter.GetBytes((ushort)22).CopyTo(file, dir + 64);
+    file[dir + 66] = 5;
+    BitConverter.GetBytes((uint)0xFFFFFFFE).CopyTo(file, dir + 116);
+    var entry = dir + 128;
+    System.Text.Encoding.Unicode.GetBytes("Contents\0").CopyTo(file, entry);
+    BitConverter.GetBytes((ushort)18).CopyTo(file, entry + 64);
+    file[entry + 66] = 2;
+    BitConverter.GetBytes((uint)2).CopyTo(file, entry + 116);
+    BitConverter.GetBytes((long)contents.Length).CopyTo(file, entry + 120);
+    contents.CopyTo(file, 512 + 2 * sector);
+    return file;
 }
 
 static Task TestMainShellRegionsMatchNiceLabelMap()

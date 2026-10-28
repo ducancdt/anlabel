@@ -1440,3 +1440,29 @@ dùng tệp CFBF tổng hợp (chấp nhận đúng khổ/phiên bản, từ ch�
 trường hợp xấu); build, 1406 unit test, Fast loop đều xanh.
 
 [Agent: Muse Spark / Muse Code — phiên reader .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 20): mở .lbl tạo tem đúng khổ
+
+## 45. Đường mở tệp đã nối
+
+Theo quyết định phạm vi của chủ sở hữu, `LoadWithRecoveryAsync` nay rẽ
+nhánh theo đuôi `.lbl`: đọc header bằng bộ đọc §44 rồi tạo tem ANLAbel
+mới qua `NiceLabel5LblImporter` — đúng khổ tem NiceLabel (1/100 mm →
+mm), đặt tên theo tệp nguồn, không có đối tượng nào. Trong
+`MainViewModel.OpenAsync`, tài liệu nhập được đối xử như tem mới chưa
+lưu: `CurrentFilePath` để trống để thao tác lưu luôn hỏi nơi lưu
+`.anlabel`, không bao giờ ghi đè tệp `.lbl` gốc bằng JSON của ANLAbel,
+và thanh trạng thái nói rõ đối tượng trong tệp chưa được chuyển đổi.
+Hộp thoại mở tệp hiện tại đã chọn được `.lbl` qua mục "Tất cả tệp" nên
+không cần sửa bộ lọc.
+
+Kiểm chứng: gate mới
+`opening a niceLabel 5 lbl imports its label size as a new template`
+(tên/khổ/tem rỗng/không phải recovery, và từ chối phiên bản chưa kiểm
+chứng ở mức service) cùng gate reader §44 đều xanh; build toàn giải
+pháp, 1406 unit test và Fast quality loop đạt. Chưa kiểm chứng thao tác
+mở bằng tay trên giao diện thật.
+
+[Agent: Muse Spark / Muse Code — phiên mở .lbl 2026-10-27]

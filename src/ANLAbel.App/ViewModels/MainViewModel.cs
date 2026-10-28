@@ -1775,6 +1775,7 @@ public sealed class MainViewModel : ObservableObject
         UnobserveTemplate(Template);
         Template = loadResult.Template;
         ResetHistory();
+        var isNiceLabelImport = filePath.EndsWith(".lbl", StringComparison.OrdinalIgnoreCase);
         // Keep the selected path while linked Excel data is restored so
         // relative data-source paths resolve beside the original document.
         CurrentFilePath = filePath;
@@ -1786,10 +1787,21 @@ public sealed class MainViewModel : ObservableObject
         // link the restore itself refreshes is treated as clean.
         MarkDocumentClean();
         var loadedDesign = CaptureDesignSnapshot();
+
         await RestoreLinkedExcelDataAsync();
         if (CaptureDesignSnapshot() == loadedDesign)
         {
             MarkDocumentClean();
+        }
+
+        if (isNiceLabelImport)
+        {
+            // An imported NiceLabel label is a new unsaved ANLAbel document:
+            // never keep the .lbl path as the save target, so the operator
+            // cannot overwrite the NiceLabel file with ANLAbel JSON.
+            CurrentFilePath = string.Empty;
+            RememberDocumentFileIdentity();
+            StatusText = $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm). Đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.";
         }
 
         return loadResult;

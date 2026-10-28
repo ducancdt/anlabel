@@ -3,6 +3,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ANLAbel.Core.Models;
 
+using ANLAbel.Project.NiceLabel5;
+
 namespace ANLAbel.Project.SaveLoad;
 
 public sealed class ProjectFileService : IProjectFileService
@@ -290,6 +292,25 @@ public sealed class ProjectFileService : IProjectFileService
         }
 
         var primaryPath = Path.GetFullPath(filePath);
+        if (string.Equals(Path.GetExtension(primaryPath), ".lbl", StringComparison.OrdinalIgnoreCase))
+        {
+            // NiceLabel 5 label: import the verified label stock size into a
+            // new ANLAbel template. Objects are not converted yet, and the
+            // source file is never written by this path.
+            cancellationToken.ThrowIfCancellationRequested();
+            await using var lblStream = new FileStream(
+                primaryPath,
+                new FileStreamOptions
+                {
+                    Mode = FileMode.Open,
+                    Access = FileAccess.Read,
+                    Share = FileShare.Read,
+                    Options = FileOptions.Asynchronous | FileOptions.SequentialScan
+                });
+            var header = NiceLabel5LblReader.ReadHeader(lblStream);
+            var imported = NiceLabel5LblImporter.CreateTemplate(header, primaryPath);
+            return new ProjectLoadResult(imported, primaryPath, false, null, null);
+        }
         try
         {
             var template = await LoadAsync(primaryPath, cancellationToken);
