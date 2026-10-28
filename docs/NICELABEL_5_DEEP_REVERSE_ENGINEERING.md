@@ -1080,3 +1080,34 @@ thăm dò vi sai bằng bản cài đang chạy — cả hai đã được nêu 
 §21/§25.
 
 [Agent: Muse Spark / Muse Code — phiên bản đồ hoàn tất 2026-10-27]
+
+---
+
+# Phụ lục spike 2026-10-27 (tiếp 9): cấu trúc bản ghi đối tượng trong Contents
+
+## 34. Quan sát mới từ vi sai tĩnh trên mẫu (chưa đủ để import)
+
+Dump `Contents` của `ISBN.lbl` (2181 byte) và `HIBIC.lbl` (1194 byte)
+bằng `.analysis/rea/nl5_contents_dump.py` / `nl5_hex_probe.py`:
+
+- Vùng biến của ISBN nằm khoảng 0x3BE–0x510 (tên biến, prompt, giá trị mặc
+  định, tên phép nối `Concatenate`, `Connection`), khớp §19.
+- Bản ghi đối tượng chữ (ISBN, quanh 0x57E): dãy `01 00 01 00`, chuỗi mặt
+  nạ nội dung tiền tố độ dài u16 gồm NUL (`06 00 "?????\0"`), vài trường
+  nguyên, rồi khối font bắt đầu bằng 4 byte kiểu `04 20 01 22` và tên font
+  `"Arial\0"`.
+- Bản ghi mã vạch (HIBIC, quanh 0x410): chuỗi dữ liệu tiền tố độ dài
+  (`"+REFERENCESYMBOL"`), chuỗi loại mã `"Code-39\0"` kèm tiền tố
+  `08 00`, khối font cùng khuôn `03 02 01 22 "Arial\0"`, và tên thuật toán
+  kiểm tra `"Modulo 43"` với tiền tố `09 00`.
+- Bản ghi không mang tên lớp dạng chuỗi; lớp đối tượng phải được suy từ vị
+  trí/ngữ cảnh và các trường số đứng trước — đúng lý do §20 chưa khóa được
+  bố cục: mỗi loại đối tượng có nhiều trường số chưa gán nghĩa, và hai byte
+  đầu khối font (`04 20` so với `03 02`) cho thấy trường kiểu/cỡ được đóng
+  gói theo cách chưa rõ.
+
+Kết luận giữ nguyên: chưa làm import `.lbl`. Muốn khóa bố cục cần hoặc thân
+hàm `Load` (bị TD32 chặn, §25), hoặc tệp vi sai do chính NiceLabel lưu ra
+(một thuộc tính thay đổi mỗi lần) — đường thứ hai cần chạy ứng dụng đích.
+
+[Agent: Muse Spark / Muse Code — phiên Contents 2026-10-27]
