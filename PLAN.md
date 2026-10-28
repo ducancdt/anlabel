@@ -38,7 +38,10 @@ blocked: row 2 … invalid Code128 data")
   bình thường, "Nhãn 1 / 17", mã Code 128 của dòng 1 vẽ được, bảng "Vấn đề
   nội dung" nêu đúng "Dòng 6, 7, 8, 9, 10 (+7 dòng khác) · “khách hàng PN Copy”
   (mã vạch): dữ liệu mã Code128 đang trống" kèm nút "Đi tới tem đầu tiên bị
-  ảnh hưởng". Chưa bấm In vì cần hàng đợi máy in thật.
+  ảnh hưởng". Bấm In với hai hàng đợi tem trên máy (Xprinter XP-DT426B,
+  Datamax E-4203, cả hai đang tắt): dừng ở "Chưa xác nhận được cài đặt máy
+  in … đang ngoại tuyến. Chưa có tem nào được gửi"; hàng đợi 0 → 0 việc in,
+  không có bản ghi lệnh in. Bước hỏi bỏ qua dòng lỗi cần máy in bật.
 
 ## v0.325 — Sửa mã vạch, số kiểm tra tự sinh, bộ đếm Serial và giá trị theo lệnh in
 
