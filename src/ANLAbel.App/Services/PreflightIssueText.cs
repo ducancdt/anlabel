@@ -45,6 +45,8 @@ public static class PreflightIssueText
         (Rx(@"^Image raster mode '"), _ => "chế độ in ảnh này không được hỗ trợ; chọn chế độ khác cho ảnh"),
         (Rx(@"^Image source density is only (?<p>[\d.,]+)"),
             m => $"ảnh chỉ khoảng {m.Groups["p"].Value} PPI, thấp hơn độ phân giải máy in; dùng ảnh nét hơn"),
+        (Rx(@"^(?<s>Code128|Code39|Code93) data contains an unsupported character: U\+(?<u>[0-9A-F]{4}) (?:'(?<c>.*?)'|\((?<n>[^)]*)\)) at position (?<p>\d+);"),
+            m => $"dữ liệu mã {m.Groups["s"].Value} có ký tự không mã hóa được ở vị trí {m.Groups["p"].Value}: {CharacterText(m.Groups["u"].Value, m.Groups["c"].Value, m.Groups["n"].Value)}; xóa hoặc thay ký tự đó trong ô dữ liệu, hoặc chọn loại mã khác"),
         (Rx(@"^Invalid (?<t>.+?) data\."), m => $"dữ liệu không hợp lệ cho mã {m.Groups["t"].Value}"),
         (Rx(@"^(?<s>.+?) data cannot be empty or whitespace"), m => $"dữ liệu mã {m.Groups["s"].Value} đang trống"),
         (Rx(@"^(?<s>.+?) check-digit policy is Verify but the barcode data is empty"),
@@ -131,6 +133,26 @@ public static class PreflightIssueText
         (Rx(@"^Copies field '(?<f>[^']*)' is missing from the row"), m => $"dữ liệu thiếu cột số bản in “{m.Groups["f"].Value}”"),
         (Rx(@"^Copies field '(?<f>[^']*)' "), m => $"số bản in (cột “{m.Groups["f"].Value}”) không hợp lệ"),
     ];
+
+    /// <summary>
+    /// Names a character the operator cannot see in Excel (no-break space, zero
+    /// width, tab, line break) or shows the visible one with its code point.
+    /// </summary>
+    private static string CharacterText(string codePoint, string glyph, string englishName)
+    {
+        var code = $"U+{codePoint}";
+        return codePoint switch
+        {
+            "00A0" or "202F" or "2007" or "3000" => $"khoảng trắng không ngắt ({code}), thường do dán từ web hoặc ERP; trông giống dấu cách nhưng không phải",
+            "200B" or "200C" or "200D" or "2060" => $"ký tự rộng bằng 0 ({code}), không nhìn thấy trong Excel",
+            "FEFF" => $"dấu BOM ({code}), không nhìn thấy trong Excel",
+            "0009" => $"dấu tab ({code})",
+            "000A" or "000D" => $"dấu xuống dòng ({code})",
+            "2013" or "2014" or "2212" => $"gạch ngang dài “{glyph}” ({code}), không phải dấu trừ “-”",
+            _ when englishName.Length > 0 => $"ký tự ẩn ({code})",
+            _ => $"“{glyph}” ({code})",
+        };
+    }
 
     /// <summary>Vietnamese text for one validator message; unknown messages are returned unchanged.</summary>
     public static string Message(string? message)

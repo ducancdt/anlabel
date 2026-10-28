@@ -71,6 +71,7 @@ public static class BarcodeCheckDigitContract
     public static IReadOnlyList<string> Validate(Models.LabelObject item, BarcodeSymbology symbology, string payload)
     {
         ArgumentNullException.ThrowIfNull(item);
+        payload = BarcodeDataText.TrimInvisible(payload);
         if (item.BarcodeCheckDigitPolicy is BarcodeCheckDigitPolicy.Verify or BarcodeCheckDigitPolicy.Generate)
         {
             var definitionErrors = CustomCheckDigitAlgorithm.ValidateDefinition(item);
@@ -106,16 +107,19 @@ public static class BarcodeCheckDigitContract
     }
 
     /// <summary>
-    /// Encoded payload for a label object: Generate applies only to linear
-    /// barcode objects, never to QR or Data Matrix object types.
+    /// Encoded payload for a label object: the row value without invisible
+    /// characters at its ends (<see cref="BarcodeDataText.TrimInvisible"/>), plus
+    /// the check digit under Generate. Generate applies only to linear barcode
+    /// objects, never to QR or Data Matrix object types.
     /// </summary>
     public static string ToEncodedPayload(Models.LabelObject item, string payload)
     {
         ArgumentNullException.ThrowIfNull(item);
+        payload = BarcodeDataText.TrimInvisible(payload);
         if (CustomCheckDigitAlgorithm.ValidateDefinition(item).Count > 0)
         {
             // Never fall back to the standard rule for a broken custom one; preflight blocks it.
-            return payload ?? string.Empty;
+            return payload;
         }
 
         return item.Type == ObjectType.BarcodeCode128
@@ -124,7 +128,7 @@ public static class BarcodeCheckDigitContract
                 payload,
                 item.BarcodeCheckDigitPolicy,
                 CustomCheckDigitAlgorithm.FromObject(item))
-            : payload ?? string.Empty;
+            : payload;
     }
 
     /// <summary>
@@ -169,7 +173,7 @@ public static class BarcodeCheckDigitContract
         ArgumentNullException.ThrowIfNull(item);
         var text = FormatHriText(
             symbology,
-            payload,
+            BarcodeDataText.TrimInvisible(payload),
             item.BarcodeCheckDigitPolicy,
             item.BarcodeHriShowCheckDigit,
             CustomCheckDigitAlgorithm.FromObject(item));
@@ -193,7 +197,7 @@ public static class BarcodeCheckDigitContract
         ArgumentNullException.ThrowIfNull(item);
         return BarcodeHriMaskContract.IsUsed(item.BarcodeHriMask) || item.Code128CodeSet == Code128CodeSet.Manual
             ? FormatHriText(item, item.BarcodeSymbology, payload)
-            : payload ?? string.Empty;
+            : BarcodeDataText.TrimInvisible(payload);
     }
 
     private static string StripCode128Markers(string text)

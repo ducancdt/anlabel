@@ -293,14 +293,14 @@ public sealed class BarcodeApplicationContractTests
         Assert.Equal(expectedValid, code128Errors.Count == 0);
         if (!expectedValid)
         {
-            Assert.Contains(code128Errors, e => e.Contains("Code128") && e.Contains("unsupported characters"));
+            Assert.Contains(code128Errors, e => e.Contains("Code128") && e.Contains("unsupported character"));
         }
 
         var code93Errors = BarcodeApplicationContract.ValidateData(profile, BarcodeSymbology.Code93, payload);
         Assert.Equal(expectedValid, code93Errors.Count == 0);
         if (!expectedValid)
         {
-            Assert.Contains(code93Errors, e => e.Contains("Code93") && e.Contains("unsupported characters"));
+            Assert.Contains(code93Errors, e => e.Contains("Code93") && e.Contains("unsupported character"));
         }
     }
 
@@ -316,7 +316,7 @@ public sealed class BarcodeApplicationContractTests
         Assert.Equal(expectedValid, errors.Count == 0);
         if (!expectedValid)
         {
-            Assert.Contains(errors, e => e.Contains("Code39") && e.Contains("unsupported characters"));
+            Assert.Contains(errors, e => e.Contains("Code39") && e.Contains("unsupported character"));
         }
     }
 
@@ -415,7 +415,7 @@ public sealed class BarcodeApplicationContractTests
         Assert.Equal(expectedValid, errors.Count == 0);
         if (!expectedValid)
         {
-            Assert.Contains(errors, e => e.Contains("Codabar") && e.Contains("unsupported characters"));
+            Assert.Contains(errors, e => e.Contains("Codabar") && e.Contains("unsupported character"));
         }
     }
 

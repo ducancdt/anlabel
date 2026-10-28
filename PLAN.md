@@ -1,5 +1,31 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.325 — Ký tự ẩn trong dữ liệu mã vạch; ô Chữ nhận Enter
+
+**Mã vạch** (lỗi thực tế 2026-10-28: dòng 2 bị chặn với "dữ liệu Code128 không
+hợp lệ" dù giá trị nhìn giống dòng 1)
+
+- Nguyên nhân: ô Excel dán từ web/ERP mang khoảng trắng không ngắt (U+00A0) ở
+  đầu và cuối mã hàng. Code 128 không mã hóa được ký tự này, còn thông báo không
+  nói ký tự nào.
+- Sửa: `BarcodeDataText` (Core) bỏ ký tự ẩn ở hai đầu dữ liệu mã vạch (khoảng
+  trắng ngoài ASCII, ký tự rộng 0, BOM) trên mọi đường đi: thiết kế, xem trước,
+  kiểm tra trước in, in và dòng chữ dưới mã. Dấu cách, tab và ký tự ở giữa giữ
+  nguyên. Ký tự không mã hóa được ở giữa nay được nêu tên và vị trí
+  (ví dụ "gạch ngang dài “–” (U+2013) ở vị trí 6") trong tiếng Việt.
+
+**Thiết kế**
+
+- Ô "Chữ" trong bảng thuộc tính nhận phím Enter để xuống dòng (bộ vẽ và bộ đo
+  đã hỗ trợ nhiều dòng từ trước). Không đổi hợp đồng Text/TextBox: khung, bọc
+  chữ, cắt, đệm và vòng đời kéo giữ nguyên.
+
+**Kiểm tra:**
+
+- Build 0/0; unit 1406/1406 (thêm `BarcodeDataTextTests`); regression 268 PASS
+  / 0 FAIL, gồm bảy gate Text/TextBox và gate ngôn ngữ thao tác viên với hai
+  câu mới.
+
 ## v0.325 — Sửa mã vạch, số kiểm tra tự sinh, bộ đếm Serial và giá trị theo lệnh in
 
 **Mã vạch** (sửa lỗi tìm thấy khi đối chiếu với phần mềm tham chiếu)

@@ -578,23 +578,23 @@ public static class BarcodeApplicationContract
         switch (symbology)
         {
             case BarcodeSymbology.Code128:
-                if (!data.All(ch => ch >= 32 && ch <= 126))
+                if (BarcodeDataText.DescribeFirstUnsupported(data, ch => ch >= 32 && ch <= 126) is { } code128Character)
                 {
-                    errors.Add("Code128 data contains unsupported characters; standard printable ASCII (32–126) is required.");
+                    errors.Add($"Code128 data contains an unsupported character: {code128Character}; standard printable ASCII (32–126) is required.");
                 }
                 break;
 
             case BarcodeSymbology.Code39:
-                if (!data.All(ch => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%".Contains(char.ToUpperInvariant(ch))))
+                if (BarcodeDataText.DescribeFirstUnsupported(data, ch => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%".Contains(char.ToUpperInvariant(ch))) is { } code39Character)
                 {
-                    errors.Add("Code39 data contains unsupported characters; only alphanumeric, dash, dot, space, dollar, slash, plus, and percent are supported.");
+                    errors.Add($"Code39 data contains an unsupported character: {code39Character}; only alphanumeric, dash, dot, space, dollar, slash, plus, and percent are supported.");
                 }
                 break;
 
             case BarcodeSymbology.Code93:
-                if (!data.All(ch => ch >= 32 && ch <= 126))
+                if (BarcodeDataText.DescribeFirstUnsupported(data, ch => ch >= 32 && ch <= 126) is { } code93Character)
                 {
-                    errors.Add("Code93 data contains unsupported characters; standard printable ASCII (32–126) is required.");
+                    errors.Add($"Code93 data contains an unsupported character: {code93Character}; standard printable ASCII (32–126) is required.");
                 }
                 break;
 

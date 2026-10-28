@@ -76,6 +76,14 @@ internal static class OperatorLanguageRegression
         Require(PreflightIssueText.Sentence("HRI text is 32 mm wide but the barcode frame is only 20 mm. Increase the frame or reduce the HRI font size.")
                 == "Dòng chữ dưới mã rộng 32 mm nhưng khung mã chỉ 20 mm; nới khung hoặc giảm cỡ chữ.",
             "Barcode HRI layout problems must be Vietnamese.");
+        Require(PreflightIssueText.Message("Code128 data contains an unsupported character: U+00A0 (no-break space) at position 6; standard printable ASCII (32–126) is required.")
+                == "dữ liệu mã Code128 có ký tự không mã hóa được ở vị trí 6: khoảng trắng không ngắt (U+00A0), thường do dán từ web hoặc ERP; trông giống dấu cách nhưng không phải; xóa hoặc thay ký tự đó trong ô dữ liệu, hoặc chọn loại mã khác",
+            "An invisible character in barcode data must be named in Vietnamese.");
+        Require(PreflightIssueText.Message("Code39 data contains an unsupported character: U+2013 '–' at position 3; only alphanumeric, dash, dot, space, dollar, slash, plus, and percent are supported.")
+                == "dữ liệu mã Code39 có ký tự không mã hóa được ở vị trí 3: gạch ngang dài “–” (U+2013), không phải dấu trừ “-”; xóa hoặc thay ký tự đó trong ô dữ liệu, hoặc chọn loại mã khác"
+                && PreflightIssueText.Message("Code93 data contains an unsupported character: U+1EA5 'ấ' at position 2; standard printable ASCII (32–126) is required.")
+                    .Contains("“ấ” (U+1EA5)", StringComparison.Ordinal),
+            "A visible unsupported character in barcode data must be shown with its code point.");
         Require(ANLAbel.Core.Barcode.QrOptionLists.SizingModes[0].DisplayName == "Tự động theo dữ liệu"
                 && ANLAbel.Core.Barcode.QrOptionLists.Versions[0].DisplayName.StartsWith("Phiên bản 1 = 21 × 21 mô-đun", StringComparison.Ordinal),
             "QR option lists must be Vietnamese.");
