@@ -1191,3 +1191,32 @@ từng thân hàm Load đối chiếu với các stream mẫu — một lát ngh
 trung tiếp theo, chưa phải mã sản phẩm. ANLAbel chưa thay đổi ở lát này.
 
 [Agent: Muse Spark / Muse Code — phiên đột phá TD32 2026-10-27]
+
+---
+
+# Phụ lục 2026-10-27 (tiếp 12): mã hóa stream của TIO trong ngood.dll
+
+## 37. TIO sống ở ngood.dll và có hai mã hóa chuỗi
+
+Họ `TIO` không nằm trong `nengine5.exe` — engine chỉ import chúng; DLL
+chứa thân hàm là `ngood.dll` trong bản cài. Đã decompile bằng REA:
+
+- `TIO::Write(TNiceContents&, char*)`: ghi độ dài, ghi cờ wide, rồi ghi
+  byte hẹp (`c_str`) hoặc byte rộng (`w_str`) qua stream trong.
+- `TIO::Read(TNiceContents&)`: đọc một u16 cờ, một u32 số ký tự, rồi đọc
+  số byte tương ứng (rộng thì nhân đôi) — tức chuỗi `TNiceContents` mã hóa
+  dạng `{u16 isWide, u32 charCount, bytes}`.
+- Tồn tại họ quá tải riêng cho `std::string` (`Read(string&)`,
+  `Write(string&, char*, bool)`), `bool`, `int`, `long`, `unsigned`,
+  `TColor`, buffer thô `Read(void*, int)` / `Read(void*, long)` và
+  `Read(char*, int)`. Chuỗi tiền tố `06 00 "?????\0"` quan sát trong
+  `Contents` (§34) khớp họ `std::string` (u16 độ dài gồm NUL + byte), giải
+  thích vì sao hai quy ước chuỗi sống chung trong cùng một tệp.
+
+Việc còn lại để khóa bố cục từng bản ghi: dựng vtable của TIO từ
+constructor trong `ngood.dll` để gán mỗi slot ảo (+0x18, +0x38, +0x40,
++0x58, +0x60, +0x68, +0x70, +0x80…) trong thân các hàm Load với đúng quá
+tải, rồi đi bộ từng hàm đối chiếu stream mẫu. Đây là lát nghiên cứu cơ
+học, không còn điểm mù kiến trúc; ANLAbel vẫn chưa thay đổi.
+
+[Agent: Muse Spark / Muse Code — phiên TIO 2026-10-27]
