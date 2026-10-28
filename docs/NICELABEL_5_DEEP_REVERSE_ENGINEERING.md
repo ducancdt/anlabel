@@ -1322,3 +1322,30 @@ thực hiện vì các nhóm đối tượng nằm ở stream riêng chưa tách
 `Contents` tổng.
 
 [Agent: Muse Spark / Muse Code — phiên TObject::Load 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 16): header Contents của HIBIC.lbl
+
+## 41. Header mức nhãn đã giải mã bằng số học
+
+Đọc `Contents` (1194 byte) của `HIBIC.lbl` theo đúng các nguyên hàm §37:
+
+| Offset | Giá trị | Nghĩa |
+| :--- | :--- | :--- |
+| 0x00 | u16 = 10, `"NicePower\0"` | Chuỗi magic họ `std::string` (độ dài gồm NUL) |
+| 0x0C | u16 = 29 | Phiên bản định dạng |
+| 0x1C–0x2B | 2540, 1270, 1270 (i32) | Kích thước theo 1/100 mm: 25,40 × 12,70 mm — đúng khổ tem mẫu HIBIC |
+| 0x40 | 600 | DPI máy in đã lưu |
+| 0x50–0x6F | double 4.35, 1.0, 0.5, 0.5 | Các hệ số/khổ liên quan máy in |
+| 0x80–0x8F | double 8.5, 11.0 | Khổ giấy Letter theo inch của driver đã lưu |
+
+Vùng bản ghi mã vạch (quanh 0x410) bắt đầu bằng i32 = 2001 rồi chuỗi dữ
+liệu `"+REFERENCESYMBOL"`, loại `"Code-39"`, font `"Arial"` và thuật toán
+`"Modulo 43"`; trước nó là một khối nhị phân entropy cao khoảng 0x3D4–0x40C
+chưa gán được vai trò (khả năng là dữ liệu đồ họa/font đã nén hoặc khối
+mặt nạ của bản ghi trước). Như vậy header mức nhãn và điểm bắt đầu bản
+ghi mã vạch đã neo được; việc tách ranh giới từng trường trong bản ghi
+mã vạch cần đi bộ `TBarcode::Load` đối chiếu từng offset — bước tiếp theo.
+
+[Agent: Muse Spark / Muse Code — phiên header Contents 2026-10-27]
