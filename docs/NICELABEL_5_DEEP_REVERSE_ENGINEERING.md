@@ -1220,3 +1220,45 @@ tải, rồi đi bộ từng hàm đối chiếu stream mẫu. Đây là lát ng
 học, không còn điểm mù kiến trúc; ANLAbel vẫn chưa thay đổi.
 
 [Agent: Muse Spark / Muse Code — phiên TIO 2026-10-27]
+
+---
+
+# Phụ lục 2026-10-27 (tiếp 13): vtable của TIO
+
+## 38. Bảng slot ảo → hàm đọc/ghi
+
+Constructor `TIO` đặt vtable tại `0x431A78` trong `ngood.dll`. Đọc trực
+tiếp vtable và đối chiếu địa chỉ export cho ra các cặp đọc/ghi theo slot:
+
+| Slot | Đọc | Slot | Ghi | Kiểu |
+| :--- | :--- | :--- | :--- | :--- |
+| +0x00 | 0x417D45 | +0x04 | 0x417EAB | buffer `void*, int` |
+| +0x08 | 0x4188CE | +0x0C | 0x41891A | buffer `void*, long` |
+| +0x10 | 0x4187B4 | +0x14 | 0x418841 | handle |
+| +0x18 | 0x418247 | +0x1C | 0x418268 | `int` |
+| +0x20 | 0x41828C | +0x24 | 0x4182AD | `unsigned int` |
+| +0x28 | stub | +0x2C | stub | kiểu cố định (chưa gán) |
+| +0x30 | stub | +0x34 | stub | kiểu cố định (chưa gán) |
+| +0x38 | 0x4182D1 | +0x3C | 0x4182F1 | `long` |
+| +0x40 | stub | +0x44 | stub | kiểu cố định (chưa gán) |
+| +0x48 | 0x418313 | +0x4C | 0x418333 | `unsigned long` |
+| +0x50 | stub | +0x54 | stub | kiểu cố định (chưa gán) |
+| +0x58 | stub | +0x5C | stub | kiểu cố định (chưa gán) |
+| +0x60 | 0x417CFC | +0x64 | 0x417D23 | `bool` |
+| +0x68 | 0x41806A | +0x6C | 0x4180F5 | `char*` |
+| +0x70 | 0x41812A | +0x74 | 0x418207 | `std::string` |
+| +0x78 | 0x418355 | +0x7C | 0x41836A | `TColor` |
+| +0x80 | 0x418383 | +0x84 | 0x41847E | `TNiceContents` |
+
+Năm cặp stub tại 0x40363C…0x403690 là các hàm đọc/ghi kiểu cố định không
+export (ứng viên: `short`, `unsigned short`, `float`, `double`, `char` —
+thứ tự chưa chốt): thân hàm chỉ chuyển tiếp vào hàm đọc thô của stream
+trong, pseudocode không lộ số byte, cần đọc hợp ngữ để gán từng slot.
+Slot +0x88 (0x41B95C) là hàm cuối vtable (nhiều khả năng destructor).
+
+Với bảng này, các lời gọi trong `TObject::Load` đã dịch được một phần:
++0x18 đọc `int`, +0x38 đọc `long`, và các slot stub +0x40 là nơi bốn giá
+trị hình học double được đọc vào. Việc gán nốt năm stub và đi bộ từng
+hàm Load là bước cơ học còn lại trước khi viết được bộ đọc `.lbl`.
+
+[Agent: Muse Spark / Muse Code — phiên vtable TIO 2026-10-27]
