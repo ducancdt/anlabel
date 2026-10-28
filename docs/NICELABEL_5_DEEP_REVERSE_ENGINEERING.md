@@ -1111,3 +1111,34 @@ hàm `Load` (bị TD32 chặn, §25), hoặc tệp vi sai do chính NiceLabel l�
 (một thuộc tính thay đổi mỗi lần) — đường thứ hai cần chạy ứng dụng đích.
 
 [Agent: Muse Spark / Muse Code — phiên Contents 2026-10-27]
+
+---
+
+# Phụ lục 2026-10-27 (tiếp 10): các đường định vị hàm Load đã thử và điểm dừng
+
+## 35. Điểm dừng kỹ thuật của đường thân hàm .lbl
+
+Các đường đã thử để định vị `TLabel::LoadObjects` / `TObject::Load`
+trong `nengine5.exe`, tất cả đều có kết quả âm tính ghi lại được:
+
+1. REA/Ghidra theo tên Borland: `Unknown Ghidra procedure name` — tên chỉ
+   tồn tại trong thông tin debug, Ghidra chỉ đặt tên cho import/export.
+2. Quét bản ghi publics TD32 theo mẫu `{segment, offset, tên Pascal}`:
+   0 kết quả — TD32 của bản này chỉ chứa tên/kiểu, không chứa địa chỉ.
+3. Parse thư mục subsection TD32 theo mẫu header chuẩn: chỉ khớp bản ghi
+   đầu, sau đó lệch — chưa đủ để dựng parser tin cậy.
+4. Quét RTTI/vtable trong section DATA: tên lớp không tồn tại trong DATA
+   (chỉ có chuỗi debug kiểu "TLabel Constructor\r\n"), nên không gắn được
+   vtable với tên lớp.
+5. Xref chuỗi `NicePower`/`SESSIONPRINT`: dẫn tới hàm profile/máy in và
+   hàm phân tích tệp job, không phải `LoadObjects`.
+6. Provider Rizin của REA: `capability_unavailable` trên Windows.
+
+Vì vậy thân hàm `Load/Save` là phần duy nhất của toàn bộ app chưa đọc
+được ở mức decompile. Mọi module còn lại đã có kết luận ở §33. Muốn vượt
+điểm dừng này cần một trong hai việc nằm ngoài phân tích tĩnh hiện có:
+viết parser TD32 đầy đủ từ đặc tả định dạng, hoặc chạy thăm dò vi sai
+bằng bản cài đang chạy trên máy. Cả hai là quyết định đầu tư riêng; tài
+liệu này dừng ở đây với giới hạn nêu rõ, không suy diễn bố cục `.lbl`.
+
+[Agent: Muse Spark / Muse Code — phiên điểm dừng TD32 2026-10-27]
