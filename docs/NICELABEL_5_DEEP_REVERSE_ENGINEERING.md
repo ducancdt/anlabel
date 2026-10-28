@@ -844,3 +844,66 @@ vùng quiet zone khi thiết kế) chưa được xác nhận bằng runtime.
   riêng, chưa hoàn thành trong phiên này.
 
 [Agent: Muse Spark / Muse Code — phiên PaintBits 2026-10-27]
+
+---
+
+# Phụ lục decompile 2026-10-27 (tiếp 2): họ hàm tỉ lệ/vạch hẹp
+
+## 26. ConvertRatio / ConvertToRatio / CheckNarrowWidth
+
+Sau khi ba lát cải tiến được commit (`ea5d33b`), phiên REA tiếp tục với họ
+hàm chuyển đổi tỉ lệ của `bareng.dll`:
+
+| Hàm | Evidence | Kết luận |
+| :--- | :--- | :--- |
+| `TBarcodeBase::ConvertRatioToNarrowWidth(double)` | `ev_d333685b3bc53b3f73d0d689ff8833e73b8468830f3a7557a8f7eb54abf91e22` | Hàm rất ngắn: kiểm dấu/zero của double rồi gọi một helper x87 chung (`FUN_004564a5`, cùng helper xuất hiện trong `CalcBarWidth`). Decompiler mất phép toán float trong helper, nên không khôi phục được công thức nguyên văn. |
+| `TBarcodeBase::ConvertToRatio(int)` | `ev_5ea7df5ef5124751fe04c7e0819f61c719ab43cc19ef618523f18144c6e0a918` | Trả double qua thanh ghi x87 ST0; decompiler hiển thị `void` nên thân hàm không đọc được trực tiếp. |
+| `TLabelBarServer::CheckNarrowWidth(int, int&, int, double, bool, bool)` | `ev_e85a946c49f713d66a429c5078b8dbd34f5bb05763233b274b3ec37bfa4f0451` | Vòng lặp ứng viên bề rộng hẹp từ 1 tới dưới 100, kiểm tra từng ứng viên qua helper so sánh chuỗi/số (`FUN_004563f1`) và dừng ở ứng viên đầu tiên đạt — tức dialog tìm bề rộng hẹp nguyên nhỏ nhất còn hợp lệ thay vì làm tròn một lần. |
+
+Đối chiếu ANLAbel: hợp đồng hiện tại lượng tử hóa X sang nguyên chấm máy in
+rồi kiểm sàn 2 chấm trong preflight — chặt chẽ và minh bạch hơn vòng thử
+của dialog cũ, và không cần biết công thức float đã mất. **Không thay đổi
+mã.** Điểm chưa khôi phục được (helper x87 `FUN_004564a5`) được ghi là giới
+hạn bằng chứng; muốn đọc tiếp phải phân tích helper ở mức hợp ngữ, ngoài
+phạm vi cần thiết cho ANLAbel.
+
+[Agent: Muse Spark / Muse Code — phiên ratio 2026-10-27]
+
+---
+
+# Phụ lục decompile 2026-10-27 (tiếp 3): TAlgo::Calc của cdalgo.dll
+
+## 27. Thuật toán check digit đã đọc ở mức thân hàm
+
+Decompile `TAlgo::Calc(int algoId, char* input, unsigned char* output, int flags)`
+(Evidence `ev_9d2ffebca368402438b009385de314c441230cc4a8e8260a23ab6438e9f9053d`).
+Bản ghi thuật toán (`tagAlgoStr`) được xác nhận ở mức offset: trường kiểu/modulus
+tại `+0x24`, mảng trọng số nguyên tại `+0x28` (kết thúc bằng 0, hết thì quay
+vòng), cờ Sum tại `+0xA8`, cờ Complements tại `+0xA9`, cờ OneDigit tại `+0xAA`.
+
+Thuật toán tổng quát (nhánh mặc định):
+
+1. Duyệt dữ liệu **từ trái sang phải**, mỗi ký tự số nhân với trọng số theo
+   thứ tự trong mảng; hết mảng thì quay vòng từ đầu.
+2. Cờ Sum tắt: cộng **từng chữ số của tích** (kiểu Luhn); bật: cộng thẳng tích.
+3. Lấy tổng modulo modulus; nếu Complements bật thì check digit là
+   `modulus − dư` (dư 0 giữ nguyên, trừ hai mã đặc biệt dưới đây).
+4. OneDigit bật: chỉ giữ chữ số cuối của kết quả khi ghi ra.
+
+Mã modulus đặc biệt nằm cùng trường `+0x24`:
+
+| Mã | Hành vi quan sát được |
+| :--- | :--- |
+| `-10` | Thuật toán ngoài: tra module theo tên rồi gọi export `CalcCheckDigit` của DLL ngoài qua `GetProcAddress` |
+| `-7` | Cứng cho dữ liệu đúng 13 ký tự: vị trí chẵn nhân 2 (với mẹo cộng chữ số `(2d mod 10)+1` khi `d≥5`), vị trí lẻ nhân 1; check digit `10 − (tổng mod 10)`, 10 thành 0 |
+| `-6` | Cộng giá trị ký tự chữ+số kiểu Code 39 (0–9, A=10 … Z=35) tách riêng vị trí chẵn/lẻ trên 9 ký tự đầu — thuật toán chuyên biệt chưa đối chiếu được tên gọi chắc chắn |
+| `-4`, `-3` | Modulus ép thành 11; sau complement: dư cho kết quả 10 → 0 và 11 → 5 (khớp ánh xạ UPU S10 mà ANLAbel đã kiểm chứng bằng vector công bố) |
+| `-9`, `-8`, `-5`, `-2`, `-1` | Không có nhánh riêng quan sát được trong phần đã đọc; nhánh mặc định từ chối khi modulus ≤ 0 |
+
+Đối chiếu ANLAbel: `CustomCheckDigitAlgorithm` là tập bao của nhánh tổng quát
+(có thêm `WeightsFromRight` mà bản gốc không có, cộng `ValueMap` và
+`ZeroRemainderAsModulus` bao được ánh xạ 10→0/11→5). Phần duy nhất ANLAbel
+không có là thuật toán ngoài qua DLL (`-10`) — **không nhận** theo hợp đồng
+tin cậy: không nạp mã ngoài tùy ý vào đường in. Không thay đổi mã ở lát này.
+
+[Agent: Muse Spark / Muse Code — phiên cdalgo 2026-10-27]
