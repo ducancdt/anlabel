@@ -1262,3 +1262,32 @@ trị hình học double được đọc vào. Việc gán nốt năm stub và �
 hàm Load là bước cơ học còn lại trước khi viết được bộ đọc `.lbl`.
 
 [Agent: Muse Spark / Muse Code — phiên vtable TIO 2026-10-27]
+
+---
+
+# Phụ lục 2026-10-27 (tiếp 14): gán kiểu cho năm stub vtable
+
+## 39. Số byte của từng stub đã chốt bằng hợp ngữ
+
+Liệt kê hợp ngữ (Ghidra headless, script `.analysis/rea/ListingAt.java`)
+cho thấy mỗi stub đẩy một hằng số byte rồi gọi hàm đọc thô của stream
+trong — hằng số đó là kích thước kiểu:
+
+| Slot đọc | Địa chỉ stub | Số byte | Kiểu gán |
+| :--- | :--- | :--- | :--- |
+| +0x28 | 0x40363C | 2 | `short` |
+| +0x30 | 0x403651 | 2 | `unsigned short` |
+| +0x40 | 0x403666 | 8 | `double` |
+| +0x50 | 0x40367B | 1 | `char` |
+| +0x58 | 0x403690 | 1 | `unsigned char` (hoặc `signed char`) |
+
+Thứ tự có dấu/không dấu trong hai cặp 2-byte và 1-byte suy từ khuôn mẫu
+khai báo `(int, unsigned int)` đã biết ở +0x18/+0x20; dấu của `char` một
+byte không ảnh hưởng bố cục stream. Không tồn tại quá tải `float` 4-byte
+riêng — mọi số thực trong bản ghi đi qua `double` ở +0x40, khớp bốn giá
+trị hình học trong `TObject::Load`.
+
+Vtable TIO như vậy đã gán xong 100%. Bước còn lại là đi bộ từng thân hàm
+Load và lập bảng thứ tự trường đối chiếu với stream mẫu.
+
+[Agent: Muse Spark / Muse Code — phiên stub TIO 2026-10-27]
