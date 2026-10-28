@@ -2,12 +2,17 @@
 
 ## Sau v0.325 — Ký tự ẩn trong dữ liệu mã vạch; ô Chữ nhận Enter
 
-**Mã vạch** (lỗi thực tế 2026-10-28: dòng 2 bị chặn với "dữ liệu Code128 không
-hợp lệ" dù giá trị nhìn giống dòng 1)
+**Mã vạch** (báo lỗi 2026-10-28: ảnh chụp từ một bản cũ hơn v0.306 báo "Preview
+blocked: row 2 … invalid Code128 data")
 
-- Nguyên nhân: ô Excel dán từ web/ERP mang khoảng trắng không ngắt (U+00A0) ở
-  đầu và cuối mã hàng. Code 128 không mã hóa được ký tự này, còn thông báo không
-  nói ký tự nào.
+- Chạy tệp Excel của thao tác viên qua bộ kiểm tra trước in hiện tại: các dòng
+  có mã hàng đều đạt; dòng bị chặn là dòng **trống ô mã hàng** (Excel điền
+  xuống cột MFG và công thức "-" nên dòng vẫn được đọc). Bản hiện tại báo "dữ
+  liệu mã Code128 đang trống", và Xem trước cho bỏ qua các dòng lỗi để in phần
+  còn lại thay vì chặn cả xem trước như bản cũ.
+- Cùng bộ tệp đó, sheet lịch sử có mã hàng dán từ web/ERP mang khoảng trắng
+  không ngắt (U+00A0) ở đầu và cuối. Code 128 không mã hóa được ký tự này, còn
+  thông báo cũ không nói ký tự nào.
 - Sửa: `BarcodeDataText` (Core) bỏ ký tự ẩn ở hai đầu dữ liệu mã vạch (khoảng
   trắng ngoài ASCII, ký tự rộng 0, BOM) trên mọi đường đi: thiết kế, xem trước,
   kiểm tra trước in, in và dòng chữ dưới mã. Dấu cách, tab và ký tự ở giữa giữ
@@ -24,7 +29,10 @@ hợp lệ" dù giá trị nhìn giống dòng 1)
 
 - Build 0/0; unit 1406/1406 (thêm `BarcodeDataTextTests`); regression 268 PASS
   / 0 FAIL, gồm bảy gate Text/TextBox và gate ngôn ngữ thao tác viên với hai
-  câu mới.
+  câu mới. Smoke UI 15/15 trên bản đã cài; gửi phím Enter vào ô "Chữ" của bản
+  đã cài cho giá trị hai dòng.
+- Tệp Excel thật (17 dòng, 5 dòng có mã hàng) qua `PrintPreflightValidator`:
+  5 dòng đạt, 12 dòng trống bị chặn đúng với thông báo tiếng Việt.
 
 ## v0.325 — Sửa mã vạch, số kiểm tra tự sinh, bộ đếm Serial và giá trị theo lệnh in
 
