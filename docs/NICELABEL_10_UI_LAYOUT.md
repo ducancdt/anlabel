@@ -124,7 +124,22 @@ Second pass (2026-10-29):
   `group objects select and move together like NiceLabel`, and the layout
   gate covers the new commands.
 
-Not converted, because ANLAbel has no such object or feature and adding one
-is a product decision rather than a layout change: the Source tab's Mask
-sub-page (no content mask), Rich Text Box, Inverse and Report objects,
-forms/solutions, Access/SQL/ODBC wizards, RFID, Format Painter.
+Third pass (2026-10-29):
+
+- Source > Mask sub-page: `LabelObject.ContentMask`/`ContentMaskCharacter`
+  with the vendor rule (`ContentMaskContract`: each mask character takes
+  the next value character, others are literal, each line restarts, extra
+  value characters are kept). Applied in designer, preflight and print;
+  imported from `HasMaskedContents`/`ContentsMask`/`MaskValue` (87 masked
+  items in the corpus).
+- Format Painter (Home > Clipboard, Ctrl+Shift+C / Ctrl+Shift+V):
+  `LabelObjectCloner.CopyStyle`; across object types the target keeps its
+  fit, overflow and padding settings.
+- The floating Properties panel was rendered and checked by eye from the
+  regression gate (`TestOutput/properties-floating.png`); this machine's
+  session did not accept synthetic mouse input for a manual check.
+
+Not converted: Rich Text Box, Inverse and Report objects (0, 0 and 2 of the
+207 corpus labels use them; each needs a new print-pipeline object), and
+NiceLabel products/integrations outside the label designer — PowerForms
+forms and solutions, Access/SQL Server/ODBC connectors, RFID encoding.

@@ -16,6 +16,7 @@ using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
+using ANLAbel.Core.Text;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
@@ -3781,10 +3782,10 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         if (item.Type is not (ObjectType.Text or ObjectType.TextBox) || string.IsNullOrWhiteSpace(item.BindingExpression))
         {
-            return item.Text;
+            return ContentMaskContract.ApplyTo(item, item.Text);
         }
 
-        return ResolveExpression(item.BindingExpression, PreviewRow);
+        return ContentMaskContract.ApplyTo(item, ResolveExpression(item.BindingExpression, PreviewRow));
     }
 
     private bool IsTextBoxOverflowing(LabelObject item, double widthDip, double heightDip)
@@ -4357,10 +4358,10 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         if (string.IsNullOrWhiteSpace(item.BindingExpression))
         {
-            return item.Text;
+            return ContentMaskContract.ApplyTo(item, item.Text);
         }
 
-        return ResolveExpression(item.BindingExpression, PreviewRow);
+        return ContentMaskContract.ApplyTo(item, ResolveExpression(item.BindingExpression, PreviewRow));
     }
 
     private double GetAvailableQrSizeMm(LabelObject item)

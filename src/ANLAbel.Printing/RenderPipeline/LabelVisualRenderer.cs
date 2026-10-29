@@ -12,6 +12,7 @@ using FlowDirection = System.Windows.FlowDirection;
 using Typeface = System.Windows.Media.Typeface;
 using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
+using ANLAbel.Core.Text;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
@@ -234,6 +235,8 @@ public sealed class LabelVisualRenderer
             IsVisible = snapshot.IsVisible,
             AnchorPoint = snapshot.AnchorPoint,
             GroupId = snapshot.GroupId,
+            ContentMask = snapshot.ContentMask,
+            ContentMaskCharacter = snapshot.ContentMaskCharacter,
             ZIndex = snapshot.ZIndex
         };
 
@@ -751,6 +754,9 @@ public sealed class LabelVisualRenderer
     }
 
     private static string ResolveData(LabelObject item, IReadOnlyDictionary<string, string>? row)
+        => ContentMaskContract.ApplyTo(item, ResolveUnmaskedData(item, row));
+
+    private static string ResolveUnmaskedData(LabelObject item, IReadOnlyDictionary<string, string>? row)
     {
         if (string.IsNullOrWhiteSpace(item.BindingExpression))
         {

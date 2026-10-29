@@ -684,7 +684,9 @@ public static class NiceLabel10NlblReader
             BestFitMinimumFontSizePt = ParseDouble(item, "BestFitMinimumFontSize"),
             BestFitMaximumFontSizePt = ParseDouble(item, "BestFitMaximumFontSize"),
             BestFitMinimumScalePercent = ParseDouble(item, "BestFitMinimumFontScaling"),
-            BestFitMaximumScalePercent = ParseDouble(item, "BestFitMaximumFontScaling")
+            BestFitMaximumScalePercent = ParseDouble(item, "BestFitMaximumFontScaling"),
+            ContentMask = ParseBool(item, "HasMaskedContents") && ChildText(item, "ContentsMask") is { Length: > 0 } mask ? mask : null,
+            ContentMaskCharacter = ChildText(item, "MaskValue") is { Length: > 0 } maskCharacter ? maskCharacter : "*"
         };
     }
 

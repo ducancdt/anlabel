@@ -202,6 +202,12 @@ public static partial class NiceLabel10NlblImporter
                 item.Name = record.Name.Trim();
             }
 
+            if (record.ContentMask is { } mask)
+            {
+                item.ContentMask = mask;
+                item.ContentMaskCharacter = record.ContentMaskCharacter;
+            }
+
             template.Objects.Add(item);
         }
 

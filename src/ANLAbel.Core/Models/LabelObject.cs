@@ -23,6 +23,8 @@ public sealed class LabelObject : ObservableObject
     private bool _isVisible = true;
     private ObjectAnchorPoint _anchorPoint;
     private string _groupId = string.Empty;
+    private string _contentMask = string.Empty;
+    private string _contentMaskCharacter = "*";
     private string _bindingExpression = string.Empty;
     private string _text = string.Empty;
     private BarcodeSymbology _barcodeSymbology = BarcodeSymbology.Code128;
@@ -170,6 +172,23 @@ public sealed class LabelObject : ObservableObject
     {
         get => _groupId;
         set => SetProperty(ref _groupId, value ?? string.Empty);
+    }
+
+    /// <summary>
+    /// Content mask applied to the object's value before it is drawn or
+    /// encoded (NiceLabel 10 Source &gt; Mask); empty means no mask.
+    /// </summary>
+    public string ContentMask
+    {
+        get => _contentMask;
+        set => SetProperty(ref _contentMask, value ?? string.Empty);
+    }
+
+    /// <summary>The mask character that takes one value character (default <c>*</c>).</summary>
+    public string ContentMaskCharacter
+    {
+        get => _contentMaskCharacter;
+        set => SetProperty(ref _contentMaskCharacter, string.IsNullOrEmpty(value) ? "*" : value);
     }
 
     public string BindingExpression

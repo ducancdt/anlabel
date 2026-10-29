@@ -12582,6 +12582,20 @@ static Task TestPropertiesPanelPinsOrFloats()
             apply.Invoke(window, null);
             AssertEqual(true, ReferenceEquals(panel.Parent, host), "Unpinned Properties move into the floating host");
             AssertEqual(false, viewModel.IsPropertiesDocked, "Unpinned Properties leave the right-hand column");
+            // Evidence image of the floating panel (TestOutput, not committed).
+            host.Measure(new Size(300, 560));
+            host.Arrange(new Rect(0, 0, 300, 560));
+            host.UpdateLayout();
+            var raster = new RenderTargetBitmap(300, 560, 96, 96, PixelFormats.Pbgra32);
+            raster.Render(host);
+            var output = Path.Combine(FindRepositoryRoot(), "TestOutput", "properties-floating.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+            using (var stream = File.Create(output))
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(raster));
+                encoder.Save(stream);
+            }
 
             viewModel.IsPropertiesPinned = true;
             apply.Invoke(window, null);
@@ -12620,6 +12634,10 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
         .Select(name => xaml.IndexOf(name, StringComparison.Ordinal)).ToArray();
     AssertEqual(true, categories.All(index => index > 0) && categories.SequenceEqual(categories.OrderBy(index => index)),
         "Property categories follow NiceLabel: Source, Style, Position, General");
+    var sourcePage = xaml.IndexOf("Shell.Properties.SourceSubTabs", StringComparison.Ordinal);
+    var maskPage = xaml.IndexOf("Shell.Properties.Mask", StringComparison.Ordinal);
+    AssertEqual(true, sourcePage > 0 && maskPage > sourcePage && xaml.Contains("SelectedObject.ContentMask", StringComparison.Ordinal),
+        "The Source category has NiceLabel's Source and Mask sub-pages");
 
     Exception? failure = null;
     var thread = new Thread(() =>

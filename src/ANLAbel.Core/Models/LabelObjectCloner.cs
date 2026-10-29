@@ -22,6 +22,8 @@ public static class LabelObjectCloner
             IsVisible = source.IsVisible,
             AnchorPoint = source.AnchorPoint,
             GroupId = source.GroupId,
+            ContentMask = source.ContentMask,
+            ContentMaskCharacter = source.ContentMaskCharacter,
             BindingExpression = source.BindingExpression,
             Text = source.Text,
             BarcodeSymbology = source.BarcodeSymbology,
@@ -75,6 +77,36 @@ public static class LabelObjectCloner
             LineEndXMm = source.LineEndXMm,
             LineEndYMm = source.LineEndYMm
         };
+    }
+
+    /// <summary>
+    /// NiceLabel 10 Format Painter: copies the source object's style onto the
+    /// target's existing style object. Between different object types the
+    /// fit, overflow and padding settings stay the target's own, so a Text
+    /// style never changes how a TextBox owns its frame.
+    /// </summary>
+    public static void CopyStyle(LabelObject source, LabelObject target)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+        var sameType = source.Type == target.Type;
+        foreach (var property in typeof(ObjectStyle).GetProperties())
+        {
+            if (!property.CanRead || !property.CanWrite || property.Name == nameof(ObjectStyle.ExtensionData))
+            {
+                continue;
+            }
+
+            if (!sameType && (property.Name.StartsWith("TextSizing", StringComparison.Ordinal)
+                || property.Name.StartsWith("TextOverflow", StringComparison.Ordinal)
+                || property.Name.StartsWith("TextFit", StringComparison.Ordinal)
+                || property.Name.StartsWith("TextPadding", StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            property.SetValue(target.Style, property.GetValue(source.Style));
+        }
     }
 
     private static ObjectStyle CloneStyle(ObjectStyle source)

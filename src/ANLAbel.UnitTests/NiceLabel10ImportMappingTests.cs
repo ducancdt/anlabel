@@ -551,6 +551,24 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void MaskedText_KeepsTheVendorContentMask()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Masked</Name>
+              <Geometry Type="PositionGeometry"><X>5000</X><Y>7000</Y></Geometry>
+              <FixedContents>1J</FixedContents>
+              <HasMaskedContents>True</HasMaskedContents>
+              <ContentsMask>(**)</ContentsMask>
+            </Item>
+            """, new FixedMeasurer(40, 8));
+
+        var text = Assert.Single(template.Objects);
+        Assert.Equal("(**)", text.ContentMask);
+        Assert.Equal("*", text.ContentMaskCharacter);
+    }
+
+    [Fact]
     public void ExpandedPositionText_WidensLikeNiceLabel()
     {
         var template = Import("""

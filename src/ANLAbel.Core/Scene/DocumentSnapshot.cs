@@ -277,6 +277,8 @@ public sealed record SceneObjectSnapshot
     public bool IsVisible { get; init; }
     public ObjectAnchorPoint AnchorPoint { get; init; }
     public string GroupId { get; init; } = string.Empty;
+    public string ContentMask { get; init; } = string.Empty;
+    public string ContentMaskCharacter { get; init; } = "*";
     public string BindingExpression { get; init; } = string.Empty;
     public string Text { get; init; } = string.Empty;
     public BarcodeSymbology BarcodeSymbology { get; init; }
@@ -351,6 +353,8 @@ public sealed record SceneObjectSnapshot
             IsVisible = item.IsVisible,
             AnchorPoint = item.AnchorPoint,
             GroupId = item.GroupId,
+            ContentMask = item.ContentMask,
+            ContentMaskCharacter = item.ContentMaskCharacter,
             BindingExpression = item.BindingExpression,
             Text = item.Text,
             BarcodeSymbology = item.BarcodeSymbology,
@@ -657,6 +661,14 @@ internal static class SceneHash
             // Only anchored objects carry it, so older document hashes are unchanged.
             Append(builder, "anchor");
             Append(builder, item.AnchorPoint.ToString());
+        }
+
+        if (item.ContentMask.Length > 0)
+        {
+            // Only masked objects carry it, so older document hashes are unchanged.
+            Append(builder, "content-mask");
+            Append(builder, item.ContentMask);
+            Append(builder, item.ContentMaskCharacter);
         }
         Append(builder, item.BindingExpression);
         Append(builder, item.Text);

@@ -103,6 +103,15 @@ public sealed record NiceLabel10ObjectRecord(
     public double BestFitMaximumScalePercent { get; init; }
 
     /// <summary>
+    /// Vendor content mask (<c>HasMaskedContents</c> + <c>ContentsMask</c>);
+    /// null when the item is not masked.
+    /// </summary>
+    public string? ContentMask { get; init; }
+
+    /// <summary>Vendor <c>MaskValue</c>: the mask character (default <c>*</c>).</summary>
+    public string ContentMaskCharacter { get; init; } = "*";
+
+    /// <summary>
     /// The item's <c>DataSourceReference</c> names a data source the package
     /// does not declare, so its value cannot be known.
     /// </summary>

@@ -45,6 +45,18 @@ public partial class MainWindow : Window
             }),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F4)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => _formatPainterSource = _viewModel.SelectedObject),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.C, System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() =>
+            {
+                if (_formatPainterSource is { } source && _viewModel.SelectedObject is { } target && !ReferenceEquals(source, target))
+                {
+                    ApplyFormatPainter(source, target);
+                }
+            }),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.V, System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(OpenPrintPreview),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.P, System.Windows.Input.ModifierKeys.Control)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
@@ -231,6 +243,16 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.Template))
         {
             BindObjectBrowser();
+        }
+
+        if (e.PropertyName == nameof(MainViewModel.SelectedObject)
+            && FormatPainterToggle.IsChecked == true
+            && _viewModel.SelectedObject is { } target
+            && _formatPainterSource is { } source
+            && !ReferenceEquals(source, target))
+        {
+            ApplyFormatPainter(source, target);
+            FormatPainterToggle.IsChecked = false;
         }
 
         if (e.PropertyName is nameof(MainViewModel.IsPropertiesVisible) or nameof(MainViewModel.SelectedObject)
@@ -573,6 +595,25 @@ public partial class MainWindow : Window
         DesignerCanvas.UngroupSelectedObjects();
         DesignerCanvas.Focus();
         e.Handled = true;
+    }
+
+    private LabelObject? _formatPainterSource;
+
+    private void FormatPainter_Checked(object sender, RoutedEventArgs e)
+    {
+        // NiceLabel 10 Format Painter: the selected object is the style source.
+        _formatPainterSource = _viewModel.SelectedObject;
+        if (_formatPainterSource is null)
+        {
+            FormatPainterToggle.IsChecked = false;
+        }
+    }
+
+    private void ApplyFormatPainter(LabelObject source, LabelObject target)
+    {
+        _viewModel.BeginTemplateEditGesture();
+        LabelObjectCloner.CopyStyle(source, target);
+        _viewModel.CommitTemplateEditGesture();
     }
 
     private void Paste_Click(object sender, RoutedEventArgs e)

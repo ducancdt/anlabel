@@ -441,6 +441,7 @@
 
         <!-- NiceLabel 10 ribbon tabs (docs/NICELABEL_10_UI_LAYOUT.md) -->
         <converters:RibbonTabConverter x:Key="RibbonTabConverter"/>
+        <converters:IndexToVisibilityConverter x:Key="IndexToVisibility"/>
         <Style x:Key="RibbonTabHeader" TargetType="RadioButton">
             <Setter Property="GroupName" Value="RibbonTabs"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -697,6 +698,12 @@
                                         <Button Style="{StaticResource RibbonSmallButton}" Click="Copy_Click" ToolTip="Sao chép (Ctrl+C)" AutomationProperties.Name="Copy" AutomationProperties.AutomationId="Shell.Ribbon.Copy">
                                             <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE8C8;"/><TextBlock Text="Sao chép" VerticalAlignment="Center"/></StackPanel>
                                         </Button>
+                                        <ToggleButton x:Name="FormatPainterToggle" Style="{StaticResource RibbonToggleButton}" Width="Auto" MinWidth="84" Height="26" Padding="6,2" Margin="1"
+                                                      Checked="FormatPainter_Checked" HorizontalContentAlignment="Left"
+                                                      ToolTip="Sao định dạng: chọn đối tượng mẫu, bấm nút này rồi bấm đối tượng cần áp kiểu (Ctrl+Shift+C / Ctrl+Shift+V)"
+                                                      AutomationProperties.Name="Format painter" AutomationProperties.AutomationId="Shell.Ribbon.FormatPainter">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE771;"/><TextBlock Text="Sao định dạng" FontSize="10" VerticalAlignment="Center"/></StackPanel>
+                                        </ToggleButton>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Bộ nhớ tạm"/>
@@ -2169,7 +2176,26 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
-                                <Border Style="{StaticResource PropCard}">
+                                <TabControl x:Name="SourceSubTabs" SelectedIndex="0" Height="28" Margin="0,0,0,4" Padding="0" BorderThickness="0" Background="Transparent"
+                                            AutomationProperties.Name="Source sub pages" AutomationProperties.AutomationId="Shell.Properties.SourceSubTabs">
+                                    <TabItem Header="Nguồn" AutomationProperties.Name="Source page"/>
+                                    <TabItem Header="Mặt nạ" AutomationProperties.Name="Mask page"/>
+                                </TabControl>
+                                <Border Style="{StaticResource PropCard}" AutomationProperties.AutomationId="Shell.Properties.Mask">
+                                    <Border.Visibility>
+                                        <Binding Path="SelectedIndex" ElementName="SourceSubTabs" Converter="{StaticResource IndexToVisibility}" ConverterParameter="1"/>
+                                    </Border.Visibility>
+                                    <StackPanel>
+                                        <TextBlock Text="Mặt nạ nội dung" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Mẫu định dạng" Style="{StaticResource PropLabel}"/>
+                                        <TextBox Text="{Binding SelectedObject.ContentMask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Content mask"
+                                                 ToolTip="Mỗi ký tự mặt nạ lấy một ký tự dữ liệu; ký tự khác được in nguyên văn. Ví dụ (***) ***-**** với 1234567890 cho (123) 456-7890."/>
+                                        <TextBlock Text="Ký tự mặt nạ" Style="{StaticResource PropLabel}"/>
+                                        <TextBox Width="60" HorizontalAlignment="Left" MaxLength="4" Text="{Binding SelectedObject.ContentMaskCharacter, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Content mask character"/>
+                                        <TextBlock Text="Để trống mẫu định dạng nếu không dùng mặt nạ. Mặt nạ áp dụng cho cả bản xem trước, kiểm tra trước khi in và bản in." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource PropCard}" Visibility="{Binding SelectedIndex, ElementName=SourceSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
                                     <StackPanel>
                                         <TextBlock Text="Nội dung" Style="{StaticResource PropTitle}"/>
                                         <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,0,0,7">
