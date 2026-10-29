@@ -305,6 +305,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print center exports redacted support evidence from durable jobs", TestPrintCenterExportsSupportEvidence),
     ("gs1 industrial AI subset validates weight and variable fields", TestGs1IndustrialAiSubset),
     ("main shell regions match NiceLabel map AutomationIds", TestMainShellRegionsMatchNiceLabelMap),
+    ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
@@ -12258,10 +12259,10 @@ static Task TestDesignerHeaderCommandsAreUnique()
         "Ribbon must not reuse the status zoom-minus glyph");
     AssertEqual(false, ribbonXaml.Contains("zoom_plus.png", StringComparison.Ordinal),
         "Ribbon must not reuse the status zoom-plus glyph");
-    AssertEqual(false, ribbonXaml.Contains("ZoomOutCommand", StringComparison.Ordinal),
-        "Zoom out is a status-bar command, not a ribbon command");
-    AssertEqual(false, ribbonXaml.Contains("ZoomInCommand", StringComparison.Ordinal),
-        "Zoom in is a status-bar command, not a ribbon command");
+    // NiceLabel 10 also puts Zoom In/Out on the View tab (docs/NICELABEL_10_UI_LAYOUT.md);
+    // the ribbon uses its own glyphs, never the status-bar PNGs above.
+    AssertEqual(true, ribbonXaml.Contains("Shell.Ribbon.ZoomToDocument", StringComparison.Ordinal),
+        "The View tab must offer Zoom to Document as in NiceLabel 10");
     AssertEqual(true, ribbonXaml.Contains("Icons/snap_objects.png", StringComparison.Ordinal),
         "Snap-to-objects must use its own header glyph");
     AssertEqual(true, ribbonXaml.Contains("Icons/snap_grid.png", StringComparison.Ordinal),
@@ -12302,7 +12303,7 @@ static Task TestDesignerHeaderCommandsAreUnique()
             }
 
             AssertEqual(true, found.Contains("Shell.Status.Zoom", StringComparer.Ordinal),
-                "Status bar remains the only zoom placement");
+                "The status bar keeps the zoom slider");
         }
         catch (Exception ex)
         {
@@ -12506,6 +12507,72 @@ static Task TestMainWindowLoadDoesNotForcePrinterSetup()
     return Task.CompletedTask;
 }
 
+
+static Task TestDesignerLayoutFollowsNiceLabel10()
+{
+    // docs/NICELABEL_10_UI_LAYOUT.md: File + Home/Data/View/Help tabs, contextual
+    // Design and object tabs only with a selection, Data/Layers/Objects explorer,
+    // Source/Style/Position/General property categories, 3-column toolbox.
+    var xaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));
+    AssertEqual(true, xaml.Contains("<UniformGrid Columns=\"3\" Rows=\"3\">", StringComparison.Ordinal),
+        "The toolbox uses NiceLabel's three-column tiles");
+    var data = xaml.IndexOf("<TextBlock Text=\"Dữ liệu\"/>", StringComparison.Ordinal);
+    var layers = xaml.IndexOf("<TextBlock Text=\"Lớp\"/>", StringComparison.Ordinal);
+    var objects = xaml.IndexOf("Shell.Workspace.Objects", StringComparison.Ordinal);
+    AssertEqual(true, data > 0 && layers > data && objects > layers, "Explorer tabs follow NiceLabel: Data, Layers, Objects");
+    var categories = new[] { "Source properties", "Style properties", "Position properties", "General properties" }
+        .Select(name => xaml.IndexOf(name, StringComparison.Ordinal)).ToArray();
+    AssertEqual(true, categories.All(index => index > 0) && categories.SequenceEqual(categories.OrderBy(index => index)),
+        "Property categories follow NiceLabel: Source, Style, Position, General");
+
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var window = new MainWindow();
+            var viewModel = new MainViewModel();
+            window.DataContext = viewModel;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            PumpDispatcher();
+            var found = CollectAutomationIds(window);
+            foreach (var id in new[] { "Shell.Ribbon.File", "Shell.Ribbon.Tab.Home", "Shell.Ribbon.Tab.Data", "Shell.Ribbon.Tab.View", "Shell.Ribbon.Tab.Help",
+                         "Shell.Ribbon.Paste", "Shell.Ribbon.Cut", "Shell.Ribbon.Copy", "Shell.Ribbon.Font", "Shell.Ribbon.DataSources",
+                         "Shell.Ribbon.ZoomToDocument", "Shell.Status.Printer", "Shell.Properties.Title" })
+            {
+                AssertEqual(true, found.Contains(id, StringComparer.Ordinal), "NiceLabel layout must expose " + id);
+            }
+
+            UIElement Element(string id) => (UIElement)FindByAutomationId(window, id)!;
+            AssertEqual(Visibility.Collapsed, Element("Shell.Ribbon.Tab.Design").Visibility, "Design tab appears only with a selection (selected: " + (viewModel.SelectedObject?.Name ?? "none") + ")");
+            viewModel.AddTextCommand.Execute(null);
+            var text = viewModel.Template.Objects.Last();
+            viewModel.SelectedObject = text;
+            PumpDispatcher();
+            AssertEqual(Visibility.Visible, Element("Shell.Ribbon.Tab.Design").Visibility, "Design tab appears for a selected object");
+            AssertEqual(Visibility.Visible, Element("Shell.Ribbon.Tab.Text").Visibility, "Text tab appears for a selected text");
+            AssertEqual(Visibility.Collapsed, Element("Shell.Ribbon.Tab.Barcode").Visibility, "Barcode tab stays hidden for a text");
+            viewModel.SelectedRibbonTab = RibbonTab.Text;
+            viewModel.SelectedObject = null;
+            AssertEqual(RibbonTab.Home, viewModel.SelectedRibbonTab, "Clearing the selection returns to the Home tab");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
 
 static HashSet<string> CollectAutomationIds(DependencyObject root)
 {

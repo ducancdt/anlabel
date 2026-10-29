@@ -96,6 +96,7 @@ public sealed class MainViewModel : ObservableObject
     private string _explicitEditGesturePreChangeSnapshot = string.Empty;
     private LabelTemplate _template = CreateDefaultTemplate();
     private LabelObject? _selectedObject;
+    private RibbonTab _selectedRibbonTab = RibbonTab.Home;
     private DataView? _excelDataView;
     private IDataConnector? _dataConnector;
     private string _dataTransformError = string.Empty;
@@ -315,6 +316,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(SelectedObjectTypeText));
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
                 OnPropertyChanged(nameof(SelectedObjectIconPath));
+                RaiseRibbonSelectionChanged();
                 RaiseFormulaPreviewChanged();
                 OnPropertyChanged(nameof(BarcodeValidationMessage));
                 OnPropertyChanged(nameof(TextBoxValidationMessage));
@@ -762,6 +764,44 @@ public sealed class MainViewModel : ObservableObject
         ObjectType.Image => "Icons/image.png",
         _ => "Icons/cursor_select.png"
     };
+    /// <summary>
+    /// Ribbon tab shown (docs/NICELABEL_10_UI_LAYOUT.md). The contextual
+    /// tabs exist only while an object is selected, as in NiceLabel 10.
+    /// </summary>
+    public RibbonTab SelectedRibbonTab
+    {
+        get => _selectedRibbonTab;
+        set => SetProperty(ref _selectedRibbonTab, value);
+    }
+
+    public bool HasSelectedObject => SelectedObject is not null;
+    public bool IsTextObjectSelected => SelectedObject?.Type is ObjectType.Text or ObjectType.TextBox;
+    public bool IsBarcodeObjectSelected => SelectedObject?.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix;
+    public bool IsImageObjectSelected => SelectedObject?.Type is ObjectType.Image;
+    public bool IsShapeObjectSelected => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Line;
+
+    private void RaiseRibbonSelectionChanged()
+    {
+        OnPropertyChanged(nameof(HasSelectedObject));
+        OnPropertyChanged(nameof(IsTextObjectSelected));
+        OnPropertyChanged(nameof(IsBarcodeObjectSelected));
+        OnPropertyChanged(nameof(IsImageObjectSelected));
+        OnPropertyChanged(nameof(IsShapeObjectSelected));
+        var contextualOpen = SelectedRibbonTab switch
+        {
+            RibbonTab.Design => HasSelectedObject,
+            RibbonTab.Text => IsTextObjectSelected,
+            RibbonTab.Barcode => IsBarcodeObjectSelected,
+            RibbonTab.Picture => IsImageObjectSelected,
+            RibbonTab.Shape => IsShapeObjectSelected,
+            _ => true
+        };
+        if (!contextualOpen)
+        {
+            SelectedRibbonTab = RibbonTab.Home;
+        }
+    }
+
     public string SelectedObjectTypeText => SelectedObject is null
         ? "Đối tượng"
         : ANLAbel.App.Services.DisplayNames.ForObjectType(SelectedObject.Type);

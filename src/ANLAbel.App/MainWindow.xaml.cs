@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        BindObjectBrowser();
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(OpenPrintPreview),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.P, System.Windows.Input.ModifierKeys.Control)));
@@ -217,6 +218,33 @@ public partial class MainWindow : Window
         {
             UpdateContentSourceSelection();
         }
+
+        if (e.PropertyName == nameof(MainViewModel.Template))
+        {
+            BindObjectBrowser();
+        }
+    }
+
+    /// <summary>
+    /// NiceLabel 10 Object Browser: every object of the label, filtered by
+    /// the search box, on its own view so the canvas and Layers stay unfiltered.
+    /// </summary>
+    private void BindObjectBrowser()
+    {
+        ObjectBrowserList.ItemsSource = new System.Windows.Data.ListCollectionView(_viewModel.Template.Objects)
+        {
+            Filter = item => item is LabelObject labelObject && MatchesObjectSearch(labelObject, ObjectBrowserSearch.Text)
+        };
+    }
+
+    private static bool MatchesObjectSearch(LabelObject item, string? search)
+        => string.IsNullOrWhiteSpace(search)
+            || item.Name.Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase)
+            || (item.Text ?? string.Empty).Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase);
+
+    private void ObjectBrowserSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        (ObjectBrowserList.ItemsSource as System.ComponentModel.ICollectionView)?.Refresh();
     }
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -426,6 +454,83 @@ public partial class MainWindow : Window
         }
 
         item.Style.TextPaddingMm = paddingMm;
+        e.Handled = true;
+    }
+
+    private void FileMenu_Click(object sender, RoutedEventArgs e)
+    {
+        // NiceLabel 10 File backstage: here a menu under the File button.
+        if (FileMenuButton.ContextMenu is { } menu)
+        {
+            menu.PlacementTarget = FileMenuButton;
+            menu.Placement = PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+
+        e.Handled = true;
+    }
+
+    private void Paste_Click(object sender, RoutedEventArgs e)
+    {
+        DesignerCanvas.PasteCopiedObjects();
+        DesignerCanvas.Focus();
+        e.Handled = true;
+    }
+
+    private void Cut_Click(object sender, RoutedEventArgs e)
+    {
+        DesignerCanvas.CutSelectedObjects();
+        DesignerCanvas.Focus();
+        e.Handled = true;
+    }
+
+    private void Copy_Click(object sender, RoutedEventArgs e)
+    {
+        DesignerCanvas.CopySelectedObjects();
+        DesignerCanvas.Focus();
+        e.Handled = true;
+    }
+
+    private void DataSources_Click(object sender, RoutedEventArgs e)
+    {
+        // NiceLabel 10 Dynamic Data Manager: the Data explorer under the toolbox.
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.ShowAllPanelsCommand.Execute(null);
+        }
+
+        WorkspaceTabs.SelectedIndex = 0;
+        e.Handled = true;
+    }
+
+    private void ZoomToDocument_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        // Fit the label and the canvas margins into the visible surface.
+        var labelWidthDip = MmConverter.MmToDip(viewModel.Template.WidthMm) + 212;
+        var labelHeightDip = MmConverter.MmToDip(viewModel.Template.HeightMm) + 172;
+        var fit = Math.Min(
+            DesignerScrollViewer.ViewportWidth / Math.Max(1, labelWidthDip),
+            DesignerScrollViewer.ViewportHeight / Math.Max(1, labelHeightDip));
+        if (double.IsFinite(fit) && fit > 0)
+        {
+            viewModel.Zoom = Math.Clamp(fit, 0.25, 4);
+        }
+
+        e.Handled = true;
+    }
+
+    private void Zoom100_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.Zoom = 1;
+        }
+
         e.Handled = true;
     }
 

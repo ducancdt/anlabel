@@ -438,6 +438,126 @@
             <Setter Property="CanUserDeleteRows" Value="False"/>
             <Setter Property="IsReadOnly" Value="True"/>
         </Style>
+
+        <!-- NiceLabel 10 ribbon tabs (docs/NICELABEL_10_UI_LAYOUT.md) -->
+        <converters:RibbonTabConverter x:Key="RibbonTabConverter"/>
+        <Style x:Key="RibbonTabHeader" TargetType="RadioButton">
+            <Setter Property="GroupName" Value="RibbonTabs"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="Margin" Value="0,4,2,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="TabRoot" Background="{TemplateBinding Background}" CornerRadius="4,4,0,0" Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabRoot" Property="Background" Value="#1E4D8F"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="TabRoot" Property="Background" Value="#F2F6FB"/>
+                                <Setter Property="Foreground" Value="#0B4A8B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RibbonContextTabHeader" TargetType="RadioButton" BasedOn="{StaticResource RibbonTabHeader}">
+            <Setter Property="Background" Value="#3B6FB6"/>
+        </Style>
+        <Style x:Key="RibbonPanel" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+        </Style>
+        <Style x:Key="RibbonGlyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Foreground" Value="#1F4E8C"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
+        </Style>
+        <Style x:Key="RibbonSmallGlyph" TargetType="TextBlock" BasedOn="{StaticResource RibbonGlyph}">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="RibbonSmallButton" TargetType="Button" BasedOn="{StaticResource RibbonSecondaryButton}">
+            <Setter Property="Width" Value="Auto"/>
+            <Setter Property="MinWidth" Value="84"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+        </Style>
+        <Style x:Key="RibbonIconButton" TargetType="Button" BasedOn="{StaticResource RibbonSecondaryButton}">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+        </Style>
+        <Style x:Key="RibbonIconToggle" TargetType="ToggleButton" BasedOn="{StaticResource RibbonToggleButton}">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Margin" Value="1"/>
+        </Style>
+        <Style x:Key="RibbonIconRadio" TargetType="RadioButton">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="RadioRoot" Background="#FFFFFF" BorderBrush="#E5EAF1" BorderThickness="1" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RadioRoot" Property="Background" Value="#EAF3FF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="RadioRoot" Property="Background" Value="#DCEBFF"/>
+                                <Setter TargetName="RadioRoot" Property="BorderBrush" Value="#1464D2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RibbonSeparator" TargetType="Border">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Background" Value="#E5EAF1"/>
+            <Setter Property="Margin" Value="8,3"/>
+        </Style>
+        <Style x:Key="AlignIcon" TargetType="Path">
+            <Setter Property="Fill" Value="#1F4E8C"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+        </Style>
+
+        <DataTemplate x:Key="TextSizingItem">
+            <TextBlock>
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="Xuống dòng, giữ cỡ phông"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ShrinkFont}"><Setter Property="Text" Value="Đổi cỡ phông cho vừa khung"/></DataTrigger>
+                            <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ScaleWidth}"><Setter Property="Text" Value="Co giãn chiều ngang chữ cho vừa"/></DataTrigger>
+                            <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.AdjustHeight}"><Setter Property="Text" Value="Giữ chiều rộng, chiều cao theo nội dung"/></DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
     </Window.Resources>
 
     <DockPanel LastChildFill="True">
@@ -508,126 +628,455 @@
             </Grid>
         </Border>
 
-        <Border DockPanel.Dock="Top" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="8,5"
+        <Border DockPanel.Dock="Top" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1"
                 AutomationProperties.AutomationId="Shell.Ribbon"
                 AutomationProperties.Name="Ribbon">
-            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
-                <StackPanel Orientation="Horizontal">
-                    <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="{Binding Ui.Templates}" AutomationProperties.Name="Templates" AutomationProperties.AutomationId="Shell.Ribbon.Templates">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="{Binding Ui.Templates}" Style="{StaticResource RibbonPrimaryCaption}"/></StackPanel>
+            <DockPanel>
+                <!-- Tab strip: Tệp | Trang chủ | Dữ liệu | Xem | Trợ giúp | contextual (NiceLabel 10 order, docs/NICELABEL_10_UI_LAYOUT.md) -->
+                <Border DockPanel.Dock="Top" Background="#063B66" Padding="10,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="FileMenuButton" Click="FileMenu_Click" Content="Tệp" Foreground="#FFFFFF" Background="#1464D2" BorderBrush="#1464D2"
+                                Padding="16,4" Margin="0,4,6,0" FontSize="13" Cursor="Hand"
+                                AutomationProperties.Name="File" AutomationProperties.AutomationId="Shell.Ribbon.File"
+                                ToolTip="Mới, mở, lưu, phiên bản và cài đặt">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Mới…" InputGestureText="Ctrl+N" Click="New_Click"/>
+                                    <MenuItem Header="Mở…" InputGestureText="Ctrl+O" Click="Open_Click"/>
+                                    <MenuItem Header="Lưu" InputGestureText="Ctrl+S" Click="Save_Click"/>
+                                    <MenuItem Header="Lưu thành…" InputGestureText="Ctrl+Shift+S" Click="SaveAs_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Mẫu tem…" Click="TemplateLibrary_Click"/>
+                                    <MenuItem Header="Phiên bản và bản sao lưu…" Click="RevisionHistory_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="In…" InputGestureText="Ctrl+P" Click="PrintPreview_Click"/>
+                                    <MenuItem Header="Cài đặt…" Click="Settings_Click"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
                         </Button>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Library}"/>
+                        <RadioButton Style="{StaticResource RibbonTabHeader}" Content="Trang chủ" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Home"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Home}"/>
+                        <RadioButton Style="{StaticResource RibbonTabHeader}" Content="Dữ liệu" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Data"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Data}"/>
+                        <RadioButton Style="{StaticResource RibbonTabHeader}" Content="Xem" AutomationProperties.AutomationId="Shell.Ribbon.Tab.View"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=View}"/>
+                        <RadioButton Style="{StaticResource RibbonTabHeader}" Content="Trợ giúp" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Help"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Help}"/>
+                        <RadioButton Style="{StaticResource RibbonContextTabHeader}" Content="Thiết kế" Margin="12,4,2,0" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Design"
+                                     Visibility="{Binding HasSelectedObject, Converter={StaticResource BoolToVisibility}}"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Design}"/>
+                        <RadioButton Style="{StaticResource RibbonContextTabHeader}" Content="Chữ" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Text"
+                                     Visibility="{Binding IsTextObjectSelected, Converter={StaticResource BoolToVisibility}}"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Text}"/>
+                        <RadioButton Style="{StaticResource RibbonContextTabHeader}" Content="Mã vạch" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Barcode"
+                                     Visibility="{Binding IsBarcodeObjectSelected, Converter={StaticResource BoolToVisibility}}"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Barcode}"/>
+                        <RadioButton Style="{StaticResource RibbonContextTabHeader}" Content="Hình ảnh" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Picture"
+                                     Visibility="{Binding IsImageObjectSelected, Converter={StaticResource BoolToVisibility}}"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Picture}"/>
+                        <RadioButton Style="{StaticResource RibbonContextTabHeader}" Content="Hình dạng" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Shape"
+                                     Visibility="{Binding IsShapeObjectSelected, Converter={StaticResource BoolToVisibility}}"
+                                     IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Shape}"/>
                     </StackPanel>
+                </Border>
 
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Click="ImportExcel_Click" AutomationProperties.Name="Import Excel" AutomationProperties.AutomationId="Shell.Ribbon.ImportExcel">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="{Binding Ui.Import}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Excel}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Nạp lại dữ liệu từ tệp Excel và trang tính đã liên kết" AutomationProperties.Name="Update Excel" AutomationProperties.AutomationId="Shell.Ribbon.UpdateExcel">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/update_excel.png"/><TextBlock Text="{Binding Ui.Update}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Excel}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                            </Button>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Data}"/>
-                    </StackPanel>
-
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Click="PrinterSetup_Click" AutomationProperties.Name="Printer Setup" AutomationProperties.AutomationId="Shell.Ribbon.PrinterSetup">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/printer_setup.png"/><TextBlock Text="{Binding Ui.Printer}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Setup}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="PrintPreview_Click" AutomationProperties.Name="Preview" AutomationProperties.AutomationId="Shell.Ribbon.Preview">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="{Binding Ui.Preview}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Ctrl+P" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="PrintCurrent_Click" AutomationProperties.Name="Print Current" AutomationProperties.AutomationId="Shell.Ribbon.PrintCurrent">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_current.png"/><TextBlock Text="{Binding Ui.Print}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.CurrentRow}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                            </Button>
-                            <StackPanel Margin="3,0,0,0">
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintAllRows_Click" ToolTip="In mọi dòng đã nhập" AutomationProperties.Name="Print all rows" AutomationProperties.AutomationId="Shell.Ribbon.PrintAllRows">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_all_rows.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintAllRows}" VerticalAlignment="Center"/></StackPanel>
-                                </Button>
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintHistory_Click" ToolTip="Mở lịch sử in (chỉ ghi thêm)" AutomationProperties.Name="Print history" AutomationProperties.AutomationId="Shell.Ribbon.PrintHistory">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_history.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintHistory}" VerticalAlignment="Center"/></StackPanel>
-                                </Button>
-                            </StackPanel>
+                <Grid Margin="8,4" Height="96">
+                    <!-- Trang chủ: Bộ nhớ tạm · Phông chữ · Thao tác · Quản lý · Căn chỉnh · Đối tượng -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Home}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
                             <StackPanel>
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Click="ExportPrintHistory_Click" ToolTip="Xuất lịch sử in ra Excel" AutomationProperties.Name="Export Excel" AutomationProperties.AutomationId="Shell.Ribbon.ExportExcel">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/export_excel.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.ExportExcel}" VerticalAlignment="Center"/></StackPanel>
-                                </Button>
-                                <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintCalibrationCommand}" ToolTip="In tem hiệu chỉnh" AutomationProperties.Name="Test print" AutomationProperties.AutomationId="Shell.Ribbon.TestPrint">
-                                    <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/test_print.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.TestPrint}" VerticalAlignment="Center"/></StackPanel>
-                                </Button>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Click="Paste_Click" ToolTip="Dán (Ctrl+V)" AutomationProperties.Name="Paste" AutomationProperties.AutomationId="Shell.Ribbon.Paste">
+                                        <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xE77F;" FontSize="24"/><TextBlock Text="Dán" Style="{StaticResource RibbonPrimaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <StackPanel>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Click="Cut_Click" ToolTip="Cắt (Ctrl+X)" AutomationProperties.Name="Cut" AutomationProperties.AutomationId="Shell.Ribbon.Cut">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE8C6;"/><TextBlock Text="Cắt" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Click="Copy_Click" ToolTip="Sao chép (Ctrl+C)" AutomationProperties.Name="Copy" AutomationProperties.AutomationId="Shell.Ribbon.Copy">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE8C8;"/><TextBlock Text="Sao chép" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Bộ nhớ tạm"/>
+                            </StackPanel>
+
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel IsEnabled="{Binding IsTextObjectSelected}" AutomationProperties.AutomationId="Shell.Ribbon.Font">
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,3">
+                                    <ComboBox Width="150" Height="24" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
+                                              IsTextSearchEnabled="True" AutomationProperties.Name="Ribbon font family" ToolTip="Phông chữ">
+                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <ComboBox Width="56" Height="24" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
+                                              AutomationProperties.Name="Ribbon font size" ToolTip="Cỡ chữ (pt)"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" ToolTip="Đậm" AutomationProperties.Name="Ribbon bold">
+                                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DD;"/>
+                                    </ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" ToolTip="Nghiêng" AutomationProperties.Name="Ribbon italic">
+                                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DB;"/>
+                                    </ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" ToolTip="Gạch chân" AutomationProperties.Name="Ribbon underline">
+                                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DC;"/>
+                                    </ToggleButton>
+                                    <Border Width="8"/>
+                                    <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="RibbonTextAlign" ToolTip="Căn trái" AutomationProperties.Name="Ribbon align left"
+                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}">
+                                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E4;"/>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="RibbonTextAlign" ToolTip="Căn giữa" AutomationProperties.Name="Ribbon align center"
+                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Center}}">
+                                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E3;"/>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="RibbonTextAlign" ToolTip="Căn phải" AutomationProperties.Name="Ribbon align right"
+                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Right}}">
+                                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E2;"/>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="RibbonTextAlign" ToolTip="Căn đều hai bên" AutomationProperties.Name="Ribbon justify"
+                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}">
+                                        <Path Style="{StaticResource AlignIcon}" Width="13" Height="13" Data="M0,1 H16 V3 H0 Z M0,5 H16 V7 H0 Z M0,9 H16 V11 H0 Z M0,13 H16 V15 H0 Z"/>
+                                    </RadioButton>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Phông chữ" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Click="PrintCurrent_Click" AutomationProperties.Name="Print Current" AutomationProperties.AutomationId="Shell.Ribbon.PrintCurrent">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/print_current.png"/><TextBlock Text="{Binding Ui.Print}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.CurrentRow}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonButton}" Click="PrintPreview_Click" AutomationProperties.Name="Preview" AutomationProperties.AutomationId="Shell.Ribbon.Preview">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="{Binding Ui.Preview}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Ctrl+P" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <StackPanel Margin="3,0,0,0">
+                                        <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintAllRows_Click" ToolTip="In mọi dòng đã nhập" AutomationProperties.Name="Print all rows" AutomationProperties.AutomationId="Shell.Ribbon.PrintAllRows">
+                                            <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_all_rows.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintAllRows}" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSecondaryButton}" Command="{Binding PrintCalibrationCommand}" ToolTip="In tem hiệu chỉnh" AutomationProperties.Name="Test print" AutomationProperties.AutomationId="Shell.Ribbon.TestPrint">
+                                            <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/test_print.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.TestPrint}" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintHistory_Click" ToolTip="Mở lịch sử in (chỉ ghi thêm)" AutomationProperties.Name="Print history" AutomationProperties.AutomationId="Shell.Ribbon.PrintHistory">
+                                            <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_history.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintHistory}" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSecondaryButton}" Click="ExportPrintHistory_Click" ToolTip="Xuất lịch sử in ra Excel" AutomationProperties.Name="Export Excel" AutomationProperties.AutomationId="Shell.Ribbon.ExportExcel">
+                                            <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/export_excel.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.ExportExcel}" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Thao tác"/>
+                            </StackPanel>
+
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Click="DataSources_Click" ToolTip="Nguồn dữ liệu của tem (Excel, CSV, trường dữ liệu)" AutomationProperties.Name="Data sources" AutomationProperties.AutomationId="Shell.Ribbon.DataSources">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/database.png"/><TextBlock Text="Nguồn" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="dữ liệu" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonButton}" Click="PrinterSetup_Click" ToolTip="Thuộc tính tài liệu: khổ tem, máy in, DPI" AutomationProperties.Name="Printer Setup" AutomationProperties.AutomationId="Shell.Ribbon.PrinterSetup">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/printer_setup.png"/><TextBlock Text="Thuộc tính" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="tài liệu" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Quản lý"/>
+                            </StackPanel>
+
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="Left" Click="ArrangeAlign_Click" ToolTip="Căn trái" AutomationProperties.Name="Align left objects"><Path Style="{StaticResource AlignIcon}" Data="M0,0 H1.5 V16 H0 Z M3,3 H13 V7 H3 Z M3,9 H9 V13 H3 Z"/></Button>
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="HorizontalCenter" Click="ArrangeAlign_Click" ToolTip="Căn giữa theo chiều ngang" AutomationProperties.Name="Center objects horizontally"><Path Style="{StaticResource AlignIcon}" Data="M7.25,0 H8.75 V16 H7.25 Z M2,3 H14 V7 H2 Z M4,9 H12 V13 H4 Z"/></Button>
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="Right" Click="ArrangeAlign_Click" ToolTip="Căn phải" AutomationProperties.Name="Align right objects"><Path Style="{StaticResource AlignIcon}" Data="M14.5,0 H16 V16 H14.5 Z M3,3 H13 V7 H3 Z M7,9 H13 V13 H7 Z"/></Button>
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="HorizontalGaps" Click="ArrangeDistribute_Click" ToolTip="Phân bố đều theo chiều ngang" AutomationProperties.Name="Distribute horizontally"><Path Style="{StaticResource AlignIcon}" Data="M0,0 H1.5 V16 H0 Z M14.5,0 H16 V16 H14.5 Z M5.5,4 H10.5 V12 H5.5 Z"/></Button>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="Top" Click="ArrangeAlign_Click" ToolTip="Căn trên" AutomationProperties.Name="Align top objects"><Path Style="{StaticResource AlignIcon}" Data="M0,0 H16 V1.5 H0 Z M3,3 H7 V13 H3 Z M9,3 H13 V9 H9 Z"/></Button>
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="VerticalCenter" Click="ArrangeAlign_Click" ToolTip="Căn giữa theo chiều dọc" AutomationProperties.Name="Center objects vertically"><Path Style="{StaticResource AlignIcon}" Data="M0,7.25 H16 V8.75 H0 Z M3,2 H7 V14 H3 Z M9,4 H13 V12 H9 Z"/></Button>
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="Bottom" Click="ArrangeAlign_Click" ToolTip="Căn dưới" AutomationProperties.Name="Align bottom objects"><Path Style="{StaticResource AlignIcon}" Data="M0,14.5 H16 V16 H0 Z M3,3 H7 V13 H3 Z M9,7 H13 V13 H9 Z"/></Button>
+                                        <Button Style="{StaticResource RibbonIconButton}" Tag="VerticalGaps" Click="ArrangeDistribute_Click" ToolTip="Phân bố đều theo chiều dọc" AutomationProperties.Name="Distribute vertically"><Path Style="{StaticResource AlignIcon}" Data="M0,0 H16 V1.5 H0 Z M0,14.5 H16 V16 H0 Z M4,5.5 H12 V10.5 H4 Z"/></Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Căn chỉnh"/>
+                            </StackPanel>
+
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <StackPanel>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Command="{Binding BringForwardCommand}" ToolTip="Đưa đối tượng lên một lớp" AutomationProperties.Name="Bring forward" AutomationProperties.AutomationId="Shell.Ribbon.BringForward">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE74A;"/><TextBlock Text="Đưa lên" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Command="{Binding SendBackwardCommand}" ToolTip="Đưa đối tượng xuống một lớp" AutomationProperties.Name="Send backward" AutomationProperties.AutomationId="Shell.Ribbon.SendBackward">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE74B;"/><TextBlock Text="Đưa xuống" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource RibbonButton}" Command="controls:LabelDesignerCanvas.DeleteSelectionCommand" CommandTarget="{Binding ElementName=DesignerCanvas}" AutomationProperties.Name="Delete Selection" AutomationProperties.AutomationId="Shell.Ribbon.DeleteSelection">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/delete_selection.png"/><TextBlock Text="{Binding Ui.Delete}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Selection}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Đối tượng"/>
                             </StackPanel>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.PrintOutput}"/>
-                    </StackPanel>
+                    </Viewbox>
 
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}" AutomationProperties.Name="Panels restore" AutomationProperties.AutomationId="Shell.Ribbon.Panels">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="{Binding Ui.Panels}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Restore}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                            </Button>
-                            <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="58"
-                                          IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToObjectsEnabled, Mode=TwoWay}"
-                                          AutomationProperties.Name="Snap to objects"
-                                          AutomationProperties.AutomationId="Shell.Ribbon.SnapObjects"
-                                          ToolTip="Dính cạnh và tâm đối tượng khi kéo. Giữ Alt để tạm bỏ qua.">
-                                <ToggleButton.Resources>
-                                    <Style TargetType="TextBlock">
-                                        <Style.Triggers>
-                                            <Trigger Property="FontSize" Value="18">
+                    <!-- Dữ liệu: Nhập dữ liệu · Quản lý nguồn dữ liệu -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Data}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Click="ImportExcel_Click" ToolTip="Liên kết tệp Excel hoặc CSV" AutomationProperties.Name="Import Excel" AutomationProperties.AutomationId="Shell.Ribbon.ImportExcel">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/import_excel.png"/><TextBlock Text="{Binding Ui.Excel}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="CSV" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonButton}" Command="{Binding RefreshExcelDataCommand}" ToolTip="Nạp lại dữ liệu từ tệp Excel và trang tính đã liên kết" AutomationProperties.Name="Update Excel" AutomationProperties.AutomationId="Shell.Ribbon.UpdateExcel">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/update_excel.png"/><TextBlock Text="{Binding Ui.Update}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Excel}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Nhập dữ liệu"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <Button Style="{StaticResource RibbonButton}" Click="DataSources_Click" ToolTip="Mở bảng Dữ liệu: trường, nguồn, dòng xem trước" AutomationProperties.Name="Data source manager" AutomationProperties.AutomationId="Shell.Ribbon.DataManager">
+                                    <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xE8F1;"/><TextBlock Text="Quản lý" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="nguồn dữ liệu" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                </Button>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Quản lý nguồn dữ liệu"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+
+                    <!-- Xem: Thu phóng · Căn và lưới · Bảng -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=View}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Click="ZoomToDocument_Click" ToolTip="Thu phóng vừa tem" AutomationProperties.Name="Zoom to document" AutomationProperties.AutomationId="Shell.Ribbon.ZoomToDocument">
+                                        <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xE9A6;"/><TextBlock Text="Vừa" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="tài liệu" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <StackPanel>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Command="{Binding ZoomInCommand}" ToolTip="Phóng to" AutomationProperties.Name="Ribbon zoom in" AutomationProperties.AutomationId="Shell.Ribbon.ZoomIn">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE8A3;"/><TextBlock Text="Phóng to" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Command="{Binding ZoomOutCommand}" ToolTip="Thu nhỏ" AutomationProperties.Name="Ribbon zoom out" AutomationProperties.AutomationId="Shell.Ribbon.ZoomOut">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE71F;"/><TextBlock Text="Thu nhỏ" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Click="Zoom100_Click" ToolTip="Kích thước thật (100%)" AutomationProperties.Name="Zoom 100" AutomationProperties.AutomationId="Shell.Ribbon.Zoom100">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE71E;"/><TextBlock Text="{Binding ZoomPercent, StringFormat={}{0}%}" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Thu phóng"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="64"
+                                                  IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToObjectsEnabled, Mode=TwoWay}"
+                                                  AutomationProperties.Name="Snap to objects"
+                                                  AutomationProperties.AutomationId="Shell.Ribbon.SnapObjects"
+                                                  ToolTip="Căn theo đối tượng: dính cạnh và tâm đối tượng khi kéo. Giữ Alt để tạm bỏ qua.">
+                                        <StackPanel>
+                                            <Image Style="{StaticResource IconImage}" Source="Icons/snap_objects.png"/>
+                                            <TextBlock Text="Theo" FontSize="10" TextAlignment="Center"/>
+                                            <TextBlock Text="đối tượng" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="62"
+                                                  IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToGridEnabled, Mode=TwoWay}"
+                                                  AutomationProperties.Name="Snap to grid"
+                                                  AutomationProperties.AutomationId="Shell.Ribbon.SnapGrid"
+                                                  ToolTip="Căn theo lưới: dính cạnh đối tượng theo bước lưới vật lý đã đặt. Kéo từ thước để tạo đường gióng cố định; chuột phải lên khung vẽ để khóa/xóa đường gióng hoặc chọn bước; giữ Alt để tạm bỏ qua.">
+                                        <StackPanel>
+                                            <Image Style="{StaticResource IconImage}" Source="Icons/snap_grid.png"/>
+                                            <TextBlock Text="Theo" FontSize="10" TextAlignment="Center"/>
+                                            <TextBlock Text="lưới" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Căn và lưới"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <Button Style="{StaticResource RibbonButton}" Command="{Binding ShowAllPanelsCommand}" AutomationProperties.Name="Panels restore" AutomationProperties.AutomationId="Shell.Ribbon.Panels">
+                                    <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/panels.png"/><TextBlock Text="{Binding Ui.Panels}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Restore}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                </Button>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Bảng"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+
+                    <!-- Trợ giúp: Trợ giúp · Sản phẩm -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Help}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Click="Help_Click" AutomationProperties.Name="Help" AutomationProperties.AutomationId="Shell.Ribbon.Help">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="{Binding Ui.Help}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="F1" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonButton}" Click="TemplateLibrary_Click" ToolTip="{Binding Ui.Templates}" AutomationProperties.Name="Templates" AutomationProperties.AutomationId="Shell.Ribbon.Templates">
+                                        <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/folder.png"/><TextBlock Text="{Binding Ui.Templates}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="tệp mẫu" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Help}"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <Button Style="{StaticResource RibbonButton}" Click="CheckUpdates_Click" ToolTip="Kiểm tra bản cập nhật mới từ các bản phát hành trên GitHub" AutomationProperties.Name="Check for Updates" AutomationProperties.AutomationId="Shell.Ribbon.CheckUpdates">
+                                    <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/app_update.png"/><TextBlock Text="{Binding Ui.Update}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="GitHub" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
+                                </Button>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Sản phẩm"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+
+                    <!-- Thiết kế (ngữ cảnh): Chung · Sắp xếp -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Design}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <CheckBox Content="Hiển thị" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,2" AutomationProperties.Name="Design visible"/>
+                                        <CheckBox Content="Khóa vị trí" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" Margin="0,2" AutomationProperties.Name="Design lock"/>
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Tên" FontSize="11" Foreground="{StaticResource AppMutedBrush}"/>
+                                        <TextBox Width="140" Text="{Binding SelectedObject.Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Design name"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Chung" Margin="0,6,0,0"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonButton}" Command="{Binding BringToFrontCommand}" ToolTip="Đưa lên trên cùng" AutomationProperties.Name="Bring to front">
+                                        <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xE746;"/><TextBlock Text="Lên trên" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="cùng" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonButton}" Command="{Binding SendToBackCommand}" ToolTip="Đưa xuống dưới cùng" AutomationProperties.Name="Send to back">
+                                        <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xE747;"/><TextBlock Text="Xuống dưới" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="cùng" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    </Button>
+                                    <StackPanel>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Command="{Binding BringForwardCommand}" ToolTip="Đưa lên một lớp" AutomationProperties.Name="Design bring forward">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE74A;"/><TextBlock Text="Đưa lên" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallButton}" Command="{Binding SendBackwardCommand}" ToolTip="Đưa xuống một lớp" AutomationProperties.Name="Design send backward">
+                                            <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE74B;"/><TextBlock Text="Đưa xuống" VerticalAlignment="Center"/></StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Sắp xếp"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+
+                    <!-- Chữ (ngữ cảnh): Định dạng · Thiết lập chữ -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Text}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,3">
+                                    <ComboBox Width="150" Height="24" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
+                                              AutomationProperties.Name="Text tab font family" ToolTip="Phông chữ">
+                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <ComboBox Width="56" Height="24" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
+                                              AutomationProperties.Name="Text tab font size" ToolTip="Cỡ chữ (pt)"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" ToolTip="Đậm"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DD;"/></ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" ToolTip="Nghiêng"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DB;"/></ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" ToolTip="Gạch chân"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DC;"/></ToggleButton>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Định dạng" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <StackPanel Margin="0,0,10,0">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
-                                            </Trigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ToggleButton.Resources>
-                                <StackPanel>
-                                    <Image Style="{StaticResource IconImage}" Source="Icons/snap_objects.png"/>
-                                    <TextBlock Text="{Binding Ui.Objects}" FontSize="10" TextAlignment="Center"/>
-                                    <TextBlock Text="{Binding Ui.Snap}" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Text}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock Text="Co giãn chữ ngang (%)" FontSize="11" Foreground="{StaticResource AppMutedBrush}"/>
+                                        <TextBox Width="110" Text="{Binding SelectedObject.Style.FontScalePercent, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Text tab font scaling"
+                                                 ToolTip="Như co giãn chữ trong NiceLabel: 100 là chữ gốc, dưới 100 hẹp lại, trên 100 giãn rộng ra."/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBlock Text="Vừa trong khung" FontSize="11" Foreground="{StaticResource AppMutedBrush}"/>
+                                        <ComboBox Width="230" ItemsSource="{Binding TextBoxSizingModes}" SelectedItem="{Binding SelectedObject.Style.TextSizing, Mode=TwoWay}" AutomationProperties.Name="Text tab sizing"
+                                                  ItemTemplate="{StaticResource TextSizingItem}"/>
+                                    </StackPanel>
                                 </StackPanel>
-                            </ToggleButton>
-                            <ToggleButton Style="{StaticResource RibbonToggleButton}" Width="62"
-                                          IsChecked="{Binding ElementName=DesignerCanvas, Path=IsSnapToGridEnabled, Mode=TwoWay}"
-                                          AutomationProperties.Name="Snap to grid"
-                                          AutomationProperties.AutomationId="Shell.Ribbon.SnapGrid"
-                                          ToolTip="Dính cạnh đối tượng theo bước lưới vật lý đã đặt. Kéo từ thước để tạo đường gióng cố định; chuột phải lên khung vẽ để khóa/xóa đường gióng hoặc chọn bước; giữ Alt để tạm bỏ qua.">
-                                <StackPanel>
-                                    <Image Style="{StaticResource IconImage}" Source="Icons/snap_grid.png"/>
-                                    <TextBlock Text="{Binding Ui.Grid}" FontSize="10" TextAlignment="Center"/>
-                                    <TextBlock Text="{Binding Ui.Snap}" FontSize="9" Foreground="{StaticResource AppMutedBrush}" TextAlignment="Center"/>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Thiết lập chữ" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+
+                    <!-- Mã vạch (ngữ cảnh) -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Barcode}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Margin="0,4,0,0">
+                                    <TextBlock Text="Dữ liệu mã" FontSize="11" Foreground="{StaticResource AppMutedBrush}"/>
+                                    <TextBox Width="220" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Barcode tab data"/>
+                                    <CheckBox Content="Hiện chữ dưới mã" Margin="0,4,0,0" IsChecked="{Binding SelectedObject.ShowBarcodeText, Mode=TwoWay}" AutomationProperties.Name="Barcode tab human readable"/>
                                 </StackPanel>
-                            </ToggleButton>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Mã vạch" Margin="0,4,0,0"/>
+                            </StackPanel>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Workspace}"/>
-                    </StackPanel>
+                    </Viewbox>
 
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <Button Style="{StaticResource RibbonButton}" Command="controls:LabelDesignerCanvas.DeleteSelectionCommand" AutomationProperties.Name="Delete Selection" AutomationProperties.AutomationId="Shell.Ribbon.DeleteSelection">
-                            <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/delete_selection.png"/><TextBlock Text="{Binding Ui.Delete}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="{Binding Ui.Selection}" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
-                        </Button>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Selection}"/>
-                    </StackPanel>
-
-                    <Border Width="1" Background="#E5EAF1" Margin="10,3"/>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource RibbonButton}" Click="Help_Click" AutomationProperties.Name="Help" AutomationProperties.AutomationId="Shell.Ribbon.Help">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/help.png"/><TextBlock Text="{Binding Ui.Help}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="F1" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource RibbonButton}" Click="CheckUpdates_Click" ToolTip="Kiểm tra bản cập nhật mới từ các bản phát hành trên GitHub" AutomationProperties.Name="Check for Updates" AutomationProperties.AutomationId="Shell.Ribbon.CheckUpdates">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/app_update.png"/><TextBlock Text="{Binding Ui.Update}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="GitHub" Style="{StaticResource RibbonSecondaryCaption}" FontSize="9"/></StackPanel>
-                            </Button>
+                    <!-- Hình ảnh (ngữ cảnh) -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Picture}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <Button Style="{StaticResource RibbonButton}" Command="{Binding ReplaceSelectedImageCommand}" ToolTip="Chọn tệp ảnh khác cho đối tượng này" AutomationProperties.Name="Replace picture">
+                                    <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xEB9F;"/><TextBlock Text="Thay ảnh" Style="{StaticResource RibbonPrimaryCaption}"/></StackPanel>
+                                </Button>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Hình ảnh"/>
+                            </StackPanel>
                         </StackPanel>
-                        <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="{Binding Ui.Help}"/>
-                    </StackPanel>
-                </StackPanel>
-            </Viewbox>
+                    </Viewbox>
+
+                    <!-- Hình dạng (ngữ cảnh) -->
+                    <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Shape}">
+                        <StackPanel Style="{StaticResource RibbonPanel}">
+                            <StackPanel>
+                                <StackPanel Margin="0,4,0,0">
+                                    <TextBlock Text="Độ dày nét (mm)" FontSize="11" Foreground="{StaticResource AppMutedBrush}"/>
+                                    <TextBox Width="110" Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Shape tab outline"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Đường viền" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Viewbox>
+                </Grid>
+            </DockPanel>
         </Border>
 
         <Border DockPanel.Dock="Bottom" Height="34" Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0"
@@ -639,11 +1088,6 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock FontWeight="SemiBold" Foreground="#173B72" VerticalAlignment="Center" Margin="0,0,14,0"
-                               MaxWidth="220" TextTrimming="CharacterEllipsis">
-                        <Run Text="{Binding Ui.PrinterPrefix, Mode=OneWay}"/>
-                        <Run Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=—, FallbackValue=—}"/>
-                    </TextBlock>
                     <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
                     <Button Click="PrinterQueueWarning_Click"
                             Visibility="{Binding HasPrinterQueueWarning, Converter={StaticResource BoolToVisibility}}"
@@ -677,11 +1121,27 @@
                         <TextBlock Text="{Binding MissingResourcesText}" FontWeight="SemiBold"/>
                     </Button>
                 </StackPanel>
+                <!-- NiceLabel 10 status bar: printer selector, zoom to document, zoom slider, percentage -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.AutomationId="Shell.Status.Zoom">
-                    <TextBlock Text="{Binding ZoomPercent, StringFormat=Thu phóng: {0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Click="PrinterSetup_Click" Padding="8,2" Margin="0,0,12,0" Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}"
+                            ToolTip="Máy in của tem — bấm để chọn máy in" AutomationProperties.Name="Status printer" AutomationProperties.AutomationId="Shell.Status.Printer">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource RibbonSmallGlyph}" Text="&#xE749;"/>
+                            <TextBlock FontWeight="SemiBold" Foreground="#173B72" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Ui.PrinterPrefix, Mode=OneWay}"/>
+                                <Run Text="{Binding Template.PrinterProfile.PrinterName, TargetNullValue=—, FallbackValue=—}"/>
+                            </TextBlock>
+                            <TextBlock Text=" ▾" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ZoomToDocument_Click" Width="26" Height="24" Padding="2" Margin="0,0,6,0" Background="Transparent" BorderBrush="Transparent"
+                            ToolTip="Thu phóng vừa tem" AutomationProperties.Name="Status zoom to document" AutomationProperties.AutomationId="Shell.Status.ZoomToDocument">
+                        <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE9A6;"/>
+                    </Button>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/zoom_minus.png"/>
                     <Slider Width="132" Minimum="0.25" Maximum="4" SmallChange="0.1" LargeChange="0.25" Value="{Binding Zoom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="8,0" AutomationProperties.Name="Zoom" AutomationProperties.AutomationId="Shell.Status.ZoomSlider"/>
                     <Image Style="{StaticResource SmallIconImage}" Source="Icons/zoom_plus.png"/>
+                    <TextBlock Text="{Binding ZoomPercent, StringFormat={}{0}%}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="40"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -711,7 +1171,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="42"/>
-                        <RowDefinition Height="286" MinHeight="220"/>
+                        <RowDefinition Height="250" MinHeight="200"/>
                         <RowDefinition Height="6"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
@@ -727,27 +1187,27 @@
                     </Border>
 
                     <StackPanel Grid.Row="1" Margin="8,8,8,8">
-                        <UniformGrid Columns="2" Rows="4">
+                        <UniformGrid Columns="3" Rows="3">
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}" ToolTip="Chữ (một dòng, nội dung tự sở hữu)">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Chữ" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Chữ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextBoxCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/text_box.png"/><TextBlock Text="Ô chữ" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/text_box.png"/><TextBlock Text="Ô chữ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddBarcodeCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/barcode.png"/><TextBlock Text="Mã vạch" TextAlignment="Center" FontSize="12"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddLineCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/line.png"/><TextBlock Text="Đường kẻ" TextAlignment="Center" FontSize="12"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRectangleCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rectangle.png"/><TextBlock Text="Hình chữ nhật" TextAlignment="Center" FontSize="12"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Hình bầu dục" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/barcode.png"/><TextBlock Text="Mã vạch" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddImageCommand}">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Hình ảnh" TextAlignment="Center" FontSize="12"/></StackPanel>
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Hình ảnh" TextAlignment="Center" FontSize="11.5"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRectangleCommand}" ToolTip="Hình chữ nhật">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rectangle.png"/><TextBlock Text="Chữ nhật" TextAlignment="Center" FontSize="11.5"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddLineCommand}">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/line.png"/><TextBlock Text="Đường kẻ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}" ToolTip="Hình bầu dục">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Bầu dục" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
                         </UniformGrid>
 
@@ -779,53 +1239,7 @@
                             AutomationProperties.AutomationId="Shell.Workspace"
                             AutomationProperties.Name="Workspace Layers and Data">
                         <DockPanel>
-                            <Border DockPanel.Dock="Top" Padding="12,10" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                                <DockPanel>
-                                    <TextBlock Text="Không gian làm việc" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <Image DockPanel.Dock="Right" Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
-                                </DockPanel>
-                            </Border>
-                            <TabControl BorderThickness="0" Padding="6" SelectedIndex="1">
-                                <TabItem>
-                                    <TabItem.Header>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Image Source="Icons/panels.png" Width="15" Height="15" Margin="0,0,6,0"/>
-                                            <TextBlock Text="Lớp"/>
-                                        </StackPanel>
-                                    </TabItem.Header>
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                        <StackPanel Margin="4,8">
-                                            <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
-                                                <TreeView>
-                                                    <TreeViewItem IsExpanded="True">
-                                                        <TreeViewItem.Header>
-                                                            <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem" FontWeight="SemiBold"/></StackPanel>
-                                                        </TreeViewItem.Header>
-                                                        <TreeViewItem Header="{Binding Template.Name}"/>
-                                                        <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
-                                                        <TreeViewItem Header="{Binding Template.HeightMm, StringFormat={}{0:0.##} mm}"/>
-                                                    </TreeViewItem>
-                                                </TreeView>
-                                            </Border>
-                                            <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8">
-                                                <StackPanel>
-                                                    <TextBlock Text="Đối tượng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="2,0,0,6"/>
-                                                    <TreeView ItemsSource="{Binding Template.Objects}">
-                                                        <TreeView.ItemTemplate>
-                                                            <HierarchicalDataTemplate>
-                                                                <StackPanel Margin="0,2">
-                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                                                    <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
-                                                                    <TextBlock Text="{Binding BindingStateDisplayText}" FontSize="10" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
-                                                                </StackPanel>
-                                                            </HierarchicalDataTemplate>
-                                                        </TreeView.ItemTemplate>
-                                                    </TreeView>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </ScrollViewer>
-                                </TabItem>
+                            <TabControl x:Name="WorkspaceTabs" BorderThickness="0" Padding="6" SelectedIndex="0">
                                 <TabItem>
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
@@ -1167,6 +1581,69 @@
                                     </StackPanel>
                                     </ScrollViewer>
                                 </TabItem>
+                                <TabItem>
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="Icons/panels.png" Width="15" Height="15" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Lớp"/>
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="4,8">
+                                            <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+                                                <TreeView>
+                                                    <TreeViewItem IsExpanded="True">
+                                                        <TreeViewItem.Header>
+                                                            <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem" FontWeight="SemiBold"/></StackPanel>
+                                                        </TreeViewItem.Header>
+                                                        <TreeViewItem Header="{Binding Template.Name}"/>
+                                                        <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
+                                                        <TreeViewItem Header="{Binding Template.HeightMm, StringFormat={}{0:0.##} mm}"/>
+                                                    </TreeViewItem>
+                                                </TreeView>
+                                            </Border>
+                                            <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="Đối tượng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="2,0,0,6"/>
+                                                    <TreeView ItemsSource="{Binding Template.Objects}">
+                                                        <TreeView.ItemTemplate>
+                                                            <HierarchicalDataTemplate>
+                                                                <StackPanel Margin="0,2">
+                                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                                    <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                                    <TextBlock Text="{Binding BindingStateDisplayText}" FontSize="10" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                            </HierarchicalDataTemplate>
+                                                        </TreeView.ItemTemplate>
+                                                    </TreeView>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </TabItem>
+                                <TabItem AutomationProperties.AutomationId="Shell.Workspace.Objects">
+                                    <TabItem.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE7B8;" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Đối tượng"/>
+                                        </StackPanel>
+                                    </TabItem.Header>
+                                    <DockPanel Margin="4,8">
+                                        <TextBox x:Name="ObjectBrowserSearch" DockPanel.Dock="Top" Margin="0,0,0,6" TextChanged="ObjectBrowserSearch_TextChanged"
+                                                 ToolTip="Tìm đối tượng theo tên hoặc nội dung" AutomationProperties.Name="Object search"/>
+                                        <ListBox x:Name="ObjectBrowserList" SelectedItem="{Binding SelectedObject, Mode=TwoWay}" BorderThickness="0"
+                                                 AutomationProperties.Name="Object browser">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,2">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </DockPanel>
+                                </TabItem>
                             </TabControl>
                         </DockPanel>
                     </Border>
@@ -1252,11 +1729,26 @@
                     <Border DockPanel.Dock="Top" Height="42" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="14,0">
                         <DockPanel>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Thuộc tính đối tượng" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                <Border Margin="8,0,0,0" Padding="6,2" CornerRadius="4" Background="#EAF3FF" BorderBrush="#9BC4F5" BorderThickness="1" VerticalAlignment="Center"
-                                        ToolTip="NiceLabel ghim Thuộc tính đối tượng bằng F4; ANLAbel luôn giữ bảng cố định này sẵn sàng.">
-                                    <TextBlock Text="cố định" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                </Border>
+                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="190" TextTrimming="CharacterEllipsis"
+                                           AutomationProperties.AutomationId="Shell.Properties.Title">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="Text">
+                                                <Setter.Value>
+                                                    <MultiBinding StringFormat="{}Thuộc tính - {0} [{1}]">
+                                                        <Binding Path="SelectedObject.Name"/>
+                                                        <Binding Path="SelectedObjectTypeText"/>
+                                                    </MultiBinding>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedObject}" Value="{x:Null}">
+                                                    <Setter Property="Text" Value="Thuộc tính"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                             <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HidePropertiesCommand}" ToolTip="Ẩn thuộc tính">
                                 <Image Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
@@ -1372,33 +1864,37 @@
 
                                 <TabControl x:Name="PropertiesModeTabs"
                                             SelectedIndex="0"
-                                            Height="38"
+                                            Height="30"
                                             Margin="0,0,0,6"
                                             Padding="0"
                                             BorderThickness="0"
                                             Background="Transparent"
                                             AutomationProperties.Name="Properties sections">
-                                    <TabItem AutomationProperties.Name="Label and text properties">
+                                    <TabItem AutomationProperties.Name="Source properties">
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
-                                                <Image Source="Icons/static_text.png" Width="14" Height="14" Margin="0,0,5,0"/>
-                                                <TextBlock Text="Tem"/>
+                                                <TextBlock Text="Nguồn"/>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
-                                    <TabItem AutomationProperties.Name="Layout properties">
+                                    <TabItem AutomationProperties.Name="Style properties">
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
-                                                <Image Source="Icons/panels.png" Width="14" Height="14" Margin="0,0,5,0"/>
-                                                <TextBlock Text="Bố cục"/>
+                                                <TextBlock Text="Kiểu"/>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
-                                    <TabItem AutomationProperties.Name="Advanced object properties">
+                                    <TabItem AutomationProperties.Name="Position properties">
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
-                                                <Image Source="Icons/settings.png" Width="14" Height="14" Margin="0,0,5,0"/>
-                                                <TextBlock Text="Nâng cao"/>
+                                                <TextBlock Text="Vị trí"/>
+                                            </StackPanel>
+                                        </TabItem.Header>
+                                    </TabItem>
+                                    <TabItem AutomationProperties.Name="General properties">
+                                        <TabItem.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Chung"/>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
@@ -1409,7 +1905,7 @@
                                         <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="1">
+                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="2">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1511,7 +2007,7 @@
                                         <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="2">
+                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="3">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1760,6 +2256,19 @@
                                     </StackPanel>
                                 </Border>
 
+                                </StackPanel>
+
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="1">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
                                 <Border>
                                     <Border.Style>
                                         <Style TargetType="Border" BasedOn="{StaticResource PropCard}">

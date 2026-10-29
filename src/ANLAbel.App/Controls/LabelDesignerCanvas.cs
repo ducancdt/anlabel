@@ -2800,6 +2800,15 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
+    /// <summary>Ribbon Clipboard group (NiceLabel 10 Home tab): copy.</summary>
+    public bool CopySelectedObjects() => CopySelection();
+
+    /// <summary>Ribbon Clipboard group: cut = copy, then delete the selection.</summary>
+    public bool CutSelectedObjects() => CopySelection() && DeleteSelection();
+
+    /// <summary>Ribbon Clipboard group: paste the copied objects.</summary>
+    public bool PasteCopiedObjects() => PasteSelection();
+
     private bool DeleteSelection()
     {
         if (Template is null || _selectedObjects.Count == 0)

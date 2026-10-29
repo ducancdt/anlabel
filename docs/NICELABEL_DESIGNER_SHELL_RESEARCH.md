@@ -52,7 +52,7 @@ Also: `docs/industrial-panel-design.md`, `docs/NICELABEL_TEXTBOX_RESEARCH.md`.
 - PowerForms / form designer  
 - Multi-layer Layers model (Pro) beyond object list  
 - Floating properties dialog animation  
-- Full contextual ribbon tabs (Home/Data/View/Design as separate tab strip)  
+- ~~Full contextual ribbon tabs~~ — done 2026-10-29 from NiceLabel 10 evidence, see [NICELABEL_10_UI_LAYOUT.md](NICELABEL_10_UI_LAYOUT.md)  
 - Landing page, Automation, branding clone  
 
 ## Figma delivery
