@@ -96,13 +96,15 @@ public partial class TemplateRevisionWindow : Window
             return;
         }
 
-        var confirmation = MessageBox.Show(
+        var confirmation = OperatorDialog.Ask(
             this,
-            "Khôi phục bản sửa đổi đã kiểm chứng này làm mẫu tem hiện tại? Bản chính hiện tại sẽ được lưu trữ sao lưu và tài liệu đang mở sẽ được tải lại. Các chỉnh sửa chưa lưu sẽ bị hủy.",
             "Xác nhận khôi phục mẫu tem",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-        if (confirmation != MessageBoxResult.Yes)
+            ["Khôi phục bản sửa đổi đã kiểm chứng này làm mẫu tem hiện tại? Bản chính hiện tại sẽ được lưu trữ sao lưu và tài liệu đang mở sẽ được tải lại. Các chỉnh sửa chưa lưu sẽ bị hủy."],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("restore", "Khôi phục", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Không khôi phục", IsCancel: true));
+        if (confirmation != "restore")
         {
             return;
         }

@@ -222,13 +222,15 @@ public partial class PrintCenterWindow : Window
             return;
         }
 
-        var choice = MessageBox.Show(
+        var choice = OperatorDialog.Ask(
             this,
-            $"Hủy lệnh {candidate.JobId} trong lịch sử bền vững? Không có lệnh in nào được gửi và chuỗi sự kiện vẫn được giữ lại.",
             "Hủy lệnh in",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-        if (choice != MessageBoxResult.Yes)
+            [$"Hủy lệnh {candidate.JobId} trong lịch sử bền vững? Không có lệnh in nào được gửi và chuỗi sự kiện vẫn được giữ lại."],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("void", "Hủy lệnh", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Giữ lệnh", IsCancel: true));
+        if (choice != "void")
         {
             return;
         }

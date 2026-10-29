@@ -30,12 +30,14 @@ public partial class DataSourceCleanupWindow : Window
             return;
         }
 
-        var confirmed = MessageBox.Show(
+        var confirmed = OperatorDialog.Ask(
             this,
-            $"Xóa {selected.Length} nguồn dữ liệu khỏi sổ đăng ký? Thao tác này không thể hoàn tác.",
             "Dọn dẹp nguồn dữ liệu",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning) == MessageBoxResult.Yes;
+            [$"Xóa {selected.Length} nguồn dữ liệu khỏi sổ đăng ký? Thao tác này không thể hoàn tác."],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("delete", "Xóa", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Không xóa", IsCancel: true)) == "delete";
         if (!confirmed)
         {
             return;

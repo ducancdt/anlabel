@@ -246,12 +246,14 @@ public partial class DatabaseManagerWindow : Window
             ? "\n\nMẫu tem đang mở trong bảng thiết kế đang dùng nguồn này — mẫu sẽ quay lại đường dẫn tệp riêng sau khi xóa."
             : "\n\nMọi mẫu tem tham chiếu tới nguồn này sẽ quay lại đường dẫn tệp riêng sau khi xóa.";
 
-        var confirmed = MessageBox.Show(
+        var confirmed = OperatorDialog.Ask(
             this,
-            $"Bạn có chắc chắn muốn xóa nguồn dữ liệu dùng chung \"{source.DisplayName}\"?{usageNote}",
             "Xóa nguồn dữ liệu",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning) == MessageBoxResult.Yes;
+            [$"Bạn có chắc chắn muốn xóa nguồn dữ liệu dùng chung \"{source.DisplayName}\"?{usageNote}"],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("delete", "Xóa", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Không xóa", IsCancel: true)) == "delete";
         if (!confirmed)
         {
             return;

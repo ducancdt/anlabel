@@ -475,14 +475,15 @@ public partial class MainWindow : Window
 
     private void ResetSerialCounter_Click(object sender, RoutedEventArgs e)
     {
-        var answer = MessageBox.Show(
+        var answer = OperatorDialog.Ask(
             this,
-            "Đặt lại bộ đếm sẽ bắt đầu một dãy số mới từ giá trị Bắt đầu. Các số đã in trước đó có thể bị in lại (trùng số). Tiếp tục?",
             "Đặt lại bộ đếm serial",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning,
-            MessageBoxResult.No);
-        if (answer == MessageBoxResult.Yes)
+            ["Đặt lại bộ đếm sẽ bắt đầu một dãy số mới từ giá trị Bắt đầu. Các số đã in trước đó có thể bị in lại (trùng số). Tiếp tục?"],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("reset", "Đặt lại"),
+            new OperatorDialogChoice("cancel", "Không đặt lại", IsDefault: true, IsCancel: true));
+        if (answer == "reset")
         {
             _viewModel.ResetSerialCounter();
         }
@@ -729,12 +730,14 @@ public partial class MainWindow : Window
         try
         {
             await _viewModel.PrintLogService.ExportToExcelAsync(dialog.FileName);
-            var openReport = MessageBox.Show(
+            var openReport = OperatorDialog.Ask(
                 this,
-                $"Đã xuất ra tệp {dialog.FileName}.\n\nBạn có muốn mở ngay bây giờ?",
                 "Xuất thành công",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information) == MessageBoxResult.Yes;
+                [$"Đã xuất ra tệp {dialog.FileName}.", "Bạn có muốn mở ngay bây giờ?"],
+                null,
+                OperatorDialogTone.Normal,
+                new OperatorDialogChoice("open", "Mở ngay", IsDefault: true),
+                new OperatorDialogChoice("cancel", "Để sau", IsCancel: true)) == "open";
             if (openReport)
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -796,12 +799,14 @@ public partial class MainWindow : Window
 
     private void UnlinkExcel_Click(object sender, RoutedEventArgs e)
     {
-        var confirmed = MessageBox.Show(
+        var confirmed = OperatorDialog.Ask(
             this,
-            "Hủy liên kết Excel khỏi mẫu tem này?\n\nCác đối tượng vẫn giữ trường liên kết nhưng sẽ hiển thị nội dung mẫu cho đến khi bạn nhập dữ liệu lại.",
             "Hủy liên kết Excel",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question) == MessageBoxResult.Yes;
+            ["Hủy liên kết Excel khỏi mẫu tem này?", "Các đối tượng vẫn giữ trường liên kết nhưng sẽ hiển thị nội dung mẫu cho đến khi bạn nhập dữ liệu lại."],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("unlink", "Hủy liên kết", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Giữ liên kết", IsCancel: true)) == "unlink";
         if (confirmed)
         {
             _viewModel.UnlinkExcel();
@@ -868,13 +873,15 @@ public partial class MainWindow : Window
 
     private async void PrinterQueueWarning_Click(object sender, RoutedEventArgs e)
     {
-        var choice = MessageBox.Show(
+        var choice = OperatorDialog.Ask(
             this,
-            $"{_viewModel.PrinterQueueStatusMessage}\n\nMở Cài đặt máy in ngay bây giờ để chọn hàng đợi đã xác thực?",
             "Hàng đợi máy in không khả dụng",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-        if (choice != MessageBoxResult.Yes)
+            [_viewModel.PrinterQueueStatusMessage, "Mở Cài đặt máy in ngay bây giờ để chọn hàng đợi đã xác thực?"],
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("open", "Mở Cài đặt máy in", IsDefault: true),
+            new OperatorDialogChoice("cancel", "Để sau", IsCancel: true));
+        if (choice != "open")
         {
             return;
         }

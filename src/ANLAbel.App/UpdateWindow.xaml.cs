@@ -107,13 +107,16 @@ public partial class UpdateWindow : Window
 
         if (asset is null || string.IsNullOrWhiteSpace(asset.DownloadUrl))
         {
-            var result = MessageBox.Show(
-                "Không tìm thấy gói cài đặt tự động (.exe) trong bản phát hành này.\nBạn có muốn mở trang GitHub để tải thủ công không?",
+            var result = OperatorDialog.Ask(
+                this,
                 "Tải bản cập nhật",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Information);
+                ["Không tìm thấy gói cài đặt tự động (.exe) trong bản phát hành này.", "Bạn có muốn mở trang GitHub để tải thủ công không?"],
+                null,
+                OperatorDialogTone.Normal,
+                new OperatorDialogChoice("open", "Mở trang GitHub", IsDefault: true),
+                new OperatorDialogChoice("cancel", "Để sau", IsCancel: true));
 
-            if (result == MessageBoxResult.Yes)
+            if (result == "open")
             {
                 AppUpdateService.OpenReleasePage(release?.HtmlUrl);
             }
@@ -147,13 +150,16 @@ public partial class UpdateWindow : Window
             ProgressStatusText.Text = "Tải hoàn tất! Đang khởi động trình cài đặt...";
             ProgressPercentText.Text = "100%";
 
-            var confirm = MessageBox.Show(
-                $"Bản cập nhật đã được tải về thành công ({asset.Name}).\n\nỨng dụng sẽ đóng lại để thực hiện cài đặt phiên bản mới. Bạn có muốn tiếp tục không?",
+            var confirm = OperatorDialog.Ask(
+                this,
                 "Cập nhật ANLAbel",
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question);
+                [$"Bản cập nhật đã được tải về thành công ({asset.Name}).", "Ứng dụng sẽ đóng lại để thực hiện cài đặt phiên bản mới. Bạn có muốn tiếp tục không?"],
+                null,
+                OperatorDialogTone.Normal,
+                new OperatorDialogChoice("install", "Cài đặt ngay", IsDefault: true),
+                new OperatorDialogChoice("cancel", "Để sau", IsCancel: true));
 
-            if (confirm == MessageBoxResult.OK)
+            if (confirm == "install")
             {
                 // Ask to save first, as Close does: shutting down for the installer
                 // ignores the save prompt's answer (audit 2026-10-13).
@@ -199,13 +205,16 @@ public partial class UpdateWindow : Window
             InstallButton.IsEnabled = true;
             CheckAgainButton.IsEnabled = true;
 
-            var result = MessageBox.Show(
-                $"Không thể tải bản cập nhật: {ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)}\n\nBạn có muốn mở trang GitHub để tải trực tiếp từ trình duyệt không?",
+            var result = OperatorDialog.Ask(
+                this,
                 "Lỗi tải cập nhật",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Error);
+                [$"Không thể tải bản cập nhật: {ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)}", "Bạn có muốn mở trang GitHub để tải trực tiếp từ trình duyệt không?"],
+                null,
+                OperatorDialogTone.Error,
+                new OperatorDialogChoice("open", "Mở trang GitHub", IsDefault: true),
+                new OperatorDialogChoice("cancel", "Để sau", IsCancel: true));
 
-            if (result == MessageBoxResult.Yes)
+            if (result == "open")
             {
                 AppUpdateService.OpenReleasePage(release?.HtmlUrl);
             }
