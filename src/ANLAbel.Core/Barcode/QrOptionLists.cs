@@ -21,6 +21,12 @@ public static class QrOptionLists
         .Select(version => new QrOptionItem<int>(version, $"Phiên bản {version} = {QrVersionHelper.GetModuleCount(version)} × {QrVersionHelper.GetModuleCount(version)} mô-đun"))
         .ToArray();
 
+    public static IReadOnlyList<QrOptionItem<int>> Pdf417ErrorCorrections { get; } =
+    [
+        new(-1, "Tự động"),
+        .. Enumerable.Range(0, 9).Select(level => new QrOptionItem<int>(level, $"Mức {level}"))
+    ];
+
     public static IReadOnlyList<int> ModuleSizesPx { get; } = [3, 4, 5, 6, 8, 10, 12, 16, 20];
     public static IReadOnlyList<int> QuietZoneModules { get; } = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12];
 }

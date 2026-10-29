@@ -295,8 +295,9 @@ public sealed class ProjectFileService : IProjectFileService
         if (string.Equals(Path.GetExtension(primaryPath), ".lbl", StringComparison.OrdinalIgnoreCase))
         {
             // NiceLabel 5 label: import the verified label stock size into a
-            // new ANLAbel template. Objects are not converted yet, and the
-            // source file is never written by this path.
+            // new ANLAbel template, converting every object record the
+            // reader could fully cross-check. The source file is never
+            // written by this path.
             cancellationToken.ThrowIfCancellationRequested();
             await using var lblStream = new FileStream(
                 primaryPath,
@@ -308,8 +309,21 @@ public sealed class ProjectFileService : IProjectFileService
                     Options = FileOptions.Asynchronous | FileOptions.SequentialScan
                 });
             var header = NiceLabel5LblReader.ReadHeader(lblStream);
-            var imported = NiceLabel5LblImporter.CreateTemplate(header, primaryPath);
-            return new ProjectLoadResult(imported, primaryPath, false, null, null);
+            lblStream.Position = 0;
+            var barcodes = NiceLabel5LblReader.ReadBarcodeRecords(lblStream);
+            lblStream.Position = 0;
+            var texts = NiceLabel5LblReader.ReadTextRecords(lblStream);
+            lblStream.Position = 0;
+            var shapes = NiceLabel5LblReader.ReadShapeRecords(lblStream);
+            lblStream.Position = 0;
+            var paragraphs = NiceLabel5LblReader.ReadParagraphRecords(lblStream);
+            lblStream.Position = 0;
+            var storedObjects = NiceLabel5LblReader.CountObjectRecords(lblStream);
+            var imported = NiceLabel5LblImporter.CreateTemplate(header, primaryPath, barcodes, texts, shapes, paragraphs);
+            return new ProjectLoadResult(imported, primaryPath, false, null, null)
+            {
+                NiceLabelTotalObjectCount = Math.Max(storedObjects, imported.Objects.Count)
+            };
         }
         try
         {

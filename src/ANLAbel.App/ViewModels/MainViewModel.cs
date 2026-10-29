@@ -483,6 +483,15 @@ public sealed class MainViewModel : ObservableObject
     public IReadOnlyList<double> FontSizes { get; } = TextStylePickerCatalog.StandardSizesPt;
     public IReadOnlyList<QrOptionItem<QrSizingMode>> QrSizingModeOptions { get; } = QrOptionLists.SizingModes;
     public IReadOnlyList<QrOptionItem<QrErrorCorrection>> QrErrorCorrectionOptions { get; } = QrOptionLists.ErrorCorrections;
+    public IReadOnlyList<QrOptionItem<int>> Pdf417ErrorCorrectionOptions { get; } = QrOptionLists.Pdf417ErrorCorrections;
+    public IReadOnlyList<QrOptionItem<SerialCounterAlphabet>> SerialCounterAlphabetOptions { get; } =
+    [
+        new(SerialCounterAlphabet.Numeric, "Số thập phân (0-9)"),
+        new(SerialCounterAlphabet.Hexadecimal, "Hệ mười sáu (0-9, A-F)"),
+        new(SerialCounterAlphabet.Letters, "Chữ cái (A-Z)"),
+        new(SerialCounterAlphabet.DigitsAndLetters, "Số và chữ (0-9, A-Z)"),
+        new(SerialCounterAlphabet.Custom, "Tự định nghĩa...")
+    ];
     public IReadOnlyList<QrOptionItem<int>> QrVersionOptions { get; } = QrOptionLists.Versions;
     public IReadOnlyList<int> QrModuleSizePxOptions { get; } = QrOptionLists.ModuleSizesPx;
     public IReadOnlyList<int> QrQuietZoneModuleOptions { get; } = QrOptionLists.QuietZoneModules;
@@ -1801,7 +1810,17 @@ public sealed class MainViewModel : ObservableObject
             // cannot overwrite the NiceLabel file with ANLAbel JSON.
             CurrentFilePath = string.Empty;
             RememberDocumentFileIdentity();
-            StatusText = $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm). Đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.";
+            var convertedCount = Template.Objects.Count;
+            var remainingCount = loadResult.NiceLabelTotalObjectCount is { } storedCount
+                ? Math.Max(0, storedCount - convertedCount)
+                : -1;
+            StatusText = (convertedCount, remainingCount) switch
+            {
+                (0, _) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm). Đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.",
+                (_, 0) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi toàn bộ {convertedCount} đối tượng trong tệp. Hãy lưu thành tệp .anlabel mới.",
+                (_, > 0) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount} đối tượng (mã vạch, chữ, đoạn văn, hình/kẻ). Còn {remainingCount} đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.",
+                _ => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount} đối tượng (mã vạch, chữ, đoạn văn, hình/kẻ). Các đối tượng khác trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới."
+            };
         }
 
         return loadResult;
