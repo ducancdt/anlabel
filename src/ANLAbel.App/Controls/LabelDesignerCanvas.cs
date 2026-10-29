@@ -1461,6 +1461,25 @@ public sealed class LabelDesignerCanvas : Canvas
             },
             ObjectType.Rectangle => new StrokeHitTestRectangleElement(),
             ObjectType.Ellipse => new Ellipse(),
+            // Designer marker for NiceLabel's Inverse: print and preview swap
+            // black and white beneath it; the canvas shows the area hatched.
+            ObjectType.Inverse => new Border
+            {
+                Background = new DrawingBrush(new GeometryDrawing(
+                    new SolidColorBrush(Color.FromArgb(150, 15, 23, 42)),
+                    null,
+                    new RectangleGeometry(new Rect(0, 0, 8, 8))))
+                {
+                    TileMode = TileMode.Tile,
+                    Viewport = new Rect(0, 0, 8, 8),
+                    ViewportUnits = BrushMappingMode.Absolute,
+                    Opacity = 0.55
+                },
+                BorderBrush = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+                BorderThickness = new Thickness(1),
+                IsHitTestVisible = true,
+                ToolTip = "Vùng đảo màu: khi in, đen và trắng bên dưới được đảo ngược"
+            },
             ObjectType.Line => new Line { StrokeStartLineCap = PenLineCap.Square, StrokeEndLineCap = PenLineCap.Square },
             ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix => new Border
             {
@@ -2441,7 +2460,7 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         Focus();
         CommitNudgeGesture();
-        if (DrawingTool is ObjectType.Line or ObjectType.Rectangle or ObjectType.Ellipse)
+        if (DrawingTool is ObjectType.Line or ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Inverse)
         {
             if (_drawingObject is null)
             {
@@ -2657,7 +2676,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private void BeginSnapDrawing(Point dipPoint)
     {
-        if (Template is null || DrawingTool is not (ObjectType.Line or ObjectType.Rectangle or ObjectType.Ellipse))
+        if (Template is null || DrawingTool is not (ObjectType.Line or ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Inverse))
         {
             return;
         }
@@ -2680,6 +2699,16 @@ public sealed class LabelDesignerCanvas : Canvas
                 WidthMm = 0.5,
                 HeightMm = 0.5,
                 Style = { BorderThicknessMm = 0.35, OutlineStyle = OutlineStyle.Solid, FillStyle = FillStyle.None }
+            },
+            ObjectType.Inverse => new LabelObject
+            {
+                Type = ObjectType.Inverse,
+                Name = "Đảo màu",
+                XMm = _drawingStartMm.X,
+                YMm = _drawingStartMm.Y,
+                WidthMm = 0.5,
+                HeightMm = 0.5,
+                Style = { FillColor = "#00FFFFFF", BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None, FillStyle = FillStyle.None }
             },
             ObjectType.Ellipse => new LabelObject
             {
@@ -3611,6 +3640,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 ObjectType.Line => "Đường kẻ: chọn điểm đầu",
                 ObjectType.Rectangle => "Hình chữ nhật: chọn góc thứ nhất",
                 ObjectType.Ellipse => "Hình bầu dục/tròn: chọn góc thứ nhất",
+                ObjectType.Inverse => "Đảo màu: chọn góc thứ nhất",
                 _ => string.Empty
             };
             return;
@@ -3622,6 +3652,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 ObjectType.Line => "Đường kẻ: chọn điểm tiếp theo hoặc nhập chiều dài rồi nhấn Enter",
                 ObjectType.Rectangle => "Hình chữ nhật: chọn góc đối diện hoặc nhập rộng,cao rồi nhấn Enter",
                 ObjectType.Ellipse => "Hình bầu dục/tròn: chọn góc đối diện hoặc nhập rộng,cao rồi nhấn Enter",
+                ObjectType.Inverse => "Đảo màu: chọn góc đối diện hoặc nhập rộng,cao rồi nhấn Enter",
                 _ => string.Empty
             }
             : $"Kích thước: {_dimensionBuffer}";

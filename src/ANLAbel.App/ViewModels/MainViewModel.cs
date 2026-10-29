@@ -192,6 +192,7 @@ public sealed class MainViewModel : ObservableObject
         ApplyFormulaBuilderCommand = new RelayCommand(ApplyFormulaBuilder, () => SelectedObject is not null && FormulaBuilderParts.Count > 0);
         AddRectangleCommand = new RelayCommand(() => StartDrawingTool(ObjectType.Rectangle));
         AddEllipseCommand = new RelayCommand(() => StartDrawingTool(ObjectType.Ellipse));
+        AddInverseCommand = new RelayCommand(() => StartDrawingTool(ObjectType.Inverse));
         AddLineCommand = new RelayCommand(() => StartDrawingTool(ObjectType.Line));
         AddBarcodeCommand = new RelayCommand(AddBarcode);
         AddCode128Command = new RelayCommand(AddBarcode);
@@ -762,6 +763,7 @@ public sealed class MainViewModel : ObservableObject
         ObjectType.DataMatrix => "Icons/data_matrix.png",
         ObjectType.Rectangle => "Icons/rectangle.png",
         ObjectType.Ellipse => "Icons/ellipse.png",
+        ObjectType.Inverse => "Icons/inverse.png",
         ObjectType.Line => "Icons/line.png",
         ObjectType.Image => "Icons/image.png",
         _ => "Icons/cursor_select.png"
@@ -780,7 +782,7 @@ public sealed class MainViewModel : ObservableObject
     public bool IsTextObjectSelected => SelectedObject?.Type is ObjectType.Text or ObjectType.TextBox;
     public bool IsBarcodeObjectSelected => SelectedObject?.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix;
     public bool IsImageObjectSelected => SelectedObject?.Type is ObjectType.Image;
-    public bool IsShapeObjectSelected => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Line;
+    public bool IsShapeObjectSelected => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Line or ObjectType.Inverse;
 
     private void RaiseRibbonSelectionChanged()
     {
@@ -1564,6 +1566,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ApplyFormulaBuilderCommand { get; }
     public ICommand AddRectangleCommand { get; }
     public ICommand AddEllipseCommand { get; }
+    public ICommand AddInverseCommand { get; }
     public ICommand AddLineCommand { get; }
     public ICommand AddBarcodeCommand { get; }
     public ICommand AddCode128Command { get; }
@@ -3887,12 +3890,14 @@ public sealed class MainViewModel : ObservableObject
         {
             ObjectType.Line => "Đường kẻ: xác định điểm đầu tiên",
             ObjectType.Ellipse => "Hình elip/tròn: xác định góc đầu tiên",
+            ObjectType.Inverse => "Đảo màu: xác định góc đầu tiên",
             _ => "Hình chữ nhật: xác định góc đầu tiên"
         };
         StatusText = tool switch
         {
             ObjectType.Line => "Đường kẻ: nhấp điểm đầu, di chuyển con trỏ, nhấp điểm tiếp theo hoặc nhập chiều dài + Enter, Esc để hủy",
             ObjectType.Ellipse => "Hình elip/tròn: nhấp góc đầu, di chuyển con trỏ, nhấp góc đối diện hoặc nhập rộng,cao + Enter, Esc để hủy",
+            ObjectType.Inverse => "Đảo màu: nhấp góc đầu, di chuyển con trỏ, nhấp góc đối diện hoặc nhập rộng,cao + Enter; khi in, đen và trắng bên dưới vùng này được đảo ngược",
             _ => "Hình chữ nhật: nhấp góc đầu, di chuyển con trỏ, nhấp góc đối diện hoặc nhập rộng,cao + Enter, Esc để hủy"
         };
     }

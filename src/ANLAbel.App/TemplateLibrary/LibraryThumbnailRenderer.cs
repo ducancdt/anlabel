@@ -53,6 +53,9 @@ public static partial class LibraryThumbnailRenderer
                     case ObjectType.Rectangle:
                         dc.DrawRectangle(null, new Pen(Ink, 0.8), new Rect(x, y, ow, oh));
                         break;
+                    case ObjectType.Inverse:
+                        dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(110, 15, 23, 42)), null, new Rect(x, y, ow, oh));
+                        break;
                     case ObjectType.Ellipse:
                         dc.DrawEllipse(null, new Pen(Ink, 0.8), new Point(x + ow / 2, y + oh / 2), ow / 2, oh / 2);
                         break;

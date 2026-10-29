@@ -10,5 +10,10 @@ public enum ObjectType
     BarcodeCode128,
     QRCode,
     DataMatrix,
-    Image
+    Image,
+    /// <summary>
+    /// NiceLabel 10 Inverse: a frame that inverts black and white of
+    /// everything beneath it (lower Z order) in the printed label.
+    /// </summary>
+    Inverse
 }

@@ -79,10 +79,10 @@ public sealed class LabelVisualRenderer
         }
         else
         {
-            foreach (var item in template.Objects.Where(item => item.IsVisible).OrderBy(item => item.ZIndex))
-            {
-                DrawObject(dc, item, row, dpiX, dpiY, labelWidthMm, labelHeightMm);
-            }
+            DrawLayered(
+                dc,
+                template.Objects.Where(item => item.IsVisible).OrderBy(item => item.ZIndex).Select(item => (item, (CompiledSceneNode?)null)),
+                row, dpiX, dpiY, labelWidthMm, labelHeightMm);
         }
 
         PopOutputTransforms(dc, plan);
@@ -132,19 +132,104 @@ public sealed class LabelVisualRenderer
     {
         var snapshots = compiled.Snapshot.Objects
             .ToDictionary(item => item.Id, StringComparer.Ordinal);
-        foreach (var node in compiled.Nodes
-                     .Where(item => item.IsVisible)
-                     .OrderBy(item => item.ZIndex)
-                     .ThenBy(item => item.Id, StringComparer.Ordinal))
+        var ordered = compiled.Nodes
+            .Where(item => item.IsVisible)
+            .OrderBy(item => item.ZIndex)
+            .ThenBy(item => item.Id, StringComparer.Ordinal)
+            .Where(node => snapshots.ContainsKey(node.Id))
+            .Select(node => (CreateRenderObject(snapshots[node.Id]), (CompiledSceneNode?)node));
+        DrawLayered(dc, ordered, row, dpiX, dpiY, labelWidthMm, labelHeightMm);
+    }
+
+    /// <summary>
+    /// Draws objects in Z order. An Inverse object (NiceLabel 10) turns the
+    /// content drawn so far inside its frame into its negative: that area is
+    /// rasterised at the print resolution, black and white are swapped, and
+    /// the result replaces it; objects above the Inverse draw normally.
+    /// </summary>
+    private void DrawLayered(
+        DrawingContext dc,
+        IEnumerable<(LabelObject Item, CompiledSceneNode? Node)> ordered,
+        IReadOnlyDictionary<string, string>? row,
+        int dpiX,
+        int dpiY,
+        double labelWidthMm,
+        double labelHeightMm)
+    {
+        var layer = new DrawingGroup();
+        var layerContext = layer.Open();
+        foreach (var (item, node) in ordered)
         {
-            if (!snapshots.TryGetValue(node.Id, out var snapshot))
+            if ((node?.Type ?? item.Type) != ObjectType.Inverse)
             {
+                DrawObject(layerContext, item, row, dpiX, dpiY, labelWidthMm, labelHeightMm, node);
                 continue;
             }
 
-            var item = CreateRenderObject(snapshot);
-            DrawObject(dc, item, row, dpiX, dpiY, labelWidthMm, labelHeightMm, node);
+            layerContext.Close();
+            var bounds = node?.LayoutBoundsMm;
+            var frame = new Rect(
+                MmConverter.MmToDip(bounds?.LeftMm ?? item.XMm),
+                MmConverter.MmToDip(bounds?.TopMm ?? item.YMm),
+                MmConverter.MmToDip(bounds?.WidthMm ?? item.WidthMm),
+                MmConverter.MmToDip(bounds?.HeightMm ?? item.HeightMm));
+            var next = new DrawingGroup();
+            layerContext = next.Open();
+            layerContext.DrawDrawing(layer);
+            if (CreateInvertedRegion(layer, frame, dpiX, dpiY) is { } inverted)
+            {
+                layerContext.DrawImage(inverted, frame);
+            }
+
+            layer = next;
         }
+
+        layerContext.Close();
+        dc.DrawDrawing(layer);
+    }
+
+    internal static BitmapSource? CreateInvertedRegion(Drawing content, Rect frame, int dpiX, int dpiY)
+    {
+        dpiX = dpiX > 0 ? dpiX : 300;
+        dpiY = dpiY > 0 ? dpiY : 300;
+        var pixelWidth = (int)Math.Ceiling(frame.Width * dpiX / 96.0);
+        var pixelHeight = (int)Math.Ceiling(frame.Height * dpiY / 96.0);
+        if (pixelWidth <= 0 || pixelHeight <= 0 || pixelWidth > 20000 || pixelHeight > 20000)
+        {
+            return null;
+        }
+
+        var visual = new DrawingVisual();
+        RenderOptions.SetEdgeMode(visual, EdgeMode.Aliased);
+        RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.NearestNeighbor);
+        using (var context = visual.RenderOpen())
+        {
+            context.PushTransform(new ScaleTransform(dpiX / 96.0, dpiY / 96.0));
+            context.PushTransform(new TranslateTransform(-frame.X, -frame.Y));
+            context.DrawRectangle(Brushes.White, null, frame);
+            context.PushClip(new RectangleGeometry(frame));
+            context.DrawDrawing(content);
+            context.Pop();
+            context.Pop();
+            context.Pop();
+        }
+
+        var raster = new RenderTargetBitmap(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32);
+        raster.Render(visual);
+        var stride = pixelWidth * 4;
+        var pixels = new byte[stride * pixelHeight];
+        raster.CopyPixels(pixels, stride, 0);
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            pixels[index] = (byte)(255 - pixels[index]);
+            pixels[index + 1] = (byte)(255 - pixels[index + 1]);
+            pixels[index + 2] = (byte)(255 - pixels[index + 2]);
+            pixels[index + 3] = 255;
+        }
+
+        var inverted = BitmapSource.Create(pixelWidth, pixelHeight, dpiX, dpiY, PixelFormats.Bgra32, null, pixels, stride);
+        inverted.Freeze();
+        return inverted;
     }
 
     private static LabelObject CreateRenderObject(SceneObjectSnapshot snapshot)

@@ -308,6 +308,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
+    ("inverse object swaps black and white beneath it in print", TestInverseObjectSwapsBlackAndWhite),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
@@ -12509,6 +12510,55 @@ static Task TestMainWindowLoadDoesNotForcePrinterSetup()
     return Task.CompletedTask;
 }
 
+
+static Task TestInverseObjectSwapsBlackAndWhite()
+{
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            // 40 x 20 mm label: left half a black bar, an Inverse over the middle.
+            var template = new LabelTemplate { Name = "Inverse", WidthMm = 40, HeightMm = 20, Dpi = 203 };
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.Rectangle, Name = "Bar", XMm = 0, YMm = 0, WidthMm = 20, HeightMm = 20, ZIndex = 1,
+                Style = { FillStyle = FillStyle.Solid, FillColor = "#FF000000", BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+            });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Inverse, Name = "Inverse", XMm = 10, YMm = 0, WidthMm = 20, HeightMm = 20, ZIndex = 2 });
+            var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = 40, LabelHeightMm = 20 };
+            var visual = new LabelVisualRenderer().Render(template, null, plan);
+            var width = (int)Math.Ceiling(MmConverter.MmToDip(40));
+            var height = (int)Math.Ceiling(MmConverter.MmToDip(20));
+            var raster = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            raster.Render(visual);
+            byte Luma(double xMm)
+            {
+                var pixel = new byte[4];
+                raster.CopyPixels(new Int32Rect((int)MmConverter.MmToDip(xMm), height / 2, 1, 1), pixel, 4, 0);
+                return pixel[1];
+            }
+
+            AssertEqual(true, Luma(5) < 60, "Black bar outside the Inverse stays black");
+            AssertEqual(true, Luma(15) > 200, "Black bar under the Inverse turns white");
+            AssertEqual(true, Luma(25) < 60, "White label under the Inverse turns black");
+            AssertEqual(true, Luma(35) > 200, "White label outside the Inverse stays white");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
 
 static Task TestGroupObjectsLikeNiceLabel()
 {

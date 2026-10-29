@@ -1292,6 +1292,9 @@
                             <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}" ToolTip="Hình bầu dục">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Bầu dục" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddInverseCommand}" ToolTip="Đảo màu: vùng in đảo ngược đen và trắng bên dưới">
+                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/inverse.png"/><TextBlock Text="Đảo màu" TextAlignment="Center" FontSize="11.5"/></StackPanel>
+                            </Button>
                         </UniformGrid>
 
                         <TextBlock Text="{Binding DrawingCommandText}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="4,8,4,0">

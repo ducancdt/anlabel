@@ -18,6 +18,7 @@ public static class DisplayNames
         ObjectType.DataMatrix => "Data Matrix",
         ObjectType.Rectangle => "Hình chữ nhật",
         ObjectType.Ellipse => "Hình bầu dục",
+        ObjectType.Inverse => "Đảo màu",
         ObjectType.Line => "Đường kẻ",
         ObjectType.Image => "Hình ảnh",
         _ => "Đối tượng",
