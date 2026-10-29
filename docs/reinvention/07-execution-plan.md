@@ -293,6 +293,40 @@ Files using these features need this version or later.
     [`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §36-44.
     Not yet released, no version bump.
 
+18. **NiceLabel 10 .nlbl import (2026-10-27).** The installed NiceLabel
+    10 is managed .NET; decompiling its `Core.dll`/`NetCommon.dll` loader
+    chain recovered the `.nlbl` package layout (WinZip-AES-256 ZIP with an
+    XML `Formats/` entry and a `.nsln` variable table, geometry in
+    1/1000 mm) and the fixed package password its own loader derives.
+    ANLAbel now opens `.nlbl` like `.lbl`: a new unsaved template at the
+    stored size/name converting position/framed texts (Text/TextBox),
+    in-package variable bindings, linear barcodes with their authored
+    module width, QR/DataMatrix codes through ANLAbel's 2D auto-size
+    contract (vendor sizing enums recovered from
+    `Barcodes.Interfaces.dll`), PDF417 (frame seeded from the production
+    encoder's module grid), lines and rectangles. Follow-up 2026-10-29:
+    the solution entry inside vendor packages is `.slnx` (the reader had
+    looked for `.nsln`, so no real-file variable ever resolved); every
+    object is now placed through the recovered anchoring-point/rotation
+    contract (`NiceLabel10Placement`, 205 rotated and 615 anchored corpus
+    objects; the app supplies its text layout for position texts);
+    human-readable placement follows the vendor enum (0 = off); embedded
+    PNG and WMF graphics become images (WMF played by GDI+ at the
+    authored frame); variables keep prompt text, default, length and
+    digit facts; current-date variables become `{#NOW:format}`;
+    concatenations, mixed contents and database fields become mixed
+    binding expressions. Objects bound to script/GS1/HIBC functions, GS1
+    DataBar, payload-less graphics, RTF texts and report items stay
+    unconverted and are counted in the status line. Evidence: production
+    sweep over all 207 installed sample labels (207/207 opened, 5,971 of
+    6,467 objects converted honestly — the earlier 6,298 included bound
+    objects silently fixed to their sample text), the regression gate
+    `opening a niceLabel 10 nlbl imports its label as a new template` and
+    unit tests `NiceLabel10PlacementTests`/`NiceLabel10ImportMappingTests`.
+    Details in
+    [`NICELABEL_10_REVERSE_ENGINEERING.md`](../NICELABEL_10_REVERSE_ENGINEERING.md).
+    Not yet released, no version bump.
+
 **Reference spike (2026-10-19, no product code):** a stdlib-only CFBF
 reader parses all 65 sample `.lbl` files; label size (mm/100 integer pair
 plus display-unit doubles), title, printer strings, variable names,
