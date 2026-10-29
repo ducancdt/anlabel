@@ -4674,13 +4674,17 @@ public sealed class MainViewModel : ObservableObject
             .ToArray();
         if (FormulaBindingEvaluator.LooksLikeFormula(expression))
         {
-            var analysisRow = CreateBindingAnalysisRow();
+            // Prompt (?Name) and date (#NOW) fields are answered at print
+            // time, not read from the sheet: analyse with their design
+            // values and never report them as missing columns.
+            var analysisRow = JobVariableContract.ApplyForDesign(Template, CreateBindingAnalysisRow(), DateTimeOffset.Now, _lastPromptValues)
+                ?? CreateBindingAnalysisRow();
             var analysis = FormulaBindingEvaluator.Evaluate(expression, analysisRow);
             var previewEvaluation = PreviewRow is null
                 ? new FormulaEvaluationResult(string.Empty, Array.Empty<string>(), analysis.UsedFields)
                 : FormulaBindingEvaluator.Evaluate(expression, PreviewRow);
             var missingFields = analysis.UsedFields
-                .Where(field => !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
+                .Where(field => !IsJobVariableField(field) && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             var errors = analysis.Errors
@@ -4705,12 +4709,14 @@ public sealed class MainViewModel : ObservableObject
             : Array.Empty<string>();
         var missingPlaceholderFields = usedFields
             .Where(field => !string.IsNullOrWhiteSpace(field)
+                            && !IsJobVariableField(field)
                             && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
             .Select(field => field.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var allJobVariables = usedFields.Count > 0 && usedFields.All(IsJobVariableField);
         return WithPositionalColumns(new BindingPreviewResult(
-            "Trường giữ chỗ",
+            allJobVariables ? "Biến nhập khi in" : "Trường giữ chỗ",
             PreviewRow is null ? string.Empty : BindingExpressionEvaluator.Evaluate(expression, PreviewRow),
             usedFields,
             missingPlaceholderFields,
@@ -4790,6 +4796,13 @@ public sealed class MainViewModel : ObservableObject
         {
             StatusText = $"Vấn đề liên kết đối tượng: {SelectedObject.Name}";
         }
+    }
+
+    /// <summary>A field answered at print time (prompt or date), not read from the sheet.</summary>
+    private static bool IsJobVariableField(string? field)
+    {
+        var token = field?.Trim() ?? string.Empty;
+        return JobVariableContract.IsPromptToken(token) || JobVariableContract.IsDateToken(token);
     }
 
     private Dictionary<string, string> CreateBindingAnalysisRow()
