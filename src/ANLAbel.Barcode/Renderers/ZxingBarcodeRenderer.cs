@@ -248,6 +248,31 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         }
     }
 
+    /// <inheritdoc />
+    public (int WidthModules, int HeightModules)? CountMatrixModules(string data, BarcodeType type, BarcodeRenderOptions? options = null)
+    {
+        if (!IsMatrixBarcode(type) || !ValidateData(data, type))
+        {
+            return null;
+        }
+
+        options ??= new BarcodeRenderOptions();
+        try
+        {
+            data = NormalizeData(data, type, options);
+            // A 1x1 target yields the unscaled native module matrix, the
+            // same one RenderEncoded integer-scales into print frames.
+            var matrix = EncodeMatrix(data, type, 1, 1, options);
+            return matrix.Width > 0 && matrix.Height > 0
+                ? (matrix.Width, matrix.Height)
+                : null;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return null;
+        }
+    }
+
     private static bool IsLinearBarcode(BarcodeType type)
     {
         return type is BarcodeType.Code128

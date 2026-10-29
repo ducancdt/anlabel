@@ -16,6 +16,16 @@ public interface IBarcodeRenderer
     /// </summary>
     int? CountLinearModules(string data, BarcodeType type, BarcodeRenderOptions? options = null);
 
+    /// <summary>
+    /// Returns the native module grid (columns x rows) a matrix symbology
+    /// (QR, DataMatrix, PDF417, Aztec) encodes to for the given data and
+    /// options, independent of any frame. Null when the type is not a
+    /// matrix symbology or the data cannot be encoded. This is the same
+    /// native matrix the render path integer-scales into frames, so sizes
+    /// derived from it match what print produces for the same settings.
+    /// </summary>
+    (int WidthModules, int HeightModules)? CountMatrixModules(string data, BarcodeType type, BarcodeRenderOptions? options = null);
+
     bool ValidateData(string data, BarcodeType type);
     string GetBarcodeInfo(string data, BarcodeType type);
 }
