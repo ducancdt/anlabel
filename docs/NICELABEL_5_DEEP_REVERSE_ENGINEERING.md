@@ -2492,3 +2492,45 @@ Gán nhầm định dạng ngày hoặc tên biến khác thành giá trị mặ
 người vận hành tự đặt prompt và giá trị mặc định trong ANLAbel.
 
 [Agent: Muse Spark / Muse Code — phiên trường biến .lbl 2026-10-27]
+
+---
+
+# Khảo sát 2026-10-27 (tiếp 54): khối biến V33 không có trường id
+
+## 79. Thứ tự khối V33 không khớp id biến trong Contents
+
+Đào sâu luồng `V33 Data` để tìm ánh xạ cho nhóm mặt nạ trỏ tới
+biến không định nghĩa trong `Contents` (§72): mỗi khối biến
+trong `V33` chỉ gồm các word cờ 0/1 và một chuỗi đếm-độ-dài chứa
+tên — **không có trường id số nào** trước hay sau tên. Giả
+thuyết thứ tự khối = thứ tự id cũng bị bác bỏ bằng đối chiếu
+trực tiếp trên AIAG B-10: `Contents` gán Increment=1016,
+IncSerial=1017, vFact1=1018, vFact4=1021, trong khi thứ tự
+`V33` là …Counter, IncSerial, Increment, vFact1, vFact2,
+vFact4… — không tồn tại base nào làm hai thứ tự khớp nhau, và
+các liên kết chưa phân giải (ví dụ 27) còn vượt số khối trong
+`V33` (17). Kết luận: ánh xạ liên kết → tên biến không nằm
+trong tệp `.lbl` ở dạng suy ra được; nhóm này giữ fail-closed
+như §72 đã quyết, chờ tệp đối chứng do người dùng lưu từ
+NiceLabel (biến đặt tên dễ nhận biết) nếu muốn đi tiếp.
+
+[Agent: Muse Spark / Muse Code — phiên khối biến V33 .lbl 2026-10-27]
+
+---
+
+# Khảo sát 2026-10-27 (tiếp 55): RTF nằm ở biến, không phải đối tượng tem
+
+## 80. Chỉ một tệp mẫu chứa RTF, dưới dạng nội dung biến NICERTFVAR
+
+Tìm chuỗi `{\rtf` trên mọi stream của 65 tệp mẫu: chỉ
+`lookup table.lbl` có, trong `V3 Data` và `V31 Data`, ngay sau
+tên biến `NICERTFVAR` — tức payload RTF là **nội dung của một
+biến văn bản giàu định dạng**, không phải nội dung đối tượng
+đoạn văn trên tem. Hai đoạn văn chưa chuyển (UPS, ISBT128)
+không chứa RTF ở bất kỳ stream nào; nội dung của chúng không
+nằm trong tệp dưới dạng RTF. ANLAbel cũng không có đối tượng
+RTF, và bóc chữ thô khỏi RTF sẽ làm mất các đoạn đậm/nghiêng
+mà tệp gốc mang. Giữ không chuyển đổi: đoạn văn RTF và biến
+RTF nằm ngoài hợp đồng chuyển đổi đã chứng minh.
+
+[Agent: Muse Spark / Muse Code — phiên RTF .lbl 2026-10-27]
