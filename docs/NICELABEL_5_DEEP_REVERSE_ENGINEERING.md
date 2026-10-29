@@ -1466,3 +1466,1029 @@ pháp, 1406 unit test và Fast quality loop đạt. Chưa kiểm chứng thao t�
 mở bằng tay trên giao diện thật.
 
 [Agent: Muse Spark / Muse Code — phiên mở .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 21): header .lbl theo cấu trúc, sửa lệch trường
+
+## 46. Ba chuỗi + sáu trường số nguyên; khổ tem ở cặp thứ 3–4
+
+Đi bộ lại toàn bộ 65 tệp mẫu theo đúng thứ tự đọc của `TLabel::Load`
+thay vì tìm mốc neo byte cho thấy header `Contents` version 29 có cấu
+trúc ổn định:
+
+1. chuỗi magic `NicePower` (độ dài gồm NUL), u16 version = 29;
+2. ba chuỗi `std::string` liên tiếp: tên tem, mô tả, tác giả — mỗi chuỗi
+   là u16 độ dài gồm NUL kết thúc rồi đến byte ký tự (tem không đặt tên
+   lưu chuỗi rỗng 1 byte NUL; mẫu có mô tả như `SSCC.lbl`,
+   `Label1.lbl` lưu đủ ba chuỗi, chuỗi thứ ba thường là `Euro Plus d.o.o.`);
+3. sáu i32 theo 1/100 mm: hai trường đầu là khổ giấy/vùng in đã lưu,
+   trường thứ 3–4 là **khổ tem**, hai trường cuối là khoảng lệch/khe
+   (có thể bằng 0).
+
+Đối chiếu độc lập bằng tên tệp mang khổ: `AIAG_B10_6 x 3` → 15240×7620,
+`AIAG_B10_6.25x5_BMW` → 15875×12700, `VDA4902` → 21000×14900 (tem
+Odette A5 ngang), `UPS_Domestic_*` → 10160×15240 (4×6 inch),
+`SSCC.lbl` → 10500×15000. Hệ quả quan trọng: bộ đọc offset cố định ở
+§44 đọc trường thứ 4–5, tức **lệch một trường** — 28 tệp được chấp
+nhận trước đây bị lấy sai khổ (ví dụ tệp 6×3 inch bị đọc thành
+76,2×12,7 mm). Diễn giải ở §41 (HIBIC = 2540×1270) cũng sửa lại:
+HIBIC là 10414×2540.
+
+`NiceLabel5LblReader` nay đi bộ cấu trúc trên, vẫn fail-closed: chuỗi
+phải kết thúc bằng NUL, không có NUL ở giữa, độ dài ≤ 4096; bốn trường
+khổ đầu phải nằm trong 100–50000; hai trường cuối trong 0–50000; sai
+magic/phiên bản/bố cục vẫn bị từ chối bằng `InvalidDataException`.
+`NiceLabel5LblHeader` bỏ trường "kích thước thứ ba" vô nghĩa và mang
+thêm tên/mô tả/tác giả đã lưu. Quét bằng chính reader C#: **65/65 tệp
+mẫu được chấp nhận** với khổ hợp lệ (trước đây 28/65 và sai khổ).
+Gate §44 được mở rộng với trường hợp có đủ ba chuỗi; gate §45 giữ
+nguyên kỳ vọng 25,4×12,7 mm trên tệp tổng hợp đã viết lại theo cấu
+trúc thật. Build toàn giải pháp, 1406 unit test, regression suite và
+Fast quality loop đều đạt. Chưa kiểm chứng thao tác mở bằng tay trên
+giao diện thật; đối tượng trong tệp vẫn chưa được chuyển đổi.
+
+[Agent: Muse Spark / Muse Code — phiên header cấu trúc .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 22): UI Properties cho PDF417 và bộ đếm serial
+
+## 47. Dựng UI trực tiếp bằng XAML, bỏ cổng Figma
+
+Theo chỉ đạo của chủ sở hữu ngày 2026-10-27, UI từ nay dựng trực tiếp
+bằng XAML theo đúng mẫu Properties hiện có của ANLAbel, không qua bước
+Figma; quy định này đã thay dòng "UI changes go through Figma first"
+trong `docs/reinvention/07-execution-plan.md`. Hai khả năng lõi có từ
+các lát dịch ngược trước (mục 14–15 của kế hoạch) nay có bề mặt vận
+hành:
+
+- Thẻ Mã vạch trong Properties hiện thêm, chỉ khi chuẩn đang chọn là
+  PDF417: ô chọn mức sửa lỗi PDF417 (Tự động, mức 0–8, qua
+  `QrOptionLists.Pdf417ErrorCorrections`) và ô chọn PDF417 rút gọn,
+  kèm chú thích công cụ nói rõ đánh đổi (mức cao chịu hư hỏng tốt hơn
+  nhưng mã lớn hơn; rút gọn kém chịu hư hỏng và đầu đọc cũ có thể
+  không đọc được).
+- Panel Bộ đếm số serial hiện thêm ô chọn dãy ký tự (Số thập phân,
+  Hệ mười sáu, Chữ cái, Số và chữ, Tự định nghĩa) qua
+  `SerialCounterAlphabetOptions`, và ô nhập dãy tự định nghĩa chỉ
+  hiện khi chọn Tự định nghĩa.
+
+Kiểm chứng: build toàn giải pháp 0 lỗi; gate cấu trúc mới
+`barcode and serial properties expose reverse engineered options`
+(kiểm tra bốn binding trong `MainWindow.xaml` và danh sách mức
+PDF417 = Tự động + 0–8) xanh cùng toàn bộ regression suite, 1406
+unit test và Fast quality loop. Chưa bấm tay trên giao diện thật và
+chưa có bằng chứng quét vật lý.
+
+[Agent: Muse Spark / Muse Code — phiên UI PDF417/serial 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 23): hình học bản ghi mã vạch đã chốt
+
+## 48. Bốn long [trái, trên, phải, dưới] đối chiếu bốn double [x, y, rộng, cao]
+
+Căn chỉnh lại bản ghi mã vạch của `HIBIC.lbl` và `ISBN.lbl` theo trình
+tự `TObject::Load` §40 cho thấy, ngay trước bốn double hình học là bốn
+`long` (bước 3), và hai bộ số khóa lẫn nhau bằng hệ số 2540 (1/100 mm
+mỗi inch):
+
+| Tệp | Bốn long (1/100 mm) | Bốn double (inch) | Kiểm tra |
+| :--- | :--- | :--- | :--- |
+| HIBIC (Code-39) | 1704, 734, 8117, 2012 | 0.671, 0.289, 2.525, 0.503 | 1704/2540 = 0.671; 8117/2540 = 3.196 = 0.671 + 2.525; 2012/2540 = 0.792 = 0.289 + 0.503 |
+| ISBN (Ean-13) | 810, 774, 3426, 2061 | 0.319, 0.305, 1.030, 0.508 | 3426/2540 = 1.349 = 0.319 + 1.030; 2061/2540 = 0.811 ≈ 0.305 + 0.508 |
+
+Kết luận: bốn long là **[trái, trên, phải, dưới]** theo 1/100 mm, bốn
+double là **[x, y, chiều rộng, chiều cao]** theo inch; hai bộ là cùng
+một hình học lưu hai dạng (khớp khả năng ở §40: định dạng cũ dùng
+long, định dạng ≥ 8 thêm double). Vị trí/kích thước đối tượng mã vạch
+như vậy đã đọc được tin cậy; phần còn thiếu để chuyển đổi an toàn là
+ranh giới từng bản ghi trong `Contents` (số lượng bản ghi theo nhóm
+đối tượng và độ dài phần đuôi `TBarcode::Load` sau khối font), nên
+chưa đưa vào mã sản phẩm ở lát này.
+
+Cùng lát: tem nhập từ `.lbl` nay giữ **tên tem đã lưu trong header**
+khi có (ví dụ `SSCC - UCC/EAN 128`), chỉ dùng tên tệp khi tên lưu
+trống — `NiceLabel5LblImporter` và gate
+`opening a niceLabel 5 lbl imports its label size as a new template`
+đã mở rộng tương ứng. Build, 1406 unit test, regression suite, Fast
+loop đều đạt; quét reader trên 65 tệp mẫu vẫn 65/65.
+
+[Agent: Muse Spark / Muse Code — phiên hình học mã vạch .lbl 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 24): quét chữ ký bản ghi mã vạch trên 65 tệp
+
+## 49. Năm bản ghi sạch, một biến thể EAN chưa giải thích được
+
+Quét toàn bộ 65 tệp mẫu bằng chữ ký đã chứng minh ở §48 (bốn long
+[trái, trên, phải, dưới] khớp bốn double [x, y, rộng, cao] qua hệ số
+2540 trong sai số 3/100 mm, tiếp theo là chuỗi dữ liệu
+`{u16 cờ = 0, u16 số ký tự, byte ký tự}` và khối tên loại
+`{u32 = 8, u16 mã nội bộ, u16 số ký tự tên, tên + NUL}`) tách được
+đúng 5 bản ghi sạch:
+
+| Tệp | Mã nội bộ | Loại | Dữ liệu |
+| :--- | ---: | :--- | :--- |
+| AIAG_VIN.lbl | 33 | Code-39 full ASCII | mặt nạ `?` (gắn biến) |
+| DOCTRACK.lbl | 5 | Interleaved 2of5 | mặt nạ `?` (gắn biến) |
+| HIBIC.lbl | 6 | Code-39 | `+REFERENCESYMBOL` |
+| ISBN.lbl | 1 | Ean-13 | mặt nạ `?` (gắn biến) |
+| MIL129L1.lbl | 33 | Code-39 full ASCII | mặt nạ `?` (gắn biến) |
+
+Bảng mã nội bộ như vậy thêm hai giá trị mới: Interleaved 2of5 = 5,
+Code-39 full ASCII = 33 (cùng họ với Ean-13 = 1, Code-39 = 6 ở §43).
+
+Điểm chặn: bản ghi Ean-14 trong `EAN.lbl` (dữ liệu `1132465798112`)
+có bốn long [540, 1191, 4541, 2300] nhưng bốn double tại vị trí tương
+ứng là [1.0, 0.4689, 1.5752, 0.4366] — ba giá trị cuối khớp
+y/rộng/cao, giá trị đầu là 1.0 thay vì x = 0.2126. Giả thuyết "double
+đầu tiên luôn là x" như vậy không đứng vững trên mọi bản ghi; có thể
+thứ tự double trong `TObject::Load` (các đích struct lệch nhau ở §40)
+khác với thứ tự stream ở một số họ đối tượng, hoặc trường đầu là hệ
+số co giãn mặc định 1.0. Vì mâu thuẫn này chưa gỡ được, **chưa chuyển
+đổi đối tượng mã vạch nào vào mã sản phẩm**: đoán sai vị trí x sẽ in
+tem sai chỗ mà không có cảnh báo. Bước gỡ tiếp theo là đi bộ lại thân
+`TObject::Load`/`TBarcode::Load` bằng Ghidra để gán đích của từng
+double theo thứ tự stream, đối chiếu trên ba bản ghi HIBIC/ISBN/EAN.
+
+[Agent: Muse Spark / Muse Code — phiên quét bản ghi mã vạch 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 25): neo theo tên loại mã trên 65 tệp
+
+## 50. Tám bản ghi neo được; bốn long tự đủ hình học, double đầu chưa gán
+
+Neo theo khối tên loại mã (thay vì quét mù) tìm được 8 bản ghi mã
+vạch: thêm WALMART_SCC-14 (Interleaved 2of5) và EAN (Ean-14, mã nội
+bộ 34 — giá trị mới thứ ba). Ở cả 8 bản ghi, bốn long
+[trái, trên, phải, dưới] luôn tự nhất quán và ba double cuối luôn
+khớp [y, rộng, cao] suy từ bốn long. Chỉ double đầu tiên là bất
+thường ở 3/8 bản ghi (EAN: 1.0; WALMART_SCC-14: 2.015) trong khi
+5 bản ghi còn lại khớp x. Các ứng viên cho double đầu (tọa độ x trên
+trang in gồm cả lề trang, hệ số co giãn, trường riêng của họ mã)
+chưa phân định được bằng số học thuần; cần đi bộ thân hàm.
+
+Hệ quả thực dụng cho chuyển đổi sau này: **hình học lấy từ bốn long**
+(đơn vị 1/100 mm, đúng đơn vị ANLAbel) và dùng ba double cuối làm
+kiểm tra chéo; double đầu bỏ qua cho đến khi gán được nghĩa. Rào
+chắn dữ liệu còn lại: 6/8 bản ghi mẫu mang dữ liệu mặt nạ `?` (gắn
+biến — chưa ánh xạ được id liên kết sang tên biến), bản ghi literal
+sạch duy nhất là HIBIC với dữ liệu `+REFERENCESYMBOL` mà dấu `+` có
+thể là ký hiệu tham chiếu chứ không phải dữ liệu in. Chuyển đổi đối
+tượng vì thế vẫn chưa vào mã sản phẩm; điều kiện mở khóa là (1) gán
+nghĩa double đầu và trường liên kết biến, (2) có ít nhất một bản ghi
+literal thứ hai ngoài HIBIC để vi sai.
+
+[Agent: Muse Spark / Muse Code — phiên neo tên loại mã 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 26): đi bộ lại TObject::Load
+
+## 51. Thân hàm chốt cấu trúc struct hình học, chưa gán tên trường
+
+Biên dịch ngược lại `TObject::Load` tại 0x4F8E81 trong `nengine5.exe`
+bằng Ghidra headless (script `DecompileAt.java`, log tại
+`.analysis/rea/tobj-decompile.log` và đầu ra phiên này) xác nhận:
+
+- Bốn lần đọc double liên tiếp (slot +0x40) ghi lần lượt vào bốn
+  struct 16 byte tại `this+0x2D`, `this+0x3D`, `this+0x5D`,
+  `this+0x4D`; thành phần double nằm lệch +4 trong mỗi struct (hàm
+  so sánh double tại +0x31/+0x41/+0x61/+0x51 với hằng sentinel để
+  đặt cờ `this+0x16A`). Thứ tự ghi trong stream là
+  [0x2D, 0x3D, 0x5D, 0x4D] — hai struct cuối hoán vị trí so với thứ
+  tự địa chỉ bộ nhớ, nên không suy tên trường từ địa chỉ được.
+- Khi phiên bản TIO < 8, hàm không đọc double mà gọi hàm ảo
+  `this+0x2C` để tự chuyển đổi — khớp giả thuyết §40: bản ghi cũ chỉ
+  có bốn long 1/100 mm, bản ghi mới có thêm bốn double inch.
+- Ngay sau hình học: một lần đọc khối thô (slot +0x00), một int
+  (+0x18), rồi một uchar (+0x58) đọc từ stream phụ qua
+  `TIO::SetCurrentStream`, rồi cặp int (+0x18 ×2) mà giá trị thứ hai
+  được so với 9999 để đặt cờ trên nhãn — đúng trình tự §40.
+
+Thân hàm dùng quy ước gọi Borland (đích ghi nằm trong thanh ghi) nên
+không lộ tên trường X/Y/Rộng/Cao; bất thường double đầu ở §50 vì thế
+vẫn chưa gán được. Kết luận thực dụng không đổi: chuyển đổi hình học
+lấy từ bốn long, kiểm tra chéo bằng ba double cuối, và chuyển đổi
+đối tượng chỉ mở khi trường double đầu cùng trường liên kết biến
+được gán nghĩa — bước cần một hàm sử dụng hình học (vẽ/đo) thay vì
+hàm nạp.
+
+[Agent: Muse Spark / Muse Code — phiên TObject::Load Ghidra 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 27): double đầu là mép trái hay tâm ngang
+
+## 52. Hai nhóm bản ghi, chưa thấy cờ phân biệt
+
+Đo chính xác đầy đủ trên 8 bản ghi §50 cho thấy double đầu tiên chỉ
+có hai dạng: bằng **mép trái** (5 bản ghi: HIBIC, ISBN, AIAG_VIN,
+DOCTRACK, MIL129L1) hoặc bằng **tâm ngang** của khung (3 bản ghi:
+EAN, WALMART_SCC-14 ×2), sai lệch dưới 0,005 mm theo đúng phép tính
+`(trái + phải) / 2` từ bốn long. Ba double còn lại luôn là
+[trên, rộng, cao] ở cả hai nhóm.
+
+Đối chiếu tiền tố bản ghi (24 byte trước hình học), vùng giữa
+(sau hình học đến chuỗi dữ liệu) và phần đuôi sau khối font giữa hai
+nhóm không thấy cờ nào phân biệt nhất quán; tiền tố đều chứa khuôn
+`01 00 30 01 00 00`. Ứng viên còn lại: điểm quy chiếu vị trí của đối
+tượng (neo trái/trên so với neo tâm) được lưu ở khối thô bước 5 của
+`TObject::Load` hoặc ở byte đọc từ stream phụ (bước 7) — cả hai đều
+chưa gán. Hệ quả cho chuyển đổi không đổi và nay chặt hơn: hình học
+lấy từ bốn long; double đầu chỉ dùng làm kiểm tra chéo khi nó khớp
+mép trái hoặc tâm ngang trong sai số 0,01 mm, ngoài hai dạng đó thì
+từ chối bản ghi.
+
+[Agent: Muse Spark / Muse Code — phiên double đầu trái/tâm 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 28): chuyển đổi mã vạch literal từ .lbl
+
+## 53. ReadBarcodeRecords + importer: chỉ nhận bản ghi khóa đủ chữ ký
+
+Theo quy tắc §52, `NiceLabel5LblReader.ReadBarcodeRecords` quét
+`Contents` và chỉ nhận bản ghi mã vạch khóa đủ mọi kiểm tra chéo:
+bốn long [trái, trên, phải, dưới] nằm trong khổ tem; ba double
+[trên, rộng, cao] khớp bốn long qua hệ số 2540 (sai số 3/100 mm);
+double đầu khớp mép trái hoặc tâm ngang; chuỗi dữ liệu
+`{cờ 0, số ký tự, byte in được}` không chứa mặt nạ `?`; khối tên
+loại `{8, mã nội bộ, độ dài, tên + NUL}` thuộc bảng đã gán
+(Ean-13 = 1, Interleaved 2of5 = 5, Code-39 = 6,
+Code-39 full ASCII = 33). `NiceLabel5LblImporter` ánh xạ các mã này
+sang `BarcodeSymbology` của ANLAbel (33 gộp vào Code39) và tạo đối
+tượng mã vạch đúng vị trí/kích thước; thanh trạng thái khi mở tệp
+nói rõ đã chuyển đổi bao nhiêu mã vạch và các đối tượng khác chưa
+được chuyển đổi.
+
+Kiểm chứng: quét bằng chính reader C# trên 65 tệp mẫu thật cho đúng
+một bản ghi chuyển đổi được — HIBIC Code-39 tại
+17,04 × 7,34 mm, kích thước 64,13 × 12,78 mm, khớp §48 — và không
+dương tính giả; mọi bản ghi mặt nạ biến đều bị bỏ qua. Gate
+`opening a niceLabel 5 lbl imports its label size as a new template`
+đã mở rộng với một bản ghi Code-39 tổng hợp (loại, dữ liệu, hình
+học). Build toàn giải pháp, 1406 unit test, regression suite và
+Fast quality loop đều đạt. Chưa mở tệp bằng tay trên giao diện thật;
+mã vạch gắn biến và các họ đối tượng khác vẫn chưa chuyển đổi.
+
+[Agent: Muse Spark / Muse Code — phiên chuyển đổi mã vạch .lbl 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 29): TBarcode::Load và TVar::Load
+
+## 54. Chuỗi dữ liệu nằm sau một std::string; máy liên kết biến ở phần gốc
+
+Biên dịch ngược `TBarcode::Load` (0x522AFC) và `TVar::Load`
+(0x4B71AB) trong `nengine5.exe` (log
+`.analysis/rea/tvar-tbarcode-decompile.log`) cho thấy:
+
+- `TBarcode::Load` gọi `TObject::Load`, rồi ở chế độ stream đọc một
+  `std::string` (slot +0x70) và một chuỗi kiểu `TNiceContents`
+  (+0x80, qua stream phụ) — chuỗi dữ liệu mã vạch mà §53 chuyển đổi
+  là chuỗi thứ hai này; chuỗi thứ nhất đứng ngay trước nó trong
+  stream và là ứng viên cho tên nguồn dữ liệu/biến. Sau đó, với
+  phiên bản ≥ 7, hàm gọi `TBarcodeData::Load` (khối tên loại, font,
+  thuật toán kiểm tra) — nhánh < 7 đọc tay ulong/int/bool như §42
+  đã ghi.
+- Máy liên kết biến nằm ở bước 8 của `TObject::Load`: hai int đọc
+  liên tiếp, giá trị thứ hai so với 9999, và một hàm giải quyết liên
+  kết ghi vào `this+0x12A`. Cặp u16 ngay trước chuỗi dữ liệu trong
+  các bản ghi mẫu (HIBIC `2001`, ISBN `1/2`, WALMART `1/5`...) nằm
+  trong vùng này nhưng chưa khớp một-một với hai int trên vì các lần
+  đọc từ stream phụ (bước 7 và các bước sau) xen giữa trong stream
+  tổng.
+- `TVar::Load` mở đầu bằng hai int (+0x18 ×2) rồi một loạt chuỗi
+  (+0x68/+0x70/+0x80 qua các stream phụ) — khớp khuôn bản ghi biến
+  quan sát trong `ISBN.lbl` (hai chuỗi tên/mô tả liên tiếp, sau đó
+  các trường số và chuỗi giá trị mặc định).
+
+Kết luận: chuyển đổi mã vạch gắn biến cần thêm một vòng gán trường
+(cặp int liên kết + chuỗi +0x70 đứng trước dữ liệu + thứ tự bản ghi
+biến), chưa đủ chắc để vào sản phẩm. Phần literal ở §53 không phụ
+thuộc các trường này nên không bị ảnh hưởng.
+
+[Agent: Muse Spark / Muse Code — phiên TBarcode/TVar Load 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 30): chuyển đổi mã vạch gắn biến
+
+## 55. Trường liên kết là (loại, mã biến trừ 1000); khớp ngữ nghĩa 5/5 tệp
+
+Cặp u16 ngay trước chuỗi dữ liệu mã vạch là (loại liên kết, số thứ
+tự biến), và định nghĩa biến trong cùng tệp lưu mã số nguyên
+1000 + số thứ tự đó ngay trước tên biến. Đối chiếu ngữ nghĩa trên
+mọi bản ghi mặt nạ `?` đã neo:
+
+| Tệp | Cặp liên kết | Biến 1000 + n | Đúng ngữ nghĩa |
+| :--- | :--- | :--- | :--- |
+| ISBN.lbl | (1, 2) | `ISBN Num` | mã Ean-13 của tem ISBN |
+| WALMART_SCC-14.lbl (+ CANADA) | (1, 5) | `Barcode` | mã Interleaved 2of5 của tem SSCC |
+| DOCTRACK.lbl | (1, 4) | `Doc Number` | mã số chứng từ |
+| MIL129L1.lbl | (4, 4) | `Stk Num` | chưa chuyển (loại 4) |
+| AIAG_VIN.lbl | (4, 18) | `Vehical ID` | chưa chuyển (loại 4) |
+
+`ReadBarcodeRecords` nay quét cả định nghĩa biến (mã 1001–1099 +
+tên in được kết thúc NUL) và chỉ chuyển đổi bản ghi mặt nạ thuần `?`
+khi loại liên kết bằng 1 và biến đích tồn tại trong tệp; importer
+tạo đối tượng mã vạch với liên kết `{?Tên biến}` và khai báo biến
+nhắc tương ứng trên tem. Loại liên kết 4 (ứng viên: nguồn cơ sở dữ
+liệu) và các họ đối tượng khác vẫn chưa chuyển đổi.
+
+Kiểm chứng: quét bằng reader C# trên 65 tệp mẫu cho 5 bản ghi chuyển
+đổi — HIBIC literal, ISBN `ISBN Num`, DOCTRACK `Doc Number`,
+WALMART_SCC-14 ×2 `Barcode` — không dương tính giả. Gate nhập `.lbl`
+đã mở rộng với bản ghi Ean-13 mặt nạ + định nghĩa biến tổng hợp
+(kiểm tra symbology, liên kết `{?ISBN Num}` và khai báo biến).
+Build, 1406 unit test, regression suite, Fast loop đều đạt.
+
+[Agent: Muse Spark / Muse Code — phiên mã vạch gắn biến .lbl 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 31): loại liên kết 4 chưa phân định
+
+## 56. Bản ghi biến hai nhóm giống nhau; loại liên kết không phải nguồn biến
+
+Đối chiếu trực tiếp bản ghi biến của biến đích ở hai nhóm liên kết
+(`ISBN Num`, `Barcode`, `Doc Number` — loại 1; `Stk Num`,
+`Vehical ID` — loại 4) cho thấy cấu trúc giống hệt nhau: tên biến,
+sáu byte 0, trường độ dài mặt nạ, các cờ, và chuỗi nhắc nhập
+(`Enter Stock Number`, `Enter Bar Code Data:`...). Cả hai nhóm biến
+đều mang câu nhắc nhập của người vận hành, nên loại liên kết 1/4
+**không** phân biệt nguồn biến nhắc/cơ sở dữ liệu như phỏng đoán
+trước. Ứng viên còn lại: loại liên kết là thể loại nguồn dữ liệu ở
+phần gốc đối tượng (bước 8 của `TObject::Load`), hoặc định dạng dữ
+liệu của chính mã vạch (hai biến loại 4 đều là chuỗi chữ-số dài,
+hai biến loại 1 thiên về số) — chưa đủ bằng chứng để chọn.
+
+Giữ nguyên quyết định ở §55: chỉ chuyển đổi loại liên kết 1. Chuyển
+loại 4 thành biến nhắc `{?Tên}` có nguy cơ đổi ngữ nghĩa vận hành
+(lấy dữ liệu dòng/cơ sở dữ liệu thành hỏi người vận hành) mà không
+có cảnh báo, đúng loại thay đổi dự án cấm. Mở khóa cần một bằng
+chứng phân định: hoặc đi bộ hàm giải quyết liên kết ở
+`TObject::Load` bước 8, hoặc một tệp mẫu mà biến loại 4 có nguồn
+khác hẳn biến nhắc.
+
+[Agent: Muse Spark / Muse Code — phiên loại liên kết 4 .lbl 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 32): hàm giải quyết liên kết ở bước 8
+
+## 57. Hai hàm tra cứu hai tập hợp khác nhau
+
+Biên dịch ngược các hàm phụ của `TObject::Load` bước 8 (log
+`.analysis/rea/link-resolver-decompile.log`):
+
+- Hàm tại 0x4B6C84 lặp một danh sách liên kết và so sánh giá trị tra
+  cứu với trường mã số tại `node+0x82`, trả về node khớp — kết quả
+  được lưu vào `this+0x12A`.
+- Hàm tại 0x4DE9E2 làm việc tương tự trên một danh sách khác, so
+  sánh mã số tại đầu node — kết quả lưu vào `this+0x132`.
+- Hàm tại 0x413577 chỉ là phép lấy địa chỉ `this+0xF6` (vùng đệm
+  chuỗi của đối tượng).
+
+Sự tồn tại của **hai tập hợp tra cứu theo mã số khác nhau** ở đúng
+bước liên kết của phần gốc đối tượng là bằng chứng hỗ trợ (chưa phải
+chứng minh) cho cách đọc "loại liên kết chọn tập hợp đích" ở §55:
+loại 1 tra trong tập biến đã quét được, loại 4 tra trong tập còn
+lại (ứng viên: trường dữ liệu/cột cơ sở dữ liệu, hoặc danh sách đối
+tượng tham chiếu). Chưa xác định được tập thứ hai chứa gì từ các tệp
+mẫu hiện có, nên quyết định giữ nguyên: chỉ chuyển đổi loại 1.
+
+[Agent: Muse Spark / Muse Code — phiên hàm liên kết bước 8 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 33): FindVar / FindFormat — mở chuyển đổi mọi liên kết biến
+
+## 58. Hai hàm tra cứu là FindVar và FindFormat; số đầu không chặn dữ liệu
+
+Tra tên TD32 cho các hàm §57 cho kết quả dứt khoát: hàm tại
+0x4B6C84 là `FindVar` (duyệt danh sách `TVar`, so mã tại
+`node+0x82`), hàm tại 0x4DE9E2 là `FindFormat` (duyệt danh sách
+`TFormat`). Như vậy cặp liên kết ở phần gốc đối tượng gồm một liên
+kết **định dạng hiển thị** (FindFormat) và một liên kết **biến**
+(FindVar); trường đầu tiên trong cặp u16 trước chuỗi dữ liệu thuộc
+vế định dạng, không chọn nguồn dữ liệu. Phỏng đoán "loại 4 = nguồn
+cơ sở dữ liệu" ở §56 bị bác bỏ.
+
+`ReadBarcodeRecords` vì thế không còn chặn theo trường đầu: bản ghi
+mặt nạ thuần `?` được chuyển đổi bất kể giá trị trường định dạng,
+miễn là mã biến (1000 + số thứ hai) khớp một biến định nghĩa trong
+cùng tệp. Quét lại 65 tệp mẫu: cả 7 bản ghi đã neo đều chuyển đổi
+(HIBIC literal; ISBN `ISBN Num`; DOCTRACK `Doc Number`;
+WALMART_SCC-14 ×2 `Barcode`; MIL129L1 `Stk Num`; AIAG_VIN
+`Vehical ID`), không dương tính giả. Bản ghi MIL129L2 vẫn chưa neo
+được hình học nên bị bỏ qua đúng thiết kế fail-closed. Gate nhập
+`.lbl` đã đổi bản ghi mặt nạ tổng hợp sang trường định dạng 4 để
+khóa hành vi mới. Build, 1406 unit test, regression suite, Fast
+loop đều đạt.
+
+[Agent: Muse Spark / Muse Code — phiên FindVar/FindFormat 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 34): bản ghi MIL129L2 bị loại đúng thiết kế
+
+## 59. Khớp x/y nhưng lệch rộng/cao ~11%: giữ fail-closed
+
+Soi bản ghi `Code-39 full ASCII` thứ hai trong `MIL129L2.lbl`
+(bản ghi đầu tìm theo tên loại thực ra là một đối tượng chữ mang
+mặt nạ `?` và khối font Arial, không có khối loại mã): bốn long
+[348, 3327, 11219, 4868] và bốn double [0.137, 1.310, 3.827,
+0.660] chỉ khớp x/y; chiều rộng suy từ long là 4.279 inch so với
+double 3.827 inch, chiều cao 0.607 so với 0.660 inch — lệch khoảng
+11%, ngoài sai số 3/100 mm. Ứng viên: đối tượng nằm trong nhóm
+(group) có khung cha khác khung ký hiệu, hoặc đã bị co giãn khung
+sau khi lưu double. Chưa phân định được, nên bộ quét tiếp tục loại
+bản ghi này; đây là fail-closed hoạt động đúng, không phải lỗi sót
+cần nới lỏng. Khi nào có bằng chứng về khung nhóm/xoay, quy tắc
+kiểm tra chéo sẽ được cập nhật kèm gate tương ứng.
+
+[Agent: Muse Spark / Muse Code — phiên MIL129L2 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 35): chuyển đổi chữ cố định từ .lbl
+
+## 60. Cùng chữ ký hình học, đuôi chuỗi nội dung + khối font
+
+Bản ghi chữ dùng chung phần gốc đối tượng với mã vạch: bốn long /
+bốn double khóa chéo như §48, sau đó là chuỗi nội dung đếm ký tự và
+khối font kết thúc bằng khuôn `01 22` + tên mặt chữ + NUL (khuôn đã
+thấy trong khối font của bản ghi mã vạch §42).
+`NiceLabel5LblReader.ReadTextRecords` chỉ nhận bản ghi: hình học
+khóa đủ, nội dung in được không chứa mặt nạ `?`, không phải bản ghi
+mã vạch (không có khối loại mã sau dữ liệu), và có khối font trong
+64 byte sau dữ liệu. Importer tạo đối tượng `Text` đúng vị trí/kích
+thước, mang nội dung và tên mặt chữ; cỡ chữ chưa suy được đơn vị
+chắc chắn từ trường chiều cao font nên giữ mặc định của ANLAbel.
+
+Kiểm chứng: quét bằng reader C# trên 65 tệp mẫu cho 165 bản ghi chữ
+— các nhãn cố định đúng ngữ nghĩa như `SHIP TO:`, `CARRIER:`,
+`QUANTITY (Q)`, `MASTER LABEL`, `FIRST NAME, LAST NAME` tại vị trí
+plausible, tất cả mặt chữ Arial; chưa thấy dương tính giả hiển
+nhiên (một bản ghi nội dung `+` trên tem BMW cần kiểm chứng tay nếu
+mở tệp đó). Gate nhập `.lbl` đã mở rộng với bản ghi chữ tổng hợp
+(loại đối tượng, nội dung, mặt chữ). Build, 1406 unit test,
+regression suite, Fast loop đều đạt. Chữ gắn biến (mặt nạ, gồm cả
+dạng tiền tố literal + mặt nạ như `ISBN ?...`), đoạn văn/RTF và đồ
+họa vẫn chưa chuyển đổi.
+
+[Agent: Muse Spark / Muse Code — phiên chuyển đổi chữ .lbl 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 36): TText::Load — cỡ chữ chưa gán đơn vị
+
+## 61. Trình tự sau nội dung: 5 int, 8 cờ kiểu, chuỗi mặt chữ
+
+Biên dịch ngược `TText::Load` (0x5097E8, log
+`.analysis/rea/ttext-decompile.log`): sau phần gốc, hàm đọc chuỗi
+nội dung kiểu `TNiceContents` (+0x68/+0x80 qua stream phụ), rồi 5
+int (+0x18) ghi vào `this+0x2B2..+0x2C2`, 8 uchar (+0x58 — ứng viên
+cờ kiểu chữ), một chuỗi mặt chữ (+0x68) vào vùng đệm 32 ký tự tại
+`this+0x2CE`, 2 long (+0x38) và các trường phụ. Trong stream mẫu,
+ngay sau nội dung là khuôn `[int chiều cao âm][int 0][int độ đậm
+400/700]` rồi khuôn `01 22` + mặt chữ — khớp ba int đầu của nhóm
+năm int trên.
+
+Đơn vị của int chiều cao (các giá trị đã gặp: −8, −22, −42, −62)
+chưa gán được: theo point thì hợp lý với tem mẫu (chữ nhỏ 8–12,
+tiêu đề lớn 42–62), theo 1/10 mm thì chữ nhỏ thành 0,8 mm không
+hợp lý, nhưng chưa có bằng chứng độc lập (chiều cao khung do người
+dùng vẽ nên không suy ngược được từ khung). Giữ quyết định §60:
+chuyển đổi mang mặt chữ, cỡ chữ để mặc định ANLAbel; khi nào có
+bằng chứng đơn vị (ví dụ đi bộ hàm vẽ chữ dùng `this+0x2B2`), sẽ
+bổ sung kèm gate.
+
+[Agent: Muse Spark / Muse Code — phiên TText::Load 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 37): chuyển đổi chữ gắn biến từ .lbl
+
+## 62. Một dải mặt nạ duy nhất thành liên kết {?Tên biến} đúng vị trí
+
+Mở rộng §60: bản ghi chữ có nội dung chứa mặt nạ `?` được chuyển
+đổi khi mặt nạ là **một dải duy nhất** (thuần mặt nạ hoặc tiền tố
+literal + mặt nạ, ví dụ `ISBN ?...`) và trường liên kết biến của
+bản ghi (cặp u16 trước chuỗi nội dung, số thứ hai là mã biến trừ
+1000 như §55) khớp một biến định nghĩa trong cùng tệp. Importer
+thay dải mặt nạ bằng `{?Tên biến}` trong biểu thức liên kết, giữ
+phần literal làm nội dung dự phòng, và khai báo biến nhắc trên tem.
+
+Kiểm chứng: quét bằng reader C# trên 65 tệp mẫu cho tổng 215 bản
+ghi chữ (165 literal §60 + 50 gắn biến) — các ánh xạ đúng ngữ
+nghĩa như `TO Address 1`, `To Zip`, `AIAG B10 QTY`, `5 Digit`,
+`Structure1`; không thấy ánh xạ sai hiển nhiên. Gate nhập `.lbl`
+đã mở rộng với bản ghi chữ mặt nạ tổng hợp (kiểm tra biểu thức
+`Lot {?ISBN Num}` và nội dung dự phòng `Lot `). Build, 1406 unit
+test, regression suite, Fast loop đều đạt. Đoạn văn/RTF, đồ họa và
+cỡ chữ vẫn chưa chuyển đổi.
+
+[Agent: Muse Spark / Muse Code — phiên chữ gắn biến .lbl 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 38): hàm getter hình học xác nhận TRect
+
+## 63. X/Y/W/H đọc đúng bốn long tại this+0x1D; PtSizeX/PtSizeY tồn tại riêng
+
+Tra tên TD32 và biên dịch ngược các getter của `TObject`
+(0x4132BD `GetRect`, 0x41443F `X`, 0x41444A `Y`, 0x4135C6 `W`,
+0x4135D6 `H`; log `.analysis/rea/geometry-getters*-decompile.log`):
+
+- `X()` trả int tại `this+0x1D`, `Y()` tại `this+0x21`,
+  `W()` bằng int tại `this+0x25` trừ `X()`, `H()` bằng int tại
+  `this+0x29` trừ `Y()`. Bốn long hình học mà bộ chuyển đổi §53/§60
+  dùng là đúng trường `[Left, Top, Right, Bottom]` (1/100 mm) của
+  đối tượng — nay đã chứng minh bằng hàm sử dụng, không chỉ bằng
+  đối chiếu số học.
+- Bốn struct 16 byte tại `this+0x2D..` (mỗi struct một int và một
+  double) là một biểu diễn hình học thứ hai chưa gán tên trường;
+  bất thường double đầu ở §50 nằm trong biểu diễn này và không ảnh
+  hưởng hình học TRect đã dùng.
+- `TText` có hai thuộc tính riêng `PropPtSizeX`/`PropPtSizeY` trong
+  hệ thống property/command, nên cỡ chữ lưu hai chiều riêng; việc
+  ánh xạ chúng vào nhóm 5 int sau nội dung (§61) chưa xong vì getter
+  thuộc tính đi qua bảng mô tả descriptor, chưa đọc được offset
+  trường từ log hiện có.
+
+[Agent: Muse Spark / Muse Code — phiên getter hình học 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 39): truy PtSizeX/PtSizeY — chưa tới trường
+
+## 64. Hệ thống property đi qua command object; đơn vị cỡ chữ vẫn mở
+
+Truy tiếp cỡ chữ: danh sách hàm TD32 cho thấy `TText` có đủ bộ
+thuộc tính `PropPtSizeX`, `PropPtSizeY`, `PropSpacingX`,
+`PropSpacingY`, `PropMinSizeX/Y`, `PropMaxSizeX/Y`,
+`PropScaleFactor` (log `.analysis/rea/ptsize*-decompile.log`,
+`ttext-printrect-decompile.log`). Tuy nhiên getter thuộc tính đi
+qua command object và bảng vtable giá trị (0x637E94/0x637E64) chứ
+không đọc thẳng trường của `TText`, và `TText::GetPrintRect` dùng
+các trường in/xoay (+0x255, +0x272, +0x301...) chứ không dùng cỡ
+chữ trực tiếp. Ánh xạ PtSizeX/Y vào nhóm 5 int tại
+`this+0x2B2..` (§61) vì thế vẫn chưa xong.
+
+Kiểm tra số học trên bản ghi mẫu cũng bác bỏ mọi phép đổi đơn giản
+cho int đầu tiên sau nội dung (−8..−62): theo point trực tiếp thì
+`Title or Description` (−22) thành 7,8 mm trong khung 2,9 mm;
+theo 1/10 mm thì chữ `TO:` (−8) thành 0,8 mm không in thực tế
+được; theo DPI 203/300 cũng không nhất quán cả hai đầu. Có thể int
+này là cỡ tại DPI của máy in đã lưu, hoặc chịu thêm hệ số co giãn
+(`PropScaleFactor`) — chưa phân định. Giữ nguyên §60–61: không
+chuyển cỡ chữ.
+
+[Agent: Muse Spark / Muse Code — phiên truy PtSize 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 40): chuyển đổi hình chữ nhật / đường kẻ từ .lbl
+
+## 65. Mã loại 0x131 ngay trước hình học; TRectangle xử lý cả kẻ
+
+Biên dịch ngược `TRectangle::Load` (0x501636, log
+`.analysis/rea/trectangle-decompile.log`): sau phần gốc, hàm đọc
+2 long, (phiên bản > 11) 2 double, rồi các trường qua stream phụ,
+và kiểm tra mã loại đối tượng `this+0xD == 0x131` để xử lý hướng
+kẻ. Trong stream, sáu byte ngay trước bốn long hình học là
+`[bộ đếm nhóm][mã loại u16][0]` — mã loại đã gặp: chữ 0x12D,
+mã vạch 0x130, hình/kẻ 0x131.
+
+`NiceLabel5LblReader.ReadShapeRecords` chỉ nhận bản ghi có mã
+loại 0x131 + hình học khóa đủ + không phải mã vạch/chữ đã nhận.
+Importer tạo `Rectangle`, hoặc `Line` khi một chiều của khung
+≤ 1 mm (kẻ lưới trên tem vận chuyển). Kiểu tô/viền chưa chuyển.
+
+Kiểm chứng: quét bằng reader C# trên 65 tệp mẫu cho 202 hình
+(15 hình chữ nhật, 187 đường kẻ — lưới phân ô trên các tem
+AIAG/WALMART/UPS/DDFRM, đúng ngữ nghĩa). Gate nhập `.lbl` mở rộng
+với bản ghi hình tổng hợp (loại, vị trí, chiều rộng). Build, 1406
+unit test, regression suite, Fast loop đều đạt. Đoạn văn/RTF, đồ
+họa (bitmap), cỡ chữ và màu tô/viền vẫn chưa chuyển đổi.
+
+[Agent: Muse Spark / Muse Code — phiên chuyển đổi hình/kẻ .lbl 2026-10-27]
+
+---
+
+# Phụ lục khảo sát 2026-10-27 (tiếp 41): luồng phụ V* Data theo đối tượng
+
+## 66. Ngoài Contents còn có luồng dữ liệu phụ mang tên đối tượng
+
+Liệt kê toàn bộ luồng CFBF của 65 tệp mẫu cho thấy, ngoài
+`Contents`, mỗi tệp còn nhiều luồng đặt tên theo khuôn
+`V<mã>R<n> Data` / `V<mã> Data` (ví dụ `V21R6 Data`, `V33 Data`,
+`V30 Data`, `V2R3 Data`, `RFIDTag Data`, `OEM Data`), và một số
+luồng bắt đầu bằng chuỗi tên đối tượng như `Text2`, `Line1`,
+`Rectangle`, `Text4`, `Line38`. Đây là các luồng phụ mà
+`TObject::Load`/`TText::Load` đọc xen kẽ qua
+`TIO::SetCurrentStream` (các trường không nằm trong `Contents` mà
+các lát trước không định vị được trong stream chính, ví dụ một
+phần trường font và trường liên kết). `NICE Preview` /
+`NICE Preview Big` là bitmap xem trước của cả tem (đầu
+`BITMAPINFOHEADER` 0x28, 100×100 và 300×300).
+
+Hệ quả: chuyển đổi đồ họa (bitmap nhúng) và đoạn văn/RTF nên bắt
+đầu từ bản đồ luồng phụ này — đối chiếu tên đối tượng trong luồng
+`V21R6 Data` với bản ghi chính trong `Contents` theo thứ tự nhóm
+đối tượng của `TLabel::LoadObjects` — thay vì quét tiếp trong
+`Contents`. Chưa đưa vào mã sản phẩm ở lát này.
+
+[Agent: Muse Spark / Muse Code — phiên luồng phụ V* 2026-10-27]
+
+---
+
+# Phụ lục đối chiếu 2026-10-27 (tiếp 42): đủ bản đồ mã loại đối tượng
+
+## 67. 0x12E là đoạn văn, 0x12F là đồ họa tham chiếu tệp ngoài
+
+Thống kê mã loại (sáu byte trước hình học) trên mọi bản ghi khóa
+đủ hình học của 65 tệp mẫu: 0x12D = 313 (chữ), 0x12E = 6,
+0x12F = 2, 0x130 = 58 (mã vạch), 0x131 = 202 (hình/kẻ). Soi đuôi
+hai nhóm chưa rõ:
+
+- **0x12E — đoạn văn (paragraph):** khung lớn (có bản ghi gần kín
+  mặt tem), đuôi chứa một chuỗi chữ và khối font (ví dụ
+  `LOT NUMBER` với Courier New, `MILITARY SHIPMENT LABEL`,
+  `Size:`), nhưng nội dung đầy đủ nhiều dòng nằm ở luồng phụ
+  (§66) chứ không nằm trọn sau hình học như chữ thường. Chuyển
+  thành `TextBox` chỉ với mảnh chuỗi đầu sẽ mất nội dung — chưa
+  chuyển đổi.
+- **0x12F — đồ họa (graphics):** đuôi chứa đường dẫn tệp ngoài
+  (`C:\Program Files\EuroPlus\NiceLabel 5\Samples\Graphics\symbol.wmf`).
+  Tạo đối tượng `Image` trỏ tới tệp không tồn tại trên máy người
+  dùng sẽ sinh đối tượng hỏng; dữ liệu ảnh nhúng (nếu có) ở luồng
+  phụ chưa được gán. Không chuyển đổi — đây là giới hạn tham chiếu
+  ngoài, không phải thiếu cố gắng.
+
+Bản đồ mã loại như vậy đã đủ năm nhóm; phần chưa chuyển đổi còn
+lại đều có lý do cấu trúc rõ ràng thay vì chưa khám phá.
+
+[Agent: Muse Spark / Muse Code — phiên bản đồ mã loại 2026-10-27]
+
+---
+
+# Phụ lục Ghidra 2026-10-27 (tiếp 43): this+0x2B2 chính là LOGFONT
+
+## 68. Cấu trúc font đã chốt, đơn vị lfHeight vẫn chưa chứng minh
+
+Đi bộ `TText::Update` (0x4018E7, log
+`.analysis/rea/ttext-update-decompile.log`): vùng tại
+`this+0x2B2` được truyền thẳng vào hàm khởi tạo `TFont` từ
+`tagLOGFONTA`, nên nhóm 5 int sau nội dung (§61) là các trường
+đầu của LOGFONT: lfHeight, lfWidth, lfEscapement, lfOrientation
+(bản sao của lfEscapement), lfWeight — khớp khuôn stream
+`[âm][0][400/700]` đã quan sát. Nhánh font máy in lấy lfHeight từ
+một bảng cỡ tại `this+0xA2` (phủ định giá trị bảng), nhánh còn lại
+từ một getter nội bộ; trong `TText::Update` không có
+MulDiv/GetDeviceCaps nào đổi đơn vị.
+
+Đơn vị của lfHeight trong stream vì thế phụ thuộc DC mà NiceLabel
+dùng khi lưu (chưa xác định được từ thân hàm này): các ứng viên
+point trực tiếp và point × 72/96 đều cho ra tập cỡ chữ hợp lý trên
+các mẫu khác nhau, 1/10 mm bị bác bỏ ở các mẫu chữ nhỏ. Giữ nguyên
+quyết định không chuyển cỡ chữ cho đến khi xác định được DC lưu
+trữ; mặt chữ và độ đậm (400/700) đã nằm trong cùng khối LOGFONT
+nên có thể mở cùng lúc khi đơn vị được chốt.
+
+[Agent: Muse Spark / Muse Code — phiên LOGFONT 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 44): chuyển đổi cỡ chữ và độ đậm từ .lbl
+
+## 69. PtSize tại this+0x262/+0x266; stream lưu phần mười point sau tên font
+
+Tra TD32 được `TText@Get_PtSizeX/Get_PtSizeY` (0x503957/0x5039BF):
+chúng trả int tại `this+0x262`/`this+0x266`, đúng hai trường mà
+`TText::Load` đọc sau khối LOGFONT (§61). Trong stream, cỡ chữ nằm
+tại vị trí cố định 36 byte sau cuối chuỗi tên mặt chữ, dạng số
+nguyên **phần mười point**, theo sau là một u16 bằng 0; độ đậm nằm
+trong khối LOGFONT (lfWeight 400/700 tại +8 sau cuối chuỗi nội
+dung). Đối chiếu mẫu: `MASTER LABEL` = 480 (48 pt, đậm),
+`TO:`/`SHIP TO:` = 80 (8 pt), `Title or Description` = 70 (7 pt).
+
+Importer nay mang cả `FontSizePt` và `Bold` cho đối tượng chữ
+chuyển đổi; giá trị ngoài khoảng 3–100 pt hoặc thiếu dấu 0 kiểm
+tra thì giữ mặc định (fail-closed từng trường). Kiểm chứng: quét
+65 tệp mẫu cho 213/215 bản ghi chữ có cỡ (23 bản ghi đậm), các giá
+trị đều hợp lý theo ngữ nghĩa tem; gate nhập `.lbl` đã mở rộng
+kiểm tra cỡ 12 pt trên bản ghi tổng hợp. Build, 1406 unit test,
+regression suite, Fast loop đều đạt. Lưu ý §68 vẫn đúng ở phạm vi
+của nó: lfHeight trong LOGFONT chưa được dùng làm cỡ chữ — cỡ chữ
+chuyển đổi lấy từ trường PtSize riêng, không suy từ lfHeight.
+
+[Agent: Muse Spark / Muse Code — phiên cỡ chữ .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 45): byte trước tên font là lfPitchAndFamily; đoạn văn 0x12E chuyển thành TextBox
+
+## 70. Font khác Arial từng bị bỏ sót toàn bộ, đoạn văn literal đã chuyển đổi
+
+Quét lại bằng reader thật (không phải probe Python) lộ một lỗi âm
+thầm: `TryReadTextTail` chỉ nhận khối font khi hai byte trước tên
+mặt chữ là `01 22`. Trên mẫu thật, cặp byte đó là `01` cộng byte
+**lfPitchAndFamily của LOGFONT** (nửa cao = họ font, nửa thấp =
+pitch): Arial `0x22` (Swiss/biến thiên), Courier New `0x31`
+(Modern/cố định), Times New Roman `0x12` (Roman/biến thiên), khối
+đầy đủ trong stream là `00 00 03 02 01 <pitchAndFamily> <face>\0`.
+Hệ quả: mọi bản ghi chữ Courier/Times bị bỏ qua cả bản ghi — ví dụ
+AIAG B-10 chỉ chuyển 3 chữ Arial, mất toàn bộ chữ Courier New
+(`PART NO.`, `SUPPLIER`, `EXP. DATE`...). Reader nay chấp nhận
+pitchAndFamily hợp lệ (họ ≤ 5, pitch 1–2) và yêu cầu tên mặt chữ bắt
+đầu bằng chữ cái.
+
+Cỡ chữ: công thức offset cố định §69 chỉ đúng với Arial. Với font
+khác, khối sau tên font có độ dài biến thiên; khi công thức chính
+thất bại, reader chỉ tin **đúng một** ứng viên i32 trong khoảng
+3–100 pt kèm u16 0 kiểm tra (Courier New cho ứng viên duy nhất
+80 = 8 pt, khớp chiều cao khung 3,36 mm). Times New Roman có hai
+ứng viên (296 và 120) nên giữ mặc định — fail-closed, không đoán.
+
+Đoạn văn (mã loại `0x12E`): cả 6 bản ghi mẫu đều đặt chuỗi nội
+dung ở đúng offset cố định +98 sau hình học (sau một bản ghi lồng),
+cùng chữ ký đuôi như chữ thường. Ba bản ghi có nội dung literal
+trong `Contents` (`LOT NUMBER`, `MILITARY SHIPMENT LABEL`, `Size:`)
+và một bản ghi nữa có nội dung `1` (DDFRM_1348) nay chuyển thành
+**TextBox** — đối tượng sở hữu khung và gói chữ trong khung, đúng
+hợp đồng TextBox của ANLAbel; khung lưu trong tệp được gán một lần
+lúc nhập, nội dung không bao giờ đổi khung. Hai bản ghi còn lại
+(ISBT128: mặt nạ biến không phân giải được; UPS: không có chuỗi
+literal) vẫn bị bỏ qua. Điều này sửa lại phỏng đoán ở §67: nội dung
+đoạn văn literal nằm trong `Contents` ở offset cố định, không phải
+chỉ ở luồng phụ; riêng đoạn văn RTF thì payload chưa được chứng
+minh và vẫn chưa chuyển đổi. Đồ họa `0x12F` giữ nguyên quyết định
+§67, nay có thêm bằng chứng trực tiếp: cả hai mẫu đồ họa chỉ lưu
+đường dẫn ngoài `...\Samples\Graphics\symbol.wmf` trong `Contents`,
+còn luồng `Embedded Graphics Data` chỉ có 2 byte rỗng — không có
+payload ảnh nhúng nào để chuyển, và tạo Image trỏ tới tệp `.wmf`
+không tồn tại trên máy người dùng sẽ sinh đối tượng hỏng.
+
+Kiểm chứng: quét 65 tệp mẫu bằng reader thật — chữ 215 → 224 bản
+ghi (thêm 4 Courier New, 4 Times New Roman, 1 Care symbols; 217
+bản ghi có cỡ, Times giữ mặc định theo fail-closed), đoạn văn
+4/6 bản ghi. Gate nhập `.lbl` mở rộng thêm bản ghi Courier New
+(pitchAndFamily `0x31`, đậm, cỡ ứng viên duy nhất 8 pt) và bản ghi
+đoạn văn `0x12E` → TextBox trên tệp tổng hợp. Build, 1406 unit
+test, regression suite, Fast loop đều đạt. Chưa commit; kiểm thử
+mở tệp bằng tay trên GUI và in/quét thật vẫn chưa có.
+
+[Agent: Muse Spark / Muse Code — phiên font pitchAndFamily và đoạn văn .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 46): cỡ chữ ở offset cố định sau LOGFONT
+
+## 71. PtSize tại dataEnd+60; các bản ghi từ chối còn lại đều đúng
+
+Đối chiếu ba họ font cho thấy công thức §69 (37 byte sau cuối tên
+font) chỉ tình cờ đúng với Arial: tên `Arial` dài 5 ký tự nên hai
+công thức trùng nhau. Offset đúng là **cố định 60 byte sau cuối
+chuỗi nội dung** — ngay sau khối LOGFONT tuần tự hóa kích thước cố
+định (trường tên font được đệm, không phụ thuộc độ dài tên). Kiểm
+chứng trên toàn bộ mẫu quét được: công thức mới khớp công thức cũ
+ở 67/67 bản ghi có cỡ, cho thêm 9 bản ghi (Courier New 8 pt, Times
+New Roman 12 pt, Care symbols 20 pt), mâu thuẫn 0. Reader nay
+dùng offset cố định làm chính, giữ fallback ứng viên duy nhất khi
+offset chính không cho giá trị hợp lệ; tổng 222/224 bản ghi chữ
+có cỡ. Tỉ lệ PtSize/|lfHeight| không hằng (phổ biến 10,0 nhưng rải
+4,1–12,5) vì lfHeight phụ thuộc độ phân giải DC của máy in đích —
+xác nhận lại quyết định §68 không dùng lfHeight.
+
+Ba trường hợp từ chối còn lại được kiểm lại và đều đúng:
+
+- Đoạn văn ISBT128: trường liên kết trỏ tới biến `1004`, nhưng id
+  biến đó không xuất hiện ở bất cứ đâu trong tệp (tệp chỉ định
+  nghĩa biến 1013–1019) — chuyển đổi sẽ là đoán liên kết.
+- Đoạn văn UPS_Domestic_Ground: không có chuỗi nội dung literal
+  nào ở offset đoạn văn cố định; nội dung (nếu có) nằm ngoài dạng
+  đã chứng minh.
+- Bản ghi mã vạch thứ hai của MIL129L2 (§59): hình học long và
+  double lệch ~11%, chưa có mô hình khung nhóm/tỉ lệ nào được
+  chứng minh.
+
+Cả ba giữ nguyên fail-closed: tệp vẫn mở, đối tượng đó không được
+chuyển đổi và dòng trạng thái nói rõ còn đối tượng chưa chuyển.
+Kiểm chứng lát này: build, 1406 unit test, regression suite, Fast
+loop đều đạt; fixture tổng hợp đã đặt cỡ chữ theo layout thật
+(dataEnd+60). Chưa commit.
+
+[Agent: Muse Spark / Muse Code — phiên offset cỡ chữ .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 47): chữ nhiều dòng CRLF; manh mối biến chưa phân giải
+
+## 72. Nội dung chứa CRLF từng bị loại; biến ngoài Contents vẫn chưa ánh xạ được
+
+Phân loại mọi bản ghi loại chữ (0x12D) khóa đủ hình học trên 65
+tệp mẫu theo lý do reader bỏ qua cho thấy nhóm lớn nhất là nội
+dung chứa byte điều khiển — soi kỹ thì đó là **xuống dòng CRLF
+thật**: `PART NO.\r\n(P)`, `SUPPLIER\r\n(V)`, `SERIAL\r\n(4S)`,
+`SPLR ID\r\nMUTUAL (Z)`... NiceLabel lưu chú thích hai dòng trong
+một đối tượng chữ. Reader nay chấp nhận CR/LF trong chuỗi nội
+dung (bộ layout chữ của ANLAbel đã chuẩn hóa newline), vẫn loại
+mọi byte điều khiển khác, và loại ứng viên chỉ toàn khoảng trắng
+(chỉ là offset lệch lạc). Kết quả quét bằng reader thật: chữ
+224 → 271 bản ghi (+47, gồm cả chữ Courier nhiều dòng), 0 nội
+dung rác. Gate tổng hợp thêm bản ghi `PART NO.\r\n(P)`.
+
+Nhóm còn lại là mặt nạ `?` mà trường liên kết trỏ tới id biến
+không có định nghĩa trong `Contents` (ví dụ AIAG B-10 liên kết
+27 → biến 1027, tệp chỉ định nghĩa 1016–1024). Luồng phụ
+`V33 Data` chứa thêm tên biến không có trong `Contents`
+(`PartNo`, `PONumber`, `Supplier`, `LotNumber`... ở AIAG B-10;
+`CP__18` ở tem AIAG B10 6x3) — có vẻ là danh sách biến toàn cục/
+bổ sung của NiceLabel — nhưng thứ tự bản ghi trong `V33` không
+theo id và không có trường id rõ ràng cạnh tên, nên chưa chứng
+minh được quy tắc ánh xạ liên kết → tên. Đoán ánh xạ sẽ gán sai
+biến cho tem sản xuất, nên nhóm này giữ fail-closed cho đến khi
+có bằng chứng cấu trúc. Bổ sung: quét định nghĩa biến trên **mọi**
+stream của tệp (không chỉ `Contents`) và tìm kho biến toàn cục
+của bản NiceLabel 5 cài trên máy này đều không cho định nghĩa
+cho các id thiếu; `Global1` ở đầu `V33 Data` là tên nhóm biến
+toàn cục mà tem tham chiếu ra ngoài tệp, nên dữ kiện còn thiếu
+nằm ngoài tệp `.lbl` theo thiết kế của NiceLabel. Một tệp đối
+chứng do người dùng lưu từ NiceLabel với biến đặt tên dễ nhận
+biết sẽ chốt được ánh xạ nếu muốn đi tiếp. Build, 1406 unit
+test, regression suite, Fast loop đều đạt. Chưa commit.
+
+[Agent: Muse Spark / Muse Code — phiên chữ nhiều dòng .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 48): doubles theo đơn vị tem; UPC-A và biến thể đuôi mã vạch
+
+## 73. Đơn vị doubles là inch/cm/mm theo tem; thêm symbology Upc-A
+
+Soi bản ghi UPC-A của FACT.lbl (bị loại dù dữ liệu `731304012399`
+hợp lệ) lộ ra doubles hình học của tệp này lưu theo **centimet**
+(0,674 cm = 674 trong 1/100 mm), không phải inch. Quét toàn bộ
+mẫu theo ba hệ số: 593 hình học khớp inch, **150 khớp cm và 58
+khớp mm** — nguyên các tệp như CmdFile, Database Filter,
+Gm1724a từng bị loại gần như toàn bộ đối tượng chỉ vì đối chiếu
+đơn vị. `TryReadGeometry` nay thử inch → cm → mm; các trường
+long vẫn là chuẩn, một đơn vị chỉ đạt khi top/width/height và
+cạnh trái (hoặc tâm ngang) cùng khớp trong dung sai, nên thử ba
+đơn vị không thể đoán hình học sai.
+
+Cùng lát: symbology nội bộ 3 (`Upc-A`) được thêm vào bảng đã biết
+và ánh xạ sang `BarcodeSymbology.UpcA` của ANLAbel. Bản ghi
+UPC-A của FACT dùng **biến thể đuôi thứ hai**: word đếm được lặp
+lại dạng nhị phân ngay trước dữ liệu (`[link][0][12][12]<data>
+<khối symbology>`); reader chấp nhận biến thể này khi word lặp
+đúng bằng count và khối symbology theo sát sau dữ liệu — dữ liệu
+ASCII in được không thể giả mạo word đếm nhị phân đó. Các
+symbology còn lại trong mẫu được quyết dứt điểm: MaxiCode (2,
+ANLAbel không có symbology tương ứng), Bookland (1, là EAN-13 +
+phụ trương 5 số mà một đối tượng mã vạch ANLAbel không biểu diễn
+được), Ean-14 (1, dữ liệu lưu 13 số trong khi ITF cần số cặp số —
+ánh xạ sang ITF sẽ sinh mã sai). Cả ba giữ không chuyển đổi.
+
+Kết quả quét bằng reader thật trên 65 tệp mẫu: chữ 362 (342 có
+cỡ), đoạn văn 15, mã vạch 8 (thêm UPC-A của FACT), hình/kẻ 251
+— tổng 636 đối tượng. Gate tổng hợp thêm bản ghi UPC-A biến thể
+count-trùng. Build, 1406 unit test, regression suite, Fast loop
+đều đạt. Chưa commit.
+
+[Agent: Muse Spark / Muse Code — phiên đơn vị hình học và UPC-A .lbl 2026-10-27]
+
+---
+
+# Khảo sát 2026-10-27 (tiếp 49): trường phụ của hình nằm ở V21R6 nhưng đều mặc định
+
+## 74. Màu tô/viền của hình: đã định vị luồng phụ, mẫu không có giá trị khác mặc định
+
+`TRectangle` có các trường Color, FillColor, FillStyle, LineStyle,
+ThicknessX/Y (§3, §65) đọc qua luồng phụ. Luồng `V21R6 Data` chứa
+chuỗi khối theo đối tượng, mỗi khối mở đầu bằng tên đối tượng
+(`Line1`, `Rectangle1`, `Text1`, `Barcode1`... — đúng thứ tự tên
+đã thấy ở §66) rồi đến vùng trường. Quét 1.135 khối trên 65 tệp
+mẫu: sau word mở đầu, vùng trường của khối hình/kẻ toàn số 0 —
+tức màu đen, không tô, nét mặc định, khớp đúng mặc định mà
+importer đang áp cho `Line`/`Rectangle`. Vì vậy không chuyển
+trường nào thêm: gán màu từ offset chưa chứng minh chỉ để lấy
+lại các giá trị mặc định vốn đã đúng. Nếu sau này gặp tệp `.lbl`
+do người dùng lưu với hình tô màu thật, đường đi là đối chiếu
+thứ tự khối `V21R6` với thứ tự bản ghi `Contents` rồi đọc
+FillColor theo layout `TRectangle::Load`; hiện chưa có mẫu nào
+như vậy trong bộ 65 tệp.
+
+[Agent: Muse Spark / Muse Code — phiên trường phụ hình .lbl 2026-10-27]
+
+---
+
+# Kiểm chứng 2026-10-27 (tiếp 50): template nhập từ .lbl vẽ được qua pipeline in
+
+## 75. Gate nhập .lbl nay render thật, không chỉ parse
+
+Gate `opening a niceLabel 5 lbl imports its label size as a new
+template` được mở rộng: template nhập từ tệp `.lbl` tổng hợp (mã
+vạch literal, mã vạch UPC-A và mã vạch liên kết biến, chữ literal/
+biến/Courier/nhiều dòng, đoạn văn TextBox, hình chữ nhật) được đưa
+qua `PrintService.CreateDesignPlan` + `LabelVisualRenderer` — đúng
+đường render in sản xuất — với giá trị biến nhắc `ISBN Num` hợp lệ,
+raster hoá offscreen và yêu cầu có mực thật trên tem (pixel tối
+vượt ngưỡng). Điều này khép khoảng kiểm chứng "parse được nhưng
+chưa chắc vẽ được" mà không cần mở GUI; phần chỉ con người xác
+nhận được vẫn là mở tệp trên GUI thật và in/quét vật lý. Build,
+1406 unit test, regression suite, Fast loop đều đạt. Chưa commit.
+
+Bổ sung cùng phiên: quét đầu-cuối qua đúng đường nhập sản xuất
+(`ProjectFileService.LoadWithRecoveryAsync` → importer) trên cả
+65 tệp mẫu thật: 65/65 tệp nhập thành công, 0 ngoại lệ, tổng 636
+đối tượng (362 Text, 15 TextBox đoạn văn, 8 mã vạch, 236 Line,
+15 Rectangle) và **0 đối tượng nằm ngoài khổ tem** — hình học
+chuyển đổi không tràn khỏi mặt tem ở bất kỳ tệp nào.
+
+[Agent: Muse Spark / Muse Code — phiên render gate .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 51): neo ngang trái/giữa/phải thành căn lề
+
+## 76. Double đầu tiên là neo ngang; bản ghi neo phải từng bị loại hẳn
+
+Thống kê double đầu tiên trên các bản ghi khóa đủ hình học: chữ
+399 trái / 24 giữa / 5 phải, mã vạch 58 trái / 15 giữa, đoạn văn
+29 trái. Double đầu tiên bằng cạnh trái, tâm ngang hoặc cạnh
+phải của khung long — chính là neo ngang khớp căn lề của đối
+tượng. Trước lát này, `TryReadGeometry` chỉ chấp nhận trái hoặc
+giữa nên 5 bản ghi neo phải bị loại từ tầng hình học. Nay reader
+chấp nhận cả ba neo (vẫn khóa chặt top/width/height theo đơn vị
+tem) và trả neo ra; importer gán `Style.Alignment` Center/Right
+cho chữ và đoạn văn (mặc định Left giữ nguyên). Mã vạch và hình
+chỉ dùng neo để qua đối chiếu — vị trí lấy từ khung long nên
+không đổi.
+
+Quét đầu-cuối qua `ProjectFileService`: 65/65 tệp, 637 đối
+tượng (+1 chữ neo phải), 12 đối tượng căn giữa và 1 căn phải
+được mang sang, 0 đối tượng ngoài khổ tem. Gate tổng hợp thêm
+bản ghi chữ neo phải và đổi bản ghi nhiều dòng thành neo giữa,
+kiểm cả ánh xạ căn lề. Nhân tiện, ngưỡng pixel tối của gate
+render (§75) được đo lại: số pixel dao động 341–450 giữa các
+lần chạy do khử răng cưa nên ngưỡng đặt 200 — vẫn chứng minh
+nhiều đối tượng cùng vẽ, không còn sát mức thực tế. Build,
+1406 unit test, regression suite (chạy lặp hai lần), Fast loop
+đều đạt. Chưa commit.
+
+[Agent: Muse Spark / Muse Code — phiên căn lề .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 52): dòng trạng thái báo đúng số đối tượng chưa chuyển
+
+## 77. Đếm tổng bản ghi đối tượng trong tệp để báo cáo trung thực
+
+Dòng trạng thái sau khi mở `.lbl` trước nay luôn nói "các đối
+tượng khác trong tệp chưa được chuyển đổi" — sai khi một tệp đã
+chuyển hết, và không cho con số cụ thể khi chưa hết. Reader nay
+có `CountObjectRecords`: đếm bản ghi có mã loại đã biết (0x12D–
+0x131) ngay trước hình học khóa đủ đối chiếu, tức tổng đối
+tượng tệp lưu bất kể chuyển được hay không. `ProjectLoadResult`
+mang thêm `NiceLabelTotalObjectCount` (chỉ đặt cho đường `.lbl`,
+sàn bằng số đã chuyển để không bao giờ báo âm), và dòng trạng
+thái nay phân ba trường hợp: chưa chuyển đối tượng nào / chuyển
+toàn bộ N đối tượng / còn đúng M đối tượng chưa chuyển.
+
+Kiểm chứng: trên 65 tệp mẫu, tổng lưu 792 bản ghi, đã chuyển
+637, khớp độc lập với probe Python và không tệp nào chạm sàn.
+Gate nhập `.lbl` khẳng định trường tổng số trên kết quả tải.
+Build, 1406 unit test, regression suite, Fast loop (gồm cổng
+Việt hóa câu trạng thái mới) đều đạt. Chưa commit.
+
+[Agent: Muse Spark / Muse Code — phiên báo cáo số đối tượng .lbl 2026-10-27]
+
+---
+
+# Khảo sát 2026-10-27 (tiếp 53): prompt và giá trị mặc định của biến chưa tách được
+
+## 78. Chuỗi sau tên biến lẫn prompt, định dạng và tên biến kế tiếp
+
+Importer hiện chỉ mang tên biến sang `PromptVariableDefinition`.
+Soi bản ghi biến (ISBN: `[1002]['ISBN Num']['ISBN NUMBER']…trường
+số…['9780000000002']`) cho thấy sau tên còn chuỗi mô tả/prompt và
+một chuỗi giống giá trị mặc định, nhưng quét thử trên nhiều tệp
+cho ra ứng viên lẫn lộn không tách được bằng quy tắc đơn giản:
+`Enter Ship From State` (prompt thật), `MM/DD/YYYY` (định dạng
+ngày), và thường xuyên là **tên của biến kế tiếp** khi bản ghi
+không có chuỗi mặc định. `TVar::Load` (§54) đọc một phần chuỗi
+qua luồng phụ, nên thứ tự đọc đầy đủ không nằm trong `Contents`.
+Gán nhầm định dạng ngày hoặc tên biến khác thành giá trị mặc
+định sẽ làm sai dữ liệu in; giữ fail-closed: chỉ mang tên biến,
+người vận hành tự đặt prompt và giá trị mặc định trong ANLAbel.
+
+[Agent: Muse Spark / Muse Code — phiên trường biến .lbl 2026-10-27]

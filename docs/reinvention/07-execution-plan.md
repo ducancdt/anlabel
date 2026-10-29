@@ -30,7 +30,8 @@ outside core scope.
 - No cloud, login, web, second renderer, or silent default-printer fallback.
 - Render/preview/refresh never mutates authored geometry.
 - Text/TextBox stays on the protected contract.
-- UI changes go through Figma first.
+- UI changes are built directly in XAML/code and verified by build plus
+  structural regression gates (owner direction 2026-10-27: no Figma step).
 
 ## What already works (keep it)
 
@@ -197,7 +198,10 @@ Files using these features need this version or later.
     closed in preflight. The owner was asked to pick the area, scope and
     REA depth and did not answer in time; the recommended options were
     used, so explicit owner approval is still outstanding. There is no
-    Properties UI yet (Figma gate), and no physical scan evidence.
+    Properties UI at the time; a Properties UI followed on 2026-10-27
+    (§47 of the RE doc): the barcode card shows a PDF417 error-correction
+    combo (Auto, levels 0-8) and a truncated checkbox only when the
+    selected symbology is PDF417. Still no physical scan evidence.
 
     Evidence: `Pdf417ContractTests` (decode round trips at levels 0/2/5/8,
     truncated decode, capacity failure at level 8, clone/snapshot/save-load
@@ -216,7 +220,9 @@ Files using these features need this version or later.
     whitespace custom sequence and a negative range fail validation in
     plain Vietnamese at the UI boundary. Same approval status as item
     14: recommended defaults used after the question timed out, explicit
-    owner approval outstanding, no UI yet (Figma gate), no physical scan
+    owner approval outstanding; no UI at the time, but the serial counter
+    panel gained an alphabet combo plus a custom-alphabet box on
+    2026-10-27 (§47 of the RE doc), built directly in XAML. No physical scan
     evidence. Details in
     [`NICELABEL_5_DEEP_REVERSE_ENGINEERING.md`](../NICELABEL_5_DEEP_REVERSE_ENGINEERING.md) §16–18.
 
@@ -255,11 +261,30 @@ Files using these features need this version or later.
     supports a first fail-closed foundation reader in
     `NiceLabel5LblReader`: it opens the OLE compound file, verifies the
     `NicePower` magic and format version 29, reads the label size in
-    1/100 mm and lists embedded streams. Layout variants (for example
-    files whose description field shifts the header) are rejected with a
-    named reason instead of being guessed; no label objects are converted
-    yet. Evidence: all 65 installed sample labels swept (28 accepted with
-    plausible sizes, 37 variants rejected by design), regression gate
+    1/100 mm and lists embedded streams. A later structural pass (§46)
+    decoded the full header — three stored strings (name, description,
+    author) followed by six 1/100 mm fields whose third and fourth values
+    are the label size — so the reader now walks that structure instead
+    of a fixed offset; this also corrected the size read for files the
+    fixed-offset reader had accepted (it was one field late). Unverified
+    layouts are still rejected with a named reason instead of being
+    guessed. Object conversion has since landed in slices (§53-77):
+    barcode objects whose records fully cross-check (long rectangle,
+    inch doubles, known symbology) convert with literal data or with a
+    prompt-variable link resolved inside the same file, and fixed text
+    objects convert with literal or single-mask variable content plus
+    the stored font face, point size and bold. A later pass (§70) found
+    the byte in front of the face name is the LOGFONT pitch-and-family
+    byte, so non-Arial faces (Courier New, Times New Roman) convert
+    too, multi-line CRLF captions convert, the geometry cross-check
+    accepts the label's own unit (inch/cm/mm doubles), UPC-A records
+    convert, and paragraph records (type 0x12E) whose content is a literal
+    string in Contents convert to frame-owned TextBox objects.
+    Paragraph records with RTF payloads, graphics and one
+    geometry-mismatched record (MIL129L2, §59) are not converted.
+    Evidence: all 65
+    installed sample labels swept (65 accepted with plausible sizes,
+    cross-checked against size-bearing sample file names), regression gate
     `niceLabel 5 lbl header reader accepts verified layout and rejects variants`
     over a synthetic compound file; full build, 1406 unit tests and Fast
     loop pass. Details in
