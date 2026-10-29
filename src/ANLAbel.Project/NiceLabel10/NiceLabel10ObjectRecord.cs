@@ -221,4 +221,7 @@ public sealed record NiceLabel10Document(
 {
     /// <summary>Stored document items, excluding the background placeholder.</summary>
     public int TotalObjectCount => Objects.Count;
+
+    /// <summary>Stored printer and media facts; null when the format stores none.</summary>
+    public NiceLabel10PrintSetup? PrintSetup { get; init; }
 }

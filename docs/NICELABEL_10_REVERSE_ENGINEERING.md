@@ -403,3 +403,54 @@ formats build `[)>` RS format GS field … RS EOT (decompiled), and format
 corpus uses single-identifier functions on 94 Code 39/Code 128
 barcodes (e.g. AIAG `1S` serials) and the envelope on 79 DataMatrix/
 PDF417 codes (ECIA/automotive 2D labels).
+
+## §10 Printer and paper
+
+Evidence: the serialized members of the vendor classes `PageMedia`
+(`FormatMedia`, `Core.dll`), `PaperDetails` and the enums `MediaType`
+(Unknown, Sheet, Roll; default Roll), `PrintRotationType` (Undefined,
+Normal, UpsideDown) and `WebSettings` (`Interfaces.dll`),
+`AbstractPageLayout`/`WebPageLayout` (`Core.dll`), `PrintScenario`
+(`FormatDocument.dll`) and `Printer` (`Core.dll`), all read from their
+`[LoadSave]` attributes in the decompiled sources; and every
+`DevModeBuffer` of the 207-file corpus decoded as a Windows DEVMODEW
+(public `wingdi.h` layout; the vendor converter is plain base64).
+
+- `Media/Width`/`Height` are the page (sheet) or roll section in 1/1000 mm
+  whatever `MediaUnit` says (`MeasurementUnit` is display only).
+  `Media/PaperFormat` is the Windows `DMPAPER_*` id — 9 A4, 1 Letter, 256
+  user-defined — equal to the DEVMODE `dmPaperSize` in all 124 files whose
+  DEVMODE carries one; `PaperDetails/Name` is the driver's paper name.
+  For label printers the DEVMODE `dmPaperWidth`/`dmPaperLength` (0.1 mm)
+  equal the media size, and `dmPrintQuality` is the driver resolution
+  (203, 300 or 600 in the corpus).
+- `PageLayout`: `ElementWidth`/`ElementHeight` (the label), the first
+  label's `HorizontalOffset`/`VerticalOffset` on the page, corner radii
+  and corrections; a `WebFormatLayout` adds `HorizontalCount`/
+  `VerticalCount`, gaps and `WebSettings` fill order.
+- `PrintScenario`: `Printer` (`Name`, `DriverName`, `DevModeBuffer`,
+  `UseDefaultPrinterSettings` — paper size and resolution from the driver
+  rather than the label), `UseDefaultPrinter`, `PrintRotation`, cutter and
+  double-sided options.
+
+Corpus: 104 labels take the driver's settings; 92 are authored on office
+sheets (A4/Letter, mostly on the XPS writer, 20 of them with several
+labels per sheet); 11 are one label per page on label stock (Zebra/CAB
+rolls, or label-sized pages). No file stores `PrintRotation` UpsideDown
+or a landscape DEVMODE.
+
+ANLAbel (`NiceLabel10NlblImporter.ApplyPrintSetup`), within its print
+contracts: driver settings → `SettingsSource=Driver` (driver-automatic
+paper); one label per page on stock that `LabelStockContract` accepts →
+label settings, manual paper size with the page as physical media
+(`MediaProvenance=UserCustom`), the first label's offsets, and the
+DEVMODE resolution when `IndustrialPrintDpiContract` accepts it;
+UpsideDown → `Rotated180`; `StockName` → `LabelStockName`. Office sheets
+are refused by `LabelStockContract` (ANLAbel prints thermal stock only)
+and several labels per page have no ANLAbel equivalent, so neither gets
+physical media. The authoring printer is never selected — a queue must
+be chosen and verified on this machine — but the import status names it
+(`NiceLabelPrinterSetupText`) and says what the operator still has to
+choose. Sweep: 104 driver settings, 92 office sheets, 11 label stocks
+(8 at 203 DPI, 3 at 600 DPI); every applied stock and DPI passes both
+contracts.

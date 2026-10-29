@@ -361,10 +361,11 @@ public sealed class ProjectFileService : IProjectFileService
                     Options = FileOptions.Asynchronous | FileOptions.SequentialScan
                 });
             var document = NiceLabel10NlblReader.Read(nlblStream);
-            var imported = NiceLabel10NlblImporter.CreateTemplate(document, primaryPath, _niceLabel10TextMeasurer);
+            var imported = NiceLabel10NlblImporter.CreateTemplate(document, primaryPath, out var printerSetup, _niceLabel10TextMeasurer);
             return new ProjectLoadResult(imported, primaryPath, false, null, null)
             {
-                NiceLabelTotalObjectCount = Math.Max(document.TotalObjectCount, imported.Objects.Count)
+                NiceLabelTotalObjectCount = Math.Max(document.TotalObjectCount, imported.Objects.Count),
+                NiceLabelPrinterSetup = printerSetup
             };
         }
         try

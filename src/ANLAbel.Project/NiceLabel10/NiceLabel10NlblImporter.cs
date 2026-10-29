@@ -5,6 +5,7 @@ using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Models;
+using ANLAbel.Core.Printing;
 
 namespace ANLAbel.Project.NiceLabel10;
 
@@ -38,6 +39,109 @@ public static partial class NiceLabel10NlblImporter
         NiceLabel10Document document,
         string sourcePath,
         INiceLabel10TextMeasurer? textMeasurer = null)
+        => CreateTemplate(document, sourcePath, out _, textMeasurer);
+
+    /// <summary>
+    /// Creates the template and reports what was done with the stored
+    /// printer/media facts (see <see cref="ApplyPrintSetup"/>).
+    /// </summary>
+    public static LabelTemplate CreateTemplate(
+        NiceLabel10Document document,
+        string sourcePath,
+        out NiceLabelPrinterSetupResult printerSetup,
+        INiceLabel10TextMeasurer? textMeasurer = null)
+    {
+        var template = CreateTemplateCore(document, sourcePath, textMeasurer);
+        printerSetup = ApplyPrintSetup(template, document.PrintSetup);
+        return template;
+    }
+
+    /// <summary>
+    /// Carries the stored printer/media facts into the template's printer
+    /// profile without bypassing ANLAbel's print contracts:
+    /// <list type="bullet">
+    /// <item>A label that takes its settings from the printer driver
+    /// (<c>UseDefaultPrinterSettings</c>) keeps ANLAbel's driver settings
+    /// source, as in NiceLabel.</item>
+    /// <item>An office sheet (A4/Letter/Legal/A3) is not thermal stock under
+    /// <see cref="LabelStockContract"/>, and several labels per page have no
+    /// ANLAbel equivalent (one label per page): no physical media is applied,
+    /// the operator chooses label stock in Printer Setup.</item>
+    /// <item>Otherwise the page is the label stock: label settings, manual
+    /// paper size with the stored page as physical media, the first label's
+    /// margin as the output offset, and the authored driver DPI when it is an
+    /// industrial resolution.</item>
+    /// </list>
+    /// <c>PrintRotation</c> UpsideDown always maps to a 180° output rotation.
+    /// The authoring printer is reported, never selected: a queue must be
+    /// chosen and verified on this machine.
+    /// </summary>
+    internal static NiceLabelPrinterSetupResult ApplyPrintSetup(LabelTemplate template, NiceLabel10PrintSetup? setup)
+    {
+        if (setup is null)
+        {
+            return new NiceLabelPrinterSetupResult(NiceLabelMediaSetup.None, null, 0, 0, 1, 1, 0);
+        }
+
+        var profile = template.PrinterProfile;
+        profile.Rotated180 = setup.PrintUpsideDown;
+        profile.LabelWidthMm = template.WidthMm;
+        profile.LabelHeightMm = template.HeightMm;
+        if (setup.StockName is { } stockName)
+        {
+            profile.LabelStockName = stockName;
+        }
+
+        var authoredPrinter = setup.UseDefaultPrinter ? null : setup.PrinterName;
+        NiceLabelPrinterSetupResult Result(NiceLabelMediaSetup kind, int dpi = 0) => new(
+            kind, authoredPrinter, setup.PageWidthMm, setup.PageHeightMm, setup.LabelsAcross, setup.LabelsDown, dpi);
+
+        if (setup.UseDriverSettings)
+        {
+            profile.SettingsSource = PrinterSettingsSource.Driver;
+            return Result(NiceLabelMediaSetup.DriverSettings);
+        }
+
+        if (LabelStockContract.IsOfficeSheet(setup.PageWidthMm, setup.PageHeightMm))
+        {
+            return Result(NiceLabelMediaSetup.OfficeSheet);
+        }
+
+        if (setup.LabelsPerPage > 1)
+        {
+            return Result(NiceLabelMediaSetup.MultipleLabelsPerPage);
+        }
+
+        if (!LabelStockContract.IsIndustrialEdge(setup.PageWidthMm)
+            || !LabelStockContract.IsIndustrialEdge(setup.PageHeightMm)
+            || !LabelStockContract.ContainsAuthoredLabel(setup.PageWidthMm, setup.PageHeightMm, template.WidthMm, template.HeightMm))
+        {
+            // Stock the contract would refuse is left for Printer Setup.
+            return Result(NiceLabelMediaSetup.None);
+        }
+
+        profile.SettingsSource = PrinterSettingsSource.Label;
+        profile.PaperSizeSource = PaperSizeSource.Manual;
+        profile.PhysicalWidthMm = setup.PageWidthMm;
+        profile.PhysicalHeightMm = setup.PageHeightMm;
+        profile.MediaProvenance = PrinterMediaProvenance.UserCustom;
+        profile.OffsetXMm = setup.OffsetXMm;
+        profile.OffsetYMm = setup.OffsetYMm;
+        var appliedDpi = 0;
+        if (IndustrialPrintDpiContract.IsIndustrialDpi(setup.DriverDpi))
+        {
+            profile.Dpi = setup.DriverDpi;
+            template.Dpi = setup.DriverDpi;
+            appliedDpi = setup.DriverDpi;
+        }
+
+        return Result(NiceLabelMediaSetup.LabelStock, appliedDpi);
+    }
+
+    private static LabelTemplate CreateTemplateCore(
+        NiceLabel10Document document,
+        string sourcePath,
+        INiceLabel10TextMeasurer? textMeasurer)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(sourcePath))

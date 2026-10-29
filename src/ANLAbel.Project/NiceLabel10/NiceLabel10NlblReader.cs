@@ -435,7 +435,81 @@ public static class NiceLabel10NlblReader
             }
         }
 
-        return new NiceLabel10Document(name.Trim(), width, height, objects, variables);
+        return new NiceLabel10Document(name.Trim(), width, height, objects, variables)
+        {
+            PrintSetup = ReadPrintSetup(root, media, pageLayout)
+        };
+    }
+
+    /// <summary>
+    /// Printer/media facts (§10 of the RE record). The serialized members
+    /// were recovered from the vendor classes <c>PageMedia</c>
+    /// (<c>FormatMedia</c>), <c>AbstractPageLayout</c>/<c>WebPageLayout</c>,
+    /// <c>PrintScenario</c> and <c>Printer</c>; <c>DevModeBuffer</c> is the
+    /// driver's base64 DEVMODEW.
+    /// </summary>
+    private static NiceLabel10PrintSetup ReadPrintSetup(XElement root, XElement media, XElement? pageLayout)
+    {
+        var scenario = root.Element("PrintScenarioCollection")?.Element("PrintScenarioCollection");
+        var printer = scenario?.Element("Printer");
+        var mediaKindText = ChildText(media, "Type");
+        var dpi = 0;
+        var devMode = ChildText(printer, "DevModeBuffer")?.Trim();
+        if (!string.IsNullOrEmpty(devMode))
+        {
+            try
+            {
+                dpi = DevModeResolution(Convert.FromBase64String(devMode));
+            }
+            catch (FormatException)
+            {
+                dpi = 0;
+            }
+        }
+
+        return new NiceLabel10PrintSetup(
+            Thousandths(media, "Width"),
+            Thousandths(media, "Height"),
+            (int)ParseDouble(media, "PaperFormat"),
+            ChildText(media.Element("PaperDetails"), "Name")?.Trim(),
+            string.IsNullOrWhiteSpace(mediaKindText) ? 2 : (int)ParseDouble(media, "Type"),
+            Thousandths(pageLayout, "HorizontalOffset"),
+            Thousandths(pageLayout, "VerticalOffset"),
+            Math.Max(1, (int)ParseDouble(pageLayout, "HorizontalCount")),
+            Math.Max(1, (int)ParseDouble(pageLayout, "VerticalCount")),
+            ChildText(pageLayout, "StockName")?.Trim() is { Length: > 0 } stock ? stock : null,
+            ChildText(printer, "Name")?.Trim() is { Length: > 0 } printerName ? printerName : null,
+            ChildText(printer, "DriverName")?.Trim() is { Length: > 0 } driverName ? driverName : null,
+            ParseBool(scenario, "UseDefaultPrinter"),
+            ParseBool(printer, "UseDefaultPrinterSettings"),
+            (int)ParseDouble(scenario, "PrintRotation") == 2,
+            dpi);
+    }
+
+    /// <summary>
+    /// Resolution from a Windows DEVMODEW (public wingdi.h layout):
+    /// <c>dmFields</c> at byte 72, <c>dmPrintQuality</c> at 90 when
+    /// <c>DM_PRINTQUALITY</c> (0x400) is set. Negative values are the
+    /// device-independent DMRES_* draft/high constants, not a DPI.
+    /// </summary>
+    internal static int DevModeResolution(ReadOnlySpan<byte> devMode)
+    {
+        const int FieldsOffset = 72;
+        const int PrintQualityOffset = 90;
+        const uint DmPrintQuality = 0x400;
+        if (devMode.Length < PrintQualityOffset + 2)
+        {
+            return 0;
+        }
+
+        var fields = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(devMode[FieldsOffset..]);
+        if ((fields & DmPrintQuality) == 0)
+        {
+            return 0;
+        }
+
+        var quality = System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(devMode[PrintQualityOffset..]);
+        return quality > 0 ? quality : 0;
     }
 
     private static NiceLabel10ObjectRecord? ParseItem(

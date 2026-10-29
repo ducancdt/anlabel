@@ -337,6 +337,12 @@ Files using these features need this version or later.
     sample text), the regression gate
     `opening a niceLabel 10 nlbl imports its label as a new template` and
     unit tests `NiceLabel10PlacementTests`/`NiceLabel10ImportMappingTests`.
+    Printer and paper (2026-10-29): `Media/PaperFormat` is the Windows
+    `DMPAPER` id and `DevModeBuffer` a DEVMODEW; labels on label stock get
+    manual physical media and the authored DPI, driver-settings labels keep
+    driver-automatic paper, office sheets and multi-label pages get no media
+    (refused by `LabelStockContract`), and the authoring printer is named in
+    the import status, never selected.
     Details in
     [`NICELABEL_10_REVERSE_ENGINEERING.md`](../NICELABEL_10_REVERSE_ENGINEERING.md).
     Not yet released, no version bump.

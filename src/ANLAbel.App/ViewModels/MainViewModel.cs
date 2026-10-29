@@ -1822,6 +1822,10 @@ public sealed class MainViewModel : ObservableObject
                 (_, > 0) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount} đối tượng (mã vạch, chữ, đoạn văn, hình/kẻ). Còn {remainingCount} đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.",
                 _ => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount} đối tượng (mã vạch, chữ, đoạn văn, hình/kẻ). Các đối tượng khác trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới."
             };
+            if (Services.NiceLabelPrinterSetupText.Describe(loadResult.NiceLabelPrinterSetup) is { Length: > 0 } printerNote)
+            {
+                StatusText += " " + printerNote;
+            }
         }
 
         return loadResult;
