@@ -35,6 +35,15 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         BindObjectBrowser();
+        DesignerCanvas.PreviewMouseLeftButtonDown += DesignerCanvas_PropertiesDoubleClick;
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() =>
+            {
+                _viewModel.IsPropertiesPinned = !_viewModel.IsPropertiesPinned;
+                _viewModel.IsPropertiesVisible = true;
+                ApplyPropertiesPlacement();
+            }),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F4)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(OpenPrintPreview),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.P, System.Windows.Input.ModifierKeys.Control)));
@@ -223,6 +232,88 @@ public partial class MainWindow : Window
         {
             BindObjectBrowser();
         }
+
+        if (e.PropertyName is nameof(MainViewModel.IsPropertiesVisible) or nameof(MainViewModel.SelectedObject)
+            && PropertiesPopup.IsOpen
+            && (!_viewModel.IsPropertiesVisible || _viewModel.SelectedObject is null))
+        {
+            PropertiesPopup.IsOpen = false;
+        }
+    }
+
+    private void PropertiesPin_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.IsPropertiesVisible = true;
+        ApplyPropertiesPlacement();
+        if (!_viewModel.IsPropertiesPinned)
+        {
+            OpenFloatingProperties();
+        }
+    }
+
+    /// <summary>
+    /// Moves the one Properties panel between the right-hand dock (pinned)
+    /// and the floating popup beside the selection (unpinned), as NiceLabel 10.
+    /// </summary>
+    private void ApplyPropertiesPlacement()
+    {
+        if (_viewModel.IsPropertiesPinned)
+        {
+            PropertiesPopup.IsOpen = false;
+            if (ReferenceEquals(PropertiesPanel.Parent, PropertiesPopupHost))
+            {
+                PropertiesPopupHost.Child = null;
+                PropertiesPanel.Margin = new Thickness(0, 12, 12, 12);
+                ShellGrid.Children.Add(PropertiesPanel);
+            }
+
+            return;
+        }
+
+        if (ReferenceEquals(PropertiesPanel.Parent, ShellGrid))
+        {
+            ShellGrid.Children.Remove(PropertiesPanel);
+            PropertiesPanel.Margin = new Thickness(0);
+            PropertiesPopupHost.Child = PropertiesPanel;
+        }
+    }
+
+    private void DesignerCanvas_PropertiesDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount != 2)
+        {
+            return;
+        }
+
+        // Selection updates on this same gesture; open once it has.
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_viewModel.SelectedObject is null)
+            {
+                return;
+            }
+
+            _viewModel.IsPropertiesVisible = true;
+            if (!_viewModel.IsPropertiesPinned)
+            {
+                OpenFloatingProperties();
+            }
+        }, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void OpenFloatingProperties()
+    {
+        ApplyPropertiesPlacement();
+        if (_viewModel.SelectedObject is not { } item)
+        {
+            return;
+        }
+
+        var zoom = _viewModel.Zoom;
+        PropertiesPopup.HorizontalOffset = MmConverter.MmToDip(item.XMm + item.WidthMm) * zoom + 16;
+        PropertiesPopup.VerticalOffset = Math.Max(0, MmConverter.MmToDip(item.YMm) * zoom - 8);
+        PropertiesPopup.IsOpen = false;
+        PropertiesPopup.IsOpen = true;
     }
 
     /// <summary>

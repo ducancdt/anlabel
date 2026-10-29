@@ -21,6 +21,7 @@ public sealed class LabelObject : ObservableObject
     private int _zIndex;
     private bool _isLocked;
     private bool _isVisible = true;
+    private ObjectAnchorPoint _anchorPoint;
     private string _bindingExpression = string.Empty;
     private string _text = string.Empty;
     private BarcodeSymbology _barcodeSymbology = BarcodeSymbology.Code128;
@@ -148,6 +149,16 @@ public sealed class LabelObject : ObservableObject
     {
         get => _isVisible;
         set => SetProperty(ref _isVisible, value);
+    }
+
+    /// <summary>
+    /// Point that stays fixed when the object's size follows its content
+    /// (NiceLabel 10 Anchoring Point); top-left by default.
+    /// </summary>
+    public ObjectAnchorPoint AnchorPoint
+    {
+        get => _anchorPoint;
+        set => SetProperty(ref _anchorPoint, value);
     }
 
     public string BindingExpression

@@ -97,6 +97,7 @@ public sealed class MainViewModel : ObservableObject
     private LabelTemplate _template = CreateDefaultTemplate();
     private LabelObject? _selectedObject;
     private RibbonTab _selectedRibbonTab = RibbonTab.Home;
+    private bool _isPropertiesPinned = true;
     private DataView? _excelDataView;
     private IDataConnector? _dataConnector;
     private string _dataTransformError = string.Empty;
@@ -1500,8 +1501,32 @@ public sealed class MainViewModel : ObservableObject
     public bool IsPropertiesVisible
     {
         get => _isPropertiesVisible;
-        set => SetProperty(ref _isPropertiesVisible, value);
+        set
+        {
+            if (SetProperty(ref _isPropertiesVisible, value))
+            {
+                OnPropertyChanged(nameof(IsPropertiesDocked));
+            }
+        }
     }
+
+    /// <summary>
+    /// NiceLabel 10 pins the Properties panel to the right (pin button / F4);
+    /// unpinned it floats beside the selection and opens on double-click.
+    /// </summary>
+    public bool IsPropertiesPinned
+    {
+        get => _isPropertiesPinned;
+        set
+        {
+            if (SetProperty(ref _isPropertiesPinned, value))
+            {
+                OnPropertyChanged(nameof(IsPropertiesDocked));
+            }
+        }
+    }
+
+    public bool IsPropertiesDocked => IsPropertiesVisible && IsPropertiesPinned;
 
     public BindingIssueSummary? SelectedBindingIssue
     {

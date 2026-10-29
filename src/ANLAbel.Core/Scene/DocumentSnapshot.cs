@@ -275,6 +275,7 @@ public sealed record SceneObjectSnapshot
     public int ZIndex { get; init; }
     public bool IsLocked { get; init; }
     public bool IsVisible { get; init; }
+    public ObjectAnchorPoint AnchorPoint { get; init; }
     public string BindingExpression { get; init; } = string.Empty;
     public string Text { get; init; } = string.Empty;
     public BarcodeSymbology BarcodeSymbology { get; init; }
@@ -347,6 +348,7 @@ public sealed record SceneObjectSnapshot
             ZIndex = item.ZIndex,
             IsLocked = item.IsLocked,
             IsVisible = item.IsVisible,
+            AnchorPoint = item.AnchorPoint,
             BindingExpression = item.BindingExpression,
             Text = item.Text,
             BarcodeSymbology = item.BarcodeSymbology,
@@ -648,6 +650,12 @@ internal static class SceneHash
         Append(builder, item.ZIndex);
         Append(builder, item.IsLocked);
         Append(builder, item.IsVisible);
+        if (item.AnchorPoint != ObjectAnchorPoint.TopLeft)
+        {
+            // Only anchored objects carry it, so older document hashes are unchanged.
+            Append(builder, "anchor");
+            Append(builder, item.AnchorPoint.ToString());
+        }
         Append(builder, item.BindingExpression);
         Append(builder, item.Text);
         Append(builder, item.BarcodeSymbology.ToString());

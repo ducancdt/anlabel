@@ -3914,6 +3914,17 @@ public sealed class LabelDesignerCanvas : Canvas
         _textAutoSizingObjects.Add(item);
         try
         {
+            // NiceLabel 10 anchoring point: the anchor stays put, the size
+            // changes towards the opposite side.
+            var newWidthMm = item.Type == ObjectType.Text ? fitWidthMm : item.WidthMm;
+            if (item.AnchorPoint != ObjectAnchorPoint.TopLeft && item.Rotation == 0)
+            {
+                var (anchoredX, anchoredY) = ObjectAnchorContract.Resize(
+                    item.XMm, item.YMm, item.WidthMm, item.HeightMm, newWidthMm, fitHeightMm, item.AnchorPoint);
+                item.XMm = anchoredX;
+                item.YMm = anchoredY;
+            }
+
             if (item.Type == ObjectType.Text
                 && Math.Abs(item.WidthMm - fitWidthMm) > 0.005)
             {

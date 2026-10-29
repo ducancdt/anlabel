@@ -20,6 +20,7 @@ public static class LabelObjectCloner
             ZIndex = source.ZIndex,
             IsLocked = source.IsLocked,
             IsVisible = source.IsVisible,
+            AnchorPoint = source.AnchorPoint,
             BindingExpression = source.BindingExpression,
             Text = source.Text,
             BarcodeSymbology = source.BarcodeSymbology,

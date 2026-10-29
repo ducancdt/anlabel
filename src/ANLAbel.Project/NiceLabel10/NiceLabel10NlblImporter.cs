@@ -362,6 +362,11 @@ public static partial class NiceLabel10NlblImporter
         item.XMm = left;
         item.YMm = top;
         item.Rotation = rotation;
+        // The vendor anchor also decides where a variable-size object grows
+        // (LeftTop 0 ... RightBottom 8; None 9 is top-left).
+        item.AnchorPoint = record.AnchoringPoint is >= 0 and <= 8
+            ? (ObjectAnchorPoint)record.AnchoringPoint
+            : ObjectAnchorPoint.TopLeft;
     }
 
     private static LabelObject? Barcode(NiceLabel10ObjectRecord record, ImportContext context)

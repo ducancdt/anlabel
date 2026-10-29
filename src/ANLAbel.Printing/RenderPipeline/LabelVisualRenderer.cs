@@ -232,6 +232,7 @@ public sealed class LabelVisualRenderer
             },
             IsLocked = snapshot.IsLocked,
             IsVisible = snapshot.IsVisible,
+            AnchorPoint = snapshot.AnchorPoint,
             ZIndex = snapshot.ZIndex
         };
 
@@ -336,8 +337,11 @@ public sealed class LabelVisualRenderer
         var brush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
         if (constrainToBox && TextBoxOverflowDetector.UsesVariableHeight(item))
         {
-            // NiceLabel 10 VariableHeight: the frame grows or shrinks to this row's wrapped text.
-            rect = new Rect(rect.Left, rect.Top, rect.Width, TextBoxOverflowDetector.MeasureVariableHeightDip(item, value, rect.Width));
+            // NiceLabel 10 VariableHeight: the frame grows or shrinks to this row's
+            // wrapped text, away from the anchoring point.
+            var height = TextBoxOverflowDetector.MeasureVariableHeightDip(item, value, rect.Width);
+            var anchorY = ObjectAnchorContract.Fractions(item.AnchorPoint).Y;
+            rect = new Rect(rect.Left, rect.Top + (rect.Height - height) * anchorY, rect.Width, height);
         }
 
         // Shared layout path for Text and TextBox (including free-Text frame-fit
@@ -351,7 +355,17 @@ public sealed class LabelVisualRenderer
             var layout = TextBoxOverflowDetector.CreateTextLayout(item, value, rect.Width, rect.Height, constrainToBox, brush);
             if (!constrainToBox)
             {
-                TextBoxOverflowDetector.DrawTextLayout(dc, layout, new Point(rect.Left + TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrainToBox), rect.Top + layout.Metrics.VerticalOffsetDip));
+                // A shorter row value stays at the anchoring point (NiceLabel 10):
+                // right or centre anchors keep that edge, left-aligned Text only.
+                var anchorShift = 0.0;
+                var anchorX = ObjectAnchorContract.Fractions(item.AnchorPoint).X;
+                if (anchorX > 0 && item.Style.Alignment == TextAlignmentMode.Left)
+                {
+                    var free = TextBoxOverflowDetector.GetContentWidthDip(item, rect.Width, constrainToBox) - layout.Metrics.WidthDip;
+                    anchorShift = Math.Max(0, free) * anchorX;
+                }
+
+                TextBoxOverflowDetector.DrawTextLayout(dc, layout, new Point(rect.Left + TextBoxOverflowDetector.GetHorizontalOriginDip(item, constrainToBox) + anchorShift, rect.Top + layout.Metrics.VerticalOffsetDip));
                 return;
             }
 

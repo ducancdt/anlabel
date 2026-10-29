@@ -306,6 +306,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("gs1 industrial AI subset validates weight and variable fields", TestGs1IndustrialAiSubset),
     ("main shell regions match NiceLabel map AutomationIds", TestMainShellRegionsMatchNiceLabelMap),
     ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
+    ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
@@ -12507,6 +12508,55 @@ static Task TestMainWindowLoadDoesNotForcePrinterSetup()
     return Task.CompletedTask;
 }
 
+
+static Task TestPropertiesPanelPinsOrFloats()
+{
+    // NiceLabel 10: the Properties panel is pinned to the right, or floats
+    // beside the selection while unpinned (docs/NICELABEL_10_UI_LAYOUT.md).
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var window = new MainWindow();
+            var viewModel = (MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            var panel = (FrameworkElement)window.FindName("PropertiesPanel");
+            var shell = (Panel)window.FindName("ShellGrid");
+            var host = (Border)window.FindName("PropertiesPopupHost");
+            AssertEqual(true, ReferenceEquals(panel.Parent, shell), "Properties start pinned to the right");
+            AssertEqual(true, viewModel.IsPropertiesDocked, "Pinned and visible means docked");
+
+            viewModel.AddTextCommand.Execute(null);
+            viewModel.SelectedObject = viewModel.Template.Objects.Last();
+            viewModel.IsPropertiesPinned = false;
+            var apply = typeof(MainWindow).GetMethod("ApplyPropertiesPlacement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            apply.Invoke(window, null);
+            AssertEqual(true, ReferenceEquals(panel.Parent, host), "Unpinned Properties move into the floating host");
+            AssertEqual(false, viewModel.IsPropertiesDocked, "Unpinned Properties leave the right-hand column");
+
+            viewModel.IsPropertiesPinned = true;
+            apply.Invoke(window, null);
+            AssertEqual(true, ReferenceEquals(panel.Parent, shell), "Pinning docks the same panel again");
+            AssertEqual(true, viewModel.IsPropertiesDocked, "Pinned Properties are docked");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
 
 static Task TestDesignerLayoutFollowsNiceLabel10()
 {

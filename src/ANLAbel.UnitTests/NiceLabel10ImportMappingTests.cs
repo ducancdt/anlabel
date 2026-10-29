@@ -547,6 +547,7 @@ public sealed class NiceLabel10ImportMappingTests
         Assert.Equal(8, text.HeightMm, 2);
         // RightTop anchor: the scaled width ends at the stored X.
         Assert.Equal(50 - 40 * 0.79, text.XMm, 2);
+        Assert.Equal(ObjectAnchorPoint.TopRight, text.AnchorPoint);
     }
 
     [Fact]
