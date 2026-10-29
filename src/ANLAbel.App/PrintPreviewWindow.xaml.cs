@@ -515,13 +515,18 @@ public partial class PrintPreviewWindow : Window
                 .ToArray();
             if (alreadyPrintedRows.Length > 0)
             {
-                var choice = MessageBox.Show(
+                var choice = OperatorDialog.Ask(
                     this,
-                    $"{alreadyPrintedRows.Length} dòng đã chọn (Dòng {string.Join(", ", alreadyPrintedRows)}) đã được gửi tới máy in trong phiên này.\n\nIn lại có thể tạo tem trùng. Tiếp tục?",
                     "Các dòng đã gửi tới máy in",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-                if (choice != MessageBoxResult.Yes)
+                    [
+                        $"{alreadyPrintedRows.Length} dòng đã chọn (Dòng {string.Join(", ", alreadyPrintedRows)}) đã được gửi tới máy in trong phiên này.",
+                        "In lại có thể tạo tem trùng. Tiếp tục?"
+                    ],
+                    null,
+                    OperatorDialogTone.Warning,
+                    new OperatorDialogChoice("reprint", "In lại", IsDefault: true),
+                    new OperatorDialogChoice("cancel", "Không in lại", IsCancel: true));
+                if (choice != "reprint")
                 {
                     return;
                 }
@@ -559,13 +564,21 @@ public partial class PrintPreviewWindow : Window
                 }
 
                 var remainingCount = totalSelectedRows - badSourceRows.Length;
-                var choice = MessageBox.Show(
+                var skipLines = new List<string>
+                {
+                    $"{badSourceRows.Length} dòng có lỗi và sẽ được bỏ qua: dòng {string.Join(", ", badSourceRows)}."
+                };
+                skipLines.AddRange(ANLAbel.App.Services.PreflightIssueText.Lines(preflight, SourceRowOf(selected)));
+                skipLines.Add($"Tiếp tục in {remainingCount} dòng còn lại?");
+                var choice = OperatorDialog.Ask(
                     this,
-                    $"{badSourceRows.Length} dòng có lỗi và sẽ được bỏ qua: dòng {string.Join(", ", badSourceRows)}.\n\n{string.Join("\n", ANLAbel.App.Services.PreflightIssueText.Lines(preflight, SourceRowOf(selected)))}\n\nTiếp tục in {remainingCount} dòng còn lại?",
                     "Một số dòng bị chặn",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Warning);
-                if (choice != MessageBoxResult.Yes)
+                    skipLines,
+                    null,
+                    OperatorDialogTone.Warning,
+                    new OperatorDialogChoice("skip", "Bỏ qua và in tiếp", IsDefault: true),
+                    new OperatorDialogChoice("cancel", "Không in", IsCancel: true));
+                if (choice != "skip")
                 {
                     SetPreflightResult(preflight, selected.Select(entry => entry.SourceRowNumber).ToArray());
                     if (_previewTrustLevel != PreviewTrustLevel.DesignOnly)
