@@ -11795,6 +11795,17 @@ static async Task TestOpenNiceLabel10NlblImportsLabel()
         AssertEqual(true, darkPixels > 200,
             $"An imported NiceLabel 10 template must render visible objects (text, barcodes, QR, DataMatrix, line, rectangle) through the print pipeline; darkPixels={darkPixels}");
 
+        // Opening through the application: the queue check that follows every
+        // open must add its warning to the import explanation, not replace it
+        // (an imported label never has a selected printer yet).
+        var openingViewModel = new MainViewModel();
+        await openingViewModel.OpenAsync(nlblPath);
+        await openingViewModel.RefreshPrinterQueueStatusAsync();
+        AssertEqual(true, openingViewModel.StatusText.Contains("Đã nhập khổ tem từ tệp NiceLabel", StringComparison.Ordinal),
+            $"The import explanation must survive the post-open printer check; status was: {openingViewModel.StatusText}");
+        AssertEqual(true, !openingViewModel.HasPrinterQueueWarning || openingViewModel.StatusText.Contains("Cảnh báo máy in", StringComparison.Ordinal),
+            $"The printer warning must still be shown after the import explanation; status was: {openingViewModel.StatusText}");
+
         // A tampered package must fail its AES integrity check, not import.
         var tampered = (byte[])package.Clone();
         tampered[tampered.Length / 2] ^= 0xFF;

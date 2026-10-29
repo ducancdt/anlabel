@@ -1398,11 +1398,20 @@ public sealed class MainViewModel : ObservableObject
         }
 
         PrinterQueueStatus = result;
+        // A NiceLabel import explains what was carried over and what the
+        // operator still has to choose; the queue check right after opening
+        // must add its warning to that explanation, not replace it.
+        var importStatus = _importStatusToKeep;
+        _importStatusToKeep = null;
         if (!result.CanSubmit)
         {
-            StatusText = $"Cảnh báo máy in: {PrinterQueueStatusMessage}";
+            StatusText = string.IsNullOrEmpty(importStatus) || StatusText != importStatus
+                ? $"Cảnh báo máy in: {PrinterQueueStatusMessage}"
+                : $"{importStatus} Cảnh báo máy in: {PrinterQueueStatusMessage}";
         }
     }
+
+    private string? _importStatusToKeep;
 
     /// <summary>
     /// Read-only recovery evidence loaded from the durable print-job event log.
@@ -1826,6 +1835,8 @@ public sealed class MainViewModel : ObservableObject
             {
                 StatusText += " " + printerNote;
             }
+
+            _importStatusToKeep = StatusText;
         }
 
         return loadResult;
