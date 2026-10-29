@@ -233,6 +233,7 @@ public sealed class LabelVisualRenderer
             IsLocked = snapshot.IsLocked,
             IsVisible = snapshot.IsVisible,
             AnchorPoint = snapshot.AnchorPoint,
+            GroupId = snapshot.GroupId,
             ZIndex = snapshot.ZIndex
         };
 

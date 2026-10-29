@@ -98,6 +98,7 @@ public sealed class MainViewModel : ObservableObject
     private LabelObject? _selectedObject;
     private RibbonTab _selectedRibbonTab = RibbonTab.Home;
     private bool _isPropertiesPinned = true;
+    private int _viewRotation;
     private DataView? _excelDataView;
     private IDataConnector? _dataConnector;
     private string _dataTransformError = string.Empty;
@@ -1527,6 +1528,16 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public bool IsPropertiesDocked => IsPropertiesVisible && IsPropertiesPinned;
+
+    /// <summary>
+    /// Design-surface view rotation in degrees (NiceLabel 10 View > Rotate
+    /// View): turns only the view, never the label or its print output.
+    /// </summary>
+    public int ViewRotation
+    {
+        get => _viewRotation;
+        set => SetProperty(ref _viewRotation, ((value % 360) + 360) % 360 / 90 * 90);
+    }
 
     public BindingIssueSummary? SelectedBindingIssue
     {

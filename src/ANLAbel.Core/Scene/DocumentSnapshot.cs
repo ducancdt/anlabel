@@ -276,6 +276,7 @@ public sealed record SceneObjectSnapshot
     public bool IsLocked { get; init; }
     public bool IsVisible { get; init; }
     public ObjectAnchorPoint AnchorPoint { get; init; }
+    public string GroupId { get; init; } = string.Empty;
     public string BindingExpression { get; init; } = string.Empty;
     public string Text { get; init; } = string.Empty;
     public BarcodeSymbology BarcodeSymbology { get; init; }
@@ -349,6 +350,7 @@ public sealed record SceneObjectSnapshot
             IsLocked = item.IsLocked,
             IsVisible = item.IsVisible,
             AnchorPoint = item.AnchorPoint,
+            GroupId = item.GroupId,
             BindingExpression = item.BindingExpression,
             Text = item.Text,
             BarcodeSymbology = item.BarcodeSymbology,

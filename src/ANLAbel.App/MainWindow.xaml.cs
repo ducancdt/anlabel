@@ -561,6 +561,20 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void GroupObjects_Click(object sender, RoutedEventArgs e)
+    {
+        DesignerCanvas.GroupSelectedObjects();
+        DesignerCanvas.Focus();
+        e.Handled = true;
+    }
+
+    private void UngroupObjects_Click(object sender, RoutedEventArgs e)
+    {
+        DesignerCanvas.UngroupSelectedObjects();
+        DesignerCanvas.Focus();
+        e.Handled = true;
+    }
+
     private void Paste_Click(object sender, RoutedEventArgs e)
     {
         DesignerCanvas.PasteCopiedObjects();
@@ -610,6 +624,16 @@ public partial class MainWindow : Window
         if (double.IsFinite(fit) && fit > 0)
         {
             viewModel.Zoom = Math.Clamp(fit, 0.25, 4);
+        }
+
+        e.Handled = true;
+    }
+
+    private void RotateView_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.ViewRotation += 90;
         }
 
         e.Handled = true;

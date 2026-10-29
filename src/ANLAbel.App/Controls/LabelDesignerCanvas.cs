@@ -77,6 +77,15 @@ public sealed class LabelDesignerCanvas : Canvas
         DependencyProperty.Register(nameof(ShowPointerTelemetry), typeof(bool), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnPointerTelemetryVisibilityChanged));
 
+    // NiceLabel 10 View > Object Markers Visibility.
+    public static readonly DependencyProperty ShowObjectNamesProperty =
+        DependencyProperty.Register(nameof(ShowObjectNames), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+    public static readonly DependencyProperty ShowDataSourceMarkersProperty =
+        DependencyProperty.Register(nameof(ShowDataSourceMarkers), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
     public static readonly RoutedCommand DeleteSelectionCommand = new(nameof(DeleteSelectionCommand), typeof(LabelDesignerCanvas));
 
     private readonly Dictionary<LabelObject, FrameworkElement> _objectElements = new();
@@ -299,6 +308,20 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         get => (bool)GetValue(ShowPointerTelemetryProperty);
         set => SetValue(ShowPointerTelemetryProperty, value);
+    }
+
+    /// <summary>Shows the selected object's name tag above it (NiceLabel 10 Object Name marker).</summary>
+    public bool ShowObjectNames
+    {
+        get => (bool)GetValue(ShowObjectNamesProperty);
+        set => SetValue(ShowObjectNamesProperty, value);
+    }
+
+    /// <summary>Marks objects bound to data at their top-left corner (NiceLabel 10 Data Source marker).</summary>
+    public bool ShowDataSourceMarkers
+    {
+        get => (bool)GetValue(ShowDataSourceMarkersProperty);
+        set => SetValue(ShowDataSourceMarkersProperty, value);
     }
 
     /// <summary>
@@ -1090,7 +1113,57 @@ public sealed class LabelDesignerCanvas : Canvas
 
         DrawGroupSelection(dc);
         DrawObjectErrors(dc);
+        DrawObjectMarkers(dc);
         DrawPointerTelemetryOverlay(dc);
+    }
+
+    /// <summary>
+    /// NiceLabel 10 object markers: a name tag above the selection and a
+    /// small marker beside every data-bound object. Designer chrome only.
+    /// </summary>
+    private void DrawObjectMarkers(DrawingContext dc)
+    {
+        if (Template is null || (!ShowObjectNames && !ShowDataSourceMarkers))
+        {
+            return;
+        }
+
+        var markerBrush = new SolidColorBrush(Color.FromRgb(124, 58, 237));
+        var markerPen = new Pen(markerBrush, 1);
+        foreach (var item in Template.Objects.Where(item => item.IsVisible))
+        {
+            var left = MmToDip(item.XMm);
+            var top = MmToDip(item.YMm);
+            if (ShowDataSourceMarkers && item.HasBindingExpression)
+            {
+                var diamond = new StreamGeometry();
+                using (var context = diamond.Open())
+                {
+                    context.BeginFigure(new Point(left - 4, top - 8), true, true);
+                    context.LineTo(new Point(left, top - 4), true, false);
+                    context.LineTo(new Point(left - 4, top), true, false);
+                    context.LineTo(new Point(left - 8, top - 4), true, false);
+                }
+
+                diamond.Freeze();
+                dc.DrawGeometry(Brushes.White, markerPen, diamond);
+            }
+
+            if (ShowObjectNames && ReferenceEquals(item, SelectedObject) && !string.IsNullOrWhiteSpace(item.Name))
+            {
+                var text = new FormattedText(
+                    item.Name,
+                    System.Globalization.CultureInfo.CurrentUICulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    10,
+                    Brushes.White,
+                    GetPixelsPerDip());
+                var tag = new Rect(left, top - text.Height - 4, text.Width + 8, text.Height + 2);
+                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(20, 100, 210)), null, tag);
+                dc.DrawText(text, new Point(tag.Left + 4, tag.Top + 1));
+            }
+        }
     }
 
     private void DrawPointerTelemetryOverlay(DrawingContext dc)
@@ -1247,6 +1320,15 @@ public sealed class LabelDesignerCanvas : Canvas
             if (!_selectedObjects.Contains(item))
             {
                 _selectedObjects.Add(item);
+            }
+
+            // NiceLabel 10 groups: a click on one member selects the whole group.
+            if (!isToggle && !string.IsNullOrEmpty(item.GroupId) && Template is { } template)
+            {
+                foreach (var peer in template.Objects.Where(peer => peer.GroupId == item.GroupId))
+                {
+                    _selectedObjects.Add(peer);
+                }
             }
 
             if (preserveSelectionAsKey)
@@ -2800,6 +2882,49 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
+    /// <summary>
+    /// NiceLabel 10 Group Objects: the selected objects (two or more) become
+    /// one group, selected and moved together. One undo step.
+    /// </summary>
+    public bool GroupSelectedObjects()
+    {
+        if (_selectedObjects.Count < 2)
+        {
+            return false;
+        }
+
+        var groupId = Guid.NewGuid().ToString("N");
+        NotifyEditGestureStarted();
+        foreach (var item in _selectedObjects)
+        {
+            item.GroupId = groupId;
+        }
+
+        NotifyEditGestureCompleted();
+        return true;
+    }
+
+    /// <summary>NiceLabel 10 Ungroup Objects: the selected objects leave their groups.</summary>
+    public bool UngroupSelectedObjects()
+    {
+        var grouped = _selectedObjects.Count > 0
+            ? _selectedObjects.Where(item => item.GroupId.Length > 0).ToArray()
+            : SelectedObject is { GroupId.Length: > 0 } single ? new[] { single } : Array.Empty<LabelObject>();
+        if (grouped.Length == 0)
+        {
+            return false;
+        }
+
+        NotifyEditGestureStarted();
+        foreach (var item in grouped)
+        {
+            item.GroupId = string.Empty;
+        }
+
+        NotifyEditGestureCompleted();
+        return true;
+    }
+
     /// <summary>Ribbon Clipboard group (NiceLabel 10 Home tab): copy.</summary>
     public bool CopySelectedObjects() => CopySelection();
 
@@ -2861,10 +2986,21 @@ public sealed class LabelDesignerCanvas : Canvas
         var nextZ = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
 
         _selectedObjects.Clear();
+        // Pasted members form their own groups, never join the originals.
+        var pastedGroups = pasted
+            .Select(item => item.GroupId)
+            .Where(groupId => groupId.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(groupId => groupId, _ => Guid.NewGuid().ToString("N"), StringComparer.Ordinal);
         // One paste is one undo step, however many objects it adds (D02).
         NotifyEditGestureStarted();
         foreach (var item in pasted)
         {
+            if (pastedGroups.TryGetValue(item.GroupId, out var newGroupId))
+            {
+                item.GroupId = newGroupId;
+            }
+
             item.Id = Guid.NewGuid().ToString("N");
             item.Name = CreateCopyName(item.Name);
             item.ZIndex = nextZ++;

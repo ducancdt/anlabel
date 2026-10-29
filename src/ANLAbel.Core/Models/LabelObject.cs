@@ -22,6 +22,7 @@ public sealed class LabelObject : ObservableObject
     private bool _isLocked;
     private bool _isVisible = true;
     private ObjectAnchorPoint _anchorPoint;
+    private string _groupId = string.Empty;
     private string _bindingExpression = string.Empty;
     private string _text = string.Empty;
     private BarcodeSymbology _barcodeSymbology = BarcodeSymbology.Code128;
@@ -159,6 +160,16 @@ public sealed class LabelObject : ObservableObject
     {
         get => _anchorPoint;
         set => SetProperty(ref _anchorPoint, value);
+    }
+
+    /// <summary>
+    /// Objects sharing a non-empty group id are selected and moved together
+    /// (NiceLabel 10 Group Objects); empty means not grouped.
+    /// </summary>
+    public string GroupId
+    {
+        get => _groupId;
+        set => SetProperty(ref _groupId, value ?? string.Empty);
     }
 
     public string BindingExpression

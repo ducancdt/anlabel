@@ -108,7 +108,23 @@ Painter, object markers, view rotation, licensing/partner groups.
 - Status bar: printer button, zoom to document, slider, percentage.
 - Gate: `designer layout follows the NiceLabel 10 ribbon and panels`.
 
-Remaining differences: the Properties panel stays docked (no floating
-popup beside the selection); sub-category tabs (Source · Mask) are not
-split; Group/Ungroup, anchoring point, object markers and view rotation
-have no ANLAbel feature yet.
+Second pass (2026-10-29):
+
+- Properties pin (header pin button, F4): pinned docks right; unpinned the
+  same panel floats beside the selection and opens on double-click.
+- Anchoring Point (`LabelObject.AnchorPoint`, vendor order 0-8, 3x3 picker
+  on the Design tab): variable-size Text and variable-height TextBox grow
+  away from the anchor in designer and print; imported from `.nlbl`.
+- Group / Ungroup (`LabelObject.GroupId`, Home > Objects and Design >
+  Arrange): a click on a member selects the group, which moves together;
+  pasted groups get new ids.
+- View tab: Object Markers (object name tag, data-source marker) and Rotate
+  View (quarter turns of the design surface only).
+- Gates: `properties panel pins right or floats beside the selection`,
+  `group objects select and move together like NiceLabel`, and the layout
+  gate covers the new commands.
+
+Not converted, because ANLAbel has no such object or feature and adding one
+is a product decision rather than a layout change: the Source tab's Mask
+sub-page (no content mask), Rich Text Box, Inverse and Report objects,
+forms/solutions, Access/SQL/ODBC wizards, RFID, Format Painter.

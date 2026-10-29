@@ -307,6 +307,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("main shell regions match NiceLabel map AutomationIds", TestMainShellRegionsMatchNiceLabelMap),
     ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
+    ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
@@ -12509,6 +12510,51 @@ static Task TestMainWindowLoadDoesNotForcePrinterSetup()
 }
 
 
+static Task TestGroupObjectsLikeNiceLabel()
+{
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var template = new LabelTemplate { Name = "Group", WidthMm = 100, HeightMm = 50 };
+            var a = new LabelObject { Type = ObjectType.Rectangle, Name = "A", XMm = 5, YMm = 5, WidthMm = 10, HeightMm = 10 };
+            var b = new LabelObject { Type = ObjectType.Rectangle, Name = "B", XMm = 30, YMm = 5, WidthMm = 10, HeightMm = 10 };
+            var c = new LabelObject { Type = ObjectType.Rectangle, Name = "C", XMm = 60, YMm = 5, WidthMm = 10, HeightMm = 10 };
+            template.Objects.Add(a);
+            template.Objects.Add(b);
+            template.Objects.Add(c);
+            var canvas = new LabelDesignerCanvas { Template = template };
+            var selected = (HashSet<LabelObject>)typeof(LabelDesignerCanvas)
+                .GetField("_selectedObjects", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(canvas)!;
+            AssertEqual(false, canvas.GroupSelectedObjects(), "Grouping needs at least two selected objects");
+            selected.Add(a);
+            selected.Add(b);
+            AssertEqual(true, canvas.GroupSelectedObjects(), "Two selected objects can be grouped");
+            AssertEqual(true, a.GroupId.Length > 0 && a.GroupId == b.GroupId, "Group members share one group id");
+            AssertEqual(string.Empty, c.GroupId, "Unselected objects stay ungrouped");
+            var copy = LabelObjectCloner.Clone(a);
+            AssertEqual(a.GroupId, copy.GroupId, "Clones (undo, snapshots) keep the group");
+            AssertEqual(true, canvas.UngroupSelectedObjects(), "Grouped selection can be ungrouped");
+            AssertEqual(string.Empty, a.GroupId + b.GroupId, "Ungroup clears the group id");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
 static Task TestPropertiesPanelPinsOrFloats()
 {
     // NiceLabel 10: the Properties panel is pinned to the right, or floats
@@ -12590,7 +12636,8 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
             var found = CollectAutomationIds(window);
             foreach (var id in new[] { "Shell.Ribbon.File", "Shell.Ribbon.Tab.Home", "Shell.Ribbon.Tab.Data", "Shell.Ribbon.Tab.View", "Shell.Ribbon.Tab.Help",
                          "Shell.Ribbon.Paste", "Shell.Ribbon.Cut", "Shell.Ribbon.Copy", "Shell.Ribbon.Font", "Shell.Ribbon.DataSources",
-                         "Shell.Ribbon.ZoomToDocument", "Shell.Status.Printer", "Shell.Properties.Title" })
+                         "Shell.Ribbon.ZoomToDocument", "Shell.Status.Printer", "Shell.Properties.Title",
+                         "Shell.Ribbon.Group", "Shell.Ribbon.Ungroup", "Shell.Ribbon.AnchorPoint", "Shell.Ribbon.ObjectMarkers", "Shell.Ribbon.RotateView", "Shell.Properties.Pin" })
             {
                 AssertEqual(true, found.Contains(id, StringComparer.Ordinal), "NiceLabel layout must expose " + id);
             }
@@ -12607,6 +12654,11 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
             viewModel.SelectedRibbonTab = RibbonTab.Text;
             viewModel.SelectedObject = null;
             AssertEqual(RibbonTab.Home, viewModel.SelectedRibbonTab, "Clearing the selection returns to the Home tab");
+            viewModel.ViewRotation = 270;
+            viewModel.ViewRotation += 90;
+            AssertEqual(0, viewModel.ViewRotation, "View rotation turns in quarter steps and wraps");
+            viewModel.ViewRotation = 100;
+            AssertEqual(90, viewModel.ViewRotation, "View rotation snaps to quarter turns");
         }
         catch (Exception ex)
         {
