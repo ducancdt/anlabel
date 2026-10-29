@@ -2534,3 +2534,25 @@ mà tệp gốc mang. Giữ không chuyển đổi: đoạn văn RTF và biến
 RTF nằm ngoài hợp đồng chuyển đổi đã chứng minh.
 
 [Agent: Muse Spark / Muse Code — phiên RTF .lbl 2026-10-27]
+
+---
+
+# Lát ANLAbel 2026-10-27 (tiếp 56): mã vạch MIL129L2 chuyển được qua đường hình học riêng
+
+## 81. Doubles kích thước của mã vạch có thể là kích thước thiết kế cũ
+
+Đo lại bản ghi mã vạch thứ hai của MIL129L2 (§59): double vị
+trí (trái, trên) khớp long tuyệt đối, nhưng double rộng/cao
+lệch −12%/+8% — doubles lưu kích thước lúc thiết kế, khung
+long mới là kích thước hiện tại (getters §63 đọc long). Thử
+nới riêng cho mã vạch (vị trí vẫn khớp tuyệt đối, tỉ lệ kích
+thước long/double trong [0.5, 2.0], chữ ký đuôi symbology vẫn
+bắt buộc) trên toàn bộ mẫu: mở khóa đúng 1 bản ghi — chính mã
+vạch MIL129L2, liên kết biến `Stk Num` phân giải trong tệp.
+`ScanBarcodeRecords` nay thử đường hình học nới lỏng này sau
+đường chặt; chữ, đoạn văn và hình vẫn giữ đối chiếu chặt vì
+kích thước khung của chúng là ngữ nghĩa thật. Gate tổng hợp
+thêm bản ghi mã vạch doubles-cũ. Build, 1406 unit test,
+regression suite, Fast loop đều đạt.
+
+[Agent: Muse Spark / Muse Code — phiên hình học mã vạch .lbl 2026-10-27]

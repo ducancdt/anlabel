@@ -268,7 +268,7 @@ Files using these features need this version or later.
     of a fixed offset; this also corrected the size read for files the
     fixed-offset reader had accepted (it was one field late). Unverified
     layouts are still rejected with a named reason instead of being
-    guessed. Object conversion has since landed in slices (§53-77):
+    guessed. Object conversion has since landed in slices (§53-81):
     barcode objects whose records fully cross-check (long rectangle,
     inch doubles, known symbology) convert with literal data or with a
     prompt-variable link resolved inside the same file, and fixed text
@@ -279,9 +279,11 @@ Files using these features need this version or later.
     too, multi-line CRLF captions convert, the geometry cross-check
     accepts the label's own unit (inch/cm/mm doubles), UPC-A records
     convert, and paragraph records (type 0x12E) whose content is a literal
-    string in Contents convert to frame-owned TextBox objects.
-    Paragraph records with RTF payloads, graphics and one
-    geometry-mismatched record (MIL129L2, §59) are not converted.
+    string in Contents convert to frame-owned TextBox objects. A
+    barcode-only relaxed geometry path (§81) also converts records
+    whose size doubles are a stale design size (MIL129L2).
+    Paragraph records with RTF payloads, graphics and records
+    linked to variables outside the file are not converted.
     Evidence: all 65
     installed sample labels swept (65 accepted with plausible sizes,
     cross-checked against size-bearing sample file names), regression gate

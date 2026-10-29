@@ -550,7 +550,9 @@ public static class NiceLabel5LblReader
         for (var offset = 0; offset + 120 <= contents.Length; offset++)
         {
             if (!TryReadGeometry(contents, offset, labelWidth, labelHeight,
-                    out var left, out var top, out var right, out var bottom, out _))
+                    out var left, out var top, out var right, out var bottom, out _)
+                && !TryReadBarcodeGeometry(contents, offset, labelWidth, labelHeight,
+                    out left, out top, out right, out bottom))
             {
                 continue;
             }
@@ -649,6 +651,61 @@ public static class NiceLabel5LblReader
             linkKind = BitConverter.ToUInt16(contents, q);
             linkVariable = BitConverter.ToUInt16(contents, q + 2);
             return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Barcode-only geometry fallback: the position doubles (top and
+    /// the horizontal anchor) must still match exactly, but the size
+    /// doubles may be a stale design size — MIL129L2's second barcode
+    /// stores a width 12% larger and a height 8% smaller in the long
+    /// rectangle than in the doubles. The long rectangle stays
+    /// authoritative; both size ratios must lie within [0.5, 2.0], and
+    /// the exact symbology tail signature is still required, so this
+    /// cannot pair a tail with unrelated geometry (evidence §81).
+    /// </summary>
+    private static bool TryReadBarcodeGeometry(byte[] contents, int offset, int labelWidth, int labelHeight,
+        out int left, out int top, out int right, out int bottom)
+    {
+        left = BitConverter.ToInt32(contents, offset);
+        top = BitConverter.ToInt32(contents, offset + 4);
+        right = BitConverter.ToInt32(contents, offset + 8);
+        bottom = BitConverter.ToInt32(contents, offset + 12);
+        if (left < 0 || top < 0 || right <= left || bottom <= top || right > labelWidth || bottom > labelHeight)
+        {
+            return false;
+        }
+
+        var first = BitConverter.ToDouble(contents, offset + 16);
+        var doubleTop = BitConverter.ToDouble(contents, offset + 24);
+        var doubleWidth = BitConverter.ToDouble(contents, offset + 32);
+        var doubleHeight = BitConverter.ToDouble(contents, offset + 40);
+        const double tolerance = 3.0;
+        foreach (var factor in new[] { 2540.0, 1000.0, 100.0 })
+        {
+            if (Math.Abs(top - doubleTop * factor) > tolerance
+                || (Math.Abs(left - first * factor) > tolerance
+                    && Math.Abs((left + right) / 2.0 - first * factor) > tolerance
+                    && Math.Abs(right - first * factor) > tolerance))
+            {
+                continue;
+            }
+
+            var storedWidth = doubleWidth * factor;
+            var storedHeight = doubleHeight * factor;
+            if (storedWidth <= 0 || storedHeight <= 0)
+            {
+                continue;
+            }
+
+            var widthRatio = (right - left) / storedWidth;
+            var heightRatio = (bottom - top) / storedHeight;
+            if (widthRatio is >= 0.5 and <= 2.0 && heightRatio is >= 0.5 and <= 2.0)
+            {
+                return true;
+            }
         }
 
         return false;

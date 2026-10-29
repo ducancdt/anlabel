@@ -11307,6 +11307,25 @@ static async Task TestOpenNiceLabel5LblImportsLabelSize()
         System.Text.Encoding.ASCII.GetBytes("Arial").CopyTo(contents, 1484);
         BitConverter.GetBytes(100).CopyTo(contents, 1526);
 
+        // One barcode whose size doubles are a stale design size (the
+        // MIL129L2 pattern): position doubles match exactly, size
+        // doubles are ~10% off the long rectangle in both dimensions.
+        BitConverter.GetBytes(100).CopyTo(contents, 2300);
+        BitConverter.GetBytes(100).CopyTo(contents, 2304);
+        BitConverter.GetBytes(1100).CopyTo(contents, 2308);
+        BitConverter.GetBytes(600).CopyTo(contents, 2312);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 2316);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 2324);
+        BitConverter.GetBytes(900 / 2540.0).CopyTo(contents, 2332);
+        BitConverter.GetBytes(550 / 2540.0).CopyTo(contents, 2340);
+        BitConverter.GetBytes((ushort)2001).CopyTo(contents, 2354);
+        BitConverter.GetBytes((ushort)5).CopyTo(contents, 2360);
+        System.Text.Encoding.ASCII.GetBytes("MIL-1").CopyTo(contents, 2362);
+        BitConverter.GetBytes((uint)8).CopyTo(contents, 2367);
+        BitConverter.GetBytes((ushort)6).CopyTo(contents, 2371);
+        BitConverter.GetBytes((ushort)7).CopyTo(contents, 2373);
+        System.Text.Encoding.ASCII.GetBytes("Code-39").CopyTo(contents, 2375);
+
         // One UPC-A record in the repeated-count tail variant: the data
         // word count appears again as a binary word in front of the data.
         BitConverter.GetBytes(100).CopyTo(contents, 1900);
@@ -11378,40 +11397,44 @@ static async Task TestOpenNiceLabel5LblImportsLabelSize()
         AssertEqual("Warehouse", result.Template.Name, "An imported NiceLabel label must be named after its source file");
         AssertNear(25.4, result.Template.WidthMm, 0.001, "Imported width must come from the NiceLabel header");
         AssertNear(12.7, result.Template.HeightMm, 0.001, "Imported height must come from the NiceLabel header");
-        AssertEqual(10, result.Template.Objects.Count, "The literal barcode, variable-linked barcode, UPC-A barcode, literal text, variable text, Courier text, multi-line text, right-anchored text, paragraph and rectangle records must all be converted");
-        var rightText = result.Template.Objects[7];
+        AssertEqual(11, result.Template.Objects.Count, "The literal barcode, variable-linked barcode, UPC-A barcode, stale-size barcode, literal text, variable text, Courier text, multi-line text, right-anchored text, paragraph and rectangle records must all be converted");
+        var staleSizeBarcode = result.Template.Objects[3];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.Code39, staleSizeBarcode.BarcodeSymbology, "A barcode with stale size doubles must still map its symbology");
+        AssertEqual("MIL-1", staleSizeBarcode.Text, "A barcode whose position doubles match but size doubles are stale must carry its data");
+        AssertNear(10.0, staleSizeBarcode.WidthMm, 0.001, "The long rectangle stays authoritative for a stale-size barcode");
+        var rightText = result.Template.Objects[8];
         AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, rightText.Type, "A right-anchored text record must become a Text object");
         AssertEqual("RIGHT TEXT", rightText.Text, "The right-anchored text content must be carried over");
         AssertEqual(ANLAbel.Core.Enums.TextAlignmentMode.Right, rightText.Style.Alignment, "A first double equal to the right edge must map to right alignment");
         var upcBarcode = result.Template.Objects[2];
         AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.UpcA, upcBarcode.BarcodeSymbology, "Internal symbology 3 must map to UPC-A");
         AssertEqual("731304012399", upcBarcode.Text, "A UPC-A record in the repeated-count tail variant must carry its data");
-        var multiLineText = result.Template.Objects[6];
+        var multiLineText = result.Template.Objects[7];
         AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, multiLineText.Type, "A multi-line text record must become a Text object");
         AssertEqual("PART NO.\r\n(P)", multiLineText.Text, "A stored CRLF line break must be carried over");
         AssertEqual(ANLAbel.Core.Enums.TextAlignmentMode.Center, multiLineText.Style.Alignment, "A first double equal to the horizontal centre must map to centre alignment");
         AssertNear(9.0, multiLineText.Style.FontSizePt, 0.001, "The multi-line text stored point size must be carried over");
-        var courierText = result.Template.Objects[5];
+        var courierText = result.Template.Objects[6];
         AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, courierText.Type, "A Courier New text record must become a Text object");
         AssertEqual("Courier Label", courierText.Text, "The Courier New text content must be carried over");
         AssertEqual("Courier New", courierText.Style.FontFamily, "A face stored with pitch-and-family 0x31 must be carried over, not dropped with the record");
         AssertEqual(true, courierText.Style.Bold, "LOGFONT weight 700 must map to bold for non-Arial faces too");
         AssertNear(8.0, courierText.Style.FontSizePt, 0.001, "A single unambiguous stored size candidate after the face name must be carried over");
-        var paragraph = result.Template.Objects[8];
+        var paragraph = result.Template.Objects[9];
         AssertEqual(ANLAbel.Core.Enums.ObjectType.TextBox, paragraph.Type, "A paragraph record (type 0x12E) owns its frame and must become a TextBox");
         AssertEqual("Paragraph text", paragraph.Text, "The paragraph content must be carried over");
         AssertNear(23.0, paragraph.WidthMm, 0.001, "The paragraph frame width must come from the long rectangle fields");
         AssertNear(10.0, paragraph.Style.FontSizePt, 0.001, "The paragraph stored point size must be carried over");
-        var shape = result.Template.Objects[9];
+        var shape = result.Template.Objects[10];
         AssertEqual(ANLAbel.Core.Enums.ObjectType.Rectangle, shape.Type, "Type code 0x131 with a full rectangle must become a Rectangle object");
         AssertNear(15.0, shape.XMm, 0.001, "Rectangle left must come from the long rectangle fields");
         AssertNear(9.0, shape.WidthMm, 0.001, "Rectangle width must be right minus left in millimetres");
-        var fixedText = result.Template.Objects[3];
+        var fixedText = result.Template.Objects[4];
         AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, fixedText.Type, "A literal text record must become a Text object");
         AssertEqual("Warehouse A1", fixedText.Text, "The literal text content must be carried over");
         AssertEqual("Arial", fixedText.Style.FontFamily, "The stored font face must be carried over");
         AssertNear(12.0, fixedText.Style.FontSizePt, 0.001, "The stored point size (tenths) must be carried over");
-        var variableText = result.Template.Objects[4];
+        var variableText = result.Template.Objects[5];
         AssertEqual("Lot {?ISBN Num}", variableText.BindingExpression, "A masked text run must become a prompt-variable binding in place");
         AssertEqual("Lot ", variableText.Text, "The literal text fallback must keep only the non-mask part");
         var barcode = result.Template.Objects[0];
@@ -11426,7 +11449,7 @@ static async Task TestOpenNiceLabel5LblImportsLabelSize()
         AssertEqual("{?ISBN Num}", variableBarcode.BindingExpression, "A masked record linked to variable 1002 must bind to that prompt variable");
         AssertEqual(true, result.Template.PromptVariables.Any(v => v.Name == "ISBN Num"), "The linked prompt variable must be declared on the imported template");
         AssertEqual(false, result.RecoveredFromBackup, "A NiceLabel import is a primary read, not a recovery");
-        AssertEqual(10, result.NiceLabelTotalObjectCount ?? -1, "The import must report how many object records the source file stores, floored at the converted count");
+        AssertEqual(11, result.NiceLabelTotalObjectCount ?? -1, "The import must report how many object records the source file stores, floored at the converted count");
 
         // The imported template must draw through the production print
         // renderer, not merely parse: rasterize it with a value for the
