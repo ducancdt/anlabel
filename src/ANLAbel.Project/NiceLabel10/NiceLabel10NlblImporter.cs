@@ -344,6 +344,22 @@ public static partial class NiceLabel10NlblImporter
             item.BarcodeTextFontSizePt = record.BarcodeHriFontSizePt;
         }
 
+        if (symbology == BarcodeSymbology.Code39)
+        {
+            // Code 39 details the package stores: an optional modulo-43 check
+            // character (generated when encoding), whether the HRI shows it,
+            // the wide/narrow ratio and the inter-character gap.
+            item.BarcodeCheckDigitPolicy = record.BarcodeHasCheckDigit
+                ? BarcodeCheckDigitPolicy.Generate
+                : BarcodeCheckDigitPolicy.None;
+            item.BarcodeHriShowCheckDigit = record.BarcodeDisplayCheckDigit;
+            item.Code39WideNarrowRatio = Code39Ratio(record.BarcodeRatio);
+            if (record.BarcodeIntercharacterGap is >= 1 and <= 5)
+            {
+                item.Code39IntercharacterGapModules = record.BarcodeIntercharacterGap;
+            }
+        }
+
         if (record.BarcodeModuleHeightMm > 0)
         {
             item.HeightMm = record.BarcodeModuleHeightMm;
@@ -364,6 +380,31 @@ public static partial class NiceLabel10NlblImporter
         }
 
         return item;
+    }
+
+    private static Code39WideNarrowRatio Code39Ratio(double ratio) => ratio switch
+    {
+        >= 1.95 and <= 2.05 => Code39WideNarrowRatio.Ratio2_0,
+        >= 2.15 and <= 2.25 => Code39WideNarrowRatio.Ratio2_2,
+        >= 2.45 and <= 2.55 => Code39WideNarrowRatio.Ratio2_5,
+        >= 2.95 and <= 3.05 => Code39WideNarrowRatio.Ratio3_0,
+        _ => Code39WideNarrowRatio.LegacyEngineDefault
+    };
+
+    /// <summary>
+    /// Vendor <c>LineStyles</c> (Interfaces.dll, flags): Solid 1, Dash 2,
+    /// Dot 4, DashDot 8, DashDotDot 16, Clear 32. Dash-dot patterns keep
+    /// the nearest ANLAbel dashed look; Clear draws no stroke.
+    /// </summary>
+    private static void ApplyStrokeStyle(LabelObject item, NiceLabel10ObjectRecord record)
+    {
+        item.Style.OutlineStyle = record.LineStyleValue switch
+        {
+            2 or 8 or 16 => OutlineStyle.Dash,
+            4 => OutlineStyle.Dot,
+            32 => OutlineStyle.None,
+            _ => item.Style.OutlineStyle
+        };
     }
 
     /// <summary>
@@ -566,6 +607,7 @@ public static partial class NiceLabel10NlblImporter
             item.Style.BorderThicknessMm = record.StrokeThicknessMm;
         }
 
+        ApplyStrokeStyle(item, record);
         ApplyItemColor(item, record);
         return item;
     }
@@ -585,6 +627,12 @@ public static partial class NiceLabel10NlblImporter
             item.Style.BorderThicknessMm = record.StrokeThicknessMm;
         }
 
+        if (record.CornerRadiusMm > 0)
+        {
+            item.Style.CornerRadiusMm = record.CornerRadiusMm;
+        }
+
+        ApplyStrokeStyle(item, record);
         ApplyItemColor(item, record);
 
         // Vendor FillStyles (Interfaces.dll): None, Clear, Solid, then

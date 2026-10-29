@@ -123,6 +123,24 @@ public sealed record NiceLabel10ObjectRecord(
     /// </summary>
     public int BarcodeHriPosition { get; init; } = -1;
 
+    /// <summary>
+    /// Vendor <c>LineStyles</c> flags of a line/rectangle stroke: Solid 1,
+    /// Dash 2, Dot 4, DashDot 8, DashDotDot 16, Clear 32; 0 when absent.
+    /// </summary>
+    public int LineStyleValue { get; init; }
+
+    /// <summary>Stored rectangle corner radius in millimetres.</summary>
+    public double CornerRadiusMm { get; init; }
+
+    /// <summary>Stored <c>HasCheckDigit</c> (the symbol carries a computed check character).</summary>
+    public bool BarcodeHasCheckDigit { get; init; }
+
+    /// <summary>Stored <c>DisplayCheckDigit</c> (the check character appears in the HRI text).</summary>
+    public bool BarcodeDisplayCheckDigit { get; init; }
+
+    /// <summary>Stored Code 39 <c>InterCharacterGap</c> in narrow-bar widths; 0 when absent.</summary>
+    public int BarcodeIntercharacterGap { get; init; }
+
     /// <summary>Base64 payload of an embedded graphic, or null when none is stored.</summary>
     public string? GraphicBase64 { get; init; }
 

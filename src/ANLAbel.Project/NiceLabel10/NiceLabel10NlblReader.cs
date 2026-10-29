@@ -469,7 +469,10 @@ public static class NiceLabel10NlblReader
                         : (int)ParseDouble(barcodeData, "HumanInterpretationPosition"),
                     BarcodeElementWidthMm = ParseDouble(barcodeData, "ElementWidth") / ThousandthsPerMm,
                     BarcodeElementHeightMm = ParseDouble(barcodeData, "ElementHeight") / ThousandthsPerMm,
-                    BarcodeTruncated = ParseBool(barcodeData, "TruncatedBarcode")
+                    BarcodeTruncated = ParseBool(barcodeData, "TruncatedBarcode"),
+                    BarcodeHasCheckDigit = ParseBool(barcodeData, "HasCheckDigit"),
+                    BarcodeDisplayCheckDigit = ParseBool(barcodeData, "DisplayCheckDigit"),
+                    BarcodeIntercharacterGap = (int)ParseDouble(barcodeData, "InterCharacterGap")
                 };
             }
             case "LineDocumentItem" when geometryType == "PointGeometry":
@@ -486,7 +489,8 @@ public static class NiceLabel10NlblReader
                     XMm = Thousandths(geometry!, "Left"),
                     YMm = Thousandths(geometry!, "Top"),
                     WidthMm = Thousandths(geometry!, "Width"),
-                    HeightMm = Thousandths(geometry!, "Height")
+                    HeightMm = Thousandths(geometry!, "Height"),
+                    CornerRadiusMm = Thousandths(item, "Radius")
                 };
             case "GraphicDocumentItem" when geometryType == "RectGeometry":
             {
@@ -543,6 +547,7 @@ public static class NiceLabel10NlblReader
             RotationDegrees = ParseDouble(geometry, "Rotation"),
             AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
             Underline = underline,
+            LineStyleValue = (int)ParseDouble(item, "LineStyle"),
             ContentTemplate = ReadContentTemplate(item) is { } contentTemplate
                 ? (richText
                     ? NiceLabel10RichText.ToPlainText(contentTemplate)

@@ -252,7 +252,13 @@ an acceptance check.
   stay unconverted.
 - Barcode detail mapping: `Code128BBarcodeData` pins
   `Code128CodeSet.B`, and the `HumanInterpretationFontDescriptor` height
-  becomes `BarcodeTextFontSizePt`. `HumanInterpretationPosition` maps
+  becomes `BarcodeTextFontSizePt`. Code 39 carries `HasCheckDigit`
+  (modulo-43 check character → `BarcodeCheckDigitPolicy.Generate`),
+  `DisplayCheckDigit` (→ `BarcodeHriShowCheckDigit`), `Ratio` (2, 2.2,
+  2.5, 3 → `Code39WideNarrowRatio`) and `InterCharacterGap` (narrow-bar
+  widths). Line/rectangle `LineStyle` (vendor `LineStyles` flags: Solid
+  1, Dash 2, Dot 4, DashDot 8, DashDotDot 16, Clear 32) maps onto
+  `OutlineStyle`, rectangle `Radius` onto the corner radius. `HumanInterpretationPosition` maps
   onto `BarcodeHriPlacement` (0 → None, 2/3 → Above, otherwise Below,
   absent → Below per the vendor loader default); check-digit flags align
   with ANLAbel defaults and are not mapped.

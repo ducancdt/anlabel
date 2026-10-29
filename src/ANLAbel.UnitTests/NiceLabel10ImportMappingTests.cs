@@ -257,6 +257,50 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void Code39Details_MapCheckDigitRatioAndGap()
+    {
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Serial</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="Code39BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight><Ratio>2.5</Ratio><HasCheckDigit>True</HasCheckDigit><DisplayCheckDigit>False</DisplayCheckDigit><InterCharacterGap>2</InterCharacterGap></BarcodeData>
+              <FixedContents>ABC123</FixedContents>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal(BarcodeCheckDigitPolicy.Generate, code.BarcodeCheckDigitPolicy);
+        Assert.False(code.BarcodeHriShowCheckDigit);
+        Assert.Equal(Code39WideNarrowRatio.Ratio2_5, code.Code39WideNarrowRatio);
+        Assert.Equal(2, code.Code39IntercharacterGapModules);
+    }
+
+    [Fact]
+    public void DottedLineAndRoundedRectangle_MapStrokeStyleAndRadius()
+    {
+        var template = Import("""
+            <Item Type="LineDocumentItem">
+              <Name>Rule</Name>
+              <Geometry Type="PointGeometry"><StartPointX>5000</StartPointX><StartPointY>45000</StartPointY><EndPointX>95000</EndPointX><EndPointY>45000</EndPointY></Geometry>
+              <Thickness>250</Thickness>
+              <LineStyle>4</LineStyle>
+            </Item>
+            <Item Type="RectangleDocumentItem">
+              <Name>Box</Name>
+              <Geometry Type="RectGeometry"><Left>70000</Left><Top>20000</Top><Width>20000</Width><Height>10000</Height></Geometry>
+              <Thickness>500</Thickness>
+              <LineStyle>2</LineStyle>
+              <Radius>1500</Radius>
+            </Item>
+            """);
+
+        Assert.Equal(2, template.Objects.Count);
+        Assert.Equal(OutlineStyle.Dot, template.Objects[0].Style.OutlineStyle);
+        Assert.Equal(OutlineStyle.Dash, template.Objects[1].Style.OutlineStyle);
+        Assert.Equal(1.5, template.Objects[1].Style.CornerRadiusMm, 3);
+    }
+
+    [Fact]
     public void SheetLayout_UsesTheLabelElementSizeNotThePage()
     {
         var document = Parse("""
