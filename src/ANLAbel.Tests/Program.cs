@@ -310,6 +310,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("niceLabel 5 lbl header reader accepts verified layout and rejects variants", TestNiceLabel5LblHeaderReader),
     ("barcode and serial properties expose reverse engineered options", TestBarcodeAndSerialPropertiesExposeReverseEngineeredOptions),
     ("opening a niceLabel 5 lbl imports its label size as a new template", TestOpenNiceLabel5LblImportsLabelSize),
+    ("opening a niceLabel 10 nlbl imports its label as a new template", TestOpenNiceLabel10NlblImportsLabel),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
     ("bộ quy chuẩn Việt hóa chặn tiếng Anh trên file đã enforce", LanguageComplianceRegression.Run)
@@ -11512,6 +11513,486 @@ static async Task TestOpenNiceLabel5LblImportsLabelSize()
     }
 }
 
+static async Task TestOpenNiceLabel10NlblImportsLabel()
+{
+    var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-nlbl-import-" + Guid.NewGuid().ToString("N")));
+    try
+    {
+        // A synthetic NiceLabel 10 package in the reverse-engineered layout:
+        // a WinZip-AES-256 ZIP holding an XML Formats entry (geometry in
+        // 1/1000 mm) and a .nsln entry declaring the referenced variable.
+        const string variableId = "11111111-2222-3333-4444-555555555555";
+        const string dateVariableId = "22222222-2222-3333-4444-555555555555";
+        var syntheticPng = SyntheticGrayPng(3, 2);
+        var formatXml = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Format">
+              <Name>Synthetic NL10</Name>
+              <Media Type="FormatMedia"><Width>100000</Width><Height>50000</Height></Media>
+              <DocumentItems>
+                <Item Type="TextDocumentItem">
+                  <Name>Caption</Name>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height>
+                    <LogFontWrapper Type="LogFontWrapper"><Weight>700</Weight><FaceName>Arial</FaceName></LogFontWrapper>
+                  </FontDescriptor>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>5000</Y></Geometry>
+                  <Color>FFFFFFFF</Color>
+                  <FixedContents>HELLO NL10</FixedContents>
+                </Item>
+                <Item Type="TextDocumentItem">
+                  <Name>LotText</Name>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>9</Height></FontDescriptor>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>12000</Y></Geometry>
+                  <FixedContents>DEFAULT LOT</FixedContents>
+                  <DataSourceReference Type="SolutionDataSourceReference"><Id>11111111-2222-3333-4444-555555555555</Id></DataSourceReference>
+                </Item>
+                <Item Type="TextDocumentItem">
+                  <Name>Notes</Name>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>9</Height></FontDescriptor>
+                  <Geometry Type="RectGeometry"><Left>5000</Left><Top>20000</Top><Width>60000</Width><Height>15000</Height></Geometry>
+                  <TextBoxAlignment>2</TextBoxAlignment>
+                  <FixedContents>Multi line notes</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>Code</Name>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+                  <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight><HumanInterpretationFontDescriptor Type="FontDescriptor"><Height>8</Height></HumanInterpretationFontDescriptor></BarcodeData>
+                  <FixedContents>12345678</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>CodeB</Name>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>30000</Y></Geometry>
+                  <BarcodeData Type="Code128BBarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>8000</ModuleHeight></BarcodeData>
+                  <FixedContents>AbC-128B</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>Qr</Name>
+                  <Geometry Type="PositionGeometry"><X>80000</X><Y>5000</Y></Geometry>
+                  <BarcodeData Type="QRBarcodeData"><BaseBarWidth>1000</BaseBarWidth><ModuleHeight>0</ModuleHeight><QRBarcodeVersion>0</QRBarcodeVersion><QRBarcodeErrorCorrectionLevel>3</QRBarcodeErrorCorrectionLevel></BarcodeData>
+                  <FixedContents>QRDATA</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>Dm</Name>
+                  <Geometry Type="PositionGeometry"><X>80000</X><Y>20000</Y></Geometry>
+                  <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>4</DatamatrixFormat></BarcodeData>
+                  <FixedContents>DM-DATA</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>Pdf</Name>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>20000</Y></Geometry>
+                  <BarcodeData Type="Pdf417BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>0</ModuleHeight><SecurityLevel>2</SecurityLevel><ElementWidth>250</ElementWidth><ElementHeight>625</ElementHeight><TruncatedBarcode>False</TruncatedBarcode></BarcodeData>
+                  <FixedContents>PDF-DATA-123</FixedContents>
+                </Item>
+                <Item Type="LineDocumentItem">
+                  <Name>Rule</Name>
+                  <Geometry Type="PointGeometry"><StartPointX>5000</StartPointX><StartPointY>45000</StartPointY><EndPointX>95000</EndPointX><EndPointY>45000</EndPointY></Geometry>
+                  <Thickness>250</Thickness>
+                </Item>
+                <Item Type="RectangleDocumentItem">
+                  <Name>Box</Name>
+                  <Geometry Type="RectGeometry"><Left>70000</Left><Top>20000</Top><Width>20000</Width><Height>10000</Height></Geometry>
+                  <Thickness>500</Thickness>
+                  <FillStyle>2</FillStyle>
+                  <FillColor>FF000000</FillColor>
+                </Item>
+                <Item Type="GraphicDocumentItem">
+                  <Name>Logo</Name>
+                  <Geometry Type="RectGeometry"><Left>70000</Left><Top>5000</Top><Width>15000</Width><Height>8000</Height></Geometry>
+                </Item>
+                <Item Type="TextDocumentItem">
+                  <Name>Side</Name>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>12</Height></FontDescriptor>
+                  <Geometry Type="PositionGeometry"><X>13700</X><Y>42800</Y><Rotation>270</Rotation><AnchoringPoint>2</AnchoringPoint></Geometry>
+                  <FixedContents>887766554</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>CodeNoHri</Name>
+                  <Geometry Type="PositionGeometry"><X>50000</X><Y>40000</Y><AnchoringPoint>4</AnchoringPoint></Geometry>
+                  <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>6000</ModuleHeight><HumanInterpretationPosition>0</HumanInterpretationPosition></BarcodeData>
+                  <FixedContents>9876</FixedContents>
+                </Item>
+                <Item Type="GraphicDocumentItem">
+                  <Name>Mark</Name>
+                  <Geometry Type="RectGeometry"><Left>95000</Left><Top>30000</Top><Width>8000</Width><Height>6000</Height><AnchoringPoint>2</AnchoringPoint></Geometry>
+                  <EmbeddedGraphicContents Type="BinaryContents"><Base64StringValue>{Convert.ToBase64String(syntheticPng)}</Base64StringValue></EmbeddedGraphicContents>
+                  <ResizeMode>1</ResizeMode>
+                </Item>
+                <Item Type="TextDocumentItem">
+                  <Name>Packed</Name>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>8</Height></FontDescriptor>
+                  <Geometry Type="PositionGeometry"><X>60000</X><Y>42000</Y></Geometry>
+                  <FixedContents>20261029</FixedContents>
+                  <DataSourceReference Type="SolutionDataSourceReference"><Id>{dateVariableId}</Id></DataSourceReference>
+                </Item>
+              </DocumentItems>
+            </EuroPlus.NiceLabel>
+            """;
+        var solutionXml = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel>
+              <Variables>
+                <Item Type="Variable">
+                  <Id>{variableId}</Id><Name>LotCode</Name>
+                  <PromptText>Enter the lot code</PromptText>
+                  <AllowedCharactersForCustomFormat>0123456789</AllowedCharactersForCustomFormat>
+                  <Constraints Type="DataSourceConstraints"><Length>10</Length><IsRequired>True</IsRequired></Constraints>
+                </Item>
+                <Item Type="Variable">
+                  <Id>{dateVariableId}</Id><Name>Packed</Name>
+                  <DefaultValue Type="SystemDateTimeContents"><Offset Type="DateTimeOffsets"><Days>0</Days></Offset><OutputFormat>yyyyMMdd</OutputFormat></DefaultValue>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+
+        // Vendor packages name the solution entry "<label>.slnx" (207/207 sampled).
+        var package = BuildSyntheticNlblPackage(new Dictionary<string, string>
+        {
+            ["Formats/label"] = formatXml,
+            ["label.slnx"] = solutionXml
+        });
+        var nlblPath = Path.Combine(directory.FullName, "Synthetic.nlbl");
+        await File.WriteAllBytesAsync(nlblPath, package);
+
+        var measurer = new ANLAbel.App.Services.NiceLabel10TextMeasurer();
+        var result = await new ProjectFileService(measurer).LoadWithRecoveryAsync(nlblPath);
+        AssertEqual("Synthetic NL10", result.Template.Name, "An imported NiceLabel 10 label must keep the stored format name");
+        AssertNear(100.0, result.Template.WidthMm, 0.001, "Imported width must come from Media Width in 1/1000 mm");
+        AssertNear(50.0, result.Template.HeightMm, 0.001, "Imported height must come from Media Height in 1/1000 mm");
+        AssertEqual(15, result.NiceLabelTotalObjectCount ?? -1, "The import must report every stored document item, converted or not");
+        AssertEqual(14, result.Template.Objects.Count, "Text, variable text, framed text, Code 128, Code 128B, QR, DataMatrix, PDF417, line, rectangle, rotated text, anchored barcode, embedded graphic and date text must convert; the payload-less graphic must not be guessed");
+
+        var caption = result.Template.Objects[0];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, caption.Type, "A position-geometry text must become a free Text object");
+        AssertEqual("HELLO NL10", caption.Text, "The fixed text content must be carried over");
+        AssertNear(10.0, caption.XMm, 0.001, "Text X must convert from 1/1000 mm");
+        AssertNear(5.0, caption.YMm, 0.001, "Text Y must convert from 1/1000 mm");
+        AssertEqual(true, caption.Style.Bold, "LOGFONT weight 700 must map to bold");
+        AssertNear(10.0, caption.Style.FontSizePt, 0.001, "The FontDescriptor height must map to point size");
+        AssertEqual("#FFFFFFFF", caption.Style.StrokeColor, "The stored item colour must become the text brush colour (white reverse text)");
+
+        var lotText = result.Template.Objects[1];
+        AssertEqual("{?LotCode}", lotText.BindingExpression, "A DataSourceReference must resolve through the solution (.slnx) variable table");
+        var lotPrompt = result.Template.PromptVariables.FirstOrDefault(v => v.Name == "LotCode");
+        AssertEqual(true, lotPrompt is not null && lotPrompt.DefaultValue == "DEFAULT LOT",
+            "The resolved variable must be declared with the item's design-time contents as default when it stores none");
+        AssertEqual("Enter the lot code", lotPrompt!.Prompt, "The stored PromptText must become the operator prompt");
+        AssertEqual(10, lotPrompt.MaxLength, "The stored length constraint must become the prompt maximum length");
+        AssertEqual(true, lotPrompt.Required, "The stored IsRequired constraint must make the prompt required");
+        AssertEqual(true, lotPrompt.DigitsOnly, "A stored digit-only character set must make the prompt digits-only");
+        AssertEqual(ANLAbel.Core.Enums.BarcodeHriPlacement.Below, result.Template.Objects[3].BarcodeHriPlacement,
+            "A barcode without a stored HumanInterpretationPosition keeps the vendor loader default (Below)");
+
+        var notes = result.Template.Objects[2];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.TextBox, notes.Type, "A rect-geometry text owns its frame and must become a TextBox");
+        AssertNear(60.0, notes.WidthMm, 0.001, "The framed text width must come from RectGeometry");
+        AssertNear(15.0, notes.HeightMm, 0.001, "The framed text height must come from RectGeometry");
+        AssertEqual(ANLAbel.Core.Enums.TextAlignmentMode.Center, notes.Style.Alignment, "Stored TextBoxAlignment 2 must map to centre alignment");
+
+        var barcode = result.Template.Objects[3];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.Code128, barcode.BarcodeSymbology, "Code128BarcodeData must map to Code 128");
+        AssertEqual("12345678", barcode.Text, "The barcode fixed contents must be carried over");
+        AssertNear(0.3, barcode.BarcodeModuleWidthMm, 0.001, "BaseBarWidth must become the production module width");
+        AssertEqual(ANLAbel.Core.Enums.BarcodeWidthMode.SizedFromX, barcode.BarcodeWidthMode, "The authored module width must drive production width");
+        AssertNear(10.0, barcode.HeightMm, 0.001, "ModuleHeight must become the barcode height");
+        AssertNear(8.0, barcode.BarcodeTextFontSizePt, 0.001, "The human-interpretation font height must become the HRI text size");
+
+        var codeB = result.Template.Objects[4];
+        AssertEqual(ANLAbel.Core.Enums.Code128CodeSet.B, codeB.Code128CodeSet, "Code128BBarcodeData must pin code set B");
+        AssertEqual("AbC-128B", codeB.Text, "The Code 128B contents must be carried over");
+
+        var qr = result.Template.Objects[5];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.QRCode, qr.Type, "QRBarcodeData must become a QRCode object");
+        AssertEqual("QRDATA", qr.Text, "The QR fixed contents must be carried over");
+        AssertEqual(ANLAbel.Core.Barcode.QrErrorCorrection.H, qr.QrErrorCorrection, "Stored QR error level 3 must map to level H");
+        AssertEqual(12, qr.QrModuleSizePx, "The authored 1 mm module width must become module pixels at 300 DPI");
+
+        var dm = result.Template.Objects[6];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.DataMatrix, dm.Type, "DatamatrixBarcodeData must become a DataMatrix object");
+        AssertEqual("DM-DATA", dm.Text, "The DataMatrix fixed contents must be carried over");
+        AssertNear(8.0, dm.WidthMm, 0.001, "An explicit C16x16 format at 0.5 mm modules must give an 8 mm frame width");
+        AssertNear(8.0, dm.HeightMm, 0.001, "An explicit C16x16 format at 0.5 mm modules must give an 8 mm frame height");
+
+        var pdf = result.Template.Objects[7];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.Pdf417, pdf.BarcodeSymbology, "Pdf417BarcodeData must map to PDF417");
+        AssertEqual("PDF-DATA-123", pdf.Text, "The PDF417 fixed contents must be carried over");
+        AssertEqual(2, pdf.Pdf417ErrorCorrectionLevel, "The stored security level must become the PDF417 error-correction level");
+        var pdfModules = new ANLAbel.Barcode.Renderers.ZxingBarcodeRenderer().CountMatrixModules(
+            "PDF-DATA-123",
+            ANLAbel.Barcode.Renderers.BarcodeType.Pdf417,
+            ANLAbel.Barcode.Options.BarcodeRenderOptions.FromObject(pdf));
+        AssertEqual(true, pdfModules is not null, "The production encoder must size the stored PDF417 contents");
+        AssertNear(pdfModules!.Value.WidthModules * 0.25, pdf.WidthMm, 0.02, "The PDF417 frame width must be the native module grid at the stored element width");
+        AssertNear(pdfModules.Value.HeightModules * 0.625, pdf.HeightMm, 0.02, "The PDF417 frame height must be the native row count at the stored element height");
+
+        var line = result.Template.Objects[8];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Line, line.Type, "A point-geometry item must become a Line");
+        AssertNear(95.0, line.LineEndXMm, 0.001, "The line end X must be carried over");
+        AssertNear(0.25, line.Style.BorderThicknessMm, 0.001, "The stored line thickness must become the border thickness");
+
+        var box = result.Template.Objects[9];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Rectangle, box.Type, "A rectangle item must become a Rectangle");
+        AssertNear(70.0, box.XMm, 0.001, "Rectangle left must convert from 1/1000 mm");
+        AssertNear(20.0, box.WidthMm, 0.001, "Rectangle width must convert from 1/1000 mm");
+        AssertEqual(ANLAbel.Core.Enums.FillStyle.Solid, box.Style.FillStyle, "Stored FillStyle 2 (Solid) must map to a solid fill");
+        AssertEqual("#FF000000", box.Style.FillColor, "The stored ARGB fill colour must be carried over");
+        AssertNear(0.5, box.Style.BorderThicknessMm, 0.001, "The stored rectangle thickness must become the border thickness");
+
+        // Anchored + rotated position text: the stored point is the RightTop
+        // anchor of the object rotated 270° clockwise, i.e. the top-left of
+        // its rotated box; ANLAbel keeps the unrotated frame centred on that
+        // box (docs/NICELABEL_10_REVERSE_ENGINEERING.md §8).
+        var side = result.Template.Objects[10];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, side.Type, "A rotated position text stays a free Text object");
+        AssertEqual(270, side.Rotation, "The stored clockwise rotation must be carried over");
+        var sideSize = measurer.MeasureText(side, "887766554");
+        AssertEqual(true, sideSize is not null, "The application measurer must size the imported text");
+        AssertNear(13.7 + sideSize!.Value.HeightMm / 2 - sideSize.Value.WidthMm / 2, side.XMm, 0.01,
+            "The rotated text frame must be centred on the rotated box whose top-left is the stored point");
+        AssertNear(42.8 + sideSize.Value.WidthMm / 2 - sideSize.Value.HeightMm / 2, side.YMm, 0.01,
+            "The rotated text frame must be centred vertically on the rotated box");
+
+        var noHri = result.Template.Objects[11];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeHriPlacement.None, noHri.BarcodeHriPlacement,
+            "Stored HumanInterpretationPosition 0 (NoInterpretation) must switch the HRI text off");
+        AssertNear(50.0 - noHri.WidthMm / 2, noHri.XMm, 0.01, "A CenterMiddle-anchored barcode must be centred on the stored X");
+        AssertNear(40.0 - 3.0, noHri.YMm, 0.01, "A CenterMiddle-anchored barcode must be centred on the stored Y");
+
+        var mark = result.Template.Objects[12];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Image, mark.Type, "An embedded raster payload must become an Image object");
+        AssertEqual(Convert.ToBase64String(syntheticPng), mark.ImageDataBase64, "The embedded PNG must be carried over unchanged");
+        AssertEqual(3, mark.ImagePixelWidth, "The PNG width must be read from its header");
+        AssertNear(95.0 - 8.0, mark.XMm, 0.01, "A RightTop-anchored graphic must end at the stored X");
+        AssertNear(8.0, mark.WidthMm, 0.01, "The graphic frame width must come from RectGeometry");
+
+        var packed = result.Template.Objects[13];
+        AssertEqual("{#NOW:yyyyMMdd}", packed.BindingExpression, "A current-date variable must become a #NOW field with the stored output format");
+        AssertEqual(false, result.Template.PromptVariables.Any(v => v.Name == "Packed"), "A current-date variable must not be prompted");
+
+        // The imported template must draw through the production print
+        // renderer, not merely parse: rasterize it with a value for the
+        // bound variable and require real ink on the label.
+        var plan = new PrintService().CreateDesignPlan(result.Template);
+        var visual = new LabelVisualRenderer().Render(
+            result.Template,
+            new Dictionary<string, string> { ["LotCode"] = "LOT-2026" },
+            plan);
+        var bitmap = RenderTestBitmap(
+            visual,
+            MmConverter.MmToDip(plan.LabelWidthMm),
+            MmConverter.MmToDip(plan.LabelHeightMm));
+        var pixels = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4];
+        bitmap.CopyPixels(pixels, bitmap.PixelWidth * 4, 0);
+        var darkPixels = 0;
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            if (pixels[index] < 110 && pixels[index + 1] < 110 && pixels[index + 2] < 110 && pixels[index + 3] > 160)
+            {
+                darkPixels++;
+            }
+        }
+
+        AssertEqual(true, darkPixels > 200,
+            $"An imported NiceLabel 10 template must render visible objects (text, barcodes, QR, DataMatrix, line, rectangle) through the print pipeline; darkPixels={darkPixels}");
+
+        // A tampered package must fail its AES integrity check, not import.
+        var tampered = (byte[])package.Clone();
+        tampered[tampered.Length / 2] ^= 0xFF;
+        var tamperedPath = Path.Combine(directory.FullName, "Tampered.nlbl");
+        await File.WriteAllBytesAsync(tamperedPath, tampered);
+        var rejected = false;
+        try { await new ProjectFileService().LoadWithRecoveryAsync(tamperedPath); }
+        catch (InvalidDataException) { rejected = true; }
+        AssertEqual(true, rejected, "A package failing integrity checks must be refused, not imported");
+    }
+    finally
+    {
+        directory.Delete(recursive: true);
+    }
+}
+
+static byte[] SyntheticGrayPng(int width, int height)
+{
+    var source = BitmapSource.Create(width, height, 96, 96, PixelFormats.Gray8, null, new byte[width * height], width);
+    var encoder = new PngBitmapEncoder();
+    encoder.Frames.Add(BitmapFrame.Create(source));
+    using var stream = new MemoryStream();
+    encoder.Save(stream);
+    return stream.ToArray();
+}
+
+static byte[] BuildSyntheticNlblPackage(IReadOnlyDictionary<string, string> entries)
+{
+    // Test-side WinZip AES-256 writer, written from the public WinZip AES
+    // specification so the production reader is checked against an
+    // independent implementation (and against real NiceLabel files).
+    const string password = ",^_A5Fus&!?j='Epiq*e";
+    using var archive = new MemoryStream();
+    var central = new List<(string Name, uint Crc, int PlainSize, int PackedSize, int LocalOffset)>();
+    foreach (var (name, xml) in entries)
+    {
+        var plain = System.Text.Encoding.UTF8.GetBytes(xml);
+        byte[] deflated;
+        using (var deflateBuffer = new MemoryStream())
+        {
+            using (var deflate = new System.IO.Compression.DeflateStream(deflateBuffer, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+            {
+                deflate.Write(plain, 0, plain.Length);
+            }
+
+            deflated = deflateBuffer.ToArray();
+        }
+
+        var salt = System.Security.Cryptography.RandomNumberGenerator.GetBytes(16);
+        var derived = System.Security.Cryptography.Rfc2898DeriveBytes.Pbkdf2(
+            System.Text.Encoding.UTF8.GetBytes(password), salt, 1000,
+            System.Security.Cryptography.HashAlgorithmName.SHA1, 32 * 2 + 2);
+        var cipher = AesCtrForTest(deflated, derived.AsSpan(0, 32));
+        byte[] auth;
+        using (var hmac = new System.Security.Cryptography.HMACSHA1(derived.AsSpan(32, 32).ToArray()))
+        {
+            auth = hmac.ComputeHash(cipher);
+        }
+
+        var packed = new byte[salt.Length + 2 + cipher.Length + 10];
+        salt.CopyTo(packed, 0);
+        derived.AsSpan(64, 2).CopyTo(packed.AsSpan(salt.Length));
+        cipher.CopyTo(packed, salt.Length + 2);
+        auth.AsSpan(0, 10).CopyTo(packed.AsSpan(salt.Length + 2 + cipher.Length));
+
+        var nameBytes = System.Text.Encoding.UTF8.GetBytes(name);
+        var extra = new byte[11];
+        BitConverter.GetBytes((ushort)0x9901).CopyTo(extra, 0);
+        BitConverter.GetBytes((ushort)7).CopyTo(extra, 2);
+        BitConverter.GetBytes((ushort)1).CopyTo(extra, 4);
+        extra[6] = (byte)'A';
+        extra[7] = (byte)'E';
+        extra[8] = 3;
+        BitConverter.GetBytes((ushort)8).CopyTo(extra, 9);
+
+        var crc = Crc32ForTest(plain);
+        var localOffset = (int)archive.Position;
+        WriteUInt32(archive, 0x04034b50);
+        WriteUInt16(archive, 51);
+        WriteUInt16(archive, 1);
+        WriteUInt16(archive, 99);
+        WriteUInt16(archive, 0);
+        WriteUInt16(archive, 0);
+        WriteUInt32(archive, crc);
+        WriteUInt32(archive, (uint)packed.Length);
+        WriteUInt32(archive, (uint)plain.Length);
+        WriteUInt16(archive, (ushort)nameBytes.Length);
+        WriteUInt16(archive, (ushort)extra.Length);
+        archive.Write(nameBytes, 0, nameBytes.Length);
+        archive.Write(extra, 0, extra.Length);
+        archive.Write(packed, 0, packed.Length);
+        central.Add((name, crc, plain.Length, packed.Length, localOffset));
+    }
+
+    var centralStart = (int)archive.Position;
+    foreach (var entry in central)
+    {
+        var nameBytes = System.Text.Encoding.UTF8.GetBytes(entry.Name);
+        var extra = new byte[11];
+        BitConverter.GetBytes((ushort)0x9901).CopyTo(extra, 0);
+        BitConverter.GetBytes((ushort)7).CopyTo(extra, 2);
+        BitConverter.GetBytes((ushort)1).CopyTo(extra, 4);
+        extra[6] = (byte)'A';
+        extra[7] = (byte)'E';
+        extra[8] = 3;
+        BitConverter.GetBytes((ushort)8).CopyTo(extra, 9);
+        WriteUInt32(archive, 0x02014b50);
+        WriteUInt16(archive, 51);
+        WriteUInt16(archive, 51);
+        WriteUInt16(archive, 1);
+        WriteUInt16(archive, 99);
+        WriteUInt16(archive, 0);
+        WriteUInt16(archive, 0);
+        WriteUInt32(archive, entry.Crc);
+        WriteUInt32(archive, (uint)entry.PackedSize);
+        WriteUInt32(archive, (uint)entry.PlainSize);
+        WriteUInt16(archive, (ushort)nameBytes.Length);
+        WriteUInt16(archive, (ushort)extra.Length);
+        WriteUInt16(archive, 0);
+        WriteUInt16(archive, 0);
+        WriteUInt16(archive, 0);
+        WriteUInt32(archive, 0);
+        WriteUInt32(archive, (uint)entry.LocalOffset);
+        archive.Write(nameBytes, 0, nameBytes.Length);
+        archive.Write(extra, 0, extra.Length);
+    }
+
+    WriteUInt32(archive, 0x06054b50);
+    WriteUInt16(archive, 0);
+    WriteUInt16(archive, 0);
+    WriteUInt16(archive, (ushort)central.Count);
+    WriteUInt16(archive, (ushort)central.Count);
+    WriteUInt32(archive, (uint)(archive.Position - centralStart));
+    WriteUInt32(archive, (uint)centralStart);
+    WriteUInt16(archive, 0);
+    return archive.ToArray();
+
+    static void WriteUInt16(Stream stream, ushort value)
+    {
+        Span<byte> bytes = stackalloc byte[2];
+        BitConverter.TryWriteBytes(bytes, value);
+        stream.Write(bytes);
+    }
+
+    static void WriteUInt32(Stream stream, uint value)
+    {
+        Span<byte> bytes = stackalloc byte[4];
+        BitConverter.TryWriteBytes(bytes, value);
+        stream.Write(bytes);
+    }
+}
+
+static byte[] AesCtrForTest(byte[] input, ReadOnlySpan<byte> key)
+{
+    using var aes = System.Security.Cryptography.Aes.Create();
+    aes.Key = key.ToArray();
+    aes.Mode = System.Security.Cryptography.CipherMode.ECB;
+    aes.Padding = System.Security.Cryptography.PaddingMode.None;
+    using var encryptor = aes.CreateEncryptor();
+    var output = new byte[input.Length];
+    var counter = new byte[16];
+    var keystream = new byte[16];
+    for (var blockStart = 0; blockStart < input.Length; blockStart += 16)
+    {
+        for (var i = 0; i < counter.Length; i++)
+        {
+            if (++counter[i] != 0)
+            {
+                break;
+            }
+        }
+
+        encryptor.TransformBlock(counter, 0, 16, keystream, 0);
+        var blockLength = Math.Min(16, input.Length - blockStart);
+        for (var i = 0; i < blockLength; i++)
+        {
+            output[blockStart + i] = (byte)(input[blockStart + i] ^ keystream[i]);
+        }
+    }
+
+    return output;
+}
+
+static uint Crc32ForTest(ReadOnlySpan<byte> data)
+{
+    var crc = 0xFFFFFFFFu;
+    foreach (var value in data)
+    {
+        crc ^= value;
+        for (var bit = 0; bit < 8; bit++)
+        {
+            crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+        }
+    }
+
+    return ~crc;
+}
+
 static byte[] BuildSyntheticLblFile(byte[] contents, ushort version = 29)
 {
     if (version != 29)
@@ -12249,6 +12730,9 @@ sealed class CapturingBarcodeRenderer : IBarcodeRenderer
     public int? CountLinearModules(string data, BarcodeType type, BarcodeRenderOptions? options = null)
         => LogicalModuleCount
            ?? (VectorData is { WidthModules: > 0 } ? VectorData.WidthModules : 11);
+
+    public (int WidthModules, int HeightModules)? CountMatrixModules(string data, BarcodeType type, BarcodeRenderOptions? options = null)
+        => (17, 5);
 }
 
 sealed class InlineProgress<T>(Action<T> callback) : IProgress<T>
