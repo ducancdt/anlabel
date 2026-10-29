@@ -314,6 +314,47 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void MultiLineFixedContents_AreDecodedFromBase64()
+    {
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes("Line one\r\nLine two"));
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>Two</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FixedContents>{encoded}</FixedContents>
+            </Item>
+            """);
+
+        Assert.Equal("Line one\r\nLine two", Assert.Single(template.Objects).Text);
+    }
+
+    [Fact]
+    public void PlainFramedText_BoundToMultiLineVariable_DecodesTheVariableDefault()
+    {
+        var encodedDefault = Convert.ToBase64String(Encoding.UTF8.GetBytes("ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY"));
+        var solution = SolutionXml.Replace(
+            "<StringValue>L-001</StringValue><UserValue>L-001</UserValue>",
+            $"<StringValue>{encodedDefault}</StringValue><UserValue>{encodedDefault}</UserValue>");
+        var entries = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Formats/Sample"] = Encoding.UTF8.GetBytes(Format($"""
+                <Item Type="TextDocumentItem">
+                  <Name>FromAddress</Name>
+                  <Geometry Type="RectGeometry"><Left>5000</Left><Top>5000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+                  <TextType>2</TextType>
+                  <FixedContents>????????</FixedContents>
+                  <DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference>
+                </Item>
+                """)),
+            ["Sample.slnx"] = Encoding.UTF8.GetBytes(solution)
+        };
+
+        var template = NiceLabel10NlblImporter.CreateTemplate(NiceLabel10NlblReader.Parse(entries), "sample.nlbl");
+
+        Assert.Equal("ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY", Assert.Single(template.PromptVariables).DefaultValue);
+    }
+
+    [Fact]
     public void RichFramedText_BoundToVariable_DecodesTheVariableDefault()
     {
         var encodedDefault = Convert.ToBase64String(Encoding.UTF8.GetBytes("ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY"));

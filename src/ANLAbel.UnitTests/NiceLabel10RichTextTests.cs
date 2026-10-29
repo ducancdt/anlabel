@@ -35,6 +35,17 @@ public sealed class NiceLabel10RichTextTests
         Assert.Equal("ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY", NiceLabel10RichText.ToPlainText(stored));
     }
 
+    [Theory]
+    [InlineData("QUNNRSBJREVBTCBBVVRPIFBBUlRTDQoxIFJPQURSVU5ORVIgV0FZ", "ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY")] // multi-line → decoded
+    [InlineData("QUJDRA==", "QUJDRA==")] // base64 of flat text: stored as-is
+    [InlineData("ABCDEFGH", "ABCDEFGH")] // a plain code that happens to be base64-shaped
+    [InlineData("LOT 1234", "LOT 1234")]
+    [InlineData("", "")]
+    public void DecodeStoredText_DecodesOnlyMultiLineBase64(string stored, string expected)
+    {
+        Assert.Equal(expected, NiceLabel10RichText.DecodeStoredText(stored));
+    }
+
     [Fact]
     public void PlainText_IsUnchanged()
     {

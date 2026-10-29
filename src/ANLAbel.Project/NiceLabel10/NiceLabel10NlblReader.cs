@@ -106,7 +106,7 @@ public static class NiceLabel10NlblReader
             switch (defaultElement?.Attribute("Type")?.Value)
             {
                 case "StringContents":
-                    defaultValue = ChildText(defaultElement, "StringValue") ?? string.Empty;
+                    defaultValue = NiceLabel10RichText.DecodeStoredText(ChildText(defaultElement, "StringValue"));
                     break;
                 case "PickListContents":
                     defaultValue = ChildText(defaultElement, "SelectedValue") ?? string.Empty;
@@ -232,14 +232,12 @@ public static class NiceLabel10NlblReader
         var name = ChildText(item, "Name") ?? string.Empty;
         var geometry = item.Element("Geometry");
         var geometryType = geometry?.Attribute("Type")?.Value;
-        var content = ChildText(item, "FixedContents") ?? string.Empty;
         var richText = ParseBool(item, "RichTextFormatting");
-        if (richText)
-        {
-            // Rich-text items store raw or base64 RTF (or base64 text); only
-            // the plain text can be carried into ANLAbel.
-            content = NiceLabel10RichText.ToPlainText(content);
-        }
+        // Multi-line values are stored base64; rich-text items store raw or
+        // base64 RTF (or base64 text) and only their plain text carries over.
+        var content = richText
+            ? NiceLabel10RichText.ToPlainText(ChildText(item, "FixedContents"))
+            : NiceLabel10RichText.DecodeStoredText(ChildText(item, "FixedContents"));
 
         var (variableId, variableName, unresolved) = ResolveVariable(item, variables);
         var textAlignment = (int)ParseDouble(item, "TextBoxAlignment");
@@ -367,7 +365,9 @@ public static class NiceLabel10NlblReader
             AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
             Underline = underline,
             ContentTemplate = ReadContentTemplate(item) is { } contentTemplate
-                ? (richText ? NiceLabel10RichText.ToPlainText(contentTemplate) : contentTemplate)
+                ? (richText
+                    ? NiceLabel10RichText.ToPlainText(contentTemplate)
+                    : NiceLabel10RichText.DecodeStoredText(contentTemplate))
                 : null,
             IsRichText = richText,
             ScaleFactorPercent = item.Element("ScaleFactor") is null ? 100 : ParseDouble(item, "ScaleFactor"),

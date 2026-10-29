@@ -25,6 +25,29 @@ internal static class NiceLabel10RichText
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
+    /// <summary>
+    /// Recovers a stored plain string value. NiceLabel 10 never writes a raw
+    /// line break into its XML: a multi-line value (fixed contents, variable
+    /// default or sample) is stored as base64 UTF-8 text (486 such values in
+    /// the 207-file corpus, no raw line break anywhere). A value is decoded
+    /// only when it is well-formed base64 whose strict UTF-8 decoding is
+    /// printable text containing a line break; anything else is returned as
+    /// stored.
+    /// </summary>
+    public static string DecodeStoredText(string? stored)
+    {
+        var text = stored ?? string.Empty;
+        var decoded = TryDecodeBase64(text.Trim());
+        if (decoded is null
+            || decoded.IndexOfAny(new[] { '\r', '\n' }) < 0
+            || decoded.Any(ch => char.IsControl(ch) && ch is not ('\r' or '\n' or '\t')))
+        {
+            return text;
+        }
+
+        return decoded;
+    }
+
     /// <summary>Recovers the plain text of a stored rich-text contents value.</summary>
     public static string ToPlainText(string? stored)
     {
@@ -57,7 +80,7 @@ internal static class NiceLabel10RichText
     private static string? TryDecodeBase64(string text)
     {
         var compact = text.Replace("\r", string.Empty).Replace("\n", string.Empty);
-        if (compact.Length % 4 != 0 || compact.Any(ch => !IsBase64Char(ch)))
+        if (compact.Length < 8 || compact.Length % 4 != 0 || compact.Any(ch => !IsBase64Char(ch)))
         {
             return null;
         }

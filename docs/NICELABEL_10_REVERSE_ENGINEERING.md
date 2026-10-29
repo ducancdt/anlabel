@@ -81,6 +81,14 @@ at 0 x 0 and is not a label object. Across the 207-file corpus:
   graphics at 270, 2 texts at 90) and a non-default anchor on 615 items.
   The stored point (`X`/`Y`, or `Left`/`Top` of a RectGeometry) is the
   anchor's position, not the top-left corner; see §8.
+- String values never contain a raw line break: a multi-line value
+  (`FixedContents`, `Contents/FixedValue/StringValue`, a variable's
+  `DefaultValue`/`SampleValue`) is stored as base64 UTF-8 text (486 such
+  values in the corpus, 0 raw line breaks). ANLAbel decodes a value only
+  when it is well-formed base64 whose strict UTF-8 decoding is printable
+  text with a line break (`NiceLabel10RichText.DecodeStoredText`); the
+  one corpus value that is base64-shaped but decodes to flat nonsense is
+  kept as stored.
 - Text: `FontDescriptor` (Name + Height in points) and `LogFontWrapper`
   (LOGFONT; Weight >= 700 = bold, `Italic`/`Underline` 255 = set);
   content in `FixedContents`; an optional `DataSourceReference`/`Id`
