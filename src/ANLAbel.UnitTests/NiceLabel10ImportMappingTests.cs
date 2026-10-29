@@ -391,7 +391,7 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
-    public void UnanchoredUnrotatedText_IsNotMeasured()
+    public void UnanchoredUnrotatedText_KeepsStoredPointAndTakesItsMeasuredFrame()
     {
         var measurer = new FixedMeasurer(40, 8);
         var template = Import("""
@@ -403,8 +403,12 @@ public sealed class NiceLabel10ImportMappingTests
             """, measurer);
 
         var text = Assert.Single(template.Objects);
-        Assert.Equal(0, measurer.Calls);
+        Assert.Equal(1, measurer.Calls);
         Assert.Equal((5.0, 7.0, 0), (text.XMm, text.YMm, text.Rotation));
+        // Content-owned bounds: the frame starts at the natural size, not
+        // at the new-object default.
+        Assert.Equal((40.0, 8.0), (text.WidthMm, text.HeightMm));
+        Assert.Equal(TextSizingMode.AutoFit, text.Style.TextSizing);
     }
 
     [Fact]

@@ -141,6 +141,11 @@ public static partial class NiceLabel10NlblImporter
             return item;
         }
 
+        // A position text is content-owned: its frame is its measured
+        // bounds, so the imported object starts at the natural size of its
+        // design-time contents instead of the new-object default frame
+        // (which would centre small captions a few millimetres too low).
+        var natural = context.MeasureText(item, record.Content);
         var compress = CompressFactor(record);
         if (compress is not null)
         {
@@ -149,20 +154,17 @@ public static partial class NiceLabel10NlblImporter
             // (the border-drag contract: FixedFrame so AutoFit does not
             // re-expand, horizontal compress only, never expansion), so the
             // frame is authored here at the scaled natural width.
-            var natural = context.MeasureText(item, record.Content);
             item.WidthMm = natural.WidthMm * compress.Value;
             item.HeightMm = natural.HeightMm;
             item.Style.TextSizing = TextSizingMode.FixedFrame;
-            Place(item, record, item.WidthMm, item.HeightMm);
         }
-        else if (NeedsSizeForPlacement(record))
+        else
         {
-            // A position text is content-owned; its natural size is only
-            // needed to resolve a non-top-left anchor or a rotation.
-            var size = context.MeasureText(item, record.Content);
-            Place(item, record, size.WidthMm, size.HeightMm);
+            item.WidthMm = natural.WidthMm;
+            item.HeightMm = natural.HeightMm;
         }
 
+        Place(item, record, item.WidthMm, item.HeightMm);
         return item;
     }
 
@@ -231,10 +233,6 @@ public static partial class NiceLabel10NlblImporter
             item.Style.StrokeColor = "#" + hex.ToUpperInvariant();
         }
     }
-
-    private static bool NeedsSizeForPlacement(NiceLabel10ObjectRecord record) =>
-        NiceLabel10Placement.AnchorMultipliers(record.AnchoringPoint) != (0, 0)
-        || NiceLabel10Placement.NormalizeRotation(record.RotationDegrees) != 0;
 
     /// <summary>
     /// Moves the stored anchor point onto ANLAbel's frame origin and applies
