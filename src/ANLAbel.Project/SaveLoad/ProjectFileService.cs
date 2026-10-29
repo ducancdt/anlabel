@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ANLAbel.Core.Models;
 
+using ANLAbel.Project.NiceLabel10;
 using ANLAbel.Project.NiceLabel5;
 
 namespace ANLAbel.Project.SaveLoad;
@@ -19,6 +20,23 @@ public sealed class ProjectFileService : IProjectFileService
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         Converters = { new JsonStringEnumConverter() }
     };
+
+    private readonly INiceLabel10TextMeasurer? _niceLabel10TextMeasurer;
+
+    public ProjectFileService()
+        : this(null)
+    {
+    }
+
+    /// <param name="niceLabel10TextMeasurer">
+    /// Text measurement the NiceLabel 10 importer uses to place anchored or
+    /// rotated position texts; the application supplies the designer's own
+    /// layout, tests may pass null for the font-metric estimate.
+    /// </param>
+    public ProjectFileService(INiceLabel10TextMeasurer? niceLabel10TextMeasurer)
+    {
+        _niceLabel10TextMeasurer = niceLabel10TextMeasurer;
+    }
 
     public async Task SaveAsync(LabelTemplate template, string filePath, CancellationToken cancellationToken = default)
     {
@@ -323,6 +341,30 @@ public sealed class ProjectFileService : IProjectFileService
             return new ProjectLoadResult(imported, primaryPath, false, null, null)
             {
                 NiceLabelTotalObjectCount = Math.Max(storedObjects, imported.Objects.Count)
+            };
+        }
+
+        if (string.Equals(Path.GetExtension(primaryPath), ".nlbl", StringComparison.OrdinalIgnoreCase))
+        {
+            // NiceLabel 10 label: decrypt the package in memory and import
+            // the stored label size plus every object the reader could map
+            // completely. Like the .lbl path this creates a new unsaved
+            // ANLAbel template; the source file is never written.
+            cancellationToken.ThrowIfCancellationRequested();
+            await using var nlblStream = new FileStream(
+                primaryPath,
+                new FileStreamOptions
+                {
+                    Mode = FileMode.Open,
+                    Access = FileAccess.Read,
+                    Share = FileShare.Read,
+                    Options = FileOptions.Asynchronous | FileOptions.SequentialScan
+                });
+            var document = NiceLabel10NlblReader.Read(nlblStream);
+            var imported = NiceLabel10NlblImporter.CreateTemplate(document, primaryPath, _niceLabel10TextMeasurer);
+            return new ProjectLoadResult(imported, primaryPath, false, null, null)
+            {
+                NiceLabelTotalObjectCount = Math.Max(document.TotalObjectCount, imported.Objects.Count)
             };
         }
         try

@@ -1,0 +1,458 @@
+using System.Globalization;
+using System.Xml.Linq;
+
+namespace ANLAbel.Project.NiceLabel10;
+
+/// <summary>
+/// Reads a NiceLabel 10 <c>.nlbl</c> package. Reverse-engineered layout
+/// (see <c>docs/NICELABEL_10_REVERSE_ENGINEERING.md</c>): the file is a
+/// ZIP whose entries are WinZip-AES-256 encrypted with the fixed package
+/// password NiceLabel's own loader derives in
+/// <c>EuroPlus.NiceLabel.Core</c>'s zip wrapper; inside are an XML
+/// <c>Formats/&lt;name&gt;</c> entry describing the label and a companion
+/// <c>.nsln</c> solution entry declaring variables. Geometry integers are
+/// 1/1000 mm. Only facts present in the XML are reported; items whose
+/// semantics are not established stay
+/// <see cref="NiceLabel10ObjectKind.Unsupported"/> so the caller can count
+/// them honestly instead of guessing.
+/// </summary>
+public static class NiceLabel10NlblReader
+{
+    // The fixed package password NiceLabel 10's own loader applies to every
+    // .nlbl/.nsln package (recovered from its zip wrapper; see the RE doc).
+    // It protects the package layout, not user data: user-password-protected
+    // labels fail the AES integrity check and are rejected, never guessed.
+    private const string PackagePassword = ",^_A5Fus&!?j='Epiq*e";
+
+    private const double ThousandthsPerMm = 1000.0;
+
+    public static NiceLabel10Document Read(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        return Parse(WinZipAesArchive.ReadAll(stream, PackagePassword));
+    }
+
+    /// <summary>
+    /// Parses already-decrypted package entries (entry name to XML bytes).
+    /// Exposed for tests that exercise the XML mapping without a package.
+    /// </summary>
+    internal static NiceLabel10Document Parse(IReadOnlyDictionary<string, byte[]> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        var formatEntry = entries
+            .Where(pair => pair.Key.StartsWith("Formats/", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        if (formatEntry.Value is null)
+        {
+            throw new InvalidDataException("The .nlbl package does not contain a Formats entry.");
+        }
+
+        var variables = new Dictionary<string, NiceLabel10Variable>(StringComparer.OrdinalIgnoreCase);
+        // The solution entry is "<label name>.slnx" in every vendor-produced
+        // package (207/207 sampled); ".nsln" is accepted for packages named
+        // after the on-disk solution extension.
+        var solutionEntry = entries
+            .FirstOrDefault(pair => pair.Key.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase)
+                || pair.Key.EndsWith(".nsln", StringComparison.OrdinalIgnoreCase));
+        if (solutionEntry.Value is not null)
+        {
+            ReadVariables(solutionEntry.Value, variables);
+        }
+
+        return ParseFormat(formatEntry.Value, formatEntry.Key, variables);
+    }
+
+    private static void ReadVariables(byte[] solutionXml, Dictionary<string, NiceLabel10Variable> variables)
+    {
+        var document = XDocument.Parse(DecodeXml(solutionXml));
+        foreach (var item in document.Descendants("Item"))
+        {
+            var itemType = item.Attribute("Type")?.Value;
+            var id = ChildText(item, "Id")?.Trim();
+            var name = ChildText(item, "Name")?.Trim();
+            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            switch (itemType)
+            {
+                case "Variable":
+                    break;
+                case "DBField" or "CsvDBField":
+                    // A database column; ANLAbel binds it to the linked data
+                    // row by column name.
+                    variables[id] = new NiceLabel10Variable(
+                        id, name, null, string.Empty, 0, false, false, true, null, 0, null,
+                        DataFieldName: ChildText(item, "FieldName")?.Trim() is { Length: > 0 } field ? field : name);
+                    continue;
+                case "ConcatenateFunction":
+                    variables[id] = new NiceLabel10Variable(
+                        id, name, null, string.Empty, 0, false, false, true, null, 0,
+                        ReadConcatenation(item));
+                    continue;
+                default:
+                    // Other solution functions (scripts, GS1/HIBC composition,
+                    // subsets, date arithmetic) have no ANLAbel equivalent;
+                    // objects referencing them stay unconverted.
+                    continue;
+            }
+
+            var defaultValue = string.Empty;
+            string? systemDateFormat = null;
+            var systemDateOffsetDays = 0;
+            var defaultElement = item.Element("DefaultValue");
+            switch (defaultElement?.Attribute("Type")?.Value)
+            {
+                case "StringContents":
+                    defaultValue = ChildText(defaultElement, "StringValue") ?? string.Empty;
+                    break;
+                case "PickListContents":
+                    defaultValue = ChildText(defaultElement, "SelectedValue") ?? string.Empty;
+                    break;
+                case "DateTimeContents":
+                    // A prompted date; "." is the vendor's empty marker.
+                    var userValue = ChildText(defaultElement, "UserValue") ?? string.Empty;
+                    defaultValue = userValue == "." ? string.Empty : userValue;
+                    break;
+                case "SystemDateTimeContents":
+                    systemDateFormat = ChildText(defaultElement, "OutputFormat")
+                        ?? ChildText(defaultElement, "InputFormat");
+                    systemDateOffsetDays = (int)ParseDouble(defaultElement.Element("Offset"), "Days");
+                    break;
+            }
+
+            var constraints = item.Element("Constraints");
+            string? functionTemplate = null;
+            var function = item.Element("InternalFunction");
+            if (function is not null
+                && string.Equals(function.Attribute("Type")?.Value, "ExtendedDataValueFunction", StringComparison.Ordinal))
+            {
+                functionTemplate = ChildText(function.Element("DataValue")?.Element("FixedValue"), "StringValue");
+            }
+
+            variables[id] = new NiceLabel10Variable(
+                id,
+                name,
+                ChildText(item, "PromptText"),
+                defaultValue,
+                (int)ParseDouble(constraints, "Length"),
+                ParseBool(constraints, "IsRequired"),
+                ChildText(item, "AllowedCharactersForCustomFormat") == "0123456789",
+                ParseBool(item, "IsNotPrompted"),
+                string.IsNullOrWhiteSpace(systemDateFormat) ? null : systemDateFormat,
+                systemDateOffsetDays,
+                functionTemplate);
+        }
+    }
+
+    /// <summary>
+    /// A <c>ConcatenateFunction</c> joins data values (references or fixed
+    /// strings) with an optional separator; written here in the same
+    /// <c>[id]</c> template form an <c>ExtendedDataValue</c> uses.
+    /// </summary>
+    private static string ReadConcatenation(XElement function)
+    {
+        var separator = ChildText(function, "Separator") ?? string.Empty;
+        var parts = new List<string>();
+        foreach (var value in function.Element("DataValues")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+        {
+            var referenceId = ChildText(value.Element("DataSourceReference"), "Id")?.Trim();
+            if (!string.IsNullOrWhiteSpace(referenceId))
+            {
+                parts.Add("[" + referenceId + "]");
+                continue;
+            }
+
+            parts.Add(ChildText(value.Element("FixedValue"), "StringValue") ?? string.Empty);
+        }
+
+        return string.Join(separator, parts);
+    }
+
+    private static NiceLabel10Document ParseFormat(
+        byte[] formatXml,
+        string entryName,
+        IReadOnlyDictionary<string, NiceLabel10Variable> variables)
+    {
+        var document = XDocument.Parse(DecodeXml(formatXml));
+        var root = document.Root
+            ?? throw new InvalidDataException("The .nlbl format entry is empty.");
+        if (!string.Equals(root.Attribute("Type")?.Value, "Format", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The .nlbl format entry is not a NiceLabel label format.");
+        }
+
+        var media = root.Element("Media")
+            ?? throw new InvalidDataException("The .nlbl format entry has no Media element.");
+        var width = Thousandths(media, "Width");
+        var height = Thousandths(media, "Height");
+        if (width <= 0 || height <= 0)
+        {
+            throw new InvalidDataException("The .nlbl format entry stores a non-positive label size.");
+        }
+
+        var name = ChildText(root, "Name");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = Path.GetFileNameWithoutExtension(entryName[(entryName.LastIndexOf('/') + 1)..]);
+        }
+
+        var objects = new List<NiceLabel10ObjectRecord>();
+        foreach (var item in root.Descendants("Item"))
+        {
+            var record = ParseItem(item, variables);
+            if (record is not null)
+            {
+                objects.Add(record);
+            }
+        }
+
+        return new NiceLabel10Document(name.Trim(), width, height, objects, variables);
+    }
+
+    private static NiceLabel10ObjectRecord? ParseItem(
+        XElement item,
+        IReadOnlyDictionary<string, NiceLabel10Variable> variables)
+    {
+        var type = item.Attribute("Type")?.Value;
+        if (type is null || !type.EndsWith("DocumentItem", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // The background placeholder exists in every file at 0 x 0 and is
+        // not a stored label object.
+        if (type == "BackgroundDocumentItem")
+        {
+            return null;
+        }
+
+        var name = ChildText(item, "Name") ?? string.Empty;
+        var geometry = item.Element("Geometry");
+        var geometryType = geometry?.Attribute("Type")?.Value;
+        var content = ChildText(item, "FixedContents") ?? string.Empty;
+        var (variableId, variableName, unresolved) = ResolveVariable(item, variables);
+        var textAlignment = (int)ParseDouble(item, "TextBoxAlignment");
+        var fillStyle = (int)ParseDouble(item, "FillStyle");
+        var fillColor = ChildText(item, "FillColor");
+        var strokeThickness = ParseDouble(item, "Thickness") / ThousandthsPerMm;
+        var itemColor = ChildText(item, "Color");
+
+        var (fontFamily, fontSizePt, bold, italic, underline) = ParseFont(item);
+
+        switch (type)
+        {
+            case "TextDocumentItem" when geometryType == "RectGeometry":
+                return Base(NiceLabel10ObjectKind.FramedText) with
+                {
+                    XMm = Thousandths(geometry!, "Left"),
+                    YMm = Thousandths(geometry!, "Top"),
+                    WidthMm = Thousandths(geometry!, "Width"),
+                    HeightMm = Thousandths(geometry!, "Height")
+                };
+            case "TextDocumentItem" when geometryType == "PositionGeometry":
+                return Base(NiceLabel10ObjectKind.Text) with
+                {
+                    XMm = Thousandths(geometry!, "X"),
+                    YMm = Thousandths(geometry!, "Y")
+                };
+            case "BarcodeDocumentItem" when geometryType == "PositionGeometry":
+            {
+                var barcodeData = item.Element("BarcodeData");
+                return Base(NiceLabel10ObjectKind.Barcode) with
+                {
+                    XMm = Thousandths(geometry!, "X"),
+                    YMm = Thousandths(geometry!, "Y"),
+                    BarcodeDataType = barcodeData?.Attribute("Type")?.Value,
+                    BarcodeModuleWidthMm = ParseDouble(barcodeData, "BaseBarWidth") / ThousandthsPerMm,
+                    BarcodeModuleHeightMm = ParseDouble(barcodeData, "ModuleHeight") / ThousandthsPerMm,
+                    BarcodeRatio = ParseDouble(barcodeData, "Ratio"),
+                    BarcodeFormatValue = (int)ParseDouble(barcodeData,
+                        barcodeData?.Attribute("Type")?.Value == "QRBarcodeData"
+                            ? "QRBarcodeVersion"
+                            : "DatamatrixFormat"),
+                    BarcodeErrorLevel = (int)ParseDouble(barcodeData,
+                        barcodeData?.Element("QRBarcodeErrorCorrectionLevel") is not null
+                            ? "QRBarcodeErrorCorrectionLevel"
+                            : "SecurityLevel"),
+                    BarcodeHriFontSizePt = ParseDouble(
+                        barcodeData?.Element("HumanInterpretationFontDescriptor"), "Height"),
+                    BarcodeHriPosition = barcodeData?.Element("HumanInterpretationPosition") is null
+                        ? -1
+                        : (int)ParseDouble(barcodeData, "HumanInterpretationPosition"),
+                    BarcodeElementWidthMm = ParseDouble(barcodeData, "ElementWidth") / ThousandthsPerMm,
+                    BarcodeElementHeightMm = ParseDouble(barcodeData, "ElementHeight") / ThousandthsPerMm,
+                    BarcodeTruncated = ParseBool(barcodeData, "TruncatedBarcode")
+                };
+            }
+            case "LineDocumentItem" when geometryType == "PointGeometry":
+                return Base(NiceLabel10ObjectKind.Line) with
+                {
+                    XMm = Thousandths(geometry!, "StartPointX"),
+                    YMm = Thousandths(geometry!, "StartPointY"),
+                    LineEndXMm = Thousandths(geometry!, "EndPointX"),
+                    LineEndYMm = Thousandths(geometry!, "EndPointY")
+                };
+            case "RectangleDocumentItem" when geometryType == "RectGeometry":
+                return Base(NiceLabel10ObjectKind.Rectangle) with
+                {
+                    XMm = Thousandths(geometry!, "Left"),
+                    YMm = Thousandths(geometry!, "Top"),
+                    WidthMm = Thousandths(geometry!, "Width"),
+                    HeightMm = Thousandths(geometry!, "Height")
+                };
+            case "GraphicDocumentItem" when geometryType == "RectGeometry":
+            {
+                var payload = ChildText(item.Element("EmbeddedGraphicContents"), "Base64StringValue")?.Trim();
+                return Base(NiceLabel10ObjectKind.Graphic) with
+                {
+                    XMm = Thousandths(geometry!, "Left"),
+                    YMm = Thousandths(geometry!, "Top"),
+                    WidthMm = Thousandths(geometry!, "Width"),
+                    HeightMm = Thousandths(geometry!, "Height"),
+                    GraphicBase64 = string.IsNullOrEmpty(payload) ? null : payload,
+                    GraphicResizeMode = (int)ParseDouble(item, "ResizeMode"),
+                    GraphicKeepAspectRatio = ParseBool(item, "KeepAspectRatio")
+                };
+            }
+            default:
+                return Base(NiceLabel10ObjectKind.Unsupported);
+        }
+
+        NiceLabel10ObjectRecord Base(NiceLabel10ObjectKind kind) => new(
+            kind,
+            name,
+            type,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            content,
+            variableName,
+            fontFamily,
+            fontSizePt,
+            bold,
+            italic,
+            null,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            textAlignment,
+            fillStyle,
+            fillColor,
+            strokeThickness,
+            itemColor)
+        {
+            VariableId = variableId,
+            HasUnresolvedReference = unresolved,
+            RotationDegrees = ParseDouble(geometry, "Rotation"),
+            AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
+            Underline = underline,
+            ContentTemplate = ReadContentTemplate(item)
+        };
+    }
+
+    /// <summary>
+    /// Mixed contents: fixed text with inline data-source references, each
+    /// written as <c>[id]</c> in the stored string. Plain contents (no
+    /// references) are reported through <c>FixedContents</c> instead.
+    /// </summary>
+    private static string? ReadContentTemplate(XElement item)
+    {
+        var contents = item.Element("Contents");
+        if (contents is null
+            || !string.Equals(contents.Attribute("Type")?.Value, "ExtendedDataValue", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var references = contents.Element("DataSourceReferences");
+        if (references is null || !references.Elements("Item").Any())
+        {
+            return null;
+        }
+
+        return ChildText(contents.Element("FixedValue"), "StringValue");
+    }
+
+    private static (string? Id, string? Name, bool Unresolved) ResolveVariable(
+        XElement item,
+        IReadOnlyDictionary<string, NiceLabel10Variable> variables)
+    {
+        var reference = item.Element("DataSourceReference");
+        var id = reference is null ? null : ChildText(reference, "Id")?.Trim();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return (null, null, false);
+        }
+
+        return variables.TryGetValue(id, out var variable)
+            ? (id, variable.Name, false)
+            : (id, null, true);
+    }
+
+    private static (string FontFamily, double FontSizePt, bool Bold, bool Italic, bool Underline) ParseFont(XElement item)
+    {
+        var descriptor = item.Element("FontDescriptor");
+        if (descriptor is null)
+        {
+            return (string.Empty, 0, false, false, false);
+        }
+
+        var family = ChildText(descriptor, "Name") ?? string.Empty;
+        var sizePt = ParseDouble(descriptor, "Height");
+        var logFont = descriptor.Element("LogFontWrapper");
+        var weight = ParseDouble(logFont, "Weight");
+        var italic = ParseBool(logFont, "Italic");
+        var underline = ParseBool(logFont, "Underline");
+        if (string.IsNullOrWhiteSpace(family))
+        {
+            family = ChildText(logFont, "FaceName") ?? string.Empty;
+        }
+
+        return (family.Trim(), sizePt, weight >= 700, italic, underline);
+    }
+
+    private static string DecodeXml(byte[] bytes)
+    {
+        // GetString keeps a UTF-8 BOM as U+FEFF, which XDocument rejects.
+        using var reader = new StreamReader(new MemoryStream(bytes), System.Text.Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
+    private static string? ChildText(XElement? parent, string name) =>
+        parent?.Element(name)?.Value;
+
+    private static double Thousandths(XElement? parent, string name) =>
+        ParseDouble(parent, name) / ThousandthsPerMm;
+
+    private static double ParseDouble(XElement? parent, string name)
+    {
+        var text = ChildText(parent, name);
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : 0;
+    }
+
+    private static bool ParseBool(XElement? parent, string name)
+    {
+        var text = ChildText(parent, name);
+        if (bool.TryParse(text, out var value))
+        {
+            return value;
+        }
+
+        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            && number != 0;
+    }
+}

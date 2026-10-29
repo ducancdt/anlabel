@@ -8,7 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ANLAbel.Barcode\ANLAbel.Barcode.csproj" />
     <ProjectReference Include="..\ANLAbel.Core\ANLAbel.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- GDI+ metafile player for NiceLabel 10 WMF/EMF clipart (Windows only;
+         the importer checks the platform before use). -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ANLAbel.UnitTests" />
   </ItemGroup>
 
 </Project>

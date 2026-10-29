@@ -17,10 +17,10 @@ public sealed record ProjectLoadResult(
     public bool IsPrimary => !RecoveredFromBackup;
 
     /// <summary>
-    /// For a NiceLabel 5 <c>.lbl</c> import, how many object records
-    /// the source file stores in total, converted or not; null for
-    /// native <c>.anlabel</c> files. Lets the UI state honestly how
-    /// much of the label was carried over.
+    /// For a NiceLabel import (<c>.lbl</c> or <c>.nlbl</c>), how many
+    /// object records the source file stores in total, converted or not;
+    /// null for native <c>.anlabel</c> files. Lets the UI state honestly
+    /// how much of the label was carried over.
     /// </summary>
     public int? NiceLabelTotalObjectCount { get; init; }
 }
