@@ -308,6 +308,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
     ("ui catalog has valid vietnamese keys", TestUiCatalogHasValidVietnameseKeys),
     ("niceLabel 5 lbl header reader accepts verified layout and rejects variants", TestNiceLabel5LblHeaderReader),
+    ("barcode and serial properties expose reverse engineered options", TestBarcodeAndSerialPropertiesExposeReverseEngineeredOptions),
     ("opening a niceLabel 5 lbl imports its label size as a new template", TestOpenNiceLabel5LblImportsLabelSize),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
@@ -5300,6 +5301,30 @@ static Task TestPrintPreflightBlocksOfficeSheetStock()
         allowed,
         new IReadOnlyDictionary<string, string>?[] { null });
     AssertEqual(true, allowedResult.IsSuccess, "Matching millimetre die stock must still pass stock preflight");
+    return Task.CompletedTask;
+}
+
+static Task TestBarcodeAndSerialPropertiesExposeReverseEngineeredOptions()
+{
+    var xaml = File.ReadAllText(Path.Combine(
+        FindRepositoryRoot(),
+        "src",
+        "ANLAbel.App",
+        "MainWindow.xaml"));
+
+    AssertEqual(true, xaml.Contains("SelectedObject.Pdf417ErrorCorrectionLevel", StringComparison.Ordinal),
+        "Properties must let the operator set the PDF417 error correction level");
+    AssertEqual(true, xaml.Contains("SelectedObject.Pdf417Truncated", StringComparison.Ordinal),
+        "Properties must let the operator choose truncated PDF417");
+    AssertEqual(true, xaml.Contains("Template.SerialCounter.Alphabet", StringComparison.Ordinal),
+        "The serial counter panel must let the operator choose the counter alphabet");
+    AssertEqual(true, xaml.Contains("Template.SerialCounter.CustomAlphabet", StringComparison.Ordinal),
+        "The serial counter panel must let the operator define a custom counter alphabet");
+
+    var levels = ANLAbel.Core.Barcode.QrOptionLists.Pdf417ErrorCorrections;
+    AssertEqual(10, levels.Count, "PDF417 error correction choices must be Auto plus levels 0-8");
+    AssertEqual(-1, levels[0].Value, "The first PDF417 error correction choice must be Auto (-1)");
+    AssertEqual(8, levels[^1].Value, "The last PDF417 error correction choice must be level 8");
     return Task.CompletedTask;
 }
 
@@ -11082,15 +11107,27 @@ static Task TestNiceLabel5LblHeaderReader()
         return file;
     }
 
-    static byte[] Contents(int width = 2540, int height = 1270, int third = 1270, ushort version = 29, string magic = "NicePower")
+    static byte[] Contents(int width = 2540, int height = 1270, int third = 1270, ushort version = 29, string magic = "NicePower", string name = "", string description = "", string author = "")
     {
         var data = new byte[5000];
         BitConverter.GetBytes((ushort)(magic.Length + 1)).CopyTo(data, 0);
         System.Text.Encoding.ASCII.GetBytes(magic).CopyTo(data, 2);
-        BitConverter.GetBytes(version).CopyTo(data, 2 + magic.Length + 1);
-        BitConverter.GetBytes(width).CopyTo(data, 0x23);
-        BitConverter.GetBytes(height).CopyTo(data, 0x27);
-        BitConverter.GetBytes(third).CopyTo(data, 0x2B);
+        var offset = 2 + magic.Length + 1;
+        BitConverter.GetBytes(version).CopyTo(data, offset);
+        offset += 2;
+        foreach (var text in new[] { name, description, author })
+        {
+            BitConverter.GetBytes((ushort)(text.Length + 1)).CopyTo(data, offset);
+            System.Text.Encoding.ASCII.GetBytes(text).CopyTo(data, offset + 2);
+            offset += 2 + text.Length + 1;
+        }
+
+        BitConverter.GetBytes(10000).CopyTo(data, offset);
+        BitConverter.GetBytes(7000).CopyTo(data, offset + 4);
+        BitConverter.GetBytes(width).CopyTo(data, offset + 8);
+        BitConverter.GetBytes(height).CopyTo(data, offset + 12);
+        BitConverter.GetBytes(third).CopyTo(data, offset + 16);
+        BitConverter.GetBytes(0).CopyTo(data, offset + 20);
         return data;
     }
 
@@ -11099,6 +11136,14 @@ static Task TestNiceLabel5LblHeaderReader()
     AssertEqual(2540, header.LabelWidthHundredthsMm, "Label width must be read in 1/100 mm");
     AssertEqual(1270, header.LabelHeightHundredthsMm, "Label height must be read in 1/100 mm");
     AssertEqual(true, header.StreamNames.Contains("Contents"), "The stream inventory must name Contents");
+
+    var described = ANLAbel.Project.NiceLabel5.NiceLabel5LblReader.ReadHeader(new MemoryStream(BuildLbl(
+        Contents(width: 15240, height: 7620, name: "AIAG B-10 Label", description: "Sample of AIAG label", author: "Euro Plus d.o.o."))));
+    AssertEqual("AIAG B-10 Label", described.Name, "The stored label name must be read from the structural header");
+    AssertEqual("Sample of AIAG label", described.Description, "The stored label description must be read from the structural header");
+    AssertEqual("Euro Plus d.o.o.", described.Author, "The stored label author must be read from the structural header");
+    AssertEqual(15240, described.LabelWidthHundredthsMm, "Label width must come from the third size field, after the stored strings");
+    AssertEqual(7620, described.LabelHeightHundredthsMm, "Label height must come from the fourth size field, after the stored strings");
 
     var rejected = 0;
     foreach (var bad in new[]
@@ -11126,9 +11171,206 @@ static async Task TestOpenNiceLabel5LblImportsLabelSize()
         BitConverter.GetBytes((ushort)10).CopyTo(contents, 0);
         System.Text.Encoding.ASCII.GetBytes("NicePower").CopyTo(contents, 2);
         BitConverter.GetBytes((ushort)29).CopyTo(contents, 12);
-        BitConverter.GetBytes(2540).CopyTo(contents, 0x23);
-        BitConverter.GetBytes(1270).CopyTo(contents, 0x27);
-        BitConverter.GetBytes(1270).CopyTo(contents, 0x2B);
+        // Three empty stored strings (name, description, author), each a
+        // counted single NUL byte, then six 1/100 mm fields whose third and
+        // fourth values are the label size.
+        for (var s = 0; s < 3; s++)
+        {
+            BitConverter.GetBytes((ushort)1).CopyTo(contents, 14 + 3 * s);
+        }
+
+        BitConverter.GetBytes(10000).CopyTo(contents, 0x17);
+        BitConverter.GetBytes(7000).CopyTo(contents, 0x1B);
+        BitConverter.GetBytes(2540).CopyTo(contents, 0x1F);
+        BitConverter.GetBytes(1270).CopyTo(contents, 0x23);
+
+        // One cross-checked literal Code-39 record: rectangle in 1/100 mm,
+        // the same geometry as inch doubles, then the data string and the
+        // symbology block (constant 8, internal id 6, name "Code-39").
+        BitConverter.GetBytes(100).CopyTo(contents, 200);
+        BitConverter.GetBytes(100).CopyTo(contents, 204);
+        BitConverter.GetBytes(1100).CopyTo(contents, 208);
+        BitConverter.GetBytes(600).CopyTo(contents, 212);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 216);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 224);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 232);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 240);
+        BitConverter.GetBytes(2001).CopyTo(contents, 254);
+        BitConverter.GetBytes((ushort)6).CopyTo(contents, 260);
+        System.Text.Encoding.ASCII.GetBytes("ABC-39").CopyTo(contents, 262);
+        BitConverter.GetBytes((uint)8).CopyTo(contents, 268);
+        BitConverter.GetBytes((ushort)6).CopyTo(contents, 272);
+        BitConverter.GetBytes((ushort)7).CopyTo(contents, 274);
+        System.Text.Encoding.ASCII.GetBytes("Code-39").CopyTo(contents, 276);
+
+        // A variable definition (id 1002) and a masked Ean-13 record linked
+        // to it (format link 4, variable offset 2, pure "?" mask data).
+        BitConverter.GetBytes((ushort)1002).CopyTo(contents, 400);
+        BitConverter.GetBytes((ushort)9).CopyTo(contents, 402);
+        System.Text.Encoding.ASCII.GetBytes("ISBN Num").CopyTo(contents, 404);
+        BitConverter.GetBytes((ushort)11).CopyTo(contents, 413);
+        System.Text.Encoding.ASCII.GetBytes("ISBN NUMBER").CopyTo(contents, 415);
+        BitConverter.GetBytes(100).CopyTo(contents, 300);
+        BitConverter.GetBytes(700).CopyTo(contents, 304);
+        BitConverter.GetBytes(1100).CopyTo(contents, 308);
+        BitConverter.GetBytes(1200).CopyTo(contents, 312);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 316);
+        BitConverter.GetBytes(700 / 2540.0).CopyTo(contents, 324);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 332);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 340);
+        BitConverter.GetBytes((ushort)4).CopyTo(contents, 354);
+        BitConverter.GetBytes((ushort)2).CopyTo(contents, 356);
+        BitConverter.GetBytes((ushort)13).CopyTo(contents, 360);
+        System.Text.Encoding.ASCII.GetBytes("?????????????").CopyTo(contents, 362);
+        BitConverter.GetBytes((uint)8).CopyTo(contents, 375);
+        BitConverter.GetBytes((ushort)1).CopyTo(contents, 379);
+        BitConverter.GetBytes((ushort)6).CopyTo(contents, 381);
+        System.Text.Encoding.ASCII.GetBytes("Ean-13").CopyTo(contents, 383);
+
+        // One literal fixed-text record: same geometry cross-check, then a
+        // counted content string and a font block (04 20 01 22 + face name).
+        BitConverter.GetBytes(100).CopyTo(contents, 500);
+        BitConverter.GetBytes(650).CopyTo(contents, 504);
+        BitConverter.GetBytes(1100).CopyTo(contents, 508);
+        BitConverter.GetBytes(1150).CopyTo(contents, 512);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 516);
+        BitConverter.GetBytes(650 / 2540.0).CopyTo(contents, 524);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 532);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 540);
+        BitConverter.GetBytes((ushort)12).CopyTo(contents, 558);
+        System.Text.Encoding.ASCII.GetBytes("Warehouse A1").CopyTo(contents, 560);
+        contents[580] = 0x04;
+        contents[581] = 0x20;
+        contents[582] = 0x01;
+        contents[583] = 0x22;
+        System.Text.Encoding.ASCII.GetBytes("Arial").CopyTo(contents, 584);
+        BitConverter.GetBytes(120).CopyTo(contents, 632);
+
+        // One variable-linked text record: literal prefix plus a single
+        // "?" mask run, linked to variable 1002 defined above.
+        BitConverter.GetBytes(100).CopyTo(contents, 700);
+        BitConverter.GetBytes(850).CopyTo(contents, 704);
+        BitConverter.GetBytes(1100).CopyTo(contents, 708);
+        BitConverter.GetBytes(1200).CopyTo(contents, 712);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 716);
+        BitConverter.GetBytes(850 / 2540.0).CopyTo(contents, 724);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 732);
+        BitConverter.GetBytes(350 / 2540.0).CopyTo(contents, 740);
+        BitConverter.GetBytes((ushort)1).CopyTo(contents, 754);
+        BitConverter.GetBytes((ushort)2).CopyTo(contents, 756);
+        BitConverter.GetBytes((ushort)10).CopyTo(contents, 758);
+        System.Text.Encoding.ASCII.GetBytes("Lot ?????").CopyTo(contents, 760);
+        contents[780] = 0x04;
+        contents[781] = 0x20;
+        contents[782] = 0x01;
+        contents[783] = 0x22;
+        System.Text.Encoding.ASCII.GetBytes("Arial").CopyTo(contents, 784);
+
+        // One literal text record in Courier New: the byte in front of the
+        // face name is the LOGFONT pitch-and-family byte (0x31 for a fixed
+        // pitch modern face), not Arial's 0x22. Its stored size sits at a
+        // non-Arial offset, as a single candidate after the face name.
+        BitConverter.GetBytes(100).CopyTo(contents, 1000);
+        BitConverter.GetBytes(100).CopyTo(contents, 1004);
+        BitConverter.GetBytes(1100).CopyTo(contents, 1008);
+        BitConverter.GetBytes(600).CopyTo(contents, 1012);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 1016);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 1024);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 1032);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 1040);
+        BitConverter.GetBytes((ushort)13).CopyTo(contents, 1058);
+        System.Text.Encoding.ASCII.GetBytes("Courier Label").CopyTo(contents, 1060);
+        BitConverter.GetBytes(700).CopyTo(contents, 1081);
+        contents[1085] = 0x03;
+        contents[1086] = 0x02;
+        contents[1087] = 0x01;
+        contents[1088] = 0x31;
+        System.Text.Encoding.ASCII.GetBytes("Courier New").CopyTo(contents, 1089);
+        BitConverter.GetBytes(80).CopyTo(contents, 1130);
+
+        // One paragraph record: type code 0x12E in front of the geometry
+        // and the content string far behind it, after a nested sub-record.
+        BitConverter.GetBytes((ushort)1).CopyTo(contents, 1294);
+        BitConverter.GetBytes((ushort)0x12E).CopyTo(contents, 1296);
+        BitConverter.GetBytes(100).CopyTo(contents, 1300);
+        BitConverter.GetBytes(700).CopyTo(contents, 1304);
+        BitConverter.GetBytes(2400).CopyTo(contents, 1308);
+        BitConverter.GetBytes(1200).CopyTo(contents, 1312);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 1316);
+        BitConverter.GetBytes(700 / 2540.0).CopyTo(contents, 1324);
+        BitConverter.GetBytes(2300 / 2540.0).CopyTo(contents, 1332);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 1340);
+        BitConverter.GetBytes((ushort)14).CopyTo(contents, 1450);
+        System.Text.Encoding.ASCII.GetBytes("Paragraph text").CopyTo(contents, 1452);
+        contents[1482] = 0x01;
+        contents[1483] = 0x22;
+        System.Text.Encoding.ASCII.GetBytes("Arial").CopyTo(contents, 1484);
+        BitConverter.GetBytes(100).CopyTo(contents, 1526);
+
+        // One UPC-A record in the repeated-count tail variant: the data
+        // word count appears again as a binary word in front of the data.
+        BitConverter.GetBytes(100).CopyTo(contents, 1900);
+        BitConverter.GetBytes(650).CopyTo(contents, 1904);
+        BitConverter.GetBytes(1100).CopyTo(contents, 1908);
+        BitConverter.GetBytes(1150).CopyTo(contents, 1912);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 1916);
+        BitConverter.GetBytes(650 / 2540.0).CopyTo(contents, 1924);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 1932);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 1940);
+        BitConverter.GetBytes((ushort)1).CopyTo(contents, 1956);
+        BitConverter.GetBytes((ushort)12).CopyTo(contents, 1960);
+        BitConverter.GetBytes((ushort)12).CopyTo(contents, 1962);
+        System.Text.Encoding.ASCII.GetBytes("731304012399").CopyTo(contents, 1964);
+        BitConverter.GetBytes((uint)8).CopyTo(contents, 1976);
+        BitConverter.GetBytes((ushort)3).CopyTo(contents, 1980);
+        BitConverter.GetBytes((ushort)5).CopyTo(contents, 1982);
+        System.Text.Encoding.ASCII.GetBytes("Upc-A").CopyTo(contents, 1984);
+
+        // One multi-line text record: stored content carries a CRLF line
+        // break, as NiceLabel saves two-line captions ("PART NO." / "(P)").
+        BitConverter.GetBytes(1500).CopyTo(contents, 1700);
+        BitConverter.GetBytes(100).CopyTo(contents, 1704);
+        BitConverter.GetBytes(2400).CopyTo(contents, 1708);
+        BitConverter.GetBytes(600).CopyTo(contents, 1712);
+        BitConverter.GetBytes(1950 / 2540.0).CopyTo(contents, 1716);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 1724);
+        BitConverter.GetBytes(900 / 2540.0).CopyTo(contents, 1732);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 1740);
+        BitConverter.GetBytes((ushort)13).CopyTo(contents, 1758);
+        System.Text.Encoding.ASCII.GetBytes("PART NO.\r\n(P)").CopyTo(contents, 1760);
+        contents[1789] = 0x01;
+        contents[1790] = 0x22;
+        System.Text.Encoding.ASCII.GetBytes("Arial").CopyTo(contents, 1791);
+        BitConverter.GetBytes(90).CopyTo(contents, 1833);
+
+        // One right-anchored text record: the first stored double equals
+        // the right edge of the rectangle, not the left edge.
+        BitConverter.GetBytes(1500).CopyTo(contents, 2100);
+        BitConverter.GetBytes(650).CopyTo(contents, 2104);
+        BitConverter.GetBytes(2400).CopyTo(contents, 2108);
+        BitConverter.GetBytes(1150).CopyTo(contents, 2112);
+        BitConverter.GetBytes(2400 / 2540.0).CopyTo(contents, 2116);
+        BitConverter.GetBytes(650 / 2540.0).CopyTo(contents, 2124);
+        BitConverter.GetBytes(900 / 2540.0).CopyTo(contents, 2132);
+        BitConverter.GetBytes(500 / 2540.0).CopyTo(contents, 2140);
+        BitConverter.GetBytes((ushort)10).CopyTo(contents, 2158);
+        System.Text.Encoding.ASCII.GetBytes("RIGHT TEXT").CopyTo(contents, 2160);
+        contents[2186] = 0x01;
+        contents[2187] = 0x22;
+        System.Text.Encoding.ASCII.GetBytes("Arial").CopyTo(contents, 2188);
+        BitConverter.GetBytes(100).CopyTo(contents, 2230);
+
+        // One rectangle record: type code 0x131 in front of the geometry.
+        BitConverter.GetBytes((ushort)1).CopyTo(contents, 894);
+        BitConverter.GetBytes((ushort)0x131).CopyTo(contents, 896);
+        BitConverter.GetBytes(1500).CopyTo(contents, 900);
+        BitConverter.GetBytes(100).CopyTo(contents, 904);
+        BitConverter.GetBytes(2400).CopyTo(contents, 908);
+        BitConverter.GetBytes(1100).CopyTo(contents, 912);
+        BitConverter.GetBytes(1500 / 2540.0).CopyTo(contents, 916);
+        BitConverter.GetBytes(100 / 2540.0).CopyTo(contents, 924);
+        BitConverter.GetBytes(900 / 2540.0).CopyTo(contents, 932);
+        BitConverter.GetBytes(1000 / 2540.0).CopyTo(contents, 940);
         var lblPath = Path.Combine(directory.FullName, "Warehouse.lbl");
         await File.WriteAllBytesAsync(lblPath, BuildSyntheticLblFile(contents));
 
@@ -11136,8 +11378,103 @@ static async Task TestOpenNiceLabel5LblImportsLabelSize()
         AssertEqual("Warehouse", result.Template.Name, "An imported NiceLabel label must be named after its source file");
         AssertNear(25.4, result.Template.WidthMm, 0.001, "Imported width must come from the NiceLabel header");
         AssertNear(12.7, result.Template.HeightMm, 0.001, "Imported height must come from the NiceLabel header");
-        AssertEqual(0, result.Template.Objects.Count, "Object conversion is not claimed yet: the imported template must start empty");
+        AssertEqual(10, result.Template.Objects.Count, "The literal barcode, variable-linked barcode, UPC-A barcode, literal text, variable text, Courier text, multi-line text, right-anchored text, paragraph and rectangle records must all be converted");
+        var rightText = result.Template.Objects[7];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, rightText.Type, "A right-anchored text record must become a Text object");
+        AssertEqual("RIGHT TEXT", rightText.Text, "The right-anchored text content must be carried over");
+        AssertEqual(ANLAbel.Core.Enums.TextAlignmentMode.Right, rightText.Style.Alignment, "A first double equal to the right edge must map to right alignment");
+        var upcBarcode = result.Template.Objects[2];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.UpcA, upcBarcode.BarcodeSymbology, "Internal symbology 3 must map to UPC-A");
+        AssertEqual("731304012399", upcBarcode.Text, "A UPC-A record in the repeated-count tail variant must carry its data");
+        var multiLineText = result.Template.Objects[6];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, multiLineText.Type, "A multi-line text record must become a Text object");
+        AssertEqual("PART NO.\r\n(P)", multiLineText.Text, "A stored CRLF line break must be carried over");
+        AssertEqual(ANLAbel.Core.Enums.TextAlignmentMode.Center, multiLineText.Style.Alignment, "A first double equal to the horizontal centre must map to centre alignment");
+        AssertNear(9.0, multiLineText.Style.FontSizePt, 0.001, "The multi-line text stored point size must be carried over");
+        var courierText = result.Template.Objects[5];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, courierText.Type, "A Courier New text record must become a Text object");
+        AssertEqual("Courier Label", courierText.Text, "The Courier New text content must be carried over");
+        AssertEqual("Courier New", courierText.Style.FontFamily, "A face stored with pitch-and-family 0x31 must be carried over, not dropped with the record");
+        AssertEqual(true, courierText.Style.Bold, "LOGFONT weight 700 must map to bold for non-Arial faces too");
+        AssertNear(8.0, courierText.Style.FontSizePt, 0.001, "A single unambiguous stored size candidate after the face name must be carried over");
+        var paragraph = result.Template.Objects[8];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.TextBox, paragraph.Type, "A paragraph record (type 0x12E) owns its frame and must become a TextBox");
+        AssertEqual("Paragraph text", paragraph.Text, "The paragraph content must be carried over");
+        AssertNear(23.0, paragraph.WidthMm, 0.001, "The paragraph frame width must come from the long rectangle fields");
+        AssertNear(10.0, paragraph.Style.FontSizePt, 0.001, "The paragraph stored point size must be carried over");
+        var shape = result.Template.Objects[9];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Rectangle, shape.Type, "Type code 0x131 with a full rectangle must become a Rectangle object");
+        AssertNear(15.0, shape.XMm, 0.001, "Rectangle left must come from the long rectangle fields");
+        AssertNear(9.0, shape.WidthMm, 0.001, "Rectangle width must be right minus left in millimetres");
+        var fixedText = result.Template.Objects[3];
+        AssertEqual(ANLAbel.Core.Enums.ObjectType.Text, fixedText.Type, "A literal text record must become a Text object");
+        AssertEqual("Warehouse A1", fixedText.Text, "The literal text content must be carried over");
+        AssertEqual("Arial", fixedText.Style.FontFamily, "The stored font face must be carried over");
+        AssertNear(12.0, fixedText.Style.FontSizePt, 0.001, "The stored point size (tenths) must be carried over");
+        var variableText = result.Template.Objects[4];
+        AssertEqual("Lot {?ISBN Num}", variableText.BindingExpression, "A masked text run must become a prompt-variable binding in place");
+        AssertEqual("Lot ", variableText.Text, "The literal text fallback must keep only the non-mask part");
+        var barcode = result.Template.Objects[0];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.Code39, barcode.BarcodeSymbology, "Internal symbology 6 must map to Code 39");
+        AssertEqual("ABC-39", barcode.Text, "The literal barcode data must be carried over");
+        AssertNear(1.0, barcode.XMm, 0.001, "Barcode left must come from the long rectangle fields");
+        AssertNear(1.0, barcode.YMm, 0.001, "Barcode top must come from the long rectangle fields");
+        AssertNear(10.0, barcode.WidthMm, 0.001, "Barcode width must be right minus left in millimetres");
+        AssertNear(5.0, barcode.HeightMm, 0.001, "Barcode height must be bottom minus top in millimetres");
+        var variableBarcode = result.Template.Objects[1];
+        AssertEqual(ANLAbel.Core.Enums.BarcodeSymbology.Ean13, variableBarcode.BarcodeSymbology, "Internal symbology 1 must map to EAN-13");
+        AssertEqual("{?ISBN Num}", variableBarcode.BindingExpression, "A masked record linked to variable 1002 must bind to that prompt variable");
+        AssertEqual(true, result.Template.PromptVariables.Any(v => v.Name == "ISBN Num"), "The linked prompt variable must be declared on the imported template");
         AssertEqual(false, result.RecoveredFromBackup, "A NiceLabel import is a primary read, not a recovery");
+        AssertEqual(10, result.NiceLabelTotalObjectCount ?? -1, "The import must report how many object records the source file stores, floored at the converted count");
+
+        // The imported template must draw through the production print
+        // renderer, not merely parse: rasterize it with a value for the
+        // linked prompt variable and require real ink on the label.
+        var plan = new PrintService().CreateDesignPlan(result.Template);
+        var visual = new LabelVisualRenderer().Render(
+            result.Template,
+            new Dictionary<string, string> { ["ISBN Num"] = "9780201379624" },
+            plan);
+        var bitmap = RenderTestBitmap(
+            visual,
+            MmConverter.MmToDip(plan.LabelWidthMm),
+            MmConverter.MmToDip(plan.LabelHeightMm));
+        var pixels = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4];
+        bitmap.CopyPixels(pixels, bitmap.PixelWidth * 4, 0);
+        var darkPixels = 0;
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            if (pixels[index] < 110 && pixels[index + 1] < 110 && pixels[index + 2] < 110 && pixels[index + 3] > 160)
+            {
+                darkPixels++;
+            }
+        }
+
+        AssertEqual(true, darkPixels > 200,
+            $"An imported NiceLabel template must render visible objects (text, barcodes, paragraph, rectangle) through the print pipeline; darkPixels={darkPixels}");
+
+        // A stored label name inside the header wins over the file name.
+        var named = new byte[5000];
+        BitConverter.GetBytes((ushort)10).CopyTo(named, 0);
+        System.Text.Encoding.ASCII.GetBytes("NicePower").CopyTo(named, 2);
+        BitConverter.GetBytes((ushort)29).CopyTo(named, 12);
+        var storedName = "SSCC - UCC/EAN 128";
+        BitConverter.GetBytes((ushort)(storedName.Length + 1)).CopyTo(named, 14);
+        System.Text.Encoding.ASCII.GetBytes(storedName).CopyTo(named, 16);
+        var namedOffset = 16 + storedName.Length + 1;
+        BitConverter.GetBytes((ushort)1).CopyTo(named, namedOffset);
+        BitConverter.GetBytes((ushort)1).CopyTo(named, namedOffset + 3);
+        BitConverter.GetBytes(10000).CopyTo(named, namedOffset + 6);
+        BitConverter.GetBytes(7000).CopyTo(named, namedOffset + 10);
+        BitConverter.GetBytes(10500).CopyTo(named, namedOffset + 14);
+        BitConverter.GetBytes(15000).CopyTo(named, namedOffset + 18);
+        var namedPath = Path.Combine(directory.FullName, "sscc-source.lbl");
+        await File.WriteAllBytesAsync(namedPath, BuildSyntheticLblFile(named));
+        var namedResult = await new ProjectFileService().LoadWithRecoveryAsync(namedPath);
+        AssertEqual(storedName, namedResult.Template.Name, "An imported template must keep the label name stored in the NiceLabel header");
+        AssertNear(105.0, namedResult.Template.WidthMm, 0.001, "Imported width must follow the structural header after a stored name");
+        AssertNear(150.0, namedResult.Template.HeightMm, 0.001, "Imported height must follow the structural header after a stored name");
 
         var badPath = Path.Combine(directory.FullName, "Broken.lbl");
         await File.WriteAllBytesAsync(badPath, BuildSyntheticLblFile(contents, version: 12));
