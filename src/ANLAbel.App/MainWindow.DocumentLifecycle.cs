@@ -22,7 +22,7 @@ namespace ANLAbel.App;
 /// </summary>
 public partial class MainWindow
 {
-    private const string DocumentFileFilter = "Mẫu tem ANLAbel (*.anlabel)|*.anlabel|Tệp JSON (*.json)|*.json|Tất cả tệp (*.*)|*.*";
+    private const string DocumentFileFilter = "Mẫu tem ANLAbel (*.anlabel)|*.anlabel|Tem NiceLabel (*.lbl;*.nlbl)|*.lbl;*.nlbl|Tệp JSON (*.json)|*.json|Tất cả tệp (*.*)|*.*";
     private static readonly TimeSpan AutosaveInterval = TimeSpan.FromSeconds(60);
 
     private readonly DocumentRecoveryService _recovery = new();

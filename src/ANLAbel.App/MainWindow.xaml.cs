@@ -582,7 +582,7 @@ public partial class MainWindow : Window
         var dialog = new OpenFileDialog
         {
             Title = "Mở mẫu tem ANLAbel",
-            Filter = "Mẫu tem ANLAbel (*.anlabel)|*.anlabel|Tệp JSON (*.json)|*.json|Tất cả tệp (*.*)|*.*"
+            Filter = "Mẫu tem ANLAbel (*.anlabel)|*.anlabel|Tem NiceLabel (*.lbl;*.nlbl)|*.lbl;*.nlbl|Tệp JSON (*.json)|*.json|Tất cả tệp (*.*)|*.*"
         };
 
         if (dialog.ShowDialog(this) != true)

@@ -147,7 +147,7 @@ public sealed class MainViewModel : ObservableObject
     private JsonSerializerOptions HistoryJsonOptions => _historyJsonOptions ??= _historyImages.CreateSnapshotOptions(HistoryJsonBaseOptions);
 
     public MainViewModel()
-        : this(new ProjectFileService(), new ExcelDataService(), new PrintService(), new PrinterDiscoveryService(), new PrintLogService(), new DataOperationLogService())
+        : this(new ProjectFileService(new Services.NiceLabel10TextMeasurer()), new ExcelDataService(), new PrintService(), new PrinterDiscoveryService(), new PrintLogService(), new DataOperationLogService())
     {
     }
 
@@ -1784,7 +1784,8 @@ public sealed class MainViewModel : ObservableObject
         UnobserveTemplate(Template);
         Template = loadResult.Template;
         ResetHistory();
-        var isNiceLabelImport = filePath.EndsWith(".lbl", StringComparison.OrdinalIgnoreCase);
+        var isNiceLabelImport = filePath.EndsWith(".lbl", StringComparison.OrdinalIgnoreCase)
+            || filePath.EndsWith(".nlbl", StringComparison.OrdinalIgnoreCase);
         // Keep the selected path while linked Excel data is restored so
         // relative data-source paths resolve beside the original document.
         CurrentFilePath = filePath;
