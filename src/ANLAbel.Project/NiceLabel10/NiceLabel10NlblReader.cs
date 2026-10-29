@@ -100,6 +100,14 @@ public static class NiceLabel10NlblReader
                     }
 
                     continue;
+                case "SubsetFunction":
+                    if (ReadSubset(item) is { } subsetTemplate)
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, null, 0, subsetTemplate);
+                    }
+
+                    continue;
                 case "AscFactFunction":
                     if (ReadAscComposition(item) is { } ascTemplate)
                     {
@@ -234,14 +242,27 @@ public static class NiceLabel10NlblReader
 
             var id = (int)ParseDouble(value, "ApplicationIdentifierId");
             var multiplier = (int)ParseDouble(value, "Multiplier");
-            if (ParseBool(value, "AutoCheckDigitCalculation")
-                || !NiceLabel10Gs1ApplicationIdentifiers.TryGetApplicationIdentifier(id, multiplier, out var ai, out _))
+            if (!NiceLabel10Gs1ApplicationIdentifiers.TryGetApplicationIdentifier(id, multiplier, out var ai, out var carriesCheckDigit))
+            {
+                return null;
+            }
+
+            // AutoCheckDigitCalculation: NiceLabel appends the GS1 modulo-10
+            // check digit at print time; ANLAbel's GS1CHECKDIGIT formula
+            // function does the same, so the part is wrapped for it.
+            var autoCheckDigit = ParseBool(value, "AutoCheckDigitCalculation");
+            if (autoCheckDigit && !carriesCheckDigit)
             {
                 return null;
             }
 
             var referenceId = ChildText(value.Element("DataSourceReference"), "Id")?.Trim();
             builder.Append('(').Append(ai).Append(')');
+            if (autoCheckDigit)
+            {
+                builder.Append(NiceLabel10FunctionMarkers.Start).Append("GS1CHECKDIGIT").Append(NiceLabel10FunctionMarkers.Body);
+            }
+
             if (!string.IsNullOrWhiteSpace(referenceId))
             {
                 builder.Append('[').Append(referenceId);
@@ -256,9 +277,35 @@ public static class NiceLabel10NlblReader
             {
                 builder.Append(ChildText(value.Element("FixedValue"), "StringValue") ?? string.Empty);
             }
+
+            if (autoCheckDigit)
+            {
+                builder.Append(NiceLabel10FunctionMarkers.End);
+            }
         }
 
         return builder.Length == 0 ? null : builder.ToString();
+    }
+
+    /// <summary>
+    /// A <c>SubsetFunction</c> takes <c>SubstringLength</c> characters after
+    /// skipping <c>Offset</c> characters of its input (ANLAbel's MID with a
+    /// 1-based start). The delimited mode (field number between separators)
+    /// has no ANLAbel equivalent and stays unresolved.
+    /// </summary>
+    private static string? ReadSubset(XElement function)
+    {
+        var input = ChildText(function.Element("InputDataSourceReference"), "Id")?.Trim();
+        var offset = (int)ParseDouble(function, "Offset");
+        var length = (int)ParseDouble(function, "SubstringLength");
+        if (ParseBool(function, "Delimited") || string.IsNullOrWhiteSpace(input) || offset < 0 || length <= 0)
+        {
+            return null;
+        }
+
+        return NiceLabel10FunctionMarkers.Start + "MID:" + (offset + 1).ToString(CultureInfo.InvariantCulture)
+            + ":" + length.ToString(CultureInfo.InvariantCulture)
+            + NiceLabel10FunctionMarkers.Body + "[" + input + "]" + NiceLabel10FunctionMarkers.End;
     }
 
     private const char GroupSeparator = '\u001D';

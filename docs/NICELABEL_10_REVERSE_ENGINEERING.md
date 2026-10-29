@@ -182,13 +182,22 @@ GS1-128 compositions (`GS1128Function`) become ANLAbel's own
 prefixes and separator characters, and date arithmetic on the current
 date (`DateAddFunction`) becomes `{#NOW+Nd+Nmo+Ny:format}` (§9).
 
+Two print-time transformations have no `{Field}` form and are written
+as ANLAbel formulas instead (`CONCAT`/`FIELD` plus the function added
+for them, 2026-10-29): a GS1-128 part whose check digit NiceLabel
+computes at print time (`AutoCheckDigitCalculation`) becomes
+`GS1CHECKDIGIT(FIELD("?Var"))` inside the `(AI)` expression, and a
+`SubsetFunction` (skip `Offset`, take `SubstringLength`) becomes
+`MID(FIELD(...), start, length)`. The job-variable contract reads
+prompt and date names out of formula `FIELD` calls so such labels still
+prompt the operator.
+
 Not converted (fail-closed, counted in the UI status via
 `NiceLabelTotalObjectCount`): objects bound to solution functions
 ANLAbel cannot reproduce (VBScript/Python `ExecuteScriptFunction`, HIBC,
-`SubsetFunction`, `GS1DataBarFunction`, envelope formats other than 06,
-data-identifier fields printing their short title, GS1-128 parts whose
-check digit NiceLabel computes at print time, date arithmetic on a
-prompted date)
+delimited `SubsetFunction`, `GS1DataBarFunction`, envelope formats other
+than 06, data-identifier fields printing their short title, date
+arithmetic on a prompted date)
 or to variables computed from them; GS1 DataBar barcodes (no ANLAbel
 symbology); graphics without an embedded payload or bound to a variable;
 report/group items. Rich-text framed texts (`RichTextFormatting`, 26 in
@@ -267,12 +276,12 @@ an acceptance check.
 
 - Production reader/importer sweep over all 207 installed sample files
   (2026-10-29, after the solution-entry fix and the placement/data-source
-  mappings): 207/207 opened; 6,467 stored objects, 6,154 converted
-  (95.2%); unconverted = 100 barcodes and 157 texts bound to
-  script/HIBC/subset functions, GS1-128 parts needing a computed check
-  digit, or date arithmetic on prompted dates (or to variables computed
-  from them, 38 of the total), 37 graphics without payload or bound, 4
-  rich-text templates referencing such functions, 15 report items. The earlier figure of 97.4% counted
+  mappings): 207/207 opened; 6,467 stored objects, 6,209 converted
+  (96.0%); unconverted = 85 barcodes and 117 texts bound to script/HIBC/
+  delimited-subset functions or date arithmetic on prompted dates (or to
+  variables computed from them, 40 of the total), 37 graphics without
+  payload or bound, 4 rich-text templates referencing such functions,
+  15 report items. The earlier figure of 97.4% counted
   bound objects whose binding had silently fallen back to their sample
   text because no variable resolved (§2); they now either bind or are
   reported.
@@ -369,8 +378,8 @@ is carried in `NiceLabel10Gs1ApplicationIdentifiers`; each part becomes
 `(AI)[id]`, date AIs (11-17) asking the referenced date for `yyMMdd`, so
 the function reads exactly like ANLAbel's `(AI)value` authoring notation
 (`BarcodeApplicationContract`). A part with auto check-digit
-calculation has no ANLAbel equivalent (ANLAbel requires the full GTIN/
-SSCC including its check digit), so such a function stays unresolved.
+calculation is wrapped in `GS1CHECKDIGIT(...)` and the whole binding
+written as a formula (§4).
 `DateAddFunction` stores Day/Month/Year offsets, an input date source and
 an `OutputFormat`; when the input is (a chain of) current-date sources
 the offsets add up into one `{#NOW...}` field, otherwise it stays

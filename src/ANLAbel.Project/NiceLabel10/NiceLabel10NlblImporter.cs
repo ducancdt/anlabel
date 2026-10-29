@@ -793,6 +793,17 @@ public static partial class NiceLabel10NlblImporter
                 }
             }
 
+            if (expression is not null && NiceLabel10FunctionMarkers.ContainsMarker(expression))
+            {
+                // A print-time transformation (GS1 check digit, substring)
+                // needs ANLAbel's formula form of the same binding.
+                expression = NiceLabel10FunctionMarkers.ToFormula(expression);
+                if (expression is null)
+                {
+                    return false;
+                }
+            }
+
             foreach (var prompt in prompts)
             {
                 RegisterPrompt(prompt, record);
@@ -889,6 +900,9 @@ public static partial class NiceLabel10NlblImporter
             {
                 return null;
             }
+
+            // Function markers wrap their own expansion; a literal that merely
+            // contains a marker character cannot occur in NiceLabel data.
 
             var unresolved = false;
             var expanded = ReferencePattern().Replace(template, match =>

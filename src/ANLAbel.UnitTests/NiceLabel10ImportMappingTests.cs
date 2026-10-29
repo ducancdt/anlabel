@@ -24,6 +24,7 @@ public sealed class NiceLabel10ImportMappingTests
     private const string AscMultiId = "bbbbbbbb-2222-3333-4444-555555555555";
     private const string EnvelopeId = "cccccccc-2222-3333-4444-555555555555";
     private const string EnvelopeOtherFormatId = "dddddddd-2222-3333-4444-555555555555";
+    private const string SubsetId = "eeeeeeee-2222-3333-4444-555555555555";
 
     private const string SolutionXml = $"""
         <?xml version="1.0" encoding="utf-8"?>
@@ -117,6 +118,14 @@ public sealed class NiceLabel10ImportMappingTests
                 <Item Type="TransferDataSyntaxFormat"><FormatId>6</FormatId><DataValues><Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{AscMultiId}</Id></DataSourceReference></Item></DataValues></Item>
               </Formats>
             </Item>
+            <Item Type="SubsetFunction">
+              <Id>{SubsetId}</Id>
+              <Name>Short lot</Name>
+              <Offset>2</Offset>
+              <SubstringLength>5</SubstringLength>
+              <Delimited>False</Delimited>
+              <InputDataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></InputDataSourceReference>
+            </Item>
             <Item Type="TransferDataSyntaxFunction">
               <Id>{EnvelopeOtherFormatId}</Id>
               <Name>Format 01</Name>
@@ -178,7 +187,7 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
-    public void Gs1CompositionWithAutoCheckDigit_IsNotConverted()
+    public void Gs1CompositionWithAutoCheckDigit_BecomesCheckDigitFormula()
     {
         var template = Import($"""
             <Item Type="TextDocumentItem">
@@ -189,7 +198,25 @@ public sealed class NiceLabel10ImportMappingTests
             </Item>
             """);
 
-        Assert.Empty(template.Objects);
+        var text = Assert.Single(template.Objects);
+        Assert.Equal("CONCAT(\"(01)\", GS1CHECKDIGIT(FIELD(\"?Lot\")))", text.BindingExpression);
+        Assert.Equal("Lot", Assert.Single(template.PromptVariables).Name);
+    }
+
+    [Fact]
+    public void SubsetOfVariable_BecomesMidFormula()
+    {
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>Short</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FixedContents>001</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{SubsetId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        // Offset 2 (characters skipped) and length 5 → MID start 3.
+        Assert.Equal("MID(FIELD(\"?Lot\"), \"3\", \"5\")", Assert.Single(template.Objects).BindingExpression);
     }
 
     [Fact]
@@ -329,10 +356,10 @@ public sealed class NiceLabel10ImportMappingTests
     {
         var document = Parse(Format(string.Empty));
 
-        // Three variables, the date-add and the mappable GS1 function; the
-        // GS1 function needing a computed check digit is not registered.
-        Assert.Equal(9, document.VariablesById.Count);
-        Assert.False(document.VariablesById.ContainsKey(Gs1CheckDigitId));
+        // Three variables, the date-add, both GS1 functions, two data
+        // identifier functions, the format-06 envelope and the subset; the
+        // other-format envelope is not registered.
+        Assert.Equal(11, document.VariablesById.Count);
         Assert.False(document.VariablesById.ContainsKey(EnvelopeOtherFormatId));
         var lot = document.VariablesById[LotId];
         Assert.Equal("Lot", lot.Name);
