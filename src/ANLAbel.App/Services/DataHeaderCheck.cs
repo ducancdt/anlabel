@@ -158,9 +158,14 @@ public static class DataHeaderCheck
         }
 
         // A blank placeholder such as { } reads no column; it prints empty.
-        return FormulaBindingEvaluator.LooksLikeFormula(expression)
+        // Prompt (?Name) and date (#NOW) fields are answered at print time,
+        // not read from the sheet, so they are no column at all.
+        var fields = FormulaBindingEvaluator.LooksLikeFormula(expression)
             ? FormulaFields(expression)
             : BindingExpressionEvaluator.GetFields(expression).Where(field => !string.IsNullOrWhiteSpace(field)).ToArray();
+        return fields
+            .Where(field => !JobVariableContract.IsPromptToken(field.Trim()) && !JobVariableContract.IsDateToken(field.Trim()))
+            .ToArray();
     }
 
     private static void Walk(
