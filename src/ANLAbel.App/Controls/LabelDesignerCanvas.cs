@@ -1652,7 +1652,8 @@ public sealed class LabelDesignerCanvas : Canvas
             // Content-owned AutoFit is only for static Text. TextBox frame is
             // user-owned (drag/properties): WidthMm/HeightMm changes reflow
             // wrap/clip via UpdateObjectElement so text stays fit to the frame.
-            if (ShouldApplyTextAutoSize(e.PropertyName)
+            if ((ShouldApplyTextAutoSize(e.PropertyName)
+                    || (e.PropertyName == nameof(LabelObject.WidthMm) && TextBoxOverflowDetector.UsesVariableHeight(item)))
                 && ShouldAutoSizeTextObject(item)
                 && !_textAutoSizingObjects.Contains(item))
             {
@@ -3701,9 +3702,13 @@ public sealed class LabelDesignerCanvas : Canvas
         // Use the stronger compress of framed metrics vs natural-vs-frame fit.
         // Draw natural lines (full glyph runs) with forced scales so MaxTextWidth
         // on a tight frame cannot leave full-size glyphs unscaled.
-        var scaleX = Math.Min(layout.Metrics.HorizontalScale, fit.ScaleX);
+        // The natural layout already carries the Text's own glyph scaling
+        // (FontScalePercent); only the frame-fit compress is clamped to 1.
+        var fontScale = TextBoxOverflowDetector.ResolveFontScale(item);
+        var compressX = Math.Min(layout.Metrics.HorizontalScale / fontScale, fit.ScaleX);
         var scaleY = Math.Min(layout.Metrics.VerticalScale, fit.ScaleY);
-        scaleX = Math.Clamp(double.IsFinite(scaleX) ? scaleX : 1.0, 0.01, 1.0);
+        compressX = Math.Clamp(double.IsFinite(compressX) ? compressX : 1.0, 0.01, 1.0);
+        var scaleX = fontScale * compressX;
         scaleY = Math.Clamp(double.IsFinite(scaleY) ? scaleY : 1.0, 0.01, 1.0);
         var scaledHeight = naturalHeight * scaleY;
         var verticalOffset = TextBoxOverflowDetector.ResolveVerticalOffset(
@@ -3716,7 +3721,7 @@ public sealed class LabelDesignerCanvas : Canvas
             Lines = natural.Lines,
             Metrics = natural.Metrics with
             {
-                WidthDip = naturalWidth * scaleX,
+                WidthDip = naturalWidth * compressX,
                 HeightDip = scaledHeight,
                 ContentWidthDip = contentWidth,
                 VerticalOffsetDip = verticalOffset,
@@ -3890,10 +3895,12 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         var displayText = string.IsNullOrEmpty(GetDisplayText(item)) ? " " : GetDisplayText(item);
-        var (fitWidthMm, fitHeightMm) = TextBoxOverflowDetector.MeasureAutoFitFrameMm(
-            item,
-            displayText,
-            pixelsPerDip: 1.0);
+        var (fitWidthMm, fitHeightMm) = TextBoxOverflowDetector.UsesVariableHeight(item)
+            ? (item.WidthMm, MmConverter.DipToMm(TextBoxOverflowDetector.MeasureVariableHeightDip(item, displayText, MmToDip(item.WidthMm))))
+            : TextBoxOverflowDetector.MeasureAutoFitFrameMm(
+                item,
+                displayText,
+                pixelsPerDip: 1.0);
 
         _textAutoSizingObjects.Add(item);
         try
@@ -3916,7 +3923,8 @@ public sealed class LabelDesignerCanvas : Canvas
     }
 
     private static bool ShouldAutoSizeTextObject(LabelObject item)
-        => item.Type == ObjectType.Text && item.Style.TextSizing == TextSizingMode.AutoFit;
+        => (item.Type == ObjectType.Text && item.Style.TextSizing == TextSizingMode.AutoFit)
+            || TextBoxOverflowDetector.UsesVariableHeight(item);
 
     private void UpdateBarcodePanel(LabelObject item, Grid panel)
     {

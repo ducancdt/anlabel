@@ -8,8 +8,9 @@ namespace ANLAbel.Core.Enums;
 /// shared layout scale (ANLAbel WYSIWYG); it is still not TextBox wrap/clip
 /// ownership. ObjectType.TextBox owns a user-authored Width/Height frame:
 /// FixedFrame wraps at the authored font, ShrinkFont fits by point size, and
-/// ScaleWidth fits by horizontal scaling. None of these modes may rewrite the
-/// TextBox frame from its content.
+/// ScaleWidth fits by horizontal scaling. <see cref="AdjustHeight"/> is the
+/// NiceLabel 10 framed-text VariableHeight: the TextBox keeps its authored
+/// width and its height follows the wrapped content (designer and print).
 /// </summary>
 public enum TextSizingMode
 {
@@ -17,7 +18,6 @@ public enum TextSizingMode
     FixedFrame,
     ShrinkFont,
     ScaleWidth,
-    // Compatibility only for files saved by the abandoned development build.
-    // Runtime/UI normalize this to FixedFrame; it must never resize TextBox.
+    // NiceLabel 10 BestFit VariableHeight (owner request 2026-10-29).
     AdjustHeight
 }

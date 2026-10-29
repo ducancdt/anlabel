@@ -167,6 +167,13 @@ public sealed record PrinterProfileSnapshot
     public double ScaleY { get; init; }
     public double PhysicalWidthMm { get; init; }
     public double PhysicalHeightMm { get; init; }
+    public int LabelsAcross { get; init; } = 1;
+    public int LabelsDown { get; init; } = 1;
+    public double HorizontalGapMm { get; init; }
+    public double VerticalGapMm { get; init; }
+    public bool FillDownFirst { get; init; }
+    public bool StartFromRight { get; init; }
+    public bool StartFromBottom { get; init; }
 
     public static PrinterProfileSnapshot Capture(PrinterProfile profile)
     {
@@ -189,7 +196,14 @@ public sealed record PrinterProfileSnapshot
             ScaleX = profile.ScaleX,
             ScaleY = profile.ScaleY,
             PhysicalWidthMm = profile.PhysicalWidthMm,
-            PhysicalHeightMm = profile.PhysicalHeightMm
+            PhysicalHeightMm = profile.PhysicalHeightMm,
+            LabelsAcross = profile.LabelsAcross,
+            LabelsDown = profile.LabelsDown,
+            HorizontalGapMm = profile.HorizontalGapMm,
+            VerticalGapMm = profile.VerticalGapMm,
+            FillDownFirst = profile.FillDownFirst,
+            StartFromRight = profile.StartFromRight,
+            StartFromBottom = profile.StartFromBottom
         };
     }
 }
@@ -412,6 +426,7 @@ public sealed record ObjectStyleSnapshot
     public double TextFitMaximumFontSizePt { get; init; }
     public double TextFitMinimumScale { get; init; }
     public double TextFitMaximumScale { get; init; }
+    public double FontScalePercent { get; init; } = 100;
     public TextVerticalAlignmentMode? VerticalAlignment { get; init; }
     public double TextPaddingMm { get; init; }
     public double TextPaddingLeftMm { get; init; }
@@ -450,6 +465,7 @@ public sealed record ObjectStyleSnapshot
             TextFitMaximumFontSizePt = style.TextFitMaximumFontSizePt,
             TextFitMinimumScale = style.TextFitMinimumScale,
             TextFitMaximumScale = style.TextFitMaximumScale,
+            FontScalePercent = style.FontScalePercent,
             VerticalAlignment = style.VerticalAlignment,
             TextPaddingMm = style.TextPaddingMm,
             TextPaddingLeftMm = style.TextPaddingLeftMm,
@@ -564,6 +580,18 @@ internal static class SceneHash
         Append(builder, snapshot.PrinterProfile.LabelHeightMm);
         Append(builder, snapshot.PrinterProfile.MediaType.ToString());
         Append(builder, snapshot.PrinterProfile.FeedDirection.ToString());
+        if (snapshot.PrinterProfile.LabelsAcross * snapshot.PrinterProfile.LabelsDown > 1)
+        {
+            // Only sheet layouts carry it, so single-label document hashes are unchanged.
+            Append(builder, "sheet-layout");
+            Append(builder, snapshot.PrinterProfile.LabelsAcross);
+            Append(builder, snapshot.PrinterProfile.LabelsDown);
+            Append(builder, snapshot.PrinterProfile.HorizontalGapMm);
+            Append(builder, snapshot.PrinterProfile.VerticalGapMm);
+            Append(builder, snapshot.PrinterProfile.FillDownFirst.ToString());
+            Append(builder, snapshot.PrinterProfile.StartFromRight.ToString());
+            Append(builder, snapshot.PrinterProfile.StartFromBottom.ToString());
+        }
         Append(builder, snapshot.DatabaseConfig.DataSourceId);
         Append(builder, snapshot.DatabaseConfig.FilePath);
         Append(builder, snapshot.DatabaseConfig.RelativePath);
@@ -718,6 +746,12 @@ internal static class SceneHash
         Append(builder, item.Style.TextFitMaximumFontSizePt);
         Append(builder, item.Style.TextFitMinimumScale);
         Append(builder, item.Style.TextFitMaximumScale);
+        if (item.Style.FontScalePercent != 100)
+        {
+            // Only scaled texts carry it, so older document hashes are unchanged.
+            Append(builder, "font-scale");
+            Append(builder, item.Style.FontScalePercent);
+        }
         Append(builder, item.Style.VerticalAlignment?.ToString());
         Append(builder, item.Style.TextPaddingMm);
         Append(builder, item.Style.TextPaddingLeftMm);

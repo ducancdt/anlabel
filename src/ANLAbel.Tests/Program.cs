@@ -140,6 +140,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preflight reports formula failure without derived content issues", TestPrintPreflightFormulaFailureHasOneRootIssue),
     ("print preflight uses exact fixed QR capacity", TestPrintPreflightUsesExactFixedQrCapacity),
     ("Text stays free while TextBox stays bounded", TestFixedFrameTextReportsOverflow),
+    ("Text font scale widens and narrows glyphs like NiceLabel", TestTextFontScaleWidensAndNarrowsGlyphs),
+    ("TextBox variable height follows content like NiceLabel", TestTextBoxVariableHeightFollowsContent),
     ("ellipsis text overflow stays bounded without blocking", TestEllipsisTextOverflowPolicy),
     ("shrink-font text stays bounded without mutating authored size", TestShrinkFontTextFit),
     ("scale-width text preserves font and fits horizontally", TestScaleWidthTextFit),
@@ -164,7 +166,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("printer setup preserves authored millimetres without a stock catalog", TestPrinterSetupPreservesAuthoredDimensions),
     ("printer setup separates NiceLabel media concepts into workflow tabs", TestPrinterSetupSeparatesMediaConcepts),
     ("printer setup orientation interactivity synchronizes dimensions and layout", TestPrinterSetupOrientationInteractivity),
-    ("print preflight blocks office sheet stock", TestPrintPreflightBlocksOfficeSheetStock),
+    ("print preflight allows office sheet stock", TestPrintPreflightAllowsOfficeSheetStock),
     ("apply printer selection stores operator stock as manual", TestApplyPrinterSelectionStoresOperatorStock),
     ("designer and preview share one printer selection apply", TestDesignerAndPreviewSharePrinterSelectionApply),
     ("printer discovery keeps software stocks separate from driver media", TestPrinterDiscoveryKeepsStocksSeparate),
@@ -180,7 +182,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("standard catalog has no office sheet", TestStandardCatalogHasNoOfficeSheet),
     ("named queue resolve does not pick the Windows default", TestNamedQueueResolveDoesNotPickDefault),
     ("apply printer selection does not mutate blocked stock", TestApplyPrinterSelectionDoesNotMutateBlockedStock),
-    ("calibration dispatch blocks office stock and office dpi", TestCalibrationDispatchBlocksOfficeStockAndOfficeDpi),
+    ("calibration dispatch allows office sheets and blocks office dpi", TestCalibrationDispatchAllowsOfficeSheetsAndBlocksOfficeDpi),
     ("print preflight blocks office print dpi", TestPrintPreflightBlocksOfficePrintDpi),
     ("catalog die sizes stay inside industrial stock bounds", TestCatalogDieSizesStayInsideIndustrialBounds),
     ("preview does not copy preference printer onto the document", TestPreviewDoesNotCopyPreferencePrinterOntoDocument),
@@ -3785,6 +3787,72 @@ static Task TestPrintPreflightUsesExactFixedQrCapacity()
     return Task.CompletedTask;
 }
 
+static Task TestTextFontScaleWidensAndNarrowsGlyphs()
+{
+    LabelObject Text(double percent) => new()
+    {
+        Type = ObjectType.Text,
+        Text = "SCALE 12345",
+        WidthMm = 200,
+        HeightMm = 10,
+        Style = { FontSizePt = 12, FontScalePercent = percent }
+    };
+
+    var plain = TextBoxOverflowDetector.CreateTextLayout(Text(100), "SCALE 12345", 2000, 200, constrainToBox: false, System.Windows.Media.Brushes.Black);
+    var wide = TextBoxOverflowDetector.CreateTextLayout(Text(150), "SCALE 12345", 2000, 200, constrainToBox: false, System.Windows.Media.Brushes.Black);
+    var narrow = TextBoxOverflowDetector.CreateTextLayout(Text(50), "SCALE 12345", 2000, 200, constrainToBox: false, System.Windows.Media.Brushes.Black);
+    AssertEqual(1.5, Math.Round(wide.Metrics.HorizontalScale, 3), "150% font scaling widens the glyphs");
+    AssertEqual(0.5, Math.Round(narrow.Metrics.HorizontalScale, 3), "50% font scaling narrows the glyphs");
+    AssertEqual(true, Math.Abs(wide.Metrics.WidthDip - plain.Metrics.WidthDip * 1.5) < 0.5, "The scaled width follows the factor");
+    AssertEqual(plain.Metrics.HeightDip, wide.Metrics.HeightDip, "Font scaling is horizontal only");
+
+    var plainFrame = TextBoxOverflowDetector.MeasureAutoFitFrameMm(Text(100), "SCALE 12345");
+    var wideFrame = TextBoxOverflowDetector.MeasureAutoFitFrameMm(Text(150), "SCALE 12345");
+    AssertEqual(true, wideFrame.WidthMm > plainFrame.WidthMm * 1.4, "The AutoFit frame holds the widened glyphs");
+
+    var box = Text(150);
+    box.Type = ObjectType.TextBox;
+    AssertEqual(1.0, TextBoxOverflowDetector.ResolveFontScale(box), "Font scaling is a Text style factor only");
+    return Task.CompletedTask;
+}
+
+static Task TestTextBoxVariableHeightFollowsContent()
+{
+    var box = new LabelObject
+    {
+        Type = ObjectType.TextBox,
+        Text = "NiceLabel variable height grows the frame for every wrapped line of this value",
+        WidthMm = 20,
+        HeightMm = 4,
+        Style = { FontSizePt = 9, TextSizing = TextSizingMode.AdjustHeight, TextOverflow = TextOverflowMode.Error }
+    };
+    var widthDip = MmConverter.MmToDip(box.WidthMm);
+    var shortHeight = TextBoxOverflowDetector.MeasureVariableHeightDip(box, "ONE", widthDip);
+    var longHeight = TextBoxOverflowDetector.MeasureVariableHeightDip(box, box.Text, widthDip);
+    AssertEqual(true, TextBoxOverflowDetector.UsesVariableHeight(box), "AdjustHeight is the variable-height TextBox");
+    AssertEqual(true, longHeight > shortHeight * 2, "Wrapped content makes the frame taller");
+    AssertEqual(false, TextBoxOverflowDetector.IsOverflowing(box, box.Text, widthDip, MmConverter.MmToDip(box.HeightMm)),
+        "A variable-height TextBox does not overflow vertically");
+
+    var template = new LabelTemplate { Name = "Variable height", WidthMm = 50, HeightMm = 40, Dpi = 203 };
+    template.Objects.Add(box);
+    var preflight = new PrintService().ValidateRows(template, new IReadOnlyDictionary<string, string>?[] { null });
+    AssertEqual(false, preflight.Issues.Any(issue => issue.ObjectName == box.Name && issue.Message.Contains("overflow", StringComparison.OrdinalIgnoreCase)),
+        "Preflight must not block a variable-height TextBox for its content height: " + preflight.ToUserMessage(3));
+
+    var fixedBox = new LabelObject
+    {
+        Type = ObjectType.TextBox,
+        Text = box.Text,
+        WidthMm = 20,
+        HeightMm = 4,
+        Style = { FontSizePt = 9, TextSizing = TextSizingMode.FixedFrame }
+    };
+    AssertEqual(true, TextBoxOverflowDetector.IsOverflowing(fixedBox, fixedBox.Text, widthDip, MmConverter.MmToDip(fixedBox.HeightMm)),
+        "A fixed-frame TextBox still overflows its authored frame");
+    return Task.CompletedTask;
+}
+
 static Task TestFixedFrameTextReportsOverflow()
 {
     var template = new LabelTemplate
@@ -5280,20 +5348,21 @@ static Task TestPrinterSetupPreservesAuthoredDimensions()
     return Task.CompletedTask;
 }
 
-static Task TestPrintPreflightBlocksOfficeSheetStock()
+static Task TestPrintPreflightAllowsOfficeSheetStock()
 {
-    var blocked = new LabelTemplate { Name = "Office sheet", WidthMm = 50, HeightMm = 30, Dpi = 203 };
-    blocked.PrinterProfile.PhysicalWidthMm = 210;
-    blocked.PrinterProfile.PhysicalHeightMm = 297;
-    blocked.PrinterProfile.PaperName = "A4 210 × 297 mm";
-    var blockedResult = new PrintService().ValidateRows(
-        blocked,
+    // NiceLabel 10 prints labels on office sheets; ANLAbel follows it.
+    var office = new LabelTemplate { Name = "Office sheet", WidthMm = 50, HeightMm = 30, Dpi = 203 };
+    office.PrinterProfile.PhysicalWidthMm = 210;
+    office.PrinterProfile.PhysicalHeightMm = 297;
+    office.PrinterProfile.PaperName = "A4 210 × 297 mm";
+    var officeResult = new PrintService().ValidateRows(
+        office,
         new IReadOnlyDictionary<string, string>?[] { null });
-    AssertEqual(false, blockedResult.IsSuccess, "Office-sheet physical stock must fail closed before dispatch");
     AssertEqual(
-        true,
-        blockedResult.Issues.Any(issue => issue.Message.Contains("office sheets", StringComparison.OrdinalIgnoreCase)),
-        "Preflight must name the office-sheet policy: " + blockedResult.ToUserMessage(3));
+        false,
+        officeResult.Issues.Any(issue => issue.Message.Contains("office sheets", StringComparison.OrdinalIgnoreCase)
+            || issue.ObjectType == "LabelStock"),
+        "Office-sheet physical stock must pass the stock contract: " + officeResult.ToUserMessage(3));
 
     var allowed = new LabelTemplate { Name = "Die", WidthMm = 50, HeightMm = 30, Dpi = 203 };
     allowed.PrinterProfile.PhysicalWidthMm = 50;
@@ -6068,7 +6137,7 @@ static Task TestApplyPrinterSelectionDoesNotMutateBlockedStock()
     {
         vm.ApplyPrinterSelection(
             printer,
-            new PrinterPaperInfo { Name = "A4 210 × 297 mm", WidthMm = 210, HeightMm = 297 },
+            new PrinterPaperInfo { Name = "Banner 1200 × 50 mm", WidthMm = 1200, HeightMm = 50 },
             203,
             LabelOrientation.Portrait);
     }
@@ -6077,8 +6146,8 @@ static Task TestApplyPrinterSelectionDoesNotMutateBlockedStock()
         stockFailure = ex;
     }
 
-    AssertEqual(true, stockFailure is not null, "Office-sheet apply must throw before writing the template");
-    AssertEqual(true, stockFailure!.Message.Contains("office sheets", StringComparison.OrdinalIgnoreCase),
+    AssertEqual(true, stockFailure is not null, "Oversized-stock apply must throw before writing the template");
+    AssertEqual(true, stockFailure!.Message.Contains("must stay between", StringComparison.OrdinalIgnoreCase),
         "The apply error must come from LabelStockContract: " + stockFailure.Message);
     AssertEqual(originalWidth, vm.Template.WidthMm, "Blocked stock must not change label width");
     AssertEqual(originalHeight, vm.Template.HeightMm, "Blocked stock must not change label height");
@@ -6181,7 +6250,7 @@ static Task TestApplyPrinterSelectionDoesNotMutateBlockedStock()
     return Task.CompletedTask;
 }
 
-static Task TestCalibrationDispatchBlocksOfficeStockAndOfficeDpi()
+static Task TestCalibrationDispatchAllowsOfficeSheetsAndBlocksOfficeDpi()
 {
     var officeDpi = new LabelTemplate { Name = "Office DPI calibration", WidthMm = 50, HeightMm = 30, Dpi = 96 };
     officeDpi.PrinterProfile.Dpi = 96;
@@ -6213,21 +6282,8 @@ static Task TestCalibrationDispatchBlocksOfficeStockAndOfficeDpi()
     officeStock.PrinterProfile.PhysicalWidthMm = 210;
     officeStock.PrinterProfile.PhysicalHeightMm = 297;
     officeStock.PrinterProfile.PaperName = "A4 210 × 297 mm";
-    Exception? stockFailure = null;
-    try
-    {
-        PrintService.EnsureCalibrationDocumentAllowed(officeStock);
-    }
-    catch (InvalidOperationException ex)
-    {
-        stockFailure = ex;
-    }
-
-    AssertEqual(true, stockFailure is not null, "Calibration must reject an office sheet before any spool");
-    AssertEqual(true, stockFailure!.Message.Contains("office sheets", StringComparison.OrdinalIgnoreCase),
-        "Calibration stock error must come from LabelStockContract: " + stockFailure.Message);
-    AssertEqual(210d, officeStock.WidthMm, "A blocked calibration gate must not rewrite label width");
-    AssertEqual(297d, officeStock.HeightMm, "A blocked calibration gate must not rewrite label height");
+    // NiceLabel 10 prints on office sheets; the calibration gate allows them.
+    PrintService.EnsureCalibrationDocumentAllowed(officeStock);
 
     var differentDie = new LabelTemplate { Name = "Different die", WidthMm = 50, HeightMm = 30, Dpi = 203 };
     differentDie.PrinterProfile.Dpi = 203;

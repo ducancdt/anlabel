@@ -536,12 +536,8 @@ public sealed class PrintService
         // paginator/dispatch creation. A queue, DPI, media or ticket change in
         // this window invalidates the prepared output; no label is submitted.
         plan = RevalidateDispatchPlan(dialog, template, plan, requestedTicket, requestedTicketHash, expectedOutputContractHash);
-        var pageSize = CreatePageSize(plan);
         var knownSpoolJobs = CaptureSpoolJobs(dialog.PrintQueue);
-        var paginator = new VisualDocumentPaginator(
-            rowList.Length,
-            pageSize,
-            pageNumber => _renderer.Render(template, rowList[pageNumber], plan));
+        var paginator = CreateRowsPaginator(template, rowList, plan);
 
         try
         {
@@ -1276,6 +1272,59 @@ public sealed class PrintService
         }
 
         dialog.PrintTicket = ticket;
+    }
+
+    /// <summary>
+    /// One label per page, or — for a sheet layout (NiceLabel 10 multiple
+    /// labels per page) — one physical sheet per page with each row's label
+    /// placed in its grid cell.
+    /// </summary>
+    private VisualDocumentPaginator CreateRowsPaginator(
+        LabelTemplate template,
+        IReadOnlyDictionary<string, string>?[] rowList,
+        PrintRenderPlan plan)
+    {
+        var profile = template.PrinterProfile;
+        if (!SheetLayoutContract.IsSheet(profile.LabelsAcross, profile.LabelsDown))
+        {
+            return new VisualDocumentPaginator(
+                rowList.Length,
+                CreatePageSize(plan),
+                pageNumber => _renderer.Render(template, rowList[pageNumber], plan));
+        }
+
+        var perPage = profile.LabelsPerPage;
+        var pageCount = (rowList.Length + perPage - 1) / perPage;
+        var sheetSize = new System.Windows.Size(
+            MmConverter.MmToDip(profile.PhysicalWidthMm),
+            MmConverter.MmToDip(profile.PhysicalHeightMm));
+        return new VisualDocumentPaginator(
+            pageCount,
+            sheetSize,
+            pageNumber =>
+            {
+                var sheet = new ContainerVisual();
+                var first = pageNumber * perPage;
+                for (var index = first; index < Math.Min(rowList.Length, first + perPage); index++)
+                {
+                    var cell = SheetLayoutContract.CellOrigin(
+                        index,
+                        plan.LabelWidthMm,
+                        plan.LabelHeightMm,
+                        profile.LabelsAcross,
+                        profile.LabelsDown,
+                        profile.HorizontalGapMm,
+                        profile.VerticalGapMm,
+                        profile.FillDownFirst,
+                        profile.StartFromRight,
+                        profile.StartFromBottom);
+                    var label = _renderer.Render(template, rowList[index], plan);
+                    label.Transform = new TranslateTransform(MmConverter.MmToDip(cell.XMm), MmConverter.MmToDip(cell.YMm));
+                    sheet.Children.Add(label);
+                }
+
+                return sheet;
+            });
     }
 
     private static System.Windows.Size CreatePageSize(PrintRenderPlan plan)

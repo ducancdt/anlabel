@@ -527,7 +527,7 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
-    public void ScaledPositionText_CompressesIntoFixedFrameAtScaledWidth()
+    public void ScaledPositionText_CarriesFontScaleAtScaledWidth()
     {
         var template = Import("""
             <Item Type="TextDocumentItem">
@@ -541,11 +541,48 @@ public sealed class NiceLabel10ImportMappingTests
 
         var text = Assert.Single(template.Objects);
         Assert.Equal(ObjectType.Text, text.Type);
-        Assert.Equal(TextSizingMode.FixedFrame, text.Style.TextSizing);
+        Assert.Equal(TextSizingMode.AutoFit, text.Style.TextSizing);
+        Assert.Equal(79, text.Style.FontScalePercent, 2);
         Assert.Equal(40 * 0.79, text.WidthMm, 2);
         Assert.Equal(8, text.HeightMm, 2);
         // RightTop anchor: the scaled width ends at the stored X.
         Assert.Equal(50 - 40 * 0.79, text.XMm, 2);
+    }
+
+    [Fact]
+    public void ExpandedPositionText_WidensLikeNiceLabel()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Wide</Name>
+              <Geometry Type="PositionGeometry"><X>5000</X><Y>7000</Y></Geometry>
+              <ScaleFactor>104</ScaleFactor>
+              <FixedContents>WIDE</FixedContents>
+            </Item>
+            """, new FixedMeasurer(40, 8));
+
+        var text = Assert.Single(template.Objects);
+        Assert.Equal(104, text.Style.FontScalePercent, 2);
+        Assert.Equal(40 * 1.04, text.WidthMm, 2);
+    }
+
+    [Fact]
+    public void FramedText_VariableHeight_BecomesAdjustHeight()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Grow</Name>
+              <Geometry Type="RectGeometry"><Left>5000</Left><Top>5000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+              <TextType>2</TextType>
+              <BestFit>3</BestFit>
+              <FixedContents>Grow with me</FixedContents>
+            </Item>
+            """);
+
+        var box = Assert.Single(template.Objects);
+        Assert.Equal(ObjectType.TextBox, box.Type);
+        Assert.Equal(TextSizingMode.AdjustHeight, box.Style.TextSizing);
+        Assert.Equal(40, box.WidthMm, 2);
     }
 
     [Theory]

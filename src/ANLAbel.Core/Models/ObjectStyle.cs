@@ -19,6 +19,7 @@ public sealed class ObjectStyle : ObservableObject
     private double _textFitMaximumFontSizePt;
     private double _textFitMinimumScale = 0.5;
     private double _textFitMaximumScale = 1.0;
+    private double _fontScalePercent = 100;
     private TextVerticalAlignmentMode? _verticalAlignment;
     private double _textPaddingMm;
     private double _textPaddingLeftMm;
@@ -147,6 +148,17 @@ public sealed class ObjectStyle : ObservableObject
     {
         get => _textFitMaximumScale;
         set => SetProperty(ref _textFitMaximumScale, NormalizeFitScale(value, 1.0));
+    }
+
+    /// <summary>
+    /// Horizontal glyph scaling of a Text in percent (NiceLabel 10 Text
+    /// <c>ScaleFactor</c>, default 100). A style factor like the font size:
+    /// it applies to every value the Text shows and its AutoFit frame.
+    /// </summary>
+    public double FontScalePercent
+    {
+        get => _fontScalePercent;
+        set => SetProperty(ref _fontScalePercent, double.IsFinite(value) && value > 0 ? Math.Clamp(Math.Round(value, 2), 10, 400) : 100);
     }
 
     /// <summary>

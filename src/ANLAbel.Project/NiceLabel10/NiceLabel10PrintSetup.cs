@@ -31,6 +31,12 @@ namespace ANLAbel.Project.NiceLabel10;
 /// DEVMODE <c>dmPrintQuality</c> (with <c>DM_PRINTQUALITY</c> set): the
 /// driver resolution the label was authored for; 0 when not stored.
 /// </param>
+/// <param name="HorizontalGapMm"><c>PageLayout/HorizontalGap</c>: space between label columns.</param>
+/// <param name="VerticalGapMm"><c>PageLayout/VerticalGap</c>: space between label rows.</param>
+/// <param name="WebSettings">
+/// <c>PageLayout/WebSettings</c> flags (vendor <c>WebSettings</c>): Horizontal 1,
+/// Vertical 2 (fill order), Top 4, Bottom 8, Left 0x10, Right 0x20 (start corner).
+/// </param>
 public sealed record NiceLabel10PrintSetup(
     double PageWidthMm,
     double PageHeightMm,
@@ -47,7 +53,10 @@ public sealed record NiceLabel10PrintSetup(
     bool UseDefaultPrinter,
     bool UseDriverSettings,
     bool PrintUpsideDown,
-    int DriverDpi)
+    int DriverDpi,
+    double HorizontalGapMm = 0,
+    double VerticalGapMm = 0,
+    int WebSettings = 0)
 {
     /// <summary>Labels the vendor places on one page or roll section.</summary>
     public int LabelsPerPage => Math.Max(1, LabelsAcross) * Math.Max(1, LabelsDown);
@@ -66,14 +75,14 @@ public enum NiceLabelMediaSetup
     DriverSettings,
 
     /// <summary>
-    /// Authored for an office sheet (A4/Letter/Legal/A3). ANLAbel prints
-    /// thermal label stock only, so no physical media was applied.
+    /// One label on an office sheet (A4/Letter/Legal/A3): the sheet was
+    /// applied as the physical media, as in NiceLabel.
     /// </summary>
     OfficeSheet,
 
     /// <summary>
-    /// Several labels per page. ANLAbel prints one label per page, so no
-    /// physical media was applied.
+    /// Several labels per page: the sheet and the label grid were applied,
+    /// as in NiceLabel.
     /// </summary>
     MultipleLabelsPerPage
 }

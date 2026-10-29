@@ -1962,6 +1962,7 @@ regression 211 PASS/0 FAIL. Chưa có bằng chứng in vật lý.
 - `AllowOverflow` duoc giu trong enum chi de doc file cu; voi TextBox runtime phai fail-closed thanh `Error`.
 - `AutoFit` trong TextBox file cu duoc normalize thanh `FixedFrame`; Text duoc normalize ve `AutoFit + AllowOverflow` de model the hien dung y nghia object.
 - ShrinkFont va ScaleWidth chi thay doi glyph layout ben trong; ca hai khong duoc mutate Width/Height cua TextBox.
+- **Doi contract 2026-10-29 (chu san pham: "bo lenh cam, ca text box cu lam theo NiceLabel 10"):** `TextSizing=AdjustHeight` la NiceLabel `Adjust height to fit content` — TextBox giu Width, Height theo noi dung da wrap (designer theo text thiet ke, print theo gia tri tung row, khong overflow doc, preflight khong block vi chieu cao). PreviewRow van khong doi frame. Text co `Style.FontScalePercent` (NiceLabel `Font Scaling`, 10-400%): style factor ngang ap truoc frame-fit compress va vao frame AutoFit. Gate: `Text font scale widens and narrows glyphs like NiceLabel`, `TextBox variable height follows content like NiceLabel`.
 
 #### Layout TextBox
 

@@ -66,11 +66,11 @@ Same-size group la lop dieu phoi bo sung cho font-size fit hoac font-scale fit. 
 | --- | --- | --- |
 | Text auto dimensions | `Text + AutoFit` | Co |
 | Text size is font-driven; cannot hand-edit W/H | NiceLabel: size informational only | Co (doc) |
-| Text Font Scaling (50%–200% width stretch) | ANLAbel: free-Text border-drag → `FixedFrame` lock + frame-fit `HorizontalScale`/`VerticalScale` on shared layout (distortion allowed); not TextBox wrap/clip | Co (product mapping; NiceLabel Text cannot border-drag) |
+| Text Font Scaling (50%–200% width stretch) | `Style.FontScalePercent` (10–400%) tren shared layout + frame AutoFit; border-drag van khoa `FixedFrame` + frame-fit compress | Co (2026-10-29) |
 | Text Box None | `TextBox + FixedFrame` | Co |
 | Overflow blocks print | `TextOverflow.Error` | Co, mac dinh |
 | Ignore excessive content | `TextOverflow.Clip` | Co; UI doi thanh discard ro rang |
-| Adjust height | Khong ap dung | Chu dich loai bo: ANLAbel TextBox phai luon cho nguoi thiet ke so huu ca Width/Height |
+| Adjust height | `TextSizing.AdjustHeight`: giu Width, Height theo noi dung (designer + print tung row) | Co (chu san pham doi contract 2026-10-29) |
 | Fit by font size min/max | `ShrinkFont` + `TextFitMinimum/MaximumFontSizePt` | Co; ten enum cu duoc giu de doc file cu |
 | Fit by scaling min/max | `ScaleWidth` + `TextFitMinimum/MaximumScale` | Co |
 | Same-size group | Chua co group resolver | Gap cap 2 |
@@ -89,6 +89,7 @@ Chi doi chu hien thi trong Bang thuoc tinh va loi bao tran chu tren canvas. Hanh
 | `TextSizing.FixedFrame` | Wrap in fixed frame | `Xuống dòng, giữ cỡ phông` |
 | `TextSizing.ShrinkFont` | Reduce font size to fit | `Đổi cỡ phông cho vừa khung` (fit co the tang hoac giam trong min/max, nen khong goi la "giam") |
 | `TextSizing.ScaleWidth` | Fit by scaling font width | `Co giãn chiều ngang chữ cho vừa` |
+| `TextSizing.AdjustHeight` | Adjust height to fit content | `Giữ chiều rộng, chiều cao theo nội dung` (2026-10-29) |
 | `TextOverflow.Error` | Block print and warn | `Chặn in và cảnh báo` |
 | `TextOverflow.Clip` | Ignore excessive content (discard) | `Cắt bỏ phần chữ dư (không in)`: van noi ro phan du bi bo, dung quyet dinh o muc Source va print safety |
 | `TextOverflow.Ellipsis` | End with ellipsis (ANLAbel) | `Thêm dấu ba chấm ở dòng cuối` |

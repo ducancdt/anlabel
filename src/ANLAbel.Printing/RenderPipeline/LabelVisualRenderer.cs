@@ -216,6 +216,7 @@ public sealed class LabelVisualRenderer
                 TextFitMaximumFontSizePt = snapshot.Style.TextFitMaximumFontSizePt,
                 TextFitMinimumScale = snapshot.Style.TextFitMinimumScale,
                 TextFitMaximumScale = snapshot.Style.TextFitMaximumScale,
+                FontScalePercent = snapshot.Style.FontScalePercent,
                 VerticalAlignment = snapshot.Style.VerticalAlignment,
                 TextPaddingMm = snapshot.Style.TextPaddingMm,
                 TextPaddingLeftMm = snapshot.Style.TextPaddingLeftMm,
@@ -333,6 +334,12 @@ public sealed class LabelVisualRenderer
     {
         var value = ResolveData(item, row);
         var brush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
+        if (constrainToBox && TextBoxOverflowDetector.UsesVariableHeight(item))
+        {
+            // NiceLabel 10 VariableHeight: the frame grows or shrinks to this row's wrapped text.
+            rect = new Rect(rect.Left, rect.Top, rect.Width, TextBoxOverflowDetector.MeasureVariableHeightDip(item, value, rect.Width));
+        }
+
         // Shared layout path for Text and TextBox (including free-Text frame-fit
         // compress) so designer preview and print share the same scale outcome.
         if (!constrainToBox

@@ -107,7 +107,7 @@ public sealed class NiceLabel10PrintSetupTests
     }
 
     [Fact]
-    public void OfficeSheet_AppliesNoPhysicalMedia()
+    public void OfficeSheet_AppliesTheSheetAsPhysicalMedia()
     {
         var (template, result) = Import(Format(
             "<Media Type=\"FormatMedia\"><PaperFormat>9</PaperFormat><Width>210000</Width><Height>297000</Height><Type>1</Type></Media>",
@@ -115,24 +115,45 @@ public sealed class NiceLabel10PrintSetupTests
             $"<Name>Microsoft XPS Document Writer</Name><DevModeBuffer>{DevMode(600, 9)}</DevModeBuffer>",
             labelSize: "<ElementWidth>152400</ElementWidth><ElementHeight>101600</ElementHeight><HorizontalOffset>12700</HorizontalOffset><VerticalOffset>12700</VerticalOffset>"));
 
+        var profile = template.PrinterProfile;
         Assert.Equal(NiceLabelMediaSetup.OfficeSheet, result.Setup);
         Assert.Equal((152.4, 101.6), (template.WidthMm, template.HeightMm));
-        Assert.Equal(0, template.PrinterProfile.PhysicalWidthMm);
-        Assert.Equal(0, template.PrinterProfile.OffsetXMm);
-        Assert.Equal(PaperSizeSource.DriverAutomatic, template.PrinterProfile.PaperSizeSource);
+        Assert.Equal((210.0, 297.0), (profile.PhysicalWidthMm, profile.PhysicalHeightMm));
+        Assert.Equal((12.7, 12.7), (profile.OffsetXMm, profile.OffsetYMm));
+        Assert.Equal(PaperSizeSource.Manual, profile.PaperSizeSource);
+        Assert.Equal(600, profile.Dpi);
+        Assert.Equal(1, profile.LabelsPerPage);
     }
 
     [Fact]
-    public void SeveralLabelsPerPage_AppliesNoPhysicalMedia()
+    public void SeveralLabelsPerPage_AppliesTheSheetGrid()
     {
         var (template, result) = Import(Format(
             "<Media Type=\"FormatMedia\"><PaperFormat>256</PaperFormat><Width>108000</Width><Height>297000</Height></Media>",
             "WebFormatLayout",
             $"<Name>Label Printer</Name><DevModeBuffer>{DevMode(203)}</DevModeBuffer>",
-            labelSize: "<ElementWidth>68580</ElementWidth><ElementHeight>25400</ElementHeight><HorizontalCount>1</HorizontalCount><VerticalCount>10</VerticalCount>"));
+            labelSize: "<WebSettings>21</WebSettings><ElementWidth>68580</ElementWidth><ElementHeight>25400</ElementHeight><HorizontalCount>1</HorizontalCount><VerticalCount>10</VerticalCount><VerticalGap>2000</VerticalGap>"));
 
+        var profile = template.PrinterProfile;
         Assert.Equal(NiceLabelMediaSetup.MultipleLabelsPerPage, result.Setup);
         Assert.Equal((1, 10), (result.LabelsAcross, result.LabelsDown));
+        Assert.Equal((1, 10), (profile.LabelsAcross, profile.LabelsDown));
+        Assert.Equal(2.0, profile.VerticalGapMm);
+        Assert.False(profile.FillDownFirst);
+        Assert.Equal((108.0, 297.0), (profile.PhysicalWidthMm, profile.PhysicalHeightMm));
+    }
+
+    [Fact]
+    public void SheetThatCannotHoldTheGrid_IsLeftForPrinterSetup()
+    {
+        var (template, result) = Import(Format(
+            "<Media Type=\"FormatMedia\"><PaperFormat>256</PaperFormat><Width>108000</Width><Height>100000</Height></Media>",
+            "WebFormatLayout",
+            "<Name>Label Printer</Name>",
+            labelSize: "<ElementWidth>68580</ElementWidth><ElementHeight>25400</ElementHeight><HorizontalCount>1</HorizontalCount><VerticalCount>10</VerticalCount>"));
+
+        Assert.Equal(NiceLabelMediaSetup.None, result.Setup);
         Assert.Equal(0, template.PrinterProfile.PhysicalWidthMm);
+        Assert.Equal(1, template.PrinterProfile.LabelsPerPage);
     }
 }

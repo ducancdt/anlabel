@@ -483,7 +483,10 @@ public static class NiceLabel10NlblReader
             ParseBool(scenario, "UseDefaultPrinter"),
             ParseBool(printer, "UseDefaultPrinterSettings"),
             (int)ParseDouble(scenario, "PrintRotation") == 2,
-            dpi);
+            dpi,
+            Thousandths(pageLayout, "HorizontalGap"),
+            Thousandths(pageLayout, "VerticalGap"),
+            (int)ParseDouble(pageLayout, "WebSettings"));
     }
 
     /// <summary>

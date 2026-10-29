@@ -8,7 +8,7 @@ namespace ANLAbel.UnitTests;
 public sealed class LabelStockContractTests
 {
     [Fact]
-    public void OfficeSheetsAreRejectedInBothOrientations()
+    public void OfficeSheetsAreRecognisedInBothOrientations()
     {
         Assert.True(LabelStockContract.IsOfficeSheet(210, 297));
         Assert.True(LabelStockContract.IsOfficeSheet(297, 210));
@@ -41,17 +41,15 @@ public sealed class LabelStockContractTests
     }
 
     [Fact]
-    public void EvaluateBlocksOfficeIncompleteAndMismatchedStock()
+    public void EvaluateAllowsOfficeSheetsAndBlocksIncompleteOrMismatchedStock()
     {
         Assert.True(LabelStockContract.Evaluate(100, 50, 0, 0).IsAllowed);
         Assert.True(LabelStockContract.Evaluate(50, 100, 100, 50).IsAllowed);
 
-        var office = LabelStockContract.Evaluate(50, 30, 210, 297);
-        Assert.False(office.IsAllowed);
-        Assert.Contains("office sheets", office.Diagnostic, StringComparison.OrdinalIgnoreCase);
-
-        var namedOffice = LabelStockContract.Evaluate(100, 50, 0, 0, "A4 210 × 297 mm");
-        Assert.False(namedOffice.IsAllowed);
+        // NiceLabel 10 prints on office sheets; ANLAbel follows it.
+        Assert.True(LabelStockContract.Evaluate(50, 30, 210, 297).IsAllowed);
+        Assert.True(LabelStockContract.Evaluate(210, 297, 210, 297, "A4 210 × 297 mm").IsAllowed);
+        Assert.True(LabelStockContract.Evaluate(297, 420, 297, 420).IsAllowed);
 
         var incomplete = LabelStockContract.Evaluate(100, 50, 100, 0);
         Assert.False(incomplete.IsAllowed);
@@ -73,9 +71,9 @@ public sealed class LabelStockContractTests
         Assert.False(tooSmall.IsAllowed);
         Assert.Contains("8", tooSmall.Diagnostic, StringComparison.Ordinal);
 
-        var tooLarge = LabelStockContract.Evaluate(50, 500, 50, 500);
+        var tooLarge = LabelStockContract.Evaluate(50, 1200, 50, 1200);
         Assert.False(tooLarge.IsAllowed);
-        Assert.Contains("400", tooLarge.Diagnostic, StringComparison.Ordinal);
+        Assert.Contains("1000", tooLarge.Diagnostic, StringComparison.Ordinal);
     }
 
     [Fact]

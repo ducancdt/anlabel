@@ -29,9 +29,9 @@ public static class NiceLabelPrinterSetupText
             NiceLabelMediaSetup.DriverSettings =>
                 $"Tệp dùng khổ giấy và độ phân giải của driver máy in {printer}; ANLAbel cũng để driver quyết định, hãy chọn máy in nhãn có khổ tem đúng trong Cài đặt máy in.",
             NiceLabelMediaSetup.OfficeSheet =>
-                $"Tệp được thiết kế để in trên tờ {page} bằng máy in {printer}. ANLAbel chỉ in trên cuộn tem nhiệt, nên chưa đặt khổ giấy: hãy chọn máy in nhãn và khổ tem trong Cài đặt máy in.",
+                $"Tem in trên tờ {page} như trong NiceLabel; tệp được thiết kế cho máy in {printer}, hãy chọn máy in trong Cài đặt máy in.",
             NiceLabelMediaSetup.MultipleLabelsPerPage =>
-                $"Tệp in {result.LabelsAcross * result.LabelsDown} tem trên một trang {page} ({result.LabelsAcross} x {result.LabelsDown}); ANLAbel in một tem mỗi trang, nên chưa đặt khổ giấy: hãy chọn khổ tem trong Cài đặt máy in.",
+                $"Tệp in {result.LabelsAcross * result.LabelsDown} tem trên một trang {page} ({result.LabelsAcross} x {result.LabelsDown}); ANLAbel in đúng lưới đó. Tệp được thiết kế cho máy in {printer}, hãy chọn máy in trong Cài đặt máy in.",
             _ => string.Empty
         };
     }

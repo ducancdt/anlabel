@@ -58,19 +58,17 @@ public static partial class NiceLabel10NlblImporter
 
     /// <summary>
     /// Carries the stored printer/media facts into the template's printer
-    /// profile without bypassing ANLAbel's print contracts:
+    /// profile, as NiceLabel 10 prints them:
     /// <list type="bullet">
     /// <item>A label that takes its settings from the printer driver
     /// (<c>UseDefaultPrinterSettings</c>) keeps ANLAbel's driver settings
-    /// source, as in NiceLabel.</item>
-    /// <item>An office sheet (A4/Letter/Legal/A3) is not thermal stock under
-    /// <see cref="LabelStockContract"/>, and several labels per page have no
-    /// ANLAbel equivalent (one label per page): no physical media is applied,
-    /// the operator chooses label stock in Printer Setup.</item>
-    /// <item>Otherwise the page is the label stock: label settings, manual
-    /// paper size with the stored page as physical media, the first label's
-    /// margin as the output offset, and the authored driver DPI when it is an
-    /// industrial resolution.</item>
+    /// source, as in NiceLabel; a stored sheet layout keeps its grid.</item>
+    /// <item>Otherwise the stored page is the physical media — label stock,
+    /// an office sheet (A4/Letter/Legal/A3) or a sheet of several labels —
+    /// with label settings, manual paper size, the first label's margin as
+    /// the output offset, the label grid (counts, gaps, fill order, start
+    /// corner) and the authored driver DPI when it is an industrial
+    /// resolution.</item>
     /// </list>
     /// <c>PrintRotation</c> UpsideDown always maps to a 180° output rotation.
     /// The authoring printer is reported, never selected: a queue must be
@@ -96,37 +94,35 @@ public static partial class NiceLabel10NlblImporter
         NiceLabelPrinterSetupResult Result(NiceLabelMediaSetup kind, int dpi = 0) => new(
             kind, authoredPrinter, setup.PageWidthMm, setup.PageHeightMm, setup.LabelsAcross, setup.LabelsDown, dpi);
 
+        var pageHoldsLabels = LabelStockContract.Evaluate(
+                template.WidthMm, template.HeightMm, setup.PageWidthMm, setup.PageHeightMm).IsAllowed
+            && SheetLayoutContract.Evaluate(
+                template.WidthMm, template.HeightMm, setup.PageWidthMm, setup.PageHeightMm,
+                setup.OffsetXMm, setup.OffsetYMm, setup.LabelsAcross, setup.LabelsDown,
+                setup.HorizontalGapMm, setup.VerticalGapMm).IsAllowed;
+
         if (setup.UseDriverSettings)
         {
             profile.SettingsSource = PrinterSettingsSource.Driver;
+            if (setup.LabelsPerPage > 1 && pageHoldsLabels)
+            {
+                // The grid needs the sheet size; the driver still chooses the paper.
+                ApplyPage(profile, setup);
+            }
+
             return Result(NiceLabelMediaSetup.DriverSettings);
         }
 
-        if (LabelStockContract.IsOfficeSheet(setup.PageWidthMm, setup.PageHeightMm))
+        if (!pageHoldsLabels)
         {
-            return Result(NiceLabelMediaSetup.OfficeSheet);
-        }
-
-        if (setup.LabelsPerPage > 1)
-        {
-            return Result(NiceLabelMediaSetup.MultipleLabelsPerPage);
-        }
-
-        if (!LabelStockContract.IsIndustrialEdge(setup.PageWidthMm)
-            || !LabelStockContract.IsIndustrialEdge(setup.PageHeightMm)
-            || !LabelStockContract.ContainsAuthoredLabel(setup.PageWidthMm, setup.PageHeightMm, template.WidthMm, template.HeightMm))
-        {
-            // Stock the contract would refuse is left for Printer Setup.
+            // A page the contracts would refuse is left for Printer Setup.
             return Result(NiceLabelMediaSetup.None);
         }
 
         profile.SettingsSource = PrinterSettingsSource.Label;
         profile.PaperSizeSource = PaperSizeSource.Manual;
-        profile.PhysicalWidthMm = setup.PageWidthMm;
-        profile.PhysicalHeightMm = setup.PageHeightMm;
         profile.MediaProvenance = PrinterMediaProvenance.UserCustom;
-        profile.OffsetXMm = setup.OffsetXMm;
-        profile.OffsetYMm = setup.OffsetYMm;
+        ApplyPage(profile, setup);
         var appliedDpi = 0;
         if (IndustrialPrintDpiContract.IsIndustrialDpi(setup.DriverDpi))
         {
@@ -135,7 +131,32 @@ public static partial class NiceLabel10NlblImporter
             appliedDpi = setup.DriverDpi;
         }
 
-        return Result(NiceLabelMediaSetup.LabelStock, appliedDpi);
+        var kind = setup.LabelsPerPage > 1
+            ? NiceLabelMediaSetup.MultipleLabelsPerPage
+            : LabelStockContract.IsOfficeSheet(setup.PageWidthMm, setup.PageHeightMm)
+                ? NiceLabelMediaSetup.OfficeSheet
+                : NiceLabelMediaSetup.LabelStock;
+        return Result(kind, appliedDpi);
+    }
+
+    /// <summary>Vendor <c>WebSettings</c> flags (Interfaces.dll).</summary>
+    private const int WebSettingsVertical = 2;
+    private const int WebSettingsBottom = 8;
+    private const int WebSettingsRight = 0x20;
+
+    private static void ApplyPage(PrinterProfile profile, NiceLabel10PrintSetup setup)
+    {
+        profile.PhysicalWidthMm = setup.PageWidthMm;
+        profile.PhysicalHeightMm = setup.PageHeightMm;
+        profile.OffsetXMm = setup.OffsetXMm;
+        profile.OffsetYMm = setup.OffsetYMm;
+        profile.LabelsAcross = setup.LabelsAcross;
+        profile.LabelsDown = setup.LabelsDown;
+        profile.HorizontalGapMm = setup.HorizontalGapMm;
+        profile.VerticalGapMm = setup.VerticalGapMm;
+        profile.FillDownFirst = (setup.WebSettings & WebSettingsVertical) != 0;
+        profile.StartFromRight = (setup.WebSettings & WebSettingsRight) != 0;
+        profile.StartFromBottom = (setup.WebSettings & WebSettingsBottom) != 0;
     }
 
     private static LabelTemplate CreateTemplateCore(
@@ -250,44 +271,28 @@ public static partial class NiceLabel10NlblImporter
         // design-time contents instead of the new-object default frame
         // (which would centre small captions a few millimetres too low).
         var natural = context.MeasureText(item, context.SampleText(record));
-        var compress = CompressFactor(record);
-        if (compress is not null)
-        {
-            // Vendor ScaleFactor < 100 narrows the glyphs. ANLAbel's free Text
-            // compresses its ink into a frame narrower than the natural width
-            // (the border-drag contract: FixedFrame so AutoFit does not
-            // re-expand, horizontal compress only, never expansion), so the
-            // frame is authored here at the scaled natural width.
-            item.WidthMm = natural.WidthMm * compress.Value;
-            item.HeightMm = natural.HeightMm;
-            item.Style.TextSizing = TextSizingMode.FixedFrame;
-        }
-        else
-        {
-            item.WidthMm = natural.WidthMm;
-            item.HeightMm = natural.HeightMm;
-        }
-
+        // Vendor ScaleFactor narrows (< 100) or widens (> 100) the glyphs; it
+        // is ANLAbel's Text FontScalePercent, a style factor that keeps the
+        // Text content-owned (AutoFit), so the frame is the scaled natural width.
+        var scale = FontScalePercent(record);
+        item.Style.FontScalePercent = scale;
+        item.WidthMm = natural.WidthMm * scale / 100.0;
+        item.HeightMm = natural.HeightMm;
         Place(item, record, item.WidthMm, item.HeightMm);
         return item;
     }
 
-    /// <summary>
-    /// Horizontal compress factor (0, 1) for a stored ScaleFactor below
-    /// 100%; null at 100% and for expansion, which ANLAbel's Text contract
-    /// does not offer (the glyphs then print at their natural width).
-    /// </summary>
-    private static double? CompressFactor(NiceLabel10ObjectRecord record)
+    private static double FontScalePercent(NiceLabel10ObjectRecord record)
     {
         var percent = record.ScaleFactorPercent;
-        return double.IsFinite(percent) && percent is > 0 and < 99.5 ? percent / 100.0 : null;
+        return double.IsFinite(percent) && percent > 0 ? Math.Clamp(percent, 10, 400) : 100;
     }
 
     /// <summary>
     /// Vendor <c>BestFitType</c> (FormatDocument.dll): ScaleByFontSize 1 is
     /// ANLAbel's ShrinkFont with the stored point bounds; ScaleByFontScaling
-    /// 2 is ScaleWidth with the stored percent bounds. None and
-    /// VariableHeight keep the frame as authored.
+    /// 2 is ScaleWidth with the stored percent bounds; VariableHeight 3 is
+    /// AdjustHeight (height follows the content). None keeps the frame.
     /// </summary>
     private static void ApplyBestFit(LabelObject item, NiceLabel10ObjectRecord record)
     {
@@ -318,6 +323,9 @@ public static partial class NiceLabel10NlblImporter
                     item.Style.TextFitMaximumScale = record.BestFitMaximumScalePercent / 100.0;
                 }
 
+                break;
+            case 3:
+                item.Style.TextSizing = TextSizingMode.AdjustHeight;
                 break;
         }
     }

@@ -293,7 +293,6 @@ internal static class PrintSafetyRegression
             "The printer driver coerced media to ",
             "The printer driver returned an invalid effective DPI",
             "The printer driver did not return a valid effective PrintTicket",
-            "A4/Letter/Legal/A3 office sheets are not thermal label stock",
             " is not a known industrial thermal resolution",
             "because the label design is invalid",
             "Printing is blocked because one or more selected rows have an invalid copies value",

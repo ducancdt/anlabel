@@ -4,15 +4,16 @@ using ANLAbel.Core.Geometry;
 namespace ANLAbel.Core.Printing;
 
 /// <summary>
-/// Value-only industrial stock policy. Catalog and typed custom sizes are
-/// operator stock; office sheets and incomplete physical dimensions fail closed
-/// without reading a printer driver.
+/// Value-only stock policy. Catalog, typed custom sizes and office sheets
+/// (A4/Letter/Legal/A3, as NiceLabel 10 prints them) are operator stock;
+/// incomplete physical dimensions and media that cannot contain the label
+/// fail closed without reading a printer driver.
 /// </summary>
 public static class LabelStockContract
 {
     public const double OfficeSheetToleranceMm = 0.8;
     public const double MinimumEdgeMm = 8;
-    public const double MaximumEdgeMm = 400;
+    public const double MaximumEdgeMm = 1000;
 
     public static readonly (double WidthMm, double HeightMm) A4Mm = (210, 297);
     public static readonly (double WidthMm, double HeightMm) A3Mm = (297, 420);
@@ -119,7 +120,7 @@ public static class LabelStockContract
         if (!IsIndustrialEdge(labelWidthMm) || !IsIndustrialEdge(labelHeightMm))
         {
             return LabelStockDecision.Blocked(
-                $"Label stock must stay between {MinimumEdgeMm:0} and {MaximumEdgeMm:0} mm on each edge. Enter the physical die size, not a poster or office sheet.");
+                $"Label stock must stay between {MinimumEdgeMm:0} and {MaximumEdgeMm:0} mm on each edge. Enter the physical label or sheet size.");
         }
 
         var physicalUnset = physicalWidthMm == 0 && physicalHeightMm == 0;
@@ -134,14 +135,6 @@ public static class LabelStockContract
         {
             return LabelStockDecision.Blocked(
                 $"Physical stock must stay between {MinimumEdgeMm:0} and {MaximumEdgeMm:0} mm on each edge.");
-        }
-
-        if (IsOfficeSheet(labelWidthMm, labelHeightMm)
-            || (!physicalUnset && IsOfficeSheet(physicalWidthMm, physicalHeightMm))
-            || NameClaimsOfficeSheet(paperName))
-        {
-            return LabelStockDecision.Blocked(
-                "A4/Letter/Legal/A3 office sheets are not thermal label stock. Choose a catalog label size or enter the physical die size in millimetres.");
         }
 
         if (!physicalUnset

@@ -1058,16 +1058,36 @@ public sealed class PrintPreflightValidator
             template.PrinterProfile.PhysicalWidthMm,
             template.PrinterProfile.PhysicalHeightMm,
             template.PrinterProfile.PaperName);
-        if (decision.IsAllowed)
+        if (!decision.IsAllowed)
         {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                "Template",
+                "LabelStock",
+                decision.Diagnostic));
             return;
         }
 
-        issues.Add(new PrintPreflightIssue(
-            0,
-            "Template",
-            "LabelStock",
-            decision.Diagnostic));
+        var profile = template.PrinterProfile;
+        var sheet = SheetLayoutContract.Evaluate(
+            template.WidthMm,
+            template.HeightMm,
+            profile.PhysicalWidthMm,
+            profile.PhysicalHeightMm,
+            profile.OffsetXMm,
+            profile.OffsetYMm,
+            profile.LabelsAcross,
+            profile.LabelsDown,
+            profile.HorizontalGapMm,
+            profile.VerticalGapMm);
+        if (!sheet.IsAllowed)
+        {
+            issues.Add(new PrintPreflightIssue(
+                0,
+                "Template",
+                "LabelStock",
+                sheet.Diagnostic));
+        }
     }
 
     private static void ValidatePrintDpi(LabelTemplate template, List<PrintPreflightIssue> issues)

@@ -1871,6 +1871,24 @@
                                                 </ComboBox.ItemTemplate>
                                             </ComboBox>
                                         </DockPanel>
+                                        <DockPanel Margin="0,4,0,0">
+                                            <DockPanel.Style>
+                                                <Style TargetType="DockPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Text}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DockPanel.Style>
+                                            <TextBlock Text="Tỉ lệ chữ ngang (%)" Style="{StaticResource PropLabel}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox Text="{Binding SelectedObject.Style.FontScalePercent, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                     AutomationProperties.AutomationId="Properties.TextStyle.FontScale"
+                                                     AutomationProperties.Name="Font scaling"
+                                                     ToolTip="Như co giãn chữ trong NiceLabel: 100 là chữ gốc, dưới 100 hẹp lại, trên 100 giãn rộng ra."
+                                                     KeyDown="PositionSizeTextBox_KeyDown"/>
+                                        </DockPanel>
                                         <StackPanel>
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel">
@@ -1895,6 +1913,7 @@
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ShrinkFont}"><Setter Property="Text" Value="Đổi cỡ phông cho vừa khung"/></DataTrigger>
                                                                         <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.ScaleWidth}"><Setter Property="Text" Value="Co giãn chiều ngang chữ cho vừa"/></DataTrigger>
+                                                                        <DataTrigger Binding="{Binding}" Value="{x:Static enums:TextSizingMode.AdjustHeight}"><Setter Property="Text" Value="Giữ chiều rộng, chiều cao theo nội dung"/></DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </TextBlock.Style>

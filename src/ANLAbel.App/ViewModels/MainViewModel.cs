@@ -555,7 +555,8 @@ public sealed class MainViewModel : ObservableObject
     [
             TextSizingMode.FixedFrame,
             TextSizingMode.ShrinkFont,
-        TextSizingMode.ScaleWidth
+        TextSizingMode.ScaleWidth,
+        TextSizingMode.AdjustHeight
     ];
     public IReadOnlyList<TextOverflowMode> TextBoxOverflowModes { get; } =
     [
@@ -4428,7 +4429,8 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        if (item.Style.TextSizing is TextSizingMode.AutoFit or TextSizingMode.AdjustHeight)
+        // AdjustHeight is NiceLabel 10 VariableHeight: height follows content.
+        if (item.Style.TextSizing is TextSizingMode.AutoFit)
         {
             item.Style.TextSizing = TextSizingMode.FixedFrame;
         }

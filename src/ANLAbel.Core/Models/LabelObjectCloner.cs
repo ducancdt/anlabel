@@ -95,6 +95,7 @@ public static class LabelObjectCloner
             TextFitMaximumFontSizePt = source.TextFitMaximumFontSizePt,
             TextFitMinimumScale = source.TextFitMinimumScale,
             TextFitMaximumScale = source.TextFitMaximumScale,
+            FontScalePercent = source.FontScalePercent,
             VerticalAlignment = source.VerticalAlignment,
             TextPaddingMm = source.TextPaddingMm,
             TextPaddingLeftMm = source.TextPaddingLeftMm,

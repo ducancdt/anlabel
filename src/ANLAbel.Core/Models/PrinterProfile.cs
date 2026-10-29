@@ -27,6 +27,13 @@ public sealed class PrinterProfile : ObservableObject
     private string _driverMediaIdentity = string.Empty;
     private string _driverIdentity = string.Empty;
     private PrintMethod _printMethod = PrintMethod.ApplicationGraphic;
+    private int _labelsAcross = 1;
+    private int _labelsDown = 1;
+    private double _horizontalGapMm;
+    private double _verticalGapMm;
+    private bool _fillDownFirst;
+    private bool _startFromRight;
+    private bool _startFromBottom;
 
     public string PrinterName
     {
@@ -191,6 +198,62 @@ public sealed class PrinterProfile : ObservableObject
         get => _printMethod;
         set => SetProperty(ref _printMethod, value);
     }
+
+    /// <summary>
+    /// Labels per row on one sheet (NiceLabel 10 <c>HorizontalCount</c>). One
+    /// label per page when both counts are 1; the first label sits at
+    /// <see cref="OffsetXMm"/>/<see cref="OffsetYMm"/> on the physical sheet.
+    /// </summary>
+    public int LabelsAcross
+    {
+        get => _labelsAcross;
+        set => SetProperty(ref _labelsAcross, Math.Clamp(value, 1, 100));
+    }
+
+    /// <summary>Label rows on one sheet (NiceLabel 10 <c>VerticalCount</c>).</summary>
+    public int LabelsDown
+    {
+        get => _labelsDown;
+        set => SetProperty(ref _labelsDown, Math.Clamp(value, 1, 100));
+    }
+
+    /// <summary>Space between label columns on a sheet.</summary>
+    public double HorizontalGapMm
+    {
+        get => _horizontalGapMm;
+        set => SetProperty(ref _horizontalGapMm, Math.Max(0, Math.Round(value, 2)));
+    }
+
+    /// <summary>Space between label rows on a sheet.</summary>
+    public double VerticalGapMm
+    {
+        get => _verticalGapMm;
+        set => SetProperty(ref _verticalGapMm, Math.Max(0, Math.Round(value, 2)));
+    }
+
+    /// <summary>Fill a column before moving across (NiceLabel 10 <c>WebSettings.Vertical</c>).</summary>
+    public bool FillDownFirst
+    {
+        get => _fillDownFirst;
+        set => SetProperty(ref _fillDownFirst, value);
+    }
+
+    /// <summary>Start at the right-hand column (NiceLabel 10 <c>WebSettings.Right</c>).</summary>
+    public bool StartFromRight
+    {
+        get => _startFromRight;
+        set => SetProperty(ref _startFromRight, value);
+    }
+
+    /// <summary>Start at the bottom row (NiceLabel 10 <c>WebSettings.Bottom</c>).</summary>
+    public bool StartFromBottom
+    {
+        get => _startFromBottom;
+        set => SetProperty(ref _startFromBottom, value);
+    }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int LabelsPerPage => LabelsAcross * LabelsDown;
 
     /// <summary>
     /// Members written by a newer ANLAbel that this version does not know. They

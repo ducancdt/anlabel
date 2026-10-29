@@ -68,6 +68,43 @@ public static class TextBoxOverflowDetector
     }
 
     /// <summary>
+    /// NiceLabel 10 framed-text VariableHeight: the TextBox keeps its width and
+    /// its height follows the wrapped content.
+    /// </summary>
+    public static bool UsesVariableHeight(LabelObject item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.Type == ObjectType.TextBox
+            && item.Style.TextSizing == TextSizingMode.AdjustHeight;
+    }
+
+    /// <summary>
+    /// Frame height (DIP) that holds <paramref name="value"/> wrapped at the
+    /// authored width, padding included (VariableHeight).
+    /// </summary>
+    public static double MeasureVariableHeightDip(LabelObject item, string? value, double widthDip, double pixelsPerDip = 1.0)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        const double probeHeightDip = 100000;
+        var layout = CreateTextLayout(
+            item,
+            string.IsNullOrEmpty(value) ? " " : value,
+            widthDip,
+            probeHeightDip,
+            constrainToBox: true,
+            Brushes.Black,
+            pixelsPerDip);
+        return Math.Max(1, Math.Ceiling(layout.Metrics.HeightDip) + GetVerticalPaddingDip(item, constrainToBox: true));
+    }
+
+    /// <summary>Text glyph scaling style factor (NiceLabel 10 <c>ScaleFactor</c>); 1 for other objects.</summary>
+    public static double ResolveFontScale(LabelObject item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.Type == ObjectType.Text ? item.Style.FontScalePercent / 100.0 : 1.0;
+    }
+
+    /// <summary>
     /// Free <see cref="ObjectType.Text"/> compresses glyphs into an undersized
     /// authored selection frame (border-drag WYSIWYG). This is not TextBox
     /// ownership: no wrap-as-field, no overflow Error block, and content AutoFit
@@ -197,8 +234,9 @@ public static class TextBoxOverflowDetector
         var text = CreateFormattedText(item, value, Brushes.Black, pixelsPerDip);
         var horizontalPaddingDip = GetHorizontalPaddingDip(item, constrainToBox: false);
         var verticalPaddingDip = GetVerticalPaddingDip(item, constrainToBox: false);
+        var scaledWidthDip = text.WidthIncludingTrailingWhitespace * ResolveFontScale(item);
         return (
-            Math.Max(minSizeMm, MmConverter.DipToMm(Math.Ceiling(text.WidthIncludingTrailingWhitespace) + horizontalPaddingDip) + slackMm),
+            Math.Max(minSizeMm, MmConverter.DipToMm(Math.Ceiling(scaledWidthDip) + horizontalPaddingDip) + slackMm),
             Math.Max(minSizeMm, MmConverter.DipToMm(Math.Ceiling(text.Height) + verticalPaddingDip) + slackMm));
     }
 
@@ -207,6 +245,11 @@ public static class TextBoxOverflowDetector
         if (!ShouldConstrainToBox(item) || widthDip <= 0 || heightDip <= 0)
         {
             return false;
+        }
+
+        if (UsesVariableHeight(item))
+        {
+            heightDip = Math.Max(heightDip, MeasureVariableHeightDip(item, value, widthDip, pixelsPerDip));
         }
 
         if (HasExplicitLineHeight(item) || UsesShrinkFont(item) || UsesScaleWidth(item))
@@ -424,10 +467,13 @@ public static class TextBoxOverflowDetector
                 naturalWidth = Math.Max(width, 0.01);
             }
 
+            // The Text's own glyph scaling (NiceLabel ScaleFactor) is applied
+            // first; frame-fit compress then works on the scaled glyphs.
+            var fontScale = ResolveFontScale(item);
             var naturalHeight = Math.Max(totalHeight, 0.01);
             var contentHeight = GetContentHeightDip(item, heightDip, constrainToBox: false);
-            var fit = ResolveTextFrameFitScale(naturalWidth, naturalHeight, contentWidth, contentHeight, lineHeight);
-            horizontalScale = fit.ScaleX;
+            var fit = ResolveTextFrameFitScale(naturalWidth * fontScale, naturalHeight, contentWidth, contentHeight, lineHeight);
+            horizontalScale = fontScale * fit.ScaleX;
             verticalScale = fit.ScaleY;
             width = naturalWidth * horizontalScale;
             totalHeight = naturalHeight * verticalScale;

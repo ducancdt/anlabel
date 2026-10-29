@@ -3,8 +3,10 @@
 Evidence record for the NiceLabel 10 (Designer 10.5 / PowerForms 21.5)
 installation on this machine and the ANLAbel slice it supports: opening a
 NiceLabel 10 `.nlbl` file as a new unsaved ANLAbel template. NiceLabel is a
-reference only (see `docs/REFERENCE_POLICY.md`); nothing here weakens the
-protected print/data gates or the Text/TextBox contract.
+reference only (see `docs/REFERENCE_POLICY.md`). On 2026-10-29 the owner
+asked to drop the office-sheet ban and follow NiceLabel 10 for text as
+well; §4 and §10 record what changed. The remaining print/data gates
+(verified queue, DPI, scale, overflow) are unchanged.
 
 ## §1 Installation map (2026-10-27)
 
@@ -152,13 +154,12 @@ anchored or rotated position texts are placed from their real size.
 
 Converted: position texts (Text) and framed texts (TextBox with the
 stored frame), with bold/italic/underline, colour and alignment; a
-position text with `ScaleFactor` below 100 is authored as a
-`FixedFrame` Text whose frame is the scaled natural width, so ANLAbel's
-own free-Text compress draws the narrowed glyphs (expansion above 100
-has no ANLAbel equivalent and prints at natural width); framed-text
-`BestFit` ScaleByFontSize becomes `ShrinkFont` with the stored point
-bounds and ScaleByFontScaling becomes `ScaleWidth` with the stored
-scale bounds;
+position text's `ScaleFactor` becomes the Text style factor
+`FontScalePercent` (narrowing below 100, widening above 100, AutoFit
+frame at the scaled width); framed-text `BestFit` ScaleByFontSize
+becomes `ShrinkFont` with the stored point bounds, ScaleByFontScaling
+becomes `ScaleWidth` with the stored scale bounds and VariableHeight
+becomes `AdjustHeight` (width kept, height follows the content);
 bindings to solution variables (`{?Name}` with the stored prompt text,
 default, length, required and digits-only facts), current-date variables
 (`{#NOW[+Nd]:format}`), concatenation functions and mixed contents
@@ -427,30 +428,35 @@ Normal, UpsideDown) and `WebSettings` (`Interfaces.dll`),
 - `PageLayout`: `ElementWidth`/`ElementHeight` (the label), the first
   label's `HorizontalOffset`/`VerticalOffset` on the page, corner radii
   and corrections; a `WebFormatLayout` adds `HorizontalCount`/
-  `VerticalCount`, gaps and `WebSettings` fill order.
+  `VerticalCount`, `HorizontalGap`/`VerticalGap` (1/1000 mm) and the
+  `WebSettings` flags — Horizontal 1 / Vertical 2 (fill order), Top 4,
+  Bottom 8, Left 0x10, Right 0x20 (start corner). Every multi-label
+  file in the corpus stores 21 (across then down from the top-left).
 - `PrintScenario`: `Printer` (`Name`, `DriverName`, `DevModeBuffer`,
   `UseDefaultPrinterSettings` — paper size and resolution from the driver
   rather than the label), `UseDefaultPrinter`, `PrintRotation`, cutter and
   double-sided options.
 
 Corpus: 104 labels take the driver's settings; 92 are authored on office
-sheets (A4/Letter, mostly on the XPS writer, 20 of them with several
+sheets (A4/Letter, mostly on the XPS writer, 14 of them with several
 labels per sheet); 11 are one label per page on label stock (Zebra/CAB
 rolls, or label-sized pages). No file stores `PrintRotation` UpsideDown
 or a landscape DEVMODE.
 
-ANLAbel (`NiceLabel10NlblImporter.ApplyPrintSetup`), within its print
-contracts: driver settings → `SettingsSource=Driver` (driver-automatic
-paper); one label per page on stock that `LabelStockContract` accepts →
-label settings, manual paper size with the page as physical media
-(`MediaProvenance=UserCustom`), the first label's offsets, and the
-DEVMODE resolution when `IndustrialPrintDpiContract` accepts it;
-UpsideDown → `Rotated180`; `StockName` → `LabelStockName`. Office sheets
-are refused by `LabelStockContract` (ANLAbel prints thermal stock only)
-and several labels per page have no ANLAbel equivalent, so neither gets
-physical media. The authoring printer is never selected — a queue must
-be chosen and verified on this machine — but the import status names it
-(`NiceLabelPrinterSetupText`) and says what the operator still has to
-choose. Sweep: 104 driver settings, 92 office sheets, 11 label stocks
-(8 at 203 DPI, 3 at 600 DPI); every applied stock and DPI passes both
-contracts.
+ANLAbel (`NiceLabel10NlblImporter.ApplyPrintSetup`), following NiceLabel
+(owner request 2026-10-29): driver settings → `SettingsSource=Driver`
+(driver-automatic paper; a multi-label grid keeps its sheet size);
+otherwise the stored page is the physical media — label stock, an office
+sheet or a sheet of several labels — with label settings, manual paper
+size (`MediaProvenance=UserCustom`), the first label's offsets, the
+label grid (`PrinterProfile.LabelsAcross/LabelsDown`, gaps, fill order,
+start corner) and the DEVMODE resolution when `IndustrialPrintDpiContract`
+accepts it; UpsideDown → `Rotated180`; `StockName` → `LabelStockName`.
+`LabelStockContract` no longer refuses office sheets (edges 8–1000 mm);
+`SheetLayoutContract` checks that the grid lies on the sheet, and the
+print service then puts each row's label in its cell, one sheet per page.
+The authoring printer is never selected — a queue must be chosen and
+verified on this machine — but the import status names it
+(`NiceLabelPrinterSetupText`). Sweep: 104 driver settings, 78 office
+sheets, 14 multi-label sheets, 11 label stocks; every applied page, grid
+and DPI passes the contracts.

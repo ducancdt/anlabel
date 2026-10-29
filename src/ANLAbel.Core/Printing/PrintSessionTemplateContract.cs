@@ -68,5 +68,12 @@ public static class PrintSessionTemplateContract
         target.DriverMediaIdentity = source.DriverMediaIdentity;
         target.DriverIdentity = source.DriverIdentity;
         target.PrintMethod = source.PrintMethod;
+        target.LabelsAcross = source.LabelsAcross;
+        target.LabelsDown = source.LabelsDown;
+        target.HorizontalGapMm = source.HorizontalGapMm;
+        target.VerticalGapMm = source.VerticalGapMm;
+        target.FillDownFirst = source.FillDownFirst;
+        target.StartFromRight = source.StartFromRight;
+        target.StartFromBottom = source.StartFromBottom;
     }
 }
