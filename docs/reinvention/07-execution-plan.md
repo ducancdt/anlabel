@@ -318,8 +318,9 @@ Files using these features need this version or later.
     binding expressions; `ScaleFactor` below 100 becomes a FixedFrame
     Text at the scaled width and framed-text `BestFit` becomes
     ShrinkFont/ScaleWidth with the stored bounds (vendor `BestFitType`
-    from `FormatDocument.dll`). Objects bound to script/GS1/HIBC functions, GS1
-    DataBar, payload-less graphics, RTF texts and report items stay
+    from `FormatDocument.dll`); rich-text items carry their recovered
+    plain text. Objects bound to script/GS1/HIBC functions, GS1
+    DataBar, payload-less graphics and report items stay
     unconverted and are counted in the status line. Evidence: production
     sweep over all 207 installed sample labels (207/207 opened, 5,971 of
     6,467 objects converted honestly — the earlier 6,298 included bound

@@ -165,7 +165,11 @@ ANLAbel cannot reproduce (VBScript/Python `ExecuteScriptFunction`, GS1
 and HIBC composition, `SubsetFunction`, `DateAddFunction`, `GS1DataBar`)
 or to variables computed from them; GS1 DataBar barcodes (no ANLAbel
 symbology); graphics without an embedded payload or bound to a variable;
-rich-text framed texts (RTF payload); report/group items.
+report/group items. Rich-text framed texts (`RichTextFormatting`, 26 in
+the corpus; contents stored as raw RTF, base64 RTF or base64 text) are
+converted with their recovered plain text (`NiceLabel10RichText`:
+paragraph/line/cell breaks kept, hex escapes in the document code page,
+`\uN` with the `\ucN` fallback, formatting dropped).
 
 ## §5 Designer architecture (for the "rebuild like them" question)
 
@@ -234,8 +238,9 @@ an acceptance check.
   mappings): 207/207 opened; 6,467 stored objects, 5,971 converted
   (92.3%); unconverted = 258 barcodes and 168 texts bound to script/GS1/
   HIBC/subset/date-add functions (or to variables computed from them,
-  14 of the total), 37 graphics without payload or bound, 4 rich-text
-  framed texts, 15 report items. The earlier figure of 97.4% counted
+  14 of the total), 37 graphics without payload or bound, 15 report
+  items (rich-text framed texts convert with their plain text since
+  2026-10-29). The earlier figure of 97.4% counted
   bound objects whose binding had silently fallen back to their sample
   text because no variable resolved (§2); they now either bind or are
   reported.

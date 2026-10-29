@@ -233,6 +233,14 @@ public static class NiceLabel10NlblReader
         var geometry = item.Element("Geometry");
         var geometryType = geometry?.Attribute("Type")?.Value;
         var content = ChildText(item, "FixedContents") ?? string.Empty;
+        var richText = ParseBool(item, "RichTextFormatting");
+        if (richText)
+        {
+            // Rich-text items store raw or base64 RTF (or base64 text); only
+            // the plain text can be carried into ANLAbel.
+            content = NiceLabel10RichText.ToPlainText(content);
+        }
+
         var (variableId, variableName, unresolved) = ResolveVariable(item, variables);
         var textAlignment = (int)ParseDouble(item, "TextBoxAlignment");
         var fillStyle = (int)ParseDouble(item, "FillStyle");
@@ -358,7 +366,10 @@ public static class NiceLabel10NlblReader
             RotationDegrees = ParseDouble(geometry, "Rotation"),
             AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
             Underline = underline,
-            ContentTemplate = ReadContentTemplate(item),
+            ContentTemplate = ReadContentTemplate(item) is { } contentTemplate
+                ? (richText ? NiceLabel10RichText.ToPlainText(contentTemplate) : contentTemplate)
+                : null,
+            IsRichText = richText,
             ScaleFactorPercent = item.Element("ScaleFactor") is null ? 100 : ParseDouble(item, "ScaleFactor"),
             BestFitValue = (int)ParseDouble(item, "BestFit"),
             BestFitMinimumFontSizePt = ParseDouble(item, "BestFitMinimumFontSize"),

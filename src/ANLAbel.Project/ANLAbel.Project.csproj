@@ -16,6 +16,8 @@
     <!-- GDI+ metafile player for NiceLabel 10 WMF/EMF clipart (Windows only;
          the importer checks the platform before use). -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.14" />
+    <!-- Windows code pages for the \ansicpg of NiceLabel 10 rich-text items. -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

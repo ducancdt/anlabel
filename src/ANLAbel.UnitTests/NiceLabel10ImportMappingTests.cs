@@ -294,6 +294,26 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void RichFramedText_CarriesRecoveredPlainText()
+    {
+        var rtf = @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\pard\b ACME\b0  IDEAL\par 1 ROADRUNNER WAY\par}";
+        var stored = Convert.ToBase64String(Encoding.UTF8.GetBytes(rtf));
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>Address</Name>
+              <Geometry Type="RectGeometry"><Left>5000</Left><Top>5000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+              <TextType>2</TextType>
+              <RichTextFormatting>True</RichTextFormatting>
+              <FixedContents>{stored}</FixedContents>
+            </Item>
+            """);
+
+        var box = Assert.Single(template.Objects);
+        Assert.Equal(ObjectType.TextBox, box.Type);
+        Assert.Equal("ACME IDEAL\n1 ROADRUNNER WAY", box.Text);
+    }
+
+    [Fact]
     public void FramedText_BestFitByFontSize_BecomesShrinkFontWithBounds()
     {
         var template = Import("""

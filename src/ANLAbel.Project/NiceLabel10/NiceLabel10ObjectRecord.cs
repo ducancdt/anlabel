@@ -74,6 +74,12 @@ public sealed record NiceLabel10ObjectRecord(
     public string? VariableId { get; init; }
 
     /// <summary>
+    /// The item stored rich text (<c>RichTextFormatting</c>); <see cref="Content"/>
+    /// and <see cref="ContentTemplate"/> then hold its recovered plain text.
+    /// </summary>
+    public bool IsRichText { get; init; }
+
+    /// <summary>
     /// Stored horizontal font scaling in percent (vendor <c>ScaleFactor</c>,
     /// default 100): glyphs of a position text are drawn at this fraction
     /// of their natural width.
