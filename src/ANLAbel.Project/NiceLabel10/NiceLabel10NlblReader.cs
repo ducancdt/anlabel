@@ -358,7 +358,13 @@ public static class NiceLabel10NlblReader
             RotationDegrees = ParseDouble(geometry, "Rotation"),
             AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
             Underline = underline,
-            ContentTemplate = ReadContentTemplate(item)
+            ContentTemplate = ReadContentTemplate(item),
+            ScaleFactorPercent = item.Element("ScaleFactor") is null ? 100 : ParseDouble(item, "ScaleFactor"),
+            BestFitValue = (int)ParseDouble(item, "BestFit"),
+            BestFitMinimumFontSizePt = ParseDouble(item, "BestFitMinimumFontSize"),
+            BestFitMaximumFontSizePt = ParseDouble(item, "BestFitMaximumFontSize"),
+            BestFitMinimumScalePercent = ParseDouble(item, "BestFitMinimumFontScaling"),
+            BestFitMaximumScalePercent = ParseDouble(item, "BestFitMaximumFontScaling")
         };
     }
 

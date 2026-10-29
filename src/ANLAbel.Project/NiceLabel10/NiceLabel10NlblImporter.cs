@@ -136,7 +136,24 @@ public static partial class NiceLabel10NlblImporter
 
         if (type == ObjectType.TextBox)
         {
+            ApplyBestFit(item, record);
             Place(item, record, record.WidthMm, record.HeightMm);
+            return item;
+        }
+
+        var compress = CompressFactor(record);
+        if (compress is not null)
+        {
+            // Vendor ScaleFactor < 100 narrows the glyphs. ANLAbel's free Text
+            // compresses its ink into a frame narrower than the natural width
+            // (the border-drag contract: FixedFrame so AutoFit does not
+            // re-expand, horizontal compress only, never expansion), so the
+            // frame is authored here at the scaled natural width.
+            var natural = context.MeasureText(item, record.Content);
+            item.WidthMm = natural.WidthMm * compress.Value;
+            item.HeightMm = natural.HeightMm;
+            item.Style.TextSizing = TextSizingMode.FixedFrame;
+            Place(item, record, item.WidthMm, item.HeightMm);
         }
         else if (NeedsSizeForPlacement(record))
         {
@@ -147,6 +164,56 @@ public static partial class NiceLabel10NlblImporter
         }
 
         return item;
+    }
+
+    /// <summary>
+    /// Horizontal compress factor (0, 1) for a stored ScaleFactor below
+    /// 100%; null at 100% and for expansion, which ANLAbel's Text contract
+    /// does not offer (the glyphs then print at their natural width).
+    /// </summary>
+    private static double? CompressFactor(NiceLabel10ObjectRecord record)
+    {
+        var percent = record.ScaleFactorPercent;
+        return double.IsFinite(percent) && percent is > 0 and < 99.5 ? percent / 100.0 : null;
+    }
+
+    /// <summary>
+    /// Vendor <c>BestFitType</c> (FormatDocument.dll): ScaleByFontSize 1 is
+    /// ANLAbel's ShrinkFont with the stored point bounds; ScaleByFontScaling
+    /// 2 is ScaleWidth with the stored percent bounds. None and
+    /// VariableHeight keep the frame as authored.
+    /// </summary>
+    private static void ApplyBestFit(LabelObject item, NiceLabel10ObjectRecord record)
+    {
+        switch (record.BestFitValue)
+        {
+            case 1:
+                item.Style.TextSizing = TextSizingMode.ShrinkFont;
+                if (record.BestFitMinimumFontSizePt > 0)
+                {
+                    item.Style.TextFitMinimumFontSizePt = record.BestFitMinimumFontSizePt;
+                }
+
+                if (record.BestFitMaximumFontSizePt > 0)
+                {
+                    item.Style.TextFitMaximumFontSizePt = record.BestFitMaximumFontSizePt;
+                }
+
+                break;
+            case 2:
+                item.Style.TextSizing = TextSizingMode.ScaleWidth;
+                if (record.BestFitMinimumScalePercent > 0)
+                {
+                    item.Style.TextFitMinimumScale = record.BestFitMinimumScalePercent / 100.0;
+                }
+
+                if (record.BestFitMaximumScalePercent > 0)
+                {
+                    item.Style.TextFitMaximumScale = record.BestFitMaximumScalePercent / 100.0;
+                }
+
+                break;
+        }
     }
 
     /// <summary>

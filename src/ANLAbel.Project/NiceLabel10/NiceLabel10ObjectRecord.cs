@@ -74,6 +74,29 @@ public sealed record NiceLabel10ObjectRecord(
     public string? VariableId { get; init; }
 
     /// <summary>
+    /// Stored horizontal font scaling in percent (vendor <c>ScaleFactor</c>,
+    /// default 100): glyphs of a position text are drawn at this fraction
+    /// of their natural width.
+    /// </summary>
+    public double ScaleFactorPercent { get; init; } = 100;
+
+    /// <summary>
+    /// Vendor <c>BestFitType</c> of a framed text: None 0, ScaleByFontSize 1,
+    /// ScaleByFontScaling 2, VariableHeight 3.
+    /// </summary>
+    public int BestFitValue { get; init; }
+
+    /// <summary>Stored font-size bounds (points) for ScaleByFontSize; 0 when absent.</summary>
+    public double BestFitMinimumFontSizePt { get; init; }
+
+    public double BestFitMaximumFontSizePt { get; init; }
+
+    /// <summary>Stored font-scaling bounds (percent) for ScaleByFontScaling; 0 when absent.</summary>
+    public double BestFitMinimumScalePercent { get; init; }
+
+    public double BestFitMaximumScalePercent { get; init; }
+
+    /// <summary>
     /// The item's <c>DataSourceReference</c> names a data source the package
     /// does not declare, so its value cannot be known.
     /// </summary>

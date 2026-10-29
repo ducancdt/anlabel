@@ -89,8 +89,12 @@ at 0 x 0 and is not a label object. Across the 207-file corpus:
   text with each reference written as `[id]`.
 - Framed texts (RectGeometry, `TextType` present) own their frame like
   ANLAbel TextBox; position texts are free-flowing like ANLAbel Text.
-  Position texts may also store `ScaleFactor` (horizontal font scaling in
-  percent, 153 items, 76-109) and `BestFit` (29); neither is mapped.
+  Position texts may also store `ScaleFactor` (`TextDocumentItem` in
+  `FormatDocument.dll`, default 100: horizontal font scaling in percent;
+  151 position texts at 76-104). Framed texts may store `BestFit`
+  (`BestFitType` None 0, ScaleByFontSize 1, ScaleByFontScaling 2,
+  VariableHeight 3; 25 and 4 items) with `BestFitMinimum/MaximumFontSize`
+  (points) or `BestFitMinimum/MaximumFontScaling` (percent).
 - Barcode: `BarcodeData Type="..."` selects the symbology (Code128 family
   271, Code39 family 154, DataMatrix family 94, PDF417 26, EAN-13 family
   23, QR 5, GS1 DataBar 2). `BaseBarWidth` is the module (X)
@@ -131,7 +135,14 @@ offers `Tem NiceLabel (*.lbl;*.nlbl)`. The application passes
 anchored or rotated position texts are placed from their real size.
 
 Converted: position texts (Text) and framed texts (TextBox with the
-stored frame), with bold/italic/underline, colour and alignment;
+stored frame), with bold/italic/underline, colour and alignment; a
+position text with `ScaleFactor` below 100 is authored as a
+`FixedFrame` Text whose frame is the scaled natural width, so ANLAbel's
+own free-Text compress draws the narrowed glyphs (expansion above 100
+has no ANLAbel equivalent and prints at natural width); framed-text
+`BestFit` ScaleByFontSize becomes `ShrinkFont` with the stored point
+bounds and ScaleByFontScaling becomes `ScaleWidth` with the stored
+scale bounds;
 bindings to solution variables (`{?Name}` with the stored prompt text,
 default, length, required and digits-only facts), current-date variables
 (`{#NOW[+Nd]:format}`), concatenation functions and mixed contents

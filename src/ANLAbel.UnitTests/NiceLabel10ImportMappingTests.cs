@@ -252,6 +252,90 @@ public sealed class NiceLabel10ImportMappingTests
         Assert.Equal(19.7, box.HeightMm, 2);
     }
 
+    [Fact]
+    public void ScaledPositionText_CompressesIntoFixedFrameAtScaledWidth()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Narrow</Name>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <Geometry Type="PositionGeometry"><X>50000</X><Y>7000</Y><AnchoringPoint>2</AnchoringPoint></Geometry>
+              <ScaleFactor>79</ScaleFactor>
+              <FixedContents>COMPRESSED</FixedContents>
+            </Item>
+            """, new FixedMeasurer(40, 8));
+
+        var text = Assert.Single(template.Objects);
+        Assert.Equal(ObjectType.Text, text.Type);
+        Assert.Equal(TextSizingMode.FixedFrame, text.Style.TextSizing);
+        Assert.Equal(40 * 0.79, text.WidthMm, 2);
+        Assert.Equal(8, text.HeightMm, 2);
+        // RightTop anchor: the scaled width ends at the stored X.
+        Assert.Equal(50 - 40 * 0.79, text.XMm, 2);
+    }
+
+    [Theory]
+    [InlineData("100", TextSizingMode.AutoFit)]
+    [InlineData("109", TextSizingMode.AutoFit)]
+    [InlineData("", TextSizingMode.AutoFit)]
+    public void UnscaledOrExpandedText_KeepsContentOwnedSizing(string scale, TextSizingMode expected)
+    {
+        var element = scale.Length == 0 ? string.Empty : $"<ScaleFactor>{scale}</ScaleFactor>";
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>Plain</Name>
+              <Geometry Type="PositionGeometry"><X>5000</X><Y>7000</Y></Geometry>
+              {element}
+              <FixedContents>X</FixedContents>
+            </Item>
+            """, new FixedMeasurer(40, 8));
+
+        Assert.Equal(expected, Assert.Single(template.Objects).Style.TextSizing);
+    }
+
+    [Fact]
+    public void FramedText_BestFitByFontSize_BecomesShrinkFontWithBounds()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Fit</Name>
+              <Geometry Type="RectGeometry"><Left>5000</Left><Top>5000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+              <TextType>2</TextType>
+              <BestFit>1</BestFit>
+              <BestFitMinimumFontSize>4</BestFitMinimumFontSize>
+              <BestFitMaximumFontSize>48</BestFitMaximumFontSize>
+              <FixedContents>Fit me</FixedContents>
+            </Item>
+            """);
+
+        var box = Assert.Single(template.Objects);
+        Assert.Equal(TextSizingMode.ShrinkFont, box.Style.TextSizing);
+        Assert.Equal(4, box.Style.TextFitMinimumFontSizePt);
+        Assert.Equal(48, box.Style.TextFitMaximumFontSizePt);
+        Assert.Equal((40.0, 10.0), (box.WidthMm, box.HeightMm));
+    }
+
+    [Fact]
+    public void FramedText_BestFitByFontScaling_BecomesScaleWidthWithBounds()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Fit</Name>
+              <Geometry Type="RectGeometry"><Left>5000</Left><Top>5000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+              <TextType>2</TextType>
+              <BestFit>2</BestFit>
+              <BestFitMinimumFontScaling>50</BestFitMinimumFontScaling>
+              <BestFitMaximumFontScaling>100</BestFitMaximumFontScaling>
+              <FixedContents>Fit me</FixedContents>
+            </Item>
+            """);
+
+        var box = Assert.Single(template.Objects);
+        Assert.Equal(TextSizingMode.ScaleWidth, box.Style.TextSizing);
+        Assert.Equal(0.5, box.Style.TextFitMinimumScale, 3);
+        Assert.Equal(1.0, box.Style.TextFitMaximumScale, 3);
+    }
+
     [Theory]
     [InlineData("<HumanInterpretationPosition>0</HumanInterpretationPosition>", BarcodeHriPlacement.None)]
     [InlineData("<HumanInterpretationPosition>1</HumanInterpretationPosition>", BarcodeHriPlacement.Below)]
