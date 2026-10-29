@@ -832,13 +832,18 @@ public static partial class NiceLabel10NlblImporter
                 return;
             }
 
+            // A variable feeding a rich-text item stores its default in the
+            // same rich encoding (base64 text/RTF) as the item's contents.
+            var storedDefault = record.IsRichText
+                ? NiceLabel10RichText.ToPlainText(variable.DefaultValue)
+                : variable.DefaultValue;
             _template.PromptVariables.Add(new PromptVariableDefinition
             {
                 Name = variable.Name,
                 Prompt = variable.PromptText?.Trim() ?? string.Empty,
                 // The stored default; the item's design-time contents stand
                 // in when the variable declares none.
-                DefaultValue = string.IsNullOrEmpty(variable.DefaultValue) ? record.Content : variable.DefaultValue,
+                DefaultValue = string.IsNullOrEmpty(storedDefault) ? record.Content : storedDefault,
                 MaxLength = Math.Max(0, variable.MaxLength),
                 Required = variable.Required,
                 DigitsOnly = variable.DigitsOnly

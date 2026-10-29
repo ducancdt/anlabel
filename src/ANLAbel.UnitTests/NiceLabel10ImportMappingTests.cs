@@ -314,6 +314,35 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void RichFramedText_BoundToVariable_DecodesTheVariableDefault()
+    {
+        var encodedDefault = Convert.ToBase64String(Encoding.UTF8.GetBytes("ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY"));
+        var solution = SolutionXml.Replace(
+            "<StringValue>L-001</StringValue><UserValue>L-001</UserValue>",
+            $"<StringValue>{encodedDefault}</StringValue><UserValue>{encodedDefault}</UserValue>");
+        var entries = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Formats/Sample"] = Encoding.UTF8.GetBytes(Format($"""
+                <Item Type="TextDocumentItem">
+                  <Name>FromAddress</Name>
+                  <Geometry Type="RectGeometry"><Left>5000</Left><Top>5000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+                  <TextType>2</TextType>
+                  <RichTextFormatting>True</RichTextFormatting>
+                  <FixedContents>{encodedDefault}</FixedContents>
+                  <DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference>
+                </Item>
+                """)),
+            ["Sample.slnx"] = Encoding.UTF8.GetBytes(solution)
+        };
+
+        var template = NiceLabel10NlblImporter.CreateTemplate(NiceLabel10NlblReader.Parse(entries), "sample.nlbl");
+
+        var box = Assert.Single(template.Objects);
+        Assert.Equal("{?Lot}", box.BindingExpression);
+        Assert.Equal("ACME IDEAL AUTO PARTS\r\n1 ROADRUNNER WAY", Assert.Single(template.PromptVariables).DefaultValue);
+    }
+
+    [Fact]
     public void FramedText_BestFitByFontSize_BecomesShrinkFontWithBounds()
     {
         var template = Import("""
