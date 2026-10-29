@@ -139,7 +139,21 @@ Third pass (2026-10-29):
   regression gate (`TestOutput/properties-floating.png`); this machine's
   session did not accept synthetic mouse input for a manual check.
 
-Not converted: Rich Text Box, Inverse and Report objects (0, 0 and 2 of the
-207 corpus labels use them; each needs a new print-pipeline object), and
-NiceLabel products/integrations outside the label designer — PowerForms
-forms and solutions, Access/SQL Server/ODBC connectors, RFID encoding.
+Fourth pass (2026-10-30):
+
+- Inverse object (`ObjectType.Inverse`, toolbox "Đảo màu"): print and
+  preview rasterise the content beneath its frame at the print resolution
+  and swap black and white; the designer shows the area hatched (WPF cannot
+  invert sibling elements). Gate: `inverse object swaps black and white
+  beneath it in print`.
+- Rich Text Box (`ObjectType.RichTextBox`, toolbox "Chữ RTF", RTF in
+  `LabelObject.RichText`): one `RichTextLayout` for print, preview and the
+  designer, wrapped at the frame width and clipped at the frame; Properties
+  editor with bold/italic/underline/size/alignment. Gate: `rich text box
+  prints formatted text clipped at its frame`.
+
+Not converted: the Report object (2 of 207 corpus labels; it prints many
+data records on one label, which changes ANLAbel's one-row-per-label print
+job and needs its own decision), and NiceLabel products/integrations outside
+the label designer — PowerForms forms and solutions, Access/SQL Server/ODBC
+connectors, RFID encoding.
