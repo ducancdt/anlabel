@@ -167,10 +167,16 @@ sizes), an explicit DataMatrix format giving an exact frame; PDF417
 (§6); embedded graphics (§6); lines and rectangles. Every object is
 placed through the anchor/rotation contract of §8.
 
+GS1-128 compositions (`GS1128Function`) become ANLAbel's own
+`(AI)value` notation and date arithmetic on the current date
+(`DateAddFunction`) becomes `{#NOW+Nd+Nmo+Ny:format}` (§9).
+
 Not converted (fail-closed, counted in the UI status via
 `NiceLabelTotalObjectCount`): objects bound to solution functions
-ANLAbel cannot reproduce (VBScript/Python `ExecuteScriptFunction`, GS1
-and HIBC composition, `SubsetFunction`, `DateAddFunction`, `GS1DataBar`)
+ANLAbel cannot reproduce (VBScript/Python `ExecuteScriptFunction`, ASC
+MH10/ANSI (`AscFactFunction`), `TransferDataSyntaxFunction`, HIBC,
+`SubsetFunction`, `GS1DataBarFunction`, GS1-128 parts whose check digit
+NiceLabel computes at print time, date arithmetic on a prompted date)
 or to variables computed from them; GS1 DataBar barcodes (no ANLAbel
 symbology); graphics without an embedded payload or bound to a variable;
 report/group items. Rich-text framed texts (`RichTextFormatting`, 26 in
@@ -243,12 +249,13 @@ an acceptance check.
 
 - Production reader/importer sweep over all 207 installed sample files
   (2026-10-29, after the solution-entry fix and the placement/data-source
-  mappings): 207/207 opened; 6,467 stored objects, 5,971 converted
-  (92.3%); unconverted = 258 barcodes and 168 texts bound to script/GS1/
-  HIBC/subset/date-add functions (or to variables computed from them,
-  14 of the total), 37 graphics without payload or bound, 15 report
-  items (rich-text framed texts convert with their plain text since
-  2026-10-29). The earlier figure of 97.4% counted
+  mappings): 207/207 opened; 6,467 stored objects, 6,005 converted
+  (92.9%); unconverted = 245 barcodes and 157 texts bound to
+  script/ASC/HIBC/subset functions, GS1-128 parts needing a computed
+  check digit, or date arithmetic on prompted dates (or to variables
+  computed from them, 12 of the total), 37 graphics without payload or
+  bound, 4 rich-text templates referencing such functions, 15 report
+  items. The earlier figure of 97.4% counted
   bound objects whose binding had silently fallen back to their sample
   text because no variable resolved (§2); they now either bind or are
   reported.
@@ -333,3 +340,22 @@ sources' expressions; `ConcatenateFunction` (data values joined by
 `Separator`) is read into the same template form. Database fields bind
 by `FieldName` as `{Column}`. Counters (`IncrementType`, 8 variables)
 are read as plain prompts; their increment is not reproduced.
+
+`GS1128Function` (`AdvancedFunctions.dll`): a list of `GS1128DataValue`
+parts, each with `ApplicationIdentifierId` (an index into the vendor AI
+table, the embedded resource
+`EuroPlus.NiceLabel.Functions.Resources.ApplicationIdentifiers.xml`,
+version 6.5, 217 rows; attribute bit 16 = value carries a check digit,
+bit 64 = the stored `Multiplier` digit completes a three-digit AI such
+as 310 → 3103), `AutoCheckDigitCalculation` and a data source. The table
+is carried in `NiceLabel10Gs1ApplicationIdentifiers`; each part becomes
+`(AI)[id]`, date AIs (11-17) asking the referenced date for `yyMMdd`, so
+the function reads exactly like ANLAbel's `(AI)value` authoring notation
+(`BarcodeApplicationContract`). A part with auto check-digit
+calculation has no ANLAbel equivalent (ANLAbel requires the full GTIN/
+SSCC including its check digit), so such a function stays unresolved.
+`DateAddFunction` stores Day/Month/Year offsets, an input date source and
+an `OutputFormat`; when the input is (a chain of) current-date sources
+the offsets add up into one `{#NOW...}` field, otherwise it stays
+unresolved. Corpus: 30 GS1-128 functions (12 contain an auto check-digit
+part), 15 date-add functions.

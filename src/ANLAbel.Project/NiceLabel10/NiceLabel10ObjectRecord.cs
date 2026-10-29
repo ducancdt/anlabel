@@ -162,6 +162,12 @@ public sealed record NiceLabel10ObjectRecord(
 /// For a database field (<c>DBField</c>/<c>CsvDBField</c>): the stored
 /// column name; null for every other data source.
 /// </param>
+/// <param name="SystemDateOffsetMonths">Stored month offset (DateAddFunction).</param>
+/// <param name="SystemDateOffsetYears">Stored year offset (DateAddFunction).</param>
+/// <param name="DateInputId">
+/// For a <c>DateAddFunction</c>: the data source whose date the offsets
+/// apply to; null for a variable's own current date.
+/// </param>
 public sealed record NiceLabel10Variable(
     string Id,
     string Name,
@@ -174,7 +180,10 @@ public sealed record NiceLabel10Variable(
     string? SystemDateFormat,
     int SystemDateOffsetDays,
     string? FunctionTemplate,
-    string? DataFieldName = null);
+    string? DataFieldName = null,
+    int SystemDateOffsetMonths = 0,
+    int SystemDateOffsetYears = 0,
+    string? DateInputId = null);
 
 /// <summary>
 /// A parsed NiceLabel 10 label: stored name, label size in millimetres,

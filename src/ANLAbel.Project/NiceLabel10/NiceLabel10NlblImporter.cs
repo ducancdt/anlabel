@@ -761,7 +761,7 @@ public static partial class NiceLabel10NlblImporter
             return measured ?? EstimateTextSize(item, sampleText);
         }
 
-        private string? ExpressionFor(NiceLabel10Variable variable, int depth, List<NiceLabel10Variable> prompts)
+        private string? ExpressionFor(NiceLabel10Variable variable, int depth, List<NiceLabel10Variable> prompts, string? dateFormatOverride = null)
         {
             if (variable.DataFieldName is { } field)
             {
@@ -769,17 +769,40 @@ public static partial class NiceLabel10NlblImporter
                 return field.IndexOfAny(new[] { '{', '}' }) >= 0 ? null : "{" + field + "}";
             }
 
-            if (variable.SystemDateFormat is { } format)
+            if (variable.SystemDateFormat is { } storedFormat)
             {
+                // A date function (DateAddFunction) applies its offsets to an
+                // input date; only the current date can be reproduced, so the
+                // input must itself be a current-date variable (chains allowed).
+                int days = variable.SystemDateOffsetDays, months = variable.SystemDateOffsetMonths, years = variable.SystemDateOffsetYears;
+                var input = variable;
+                var hops = 0;
+                while (input.DateInputId is { } inputId)
+                {
+                    if (++hops > MaxFunctionDepth
+                        || !_document.VariablesById.TryGetValue(inputId, out var next)
+                        || next.SystemDateFormat is null)
+                    {
+                        return null;
+                    }
+
+                    days += next.SystemDateOffsetDays;
+                    months += next.SystemDateOffsetMonths;
+                    years += next.SystemDateOffsetYears;
+                    input = next;
+                }
+
+                var format = dateFormatOverride ?? storedFormat;
                 if (format.IndexOfAny(new[] { '{', '}' }) >= 0)
                 {
                     return null;
                 }
 
-                var offset = variable.SystemDateOffsetDays == 0
-                    ? string.Empty
-                    : variable.SystemDateOffsetDays.ToString("+#;-#", CultureInfo.InvariantCulture) + "d";
+                var offset = Offset(days, "d") + Offset(months, "mo") + Offset(years, "y");
                 return "{#NOW" + offset + ":" + format + "}";
+
+                static string Offset(int amount, string unit) =>
+                    amount == 0 ? string.Empty : amount.ToString("+#;-#", CultureInfo.InvariantCulture) + unit;
             }
 
             if (variable.FunctionTemplate is { } template)
@@ -812,7 +835,8 @@ public static partial class NiceLabel10NlblImporter
                     return string.Empty;
                 }
 
-                var inner = ExpressionFor(variable, depth, prompts);
+                var formatOverride = match.Groups[2].Success ? match.Groups[2].Value : null;
+                var inner = ExpressionFor(variable, depth, prompts, formatOverride);
                 if (inner is null)
                 {
                     unresolved = true;
@@ -865,6 +889,8 @@ public static partial class NiceLabel10NlblImporter
         }
     }
 
-    [GeneratedRegex(@"\[([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\]")]
+    // "[id]" references a solution data source; "[id:format]" asks a date
+    // source for a specific .NET format (GS1 date AIs need yyMMdd).
+    [GeneratedRegex(@"\[([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})(?::([^\]\{\}]+))?\]")]
     private static partial Regex ReferencePattern();
 }

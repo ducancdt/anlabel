@@ -16,6 +16,10 @@ public sealed class NiceLabel10ImportMappingTests
     private const string DateId = "22222222-2222-3333-4444-555555555555";
     private const string ConcatId = "33333333-2222-3333-4444-555555555555";
     private const string MissingId = "99999999-2222-3333-4444-555555555555";
+    private const string Gs1Id = "55555555-2222-3333-4444-555555555555";
+    private const string Gs1CheckDigitId = "66666666-2222-3333-4444-555555555555";
+    private const string DateAddId = "77777777-2222-3333-4444-555555555555";
+    private const string QtyId = "88888888-2222-3333-4444-555555555555";
 
     private const string SolutionXml = $"""
         <?xml version="1.0" encoding="utf-8"?>
@@ -53,7 +57,40 @@ public sealed class NiceLabel10ImportMappingTests
                 </DataValue>
               </InternalFunction>
             </Item>
+            <Item Type="Variable">
+              <Id>{QtyId}</Id>
+              <Name>Qty</Name>
+              <DefaultValue Type="StringContents"><StringValue>12</StringValue></DefaultValue>
+            </Item>
           </Variables>
+          <Functions>
+            <Item Type="DateAddFunction">
+              <Id>{DateAddId}</Id>
+              <Name>Use by</Name>
+              <Day Type="DataValue"><FixedValue Type="IntegerContents"><Int32Value>4</Int32Value></FixedValue></Day>
+              <Month Type="DataValue"><FixedValue Type="IntegerContents"><Int32Value>1</Int32Value></FixedValue></Month>
+              <Year Type="DataValue"><FixedValue Type="IntegerContents"></FixedValue></Year>
+              <InputDataSourceReference Type="SolutionDataSourceReference"><Id>{DateId}</Id></InputDataSourceReference>
+              <OutputFormat>MM/dd/yyyy</OutputFormat>
+            </Item>
+            <Item Type="GS1128Function">
+              <Id>{Gs1Id}</Id>
+              <Name>GS1-128-(02+17+37+3103)</Name>
+              <DataValues>
+                <Item Type="GS1128DataValue"><ApplicationIdentifierId>3</ApplicationIdentifierId><Multiplier>0</Multiplier><AutoCheckDigitCalculation>False</AutoCheckDigitCalculation><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item>
+                <Item Type="GS1128DataValue"><ApplicationIdentifierId>8</ApplicationIdentifierId><Multiplier>0</Multiplier><AutoCheckDigitCalculation>False</AutoCheckDigitCalculation><DataSourceReference Type="SolutionDataSourceReference"><Id>{DateAddId}</Id></DataSourceReference></Item>
+                <Item Type="GS1128DataValue"><ApplicationIdentifierId>30</ApplicationIdentifierId><Multiplier>0</Multiplier><AutoCheckDigitCalculation>False</AutoCheckDigitCalculation><DataSourceReference Type="SolutionDataSourceReference"><Id>{QtyId}</Id></DataSourceReference></Item>
+                <Item Type="GS1128DataValue"><ApplicationIdentifierId>71</ApplicationIdentifierId><Multiplier>3</Multiplier><AutoCheckDigitCalculation>False</AutoCheckDigitCalculation><DataSourceReference Type="SolutionDataSourceReference"><Id>{QtyId}</Id></DataSourceReference></Item>
+              </DataValues>
+            </Item>
+            <Item Type="GS1128Function">
+              <Id>{Gs1CheckDigitId}</Id>
+              <Name>GS1-128-(01)</Name>
+              <DataValues>
+                <Item Type="GS1128DataValue"><ApplicationIdentifierId>2</ApplicationIdentifierId><Multiplier>0</Multiplier><AutoCheckDigitCalculation>True</AutoCheckDigitCalculation><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item>
+              </DataValues>
+            </Item>
+          </Functions>
         </EuroPlus.NiceLabel>
         """;
 
@@ -86,11 +123,66 @@ public sealed class NiceLabel10ImportMappingTests
         NiceLabel10NlblImporter.CreateTemplate(Parse(Format(items)), "sample.nlbl", measurer);
 
     [Fact]
+    public void Gs1Composition_BecomesParenthesizedAiExpression()
+    {
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Gs1</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="GS1128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight></BarcodeData>
+              <FixedContents>(02)00000000000000</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{Gs1Id}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal(BarcodeApplicationProfile.Gs1, code.BarcodeApplicationProfile);
+        // The date AI takes the GS1 yyMMdd form; the input current-date
+        // variable's own +3 days add to the function's +4 days.
+        Assert.Equal("(02){?Lot}(17){#NOW+7d+1mo:yyMMdd}(37){?Qty}(3103){?Qty}", code.BindingExpression);
+        Assert.Equal(new[] { "Lot", "Qty" }, template.PromptVariables.Select(v => v.Name).ToArray());
+    }
+
+    [Fact]
+    public void Gs1CompositionWithAutoCheckDigit_IsNotConverted()
+    {
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>Gtin</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FixedContents>(01)1234567890123</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{Gs1CheckDigitId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        Assert.Empty(template.Objects);
+    }
+
+    [Fact]
+    public void DateAddOnCurrentDate_BecomesOffsetNowField()
+    {
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>UseBy</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FixedContents>11/07/2026</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{DateAddId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        // The input current-date variable carries +3 days itself.
+        Assert.Equal("{#NOW+7d+1mo:MM/dd/yyyy}", Assert.Single(template.Objects).BindingExpression);
+    }
+
+    [Fact]
     public void Reader_CollectsVariableFacts()
     {
         var document = Parse(Format(string.Empty));
 
-        Assert.Equal(3, document.VariablesById.Count);
+        // Three variables, the date-add and the mappable GS1 function; the
+        // GS1 function needing a computed check digit is not registered.
+        Assert.Equal(6, document.VariablesById.Count);
+        Assert.False(document.VariablesById.ContainsKey(Gs1CheckDigitId));
         var lot = document.VariablesById[LotId];
         Assert.Equal("Lot", lot.Name);
         Assert.Equal("Enter the lot", lot.PromptText);

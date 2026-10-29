@@ -92,6 +92,31 @@ public static class NiceLabel10NlblReader
                         id, name, null, string.Empty, 0, false, false, true, null, 0,
                         ReadConcatenation(item));
                     continue;
+                case "GS1128Function":
+                    if (ReadGs1Composition(item) is { } gs1Template)
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, null, 0, gs1Template);
+                    }
+
+                    continue;
+                case "DateAddFunction":
+                {
+                    var format = ChildText(item, "OutputFormat");
+                    var input = ChildText(item.Element("InputDataSourceReference"), "Id")?.Trim();
+                    if (!string.IsNullOrWhiteSpace(format) && !string.IsNullOrWhiteSpace(input))
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, format,
+                            (int)ParseDouble(item.Element("Day")?.Element("FixedValue"), "Int32Value"),
+                            null,
+                            SystemDateOffsetMonths: (int)ParseDouble(item.Element("Month")?.Element("FixedValue"), "Int32Value"),
+                            SystemDateOffsetYears: (int)ParseDouble(item.Element("Year")?.Element("FixedValue"), "Int32Value"),
+                            DateInputId: input);
+                    }
+
+                    continue;
+                }
                 default:
                     // Other solution functions (scripts, GS1/HIBC composition,
                     // subsets, date arithmetic) have no ANLAbel equivalent;
@@ -169,6 +194,55 @@ public static class NiceLabel10NlblReader
         }
 
         return string.Join(separator, parts);
+    }
+
+    /// <summary>
+    /// A <c>GS1128Function</c> composes <c>(AI)value</c> segments from
+    /// <c>GS1128DataValue</c> parts (vendor AI table id, decimal multiplier,
+    /// auto check digit, data source). ANLAbel's GS1 notation is the same
+    /// <c>(AI)value</c> form, so the template becomes
+    /// <c>(AI)[id]</c> per part, with date AIs asking the referenced date for
+    /// the GS1 <c>yyMMdd</c> form. Parts whose check digit NiceLabel would
+    /// compute at print time have no ANLAbel equivalent, as have AIs outside
+    /// the vendor table; such a function is left unresolved (null).
+    /// </summary>
+    private static string? ReadGs1Composition(XElement function)
+    {
+        var builder = new System.Text.StringBuilder();
+        foreach (var value in function.Element("DataValues")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+        {
+            if (!string.Equals(value.Attribute("Type")?.Value, "GS1128DataValue", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var id = (int)ParseDouble(value, "ApplicationIdentifierId");
+            var multiplier = (int)ParseDouble(value, "Multiplier");
+            if (ParseBool(value, "AutoCheckDigitCalculation")
+                || !NiceLabel10Gs1ApplicationIdentifiers.TryGetApplicationIdentifier(id, multiplier, out var ai, out _))
+            {
+                return null;
+            }
+
+            var referenceId = ChildText(value.Element("DataSourceReference"), "Id")?.Trim();
+            builder.Append('(').Append(ai).Append(')');
+            if (!string.IsNullOrWhiteSpace(referenceId))
+            {
+                builder.Append('[').Append(referenceId);
+                if (NiceLabel10Gs1ApplicationIdentifiers.IsDateApplicationIdentifier(ai))
+                {
+                    builder.Append(":yyMMdd");
+                }
+
+                builder.Append(']');
+            }
+            else
+            {
+                builder.Append(ChildText(value.Element("FixedValue"), "StringValue") ?? string.Empty);
+            }
+        }
+
+        return builder.Length == 0 ? null : builder.ToString();
     }
 
     private static NiceLabel10Document ParseFormat(
