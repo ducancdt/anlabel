@@ -281,6 +281,7 @@ public sealed record SceneObjectSnapshot
     public string ContentMaskCharacter { get; init; } = "*";
     public string BindingExpression { get; init; } = string.Empty;
     public string Text { get; init; } = string.Empty;
+    public string RichText { get; init; } = string.Empty;
     public BarcodeSymbology BarcodeSymbology { get; init; }
     public BarcodeApplicationProfile BarcodeApplicationProfile { get; init; }
     public QrSizingMode QrSizingMode { get; init; }
@@ -357,6 +358,7 @@ public sealed record SceneObjectSnapshot
             ContentMaskCharacter = item.ContentMaskCharacter,
             BindingExpression = item.BindingExpression,
             Text = item.Text,
+            RichText = item.RichText,
             BarcodeSymbology = item.BarcodeSymbology,
             BarcodeApplicationProfile = item.BarcodeApplicationProfile,
             QrSizingMode = item.QrSizingMode,
@@ -672,6 +674,12 @@ internal static class SceneHash
         }
         Append(builder, item.BindingExpression);
         Append(builder, item.Text);
+        if (item.RichText.Length > 0)
+        {
+            // Only Rich Text Boxes carry it, so older document hashes are unchanged.
+            Append(builder, "rich-text");
+            Append(builder, item.RichText);
+        }
         Append(builder, item.BarcodeSymbology.ToString());
         Append(builder, item.BarcodeApplicationProfile.ToString());
         Append(builder, item.QrSizingMode.ToString());

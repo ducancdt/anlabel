@@ -244,6 +244,7 @@ public sealed class LabelVisualRenderer
             Type = snapshot.Type,
             BindingExpression = snapshot.BindingExpression,
             Text = snapshot.Text,
+            RichText = snapshot.RichText,
             BarcodeSymbology = snapshot.BarcodeSymbology,
             BarcodeApplicationProfile = snapshot.BarcodeApplicationProfile,
             QrSizingMode = snapshot.QrSizingMode,
@@ -411,6 +412,9 @@ public sealed class LabelVisualRenderer
                 break;
             case ObjectType.Image:
                 DrawImage(dc, item, rect);
+                break;
+            case ObjectType.RichTextBox:
+                RichTextLayout.Draw(dc, item.RichText, rect);
                 break;
         }
 

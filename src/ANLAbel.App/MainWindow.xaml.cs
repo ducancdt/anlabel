@@ -245,6 +245,11 @@ public partial class MainWindow : Window
             BindObjectBrowser();
         }
 
+        if (e.PropertyName == nameof(MainViewModel.SelectedObject))
+        {
+            LoadRichTextEditor();
+        }
+
         if (e.PropertyName == nameof(MainViewModel.SelectedObject)
             && FormatPainterToggle.IsChecked == true
             && _viewModel.SelectedObject is { } target
@@ -595,6 +600,31 @@ public partial class MainWindow : Window
         DesignerCanvas.UngroupSelectedObjects();
         DesignerCanvas.Focus();
         e.Handled = true;
+    }
+
+    private LabelObject? _richTextEditorObject;
+
+    /// <summary>Loads the selected Rich Text Box into the Properties editor.</summary>
+    private void LoadRichTextEditor()
+    {
+        _richTextEditorObject = _viewModel.SelectedObject?.Type == ObjectType.RichTextBox ? _viewModel.SelectedObject : null;
+        RichTextEditor.Document = RichTextLayout.CreateDocument(_richTextEditorObject?.RichText, 260);
+    }
+
+    private void RichTextEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (_richTextEditorObject is not { } item)
+        {
+            return;
+        }
+
+        var rtf = RichTextLayout.ToRtf(RichTextEditor.Document);
+        if (!string.Equals(rtf, item.RichText, StringComparison.Ordinal))
+        {
+            _viewModel.BeginTemplateEditGesture();
+            item.RichText = rtf;
+            _viewModel.CommitTemplateEditGesture();
+        }
     }
 
     private LabelObject? _formatPainterSource;

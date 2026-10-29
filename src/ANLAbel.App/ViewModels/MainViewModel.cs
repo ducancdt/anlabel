@@ -175,6 +175,7 @@ public sealed class MainViewModel : ObservableObject
         DataSources = new ObservableCollection<DataSource>(_dataSourceRegistry.Sources);
         AddTextCommand = new RelayCommand(AddText);
         AddTextBoxCommand = new RelayCommand(AddTextBox);
+        AddRichTextBoxCommand = new RelayCommand(AddRichTextBox);
         AddImageCommand = new RelayCommand(AddImage);
         ReplaceSelectedImageCommand = new RelayCommand(ReplaceSelectedImage, () => SelectedObject is not null && SelectedObject.Type == ObjectType.Image);
         AddExcelFieldCommand = new RelayCommand(parameter => AddExcelField(GetFieldName(parameter)), parameter => !string.IsNullOrWhiteSpace(GetFieldName(parameter)));
@@ -764,6 +765,7 @@ public sealed class MainViewModel : ObservableObject
         ObjectType.Rectangle => "Icons/rectangle.png",
         ObjectType.Ellipse => "Icons/ellipse.png",
         ObjectType.Inverse => "Icons/inverse.png",
+        ObjectType.RichTextBox => "Icons/rich_text.png",
         ObjectType.Line => "Icons/line.png",
         ObjectType.Image => "Icons/image.png",
         _ => "Icons/cursor_select.png"
@@ -1567,6 +1569,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AddRectangleCommand { get; }
     public ICommand AddEllipseCommand { get; }
     public ICommand AddInverseCommand { get; }
+    public ICommand AddRichTextBoxCommand { get; }
     public ICommand AddLineCommand { get; }
     public ICommand AddBarcodeCommand { get; }
     public ICommand AddCode128Command { get; }
@@ -3525,6 +3528,27 @@ public sealed class MainViewModel : ObservableObject
                 TextFitMinimumScale = 0.5,
                 TextFitMaximumScale = 1.0
             }
+        });
+    }
+
+    /// <summary>
+    /// NiceLabel 10 Rich Text Box: formatted text edited in Properties
+    /// (Nguồn), frame-owned and clipped like a TextBox.
+    /// </summary>
+    private void AddRichTextBox()
+    {
+        var marginMm = Math.Clamp(Math.Min(Template.WidthMm, Template.HeightMm) * 0.04, 0.5, 2.0);
+        AddObject(new LabelObject
+        {
+            Type = ObjectType.RichTextBox,
+            Name = "Chữ định dạng",
+            XMm = marginMm,
+            YMm = marginMm,
+            WidthMm = Math.Min(40, Math.Max(1, Template.WidthMm - marginMm * 2)),
+            HeightMm = Math.Min(12, Math.Max(1, Template.HeightMm - marginMm * 2)),
+            // "Chữ định dạng" with the first word bold, as RTF (\uN? escapes).
+            RichText = @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\f0\fs18 {\b Ch\u7919?} \u273?\u7883?nh d\u7841?ng\par}",
+            Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
         });
     }
 

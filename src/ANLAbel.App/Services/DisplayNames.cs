@@ -19,6 +19,7 @@ public static class DisplayNames
         ObjectType.Rectangle => "Hình chữ nhật",
         ObjectType.Ellipse => "Hình bầu dục",
         ObjectType.Inverse => "Đảo màu",
+        ObjectType.RichTextBox => "Chữ định dạng",
         ObjectType.Line => "Đường kẻ",
         ObjectType.Image => "Hình ảnh",
         _ => "Đối tượng",

@@ -309,6 +309,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
     ("inverse object swaps black and white beneath it in print", TestInverseObjectSwapsBlackAndWhite),
+    ("rich text box prints formatted text clipped at its frame", TestRichTextBoxPrintsClippedAtFrame),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
@@ -12510,6 +12511,73 @@ static Task TestMainWindowLoadDoesNotForcePrinterSetup()
     return Task.CompletedTask;
 }
 
+
+static Task TestRichTextBoxPrintsClippedAtFrame()
+{
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var template = new LabelTemplate { Name = "Rich", WidthMm = 60, HeightMm = 20, Dpi = 203 };
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.RichTextBox, Name = "Rich", XMm = 2, YMm = 2, WidthMm = 30, HeightMm = 10, ZIndex = 1,
+                RichText = @"{\rtf1\ansi{\fonttbl{\f0 Arial;}}\f0\fs72 {\b WWWWWWWWWWWWWWWWWWWW} WWWWWWWWWW\par}"
+            });
+            var plan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = 60, LabelHeightMm = 20 };
+            var visual = new LabelVisualRenderer().Render(template, null, plan);
+            var width = (int)Math.Ceiling(MmConverter.MmToDip(60));
+            var height = (int)Math.Ceiling(MmConverter.MmToDip(20));
+            var raster = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            raster.Render(visual);
+            var pixels = new byte[width * height * 4];
+            raster.CopyPixels(pixels, width * 4, 0);
+            bool Dark(int x, int y) => pixels[(y * width + x) * 4 + 1] < 100;
+            var frameLeft = (int)MmConverter.MmToDip(2);
+            var frameTop = (int)MmConverter.MmToDip(2);
+            var frameRight = (int)MmConverter.MmToDip(32);
+            var frameBottom = (int)MmConverter.MmToDip(12);
+            var inside = 0;
+            var outside = 0;
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    if (!Dark(x, y))
+                    {
+                        continue;
+                    }
+
+                    if (x >= frameLeft - 1 && x <= frameRight + 1 && y >= frameTop - 1 && y <= frameBottom + 1)
+                    {
+                        inside++;
+                    }
+                    else
+                    {
+                        outside++;
+                    }
+                }
+            }
+
+            AssertEqual(true, inside > 50, "Rich text draws ink inside its frame: " + inside);
+            AssertEqual(0, outside, "Rich text is clipped at its frame like a TextBox");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
 
 static Task TestInverseObjectSwapsBlackAndWhite()
 {

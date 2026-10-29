@@ -1461,6 +1461,7 @@ public sealed class LabelDesignerCanvas : Canvas
             },
             ObjectType.Rectangle => new StrokeHitTestRectangleElement(),
             ObjectType.Ellipse => new Ellipse(),
+            ObjectType.RichTextBox => new Border { Background = Brushes.Transparent, ClipToBounds = true },
             // Designer marker for NiceLabel's Inverse: print and preview swap
             // black and white beneath it; the canvas shows the area hatched.
             ObjectType.Inverse => new Border
@@ -1677,9 +1678,28 @@ public sealed class LabelDesignerCanvas : Canvas
                     ? new Thickness(0)
                     : new Thickness(Math.Max(0, MmToDip(item.Style.BorderThicknessMm)));
                 border.ToolTip = objectError;
-                border.Background = item.Type == ObjectType.Rectangle
-                    ? ParseBrush(item.Style.FillColor, Brushes.Transparent)
-                    : Brushes.Transparent;
+                if (item.Type == ObjectType.Inverse)
+                {
+                    // Keep the hatched marker; print/preview do the real inversion.
+                    border.BorderThickness = new Thickness(1);
+                    border.BorderBrush = Brushes.Black;
+                    border.ToolTip = objectError ?? "Vùng đảo màu: khi in, đen và trắng bên dưới được đảo ngược";
+                }
+                else if (item.Type == ObjectType.RichTextBox)
+                {
+                    // Same RTF layout as print, clipped at the frame like a TextBox.
+                    border.BorderThickness = new Thickness(0);
+                    border.ClipToBounds = true;
+                    border.Background = string.IsNullOrWhiteSpace(item.RichText)
+                        ? new SolidColorBrush(Color.FromArgb(24, 20, 100, 210))
+                        : RichTextLayout.CreateBrush(item.RichText, Math.Max(1, width), Math.Max(1, height));
+                }
+                else
+                {
+                    border.Background = item.Type == ObjectType.Rectangle
+                        ? ParseBrush(item.Style.FillColor, Brushes.Transparent)
+                        : Brushes.Transparent;
+                }
 
                     if (border.Child is VisualPreviewHost textHost && item.Type == ObjectType.Text)
                     {

@@ -24,6 +24,7 @@ public sealed class LabelObject : ObservableObject
     private ObjectAnchorPoint _anchorPoint;
     private string _groupId = string.Empty;
     private string _contentMask = string.Empty;
+    private string _richText = string.Empty;
     private string _contentMaskCharacter = "*";
     private string _bindingExpression = string.Empty;
     private string _text = string.Empty;
@@ -182,6 +183,13 @@ public sealed class LabelObject : ObservableObject
     {
         get => _contentMask;
         set => SetProperty(ref _contentMask, value ?? string.Empty);
+    }
+
+    /// <summary>RTF content of a Rich Text Box (NiceLabel 10); empty for other objects.</summary>
+    public string RichText
+    {
+        get => _richText;
+        set => SetProperty(ref _richText, value ?? string.Empty);
     }
 
     /// <summary>The mask character that takes one value character (default <c>*</c>).</summary>

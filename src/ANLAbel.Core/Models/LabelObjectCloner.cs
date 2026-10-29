@@ -26,6 +26,7 @@ public static class LabelObjectCloner
             ContentMaskCharacter = source.ContentMaskCharacter,
             BindingExpression = source.BindingExpression,
             Text = source.Text,
+            RichText = source.RichText,
             BarcodeSymbology = source.BarcodeSymbology,
             BarcodeApplicationProfile = source.BarcodeApplicationProfile,
             QrSizingMode = source.QrSizingMode,

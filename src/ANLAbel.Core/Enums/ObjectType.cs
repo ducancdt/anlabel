@@ -15,5 +15,11 @@ public enum ObjectType
     /// NiceLabel 10 Inverse: a frame that inverts black and white of
     /// everything beneath it (lower Z order) in the printed label.
     /// </summary>
-    Inverse
+    Inverse,
+    /// <summary>
+    /// NiceLabel 10 Rich Text Box: formatted text (RTF in
+    /// <see cref="Models.LabelObject.RichText"/>) owned by its frame and
+    /// clipped at it, like a TextBox.
+    /// </summary>
+    RichTextBox
 }
