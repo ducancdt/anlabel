@@ -45,13 +45,19 @@ public partial class MainWindow
     /// </summary>
     internal bool SuppressClosePrompt { get; set; }
 
-    /// <summary>The first existing .anlabel/.json path among command-line arguments.</summary>
+    /// <summary>
+    /// The first existing document path among command-line arguments:
+    /// an ANLAbel file (.anlabel/.json) or a NiceLabel label (.lbl/.nlbl),
+    /// which opens through the same import path as the Open dialog.
+    /// </summary>
     public static string? FindDocumentArgument(IEnumerable<string> arguments)
     {
         return arguments.FirstOrDefault(argument =>
             !string.IsNullOrWhiteSpace(argument)
             && (argument.EndsWith(".anlabel", StringComparison.OrdinalIgnoreCase)
-                || argument.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                || argument.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+                || argument.EndsWith(".lbl", StringComparison.OrdinalIgnoreCase)
+                || argument.EndsWith(".nlbl", StringComparison.OrdinalIgnoreCase))
             && File.Exists(argument));
     }
 
