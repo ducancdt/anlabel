@@ -24,10 +24,28 @@ public static partial class JobVariableContract
         ArgumentNullException.ThrowIfNull(template);
         return template.Objects
             .Where(item => item.IsVisible && !string.IsNullOrWhiteSpace(item.BindingExpression))
-            .SelectMany(item => TokenPattern().Matches(item.BindingExpression).Select(match => match.Groups[1].Value.Trim()))
+            .SelectMany(item => ExpressionTokens(item.BindingExpression))
             .Where(token => IsDateToken(token) || IsPromptToken(token))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static readonly IReadOnlyDictionary<string, string> EmptyRow =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The names an expression reads: <c>{Name}</c> placeholders, or the
+    /// FIELD names of a formula (which may name prompts and date fields too).
+    /// </summary>
+    private static IEnumerable<string> ExpressionTokens(string expression)
+    {
+        if (Expressions.Formulas.FormulaBindingEvaluator.LooksLikeFormula(expression))
+        {
+            return Expressions.Formulas.FormulaBindingEvaluator.Evaluate(expression, EmptyRow).UsedFields
+                .Select(field => field.Trim());
+        }
+
+        return TokenPattern().Matches(expression).Select(match => match.Groups[1].Value.Trim());
     }
 
     public static bool UsesJobVariables(LabelTemplate template) => FindTokens(template).Count > 0;

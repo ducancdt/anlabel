@@ -158,3 +158,62 @@ public sealed class FormulaEngineTests
         Assert.Equal(0, wrong);
     }
 }
+
+public sealed class FormulaTextFunctionTests
+{
+    private static readonly FormulaEngine Engine = new();
+
+    private static FormulaEvaluationResult Run(string formula, params (string Key, string? Value)[] pairs)
+    {
+        var row = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in pairs)
+        {
+            row[key] = value;
+        }
+
+        return Engine.Evaluate(formula, row);
+    }
+
+    [Theory]
+    [InlineData("MID(\"(00)123456789012345678\", \"5\", \"18\")", "123456789012345678")]
+    [InlineData("MID(\"ABCDEF\", \"3\", \"2\")", "CD")]
+    [InlineData("MID(\"ABCDEF\", \"5\", \"10\")", "EF")]
+    [InlineData("MID(\"ABCDEF\", \"9\", \"2\")", "")]
+    [InlineData("MID(\"ABCDEF\", \"1\", \"0\")", "")]
+    public void Mid_TakesTheOneBasedSubstring(string formula, string expected)
+    {
+        var result = Run(formula);
+        Assert.Empty(result.Errors);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Theory]
+    [InlineData("MID(\"ABC\", \"0\", \"2\")")]
+    [InlineData("MID(\"ABC\", \"x\", \"2\")")]
+    [InlineData("MID(\"ABC\", \"1\")")]
+    public void Mid_RejectsBadArguments(string formula)
+    {
+        var result = Run(formula);
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(string.Empty, result.Value);
+    }
+
+    [Theory]
+    [InlineData("400638133393", "4006381333931")] // EAN-13 data digits → the published EAN-13
+    [InlineData("0123456789012", "01234567890128")]
+    [InlineData("1234567", "12345670")]
+    public void Gs1CheckDigit_AppendsTheModulo10Digit(string digits, string expected)
+    {
+        var result = Run("GS1CHECKDIGIT(FIELD(\"?GTIN\"))", ("?GTIN", digits));
+        Assert.Empty(result.Errors);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Fact]
+    public void Gs1CheckDigit_RejectsNonDigits()
+    {
+        var result = Run("GS1CHECKDIGIT(\"12A4\")");
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(string.Empty, result.Value);
+    }
+}

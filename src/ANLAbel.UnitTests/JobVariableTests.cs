@@ -69,6 +69,17 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void TokensInsideFormulasAreFoundToo()
+    {
+        var template = Template(
+            "CONCAT(\"(01)\", GS1CHECKDIGIT(FIELD(\"?GTIN\")), \"(17)\", FIELD(\"#NOW+30d:yyMMdd\"), FIELD(\"Column\"))",
+            "MID(FIELD(\"?Lot\"), \"3\", \"5\")");
+
+        Assert.Equal(new[] { "?GTIN", "#NOW+30d:yyMMdd", "?Lot" }, JobVariableContract.FindTokens(template));
+        Assert.Equal(new[] { "GTIN", "Lot" }, JobVariableContract.RequiredPrompts(template).Select(p => p.Name));
+    }
+
+    [Fact]
     public void PromptsUseTheirDefinitionsAndValidateEachAnswer()
     {
         var template = Template("{?Lot}", "{?Shift}");
