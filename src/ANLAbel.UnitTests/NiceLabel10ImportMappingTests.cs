@@ -761,6 +761,36 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void GraphicWithoutPayload_IsReadFromTheFileBesideTheLabel()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-nlbl-gfx-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var png = TinyPng(4, 3);
+            File.WriteAllBytes(Path.Combine(directory.FullName, "logo1.png"), png);
+            var document = Parse(Format("""
+                <Item Type="GraphicDocumentItem">
+                  <Name>Logo</Name>
+                  <Geometry Type="RectGeometry"><Left>1000</Left><Top>1000</Top><Width>12700</Width><Height>10200</Height></Geometry>
+                  <GraphicFileName>C:\authoring\machine\.\logo1.png</GraphicFileName>
+                  <EmbeddedGraphicContents Type="BinaryContents"><Base64StringValue></Base64StringValue></EmbeddedGraphicContents>
+                </Item>
+                """));
+
+            var template = NiceLabel10NlblImporter.CreateTemplate(document, Path.Combine(directory.FullName, "label.nlbl"));
+
+            var image = Assert.Single(template.Objects);
+            Assert.Equal(ObjectType.Image, image.Type);
+            Assert.Equal(Convert.ToBase64String(png), image.ImageDataBase64);
+            Assert.Equal((4, 3), (image.ImagePixelWidth, image.ImagePixelHeight));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void GraphicWithoutPayload_IsNotConverted()
     {
         var template = Import("""

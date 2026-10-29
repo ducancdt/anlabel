@@ -144,6 +144,9 @@ public sealed record NiceLabel10ObjectRecord(
     /// <summary>Base64 payload of an embedded graphic, or null when none is stored.</summary>
     public string? GraphicBase64 { get; init; }
 
+    /// <summary>Stored <c>GraphicFileName</c>: the authoring-machine path of the graphic file.</summary>
+    public string? GraphicFileName { get; init; }
+
     /// <summary>
     /// Vendor <c>GraphicResizeMode</c>: None 0, Fill 1, Uniform 2,
     /// UniformFill 3, Tile 4.

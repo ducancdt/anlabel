@@ -54,7 +54,7 @@ public static partial class NiceLabel10NlblImporter
             HeightMm = document.HeightMm
         };
 
-        var context = new ImportContext(document, template, textMeasurer);
+        var context = new ImportContext(document, template, textMeasurer, Path.GetDirectoryName(Path.GetFullPath(sourcePath)));
         foreach (var record in document.Objects)
         {
             var item = record.Kind switch
@@ -64,7 +64,7 @@ public static partial class NiceLabel10NlblImporter
                 NiceLabel10ObjectKind.Barcode => Barcode(record, context),
                 NiceLabel10ObjectKind.Line => Line(record),
                 NiceLabel10ObjectKind.Rectangle => Rectangle(record),
-                NiceLabel10ObjectKind.Graphic => Graphic(record),
+                NiceLabel10ObjectKind.Graphic => Graphic(record, context),
                 _ => null
             };
             if (item is null)
@@ -653,26 +653,40 @@ public static partial class NiceLabel10NlblImporter
     }
 
     /// <summary>
-    /// Embedded graphics. Raster payloads (PNG/JPEG/BMP/GIF) are carried
-    /// as they are; Windows metafiles are rasterised at the authored frame
-    /// (vendor <c>GraphicResizeMode</c> Uniform or <c>KeepAspectRatio</c>
-    /// keeps the drawing's aspect, Fill stretches it). Graphics that only
-    /// reference a file on the authoring machine, and payloads GDI+ cannot
-    /// play, stay unconverted.
+    /// Graphics. Raster payloads (PNG/JPEG/BMP/GIF) are carried as they
+    /// are; Windows metafiles are rasterised at the authored frame (vendor
+    /// <c>GraphicResizeMode</c> Uniform or <c>KeepAspectRatio</c> keeps the
+    /// drawing's aspect, Fill stretches it). A graphic without an embedded
+    /// payload is read from its referenced file when that file exists
+    /// (as stored, or beside the label; the corpus keeps 24 such clipart
+    /// files next to their labels); otherwise, and for payloads GDI+ cannot
+    /// play, the graphic stays unconverted.
     /// </summary>
-    private static LabelObject? Graphic(NiceLabel10ObjectRecord record)
+    private static LabelObject? Graphic(NiceLabel10ObjectRecord record, ImportContext context)
     {
-        if (record.GraphicBase64 is null || record.WidthMm <= 0 || record.HeightMm <= 0)
+        if (record.WidthMm <= 0 || record.HeightMm <= 0)
         {
             return null;
         }
 
-        byte[] payload;
-        try
+        byte[]? payload = null;
+        if (record.GraphicBase64 is not null)
         {
-            payload = Convert.FromBase64String(record.GraphicBase64);
+            try
+            {
+                payload = Convert.FromBase64String(record.GraphicBase64);
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
         }
-        catch (FormatException)
+        else if (record.GraphicFileName is { } fileName)
+        {
+            payload = context.ReadGraphicFile(fileName);
+        }
+
+        if (payload is null)
         {
             return null;
         }
@@ -753,13 +767,68 @@ public static partial class NiceLabel10NlblImporter
         private readonly NiceLabel10Document _document;
         private readonly LabelTemplate _template;
         private readonly INiceLabel10TextMeasurer? _measurer;
+        private readonly string? _sourceDirectory;
         private readonly HashSet<string> _registeredPrompts = new(StringComparer.Ordinal);
 
-        public ImportContext(NiceLabel10Document document, LabelTemplate template, INiceLabel10TextMeasurer? measurer)
+        private const long MaxGraphicFileBytes = 32 * 1024 * 1024;
+
+        public ImportContext(NiceLabel10Document document, LabelTemplate template, INiceLabel10TextMeasurer? measurer, string? sourceDirectory)
         {
             _document = document;
             _template = template;
             _measurer = measurer;
+            _sourceDirectory = sourceDirectory;
+        }
+
+        /// <summary>
+        /// Reads a referenced graphic file: the stored path when it exists,
+        /// else the same path or file name resolved beside the label. Only
+        /// existing regular files up to 32 MB are read; nothing is written.
+        /// </summary>
+        public byte[]? ReadGraphicFile(string storedPath)
+        {
+            foreach (var candidate in Candidates())
+            {
+                try
+                {
+                    var info = new FileInfo(candidate);
+                    if (info.Exists && info.Length > 0 && info.Length <= MaxGraphicFileBytes)
+                    {
+                        return File.ReadAllBytes(info.FullName);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+                {
+                    // An unreadable candidate is simply not this graphic's file.
+                }
+            }
+
+            return null;
+
+            IEnumerable<string> Candidates()
+            {
+                var normalized = storedPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+                if (Path.IsPathRooted(normalized))
+                {
+                    yield return normalized;
+                }
+
+                if (_sourceDirectory is null)
+                {
+                    yield break;
+                }
+
+                if (!Path.IsPathRooted(normalized))
+                {
+                    yield return Path.Combine(_sourceDirectory, normalized);
+                }
+
+                var fileName = Path.GetFileName(normalized);
+                if (fileName.Length > 0)
+                {
+                    yield return Path.Combine(_sourceDirectory, fileName);
+                }
+            }
         }
 
         /// <summary>

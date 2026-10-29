@@ -257,8 +257,10 @@ an acceptance check.
   played by GDI+ (`System.Drawing.Common`, Windows only) into a
   300-DPI PNG of the authored frame (`WindowsMetafileRasterizer`), fitted
   when `ResizeMode` is Uniform or `KeepAspectRatio` is set, stretched for
-  Fill. The remaining 37 graphics (no payload, or bound to a variable)
-  stay unconverted.
+  Fill. A graphic without a payload is read from its `GraphicFileName`
+  when that file exists as stored or beside the label (24 corpus clipart
+  files sit next to their labels); the remaining 13 (no file name, or
+  bound to a variable) stay unconverted.
 - Barcode detail mapping: `Code128BBarcodeData` pins
   `Code128CodeSet.B`, and the `HumanInterpretationFontDescriptor` height
   becomes `BarcodeTextFontSizePt`. Code 39 carries `HasCheckDigit`
@@ -276,12 +278,12 @@ an acceptance check.
 
 - Production reader/importer sweep over all 207 installed sample files
   (2026-10-29, after the solution-entry fix and the placement/data-source
-  mappings): 207/207 opened; 6,467 stored objects, 6,209 converted
-  (96.0%); unconverted = 85 barcodes and 117 texts bound to script/HIBC/
+  mappings): 207/207 opened; 6,467 stored objects, 6,233 converted
+  (96.4%); unconverted = 85 barcodes and 117 texts bound to script/HIBC/
   delimited-subset functions or date arithmetic on prompted dates (or to
-  variables computed from them, 40 of the total), 37 graphics without
-  payload or bound, 4 rich-text templates referencing such functions,
-  15 report items. The earlier figure of 97.4% counted
+  variables computed from them, 40 of the total), 13 graphics without
+  payload or file, or bound to a variable, 4 rich-text templates
+  referencing such functions, 15 report items. The earlier figure of 97.4% counted
   bound objects whose binding had silently fallen back to their sample
   text because no variable resolved (§2); they now either bind or are
   reported.

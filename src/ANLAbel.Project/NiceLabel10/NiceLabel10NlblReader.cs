@@ -549,6 +549,7 @@ public static class NiceLabel10NlblReader
                     WidthMm = Thousandths(geometry!, "Width"),
                     HeightMm = Thousandths(geometry!, "Height"),
                     GraphicBase64 = string.IsNullOrEmpty(payload) ? null : payload,
+                    GraphicFileName = ChildText(item, "GraphicFileName")?.Trim() is { Length: > 0 } fileName ? fileName : null,
                     GraphicResizeMode = (int)ParseDouble(item, "ResizeMode"),
                     GraphicKeepAspectRatio = ParseBool(item, "KeepAspectRatio")
                 };

@@ -329,8 +329,10 @@ Files using these features need this version or later.
     inside formulas now reach the job-variable contract). Objects bound
     to script/HIBC/delimited-subset functions, GS1 DataBar, payload-less
     graphics and report items stay unconverted and are counted in the
-    status line. Evidence: production sweep over all 207 installed sample
-    labels (207/207 opened, 6,209 of 6,467 objects converted honestly —
+    status line; a graphic without an embedded payload is read from its
+    file when that file sits beside the label. Evidence: production sweep
+    over all 207 installed sample labels (207/207 opened, 6,233 of 6,467
+    objects converted honestly —
     the earlier 6,298 included bound objects silently fixed to their
     sample text), the regression gate
     `opening a niceLabel 10 nlbl imports its label as a new template` and
