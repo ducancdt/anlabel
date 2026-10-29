@@ -145,7 +145,7 @@ public static partial class NiceLabel10NlblImporter
         // bounds, so the imported object starts at the natural size of its
         // design-time contents instead of the new-object default frame
         // (which would centre small captions a few millimetres too low).
-        var natural = context.MeasureText(item, record.Content);
+        var natural = context.MeasureText(item, context.SampleText(record));
         var compress = CompressFactor(record);
         if (compress is not null)
         {
@@ -751,6 +751,24 @@ public static partial class NiceLabel10NlblImporter
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The design-time text a position text is sized from: the bound
+        /// variable's default when it has one (the item's own FixedContents
+        /// is often a long placeholder for bound items), otherwise the
+        /// item's contents.
+        /// </summary>
+        public string SampleText(NiceLabel10ObjectRecord record)
+        {
+            if (record.VariableId is { } id
+                && _document.VariablesById.TryGetValue(id, out var variable)
+                && !string.IsNullOrEmpty(variable.DefaultValue))
+            {
+                return record.IsRichText ? NiceLabel10RichText.ToPlainText(variable.DefaultValue) : variable.DefaultValue;
+            }
+
+            return record.Content;
         }
 
         public (double WidthMm, double HeightMm) MeasureText(LabelObject item, string sampleText)

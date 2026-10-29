@@ -257,6 +257,30 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void SheetLayout_UsesTheLabelElementSizeNotThePage()
+    {
+        var document = Parse("""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Format">
+              <Name>Sheet</Name>
+              <Media Type="FormatMedia"><Width>210000</Width><Height>297000</Height></Media>
+              <PageLayout Type="WebFormatLayout"><ElementWidth>101600</ElementWidth><ElementHeight>50800</ElementHeight><HorizontalCount>1</HorizontalCount><VerticalCount>5</VerticalCount></PageLayout>
+              <DocumentItems />
+            </EuroPlus.NiceLabel>
+            """);
+
+        Assert.Equal((101.6, 50.8), (document.WidthMm, document.HeightMm));
+    }
+
+    [Fact]
+    public void SingleLayoutWithoutElementSize_FallsBackToMedia()
+    {
+        var document = Parse(Format(string.Empty));
+
+        Assert.Equal((100.0, 60.0), (document.WidthMm, document.HeightMm));
+    }
+
+    [Fact]
     public void Reader_CollectsVariableFacts()
     {
         var document = Parse(Format(string.Empty));

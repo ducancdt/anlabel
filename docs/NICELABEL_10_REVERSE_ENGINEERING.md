@@ -61,7 +61,15 @@ Unsupported methods and traditional ZipCrypto fail closed.
 
 Root `<EuroPlus.NiceLabel Type="Format">` with `<Name>` and
 `<Media Type="FormatMedia">`; geometry integers are 1/1000 mm
-(`Width 100000` = 100 mm). Document items are `<Item Type="...">`
+(`Width 100000` = 100 mm). `Media` is the page: the label itself is the
+`PageLayout` element (`ElementWidth`/`ElementHeight`), equal to the page
+for a `SingleFormatLayout` (187 files) and the repeated cell of a
+multi-label sheet for a `WebFormatLayout` (20 files, with
+`HorizontalCount`/`VerticalCount`, offsets and gaps; every object
+coordinate lies inside the element). `PrintScenarioCollection` stores
+the authoring printer (`Printer/Name`, `DriverName`, a `DevModeBuffer`)
+and `PrintRotation`; the printer is machine-specific and is not carried
+over. Document items are `<Item Type="...">`
 elements; the `BackgroundDocumentItem` placeholder exists in every file
 at 0 x 0 and is not a label object. Across the 207-file corpus:
 

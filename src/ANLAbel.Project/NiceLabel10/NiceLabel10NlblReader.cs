@@ -352,8 +352,21 @@ public static class NiceLabel10NlblReader
 
         var media = root.Element("Media")
             ?? throw new InvalidDataException("The .nlbl format entry has no Media element.");
-        var width = Thousandths(media, "Width");
-        var height = Thousandths(media, "Height");
+        // Media is the page (sheet) size. The label itself is the page
+        // layout element: equal to the page for a SingleFormatLayout, the
+        // repeated cell of a multi-label sheet (WebFormatLayout, with
+        // HorizontalCount/VerticalCount, offsets and gaps); object
+        // coordinates are relative to that element (corpus: 20 sheet
+        // layouts, every object inside its element).
+        var pageLayout = root.Element("PageLayout");
+        var width = Thousandths(pageLayout, "ElementWidth");
+        var height = Thousandths(pageLayout, "ElementHeight");
+        if (width <= 0 || height <= 0)
+        {
+            width = Thousandths(media, "Width");
+            height = Thousandths(media, "Height");
+        }
+
         if (width <= 0 || height <= 0)
         {
             throw new InvalidDataException("The .nlbl format entry stores a non-positive label size.");
