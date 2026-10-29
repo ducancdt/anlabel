@@ -20,6 +20,10 @@ public sealed class NiceLabel10ImportMappingTests
     private const string Gs1CheckDigitId = "66666666-2222-3333-4444-555555555555";
     private const string DateAddId = "77777777-2222-3333-4444-555555555555";
     private const string QtyId = "88888888-2222-3333-4444-555555555555";
+    private const string AscSingleId = "aaaaaaaa-2222-3333-4444-555555555555";
+    private const string AscMultiId = "bbbbbbbb-2222-3333-4444-555555555555";
+    private const string EnvelopeId = "cccccccc-2222-3333-4444-555555555555";
+    private const string EnvelopeOtherFormatId = "dddddddd-2222-3333-4444-555555555555";
 
     private const string SolutionXml = $"""
         <?xml version="1.0" encoding="utf-8"?>
@@ -90,6 +94,36 @@ public sealed class NiceLabel10ImportMappingTests
                 <Item Type="GS1128DataValue"><ApplicationIdentifierId>2</ApplicationIdentifierId><Multiplier>0</Multiplier><AutoCheckDigitCalculation>True</AutoCheckDigitCalculation><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item>
               </DataValues>
             </Item>
+            <Item Type="AscFactFunction">
+              <Id>{AscSingleId}</Id>
+              <Name>Serial</Name>
+              <DataValues>
+                <Item Type="AscFactDataValue"><AscFactIdentifierName>1S</AscFactIdentifierName><IsUsingShortTitle>False</IsUsingShortTitle><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item>
+              </DataValues>
+            </Item>
+            <Item Type="AscFactFunction">
+              <Id>{AscMultiId}</Id>
+              <Name>Data Identifiers</Name>
+              <DataValues>
+                <Item Type="AscFactDataValue"><AscFactIdentifierName>1P</AscFactIdentifierName><IsUsingShortTitle>False</IsUsingShortTitle><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item>
+                <Item Type="AscFactDataValue"><AscFactIdentifierName>Q</AscFactIdentifierName><IsUsingShortTitle>False</IsUsingShortTitle><DataSourceReference Type="SolutionDataSourceReference"><Id>{QtyId}</Id></DataSourceReference></Item>
+                <Item Type="AscFactDataValue"><AscFactIdentifierName>12V</AscFactIdentifierName><IsUsingShortTitle>False</IsUsingShortTitle><FixedValue Type="StringContents"><StringValue>ACME</StringValue></FixedValue></Item>
+              </DataValues>
+            </Item>
+            <Item Type="TransferDataSyntaxFunction">
+              <Id>{EnvelopeId}</Id>
+              <Name>2D code</Name>
+              <Formats>
+                <Item Type="TransferDataSyntaxFormat"><FormatId>6</FormatId><DataValues><Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{AscMultiId}</Id></DataSourceReference></Item></DataValues></Item>
+              </Formats>
+            </Item>
+            <Item Type="TransferDataSyntaxFunction">
+              <Id>{EnvelopeOtherFormatId}</Id>
+              <Name>Format 01</Name>
+              <Formats>
+                <Item Type="TransferDataSyntaxFormat"><FormatId>1</FormatId><DataValues><Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item></DataValues></Item>
+              </Formats>
+            </Item>
           </Functions>
         </EuroPlus.NiceLabel>
         """;
@@ -159,6 +193,54 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void SingleDataIdentifier_PrefixesTheBarcodeValue()
+    {
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Serial</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="Code39BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight></BarcodeData>
+              <FixedContents>1S000125</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{AscSingleId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        Assert.Equal("1S{?Lot}", Assert.Single(template.Objects).BindingExpression);
+    }
+
+    [Fact]
+    public void TransferDataSyntaxFormat06_WrapsDataIdentifierFieldsInTheEnvelope()
+    {
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Dm</Name>
+              <Geometry Type="PositionGeometry"><X>80000</X><Y>20000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>0</DatamatrixFormat></BarcodeData>
+              <FixedContents>sample</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{EnvelopeId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        Assert.Equal("[)>\u001E06\u001D1P{?Lot}\u001DQ{?Qty}\u001D12VACME\u001E\u0004", Assert.Single(template.Objects).BindingExpression);
+    }
+
+    [Fact]
+    public void TransferDataSyntaxOtherFormat_IsNotConverted()
+    {
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Dm</Name>
+              <Geometry Type="PositionGeometry"><X>80000</X><Y>20000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>0</ModuleHeight></BarcodeData>
+              <FixedContents>sample</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{EnvelopeOtherFormatId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        Assert.Empty(template.Objects);
+    }
+
+    [Fact]
     public void DateAddOnCurrentDate_BecomesOffsetNowField()
     {
         var template = Import($"""
@@ -181,8 +263,9 @@ public sealed class NiceLabel10ImportMappingTests
 
         // Three variables, the date-add and the mappable GS1 function; the
         // GS1 function needing a computed check digit is not registered.
-        Assert.Equal(6, document.VariablesById.Count);
+        Assert.Equal(9, document.VariablesById.Count);
         Assert.False(document.VariablesById.ContainsKey(Gs1CheckDigitId));
+        Assert.False(document.VariablesById.ContainsKey(EnvelopeOtherFormatId));
         var lot = document.VariablesById[LotId];
         Assert.Equal("Lot", lot.Name);
         Assert.Equal("Enter the lot", lot.PromptText);

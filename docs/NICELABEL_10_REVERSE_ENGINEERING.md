@@ -168,15 +168,19 @@ sizes), an explicit DataMatrix format giving an exact frame; PDF417
 placed through the anchor/rotation contract of §8.
 
 GS1-128 compositions (`GS1128Function`) become ANLAbel's own
-`(AI)value` notation and date arithmetic on the current date
-(`DateAddFunction`) becomes `{#NOW+Nd+Nmo+Ny:format}` (§9).
+`(AI)value` notation, ANSI MH10.8.2 data-identifier fields
+(`AscFactFunction`) and the ISO/IEC 15434 format 06 envelope
+(`TransferDataSyntaxFunction`) become expressions with the identifier
+prefixes and separator characters, and date arithmetic on the current
+date (`DateAddFunction`) becomes `{#NOW+Nd+Nmo+Ny:format}` (§9).
 
 Not converted (fail-closed, counted in the UI status via
 `NiceLabelTotalObjectCount`): objects bound to solution functions
-ANLAbel cannot reproduce (VBScript/Python `ExecuteScriptFunction`, ASC
-MH10/ANSI (`AscFactFunction`), `TransferDataSyntaxFunction`, HIBC,
-`SubsetFunction`, `GS1DataBarFunction`, GS1-128 parts whose check digit
-NiceLabel computes at print time, date arithmetic on a prompted date)
+ANLAbel cannot reproduce (VBScript/Python `ExecuteScriptFunction`, HIBC,
+`SubsetFunction`, `GS1DataBarFunction`, envelope formats other than 06,
+data-identifier fields printing their short title, GS1-128 parts whose
+check digit NiceLabel computes at print time, date arithmetic on a
+prompted date)
 or to variables computed from them; GS1 DataBar barcodes (no ANLAbel
 symbology); graphics without an embedded payload or bound to a variable;
 report/group items. Rich-text framed texts (`RichTextFormatting`, 26 in
@@ -249,13 +253,12 @@ an acceptance check.
 
 - Production reader/importer sweep over all 207 installed sample files
   (2026-10-29, after the solution-entry fix and the placement/data-source
-  mappings): 207/207 opened; 6,467 stored objects, 6,005 converted
-  (92.9%); unconverted = 245 barcodes and 157 texts bound to
-  script/ASC/HIBC/subset functions, GS1-128 parts needing a computed
-  check digit, or date arithmetic on prompted dates (or to variables
-  computed from them, 12 of the total), 37 graphics without payload or
-  bound, 4 rich-text templates referencing such functions, 15 report
-  items. The earlier figure of 97.4% counted
+  mappings): 207/207 opened; 6,467 stored objects, 6,154 converted
+  (95.2%); unconverted = 100 barcodes and 157 texts bound to
+  script/HIBC/subset functions, GS1-128 parts needing a computed check
+  digit, or date arithmetic on prompted dates (or to variables computed
+  from them, 38 of the total), 37 graphics without payload or bound, 4
+  rich-text templates referencing such functions, 15 report items. The earlier figure of 97.4% counted
   bound objects whose binding had silently fallen back to their sample
   text because no variable resolved (§2); they now either bind or are
   reported.
@@ -359,3 +362,19 @@ an `OutputFormat`; when the input is (a chain of) current-date sources
 the offsets add up into one `{#NOW...}` field, otherwise it stays
 unresolved. Corpus: 30 GS1-128 functions (12 contain an auto check-digit
 part), 15 date-add functions.
+
+`AscFactFunction` composes ANSI MH10.8.2 data-identifier fields: each
+`AscFactDataValue` names its identifier (`AscFactIdentifierName`, 0-2
+digits and a capital letter from the embedded catalogue
+`EuroPlus.NiceLabel.Functions.AscFact.Resources.AscFactIdentifiers.xml`,
+version 7.0) and a data source or fixed value; `IsUsingShortTitle`
+(false on all 1,243 corpus fields) would print the catalogue title
+instead. ANLAbel writes identifier + value per field, several fields
+joined by the group separator U+001D. `TransferDataSyntaxFunction` wraps
+its data values in the ISO/IEC 15434 envelope; the vendor's fixed-field
+formats build `[)>` RS format GS field … RS EOT (decompiled), and format
+06 — the only one in the corpus (81 functions, 79 wrapping one
+`AscFactFunction`) — carries data-identifier fields separated by GS. The
+corpus uses single-identifier functions on 94 Code 39/Code 128
+barcodes (e.g. AIAG `1S` serials) and the envelope on 79 DataMatrix/
+PDF417 codes (ECIA/automotive 2D labels).

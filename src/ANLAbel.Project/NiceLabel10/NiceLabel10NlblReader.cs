@@ -100,6 +100,22 @@ public static class NiceLabel10NlblReader
                     }
 
                     continue;
+                case "AscFactFunction":
+                    if (ReadAscComposition(item) is { } ascTemplate)
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, null, 0, ascTemplate);
+                    }
+
+                    continue;
+                case "TransferDataSyntaxFunction":
+                    if (ReadTransferDataSyntax(item) is { } envelopeTemplate)
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, null, 0, envelopeTemplate);
+                    }
+
+                    continue;
                 case "DateAddFunction":
                 {
                     var format = ChildText(item, "OutputFormat");
@@ -243,6 +259,82 @@ public static class NiceLabel10NlblReader
         }
 
         return builder.Length == 0 ? null : builder.ToString();
+    }
+
+    private const char GroupSeparator = '\u001D';
+    private const char RecordSeparator = '\u001E';
+    private const char EndOfTransmission = '\u0004';
+
+    /// <summary>
+    /// An <c>AscFactFunction</c> composes ANSI MH10.8.2 data-identifier
+    /// fields: each <c>AscFactDataValue</c> is its identifier (0-2 digits and
+    /// a capital letter, e.g. <c>1S</c>) immediately followed by the value;
+    /// several fields are separated by the group separator (U+001D), the
+    /// form the ISO/IEC 15434 envelope (<see cref="ReadTransferDataSyntax"/>)
+    /// and single-field linear barcodes both expect. A field that prints its
+    /// short title instead of the identifier has no ANLAbel form (null).
+    /// </summary>
+    private static string? ReadAscComposition(XElement function)
+    {
+        var parts = new List<string>();
+        foreach (var value in function.Element("DataValues")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+        {
+            var identifier = ChildText(value, "AscFactIdentifierName")?.Trim();
+            if (!string.Equals(value.Attribute("Type")?.Value, "AscFactDataValue", StringComparison.Ordinal)
+                || identifier is null
+                || !IsDataIdentifier(identifier)
+                || ParseBool(value, "IsUsingShortTitle"))
+            {
+                return null;
+            }
+
+            var referenceId = ChildText(value.Element("DataSourceReference"), "Id")?.Trim();
+            parts.Add(identifier + (string.IsNullOrWhiteSpace(referenceId)
+                ? ChildText(value.Element("FixedValue"), "StringValue") ?? string.Empty
+                : "[" + referenceId + "]"));
+        }
+
+        return parts.Count == 0 ? null : string.Join(GroupSeparator, parts);
+
+        static bool IsDataIdentifier(string text) =>
+            text.Length is >= 1 and <= 3
+            && text[^1] is >= 'A' and <= 'Z'
+            && text[..^1].All(char.IsAsciiDigit);
+    }
+
+    /// <summary>
+    /// A <c>TransferDataSyntaxFunction</c> wraps data in the ISO/IEC 15434
+    /// (ANSI MH10.8.3) envelope: <c>[)&gt;</c> RS format GS field GS field …
+    /// RS EOT, the structure the vendor code builds for its fixed-field
+    /// formats and the one format 06 (data identifiers) uses with the group
+    /// separator between fields. Only format 06 is mapped; other formats
+    /// stay unresolved (null).
+    /// </summary>
+    private static string? ReadTransferDataSyntax(XElement function)
+    {
+        var formats = (function.Element("Formats")?.Elements("Item") ?? Enumerable.Empty<XElement>()).ToList();
+        if (formats.Count != 1 || (int)ParseDouble(formats[0], "FormatId") != 6)
+        {
+            return null;
+        }
+
+        var fields = new List<string>();
+        foreach (var value in formats[0].Element("DataValues")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+        {
+            var referenceId = ChildText(value.Element("DataSourceReference"), "Id")?.Trim();
+            fields.Add(string.IsNullOrWhiteSpace(referenceId)
+                ? ChildText(value.Element("FixedValue"), "StringValue") ?? string.Empty
+                : "[" + referenceId + "]");
+        }
+
+        if (fields.Count == 0)
+        {
+            return null;
+        }
+
+        return "[)>" + RecordSeparator + "06" + GroupSeparator
+            + string.Join(GroupSeparator, fields)
+            + RecordSeparator + EndOfTransmission;
     }
 
     private static NiceLabel10Document ParseFormat(
