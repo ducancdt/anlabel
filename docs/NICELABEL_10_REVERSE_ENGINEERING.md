@@ -947,3 +947,36 @@ with ANLAbel's counterpart:
 NiceLabel also offers "Limit field length (truncate excessive content)" on a
 database field. ANLAbel does not cut data: a value too long for its frame is
 reported (Text Box overflow, barcode capacity) instead of printed shortened.
+
+## §25 Numbers from a database field (2026-10-31)
+
+NiceLabel reads Excel through OLE DB (`Databases.Core`: Jet, falling back to
+ACE 12), so a numeric column arrives as a double, not as the text Excel shows.
+The field's `FormattingContents` (`DoubleContents` in Utils.dll) prints it:
+
+- `DoubleContents.GetFormattedValue(value, OutputFormat, OutputFormatInfo)`
+  clones the field's `NumberFormatInfo`; with `AutoDecimalDigits` it sets
+  `NumberDecimalDigits = 99`, calls `value.ToString(format, info)`, then
+  trims trailing zeros and a trailing decimal separator. REA call edges of
+  Utils.dll (SHA-256 `bd421e4b…`, evidence `ev_0405c335…`, page
+  `ev_d1b0fd50…`) show that sequence: `Clone`, `set_NumberDecimalDigits`,
+  `Double.ToString`, `TrimEnd`, `EndsWith`, `Substring`.
+- `NumberFormatInfoWrapper` stores `DecimalSeparator` (default "."),
+  `GroupSeparator` (default ","), `DecimalDigits` and `AutoDecimalDigits`.
+  Its constructor copies the machine's culture, but the document loader
+  replaces an element that is absent from the file by the `LoadSave`
+  default, so an absent separator means "." or ",", not the culture's.
+- NiceLabel runs on .NET Framework 4.7.2, where `N99` gives at most 15
+  significant digits: 0.1 prints "0.1".
+
+So `OutputFormat` "n" with automatic decimals prints 1200 as "1200" when the
+group separator is stored empty and "1,200" when it is absent; 1200.5 prints
+"1200.5" either way, whatever format the Excel cell has.
+
+The customer labels use 22 numeric fields (quantities, PO, date codes): 18
+with an empty group separator, 4 without one, all with automatic decimals.
+ANLAbel prints a number as the Excel cell formats it (invariant separators):
+General "1200", `#,##0` and comma style "1,200", `0.00` "1200.00". The two
+agree only when the cell format happens to match the field; a quantity in a
+comma-style column prints "1,200" in ANLAbel and "1200" in NiceLabel, inside
+barcodes too. Owner decision (number separators); not changed.
