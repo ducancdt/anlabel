@@ -538,7 +538,7 @@ public static partial class NiceLabel10NlblImporter
             return null;
         }
 
-        ApplyHumanReadable(item, record);
+        ApplyHumanReadable(item, record, context);
         Place(item, record, item.WidthMm, item.HeightMm);
         return item;
     }
@@ -549,8 +549,13 @@ public static partial class NiceLabel10NlblImporter
     /// FloatingBelow 4; the vendor loader defaults an absent element to
     /// Below. The corpus stores 0 on almost every barcode, i.e. the text
     /// is off and any caption is a separate text object.
+    /// NiceLabel draws a linear code's text outside its stored bar height, in
+    /// the stored font (Arial bold by default) and, with AutoFontScaling (the
+    /// default), eight narrow bars high (the Barcodes.Core encoder). ANLAbel's
+    /// text strip is part of the barcode frame, so the frame grows by the
+    /// strip and the bars keep the height NiceLabel prints.
     /// </summary>
-    private static void ApplyHumanReadable(LabelObject item, NiceLabel10ObjectRecord record)
+    private static void ApplyHumanReadable(LabelObject item, NiceLabel10ObjectRecord record, ImportContext context)
     {
         item.BarcodeHriPlacement = record.BarcodeHriPosition switch
         {
@@ -558,7 +563,32 @@ public static partial class NiceLabel10NlblImporter
             2 or 3 => BarcodeHriPlacement.Above,
             _ => BarcodeHriPlacement.Below
         };
+        if (item.BarcodeHriPlacement == BarcodeHriPlacement.None
+            || item.Type != ObjectType.BarcodeCode128
+            || item.BarcodeSymbology is not (BarcodeSymbology.Code128 or BarcodeSymbology.Code39 or BarcodeSymbology.Ean13))
+        {
+            return;
+        }
+
+        item.BarcodeHriFontFamily = string.IsNullOrWhiteSpace(record.BarcodeHriFontName) ? "Arial" : record.BarcodeHriFontName;
+        item.BarcodeHriBold = record.BarcodeHriBold;
+        var sizePt = record.BarcodeHriAutoFontScaling && record.BarcodeModuleWidthMm > 0
+            ? AutoScaledHriNarrowBars * record.BarcodeModuleWidthMm * 72 / 25.4
+            : record.BarcodeHriFontSizePt;
+        if (sizePt > 0)
+        {
+            // ANLAbel prints HRI text from 5 pt; a smaller vendor size grows to it.
+            item.BarcodeTextFontSizePt = Math.Clamp(
+                sizePt,
+                ANLAbel.Core.Barcode.BarcodeApplicationContract.MinimumHriFontSizePt,
+                ANLAbel.Core.Barcode.BarcodeApplicationContract.MaximumHriFontSizePt);
+        }
+
+        item.HeightMm += context.HriStripMm(item, record.Content);
     }
+
+    /// <summary>Auto-scaled HRI em height in narrow bar widths (vendor Barcodes.Core encoder).</summary>
+    private const double AutoScaledHriNarrowBars = 8;
 
     private static LabelObject? LinearBarcode(NiceLabel10ObjectRecord record, string? expression)
     {
@@ -597,11 +627,6 @@ public static partial class NiceLabel10NlblImporter
         {
             // The vendor type is literally Code 128 subset B.
             item.Code128CodeSet = Code128CodeSet.B;
-        }
-
-        if (record.BarcodeHriFontSizePt > 0)
-        {
-            item.BarcodeTextFontSizePt = record.BarcodeHriFontSizePt;
         }
 
         if (symbology == BarcodeSymbology.Code39)
@@ -1366,6 +1391,25 @@ public static partial class NiceLabel10NlblImporter
         /// average Latin advance of about 0.55 em (0.6 em bold) and a line
         /// height of 1.2 em.
         /// </summary>
+        /// <summary>
+        /// Height the barcode's HRI strip takes in its frame (text line,
+        /// padding and gap), measured with the print layout when the
+        /// application supplies it.
+        /// </summary>
+        public double HriStripMm(LabelObject item, string sampleText)
+        {
+            if (_measurer?.MeasureBarcodeHriStripMm(item, sampleText) is double measured and > 0)
+            {
+                return measured;
+            }
+
+            // Font-metric estimate: a 1.2 em line plus the strip's padding and gap.
+            var emMm = item.BarcodeTextFontSizePt * 25.4 / 72.0;
+            return 1.2 * emMm
+                + 2 * ANLAbel.Core.Barcode.BarcodeHriLayoutContract.VerticalPaddingMm
+                + ANLAbel.Core.Barcode.BarcodeHriLayoutContract.GapMm;
+        }
+
         private static (double WidthMm, double HeightMm) EstimateTextSize(LabelObject item, string sampleText)
         {
             var emMm = Math.Max(1, item.Style.FontSizePt) * 25.4 / 72.0;

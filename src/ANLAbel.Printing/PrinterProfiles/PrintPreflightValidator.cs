@@ -919,7 +919,9 @@ public sealed class PrintPreflightValidator
             symbolWidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
-            item.BarcodeTextFontSizePt);
+            item.BarcodeTextFontSizePt,
+            item.BarcodeHriFontFamily,
+            item.BarcodeHriBold);
         if (!hriLayout.IsValid)
         {
             return hriLayout.ErrorMessage;

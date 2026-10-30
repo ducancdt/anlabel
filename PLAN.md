@@ -25,6 +25,14 @@
   lý dữ liệu, lỗi đối số báo bằng tiếng Việt. Nhập .nlbl dịch script NiceLabel
   gọi UCase, LCase, Trim, Left, Right, Mid trong phép nối thành công thức cùng
   nghĩa: 62/68 script trong bộ mẫu (trước là 52), 6.351 đối tượng chuyển được.
+- Chữ dưới mã vạch theo NiceLabel 10: chọn phông và chữ đậm (Mã vạch › Chi tiết
+  mã, Thuộc tính › Phông HRI, Đậm); mã vạch mới vẫn Segoe UI thường như cũ.
+  Nhập .nlbl: chữ dưới mã in Arial đậm (hoặc phông tem lưu), cỡ tự co như
+  NiceLabel (cao 8 vạch hẹp, tối thiểu 5 pt), nằm ngoài chiều cao vạch: khung
+  mã nới thêm dải chữ nên vạch giữ đúng chiều cao NiceLabel in. Trước đây chữ
+  10 pt bị nhét vào khung: 23/30 mã có chữ trong các tem khách trên máy bị chặn
+  in (“khung quá thấp”), số còn lại vạch chỉ cao 1–3 mm. Bảng thiết kế hiện
+  chữ dưới mã đúng cỡ in (trước nhỏ hơn 25%).
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

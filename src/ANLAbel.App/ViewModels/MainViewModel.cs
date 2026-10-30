@@ -4703,6 +4703,8 @@ public sealed class MainViewModel : ObservableObject
                 or nameof(LabelObject.ShowBarcodeText)
                 or nameof(LabelObject.BarcodeHriPlacement)
                 or nameof(LabelObject.BarcodeTextFontSizePt)
+                or nameof(LabelObject.BarcodeHriFontFamily)
+                or nameof(LabelObject.BarcodeHriBold)
                 or nameof(LabelObject.BarcodeCheckDigitPolicy)
                 or nameof(LabelObject.BarcodeHriShowCheckDigit))
             {
@@ -4920,7 +4922,9 @@ public sealed class MainViewModel : ObservableObject
             item.WidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
-            item.BarcodeTextFontSizePt);
+            item.BarcodeTextFontSizePt,
+            item.BarcodeHriFontFamily,
+            item.BarcodeHriBold);
         if (!hriLayout.IsValid && hriLayout.ErrorMessage is not null)
         {
             errors.Add(hriLayout.ErrorMessage);
@@ -4984,7 +4988,9 @@ public sealed class MainViewModel : ObservableObject
             item.WidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
-            item.BarcodeTextFontSizePt);
+            item.BarcodeTextFontSizePt,
+            item.BarcodeHriFontFamily,
+            item.BarcodeHriBold);
         if (!hriLayout.IsValid)
         {
             return hriLayout.ErrorMessage;

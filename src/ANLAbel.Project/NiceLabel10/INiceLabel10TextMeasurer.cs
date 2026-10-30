@@ -16,4 +16,11 @@ public interface INiceLabel10TextMeasurer
     /// drawn with the object's font style, or null when it cannot be measured.
     /// </summary>
     (double WidthMm, double HeightMm)? MeasureText(LabelObject item, string sampleText);
+
+    /// <summary>
+    /// Height in millimetres the HRI strip of a linear barcode takes in its
+    /// frame (text line, padding and gap) in the object's HRI font, or null
+    /// when it cannot be measured.
+    /// </summary>
+    double? MeasureBarcodeHriStripMm(LabelObject item, string sampleText) => null;
 }

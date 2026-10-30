@@ -133,6 +133,21 @@ public sealed record NiceLabel10ObjectRecord(
     public int BarcodeHriPosition { get; init; } = -1;
 
     /// <summary>
+    /// Stored HRI font name (<c>HumanInterpretationFontDescriptor</c>); null
+    /// when absent, which the vendor loader reads as Arial 10 bold.
+    /// </summary>
+    public string? BarcodeHriFontName { get; init; }
+
+    /// <summary>The stored HRI font is bold (LOGFONT weight 600 or more); true when no font is stored.</summary>
+    public bool BarcodeHriBold { get; init; } = true;
+
+    /// <summary>
+    /// Vendor <c>AutoFontScaling</c> (default true): the HRI is drawn eight
+    /// narrow bars high instead of at the stored font size.
+    /// </summary>
+    public bool BarcodeHriAutoFontScaling { get; init; } = true;
+
+    /// <summary>
     /// Vendor <c>LineStyles</c> flags of a line/rectangle stroke: Solid 1,
     /// Dash 2, Dot 4, DashDot 8, DashDotDot 16, Clear 32; 0 when absent.
     /// </summary>

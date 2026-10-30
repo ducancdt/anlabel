@@ -1099,7 +1099,94 @@ public sealed class NiceLabel10ImportMappingTests
         var code = Assert.Single(template.Objects);
         Assert.True(code.WidthMm > 0);
         Assert.Equal(50 - code.WidthMm / 2, code.XMm, 2);
-        Assert.Equal(30 - 10 / 2.0, code.YMm, 2);
+        // The stored text below the 10 mm bars belongs to the object NiceLabel centres.
+        Assert.True(code.HeightMm > 10);
+        Assert.Equal(30 - code.HeightMm / 2, code.YMm, 2);
+    }
+
+    [Fact]
+    public void BarcodeText_PrintsInTheVendorFontBelowTheStoredBars()
+    {
+        // No stored font or position: NiceLabel prints the text below the bars in
+        // Arial bold, auto-scaled to eight narrow bars (X = 0.375 mm -> 3 mm, 8.5 pt).
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Code</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>10000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>375</BaseBarWidth><ModuleHeight>6000</ModuleHeight></BarcodeData>
+              <FixedContents>LOT-0042</FixedContents>
+            </Item>
+            """, new HriStripMeasurer(4.0));
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal(BarcodeHriPlacement.Below, code.BarcodeHriPlacement);
+        Assert.Equal(("Arial", true), (code.BarcodeHriFontFamily, code.BarcodeHriBold));
+        Assert.Equal(8 * 0.375 * 72 / 25.4, code.BarcodeTextFontSizePt, 3);
+        // The bars keep NiceLabel's 6 mm; the frame adds the measured text strip.
+        Assert.Equal(6.0 + 4.0, code.HeightMm, 3);
+        Assert.Equal((10.0, 10.0), (code.XMm, code.YMm));
+    }
+
+    [Fact]
+    public void BarcodeText_WithAStoredFontAndNoAutoScaling_KeepsTheStoredFont()
+    {
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Code</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>10000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>8000</ModuleHeight>
+                <HumanInterpretationPosition>2</HumanInterpretationPosition>
+                <AutoFontScaling>False</AutoFontScaling>
+                <IsCustomHumanReadableFont>True</IsCustomHumanReadableFont>
+                <HumanInterpretationFontDescriptor Type="FontDescriptor"><Name>Courier New</Name><Height>9</Height>
+                  <LogFontWrapper Type="LogFontWrapper"><Height>-38</Height><Weight>400</Weight><FaceName>Courier New</FaceName></LogFontWrapper>
+                </HumanInterpretationFontDescriptor>
+              </BarcodeData>
+              <FixedContents>A1</FixedContents>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal(BarcodeHriPlacement.Above, code.BarcodeHriPlacement);
+        Assert.Equal(("Courier New", false, 9.0), (code.BarcodeHriFontFamily, code.BarcodeHriBold, code.BarcodeTextFontSizePt));
+        // Without a measurer the strip is estimated: a 1.2 em line, padding and gap.
+        Assert.Equal(8.0 + 1.2 * 9 * 25.4 / 72 + 0.4 + 0.5, code.HeightMm, 3);
+    }
+
+    [Fact]
+    public void BarcodeText_TooSmallForPrint_GrowsToTheSmallestHriSize()
+    {
+        // X = 0.125 mm auto-scales to 2.8 pt; ANLAbel prints HRI text from 5 pt.
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Code</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>10000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>125</BaseBarWidth><ModuleHeight>5000</ModuleHeight></BarcodeData>
+              <FixedContents>12345678</FixedContents>
+            </Item>
+            """, new HriStripMeasurer(2.5));
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal(5.0, code.BarcodeTextFontSizePt, 3);
+        Assert.Equal(7.5, code.HeightMm, 3);
+    }
+
+    [Fact]
+    public void BarcodeTextOff_KeepsTheBarHeightAndTheDefaultFont()
+    {
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Code</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>10000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>8000</ModuleHeight><HumanInterpretationPosition>0</HumanInterpretationPosition></BarcodeData>
+              <FixedContents>A1</FixedContents>
+            </Item>
+            """, new HriStripMeasurer(4.0));
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal(BarcodeHriPlacement.None, code.BarcodeHriPlacement);
+        Assert.Equal(8.0, code.HeightMm, 3);
+        Assert.Equal((LabelObject.DefaultBarcodeHriFontFamily, false), (code.BarcodeHriFontFamily, code.BarcodeHriBold));
     }
 
     [Fact]
@@ -1260,6 +1347,13 @@ public sealed class NiceLabel10ImportMappingTests
         Assert.Equal((300, 150), (image.ImagePixelWidth, image.ImagePixelHeight));
         var bytes = Convert.FromBase64String(image.ImageDataBase64);
         Assert.Equal(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' }, bytes[..4]);
+    }
+
+    private sealed class HriStripMeasurer(double stripMm) : INiceLabel10TextMeasurer
+    {
+        public (double WidthMm, double HeightMm)? MeasureText(LabelObject item, string sampleText) => null;
+
+        public double? MeasureBarcodeHriStripMm(LabelObject item, string sampleText) => stripMm;
     }
 
     private sealed class FixedMeasurer(double widthMm, double heightMm) : INiceLabel10TextMeasurer

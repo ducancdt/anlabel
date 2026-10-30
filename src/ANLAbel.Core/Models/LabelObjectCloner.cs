@@ -48,6 +48,8 @@ public static class LabelObjectCloner
             ImagePixelHeight = source.ImagePixelHeight,
             BarcodeHriPlacement = source.BarcodeHriPlacement,
             BarcodeTextFontSizePt = source.BarcodeTextFontSizePt,
+            BarcodeHriFontFamily = source.BarcodeHriFontFamily,
+            BarcodeHriBold = source.BarcodeHriBold,
             BarcodeCheckDigitPolicy = source.BarcodeCheckDigitPolicy,
             BarcodeHriShowCheckDigit = source.BarcodeHriShowCheckDigit,
             BarcodeModuleWidthMm = source.BarcodeModuleWidthMm,

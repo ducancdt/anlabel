@@ -57,13 +57,25 @@ public static class BarcodeHriTextLayout
         double frameHeightMm,
         BarcodeHriPlacement placement,
         double hriFontSizePt)
+        => Measure(type, value, frameWidthMm, frameHeightMm, placement, hriFontSizePt, fontFamily: null, bold: false);
+
+    /// <summary>Lays out the HRI strip in the object's HRI font (family and weight).</summary>
+    public static BarcodeHriLayout Measure(
+        BarcodeType type,
+        string value,
+        double frameWidthMm,
+        double frameHeightMm,
+        BarcodeHriPlacement placement,
+        double hriFontSizePt,
+        string? fontFamily,
+        bool bold)
     {
         if (!Supports(type) || placement == BarcodeHriPlacement.None)
         {
             return BarcodeHriLayout.Disabled(frameHeightMm);
         }
 
-        var text = CreateText(value, hriFontSizePt, WpfBrushes.Black);
+        var text = CreateText(value, hriFontSizePt, WpfBrushes.Black, fontFamily, bold);
         return BarcodeHriLayoutContract.Create(
             supportsHri: true,
             placement,
@@ -75,15 +87,26 @@ public static class BarcodeHriTextLayout
     }
 
     public static FormattedText CreateText(string value, double hriFontSizePt, WpfBrush brush)
+        => CreateText(value, hriFontSizePt, brush, fontFamily: null, bold: false);
+
+    public static FormattedText CreateText(string value, double hriFontSizePt, WpfBrush brush, string? fontFamily, bool bold)
     {
         var text = new FormattedText(
             value,
             CultureInfo.CurrentCulture,
             WpfFlowDirection.LeftToRight,
-            new Typeface("Segoe UI"),
+            HriTypeface(fontFamily, bold),
             Math.Max(1, hriFontSizePt) * TextLayoutContract.DipPerPoint,
             brush,
             1.0);
         return text;
     }
+
+    /// <summary>The HRI typeface: the object's family (Segoe UI when it names none), bold or regular.</summary>
+    public static Typeface HriTypeface(string? fontFamily, bool bold)
+        => new(
+            new System.Windows.Media.FontFamily(string.IsNullOrWhiteSpace(fontFamily) ? Core.Models.LabelObject.DefaultBarcodeHriFontFamily : fontFamily),
+            FontStyles.Normal,
+            bold ? FontWeights.Bold : FontWeights.Normal,
+            FontStretches.Normal);
 }

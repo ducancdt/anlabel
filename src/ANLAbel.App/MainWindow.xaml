@@ -1219,6 +1219,9 @@
                                                           AutomationProperties.Name="Vị trí chữ dưới mã"/>
                                                 <TextBlock Text="Cỡ chữ dưới mã (pt)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
                                                 <TextBox Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" AutomationProperties.Name="Cỡ chữ dưới mã"/>
+                                                <TextBlock Text="Phông chữ dưới mã" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay}" AutomationProperties.Name="Phông chữ dưới mã"/>
+                                                <CheckBox Content="Chữ dưới mã in đậm" Margin="0,6,0,0" IsChecked="{Binding SelectedObject.BarcodeHriBold, Mode=TwoWay}" AutomationProperties.Name="Chữ dưới mã in đậm"/>
                                                 <TextBlock Text="Số kiểm tra" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
                                                 <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
                                                           AutomationProperties.Name="Số kiểm tra"/>
@@ -3249,6 +3252,15 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                             <TextBlock Text="Cỡ HRI (pt)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
                                             <TextBox Grid.Column="2" Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" Width="58" HorizontalAlignment="Left"/>
+                                        </Grid>
+                                        <Grid Margin="0,3,0,0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Phông HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay}" Margin="0,1,0,0"
+                                                          AutomationProperties.Name="Phông chữ dưới mã" ToolTip="Phông của chữ dưới mã. Tem nhập từ NiceLabel dùng Arial đậm như NiceLabel in."/>
+                                            </StackPanel>
+                                            <CheckBox Grid.Column="2" Content="Đậm" VerticalAlignment="Bottom" Margin="0,0,0,3" IsChecked="{Binding SelectedObject.BarcodeHriBold, Mode=TwoWay}" AutomationProperties.Name="Chữ dưới mã in đậm"/>
                                         </Grid>
                                         <Grid Margin="0,3,0,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

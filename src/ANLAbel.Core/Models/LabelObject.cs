@@ -46,6 +46,8 @@ public sealed class LabelObject : ObservableObject
     private ObjectStyle _style = new();
     private BarcodeHriPlacement _barcodeHriPlacement = BarcodeHriPlacement.Below;
     private double _barcodeTextFontSizePt = 7;
+    private string _barcodeHriFontFamily = DefaultBarcodeHriFontFamily;
+    private bool _barcodeHriBold;
     private BarcodeCheckDigitPolicy _barcodeCheckDigitPolicy = BarcodeCheckDigitPolicy.None;
     private bool _barcodeHriShowCheckDigit = true;
     /// <summary>0 = legacy: derive module width from frame / module count.</summary>
@@ -531,6 +533,26 @@ public sealed class LabelObject : ObservableObject
     {
         get => _barcodeTextFontSizePt;
         set => SetProperty(ref _barcodeTextFontSizePt, Math.Max(4, Math.Min(20, value)));
+    }
+
+    /// <summary>HRI font family of a barcode that names none (labels made before the choice existed).</summary>
+    public const string DefaultBarcodeHriFontFamily = "Segoe UI";
+
+    /// <summary>
+    /// Font family of the text printed with the barcode (HRI). NiceLabel 10
+    /// prints it in Arial bold unless the label chose another font.
+    /// </summary>
+    public string BarcodeHriFontFamily
+    {
+        get => _barcodeHriFontFamily;
+        set => SetProperty(ref _barcodeHriFontFamily, string.IsNullOrWhiteSpace(value) ? DefaultBarcodeHriFontFamily : value.Trim());
+    }
+
+    /// <summary>The text printed with the barcode (HRI) is bold.</summary>
+    public bool BarcodeHriBold
+    {
+        get => _barcodeHriBold;
+        set => SetProperty(ref _barcodeHriBold, value);
     }
 
     /// <summary>

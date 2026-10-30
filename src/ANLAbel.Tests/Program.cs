@@ -339,6 +339,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("barcode and serial properties expose reverse engineered options", TestBarcodeAndSerialPropertiesExposeReverseEngineeredOptions),
     ("opening a niceLabel 5 lbl imports its label size as a new template", TestOpenNiceLabel5LblImportsLabelSize),
     ("opening a niceLabel 10 nlbl imports its label as a new template", TestOpenNiceLabel10NlblImportsLabel),
+    ("imported barcode text prints like NiceLabel", TestImportedBarcodeTextPrintsLikeNiceLabel),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
     ("bộ quy chuẩn Việt hóa chặn tiếng Anh trên file đã enforce", LanguageComplianceRegression.Run)
@@ -11702,7 +11703,7 @@ static async Task TestOpenNiceLabel10NlblImportsLabel()
                 <Item Type="BarcodeDocumentItem">
                   <Name>Code</Name>
                   <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
-                  <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight><HumanInterpretationFontDescriptor Type="FontDescriptor"><Height>8</Height></HumanInterpretationFontDescriptor></BarcodeData>
+                  <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight><AutoFontScaling>False</AutoFontScaling><HumanInterpretationFontDescriptor Type="FontDescriptor"><Height>8</Height></HumanInterpretationFontDescriptor></BarcodeData>
                   <FixedContents>12345678</FixedContents>
                 </Item>
                 <Item Type="BarcodeDocumentItem">
@@ -11840,8 +11841,11 @@ static async Task TestOpenNiceLabel10NlblImportsLabel()
         AssertEqual("12345678", barcode.Text, "The barcode fixed contents must be carried over");
         AssertNear(0.3, barcode.BarcodeModuleWidthMm, 0.001, "BaseBarWidth must become the production module width");
         AssertEqual(ANLAbel.Core.Enums.BarcodeWidthMode.SizedFromX, barcode.BarcodeWidthMode, "The authored module width must drive production width");
-        AssertNear(10.0, barcode.HeightMm, 0.001, "ModuleHeight must become the barcode height");
-        AssertNear(8.0, barcode.BarcodeTextFontSizePt, 0.001, "The human-interpretation font height must become the HRI text size");
+        // NiceLabel draws the text below the stored bar height; the frame adds the text strip.
+        var barcodeLayout = BarcodeHriTextLayout.Measure(BarcodeType.Code128, barcode.Text, barcode.WidthMm, barcode.HeightMm,
+            barcode.BarcodeHriPlacement, barcode.BarcodeTextFontSizePt, barcode.BarcodeHriFontFamily, barcode.BarcodeHriBold);
+        AssertNear(10.0, barcodeLayout.SymbolHeightMm, 0.01, "ModuleHeight must become the bar height");
+        AssertNear(8.0, barcode.BarcodeTextFontSizePt, 0.001, "Without auto scaling the human-interpretation font height must become the HRI text size");
 
         var codeB = result.Template.Objects[4];
         AssertEqual(ANLAbel.Core.Enums.Code128CodeSet.B, codeB.Code128CodeSet, "Code128BBarcodeData must pin code set B");
@@ -11976,6 +11980,152 @@ static byte[] SyntheticGrayPng(int width, int height)
     using var stream = new MemoryStream();
     encoder.Save(stream);
     return stream.ToArray();
+}
+
+// NiceLabel 10 draws a linear code's text outside its stored bar height, in
+// Arial bold auto-scaled to eight narrow bars unless the label stores a font.
+// An imported code keeps NiceLabel's bar height in print (the same bars as the
+// code without text) with the text strip added below, and the designer shows
+// the text in the print's typeface and size.
+static async Task TestImportedBarcodeTextPrintsLikeNiceLabel()
+{
+    var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-nlbl-hri-" + Guid.NewGuid().ToString("N")));
+    try
+    {
+        const string formatXml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Format">
+              <Name>HRI</Name>
+              <Media Type="FormatMedia"><Width>80000</Width><Height>40000</Height></Media>
+              <DocumentItems>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>Lot code</Name>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>8000</Y></Geometry>
+                  <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>375</BaseBarWidth><ModuleHeight>6000</ModuleHeight></BarcodeData>
+                  <FixedContents>LOT-2026-0042</FixedContents>
+                </Item>
+                <Item Type="BarcodeDocumentItem">
+                  <Name>Part code</Name>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>24000</Y></Geometry>
+                  <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>7000</ModuleHeight>
+                    <HumanInterpretationPosition>1</HumanInterpretationPosition>
+                    <AutoFontScaling>False</AutoFontScaling>
+                    <IsCustomHumanReadableFont>True</IsCustomHumanReadableFont>
+                    <HumanInterpretationFontDescriptor Type="FontDescriptor"><Name>Courier New</Name><Height>9</Height>
+                      <LogFontWrapper Type="LogFontWrapper"><Weight>400</Weight><FaceName>Courier New</FaceName></LogFontWrapper>
+                    </HumanInterpretationFontDescriptor>
+                  </BarcodeData>
+                  <FixedContents>P-778</FixedContents>
+                </Item>
+              </DocumentItems>
+            </EuroPlus.NiceLabel>
+            """;
+        const string solutionXml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution"><Variables></Variables></EuroPlus.NiceLabel>
+            """;
+        var nlblPath = Path.Combine(directory.FullName, "Hri.nlbl");
+        await File.WriteAllBytesAsync(nlblPath, BuildSyntheticNlblPackage(new Dictionary<string, string>
+        {
+            ["Formats/label"] = formatXml,
+            ["label.slnx"] = solutionXml
+        }));
+        var template = (await new ProjectFileService(new NiceLabel10TextMeasurer()).LoadWithRecoveryAsync(nlblPath)).Template;
+        var lot = template.Objects.Single(item => item.Name == "Lot code");
+        var part = template.Objects.Single(item => item.Name == "Part code");
+        AssertEqual(("Arial", true), (lot.BarcodeHriFontFamily, lot.BarcodeHriBold), "A code with no stored font prints its text in NiceLabel's Arial bold");
+        AssertNear(8 * 0.375 * 72 / 25.4, lot.BarcodeTextFontSizePt, 0.001, "Auto-scaled text is eight narrow bars high");
+        AssertEqual(("Courier New", false), (part.BarcodeHriFontFamily, part.BarcodeHriBold), "A stored font is kept");
+        AssertNear(9, part.BarcodeTextFontSizePt, 0.001, "Without auto scaling the stored size is kept");
+
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                CheckPrintAndDesigner(template, lot, part);
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            throw failure;
+        }
+    }
+    finally
+    {
+        try { directory.Delete(recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+
+    static void CheckPrintAndDesigner(LabelTemplate template, LabelObject lot, LabelObject part)
+    {
+        var renderer = new ZxingBarcodeRenderer();
+        foreach (var (code, barsMm) in new[] { (lot, 6.0), (part, 7.0) })
+        {
+            var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, template.Dpi, code.Text);
+            var layout = BarcodeHriTextLayout.Measure(BarcodeType.Code128, BarcodeCheckDigitContract.HriMeasureText(code, code.Text), widthMm, code.HeightMm,
+                code.BarcodeHriPlacement, code.BarcodeTextFontSizePt, code.BarcodeHriFontFamily, code.BarcodeHriBold);
+            AssertEqual(true, layout.IsValid && layout.IsEnabled, $"{code.Name}: the imported text strip must lay out ({layout.ErrorMessage})");
+            AssertNear(barsMm, layout.SymbolHeightMm, 0.01, $"{code.Name}: the bars keep the height NiceLabel prints");
+        }
+
+        // Print: the bars of the imported code are the bars of the same code without text.
+        var plan = new PrintRenderPlan { Dpi = 300, DpiX = 300, DpiY = 300, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+        var withText = new LabelTemplate { Name = "with", WidthMm = template.WidthMm, HeightMm = template.HeightMm, Dpi = 300 };
+        withText.Objects.Add(LabelObjectCloner.Clone(lot));
+        var bare = LabelObjectCloner.Clone(lot);
+        bare.BarcodeHriPlacement = BarcodeHriPlacement.None;
+        bare.HeightMm = 6;
+        var withoutText = new LabelTemplate { Name = "without", WidthMm = template.WidthMm, HeightMm = template.HeightMm, Dpi = 300 };
+        withoutText.Objects.Add(bare);
+        var printedWith = DarkPixels(new LabelVisualRenderer().Render(withText, null, plan), template.WidthMm, template.HeightMm);
+        var printedWithout = DarkPixels(new LabelVisualRenderer().Render(withoutText, null, plan), template.WidthMm, template.HeightMm);
+        var barsTop = (int)Math.Round(MmConverter.MmToDip(lot.YMm));
+        var barsBottom = (int)Math.Round(MmConverter.MmToDip(lot.YMm + 6)) - 1;
+        var differing = printedWith.Where(p => p.Y >= barsTop && p.Y < barsBottom).ToHashSet();
+        differing.SymmetricExceptWith(printedWithout.Where(p => p.Y >= barsTop && p.Y < barsBottom));
+        var barPixels = printedWithout.Count(p => p.Y >= barsTop && p.Y < barsBottom);
+        AssertEqual(true, barPixels > 0 && differing.Count <= barPixels / 50, $"The printed bars must match the code without text ({differing.Count} of {barPixels} pixels differ)");
+        AssertEqual(true, printedWith.Any(p => p.Y > MmConverter.MmToDip(lot.YMm + 6.5)), "The text must print below the bars");
+
+        // Designer: the text shows in the print's typeface and size (points, not DIPs).
+        var canvas = new LabelDesignerCanvas { Template = template, Zoom = 1 };
+        var size = new Size(MmConverter.MmToDip(template.WidthMm), MmConverter.MmToDip(template.HeightMm));
+        canvas.Measure(size);
+        canvas.Arrange(new Rect(size));
+        canvas.UpdateLayout();
+        var hri = FindVisualDescendants<TextBlock>(canvas).FirstOrDefault(text => text.Text == "LOT-2026-0042");
+        AssertEqual(true, hri is not null, "The designer must show the imported code's text");
+        AssertEqual(("Arial", true), (hri!.FontFamily.Source, hri.FontWeight == FontWeights.Bold), "The designer shows the text in the print's typeface");
+        AssertNear(lot.BarcodeTextFontSizePt * 96 / 72, hri.FontSize, 0.001, "The designer shows the text at the printed size");
+    }
+
+    static HashSet<(int X, int Y)> DarkPixels(Visual visual, double widthMm, double heightMm)
+    {
+        var bitmap = RenderTestBitmap(visual, MmConverter.MmToDip(widthMm), MmConverter.MmToDip(heightMm));
+        var pixels = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4];
+        bitmap.CopyPixels(pixels, bitmap.PixelWidth * 4, 0);
+        var dark = new HashSet<(int X, int Y)>();
+        for (var y = 0; y < bitmap.PixelHeight; y++)
+        {
+            for (var x = 0; x < bitmap.PixelWidth; x++)
+            {
+                var index = (y * bitmap.PixelWidth + x) * 4;
+                if (pixels[index + 3] > 200 && pixels[index] < 100 && pixels[index + 1] < 100 && pixels[index + 2] < 100)
+                {
+                    dark.Add((x, y));
+                }
+            }
+        }
+
+        return dark;
+    }
 }
 
 static byte[] BuildSyntheticNlblPackage(IReadOnlyDictionary<string, string> entries)

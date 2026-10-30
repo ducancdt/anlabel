@@ -266,6 +266,8 @@ public sealed class LabelVisualRenderer
                     ? Core.Enums.BarcodeHriPlacement.Below
                     : snapshot.BarcodeHriPlacement,
             BarcodeTextFontSizePt = snapshot.BarcodeTextFontSizePt,
+            BarcodeHriFontFamily = snapshot.BarcodeHriFontFamily,
+            BarcodeHriBold = snapshot.BarcodeHriBold,
             BarcodeCheckDigitPolicy = snapshot.BarcodeCheckDigitPolicy,
             BarcodeHriShowCheckDigit = snapshot.BarcodeHriShowCheckDigit,
             BarcodeModuleWidthMm = snapshot.BarcodeModuleWidthMm,
@@ -558,7 +560,9 @@ public sealed class LabelVisualRenderer
             productionWidthMm,
             MmConverter.DipToMm(objectRect.Height),
             item.BarcodeHriPlacement,
-            item.BarcodeTextFontSizePt);
+            item.BarcodeTextFontSizePt,
+            item.BarcodeHriFontFamily,
+            item.BarcodeHriBold);
         if (!hriLayout.IsValid)
         {
             DrawErrorFrame(dc, objectRect, hriLayout.ErrorMessage ?? "HRI cannot be laid out");
@@ -714,7 +718,7 @@ public sealed class LabelVisualRenderer
         };
         var hriValue = BarcodeCheckDigitContract.FormatHriText(item, symbology, value);
         var fontSizePt = item.BarcodeTextFontSizePt;
-        var text = BarcodeHriTextLayout.CreateText(hriValue, fontSizePt, Brushes.Black);
+        var text = BarcodeHriTextLayout.CreateText(hriValue, fontSizePt, Brushes.Black, item.BarcodeHriFontFamily, item.BarcodeHriBold);
         var hriTopDip = frame.Top + MmConverter.MmToDip(layout.HriTopMm);
         var hriHeightDip = MmConverter.MmToDip(layout.HriHeightMm);
         text.MaxTextWidth = frame.Width;

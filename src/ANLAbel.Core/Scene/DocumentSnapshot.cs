@@ -328,6 +328,8 @@ public sealed record SceneObjectSnapshot
     public bool ShowBarcodeText { get; init; }
     public BarcodeHriPlacement BarcodeHriPlacement { get; init; }
     public double BarcodeTextFontSizePt { get; init; }
+    public string BarcodeHriFontFamily { get; init; } = LabelObject.DefaultBarcodeHriFontFamily;
+    public bool BarcodeHriBold { get; init; }
     public BarcodeCheckDigitPolicy BarcodeCheckDigitPolicy { get; init; }
     public bool BarcodeHriShowCheckDigit { get; init; }
     public double BarcodeModuleWidthMm { get; init; }
@@ -412,6 +414,8 @@ public sealed record SceneObjectSnapshot
             ShowBarcodeText = item.ShowBarcodeText,
             BarcodeHriPlacement = item.BarcodeHriPlacement,
             BarcodeTextFontSizePt = item.BarcodeTextFontSizePt,
+            BarcodeHriFontFamily = item.BarcodeHriFontFamily,
+            BarcodeHriBold = item.BarcodeHriBold,
             BarcodeCheckDigitPolicy = item.BarcodeCheckDigitPolicy,
             BarcodeHriShowCheckDigit = item.BarcodeHriShowCheckDigit,
             BarcodeModuleWidthMm = item.BarcodeModuleWidthMm,
@@ -750,6 +754,13 @@ internal static class SceneHash
         Append(builder, item.ShowBarcodeText);
         Append(builder, item.BarcodeHriPlacement.ToString());
         Append(builder, item.BarcodeTextFontSizePt);
+        if (item.BarcodeHriBold || !string.Equals(item.BarcodeHriFontFamily, LabelObject.DefaultBarcodeHriFontFamily, StringComparison.Ordinal))
+        {
+            // Appended only when used so documents saved before these fields keep their fingerprint.
+            Append(builder, "hri-font");
+            Append(builder, item.BarcodeHriFontFamily);
+            Append(builder, item.BarcodeHriBold);
+        }
         Append(builder, item.BarcodeCheckDigitPolicy.ToString());
         Append(builder, item.BarcodeHriShowCheckDigit);
         Append(builder, item.BarcodeModuleWidthMm);

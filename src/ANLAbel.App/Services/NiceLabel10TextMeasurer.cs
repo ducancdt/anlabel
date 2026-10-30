@@ -26,4 +26,20 @@ public sealed class NiceLabel10TextMeasurer : INiceLabel10TextMeasurer
             return null;
         }
     }
+
+    public double? MeasureBarcodeHriStripMm(LabelObject item, string sampleText)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        // Laid out as the print lays it out, in a frame large enough to hold it.
+        var layout = BarcodeHriTextLayout.Measure(
+            ANLAbel.Barcode.Renderers.BarcodeType.Code128,
+            string.IsNullOrEmpty(sampleText) ? "0" : sampleText,
+            1000,
+            1000,
+            item.BarcodeHriPlacement,
+            item.BarcodeTextFontSizePt,
+            item.BarcodeHriFontFamily,
+            item.BarcodeHriBold);
+        return layout.IsEnabled && layout.IsValid ? layout.HriHeightMm + layout.GapMm : null;
+    }
 }

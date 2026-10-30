@@ -853,6 +853,10 @@ public static class NiceLabel10NlblReader
                     BarcodeHriPosition = barcodeData?.Element("HumanInterpretationPosition") is null
                         ? -1
                         : (int)ParseDouble(barcodeData, "HumanInterpretationPosition"),
+                    BarcodeHriFontName = ChildText(barcodeData?.Element("HumanInterpretationFontDescriptor"), "Name")?.Trim(),
+                    BarcodeHriBold = HriFontIsBold(barcodeData?.Element("HumanInterpretationFontDescriptor")),
+                    BarcodeHriAutoFontScaling = barcodeData?.Element("AutoFontScaling") is null
+                        || ParseBool(barcodeData, "AutoFontScaling"),
                     BarcodeElementWidthMm = ParseDouble(barcodeData, "ElementWidth") / ThousandthsPerMm,
                     BarcodeElementHeightMm = ParseDouble(barcodeData, "ElementHeight") / ThousandthsPerMm,
                     BarcodeTruncated = ParseBool(barcodeData, "TruncatedBarcode"),
@@ -1024,6 +1028,13 @@ public static class NiceLabel10NlblReader
 
     private static string? ChildText(XElement? parent, string name) =>
         parent?.Element(name)?.Value;
+
+    /// <summary>
+    /// A stored HRI font is bold when its LOGFONT weight is 600 or more; no
+    /// stored font is the vendor default, Arial bold.
+    /// </summary>
+    private static bool HriFontIsBold(XElement? descriptor) =>
+        descriptor is null || ParseDouble(descriptor.Element("LogFontWrapper"), "Weight") >= 600;
 
     private static double Thousandths(XElement? parent, string name) =>
         ParseDouble(parent, name) / ThousandthsPerMm;

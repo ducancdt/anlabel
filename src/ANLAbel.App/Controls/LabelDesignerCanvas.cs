@@ -4204,7 +4204,9 @@ public sealed class LabelDesignerCanvas : Canvas
                 productionWidthMm,
                 item.HeightMm,
                 item.BarcodeHriPlacement,
-                item.BarcodeTextFontSizePt);
+                item.BarcodeTextFontSizePt,
+                item.BarcodeHriFontFamily,
+                item.BarcodeHriBold);
             if (!hriLayout.IsValid)
             {
                 return ANLAbel.App.Services.PreflightIssueText.Sentence(hriLayout.ErrorMessage);
@@ -4316,7 +4318,9 @@ public sealed class LabelDesignerCanvas : Canvas
             productionWidthMm,
             item.HeightMm,
             item.BarcodeHriPlacement,
-            item.BarcodeTextFontSizePt);
+            item.BarcodeTextFontSizePt,
+            item.BarcodeHriFontFamily,
+            item.BarcodeHriBold);
 
         image.Stretch = item.IsSquare2DCodeLike() || item.Type is ObjectType.QRCode or ObjectType.DataMatrix
             ? Stretch.Uniform
@@ -4416,7 +4420,10 @@ public sealed class LabelDesignerCanvas : Canvas
                 _ => item.BarcodeSymbology
             };
             hri.Text = BarcodeCheckDigitContract.FormatHriText(item, symbology, data);
-            hri.FontSize = item.BarcodeTextFontSizePt;
+            // The print's typeface and size: points, not DIPs.
+            hri.FontFamily = new FontFamily(item.BarcodeHriFontFamily);
+            hri.FontWeight = item.BarcodeHriBold ? FontWeights.Bold : FontWeights.Normal;
+            hri.FontSize = Math.Max(1, item.BarcodeTextFontSizePt) * ANLAbel.Core.Text.TextLayoutContract.DipPerPoint;
             hri.Height = MmToDip(hriLayout.HriHeightMm);
             hri.Visibility = Visibility.Visible;
         }
@@ -4462,7 +4469,9 @@ public sealed class LabelDesignerCanvas : Canvas
                 widthMm,
                 item.HeightMm,
                 item.BarcodeHriPlacement,
-                item.BarcodeTextFontSizePt);
+                item.BarcodeTextFontSizePt,
+                item.BarcodeHriFontFamily,
+                item.BarcodeHriBold);
             if (!hriLayout.IsValid)
             {
                 return null;

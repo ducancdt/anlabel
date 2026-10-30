@@ -263,8 +263,7 @@ an acceptance check.
   files sit next to their labels); the remaining 13 (no file name, or
   bound to a variable) stay unconverted.
 - Barcode detail mapping: `Code128BBarcodeData` pins
-  `Code128CodeSet.B`, and the `HumanInterpretationFontDescriptor` height
-  becomes `BarcodeTextFontSizePt`. Code 39 carries `HasCheckDigit`
+  `Code128CodeSet.B`; the human-readable text font and size follow §12. Code 39 carries `HasCheckDigit`
   (modulo-43 check character → `BarcodeCheckDigitPolicy.Generate`),
   `DisplayCheckDigit` (→ `BarcodeHriShowCheckDigit`), `Ratio` (2, 2.2,
   2.5, 3 → `Code39WideNarrowRatio`) and `InterCharacterGap` (narrow-bar
@@ -587,3 +586,38 @@ rectangular size gives the frame the symbol's proportions with its quiet zone;
 import keeps the vendor size (DMRE stays Auto: the encoder has no DMRE). UI:
 Mã vạch › Chi tiết 2D and Thuộc tính › Kiểu › Khổ Data Matrix. Gate: `data
 matrix sizes print as chosen`.
+
+## §12 Barcode human-readable text (2026-10-30)
+
+- Default font: `AbstractBarcodeData.GetDefaultFontDescriptor` is Arial,
+  10 pt, LOGFONT weight 700 (bold). A barcode without a stored
+  `HumanInterpretationFontDescriptor` prints its text in Arial bold.
+- Size: `AutoFontScaling` (LoadSave default **true**) makes the encoder
+  (`Barcodes.Core` base encoder) set the text height to 8 × the narrow bar
+  width in device dots (`GetNarrowBarWidthInDeviceDots`, at least 1 dot);
+  only with auto scaling off does the stored descriptor height (points)
+  apply. `IsCustomHumanReadableFont` only says whether the font editors
+  are enabled. The EAN/UPC encoder family uses another expression,
+  not reproduced (no customer label uses it).
+- Drawing: `BarcodeItem` draws the text with WPF `FormattedText`, em size
+  = that height in device dots, the descriptor's face name and its weight
+  and style, under (or over) the bars. `ModuleHeight` is the bar height;
+  the text adds to the object's height, and the stored position and anchor
+  refer to the whole object.
+- Corpus: 30 of the 71 barcodes in the 12 local customer labels and 31 of
+  the 575 in the 207 samples show their text; all customer ones use the
+  default font and auto scaling (X = 0.125/0.25/0.375 mm).
+
+ANLAbel before: the importer took the descriptor's 10 pt as the HRI size,
+drew it in Segoe UI and kept the frame at `ModuleHeight`, so the text strip
+ate the bars: 23 of the 30 customer codes were refused by preflight
+("Barcode frame is too short for the HRI strip"), the rest printed bars
+1–3 mm high. Now: `LabelObject.BarcodeHriFontFamily`/`BarcodeHriBold`
+(designer, print, preflight and the layout share one typeface,
+`BarcodeHriTextLayout.HriTypeface`); import sets the stored font (Arial bold
+by default), the auto-scaled size (8 × X, at least ANLAbel's 5 pt HRI
+minimum) and grows the frame by the measured text strip, so the bars keep
+NiceLabel's height. The designer drew HRI text at the point value in DIPs
+(75 % of print); it now uses the print size. UI: Mã vạch › Chi tiết mã and
+Thuộc tính › Kiểu (Phông HRI, Đậm). Gate: `imported barcode text prints like
+NiceLabel`.
