@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.348
+
+- Quản lý dữ liệu, trình soạn biến nhập (soát thiết kế): hai nhóm "Quy tắc
+  nhập" và "Khi in"; số ký tự tối thiểu và tối đa trên một hàng; ô tiền tố và
+  hậu tố có nhãn riêng; ô ký tự đệm chỉ bật khi có đệm. Bấm Đồng ý với số ký tự
+  tối thiểu lớn hơn tối đa bị từ chối (người in sẽ không nhập được giá trị nào).
+
 ## v0.348 — Số EAN/UPC in đủ, nhập NiceLabel giữ bộ đếm serial, chữ định dạng, nhóm và dấu cách; biến nhập có độ dài tối thiểu
 
 _Gồm các commit 31/10/2026 (00:37–01:36)._

@@ -95,6 +95,19 @@ public static partial class JobVariableContract
     }
 
     /// <summary>Problem with one entered value, or empty when it is acceptable.</summary>
+    /// <summary>
+    /// Problems in a prompt's own rules that would turn back every answer
+    /// (NiceLabel 10 refuses a maximum length below the minimum); empty when
+    /// the operator can answer it.
+    /// </summary>
+    public static IReadOnlyList<string> ValidateDefinition(PromptVariableDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        return !IsDatePrompt(definition) && definition.MinLength > 0 && definition.MaxLength > 0 && definition.MinLength > definition.MaxLength
+            ? [$"Prompt '{definition.Name}' needs at least {definition.MinLength} characters but allows at most {definition.MaxLength}."]
+            : [];
+    }
+
     public static string ValidatePromptValue(PromptVariableDefinition definition, string? value)
     {
         ArgumentNullException.ThrowIfNull(definition);

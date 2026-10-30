@@ -642,6 +642,7 @@ public partial class DataManagerWindow : Window
         CommitFocusedText();
         var problems = new List<string>();
         CheckNames(_prompts.Select(prompt => prompt.Name), "Biến nhập khi in", problems);
+        problems.AddRange(_prompts.SelectMany(JobVariableContract.ValidateDefinition).Select(problem => JobVariableText.Message(problem)));
         CheckNames(_functions.Select(function => function.Name), "Hàm", problems);
         var fields = _viewModel.ExcelHeaders.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var clash in _functions.Where(function => fields.Contains(function.Name)))

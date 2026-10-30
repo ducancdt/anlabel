@@ -485,6 +485,15 @@ the RE record §15), multiline,
 counters (ANLAbel's serial counter is separate). Gates: `prompt rules guide the
 operator`; unit tests in `JobVariableTests` and the .nlbl mapping.
 
+## Prompt editor layout (2026-10-31, design pass)
+
+The Data Manager prompt editor groups its rules under "Quy tắc nhập" (length as
+one row "tối thiểu … tối đa …", fixed length, digits only, allowed characters,
+pick list) and "Khi in" (labelled "Tiền tố" and "Hậu tố" boxes, padding; the pad
+character is enabled only with padding). Đồng ý refuses a minimum length above
+the maximum (`JobVariableContract.ValidateDefinition`), which NiceLabel 10 also
+refuses. Gate: `the prompt editor follows the kind of value`.
+
 ## Data explorer drag and drop (2026-10-31)
 
 NiceLabel 10 (`DocumentPageView.HostCanvas_Drop`, `DropGenericSelectItemOnSurface`,

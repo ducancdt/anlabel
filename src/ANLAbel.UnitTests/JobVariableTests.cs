@@ -204,6 +204,11 @@ public sealed class JobVariableTests : IDisposable
         Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(part, "12"));
         Assert.Equal(6, part.Clone().MinLength);
 
+        // Rules that refuse every answer are reported where the prompt is defined.
+        Assert.Empty(JobVariableContract.ValidateDefinition(part));
+        part.MaxLength = 4;
+        Assert.Contains("needs at least 6 characters but allows at most 4", Assert.Single(JobVariableContract.ValidateDefinition(part)));
+
         var template = Template("{?Part}");
         var used = new PromptVariableDefinition { Name = "Part" };
         template.PromptVariables.Add(used);

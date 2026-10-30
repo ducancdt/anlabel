@@ -30,6 +30,12 @@
                 <Setter Property="Foreground" Value="#262626"/>
                 <Setter Property="Margin" Value="0,10,0,3"/>
             </Style>
+            <Style x:Key="EditorSection" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="#1F4E79"/>
+                <Setter Property="Margin" Value="0,18,0,0"/>
+            </Style>
             <Style x:Key="EditorNote" TargetType="Border">
                 <Setter Property="Background" Value="#F4F7FB"/>
                 <Setter Property="BorderBrush" Value="#D6E2F0"/>
@@ -176,12 +182,17 @@
                                         </Style.Triggers>
                                     </Style>
                                 </StackPanel.Style>
-                                <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự tối đa (0 = không giới hạn)"/>
-                                <TextBox Width="120" HorizontalAlignment="Left" Text="{Binding MaxLength, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Số ký tự tối đa"/>
-                                <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự tối thiểu (0 = không yêu cầu)"/>
-                                <TextBox Width="120" HorizontalAlignment="Left" Text="{Binding MinLength, UpdateSourceTrigger=LostFocus}"
-                                         ToolTip="Người in phải nhập ít nhất chừng này ký tự, để bắt giá trị quét hoặc gõ thiếu."
-                                         AutomationProperties.Name="Số ký tự tối thiểu" AutomationProperties.AutomationId="DataManager.Prompt.MinLength"/>
+                                <TextBlock Style="{StaticResource EditorSection}" Text="Quy tắc nhập"/>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự (0 = không giới hạn)"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="tối thiểu" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Width="64" Text="{Binding MinLength, UpdateSourceTrigger=LostFocus}"
+                                             ToolTip="Người in phải nhập ít nhất chừng này ký tự, để bắt giá trị quét hoặc gõ thiếu."
+                                             AutomationProperties.Name="Số ký tự tối thiểu" AutomationProperties.AutomationId="DataManager.Prompt.MinLength"/>
+                                    <TextBlock Text="tối đa" VerticalAlignment="Center" Margin="16,0,6,0"/>
+                                    <TextBox Width="64" Text="{Binding MaxLength, UpdateSourceTrigger=LostFocus}"
+                                             AutomationProperties.Name="Số ký tự tối đa" AutomationProperties.AutomationId="DataManager.Prompt.MaxLength"/>
+                                </StackPanel>
                                 <CheckBox Content="Độ dài cố định (đúng số ký tự tối đa)" Margin="0,8,0,0" IsChecked="{Binding FixedLength}" AutomationProperties.AutomationId="DataManager.Prompt.FixedLength"/>
                                 <CheckBox Content="Chỉ nhận chữ số" Margin="0,6,0,0" IsChecked="{Binding DigitsOnly}"/>
                                 <TextBlock Style="{StaticResource EditorLabel}" Text="Chỉ nhận các ký tự (để trống = mọi ký tự)"/>
@@ -190,15 +201,23 @@
                                 <TextBox Text="{Binding PickList, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" VerticalScrollBarVisibility="Auto"
                                          AutomationProperties.Name="Danh sách chọn" AutomationProperties.AutomationId="DataManager.Prompt.PickList"/>
                             </StackPanel>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Khi in (tiền tố, hậu tố; chữ còn đệm được đến số ký tự tối đa)"/>
+                            <TextBlock Style="{StaticResource EditorSection}" Text="Khi in"/>
+                            <TextBlock Style="{StaticResource EditorHint}" Margin="0,2,0,0"
+                                       Text="Tiền tố in trước giá trị, hậu tố in sau; chữ còn đệm được đến số ký tự tối đa."/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="8"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" ToolTip="Tiền tố: in trước giá trị" AutomationProperties.Name="Tiền tố" AutomationProperties.AutomationId="DataManager.Prompt.Prefix"/>
-                                <TextBox Grid.Column="2" Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hậu tố: in sau giá trị" AutomationProperties.Name="Hậu tố" AutomationProperties.AutomationId="DataManager.Prompt.Suffix"/>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource EditorLabel}" Text="Tiền tố"/>
+                                    <TextBox Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" ToolTip="In trước giá trị" AutomationProperties.Name="Tiền tố" AutomationProperties.AutomationId="DataManager.Prompt.Prefix"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Style="{StaticResource EditorLabel}" Text="Hậu tố"/>
+                                    <TextBox Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" ToolTip="In sau giá trị" AutomationProperties.Name="Hậu tố" AutomationProperties.AutomationId="DataManager.Prompt.Suffix"/>
+                                </StackPanel>
                             </Grid>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <StackPanel.Style>
@@ -217,7 +236,17 @@
                                     <ComboBoxItem Content="Đệm bên phải" Tag="{x:Static enums:PromptPadding.Right}"/>
                                 </ComboBox>
                                 <TextBlock Text="bằng ký tự" VerticalAlignment="Center" Margin="8,0,6,0"/>
-                                <TextBox Width="36" MaxLength="1" Text="{Binding PadCharacter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Ký tự đệm" AutomationProperties.AutomationId="DataManager.Prompt.PadCharacter"/>
+                                <TextBox Width="36" MaxLength="1" Text="{Binding PadCharacter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Ký tự đệm" AutomationProperties.AutomationId="DataManager.Prompt.PadCharacter">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Padding}" Value="{x:Static enums:PromptPadding.None}">
+                                                    <Setter Property="IsEnabled" Value="False"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
                             </StackPanel>
                             <Border Style="{StaticResource EditorNote}">
                                 <TextBlock x:Name="PromptUsageText" TextWrapping="Wrap" Foreground="#262626"/>

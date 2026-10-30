@@ -1331,10 +1331,22 @@ internal static class DesignScenarioRegression
             Require(kindText.IsChecked == true && dateBlock.Visibility == Visibility.Collapsed && textRules.Visibility == Visibility.Visible,
                 "A text prompt shows its text rules and no date format.");
             var minimum = Find<TextBox>("DataManager.Prompt.MinLength");
-            Require(ReferenceEquals(minimum.Parent, textRules), "The minimum length is one of the text rules.");
+            var maximum = Find<TextBox>("DataManager.Prompt.MaxLength");
+            Require(ReferenceEquals(minimum.Parent, maximum.Parent) && ReferenceEquals(((FrameworkElement)minimum.Parent).Parent, textRules),
+                "The minimum and maximum length share one row of the text rules.");
             minimum.Text = "4";
             minimum.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
             Require(draft.MinLength == 4, $"The minimum length is stored on the prompt ({draft.MinLength}).");
+
+            // The output rules: labelled prefix and suffix, the pad character only with padding.
+            var editorTexts = FindDescendants<TextBlock>((DependencyObject)window.Content).Select(text => text.Text).ToHashSet();
+            Require(editorTexts.IsSupersetOf(["Quy tắc nhập", "Khi in", "Tiền tố", "Hậu tố"]), "The rules are grouped and the prefix and suffix boxes are labelled.");
+            var padCharacter = Find<TextBox>("DataManager.Prompt.PadCharacter");
+            Require(!padCharacter.IsEnabled, "Without padding there is no pad character to type.");
+            draft.Padding = PromptPadding.Left;
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            Require(padCharacter.IsEnabled, "With padding the pad character can be typed.");
+            draft.Padding = PromptPadding.None;
 
             kindDate.IsChecked = true;
             System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);

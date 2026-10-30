@@ -22,6 +22,8 @@ public static class JobVariableText
             m => $"“{m.Groups["p"].Value}” phải là một giá trị trong danh sách: {m.Groups["v"].Value}"),
         (Rx(@"^Prompt '(?<p>.*)' needs exactly (?<n>\d+) characters; (?<k>\d+) were entered"),
             m => $"“{m.Groups["p"].Value}” cần đúng {m.Groups["n"].Value} ký tự, đã nhập {m.Groups["k"].Value}"),
+        (Rx(@"^Prompt '(?<p>.*)' needs at least (?<n>\d+) characters but allows at most (?<m>\d+)"),
+            m => $"biến “{m.Groups["p"].Value}” cần ít nhất {m.Groups["n"].Value} ký tự nhưng chỉ cho tối đa {m.Groups["m"].Value}, nên người in không nhập được giá trị nào; sửa số ký tự tối thiểu hoặc tối đa"),
         (Rx(@"^Prompt '(?<p>.*)' needs at least (?<n>\d+) characters; (?<k>\d+) were entered"),
             m => $"“{m.Groups["p"].Value}” cần ít nhất {m.Groups["n"].Value} ký tự, mới nhập {m.Groups["k"].Value}"),
         (Rx(@"^Date field '(?<t>.*)' is not understood"),
