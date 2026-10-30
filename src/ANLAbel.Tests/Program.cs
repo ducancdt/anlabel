@@ -13098,6 +13098,25 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 }
             }
 
+            // Narrow window: the ribbon collapses secondary print commands and alignment
+            // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
+            void LayoutAt(double width)
+            {
+                var content = (FrameworkElement)window.Content;
+                content.Measure(new Size(width, 700));
+                content.Arrange(new Rect(0, 0, width, 700));
+                content.UpdateLayout();
+                PumpDispatcher();
+                content.UpdateLayout();
+            }
+
+            viewModel.SelectedRibbonTab = RibbonTab.Home;
+            LayoutAt(1024);
+            AssertEqual(Visibility.Visible, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.PrintMore")!).Visibility, "Narrow ribbon offers a 'Thêm lệnh in' drop-down");
+            AssertEqual(Visibility.Visible, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.AlignMore")!).Visibility, "Narrow ribbon offers a 'Căn chỉnh' drop-down");
+            LayoutAt(1440);
+            AssertEqual(Visibility.Collapsed, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.PrintMore")!).Visibility, "Wide ribbon shows the print commands themselves");
+
             // Properties audit renders: every category for Text, TextBox and Barcode.
             var modeTabs = (TabControl)window.FindName("PropertiesModeTabs");
             foreach (var command in new[] { viewModel.AddTextBoxCommand, viewModel.AddBarcodeCommand })

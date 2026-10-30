@@ -444,6 +444,7 @@
         <converters:IndexToVisibilityConverter x:Key="IndexToVisibility"/>
         <converters:InverseBooleanConverter x:Key="InverseBool"/>
         <converters:EmptyTextConverter x:Key="EmptyText"/>
+        <converters:WidthThresholdVisibilityConverter x:Key="RibbonWidth"/>
         <Style x:Key="RibbonTabHeader" TargetType="RadioButton">
             <Setter Property="GroupName" Value="RibbonTabs"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -657,7 +658,7 @@
             </Grid>
         </Border>
 
-        <Border DockPanel.Dock="Top" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1"
+        <Border x:Name="RibbonBar" DockPanel.Dock="Top" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1"
                 AutomationProperties.AutomationId="Shell.Ribbon"
                 AutomationProperties.Name="Ribbon">
             <Border.Resources>
@@ -806,6 +807,7 @@
                                     <Button Style="{StaticResource RibbonButton}" Click="PrintPreview_Click" AutomationProperties.Name="Preview" AutomationProperties.AutomationId="Shell.Ribbon.Preview">
                                         <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/preview.png"/><TextBlock Text="{Binding Ui.Preview}" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="Ctrl+P" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
                                     </Button>
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding ActualWidth, ElementName=RibbonBar, Converter={StaticResource RibbonWidth}, ConverterParameter=1200}">
                                     <StackPanel Margin="3,0,0,0">
                                         <Button Style="{StaticResource RibbonSecondaryButton}" Click="PrintAllRows_Click" ToolTip="In mọi dòng đã nhập" AutomationProperties.Name="Print all rows" AutomationProperties.AutomationId="Shell.Ribbon.PrintAllRows">
                                             <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/print_all_rows.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.PrintAllRows}" VerticalAlignment="Center"/></StackPanel>
@@ -822,6 +824,18 @@
                                             <StackPanel Orientation="Horizontal"><Image Style="{StaticResource SmallIconImage}" Source="Icons/export_excel.png" Margin="0,0,6,0"/><TextBlock Text="{Binding Ui.ExportExcel}" VerticalAlignment="Center"/></StackPanel>
                                         </Button>
                                     </StackPanel>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource RibbonButton}" Click="RibbonMoreMenu_Click" ToolTip="In mọi dòng, in thử, lịch sử in, xuất Excel" AutomationProperties.Name="More print commands" AutomationProperties.AutomationId="Shell.Ribbon.PrintMore" Visibility="{Binding ActualWidth, ElementName=RibbonBar, Converter={StaticResource RibbonWidth}, ConverterParameter=!1200}">
+                                        <StackPanel><TextBlock Style="{StaticResource RibbonGlyph}" Text="&#xE712;"/><TextBlock Text="Thêm" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="lệnh in ▾" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="In mọi dòng" Click="PrintAllRows_Click"/>
+                                                <MenuItem Header="In thử" Command="{Binding PrintCalibrationCommand}"/>
+                                                <MenuItem Header="Lịch sử in" Click="PrintHistory_Click"/>
+                                                <MenuItem Header="Xuất lịch sử in ra Excel" Click="ExportPrintHistory_Click"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Thao tác"/>
                             </controls:RibbonGroupPanel>
@@ -841,7 +855,7 @@
 
                             <Border Style="{StaticResource RibbonSeparator}"/>
                             <controls:RibbonGroupPanel>
-                                <StackPanel Margin="0,8,0,0">
+                                <StackPanel Margin="0,8,0,0" Visibility="{Binding ActualWidth, ElementName=RibbonBar, Converter={StaticResource RibbonWidth}, ConverterParameter=1200}">
                                     <StackPanel Orientation="Horizontal">
                                         <Button Style="{StaticResource RibbonIconButton}" Tag="Left" Click="ArrangeAlign_Click" ToolTip="Căn trái" AutomationProperties.Name="Align left objects"><Path Style="{StaticResource AlignIcon}" Data="M0,0 H1.5 V16 H0 Z M3,3 H13 V7 H3 Z M3,9 H9 V13 H3 Z"/></Button>
                                         <Button Style="{StaticResource RibbonIconButton}" Tag="HorizontalCenter" Click="ArrangeAlign_Click" ToolTip="Căn giữa theo chiều ngang" AutomationProperties.Name="Center objects horizontally"><Path Style="{StaticResource AlignIcon}" Data="M7.25,0 H8.75 V16 H7.25 Z M2,3 H14 V7 H2 Z M4,9 H12 V13 H4 Z"/></Button>
@@ -855,6 +869,21 @@
                                         <Button Style="{StaticResource RibbonIconButton}" Tag="VerticalGaps" Click="ArrangeDistribute_Click" ToolTip="Phân bố đều theo chiều dọc" AutomationProperties.Name="Distribute vertically"><Path Style="{StaticResource AlignIcon}" Data="M0,0 H16 V1.5 H0 Z M0,14.5 H16 V16 H0 Z M4,5.5 H12 V10.5 H4 Z"/></Button>
                                     </StackPanel>
                                 </StackPanel>
+                                <Button Style="{StaticResource RibbonButton}" Click="RibbonMoreMenu_Click" ToolTip="Căn và phân bố các đối tượng đang chọn" AutomationProperties.Name="Align menu" AutomationProperties.AutomationId="Shell.Ribbon.AlignMore" Visibility="{Binding ActualWidth, ElementName=RibbonBar, Converter={StaticResource RibbonWidth}, ConverterParameter=!1200}">
+                                    <StackPanel><Path Style="{StaticResource AlignIcon}" Width="20" Height="20" Margin="0,2,0,3" Data="M0,0 H1.5 V16 H0 Z M3,3 H13 V7 H3 Z M3,9 H9 V13 H3 Z"/><TextBlock Text="Căn" Style="{StaticResource RibbonPrimaryCaption}"/><TextBlock Text="chỉnh ▾" Style="{StaticResource RibbonSecondaryCaption}"/></StackPanel>
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Căn trái" Tag="Left" Click="ArrangeAlign_Click"/>
+                                            <MenuItem Header="Căn giữa theo chiều ngang" Tag="HorizontalCenter" Click="ArrangeAlign_Click"/>
+                                            <MenuItem Header="Căn phải" Tag="Right" Click="ArrangeAlign_Click"/>
+                                            <MenuItem Header="Căn trên" Tag="Top" Click="ArrangeAlign_Click"/>
+                                            <MenuItem Header="Căn giữa theo chiều dọc" Tag="VerticalCenter" Click="ArrangeAlign_Click"/>
+                                            <MenuItem Header="Căn dưới" Tag="Bottom" Click="ArrangeAlign_Click"/>
+                                            <MenuItem Header="Phân bố đều theo chiều ngang" Tag="HorizontalGaps" Click="ArrangeDistribute_Click"/>
+                                            <MenuItem Header="Phân bố đều theo chiều dọc" Tag="VerticalGaps" Click="ArrangeDistribute_Click"/>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
                                 <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Căn chỉnh"/>
                             </controls:RibbonGroupPanel>
 

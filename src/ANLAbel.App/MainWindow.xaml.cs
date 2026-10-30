@@ -575,6 +575,20 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    /// <summary>Opens the drop-down of a collapsed ribbon group (narrow window).</summary>
+    private void RibbonMoreMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            menu.PlacementTarget = button;
+            menu.Placement = PlacementMode.Bottom;
+            menu.DataContext = button.DataContext;
+            menu.IsOpen = true;
+        }
+
+        e.Handled = true;
+    }
+
     private void FileMenu_Click(object sender, RoutedEventArgs e)
     {
         // NiceLabel 10 File backstage: here a menu under the File button.
@@ -764,7 +778,7 @@ public partial class MainWindow : Window
 
     private void ArrangeAlign_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Tag: string alignmentText }
+        if (sender is not FrameworkElement { Tag: string alignmentText }
             || !Enum.TryParse<LabelAlignmentMode>(alignmentText, out var alignment))
         {
             return;
@@ -782,7 +796,7 @@ public partial class MainWindow : Window
 
     private void ArrangeDistribute_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Tag: string distributionText }
+        if (sender is not FrameworkElement { Tag: string distributionText }
             || !Enum.TryParse<LabelDistributionMode>(distributionText, out var distribution))
         {
             return;
