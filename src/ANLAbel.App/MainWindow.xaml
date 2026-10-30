@@ -1657,7 +1657,7 @@
                                         <StackPanel>
                                             <DockPanel Margin="0,0,0,6">
                                                 <TextBlock Text="Dòng Excel" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" VerticalAlignment="Center"/>
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding CurrentExcelRowText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Margin="8,0,0,0" Text="{Binding CurrentExcelRowText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
                                             </DockPanel>
                                             <DataGrid ItemsSource="{Binding ExcelDataView}"
                                                       SelectedItem="{Binding SelectedDataItem, Mode=TwoWay}"

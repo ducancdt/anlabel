@@ -24,6 +24,7 @@
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
             <Button x:Name="RefreshButton"
                     DockPanel.Dock="Right"
+                    VerticalAlignment="Top"
                     Content="Làm mới"
                     Padding="16,7"
                     AutomationProperties.Name="Refresh print recovery"
@@ -72,7 +73,7 @@
                 <DataGridTextColumn Header="Trạng thái" Binding="{Binding State, Converter={StaticResource PrintCenterText}}" Width="115"/>
                 <DataGridTextColumn Header="Hành động" Binding="{Binding OperatorAction, Converter={StaticResource PrintCenterText}}" Width="135"/>
                 <DataGridTextColumn Header="Máy in" Binding="{Binding PrinterName}" Width="150"/>
-                <DataGridTextColumn Header="Bộ đệm in" Binding="{Binding SpoolJobId}" Width="70"/>
+                <DataGridTextColumn Header="Bộ đệm in" Binding="{Binding SpoolJobId}" Width="85"/>
                 <DataGridTextColumn Header="Hàng đợi" Binding="{Binding QueueState, Converter={StaticResource PrintCenterText}, ConverterParameter=Queue}" Width="105"/>
                 <DataGridTextColumn Header="Bản kê" Binding="{Binding ManifestFingerprint}" Width="220"/>
                 <DataGridTextColumn Header="Lý do" Binding="{Binding Reason, Converter={StaticResource PrintCenterText}, ConverterParameter=Reason}" Width="*"/>
