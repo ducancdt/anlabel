@@ -330,6 +330,9 @@ public sealed class LabelVisualRenderer
             AnchorPoint = snapshot.AnchorPoint,
             IsPrintable = snapshot.IsPrintable,
             KeepAspectRatio = snapshot.KeepAspectRatio,
+            PictureSizing = snapshot.PictureSizing,
+            PictureFlipHorizontal = snapshot.PictureFlipHorizontal,
+            PictureFlipVertical = snapshot.PictureFlipVertical,
             VisibilityCondition = snapshot.VisibilityCondition,
             GroupId = snapshot.GroupId,
             ContentMask = snapshot.ContentMask,
@@ -647,15 +650,45 @@ public sealed class LabelVisualRenderer
             return;
         }
 
-        var scale = Math.Min(rect.Width / source.PixelWidth, rect.Height / source.PixelHeight);
-        var drawWidth = source.PixelWidth * scale;
-        var drawHeight = source.PixelHeight * scale;
-        var drawRect = new Rect(
-            rect.Left + (rect.Width - drawWidth) / 2,
-            rect.Top + (rect.Height - drawHeight) / 2,
-            drawWidth,
-            drawHeight);
+        // NiceLabel 10 picture Resize options and flips (PictureLayoutContract).
+        var placed = ANLAbel.Core.Printing.PictureLayoutContract.Place(
+            item.PictureSizing,
+            rect.Left,
+            rect.Top,
+            rect.Width,
+            rect.Height,
+            source.PixelWidth,
+            source.PixelHeight,
+            source.DpiX,
+            source.DpiY,
+            96);
+        var drawRect = new Rect(placed.X, placed.Y, placed.Width, placed.Height);
+        var clip = item.PictureSizing == PictureSizing.Original;
+        if (clip)
+        {
+            dc.PushClip(new RectangleGeometry(rect));
+        }
+
+        var flip = item.PictureFlipHorizontal || item.PictureFlipVertical;
+        if (flip)
+        {
+            dc.PushTransform(new ScaleTransform(
+                item.PictureFlipHorizontal ? -1 : 1,
+                item.PictureFlipVertical ? -1 : 1,
+                drawRect.Left + drawRect.Width / 2,
+                drawRect.Top + drawRect.Height / 2));
+        }
+
         dc.DrawImage(source, drawRect);
+        if (flip)
+        {
+            dc.Pop();
+        }
+
+        if (clip)
+        {
+            dc.Pop();
+        }
     }
 
     private static void DrawHri(

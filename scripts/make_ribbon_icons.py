@@ -1356,6 +1356,25 @@ def _():
             stroke('M5.4,5.4 L10.6,10.6 M10.6,5.4 L5.4,10.6', PAPER, 1.6, cap='Round')]
 
 
+@icon('PictureSize32', 32)
+def _():
+    return [shape(rect(2.5, 6.5, 22.5, 25.5), BLUE_L, Pen(BLUE)),
+            shape(poly([(4, 24), (10, 15), (14, 20), (17, 17), (21, 24)]), GREEN_M),
+            shape(circle(17.5, 11, 2), YELLOW),
+            stroke('M19.5,29 L29,19.5', ORANGE, 1.6, cap='Round'),
+            shape(poly([(29.5, 19), (29.5, 24), (24.5, 19)]), ORANGE),
+            shape(poly([(19, 29.5), (24, 29.5), (19, 24.5)]), ORANGE)]
+
+
+@icon('OriginalSize16', 16)
+def _():
+    a, h = arc_arrow(11.5, 11.5, 3.2, 200, 470, 2)
+    return [shape(rect(1.5, 1.5, 11.5, 10.5), BLUE_L, Pen(BLUE)),
+            shape(poly([(2.5, 9.5), (5.5, 5.5), (7.5, 7.5), (8.5, 6.5), (10.5, 9.5)]), GREEN_M),
+            shape(circle(11.5, 11.5, 4), PAPER),
+            stroke(a, ORANGE, 1.3), shape(h, ORANGE)]
+
+
 def emit():
     out = ['<!-- ANLAbel ribbon icons (docs/NICELABEL_10_UI_LAYOUT.md, "Icons"): large icons 32 x 32 DIP,',
            '     small 16 x 16 DIP, one flat palette, 1 DIP outlines on half-pixel coordinates. Each icon',

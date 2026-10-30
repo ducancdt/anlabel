@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ANLAbel.App.Controls;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
@@ -328,6 +329,195 @@ internal static class DesignScenarioRegression
         });
 
         return Task.CompletedTask;
+    }
+
+    private sealed record PictureCase(string Name, PictureSizing Sizing, bool FlipHorizontal, bool FlipVertical, double X, double Y, double W, double H);
+
+    /// <summary>
+    /// NiceLabel 10 picture Resize options and flips. A 400 x 200 px picture
+    /// stating 508 dpi (20 x 10 mm) is grey with a black top-left quarter.
+    /// Where the picture and its black quarter land is worked out here from
+    /// the options' definitions, then measured on the printed label and on
+    /// the designer canvas: proportional (centred, whole), stretched to the
+    /// frame, kept at its own size from the frame's corner (and cut at a
+    /// smaller frame), each also flipped.
+    /// </summary>
+    public static Task PicturesSizeAndFlipInDesignerAsInPrint()
+    {
+        RunOnSta(() =>
+        {
+            const int pixelWidth = 400;
+            const int pixelHeight = 200;
+            const double pictureDpi = 508;
+            var payload = PicturePayload(pixelWidth, pixelHeight, pictureDpi);
+            var cases = new[]
+            {
+                new PictureCase("Proportional", PictureSizing.Proportional, false, false, 5, 5, 30, 30),
+                new PictureCase("Stretch", PictureSizing.Stretch, false, false, 40, 5, 25, 30),
+                new PictureCase("Original", PictureSizing.Original, false, false, 70, 5, 25, 25),
+                new PictureCase("Proportional flipped across", PictureSizing.Proportional, true, false, 5, 40, 30, 20),
+                new PictureCase("Stretch flipped down", PictureSizing.Stretch, false, true, 40, 40, 24, 24),
+                new PictureCase("Original flipped across in a smaller frame", PictureSizing.Original, true, false, 70, 40, 15, 8)
+            };
+            var template = new LabelTemplate { Name = "Pictures", WidthMm = 100, HeightMm = 70, Dpi = Dpi };
+            foreach (var picture in cases)
+            {
+                template.Objects.Add(new LabelObject
+                {
+                    Type = ObjectType.Image,
+                    Name = picture.Name,
+                    XMm = picture.X,
+                    YMm = picture.Y,
+                    WidthMm = picture.W,
+                    HeightMm = picture.H,
+                    ImageDataBase64 = payload,
+                    ImagePixelWidth = pixelWidth,
+                    ImagePixelHeight = pixelHeight,
+                    PictureSizing = picture.Sizing,
+                    PictureFlipHorizontal = picture.FlipHorizontal,
+                    PictureFlipVertical = picture.FlipVertical,
+                    Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+                });
+            }
+
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            var printed = Rasterize(new LabelVisualRenderer().Render(template, null, plan), template.WidthMm, template.HeightMm);
+            var canvas = new LabelDesignerCanvas { Template = template, Zoom = 1 };
+            var size = new Size(MmConverter.MmToDip(template.WidthMm), MmConverter.MmToDip(template.HeightMm));
+            canvas.Measure(size);
+            canvas.Arrange(new Rect(size));
+            canvas.UpdateLayout();
+            var designed = Rasterize(canvas, template.WidthMm, template.HeightMm);
+
+            var failures = new List<string>();
+            foreach (var picture in cases)
+            {
+                var (drawn, black) = Expected(picture, pixelWidth, pixelHeight, pictureDpi);
+                foreach (var (what, raster) in new[] { ("print", printed), ("designer", designed) })
+                {
+                    var measuredDrawn = Box(raster, picture, 180);
+                    var measuredBlack = Box(raster, picture, 64);
+                    if (!Near(measuredDrawn, drawn) || !Near(measuredBlack, black))
+                    {
+                        failures.Add($"{picture.Name} ({what}): picture {Show(measuredDrawn)}, black quarter {Show(measuredBlack)}; expected {Show(drawn)} and {Show(black)}.");
+                    }
+                }
+            }
+
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>The drawn picture and its black quarter (mm) inside the frame, from the option definitions.</summary>
+    private static ((double X, double Y, double W, double H) Drawn, (double X, double Y, double W, double H) Black) Expected(
+        PictureCase picture,
+        int pixelWidth,
+        int pixelHeight,
+        double pictureDpi)
+    {
+        double x = picture.X, y = picture.Y, w, h;
+        switch (picture.Sizing)
+        {
+            case PictureSizing.Stretch:
+                w = picture.W;
+                h = picture.H;
+                break;
+            case PictureSizing.Original:
+                w = pixelWidth / pictureDpi * 25.4;
+                h = pixelHeight / pictureDpi * 25.4;
+                break;
+            default:
+                var mmPerPixel = Math.Min(picture.W / pixelWidth, picture.H / pixelHeight);
+                w = pixelWidth * mmPerPixel;
+                h = pixelHeight * mmPerPixel;
+                x += (picture.W - w) / 2;
+                y += (picture.H - h) / 2;
+                break;
+        }
+
+        var blackX = picture.FlipHorizontal ? x + w / 2 : x;
+        var blackY = picture.FlipVertical ? y + h / 2 : y;
+        return (Cut((x, y, w, h), picture), Cut((blackX, blackY, w / 2, h / 2), picture));
+    }
+
+    /// <summary>The part of a rectangle inside the picture's frame.</summary>
+    private static (double X, double Y, double W, double H) Cut((double X, double Y, double W, double H) box, PictureCase frame)
+    {
+        var left = Math.Max(box.X, frame.X);
+        var top = Math.Max(box.Y, frame.Y);
+        var right = Math.Min(box.X + box.W, frame.X + frame.W);
+        var bottom = Math.Min(box.Y + box.H, frame.Y + frame.H);
+        return (left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
+    }
+
+    /// <summary>Bounds (mm) of the pixels darker than <paramref name="threshold"/> within 1 mm of the frame.</summary>
+    private static (double X, double Y, double W, double H) Box(Raster raster, PictureCase frame, int threshold)
+    {
+        int Px(double mm) => (int)Math.Round(mm / 25.4 * Dpi);
+        var x0 = Math.Max(0, Px(frame.X - 1));
+        var y0 = Math.Max(0, Px(frame.Y - 1));
+        var x1 = Math.Min(raster.Width, Px(frame.X + frame.W + 1));
+        var y1 = Math.Min(raster.Height, Px(frame.Y + frame.H + 1));
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
+        for (var y = y0; y < y1; y++)
+        {
+            for (var x = x0; x < x1; x++)
+            {
+                if (raster.Gray[y * raster.Width + x] < threshold)
+                {
+                    minX = Math.Min(minX, x);
+                    minY = Math.Min(minY, y);
+                    maxX = Math.Max(maxX, x);
+                    maxY = Math.Max(maxY, y);
+                }
+            }
+        }
+
+        static double Mm(int pixels) => pixels / (double)Dpi * 25.4;
+        return maxX < 0 ? (0, 0, 0, 0) : (Mm(minX), Mm(minY), Mm(maxX - minX + 1), Mm(maxY - minY + 1));
+    }
+
+    private static bool Near((double X, double Y, double W, double H) measured, (double X, double Y, double W, double H) expected)
+    {
+        const double tolerance = 0.25;
+        return Math.Abs(measured.X - expected.X) <= tolerance
+            && Math.Abs(measured.Y - expected.Y) <= tolerance
+            && Math.Abs(measured.W - expected.W) <= tolerance
+            && Math.Abs(measured.H - expected.H) <= tolerance;
+    }
+
+    private static string Show((double X, double Y, double W, double H) box)
+        => $"{box.W:0.00} x {box.H:0.00} mm at ({box.X:0.00}, {box.Y:0.00})";
+
+    /// <summary>A grey PNG with a black top-left quarter that states its resolution.</summary>
+    private static string PicturePayload(int width, int height, double dpi)
+    {
+        var stride = width * 4;
+        var pixels = new byte[stride * height];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var value = (byte)(x < width / 2 && y < height / 2 ? 0 : 128);
+                var index = y * stride + x * 4;
+                pixels[index] = value;
+                pixels[index + 1] = value;
+                pixels[index + 2] = value;
+                pixels[index + 3] = 255;
+            }
+        }
+
+        var bitmap = BitmapSource.Create(width, height, dpi, dpi, PixelFormats.Bgra32, null, pixels, stride);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = new System.IO.MemoryStream();
+        encoder.Save(stream);
+        return Convert.ToBase64String(stream.ToArray());
     }
 
     private sealed record Raster(byte[] Gray, int Width, int Height);

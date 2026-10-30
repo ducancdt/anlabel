@@ -817,6 +817,42 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void GraphicResizeModeAndMirrors_BecomePictureSizingAndFlips()
+    {
+        var payload = Convert.ToBase64String(TinyPng(3, 2));
+        var template = Import($"""
+            <Item Type="GraphicDocumentItem">
+              <Name>Stretched</Name>
+              <Geometry Type="RectGeometry"><Left>1000</Left><Top>1000</Top><Width>12700</Width><Height>10200</Height></Geometry>
+              <EmbeddedGraphicContents Type="BinaryContents"><Base64StringValue>{payload}</Base64StringValue></EmbeddedGraphicContents>
+              <ResizeMode>1</ResizeMode>
+              <HorizontalMirror>True</HorizontalMirror>
+            </Item>
+            <Item Type="GraphicDocumentItem">
+              <Name>Proportional</Name>
+              <Geometry Type="RectGeometry"><Left>20000</Left><Top>1000</Top><Width>12700</Width><Height>10200</Height></Geometry>
+              <EmbeddedGraphicContents Type="BinaryContents"><Base64StringValue>{payload}</Base64StringValue></EmbeddedGraphicContents>
+              <ResizeMode>2</ResizeMode>
+              <VerticalMirror>true</VerticalMirror>
+            </Item>
+            <Item Type="GraphicDocumentItem">
+              <Name>Original</Name>
+              <Geometry Type="RectGeometry"><Left>40000</Left><Top>1000</Top><Width>12700</Width><Height>10200</Height></Geometry>
+              <EmbeddedGraphicContents Type="BinaryContents"><Base64StringValue>{payload}</Base64StringValue></EmbeddedGraphicContents>
+              <ResizeMode>0</ResizeMode>
+            </Item>
+            """);
+
+        var pictures = template.Objects.ToDictionary(item => item.Name);
+        Assert.Equal((PictureSizing.Stretch, true, false), (pictures["Stretched"].PictureSizing, pictures["Stretched"].PictureFlipHorizontal, pictures["Stretched"].PictureFlipVertical));
+        Assert.Equal((PictureSizing.Proportional, false, true), (pictures["Proportional"].PictureSizing, pictures["Proportional"].PictureFlipHorizontal, pictures["Proportional"].PictureFlipVertical));
+        // A vendor picture kept at its original size stores that size as its frame,
+        // so it is drawn whole in that frame.
+        Assert.Equal(PictureSizing.Proportional, pictures["Original"].PictureSizing);
+        Assert.Equal((12.7, 10.2), (pictures["Original"].WidthMm, pictures["Original"].HeightMm));
+    }
+
+    [Fact]
     public void GraphicWithoutPayload_IsReadFromTheFileBesideTheLabel()
     {
         var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-nlbl-gfx-" + Guid.NewGuid().ToString("N")));

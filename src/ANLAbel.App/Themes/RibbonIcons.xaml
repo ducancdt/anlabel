@@ -1113,4 +1113,21 @@
         <GeometryDrawing Brush="#C93A3A" Geometry="M1.5,8 A6.5,6.5 0 1 1 14.5,8 A6.5,6.5 0 1 1 1.5,8 Z"><GeometryDrawing.Pen><Pen Brush="#C93A3A" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
         <GeometryDrawing Geometry="M5.4,5.4 L10.6,10.6 M10.6,5.4 L5.4,10.6"><GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="1.6" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing>
     </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.PictureSize32" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H32 V32 H0 Z"/>
+        <GeometryDrawing Brush="#D3E4FA" Geometry="M2.5,6.5 H22.5 V25.5 H2.5 Z"><GeometryDrawing.Pen><Pen Brush="#2D6CC0" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#3FA567" Geometry="M4,24 L10,15 L14,20 L17,17 L21,24 Z"/>
+        <GeometryDrawing Brush="#E2A93A" Geometry="M15.5,11 A2,2 0 1 1 19.5,11 A2,2 0 1 1 15.5,11 Z"/>
+        <GeometryDrawing Geometry="M19.5,29 L29,19.5"><GeometryDrawing.Pen><Pen Brush="#D9821C" Thickness="1.6" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#D9821C" Geometry="M29.5,19 L29.5,24 L24.5,19 Z"/>
+        <GeometryDrawing Brush="#D9821C" Geometry="M19,29.5 L24,29.5 L19,24.5 Z"/>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.OriginalSize16" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H16 V16 H0 Z"/>
+        <GeometryDrawing Brush="#D3E4FA" Geometry="M1.5,1.5 H11.5 V10.5 H1.5 Z"><GeometryDrawing.Pen><Pen Brush="#2D6CC0" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#3FA567" Geometry="M2.5,9.5 L5.5,5.5 L7.5,7.5 L8.5,6.5 L10.5,9.5 Z"/>
+        <GeometryDrawing Brush="#FFFFFF" Geometry="M7.5,11.5 A4,4 0 1 1 15.5,11.5 A4,4 0 1 1 7.5,11.5 Z"/>
+        <GeometryDrawing Geometry="M8.49,10.41 A3.2,3.2 0 1 1 10.41,14.51"><GeometryDrawing.Pen><Pen Brush="#D9821C" Thickness="1.3"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#D9821C" Geometry="M8.53,13.82 L9.86,16.01 L10.95,13 Z"/>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
 </ResourceDictionary>

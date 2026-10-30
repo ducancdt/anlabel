@@ -164,6 +164,12 @@ public sealed record NiceLabel10ObjectRecord(
 
     /// <summary>Stored <c>KeepAspectRatio</c> flag of a graphic item.</summary>
     public bool GraphicKeepAspectRatio { get; init; }
+
+    /// <summary>Stored <c>HorizontalMirror</c> of a graphic item ("Flip picture horizontal").</summary>
+    public bool GraphicFlipHorizontal { get; init; }
+
+    /// <summary>Stored <c>VerticalMirror</c> of a graphic item ("Flip picture vertical").</summary>
+    public bool GraphicFlipVertical { get; init; }
 }
 
 /// <summary>

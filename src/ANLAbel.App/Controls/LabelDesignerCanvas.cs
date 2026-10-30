@@ -1787,6 +1787,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 else if (border.Child is Image image && item.Type == ObjectType.Image)
                 {
                     image.Source = CreatePictureImageSource(item);
+                    ApplyPictureLayout(border, image, item, width, height);
                 }
                 else if (border.Child is Grid barcodePanel
                     && item.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
@@ -4483,6 +4484,52 @@ public sealed class LabelDesignerCanvas : Canvas
     private static ImageSource? CreatePictureImageSource(LabelObject item)
     {
         return ImageRasterizer.Decode(item.ImageDataBase64, item.ImageRasterMode);
+    }
+
+    /// <summary>
+    /// NiceLabel 10 picture Resize options and flips, drawn as print draws
+    /// them (PictureLayoutContract): proportional and centred, stretched to
+    /// the frame, or at the picture's own size from the frame's corner and cut
+    /// at the frame.
+    /// </summary>
+    private void ApplyPictureLayout(Border border, Image image, LabelObject item, double frameWidth, double frameHeight)
+    {
+        border.ClipToBounds = true;
+        image.Width = double.NaN;
+        image.Height = double.NaN;
+        image.Margin = new Thickness(0);
+        image.HorizontalAlignment = HorizontalAlignment.Stretch;
+        image.VerticalAlignment = VerticalAlignment.Stretch;
+        switch (item.PictureSizing)
+        {
+            case PictureSizing.Stretch:
+                image.Stretch = Stretch.Fill;
+                break;
+            case PictureSizing.Original when image.Source is BitmapSource bitmap:
+                var size = ANLAbel.Core.Printing.PictureLayoutContract.OriginalSizeMm(bitmap.PixelWidth, bitmap.PixelHeight, bitmap.DpiX, bitmap.DpiY);
+                image.Stretch = Stretch.Fill;
+                image.Width = MmToDip(size.WidthMm);
+                image.Height = MmToDip(size.HeightMm);
+                image.HorizontalAlignment = HorizontalAlignment.Left;
+                image.VerticalAlignment = VerticalAlignment.Top;
+                // A picture larger than its frame gets a slot as large as itself, so
+                // WPF does not cut it there before the flip; the frame cuts it, as print does.
+                var inner = border.BorderThickness;
+                image.Margin = new Thickness(
+                    0,
+                    0,
+                    Math.Min(0, frameWidth - inner.Left - inner.Right - image.Width),
+                    Math.Min(0, frameHeight - inner.Top - inner.Bottom - image.Height));
+                break;
+            default:
+                image.Stretch = Stretch.Uniform;
+                break;
+        }
+
+        image.RenderTransformOrigin = new Point(0.5, 0.5);
+        image.RenderTransform = item.PictureFlipHorizontal || item.PictureFlipVertical
+            ? new ScaleTransform(item.PictureFlipHorizontal ? -1 : 1, item.PictureFlipVertical ? -1 : 1)
+            : Transform.Identity;
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)

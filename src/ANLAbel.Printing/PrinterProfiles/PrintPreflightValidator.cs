@@ -463,11 +463,23 @@ public sealed class PrintPreflightValidator
                 throw new InvalidDataException("image raster identity is incomplete");
             }
 
+            // A picture kept at its original size is drawn at its own resolution.
+            var drawn = PictureLayoutContract.Place(
+                item.PictureSizing,
+                0,
+                0,
+                item.WidthMm,
+                item.HeightMm,
+                bitmap.PixelWidth,
+                bitmap.PixelHeight,
+                bitmap.DpiX,
+                bitmap.DpiY,
+                25.4);
             var observation = ImageResolutionContract.Observe(
                 bitmap.PixelWidth,
                 bitmap.PixelHeight,
-                item.WidthMm,
-                item.HeightMm);
+                item.PictureSizing == PictureSizing.Original ? drawn.Width : item.WidthMm,
+                item.PictureSizing == PictureSizing.Original ? drawn.Height : item.HeightMm);
             var dpiX = printDpiX.GetValueOrDefault();
             var dpiY = printDpiY.GetValueOrDefault();
             if (dpiX > 0

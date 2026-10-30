@@ -849,6 +849,11 @@ public static partial class NiceLabel10NlblImporter
             YMm = record.YMm,
             WidthMm = record.WidthMm,
             HeightMm = record.HeightMm,
+            // Vendor Fill stretches the picture to its frame; None (whose frame is the
+            // picture's own size), Uniform and the rest keep its proportions.
+            PictureSizing = record.GraphicResizeMode == 1 ? PictureSizing.Stretch : PictureSizing.Proportional,
+            PictureFlipHorizontal = record.GraphicFlipHorizontal,
+            PictureFlipVertical = record.GraphicFlipVertical,
             Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
         };
         Place(item, record, record.WidthMm, record.HeightMm);

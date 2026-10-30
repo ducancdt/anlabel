@@ -278,6 +278,9 @@ public sealed record SceneObjectSnapshot
     public ObjectAnchorPoint AnchorPoint { get; init; }
     public bool IsPrintable { get; init; } = true;
     public bool KeepAspectRatio { get; init; }
+    public PictureSizing PictureSizing { get; init; }
+    public bool PictureFlipHorizontal { get; init; }
+    public bool PictureFlipVertical { get; init; }
     public string VisibilityCondition { get; init; } = string.Empty;
     public string GroupId { get; init; } = string.Empty;
     public string ContentMask { get; init; } = string.Empty;
@@ -358,6 +361,9 @@ public sealed record SceneObjectSnapshot
             AnchorPoint = item.AnchorPoint,
             IsPrintable = item.IsPrintable,
             KeepAspectRatio = item.KeepAspectRatio,
+            PictureSizing = item.PictureSizing,
+            PictureFlipHorizontal = item.PictureFlipHorizontal,
+            PictureFlipVertical = item.PictureFlipVertical,
             VisibilityCondition = item.VisibilityCondition,
             GroupId = item.GroupId,
             ContentMask = item.ContentMask,
@@ -784,6 +790,14 @@ internal static class SceneHash
         Append(builder, item.ImagePixelWidth);
         Append(builder, item.ImagePixelHeight);
         Append(builder, item.ImageRasterFingerprint);
+        if (item.PictureSizing != PictureSizing.Proportional || item.PictureFlipHorizontal || item.PictureFlipVertical)
+        {
+            // Appended only when used so documents saved before these fields keep their fingerprint.
+            Append(builder, "picture");
+            Append(builder, item.PictureSizing.ToString());
+            Append(builder, item.PictureFlipHorizontal);
+            Append(builder, item.PictureFlipVertical);
+        }
         Append(builder, item.Style.FontFamily);
         Append(builder, item.Style.TextResourceFingerprint);
         Append(builder, item.Style.FontSizePt);

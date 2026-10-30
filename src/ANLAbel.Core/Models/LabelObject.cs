@@ -23,6 +23,9 @@ public sealed class LabelObject : ObservableObject
     private bool _isVisible = true;
     private bool _isPrintable = true;
     private bool _keepAspectRatio;
+    private PictureSizing _pictureSizing;
+    private bool _pictureFlipHorizontal;
+    private bool _pictureFlipVertical;
     private string _visibilityCondition = string.Empty;
     private ObjectAnchorPoint _anchorPoint;
     private string _groupId = string.Empty;
@@ -173,6 +176,27 @@ public sealed class LabelObject : ObservableObject
     {
         get => _keepAspectRatio;
         set => SetProperty(ref _keepAspectRatio, value);
+    }
+
+    /// <summary>How a picture fills its frame (NiceLabel 10 picture Resize options).</summary>
+    public PictureSizing PictureSizing
+    {
+        get => _pictureSizing;
+        set => SetProperty(ref _pictureSizing, Enum.IsDefined(value) ? value : PictureSizing.Proportional);
+    }
+
+    /// <summary>The picture is mirrored left to right (NiceLabel "Flip picture horizontal").</summary>
+    public bool PictureFlipHorizontal
+    {
+        get => _pictureFlipHorizontal;
+        set => SetProperty(ref _pictureFlipHorizontal, value);
+    }
+
+    /// <summary>The picture is mirrored top to bottom (NiceLabel "Flip picture vertical").</summary>
+    public bool PictureFlipVertical
+    {
+        get => _pictureFlipVertical;
+        set => SetProperty(ref _pictureFlipVertical, value);
     }
 
     /// <summary>

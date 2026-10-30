@@ -8,6 +8,12 @@
 - Kịch bản thiết kế/in nhiều trường hợp: tờ A4 3 × 8 và 2 × 5, A5 2 × 2 xoay
   180°, mọi thứ tự in, ô bỏ qua, trang cuối thiếu; mã xoay 0/90/180/270°. Mọi
   ô được giải mã trên trang in và trên ảnh xem trước.
+- Ảnh theo NiceLabel 10: Cỡ ảnh (Co giãn theo tỉ lệ / Kéo đầy khung / Giữ cỡ
+  gốc theo điểm ảnh và độ phân giải, cắt ở khung), Lật ngang, Lật dọc, Về cỡ
+  gốc; thiết kế, xem trước, in và kiểm tra mật độ ảnh dùng chung một phép đặt
+  ảnh. Nhập .nlbl giữ chế độ kéo đầy khung và hai kiểu lật.
+- Thuộc tính › Nguồn của ảnh: thẻ Nguồn ảnh (ảnh nhúng trong tem, số điểm
+  ảnh, dpi, cỡ gốc, Chọn hình ảnh…) thay cho ô “Nguồn: Chữ” không dùng được.
 
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 

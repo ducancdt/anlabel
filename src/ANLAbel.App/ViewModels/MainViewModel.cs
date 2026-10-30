@@ -178,6 +178,7 @@ public sealed class MainViewModel : ObservableObject
         AddRichTextBoxCommand = new RelayCommand(AddRichTextBox);
         AddImageCommand = new RelayCommand(AddImage);
         ReplaceSelectedImageCommand = new RelayCommand(ReplaceSelectedImage, () => SelectedObject is not null && SelectedObject.Type == ObjectType.Image);
+        ResetPictureSizeCommand = new RelayCommand(ResetPictureSize, () => SelectedObject is { Type: ObjectType.Image });
         AddExcelFieldCommand = new RelayCommand(parameter => AddExcelField(GetFieldName(parameter)), parameter => !string.IsNullOrWhiteSpace(GetFieldName(parameter)));
         BindSelectedAsExcelFieldCommand = new RelayCommand(parameter => BindSelectedAsExcelField(GetFieldName(parameter)), parameter => SelectedObject is not null && !string.IsNullOrWhiteSpace(GetFieldName(parameter)));
         ClearSelectedBindingCommand = new RelayCommand(ClearSelectedBinding, () => SelectedObject is not null);
@@ -317,6 +318,7 @@ public sealed class MainViewModel : ObservableObject
                 ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ApplyFormulaBuilderCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ReplaceSelectedImageCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)ResetPictureSizeCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)SetRotationCommand).RaiseCanExecuteChanged();
                 OnPropertyChanged(nameof(SelectedObjectTypeText));
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
@@ -778,6 +780,31 @@ public sealed class MainViewModel : ObservableObject
     public bool IsImageObjectSelected => SelectedObject?.Type is ObjectType.Image;
     public bool IsShapeObjectSelected => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Line or ObjectType.Inverse;
 
+    /// <summary>
+    /// NiceLabel 10 picture Source and "Original size": the picture is embedded in
+    /// the label; its pixels, resolution and the size they give it.
+    /// </summary>
+    public string SelectedPictureSourceText
+    {
+        get
+        {
+            if (SelectedObject is not { Type: ObjectType.Image } picture)
+            {
+                return string.Empty;
+            }
+
+            var bitmap = ImageRasterizer.Decode(picture.ImageDataBase64, picture.ImageRasterMode);
+            if (bitmap is null)
+            {
+                return "Chưa có ảnh hoặc không đọc được ảnh. Chọn một tệp PNG, JPG, BMP hoặc GIF.";
+            }
+
+            var (widthMm, heightMm) = ANLAbel.Core.Printing.PictureLayoutContract.OriginalSizeMm(bitmap.PixelWidth, bitmap.PixelHeight, bitmap.DpiX, bitmap.DpiY);
+            return $"Ảnh nhúng trong tem, in không cần tệp gốc. {bitmap.PixelWidth} × {bitmap.PixelHeight} điểm ảnh, "
+                + $"{bitmap.DpiX:0} dpi: cỡ gốc {widthMm:0.##} × {heightMm:0.##} mm.";
+        }
+    }
+
     private void RaiseRibbonSelectionChanged()
     {
         OnPropertyChanged(nameof(HasSelectedObject));
@@ -786,6 +813,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsBarcodeObjectSelected));
         OnPropertyChanged(nameof(IsImageObjectSelected));
         OnPropertyChanged(nameof(IsShapeObjectSelected));
+        OnPropertyChanged(nameof(SelectedPictureSourceText));
         var contextualOpen = SelectedRibbonTab switch
         {
             RibbonTab.Design => HasSelectedObject,
@@ -1545,6 +1573,11 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AddTextCommand { get; }
     public ICommand AddImageCommand { get; }
     public ICommand ReplaceSelectedImageCommand { get; }
+
+    /// <summary>NiceLabel 10 "Revert to original picture size": the frame takes the picture's own size.</summary>
+    public ICommand ResetPictureSizeCommand { get; }
+
+    public IReadOnlyList<PictureSizing> PictureSizings { get; } = Enum.GetValues<PictureSizing>();
     public ICommand AddTextBoxCommand { get; }
     public ICommand AddExcelFieldCommand { get; }
     public ICommand BindSelectedAsExcelFieldCommand { get; }
@@ -3578,6 +3611,28 @@ public sealed class MainViewModel : ObservableObject
         StatusText = $"Đã thay đổi hình ảnh: {SelectedObject.Name}";
     }
 
+    private void ResetPictureSize()
+    {
+        if (SelectedObject is not { Type: ObjectType.Image } picture)
+        {
+            return;
+        }
+
+        var bitmap = ImageRasterizer.Decode(picture.ImageDataBase64, picture.ImageRasterMode);
+        if (bitmap is null)
+        {
+            StatusText = "Không đọc được ảnh để lấy cỡ gốc.";
+            return;
+        }
+
+        var (widthMm, heightMm) = ANLAbel.Core.Printing.PictureLayoutContract.OriginalSizeMm(bitmap.PixelWidth, bitmap.PixelHeight, bitmap.DpiX, bitmap.DpiY);
+        BeginTemplateEditGesture();
+        picture.WidthMm = Math.Round(widthMm, 2);
+        picture.HeightMm = Math.Round(heightMm, 2);
+        CommitTemplateEditGesture();
+        StatusText = $"Ảnh về cỡ gốc {picture.WidthMm:0.##} × {picture.HeightMm:0.##} mm.";
+    }
+
     /// <summary>Largest image file accepted for a label (plan 13 H29).</summary>
     public const long MaximumImageFileBytes = 10L * 1024 * 1024;
 
@@ -4489,6 +4544,11 @@ public sealed class MainViewModel : ObservableObject
         if (ReferenceEquals(sender, SelectedObject))
         {
             RaiseSelectedObjectChanged();
+            if (e.PropertyName is nameof(LabelObject.ImageDataBase64) or nameof(LabelObject.ImageRasterMode))
+            {
+                OnPropertyChanged(nameof(SelectedPictureSourceText));
+            }
+
             if (e.PropertyName is nameof(LabelObject.BindingExpression) or nameof(LabelObject.Text))
             {
                 RaiseFormulaPreviewChanged();

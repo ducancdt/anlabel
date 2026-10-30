@@ -1261,8 +1261,22 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.ReplacePicture32}" Content="Thay ảnh" Command="{Binding ReplaceSelectedImageCommand}"
                                             ToolTip="Chọn tệp ảnh khác cho đối tượng này" AutomationProperties.Name="Replace picture"/>
+                                    <ToggleButton x:Name="PictureSizingToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.PictureSize32}" Content="Cỡ ảnh&#10;▾"
+                                                  ToolTip="Co giãn theo tỉ lệ, kéo đầy khung hoặc giữ cỡ gốc của ảnh" AutomationProperties.Name="Picture sizing" AutomationProperties.AutomationId="Shell.Ribbon.PictureSizing"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=PictureSizingToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=PictureSizingToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="200">
+                                            <ListBox ItemsSource="{Binding PictureSizings}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.PictureSizing, Mode=TwoWay}"
+                                                     BorderThickness="0" AutomationProperties.Name="Cỡ ảnh"/>
+                                        </Border>
+                                    </Popup>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
                                         <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectedObject.KeepAspectRatio, Mode=TwoWay}" ToolTip="Kéo khung luôn giữ tỉ lệ rộng/cao" AutomationProperties.Name="Picture keep aspect ratio"/>
+                                        <CheckBox Content="Lật ngang" IsChecked="{Binding SelectedObject.PictureFlipHorizontal, Mode=TwoWay}" ToolTip="Lật ảnh trái sang phải" AutomationProperties.Name="Flip picture horizontal"/>
+                                        <CheckBox Content="Lật dọc" IsChecked="{Binding SelectedObject.PictureFlipVertical, Mode=TwoWay}" ToolTip="Lật ảnh trên xuống dưới" AutomationProperties.Name="Flip picture vertical"/>
+                                    </StackPanel>
+                                    <StackPanel Style="{StaticResource RibbonColumn}">
+                                        <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.OriginalSize16}" Content="Về cỡ gốc" Command="{Binding ResetPictureSizeCommand}"
+                                                ToolTip="Đặt khung ảnh bằng cỡ gốc của ảnh (theo điểm ảnh và độ phân giải)" AutomationProperties.Name="Revert to original picture size"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Hình ảnh"/>
@@ -2436,6 +2450,30 @@
                                                    Text="Hình dạng không có nội dung hay nguồn dữ liệu. Đổi viền và nền ở thẻ Kiểu, kích thước ở thẻ Vị trí."/>
                                     </StackPanel>
                                 </Border>
+                                <!-- NiceLabel 10 picture Source: the picture is embedded; its pixels, resolution and original size -->
+                                <Border AutomationProperties.AutomationId="Shell.Properties.PictureSource">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="0"/>
+                                                        <Condition Binding="{Binding IsImageObjectSelected}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Nguồn ảnh" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="{Binding SelectedPictureSourceText}" TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,0,0,6"/>
+                                        <Button Content="Chọn hình ảnh..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch"/>
+                                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,6,0,0"
+                                                   Text="Cỡ ảnh, lật ảnh và Về cỡ gốc ở thẻ Kiểu."/>
+                                    </StackPanel>
+                                </Border>
                                 <StackPanel>
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
@@ -2445,6 +2483,9 @@
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsShapeObjectSelected}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsImageObjectSelected}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -3385,7 +3426,16 @@
                                                   SelectedItem="{Binding SelectedObject.ImageRasterMode, Mode=TwoWay}"
                                                   Margin="0,0,0,3"
                                                   ToolTip="Trình điều khiển xử lý: giữ màu/độ trong suốt cho trình điều khiển máy in; các chế độ đơn sắc dùng cùng phép biến đổi tất định ở thiết kế, xem trước và in."/>
-                                        <TextBlock Text="Tỉ lệ khung hình được giữ và hình được canh giữa trong khung." FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Cỡ ảnh" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <ComboBox ItemsSource="{Binding PictureSizings}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                  SelectedItem="{Binding SelectedObject.PictureSizing, Mode=TwoWay}" Margin="0,0,0,4"
+                                                  ToolTip="Co giãn theo tỉ lệ: cả ảnh, canh giữa. Kéo đầy khung: ảnh giãn theo khung. Giữ cỡ gốc: cỡ theo điểm ảnh và độ phân giải, cắt ở khung." AutomationProperties.Name="Cỡ ảnh"/>
+                                        <WrapPanel Margin="0,0,0,4">
+                                            <CheckBox Content="Lật ngang" IsChecked="{Binding SelectedObject.PictureFlipHorizontal, Mode=TwoWay}" Margin="0,0,12,0"/>
+                                            <CheckBox Content="Lật dọc" IsChecked="{Binding SelectedObject.PictureFlipVertical, Mode=TwoWay}"/>
+                                        </WrapPanel>
+                                        <Button Content="Về cỡ gốc" Command="{Binding ResetPictureSizeCommand}" HorizontalAlignment="Left" Padding="8,3"
+                                                ToolTip="Đặt khung ảnh bằng cỡ gốc của ảnh"/>
                                     </StackPanel>
                                 </Border>
                                 </StackPanel>

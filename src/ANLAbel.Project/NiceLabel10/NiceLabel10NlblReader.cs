@@ -628,7 +628,9 @@ public static class NiceLabel10NlblReader
                     GraphicBase64 = string.IsNullOrEmpty(payload) ? null : payload,
                     GraphicFileName = ChildText(item, "GraphicFileName")?.Trim() is { Length: > 0 } fileName ? fileName : null,
                     GraphicResizeMode = (int)ParseDouble(item, "ResizeMode"),
-                    GraphicKeepAspectRatio = ParseBool(item, "KeepAspectRatio")
+                    GraphicKeepAspectRatio = ParseBool(item, "KeepAspectRatio"),
+                    GraphicFlipHorizontal = ParseBool(item, "HorizontalMirror"),
+                    GraphicFlipVertical = ParseBool(item, "VerticalMirror")
                 };
             }
             default:

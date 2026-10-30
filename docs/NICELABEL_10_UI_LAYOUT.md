@@ -281,7 +281,7 @@ header rows of the side-by-side table above.
 | Thiết kế | Chung: Không in · Hiển thị · Điều kiện hiển thị ▾ · Tên ▾ — Vị trí: Điểm neo ▾ · Giữ tỉ lệ · Khóa vị trí — Sắp xếp: Đưa lên ▾ · Đưa xuống ▾ (split buttons) · Nhóm đối tượng · Bỏ nhóm · Căn chỉnh ▾ |
 | Chữ | Định dạng (font row) · Thiết lập chữ (Co giãn chữ ngang for Text, Vừa trong khung for Text Box — the protected Text/TextBox controls, bindings unchanged) · Hiệu ứng: Soi gương · Sắp xếp |
 | Mã vạch | Mã vạch: loại mã (grouped list), dữ liệu, hiện chữ dưới mã — Thiết lập: Vạch bao ▾ (kiểu, độ dày) · Chi tiết mã ▾ (vị trí và cỡ chữ dưới mã, số kiểm tra, độ rộng vạch hẹp) · Chi tiết 2D ▾ (kích thước, mức sửa lỗi, vùng yên) — Sắp xếp |
-| Hình ảnh | Hình ảnh: Thay ảnh, Giữ tỉ lệ — Sắp xếp |
+| Hình ảnh | Hình ảnh: Thay ảnh, Cỡ ảnh ▾, Giữ tỉ lệ, Lật ngang, Lật dọc, Về cỡ gốc — Sắp xếp |
 | Hình dạng | Đường viền: Kiểu viền ▾ · Màu viền ▾ (bảng màu, mã màu) · độ dày · bo góc — Tô nền: Kiểu tô ▾ · Màu tô ▾ — Sắp xếp |
 
 Toolbox: flat 3 × 3 tiles (`ToolboxTile`) with the same vector family — Chữ,
@@ -414,3 +414,28 @@ number (`PrintRowsWithResultAsync(skipLabels:)`). Gates: `label sheets fill ever
 cell in processing order` (A4 3 × 8 and 2 × 5, A5 2 × 2 turned 180°, skipped cells,
 every cell decoded on the printed page and on the preview), `print preview shows
 sheets whole and skips used cells`, `turned objects print readable`.
+
+## Picture: Resize options and flips (2026-10-30)
+
+NiceLabel 10 picture properties (`ResizeGraphicOptions`, `GraphicStyle`) map to
+the Hình ảnh tab and the Properties card:
+
+| NiceLabel 10 | ANLAbel |
+| --- | --- |
+| Keep original picture size (`GraphicResizeMode.None`) | Cỡ ảnh › Giữ cỡ gốc: pixels and the file's resolution (96 dpi when it states none), from the frame's top-left corner, cut at the frame |
+| Resize proportionally (`Uniform`) | Cỡ ảnh › Co giãn theo tỉ lệ (default): the whole picture, centred |
+| Resize to the designed size (`Fill`) | Cỡ ảnh › Kéo đầy khung |
+| Revert to original picture size | Về cỡ gốc: the frame takes the picture's own size (one undo step) |
+| Flip picture horizontal / vertical | Lật ngang / Lật dọc |
+| Source › picture file, Original size | Thuộc tính › Nguồn › Nguồn ảnh: embedded in the label (prints without the original file), pixels, resolution and original size; Chọn hình ảnh… |
+
+`PictureLayoutContract.Place` is the one placement used by the designer, preview,
+print and the image density check (a picture kept at its own size is checked at its
+own resolution). The designer gives an original-size picture larger than its frame
+a layout slot as large as itself, so WPF does not cut it before the flip; the frame
+cuts it, as print does. Import: vendor `Fill` becomes Kéo đầy khung, the mirrors
+become the flips; vendor `None` keeps proportional sizing because its stored frame
+is already the picture's own size. NiceLabel 10 does not change the frame when the
+resize option changes; only Revert does. Gate: `pictures size and flip in the
+designer as in print` (six pictures, measured on the printed label and on the
+designer canvas against positions worked out from the option definitions).

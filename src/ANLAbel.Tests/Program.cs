@@ -65,6 +65,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Excel data a barcode cannot carry blocks its row", DatabaseBarcodeRegression.ExcelDataABarcodeCannotCarryBlocksItsRow),
     ("label sheets fill every cell in processing order", DesignScenarioRegression.LabelSheetsFillEveryCellInProcessingOrder),
     ("turned objects print readable", DesignScenarioRegression.TurnedObjectsPrintReadable),
+    ("pictures size and flip in the designer as in print", DesignScenarioRegression.PicturesSizeAndFlipInDesignerAsInPrint),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),
@@ -13559,7 +13560,7 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 "Object browser items and toolbox buttons must carry names for screen readers");
 
             // No blank Properties pages: shapes explain they have no source, Rich text and Inverse explain their style.
-            foreach (var noteId in new[] { "Shell.Properties.ShapeSourceNote", "Shell.Properties.RichTextStyleNote", "Shell.Properties.InverseStyleNote" })
+            foreach (var noteId in new[] { "Shell.Properties.ShapeSourceNote", "Shell.Properties.PictureSource", "Shell.Properties.RichTextStyleNote", "Shell.Properties.InverseStyleNote" })
             {
                 AssertEqual(true, shellXaml.Contains($"AutomationProperties.AutomationId=\"{noteId}\"", StringComparison.Ordinal), $"{noteId} must exist");
             }
