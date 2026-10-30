@@ -170,3 +170,7 @@ Verification (2026-10-30): `designer shows the inverse area inverted` and
 double-click event on the canvas with the panel unpinned moves the panel
 into the floating popup beside the object; with the window shown the popup
 reported open).
+
+Owner hand check (2026-10-30): with the Properties panel unpinned, a
+double-click on an object opens the floating panel beside it — confirmed
+working on the installed app.
