@@ -16,6 +16,10 @@
   {#SERIAL} hay {#NOW:dd/MM/yyyy}. Chữ kéo vào được đặt tên dễ đọc ("Ngày in",
   "Số sê-ri") thay vì "#NOW:dd/MM/yyyy"; cửa sổ Hàm nhắc FIELD đọc được ngày
   in và số sê-ri.
+- Nhập CSV: tệp Excel lưu kiểu “CSV (Comma delimited)” trên Windows tiếng Việt
+  (bảng mã Windows-1258, không phải UTF-8) vẫn bị từ chối để không in sai dấu,
+  nhưng thông báo nay nói rõ nguyên nhân và cách làm: nhập thẳng tệp .xlsx, hoặc
+  lưu lại kiểu “CSV UTF-8 (Comma delimited)”.
 
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 

@@ -101,8 +101,9 @@ public static class DataFailureExplainer
 
         if (message.Contains("not valid for its encoding", StringComparison.Ordinal))
         {
-            return ($"Tệp CSV “{file}” có ký tự không đúng bảng mã.",
-                "Lưu lại tệp CSV với bảng mã UTF-8 rồi nhập lại.");
+            // Excel's plain "CSV" on Vietnamese Windows is Windows-1258, not UTF-8.
+            return ($"Tệp CSV “{file}” không ở bảng mã UTF-8 (thường gặp khi Excel lưu kiểu “CSV (Comma delimited)”), nên dấu tiếng Việt không đọc đúng được.",
+                "Nhập thẳng tệp Excel (.xlsx), hoặc trong Excel chọn Lưu thành › kiểu “CSV UTF-8 (Comma delimited)” rồi nhập lại.");
         }
 
         if (message.StartsWith("CSV file ", StringComparison.Ordinal))

@@ -43,6 +43,14 @@ internal static class DataSourceRegression
             Require(shortRecord.Problem == "Dòng 3 của tệp CSV “lo-hang.csv” có 2 trường, còn dòng tiêu đề có 3 trường.",
                 "A short CSV record must be explained with its row: " + shortRecord.Problem);
 
+            // Excel's plain "CSV (Comma delimited)" on Vietnamese Windows: Windows-1258.
+            await File.WriteAllBytesAsync(csvPath, System.Text.Encoding.GetEncoding(1258).GetBytes("Mã,Tên\nA1,Bu lông\n"));
+            var ansi = Explain(await Capture(() => service.LoadSheetAsync(csvPath, ExcelDataService.CsvSheetName)));
+            Require(ansi.Problem.Contains("không ở bảng mã UTF-8", StringComparison.Ordinal)
+                    && ansi.NextAction.Contains(".xlsx", StringComparison.Ordinal)
+                    && ansi.NextAction.Contains("CSV UTF-8", StringComparison.Ordinal),
+                "A CSV saved in the Windows code page says how to save it from Excel: " + ansi.Problem + " / " + ansi.NextAction);
+
             await File.WriteAllTextAsync(csvPath, "Code\nA1\n");
             Exception locked;
             using (new FileStream(csvPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
