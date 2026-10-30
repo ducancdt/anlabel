@@ -25,6 +25,12 @@
   trong Excel rồi bấm Cập nhật Excel trước khi in”. ANLAbel đọc tệp đã lưu, nên
   số liệu vừa gõ mà chưa lưu sẽ không được in; trước đây không có dấu hiệu nào.
   Chỉ nhắc, không chặn in; kiểm tra lại mỗi khi quay về cửa sổ ANLAbel.
+- Dữ liệu Excel: dòng đang ẩn trong Excel (bộ lọc AutoFilter loại ra, hoặc bị Ẩn)
+  không còn được in mặc định. Xem trước khi in để các dòng đó chưa chọn và ghi rõ
+  “2 dòng đang ẩn trong Excel (bộ lọc) chưa được chọn in: dòng 2, 4”; “In mọi dòng”
+  bỏ qua chúng và nêu tên trong dòng trạng thái. Trước đây lọc trong Excel còn 3
+  đơn hàng vẫn in ra 5 tem. Dữ liệu vẫn được đọc đủ; đánh dấu lại một dòng ẩn thì
+  dòng đó được in.
 
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 

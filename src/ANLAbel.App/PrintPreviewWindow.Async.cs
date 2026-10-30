@@ -74,6 +74,8 @@ public partial class PrintPreviewWindow
                 var allRows = GetRows().ToArray();
                 var excelColumns = CollectExcelColumns(allRows);
                 var nextTrackingRows = new List<TrackingRowViewModel>(allRows.Length);
+                // Rows hidden in Excel (an AutoFilter) start unselected; the note says which.
+                var hidden = ANLAbel.Data.Excel.ExcelDataService.HiddenRowIndexes(_excelDataView?.Table).ToHashSet();
                 var pageNumber = 1;
                 var sourceRowNumber = 0;
                 foreach (var row in allRows)
@@ -86,7 +88,7 @@ public partial class PrintPreviewWindow
                         RecordId = CreateSessionRecordId(sourceRowNumber),
                         SourceRowNumber = sourceRowNumber,
                         PageNumber = pageNumber,
-                        IsSelected = true,
+                        IsSelected = !hidden.Contains(sourceRowNumber - 1),
                         Copies = copies,
                         Col1 = GetPreviewCol(row, excelColumns, 0),
                         Col2 = GetPreviewCol(row, excelColumns, 1),

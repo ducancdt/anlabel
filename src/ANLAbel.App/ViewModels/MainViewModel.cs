@@ -3586,8 +3586,25 @@ public sealed class MainViewModel : ObservableObject
 
             var quantityRows = new List<(int SourceRowNumber, IReadOnlyDictionary<string, string>? Row)>();
             var records = RecordsInSourceOrder(ExcelDataView);
+            // Rows hidden in Excel (an AutoFilter) were filtered away by the
+            // operator: not printed, and the status says which (as for 0 copies).
+            var hidden = ExcelDataService.HiddenRowIndexes(ExcelDataView.Table).ToHashSet();
+            if (hidden.Count > 0 && hidden.Count >= records.Count)
+            {
+                StatusText = "Mọi dòng đang ẩn trong Excel (bộ lọc) nên không có dòng nào để in. Bỏ lọc trong Excel, lưu rồi bấm Cập nhật Excel.";
+                return;
+            }
+
+            var hiddenNote = hidden.Count == 0
+                ? string.Empty
+                : $" Không in {hidden.Count} dòng đang ẩn trong Excel (bộ lọc): dòng {string.Join(", ", hidden.Order().Take(10).Select(index => index + 1))}{(hidden.Count > 10 ? "…" : string.Empty)}.";
             for (var index = 0; index < records.Count; index++)
             {
+                if (hidden.Contains(index))
+                {
+                    continue;
+                }
+
                 var row = CreatePreviewRow(records[index], out var transformError);
                 if (!string.IsNullOrWhiteSpace(transformError))
                 {
@@ -3618,7 +3635,7 @@ public sealed class MainViewModel : ObservableObject
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked) + zeroCopyNote;
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked) + zeroCopyNote + hiddenNote;
                 _ = WritePrintLogAsync(
                     "All rows",
                     tracked.PrintedRows ?? rows,

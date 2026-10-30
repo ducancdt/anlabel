@@ -345,10 +345,13 @@ public sealed class ExcelDataService
         var columns = Array.Empty<DataColumn?>();
         string[]? reusable = null;
         var rowNumber = 0;
+        var hiddenRows = new List<int>();
         while (reader.Read())
         {
             cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
+            // A row hidden in Excel (an AutoFilter, or Hide) has no height.
+            var hidden = reader.RowHeight <= 0;
             var cells = ReadRowCells(reader, failClosedOnCellError: true, sheetName, rowNumber, filePath, rowNumber == headerRowIndex ? null : reusable);
             if (rowNumber == headerRowIndex)
             {
@@ -403,7 +406,17 @@ public sealed class ExcelDataService
                 }
             }
 
+            if (hidden)
+            {
+                hiddenRows.Add(table.Rows.Count);
+            }
+
             table.Rows.Add(dataRow);
+        }
+
+        if (hiddenRows.Count > 0)
+        {
+            table.ExtendedProperties[HiddenRowsProperty] = hiddenRows.ToArray();
         }
 
         if (rowNumber == 0)
@@ -440,6 +453,16 @@ public sealed class ExcelDataService
 
         return table;
     }
+
+    private const string HiddenRowsProperty = "ANLAbel.HiddenRows";
+
+    /// <summary>
+    /// Positions (0-based, in source order) of the data rows hidden in Excel
+    /// when the sheet was read, e.g. left out by an AutoFilter. The operator
+    /// filtered them away, so printing starts without them and says so.
+    /// </summary>
+    public static IReadOnlyList<int> HiddenRowIndexes(DataTable? table)
+        => table?.ExtendedProperties[HiddenRowsProperty] as int[] ?? Array.Empty<int>();
 
     private static bool IsOpenXmlWorkbook(string filePath)
     {

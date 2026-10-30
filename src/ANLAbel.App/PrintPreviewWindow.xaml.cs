@@ -1997,6 +1997,18 @@ public partial class PrintPreviewWindow : Window
     }
 
 
+    /// <summary>Rows hidden in Excel (an AutoFilter) that start unselected, by source row number.</summary>
+    public string HiddenRowsText
+    {
+        get
+        {
+            var hidden = ANLAbel.Data.Excel.ExcelDataService.HiddenRowIndexes(_excelDataView?.Table);
+            return hidden.Count == 0
+                ? string.Empty
+                : $"{hidden.Count} dòng đang ẩn trong Excel (bộ lọc) chưa được chọn in: dòng {string.Join(", ", hidden.Take(10).Select(index => index + 1))}{(hidden.Count > 10 ? "…" : string.Empty)}. Đánh dấu lại nếu cần in.";
+        }
+    }
+
     /// <summary>Reminder while the linked data file is open in Excel: edits not saved there do not print.</summary>
     public string DataOpenInExcelText { get; private set; } = string.Empty;
 

@@ -1870,6 +1870,94 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Rows the operator filtered away in Excel (AutoFilter: today's orders
+    /// only) used to print with the rest: five labels for three orders. They
+    /// are still read, but Print Preview starts them unselected and names them,
+    /// and "In mọi dòng" skips them and says which; re-checking a row prints it.
+    /// </summary>
+    public static Task FilteredExcelRowsAreNotPrintedByDefault()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-filtered-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            RunOnSta(() =>
+            {
+                var path = Path.Combine(directory.FullName, "orders.xlsx");
+                using (var workbook = new ClosedXML.Excel.XLWorkbook())
+                {
+                    var sheet = workbook.AddWorksheet("Orders");
+                    sheet.Cell(1, 1).Value = "Ma";
+                    sheet.Cell(1, 2).Value = "Ngay";
+                    for (var index = 0; index < 5; index++)
+                    {
+                        sheet.Cell(index + 2, 1).Value = "SP-" + (index + 1);
+                        sheet.Cell(index + 2, 2).Value = index % 2 == 0 ? "31/10" : "30/10";
+                    }
+
+                    sheet.Range(1, 1, 6, 2).SetAutoFilter().Column(2).EqualTo("31/10");
+                    workbook.SaveAs(path);
+                }
+
+                var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+                viewModel.ImportExcelAsync(path, "Orders").GetAwaiter().GetResult();
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+                Require(viewModel.TryBuildPrintPreviewRows(out var rows, out var rowError) && rows.Count == 5, "All five rows are read: " + rowError);
+                var window = new ANLAbel.App.PrintPreviewWindow(
+                    viewModel.Template,
+                    rows[0],
+                    viewModel.ExcelDataView,
+                    new PrintService(),
+                    new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(directory.FullName, "log.csv")),
+                    string.Empty,
+                    preparedRows: rows,
+                    excelSourceIdentity: viewModel.ImportedExcelDataSourceIdentity);
+                var deadline = DateTime.UtcNow.AddSeconds(30);
+                do
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                    Thread.Sleep(20);
+                }
+                while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline);
+
+                var list = (ListBox)window.FindName("TrackingList");
+                var selected = list.Items.Cast<ANLAbel.App.ViewModels.TrackingRowViewModel>().Where(row => row.IsSelected).Select(row => row.Col1 ?? string.Empty).ToArray();
+                Require(selected.SequenceEqual(["SP-1", "SP-3", "SP-5"]) && window.Pages.Count == 3,
+                    $"Only the rows Excel shows start selected ({string.Join(", ", selected)}; {window.Pages.Count} labels prepared).");
+                Require(window.HiddenRowsText.StartsWith("2 dòng đang ẩn trong Excel (bộ lọc) chưa được chọn in: dòng 2, 4.", StringComparison.Ordinal),
+                    "Print Preview names the hidden rows: " + window.HiddenRowsText);
+                window.Close();
+            });
+
+            // "In mọi dòng" skips them too (source check, like the other quick print gates).
+            var root = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(root, "ANLAbel.slnx")))
+            {
+                root = Path.GetDirectoryName(root.TrimEnd(Path.DirectorySeparatorChar))!;
+            }
+
+            var source = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"));
+            var start = source.IndexOf("private async Task PrintAllRowsAsync()", StringComparison.Ordinal);
+            var body = source.Substring(start, source.IndexOf("private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(", StringComparison.Ordinal) - start);
+            Require(body.Contains("ExcelDataService.HiddenRowIndexes(ExcelDataView.Table)", StringComparison.Ordinal)
+                    && body.Contains("if (hidden.Contains(index))", StringComparison.Ordinal)
+                    && body.Contains("+ hiddenNote", StringComparison.Ordinal),
+                "In mọi dòng must skip rows hidden in Excel and say which.");
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still
