@@ -9,10 +9,32 @@
         </StackPanel>
         <TabControl Grid.Row="1" x:Name="SetupTabs" TabStripPlacement="Left" AutomationProperties.AutomationId="PrinterSetup.WorkflowTabs" Background="{DynamicResource AppSurfaceBrush}">
             <TabControl.Resources>
+                <!-- Workflow steps on the left (NiceLabel 10 Label Properties): flat, with an accent bar on the active step -->
                 <Style TargetType="TabItem">
                     <Setter Property="MinWidth" Value="160"/>
-                    <Setter Property="Padding" Value="12,8"/>
+                    <Setter Property="Padding" Value="12,9"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#334155"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="StepRoot" Background="Transparent" BorderBrush="Transparent" BorderThickness="3,0,0,0" Padding="{TemplateBinding Padding}" Margin="0,0,0,2">
+                                    <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="StepRoot" Property="Background" Value="#F1F5F9"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="StepRoot" Property="Background" Value="#EAF3FF"/>
+                                        <Setter TargetName="StepRoot" Property="BorderBrush" Value="#1464D2"/>
+                                        <Setter Property="Foreground" Value="#0B4A8B"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                 </Style>
             </TabControl.Resources>
             <TabItem Header="Máy in" AutomationProperties.AutomationId="PrinterSetup.PrinterTab">
