@@ -12974,10 +12974,26 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 content.UpdateLayout();
                 var shot = new RenderTargetBitmap(1440, 900, 96, 96, PixelFormats.Pbgra32);
                 shot.Render(content);
-                using var file = File.Create(Path.Combine(evidence, tab + ".png"));
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(shot));
-                encoder.Save(file);
+                using (var file = File.Create(Path.Combine(evidence, tab + ".png")))
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(shot));
+                    encoder.Save(file);
+                }
+
+                // Audit renders at smaller desktop sizes (1280 x 720 and 1024 x 640).
+                foreach (var (w, h) in new[] { (1280, 720), (1024, 640) })
+                {
+                    content.Measure(new Size(w, h));
+                    content.Arrange(new Rect(0, 0, w, h));
+                    content.UpdateLayout();
+                    var small = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                    small.Render(content);
+                    using var smallFile = File.Create(Path.Combine(evidence, $"{tab}-{w}x{h}.png"));
+                    var smallEncoder = new PngBitmapEncoder();
+                    smallEncoder.Frames.Add(BitmapFrame.Create(small));
+                    smallEncoder.Save(smallFile);
+                }
             }
 
             viewModel.SelectedRibbonTab = RibbonTab.Text;
