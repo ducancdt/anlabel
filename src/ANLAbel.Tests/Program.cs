@@ -13104,6 +13104,10 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 && shellXaml.Contains("<Button DockPanel.Dock=\"Right\" Click=\"PrinterQueueWarning_Click\"", StringComparison.Ordinal),
                 "A long status message must trim, not push the printer warning under the printer button");
 
+            // Object browser items announce the object's name, not the model class name.
+            AssertEqual(true, shellXaml.Contains("<Setter Property=\"AutomationProperties.Name\" Value=\"{Binding Name}\"/>", StringComparison.Ordinal),
+                "Object browser items must carry the object name for screen readers");
+
             // Narrow window: the ribbon collapses secondary print commands and alignment
             // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
             void LayoutAt(double width)

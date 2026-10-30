@@ -185,16 +185,16 @@ public partial class HelpWindow : Window
     // Whole-app wireframe: title bar, ribbon, toolbox / canvas / properties, status bar.
     private static UIElement FigAppLayout(bool vi)
     {
-        var root = new Grid { Width = 540, Height = 330 };
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(26) });
+        var root = new Grid { Width = 540, Height = 340 };
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(48) });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(22) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
 
         var title = Zone(vi ? "① Thanh tiêu đề — tên máy in & khổ giấy" : "① Title bar — printer name & paper size", "", "#0D237A", "#FFFFFF");
         Grid.SetRow(title, 0); root.Children.Add(title);
 
-        var ribbon = Zone(vi ? "② Thanh lệnh — Tệp · Trang chủ · Dữ liệu · Xem · Trợ giúp (+ Thiết kế, Chữ… khi chọn đối tượng)" : "② Ribbon — File · Home · Data · View · Help (+ Design, Text… with a selection)", "", "#EAF3FF", "#0F4EA8");
+        var ribbon = Zone(vi ? "② Thanh lệnh — Tệp · Trang chủ · Dữ liệu · Xem · Trợ giúp" : "② Ribbon — File · Home · Data · View · Help", vi ? "+ Thiết kế, Chữ… khi chọn đối tượng" : "+ Design, Text… with a selection", "#EAF3FF", "#0F4EA8");
         Grid.SetRow(ribbon, 1); root.Children.Add(ribbon);
 
         var mid = new Grid();

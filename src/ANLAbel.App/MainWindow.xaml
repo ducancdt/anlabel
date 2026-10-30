@@ -1857,6 +1857,13 @@
                                                  ToolTip="Tìm đối tượng theo tên hoặc nội dung" AutomationProperties.Name="Object search"/>
                                         <ListBox x:Name="ObjectBrowserList" SelectedItem="{Binding SelectedObject, Mode=TwoWay}" BorderThickness="0"
                                                  AutomationProperties.Name="Object browser">
+                                            <!-- Screen readers read the object name and type, not the model class name -->
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+                                                    <Setter Property="AutomationProperties.ItemType" Value="{Binding Type, Converter={StaticResource DisplayName}}"/>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Margin="0,2">

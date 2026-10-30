@@ -9,6 +9,11 @@
         Background="{DynamicResource AppCanvasBrush}"
         FontFamily="Segoe UI" FontSize="13">
     <Window.Resources>
+        <!-- Long cells trim with an ellipsis; the full text is in the tooltip -->
+        <Style x:Key="TrimmedCell" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+        </Style>
         <converters:RevisionTextConverter x:Key="RevisionText"/>
     </Window.Resources>
     <DockPanel>
@@ -38,14 +43,14 @@
                   CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal" BorderBrush="#D9E2EC" Background="White">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Phiên bản" Binding="{Binding Kind, Converter={StaticResource RevisionText}}" Width="120"/>
-                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={StaticResource RevisionText}, ConverterParameter=Status}" Width="110"/>
-                <DataGridTextColumn Header="Tên mẫu tem" Binding="{Binding TemplateName}" Width="150"/>
-                <DataGridTextColumn Header="Ghi lần cuối (cục bộ)" Binding="{Binding LastWriteText}" Width="145"/>
-                <DataGridTextColumn Header="Kích cỡ" Binding="{Binding SizeText}" Width="70"/>
-                <DataGridTextColumn Header="Mã băm (tiền tố)" Binding="{Binding DocumentHashText}" Width="120"/>
-                <DataGridTextColumn Header="Đường dẫn" Binding="{Binding Path}" Width="*" MinWidth="120"/>
-                <DataGridTextColumn Header="Chẩn đoán" Binding="{Binding Diagnostic, Converter={StaticResource RevisionText}, ConverterParameter=Diagnostic}" Width="*" MinWidth="140"/>
+                <DataGridTextColumn Header="Phiên bản" Binding="{Binding Kind, Converter={StaticResource RevisionText}}" ElementStyle="{StaticResource TrimmedCell}" Width="150"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={StaticResource RevisionText}, ConverterParameter=Status}" Width="95"/>
+                <DataGridTextColumn Header="Tên mẫu tem" Binding="{Binding TemplateName}" ElementStyle="{StaticResource TrimmedCell}" Width="*" MinWidth="150"/>
+                <DataGridTextColumn Header="Ghi lần cuối" Binding="{Binding LastWriteText}" Width="150"/>
+                <DataGridTextColumn Header="Kích cỡ" Binding="{Binding SizeText}" Width="78"/>
+                <DataGridTextColumn Header="Mã băm" Binding="{Binding DocumentHashText}" Width="110"/>
+                <DataGridTextColumn Header="Đường dẫn" Binding="{Binding Path}" ElementStyle="{StaticResource TrimmedCell}" Width="*" MinWidth="120"/>
+                <DataGridTextColumn Header="Chẩn đoán" Binding="{Binding Diagnostic, Converter={StaticResource RevisionText}, ConverterParameter=Diagnostic}" ElementStyle="{StaticResource TrimmedCell}" Width="*" MinWidth="140"/>
             </DataGrid.Columns>
         </DataGrid>
 
