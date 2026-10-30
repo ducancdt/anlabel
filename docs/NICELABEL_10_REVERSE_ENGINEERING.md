@@ -769,3 +769,20 @@ built: a `DateAddFunction` whose input is a prompted date.
   fixed texts 0.01-1 mm past an edge (WPF advance widths a little wider than
   NiceLabel's GDI ones) and codes the samples place partly outside; preflight
   still blocks them (protected rule, reported to the owner).
+
+## §19 Rich text and GS1 auto check digits (2026-10-31)
+
+- Rich text items (`RichTextFormatting` True, `TextType` 2) store base64 RTF
+  as `FixedContents` and the same content as a WPF `Section` in
+  `XamlContents` (14 of 26 sample items); the RTF and XAML agree (for example
+  Arial Narrow `s8` = 5.33 DIP = 4 pt). Seven of the ten distinct items
+  are fixed text; three reference data. Fixed rich text now becomes an ANLAbel
+  Rich Text Box with the same RTF and frame; rich text that shows data stays a
+  TextBox with its plain text, because a Rich Text Box holds fixed text only.
+- `GS1128DataValue.AutoCheckDigitCalculation` (AdvancedFunctions): the input
+  length allowed is the AI's maximum minus one, and `GetValue` takes
+  `Substring(0, MaximumLength - 1)` before computing the check digit, so a
+  full-length value has its check digit computed again. ANLAbel imports it as
+  `GS1CHECKDIGIT(LEFT(value, n - 1))` for the AIs whose length is fixed (00,
+  8017, 8018: 18; 01, 02: 14; 402: 17; 410-417: 13). Decoded sample codes:
+  493 -> 501 of 525.

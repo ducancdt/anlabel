@@ -75,6 +75,22 @@ internal static class NiceLabel10RichText
         return ExtractRtfText(text);
     }
 
+    /// <summary>
+    /// The RTF document of a stored rich-text contents value (raw or base64
+    /// RTF); null when the value is plain or base64 text.
+    /// </summary>
+    public static string? ToRtf(string? stored)
+    {
+        var text = (stored ?? string.Empty).Trim();
+        if (IsRtf(text))
+        {
+            return text;
+        }
+
+        var decoded = TryDecodeBase64(text)?.Trim();
+        return decoded is not null && IsRtf(decoded) ? decoded : null;
+    }
+
     private static bool IsRtf(string text) => text.StartsWith("{\\rtf", StringComparison.Ordinal);
 
     private static string? TryDecodeBase64(string text)

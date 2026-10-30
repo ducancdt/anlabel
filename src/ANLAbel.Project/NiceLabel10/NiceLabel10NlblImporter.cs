@@ -415,6 +415,24 @@ public static partial class NiceLabel10NlblImporter
             return null;
         }
 
+        if (type == ObjectType.TextBox && expression is null && record.RichTextRtf is { } rtf)
+        {
+            // Fixed NiceLabel rich text keeps its fonts, sizes and weights as an
+            // ANLAbel Rich Text Box (the same RTF, frame-owned and clipped like a
+            // TextBox). Rich text that shows data stays a TextBox whose plain
+            // text carries the data, as a Rich Text Box holds fixed text only.
+            var rich = new LabelObject
+            {
+                Type = ObjectType.RichTextBox,
+                RichText = rtf,
+                WidthMm = record.WidthMm,
+                HeightMm = record.HeightMm,
+                Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+            };
+            Place(rich, record, rich.WidthMm, rich.HeightMm);
+            return rich;
+        }
+
         var item = new LabelObject
         {
             Type = type,

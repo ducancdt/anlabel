@@ -335,7 +335,10 @@ public static partial class NiceLabel10NlblReader
 
             // AutoCheckDigitCalculation: NiceLabel appends the GS1 modulo-10
             // check digit at print time; ANLAbel's GS1CHECKDIGIT formula
-            // function does the same, so the part is wrapped for it.
+            // function does the same, so the part is wrapped for it. NiceLabel
+            // computes it over the value's first (length - 1) digits, so a
+            // value that already carries a check digit ("11111111111113" for
+            // AI 01) has it replaced instead of a fifteenth digit appended.
             var autoCheckDigit = ParseBool(value, "AutoCheckDigitCalculation");
             if (autoCheckDigit && !carriesCheckDigit)
             {
@@ -343,10 +346,17 @@ public static partial class NiceLabel10NlblReader
             }
 
             var referenceId = ChildText(value.Element("DataSourceReference"), "Id")?.Trim();
+            var digits = autoCheckDigit ? NiceLabel10Gs1ApplicationIdentifiers.DigitsWithCheckDigit(ai) : null;
             builder.Append('(').Append(ai).Append(')');
             if (autoCheckDigit)
             {
                 builder.Append(NiceLabel10FunctionMarkers.Start).Append("GS1CHECKDIGIT").Append(NiceLabel10FunctionMarkers.Body);
+            }
+
+            if (digits is { } length)
+            {
+                builder.Append(NiceLabel10FunctionMarkers.Start).Append("LEFT:")
+                    .Append((length - 1).ToString(CultureInfo.InvariantCulture)).Append(NiceLabel10FunctionMarkers.Body);
             }
 
             if (!string.IsNullOrWhiteSpace(referenceId))
@@ -362,6 +372,11 @@ public static partial class NiceLabel10NlblReader
             else
             {
                 builder.Append(ChildText(value.Element("FixedValue"), "StringValue") ?? string.Empty);
+            }
+
+            if (digits is not null)
+            {
+                builder.Append(NiceLabel10FunctionMarkers.End);
             }
 
             if (autoCheckDigit)
@@ -996,6 +1011,7 @@ public static partial class NiceLabel10NlblReader
             ZOrder = (int)ParseDouble(item, "ZOrder"),
             IsPrintable = item.Element("IsPrintable") is null || ParseBool(item, "IsPrintable"),
             ItemId = ChildText(item, "Id")?.Trim(),
+            RichTextRtf = richText ? NiceLabel10RichText.ToRtf(ChildText(item, "FixedContents")) : null,
             PositionLocked = ParseBool(item, "PositionLocked"),
             InverseText = ParseBool(item, "InverseText"),
             RotationDegrees = ParseDouble(geometry, "Rotation"),

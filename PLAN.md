@@ -15,6 +15,13 @@
   ("647 / 491 KG"), không theo chuỗi mã id; Text gắn trường chưa có giá trị
   (NiceLabel lưu "?" lặp theo độ dài trường, ví dụ 255 ký tự) được thu khung
   từ điểm neo cho nằm trong tem, nên không còn bị chặn in vì "nằm ngoài tem".
+- Nhập .nlbl: chữ định dạng cố định (Rich Text) của NiceLabel thành Ô chữ định
+  dạng (RichTextBox) giữ nguyên phông, cỡ, đậm nghiêng như bản gốc (trước đây
+  thành ô chữ thường mất định dạng và thường bị chặn in vì tràn khung); chữ
+  định dạng có biến vẫn là ô chữ để giữ dữ liệu.
+- Nhập .nlbl: GS1-128 tự tính số kiểm tra làm như NiceLabel, tính trên (độ dài
+  AI − 1) chữ số đầu: GTIN 14 số được tính lại chữ số cuối thay vì nối thành 15
+  số và bị chặn in (8 mã mẫu NiceLabel nay đọc được).
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 

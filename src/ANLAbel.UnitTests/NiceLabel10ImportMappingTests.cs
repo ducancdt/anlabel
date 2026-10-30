@@ -237,8 +237,16 @@ public sealed class NiceLabel10ImportMappingTests
             """);
 
         var text = Assert.Single(template.Objects);
-        Assert.Equal("CONCAT(\"(01)\", GS1CHECKDIGIT(FIELD(\"?Lot\")))", text.BindingExpression);
+        Assert.Equal("CONCAT(\"(01)\", GS1CHECKDIGIT(LEFT(FIELD(\"?Lot\"), \"13\")))", text.BindingExpression);
         Assert.Equal("Lot", Assert.Single(template.PromptVariables).Name);
+
+        // As NiceLabel: 13 digits gain their check digit; a full GTIN-14 has its
+        // last digit computed again rather than a fifteenth digit appended.
+        foreach (var (typed, printed) in new[] { ("1111111111111", "(01)11111111111113"), ("11111111111119", "(01)11111111111113") })
+        {
+            var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["?Lot"] = typed };
+            Assert.Equal(printed, ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(text.BindingExpression, row).Value);
+        }
     }
 
     [Fact]
@@ -1000,7 +1008,7 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
-    public void RichFramedText_CarriesRecoveredPlainText()
+    public void RichFramedText_BecomesARichTextBoxWithItsRtf()
     {
         var rtf = @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\pard\b ACME\b0  IDEAL\par 1 ROADRUNNER WAY\par}";
         var stored = Convert.ToBase64String(Encoding.UTF8.GetBytes(rtf));
@@ -1014,9 +1022,11 @@ public sealed class NiceLabel10ImportMappingTests
             </Item>
             """);
 
+        // Fixed rich text keeps its formatting: the stored RTF in its stored frame.
         var box = Assert.Single(template.Objects);
-        Assert.Equal(ObjectType.TextBox, box.Type);
-        Assert.Equal("ACME IDEAL\n1 ROADRUNNER WAY", box.Text);
+        Assert.Equal(ObjectType.RichTextBox, box.Type);
+        Assert.Equal(rtf, box.RichText);
+        Assert.Equal((5.0, 5.0, 40.0, 10.0), (box.XMm, box.YMm, box.WidthMm, box.HeightMm));
     }
 
     [Fact]

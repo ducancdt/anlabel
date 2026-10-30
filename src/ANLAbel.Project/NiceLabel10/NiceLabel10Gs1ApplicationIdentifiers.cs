@@ -256,6 +256,19 @@ internal static class NiceLabel10Gs1ApplicationIdentifiers
         return true;
     }
 
+    /// <summary>
+    /// Digits of a check-digit AI's value, check digit included (GS1 General
+    /// Specifications); null for an AI whose length is not fixed here.
+    /// </summary>
+    public static int? DigitsWithCheckDigit(string applicationIdentifier) => applicationIdentifier switch
+    {
+        "00" or "8017" or "8018" => 18,
+        "01" or "02" => 14,
+        "402" => 17,
+        "410" or "411" or "412" or "413" or "414" or "415" or "416" or "417" => 13,
+        _ => null
+    };
+
     /// <summary>True for the GS1 date AIs whose value is a yyMMdd date.</summary>
     public static bool IsDateApplicationIdentifier(string applicationIdentifier) =>
         applicationIdentifier is "11" or "12" or "13" or "15" or "16" or "17";

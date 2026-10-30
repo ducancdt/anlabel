@@ -141,6 +141,9 @@ public sealed record NiceLabel10ObjectRecord(
     /// <summary>Stored <c>IsPrintable</c> (default true); false keeps the object on screen only.</summary>
     public bool IsPrintable { get; init; } = true;
 
+    /// <summary>A rich-text item's stored RTF document; null for plain text.</summary>
+    public string? RichTextRtf { get; init; }
+
     /// <summary>The stored item <c>Id</c>, which groups refer to; null when absent.</summary>
     public string? ItemId { get; init; }
 
