@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.344
+## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
+
+_Gồm các commit 30/10/2026 (19:53–21:51)._
 
 - In tờ nhiều tem theo NiceLabel 10: Xem trước khi in hiện cả tờ chứa tem
   đang xem (tờ mấy, ô mấy) và có “Bỏ qua N ô đầu của tờ đầu” để in tiếp tờ
@@ -35,6 +37,10 @@
   kiểm tra tràn mép). Chọn một mã có liên kết không còn co khung về độ rộng của
   “0” (60 mm còn 19 mm chỉ vì một cú nhấp): khung theo dòng xem trước, giữ điểm
   neo; dòng chưa đủ dữ liệu thì giữ nguyên khung.
+- Đầu bảng Thuộc tính (tên | loại | rộng × cao) cập nhật khi đổi tên, kéo hay
+  gõ kích thước đối tượng đang chọn; trước đây chỉ đổi khi chọn đối tượng khác.
+
+**Kiểm tra:** build 0 cảnh báo, 1578 unit, hồi quy 297/297.
 
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 
