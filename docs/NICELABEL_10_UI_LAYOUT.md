@@ -89,9 +89,10 @@ left column rows: toolbox (min 100) / splitter / tab strip + explorer
 | Properties header, pin/close, category tabs | `Thuộc tính - <tên> [<loại>]`, ẩn/hiện, category tabs |
 | Status printer + zoom | printer button + zoom to document + slider + % |
 
-Not converted (no ANLAbel feature, out of core scope): Rich Text Box,
-Inverse, Report, forms/solutions, Access/SQL/ODBC wizards, RFID, Format
-Painter, object markers, view rotation, licensing/partner groups.
+Not converted (no ANLAbel feature, out of core scope): Report,
+forms/solutions, Access/SQL/ODBC wizards, RFID, licensing/partner groups.
+Rich Text Box, Inverse, Format Painter ("Sao định dạng", Ctrl+Shift+C and
+Ctrl+Shift+V), object markers and view rotation were built later.
 
 ## Delivered (2026-10-29)
 
