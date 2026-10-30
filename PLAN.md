@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.350
+## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
+
+_Gồm các commit 31/10/2026 (02:14–02:15)._
 
 - Xem trước khi in, ô lọc dòng: quét hoặc gõ đúng một mã (ví dụ "SP-0001") nay
   chỉ chọn dòng có ô đúng bằng mã đó; trước đây lọc theo "có chứa" nên chọn cả
@@ -10,6 +12,8 @@
   xác nhận. Máy quét gửi Enter sau mỗi lần quét nên trước đây lần quét đầu đã gửi
   cả hộp thoại kèm giá trị cũ của các ô còn lại; danh sách chọn đang mở vẫn nhận
   Enter để chốt mục.
+
+**Kiểm tra:** build 0 cảnh báo, 1681 unit, hồi quy 315/315 (vòng kiểm tra Fast).
 
 ## v0.350 — Giá trị quét quá dài bị trả lại thay vì bị cắt; Xem trước khi in gọn hơn và nêu tên cột
 
