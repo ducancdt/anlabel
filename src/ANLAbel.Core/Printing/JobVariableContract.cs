@@ -16,15 +16,18 @@ public static partial class JobVariableContract
     public const int MaximumPromptLength = 200;
 
     /// <summary>
-    /// The job-level tokens (text inside braces) used by visible objects:
-    /// <c>#NOW...</c> date tokens and <c>?Name</c> prompts.
+    /// The job-level tokens (text inside braces) used by visible objects, in
+    /// their contents or their visibility condition: <c>#NOW...</c> date
+    /// tokens and <c>?Name</c> prompts.
     /// </summary>
     public static IReadOnlyList<string> FindTokens(LabelTemplate template)
     {
         ArgumentNullException.ThrowIfNull(template);
         return template.Objects
-            .Where(item => item.IsVisible && !string.IsNullOrWhiteSpace(item.BindingExpression))
-            .SelectMany(item => ExpressionTokens(item.BindingExpression))
+            .Where(item => item.IsVisible)
+            .SelectMany(item => new[] { item.BindingExpression, item.VisibilityCondition })
+            .Where(expression => !string.IsNullOrWhiteSpace(expression))
+            .SelectMany(expression => ExpressionTokens(expression))
             .Where(token => IsDateToken(token) || IsPromptToken(token))
             .Distinct(StringComparer.Ordinal)
             .ToArray();

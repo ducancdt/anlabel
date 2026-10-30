@@ -688,12 +688,25 @@ public static class NiceLabel10NlblReader
         }
 
         var objects = new List<NiceLabel10ObjectRecord>();
+        var layerConditions = LayerConditions(root);
         foreach (var item in root.Descendants("Item"))
         {
             var record = ParseItem(item, variables);
             if (record is not null)
             {
-                objects.Add(record);
+                var conditions = new List<NiceLabel10VisibilityCondition>();
+                if (ReadVisibilityCondition(item) is { } own)
+                {
+                    conditions.Add(own);
+                }
+
+                if (ChildText(item, "Id")?.Trim() is { Length: > 0 } itemId
+                    && layerConditions.TryGetValue(itemId, out var layer))
+                {
+                    conditions.Add(layer);
+                }
+
+                objects.Add(conditions.Count == 0 ? record : record with { VisibilityConditions = conditions });
             }
         }
 
@@ -937,6 +950,8 @@ public static class NiceLabel10NlblReader
         {
             VariableId = variableId,
             HasUnresolvedReference = unresolved,
+            ZOrder = (int)ParseDouble(item, "ZOrder"),
+            IsPrintable = item.Element("IsPrintable") is null || ParseBool(item, "IsPrintable"),
             RotationDegrees = ParseDouble(geometry, "Rotation"),
             AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
             Underline = underline,
@@ -1028,6 +1043,68 @@ public static class NiceLabel10NlblReader
 
     private static string? ChildText(XElement? parent, string name) =>
         parent?.Element(name)?.Value;
+
+    /// <summary>
+    /// Items of a NiceLabel 10 layer (Document Design › Layers, its
+    /// ChildReferences) that has a visibility condition, by item id.
+    /// </summary>
+    private static Dictionary<string, NiceLabel10VisibilityCondition> LayerConditions(XElement root)
+    {
+        var conditions = new Dictionary<string, NiceLabel10VisibilityCondition>(StringComparer.OrdinalIgnoreCase);
+        foreach (var layer in root.Descendants("Layer"))
+        {
+            if (ReadVisibilityCondition(layer) is not { } condition)
+            {
+                continue;
+            }
+
+            foreach (var reference in layer.Element("ChildReferences")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+            {
+                if (ChildText(reference, "Id")?.Trim() is { Length: > 0 } id)
+                {
+                    conditions[id] = condition;
+                }
+            }
+        }
+
+        return conditions;
+    }
+
+    /// <summary>
+    /// A stored visibility condition (vendor DocumentItem): the left and right
+    /// values (a data source or fixed text) and the operator. Null when the
+    /// item has none or a value is missing, which NiceLabel also shows.
+    /// </summary>
+    private static NiceLabel10VisibilityCondition? ReadVisibilityCondition(XElement element)
+    {
+        if (!ParseBool(element, "IsVisibilityConditional")
+            || ReadConditionValue(element.Element("VisibilityConditionLeftValue")) is not { } left
+            || ReadConditionValue(element.Element("VisibilityConditionRightValue")) is not { } right)
+        {
+            return null;
+        }
+
+        var comparison = ChildText(element, "VisibilityConditionOperator")?.Trim();
+        var unequal = comparison == "1" || string.Equals(comparison, "Unequals", StringComparison.OrdinalIgnoreCase);
+        return new NiceLabel10VisibilityCondition(left, right, unequal);
+    }
+
+    private static NiceLabel10ConditionValue? ReadConditionValue(XElement? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        if (ChildText(value.Element("DataSourceReference"), "Id")?.Trim() is { Length: > 0 } id)
+        {
+            return new NiceLabel10ConditionValue(id, null);
+        }
+
+        return value.Element("FixedValue") is { } fixedValue
+            ? new NiceLabel10ConditionValue(null, ChildText(fixedValue, "StringValue") ?? string.Empty)
+            : null;
+    }
 
     /// <summary>
     /// A stored HRI font is bold when its LOGFONT weight is 600 or more; no

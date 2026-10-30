@@ -11,8 +11,6 @@ namespace ANLAbel.Core.Data;
 /// </summary>
 public static class VisibilityConditionContract
 {
-    private static readonly string[] HiddenValues = ["0", "false", "no", "không", "khong"];
-
     public static bool IsShown(string? condition, IReadOnlyDictionary<string, string>? row)
     {
         if (string.IsNullOrWhiteSpace(condition) || row is null)
@@ -23,7 +21,6 @@ public static class VisibilityConditionContract
         var value = FormulaBindingEvaluator.LooksLikeFormula(condition)
             ? FormulaBindingEvaluator.Evaluate(condition, row).Value
             : BindingExpressionEvaluator.Evaluate(condition, row);
-        var trimmed = (value ?? string.Empty).Trim();
-        return trimmed.Length > 0 && !HiddenValues.Contains(trimmed, StringComparer.OrdinalIgnoreCase);
+        return FormulaTruth.IsTrue(value);
     }
 }

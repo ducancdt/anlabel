@@ -184,6 +184,7 @@ public static partial class NiceLabel10NlblImporter
 
         var context = new ImportContext(document, template, textMeasurer, Path.GetDirectoryName(Path.GetFullPath(sourcePath)));
         var boundBarcodes = new List<(LabelObject Item, NiceLabel10ObjectRecord Record)>();
+        var converted = new List<(LabelObject Item, NiceLabel10ObjectRecord Record)>();
         foreach (var record in document.Objects)
         {
             var item = record.Kind switch
@@ -206,6 +207,13 @@ public static partial class NiceLabel10NlblImporter
                 item.Name = record.Name.Trim();
             }
 
+            // NiceLabel "Not printable": shown in the designer, left out of print.
+            item.IsPrintable = record.IsPrintable;
+            if (record.VisibilityConditions.Count > 0 && context.VisibilityFormula(record) is { } condition)
+            {
+                item.VisibilityCondition = condition;
+            }
+
             if (record.ContentMask is { } mask)
             {
                 item.ContentMask = mask;
@@ -218,6 +226,16 @@ public static partial class NiceLabel10NlblImporter
             }
 
             template.Objects.Add(item);
+            converted.Add((item, record));
+        }
+
+        // NiceLabel stacks objects by their stored ZOrder, which need not follow
+        // their order in the file (157 of the 207 sample labels differ); equal
+        // values keep the file order.
+        var stacking = converted.OrderBy(pair => pair.Record.ZOrder).ToList();
+        for (var index = 0; index < stacking.Count; index++)
+        {
+            stacking[index].Item.ZIndex = index + 1;
         }
 
         SizeBoundBarcodesFromDesignValues(template, boundBarcodes);
@@ -1387,11 +1405,6 @@ public static partial class NiceLabel10NlblImporter
         }
 
         /// <summary>
-        /// Font-metric estimate used only when no measurer is supplied:
-        /// average Latin advance of about 0.55 em (0.6 em bold) and a line
-        /// height of 1.2 em.
-        /// </summary>
-        /// <summary>
         /// Height the barcode's HRI strip takes in its frame (text line,
         /// padding and gap), measured with the print layout when the
         /// application supplies it.
@@ -1410,6 +1423,54 @@ public static partial class NiceLabel10NlblImporter
                 + ANLAbel.Core.Barcode.BarcodeHriLayoutContract.GapMm;
         }
 
+        /// <summary>
+        /// NiceLabel 10 visibility conditions (the item's and its layer's) as
+        /// an ANLAbel visibility formula: EQUALS for equal, NOT(EQUALS(…)) for
+        /// unequal, AND(…) for several. Null when a value cannot be resolved;
+        /// the object then prints on every row.
+        /// </summary>
+        public string? VisibilityFormula(NiceLabel10ObjectRecord record)
+        {
+            var terms = new List<string>();
+            var prompts = new List<NiceLabel10Variable>();
+            foreach (var condition in record.VisibilityConditions)
+            {
+                if (ConditionTerm(condition.Left, prompts) is not { } left
+                    || ConditionTerm(condition.Right, prompts) is not { } right)
+                {
+                    return null;
+                }
+
+                var equals = $"EQUALS({left}, {right})";
+                terms.Add(condition.Unequal ? $"NOT({equals})" : equals);
+            }
+
+            foreach (var prompt in prompts)
+            {
+                RegisterPrompt(prompt, record);
+            }
+
+            return terms.Count == 1 ? terms[0] : "AND(" + string.Join(", ", terms) + ")";
+        }
+
+        private string? ConditionTerm(NiceLabel10ConditionValue value, List<NiceLabel10Variable> prompts)
+        {
+            if (value.SourceId is not { } id)
+            {
+                return NiceLabel10FunctionMarkers.Quote(value.FixedText ?? string.Empty);
+            }
+
+            return _document.VariablesById.TryGetValue(id, out var variable)
+                && ExpressionFor(variable, 0, prompts) is { } expression
+                    ? NiceLabel10FunctionMarkers.ToFormula(expression)
+                    : null;
+        }
+
+        /// <summary>
+        /// Font-metric estimate used only when no measurer is supplied:
+        /// average Latin advance of about 0.55 em (0.6 em bold) and a line
+        /// height of 1.2 em.
+        /// </summary>
         private static (double WidthMm, double HeightMm) EstimateTextSize(LabelObject item, string sampleText)
         {
             var emMm = Math.Max(1, item.Style.FontSizePt) * 25.4 / 72.0;

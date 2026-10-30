@@ -621,3 +621,32 @@ NiceLabel's height. The designer drew HRI text at the point value in DIPs
 (75 % of print); it now uses the print size. UI: Mã vạch › Chi tiết mã and
 Thuộc tính › Kiểu (Phông HRI, Đậm). Gate: `imported barcode text prints like
 NiceLabel`.
+
+## §13 Stacking, layers and visibility conditions (2026-10-30)
+
+- Stacking: every item stores `ZOrder`; NiceLabel draws from the lowest.
+  The file order differs from it in 157 of the 207 sample labels (1 of the
+  12 local customer labels). Layer items carry the layer in their value
+  (layer 20000 holds items 20001…), so the item `ZOrder` alone gives the
+  stacking. ANLAbel imported every object at `ZIndex` 0 (file order); the
+  importer now ranks `ZIndex` by `ZOrder` (equal values keep file order).
+- `IsPrintable` False (4 sample items): kept as ANLAbel "Không in".
+- Layers: `DocumentDesign/Layers/Layer` with `ChildReferences` (item ids),
+  `ZOrder`, `IsVisibleInDesignTime`, `IsItemOnBackSide` (two-sided print,
+  not built) and a visibility condition. 10 sample labels have layers; the
+  `Label_layers` sample prints a Code 128 variant or a QR variant at the same
+  place depending on a variable.
+- Visibility condition (vendor `DocumentItem`, items and layers):
+  `IsVisibilityConditional`, `VisibilityConditionLeftValue` /
+  `VisibilityConditionRightValue` (a data source or fixed text) and
+  `VisibilityConditionOperator` (`ComparisonOperator` Equals 0, Unequals 1).
+  `DocumentItemRuntime` compares the two values' text with
+  `OrdinalIgnoreCase` and shows the item only when the result matches the
+  operator.
+- ANLAbel: the condition becomes the object's Điều kiện hiển thị, written
+  with the new formula functions `EQUALS(a, b)` (same text ignoring case,
+  "true"/"false"), `NOT(x)` and `AND(…)` (true = not empty, 0, false, no,
+  không, the visibility rule, `FormulaTruth`); an item and its layer both
+  conditional give `AND`. A prompt used only by a condition is asked at print
+  (`JobVariableContract.FindTokens` reads conditions too). Sample sweep: the
+  `Label_layers` QR decodes and its hidden Code 128 variant is not printed.

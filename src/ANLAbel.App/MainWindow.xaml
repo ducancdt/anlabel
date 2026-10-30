@@ -971,7 +971,7 @@
                                             <Border Background="#FFFFFF" BorderBrush="{StaticResource RibbonLineBrush}" BorderThickness="1" Padding="12,10" Width="300">
                                                 <StackPanel>
                                                     <TextBlock Text="Điều kiện hiển thị" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}"/>
-                                                    <TextBlock Text="Trường hoặc công thức, ví dụ {Lô}. Đối tượng chỉ in ở dòng có giá trị khác rỗng, 0, false, không. Để trống: luôn in."
+                                                    <TextBlock Text="Trường hoặc công thức, ví dụ {Lô} hoặc EQUALS(FIELD(&quot;Loại&quot;), &quot;QR&quot;). Đối tượng chỉ in ở dòng có giá trị khác rỗng, 0, false, không. Để trống: luôn in."
                                                                TextWrapping="Wrap" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,3,0,6"/>
                                                     <TextBox Text="{Binding SelectedObject.VisibilityCondition, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                                              AutomationProperties.Name="Visibility condition expression" AutomationProperties.AutomationId="Shell.Ribbon.VisibilityConditionText"/>

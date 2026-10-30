@@ -2,6 +2,15 @@ namespace ANLAbel.Core.Expressions.Formulas;
 
 public sealed class FormulaEvaluator
 {
+    /// <summary>
+    /// The functions a formula can call. An expression is a formula when it
+    /// starts with one of them (<see cref="FormulaBindingEvaluator.LooksLikeFormula"/>).
+    /// </summary>
+    public static IReadOnlyList<string> FunctionNames { get; } =
+    [
+        "FIELD", "CONCAT", "MID", "GS1CHECKDIGIT", "UPPER", "LOWER", "TRIM", "LEFT", "RIGHT", "EQUALS", "NOT", "AND"
+    ];
+
     public FormulaEvaluationResult Evaluate(FormulaNode root, IReadOnlyDictionary<string, string?> row)
     {
         var context = new EvaluationContext(row);
@@ -35,6 +44,9 @@ public sealed class FormulaEvaluator
             "TRIM" => EvaluateText(call, context, text => text.Trim()),
             "LEFT" => EvaluateEnd(call, context, fromLeft: true),
             "RIGHT" => EvaluateEnd(call, context, fromLeft: false),
+            "EQUALS" => EvaluateEquals(call, context),
+            "NOT" => EvaluateText(call, context, text => FormulaTruth.From(!FormulaTruth.IsTrue(text))),
+            "AND" => EvaluateAnd(call, context),
             _ => AddError(context, $"Unknown function '{call.Name}'.")
         };
     }
@@ -79,6 +91,34 @@ public sealed class FormulaEvaluator
         }
 
         return change(EvaluateNode(call.Arguments[0], context));
+    }
+
+    /// <summary>
+    /// EQUALS(a, b): "true" when the two values are the same ignoring case (as
+    /// NiceLabel 10 compares visibility conditions), otherwise "false".
+    /// </summary>
+    private static string EvaluateEquals(FormulaFunctionCallNode call, EvaluationContext context)
+    {
+        if (call.Arguments.Count != 2)
+        {
+            return AddError(context, "EQUALS expects two arguments.");
+        }
+
+        var left = EvaluateNode(call.Arguments[0], context);
+        var right = EvaluateNode(call.Arguments[1], context);
+        return FormulaTruth.From(string.Equals(left, right, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>AND(a, b, …): "true" when every value is true (FormulaTruth); every argument is read.</summary>
+    private static string EvaluateAnd(FormulaFunctionCallNode call, EvaluationContext context)
+    {
+        if (call.Arguments.Count == 0)
+        {
+            return AddError(context, "AND expects at least one argument.");
+        }
+
+        var values = call.Arguments.Select(argument => EvaluateNode(argument, context)).ToList();
+        return FormulaTruth.From(values.All(FormulaTruth.IsTrue));
     }
 
     /// <summary>LEFT(text, count) and RIGHT(text, count): at most count characters from that end of the text.</summary>

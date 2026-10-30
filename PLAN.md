@@ -33,6 +33,14 @@
   10 pt bị nhét vào khung: 23/30 mã có chữ trong các tem khách trên máy bị chặn
   in (“khung quá thấp”), số còn lại vạch chỉ cao 1–3 mm. Bảng thiết kế hiện
   chữ dưới mã đúng cỡ in (trước nhỏ hơn 25%).
+- Nhập .nlbl theo thứ tự vẽ và điều kiện của NiceLabel 10: đối tượng chồng lớp
+  theo ZOrder (157/207 tem mẫu có thứ tự trong tệp khác thứ tự vẽ), giữ “Không
+  in” (IsPrintable). Điều kiện hiển thị của đối tượng và của lớp (Thiết kế ›
+  Lớp: mỗi biến thể chỉ in khi một biến bằng một giá trị) thành Điều kiện hiển
+  thị của ANLAbel với hàm mới EQUALS (so sánh không phân biệt hoa thường như
+  NiceLabel), NOT, AND. Biến nhập chỉ dùng trong điều kiện hiển thị nay cũng
+  được hỏi khi in. Mọi hàm công thức đều mở đầu được một công thức (trước chỉ
+  FIELD, CONCAT, MID, GS1CHECKDIGIT nên UPPER(…) đứng đầu bị in nguyên văn).
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

@@ -140,7 +140,8 @@ internal static class NiceLabel10FunctionMarkers
         return -1;
     }
 
-    private static string Quote(string value)
+    /// <summary>A formula string literal holding <paramref name="value"/>.</summary>
+    public static string Quote(string value)
     {
         var builder = new StringBuilder("\"");
         foreach (var ch in value)

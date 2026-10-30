@@ -509,6 +509,48 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void ScriptThatIsOneCall_BecomesThatFormula()
+    {
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>d1d1d1d1-2222-3333-4444-555555555555</Id>
+                  <Name>Lot</Name>
+                  <DefaultValue Type="StringContents"><StringValue>l-7</StringValue></DefaultValue>
+                </Item>
+              </Variables>
+              <Functions>
+                <Item Type="ExecuteScriptFunction">
+                  <Id>d2d2d2d2-2222-3333-4444-555555555555</Id>
+                  <Name>Upper lot</Name>
+                  <Script>Result = UCase(Lot)</Script>
+                  <InputDataSourceReferences>
+                    <Item Type="SolutionDataSourceReference"><Id>d1d1d1d1-2222-3333-4444-555555555555</Id></Item>
+                  </InputDataSourceReferences>
+                </Item>
+              </Functions>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format("""
+            <Item Type="TextDocumentItem">
+              <Name>Lot</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>L-7</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>d2d2d2d2-2222-3333-4444-555555555555</Id></DataSourceReference>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var text = Assert.Single(template.Objects);
+        Assert.Equal("UPPER(FIELD(\"?Lot\"))", text.BindingExpression);
+        Assert.True(ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.LooksLikeFormula(text.BindingExpression));
+        var row = new Dictionary<string, string> { ["?Lot"] = "l-7" };
+        Assert.Equal("L-7", ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(text.BindingExpression, row).Value);
+    }
+
+    [Fact]
     public void ScriptWithArithmetic_IsNotConverted()
     {
         var template = Import($"""
@@ -1102,6 +1144,117 @@ public sealed class NiceLabel10ImportMappingTests
         // The stored text below the 10 mm bars belongs to the object NiceLabel centres.
         Assert.True(code.HeightMm > 10);
         Assert.Equal(30 - code.HeightMm / 2, code.YMm, 2);
+    }
+
+    [Fact]
+    public void LayerAndItemConditions_BecomeVisibilityFormulas()
+    {
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>b1b1b1b1-2222-3333-4444-555555555555</Id>
+                  <Name>Barcode type</Name>
+                  <DefaultValue Type="StringContents"><StringValue>Code 128</StringValue></DefaultValue>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        const string condition = """
+            <IsVisibilityConditional>True</IsVisibilityConditional>
+            <VisibilityConditionLeftValue Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>b1b1b1b1-2222-3333-4444-555555555555</Id></DataSourceReference></VisibilityConditionLeftValue>
+            <VisibilityConditionRightValue Type="DataValue"><FixedValue Type="StringContents"><StringValue>QR</StringValue></FixedValue></VisibilityConditionRightValue>
+            """;
+        var items = $"""
+            <Layers>
+              <Layer Type="Layer">
+                <Name>QR variant</Name>
+                <ChildReferences>
+                  <Item Type="DocumentItemReference"><Id>c0c0c0c0-0000-0000-0000-000000000001</Id></Item>
+                  <Item Type="DocumentItemReference"><Id>c0c0c0c0-0000-0000-0000-000000000003</Id></Item>
+                </ChildReferences>
+                <ZOrder>10000</ZOrder>
+                {condition}
+              </Layer>
+            </Layers>
+            <Item Type="TextDocumentItem">
+              <Id>c0c0c0c0-0000-0000-0000-000000000001</Id>
+              <Name>In layer</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>QR</FixedContents>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Id>c0c0c0c0-0000-0000-0000-000000000002</Id>
+              <Name>Unequal</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>8000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>Linear</FixedContents>
+              {condition}
+              <VisibilityConditionOperator>1</VisibilityConditionOperator>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Id>c0c0c0c0-0000-0000-0000-000000000003</Id>
+              <Name>Both</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>16000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>Both</FixedContents>
+              {condition}
+            </Item>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(items), solution), "sample.nlbl");
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        const string isQr = "EQUALS(FIELD(\"?Barcode type\"), \"QR\")";
+        Assert.Equal(isQr, byName["In layer"].VisibilityCondition);
+        Assert.Equal("NOT(" + isQr + ")", byName["Unequal"].VisibilityCondition);
+        Assert.Equal("AND(" + isQr + ", " + isQr + ")", byName["Both"].VisibilityCondition);
+        var prompt = Assert.Single(template.PromptVariables);
+        Assert.Equal(("Barcode type", "Code 128"), (prompt.Name, prompt.DefaultValue));
+
+        // With the stored default the linear variant prints and the QR layer does not.
+        var row = ANLAbel.Core.Printing.JobVariableContract.ApplyForDesign(template, null, DateTimeOffset.Now, new Dictionary<string, string>());
+        Assert.False(ANLAbel.Core.Data.VisibilityConditionContract.IsShown(byName["In layer"].VisibilityCondition, row));
+        Assert.True(ANLAbel.Core.Data.VisibilityConditionContract.IsShown(byName["Unequal"].VisibilityCondition, row));
+    }
+
+    [Fact]
+    public void Objects_StackInTheStoredZOrder_AndKeepNotPrintable()
+    {
+        // The file lists the white caption before the black band it sits on;
+        // NiceLabel draws by ZOrder, so the caption stays on top.
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Caption</Name>
+              <Geometry Type="PositionGeometry"><X>12000</X><Y>12000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <Color>FFFFFFFF</Color>
+              <FixedContents>WHITE</FixedContents>
+              <ZOrder>7</ZOrder>
+            </Item>
+            <Item Type="RectangleDocumentItem">
+              <Name>Band</Name>
+              <Geometry Type="RectGeometry"><Left>10000</Left><Top>10000</Top><Width>40000</Width><Height>10000</Height></Geometry>
+              <FillStyle>2</FillStyle>
+              <FillColor>FF000000</FillColor>
+              <ZOrder>3</ZOrder>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Guide</Name>
+              <Geometry Type="PositionGeometry"><X>12000</X><Y>30000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>8</Height></FontDescriptor>
+              <FixedContents>screen only</FixedContents>
+              <ZOrder>5</ZOrder>
+              <IsPrintable>False</IsPrintable>
+            </Item>
+            """);
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        Assert.True(byName["Band"].ZIndex < byName["Guide"].ZIndex);
+        Assert.True(byName["Guide"].ZIndex < byName["Caption"].ZIndex);
+        Assert.False(byName["Guide"].IsPrintable);
+        Assert.True(byName["Caption"].IsPrintable && byName["Band"].IsPrintable);
     }
 
     [Fact]

@@ -24,6 +24,8 @@ public static class FormulaErrorText
         (Rx("^FIELD expects exactly one argument[.]$"), _ => "Hàm FIELD cần đúng một đối số."),
         (Rx("^(?<n>[A-Z0-9]+) expects exactly one argument[.]$"), m => $"Hàm {m.Groups["n"].Value} cần đúng một đối số."),
         (Rx("^(?<n>LEFT|RIGHT) expects two arguments: text, count[.]$"), m => $"Hàm {m.Groups["n"].Value} cần hai đối số: văn bản, số ký tự."),
+        (Rx("^EQUALS expects two arguments[.]$"), _ => "Hàm EQUALS cần hai giá trị để so sánh."),
+        (Rx("^AND expects at least one argument[.]$"), _ => "Hàm AND cần ít nhất một điều kiện."),
         (Rx("^(?<n>LEFT|RIGHT) count must be a whole number of 0 or more[.]$"), m => $"Số ký tự của hàm {m.Groups["n"].Value} phải là số nguyên từ 0 trở lên."),
         (Rx("^MID expects exactly three arguments: text, start, length[.]$"), _ => "Hàm MID cần ba đối số: văn bản, vị trí bắt đầu, số ký tự."),
         (Rx("^MID start must be a whole number of 1 or more[.]$"), _ => "Vị trí bắt đầu của hàm MID phải là số nguyên từ 1 trở lên."),

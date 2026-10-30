@@ -12,10 +12,7 @@ public static class FormulaBindingEvaluator
         }
 
         var trimmed = expression.TrimStart();
-        return StartsWithFunctionCall(trimmed, "FIELD")
-            || StartsWithFunctionCall(trimmed, "CONCAT")
-            || StartsWithFunctionCall(trimmed, "MID")
-            || StartsWithFunctionCall(trimmed, "GS1CHECKDIGIT");
+        return FormulaEvaluator.FunctionNames.Any(name => StartsWithFunctionCall(trimmed, name));
     }
 
     // A value is only a formula when the function name is immediately followed by

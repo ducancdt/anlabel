@@ -110,6 +110,19 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void APromptUsedOnlyByAVisibilityConditionIsAsked()
+    {
+        // NiceLabel layer variants: the operator picks the variant, nothing prints the answer.
+        var template = new LabelTemplate();
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Text = "QR variant", VisibilityCondition = "EQUALS(FIELD(\"?Barcode type\"), \"QR\")" });
+        template.PromptVariables.Add(new PromptVariableDefinition { Name = "Barcode type", DefaultValue = "Code 128" });
+
+        Assert.Contains("?Barcode type", JobVariableContract.FindTokens(template));
+        var row = JobVariableContract.ApplyForDesign(template, null, DateTimeOffset.Now, new Dictionary<string, string>());
+        Assert.False(ANLAbel.Core.Data.VisibilityConditionContract.IsShown(template.Objects[0].VisibilityCondition, row));
+    }
+
+    [Fact]
     public void InputRulesCheckTheAnswerAsNiceLabelDoes()
     {
         var shift = new PromptVariableDefinition { Name = "Shift", PickList = "A\nB\r\nC\n" };

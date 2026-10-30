@@ -133,6 +133,21 @@ public sealed record NiceLabel10ObjectRecord(
     public int BarcodeHriPosition { get; init; } = -1;
 
     /// <summary>
+    /// Stored <c>ZOrder</c>: NiceLabel draws objects from the lowest to the
+    /// highest, whatever their order in the file.
+    /// </summary>
+    public int ZOrder { get; init; }
+
+    /// <summary>Stored <c>IsPrintable</c> (default true); false keeps the object on screen only.</summary>
+    public bool IsPrintable { get; init; } = true;
+
+    /// <summary>
+    /// Visibility conditions of the item and of the layer holding it; the
+    /// object prints only when all hold.
+    /// </summary>
+    public IReadOnlyList<NiceLabel10VisibilityCondition> VisibilityConditions { get; init; } = Array.Empty<NiceLabel10VisibilityCondition>();
+
+    /// <summary>
     /// Stored HRI font name (<c>HumanInterpretationFontDescriptor</c>); null
     /// when absent, which the vendor loader reads as Arial 10 bold.
     /// </summary>
@@ -269,3 +284,13 @@ public sealed record NiceLabel10Document(
     /// <summary>Stored printer and media facts; null when the format stores none.</summary>
     public NiceLabel10PrintSetup? PrintSetup { get; init; }
 }
+
+/// <summary>One side of a NiceLabel visibility condition: a data source by id, or fixed text.</summary>
+public sealed record NiceLabel10ConditionValue(string? SourceId, string? FixedText);
+
+/// <summary>
+/// A NiceLabel 10 visibility condition (item or layer): the left value
+/// equals the right one ignoring case, or with <see cref="Unequal"/> differs
+/// from it (vendor <c>ComparisonOperator</c> Equals 0, Unequals 1).
+/// </summary>
+public sealed record NiceLabel10VisibilityCondition(NiceLabel10ConditionValue Left, NiceLabel10ConditionValue Right, bool Unequal);

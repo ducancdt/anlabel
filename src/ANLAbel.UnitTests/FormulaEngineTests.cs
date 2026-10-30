@@ -204,6 +204,50 @@ public sealed class FormulaTextFunctionTests
     }
 
     [Theory]
+    [InlineData("EQUALS(\"QR\", \"qr\")", "true")]
+    [InlineData("EQUALS(\"QR\", \"Code 128\")", "false")]
+    [InlineData("EQUALS(\"\", \"\")", "true")]
+    [InlineData("NOT(EQUALS(\"a\", \"b\"))", "true")]
+    [InlineData("NOT(\"\")", "true")]
+    [InlineData("NOT(\"không\")", "true")]
+    [InlineData("NOT(\"Lô 7\")", "false")]
+    [InlineData("AND(\"1\", \"true\", \"x\")", "true")]
+    [InlineData("AND(\"1\", \"0\")", "false")]
+    [InlineData("AND(EQUALS(FIELD(\"Type\"), \"qr\"), NOT(FIELD(\"Hold\")))", "true")]
+    public void ConditionFunctions_CompareAndCombine(string formula, string expected)
+    {
+        var result = new FormulaEngine().Evaluate(formula, new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["Type"] = "QR", ["Hold"] = "" });
+        Assert.Empty(result.Errors);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Fact]
+    public void EveryFunctionStartsAFormula()
+    {
+        foreach (var name in FormulaEvaluator.FunctionNames)
+        {
+            var formula = name + "(\"a\")";
+            Assert.True(FormulaBindingEvaluator.LooksLikeFormula(formula), name);
+            Assert.DoesNotContain(Run(formula).Errors, error => error.StartsWith("Unknown function", StringComparison.Ordinal));
+        }
+
+        // A NiceLabel script whose whole result is one call imports as that call.
+        Assert.Equal("L-7", FormulaBindingEvaluator.Evaluate("UPPER(FIELD(\"?Lot\"))", new Dictionary<string, string> { ["?Lot"] = "l-7" }).Value);
+        Assert.False(FormulaBindingEvaluator.LooksLikeFormula("LEFTOVER (2 pcs)"));
+    }
+
+    [Theory]
+    [InlineData("EQUALS(\"a\")")]
+    [InlineData("NOT(\"a\", \"b\")")]
+    [InlineData("AND()")]
+    public void ConditionFunctions_RejectBadArguments(string formula)
+    {
+        var result = Run(formula);
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(string.Empty, result.Value);
+    }
+
+    [Theory]
     [InlineData("UPPER(\"a\", \"b\")")]
     [InlineData("LEFT(\"ABC\")")]
     [InlineData("RIGHT(\"ABC\", \"-1\")")]
