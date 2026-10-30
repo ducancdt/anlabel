@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## v0.331 — Nhập .nlbl: co giãn chữ, chữ định dạng, nhiều dòng, GS1-128, ngày và mã định danh
+
+_Gồm các commit tối 29/10/2026 (18:37–19:11)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- ScaleFactor dưới 100 % thành Chữ khung cố định co ngang; BestFit của ô chữ
+  thành Thu nhỏ phông hoặc Co ngang.
+- Lấy chữ thường từ mục chữ định dạng (RTF, base64), kể cả giá trị mặc định
+  của biến; giá trị nhiều dòng lưu dạng base64 được giải mã.
+- GS1-128 theo bảng AI của NiceLabel (217 dòng); cộng trừ ngày thành trường
+  `{#NOW+…}`; mã định danh ANSI MH10.8.2 và phong bì ISO/IEC 15434 (định
+  dạng 06).
+- Chữ vị trí bắt đầu ở khung đo theo nội dung, không còn lệch xuống chồng lên
+  mã vạch.
+
+**Kiểm tra:** 6.154/6.467 đối tượng mẫu chuyển được.
+
 ## v0.330 — Mở tem NiceLabel 10 (.nlbl) thành mẫu mới
 
 _Gồm các commit tối 29/10/2026 (18:28–18:32)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
