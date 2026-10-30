@@ -1,5 +1,19 @@
 # ANLAbel Phase 1 Plan
 
+## v0.332 — Nhập .nlbl: khổ tem theo bố cục trang; chi tiết Code 39, nét, bo góc; hàm MID và GS1CHECKDIGIT
+
+_Gồm các commit tối 29/10/2026 (19:19–19:31)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Khổ tem lấy từ phần tử bố cục trang (tờ nhiều tem: ô lặp, ví dụ tem
+  101,6 × 50,8 mm trên A4); chữ gắn biến đo theo giá trị mặc định của biến.
+- Code 39: số kiểm tra, hiện số kiểm tra dưới mã, tỉ lệ rộng/hẹp, khoảng cách
+  ký tự; nét đứt, chấm, không viền; bo góc hình chữ nhật.
+- Công thức có thêm `MID` và `GS1CHECKDIGIT`; biến nhập khi in nằm trong công
+  thức cũng được hỏi lúc in. Phần GS1 cần số kiểm tra lúc in được chuyển
+  thành công thức.
+
+**Kiểm tra:** 6.209/6.467 đối tượng mẫu chuyển được (96,0 %).
+
 ## v0.331 — Nhập .nlbl: co giãn chữ, chữ định dạng, nhiều dòng, GS1-128, ngày và mã định danh
 
 _Gồm các commit tối 29/10/2026 (18:37–19:11)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
