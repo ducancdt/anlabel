@@ -306,6 +306,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("gs1 industrial AI subset validates weight and variable fields", TestGs1IndustrialAiSubset),
     ("main shell regions match NiceLabel map AutomationIds", TestMainShellRegionsMatchNiceLabelMap),
     ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
+    ("dialogs render for the UI audit", TestDialogsRenderForUiAudit),
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
     ("inverse object swaps black and white beneath it in print", TestInverseObjectSwapsBlackAndWhite),
@@ -12891,6 +12892,71 @@ static Task TestPropertiesPanelPinsOrFloats()
             apply.Invoke(window, null);
             AssertEqual(true, ReferenceEquals(panel.Parent, shell), "Pinning docks the same panel again");
             AssertEqual(true, viewModel.IsPropertiesDocked, "Pinned Properties are docked");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestDialogsRenderForUiAudit()
+{
+    // Evidence renders of the main dialogs (TestOutput/ui-audit, not committed).
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var output = Path.Combine(FindRepositoryRoot(), "TestOutput", "ui-audit");
+            Directory.CreateDirectory(output);
+            void Save(string name, Window window, double fallbackWidth, double fallbackHeight)
+            {
+                var width = double.IsNaN(window.Width) ? fallbackWidth : window.Width;
+                var height = double.IsNaN(window.Height) ? fallbackHeight : window.Height;
+                var content = (FrameworkElement)window.Content;
+                content.Measure(new Size(width, height));
+                content.Arrange(new Rect(0, 0, width, height));
+                content.UpdateLayout();
+                PumpDispatcher();
+                content.UpdateLayout();
+                var shot = new RenderTargetBitmap((int)width, (int)height, 96, 96, PixelFormats.Pbgra32);
+                var frame = new DrawingVisual();
+                using (var context = frame.RenderOpen())
+                {
+                    context.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+                }
+
+                shot.Render(frame);
+                shot.Render(content);
+                using var file = File.Create(Path.Combine(output, name + ".png"));
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(shot));
+                encoder.Save(file);
+                window.Close();
+            }
+
+            var printers = new[]
+            {
+                new PrinterInfo { Name = "Windows Default", IsDefault = true },
+                new PrinterInfo { Name = "Zebra ZT411", IsDefault = false }
+            };
+            Save("printer-setup", new PrinterSetupWindow(printers, initialPrinterName: "Zebra ZT411"), 900, 640);
+            var template = new LabelTemplate { Name = "Audit", WidthMm = 60, HeightMm = 40, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "T", Text = "ANLAbel 123", XMm = 4, YMm = 4, WidthMm = 40, HeightMm = 8, Style = { FontSizePt = 14 } });
+            Save("print-preview", new PrintPreviewWindow(template, null, null, new PrintService(), new PrintLogService(), string.Empty), 1200, 760);
+            Save("new-template", new NewTemplateWindow(), 400, 325);
+            Save("settings", new SettingsWindow(), 520, 420);
         }
         catch (Exception ex)
         {

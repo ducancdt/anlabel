@@ -54,7 +54,7 @@
                 <!-- The row list scrolls internally, so cap it to preserve the label preview on 720p displays. -->
                 <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" MaxHeight="220">
                 <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Margin="10,6,10,3">
+                    <DockPanel DockPanel.Dock="Top" Margin="10,6,10,3" LastChildFill="False">
                         <TextBlock Text="Dữ liệu Excel" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center"/>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedRowsText}" Foreground="#475569" FontSize="10" VerticalAlignment="Center"/>
                     </DockPanel>
@@ -78,20 +78,22 @@
                     </Grid>
                     <TextBlock DockPanel.Dock="Top" x:Name="FilterMatchCountText" Margin="10,0,10,4" FontSize="10" Foreground="#0F4C81" FontWeight="SemiBold" Visibility="Collapsed"/>
                     <!-- Header row -->
-                    <Grid Background="#F1F5F9" Margin="6,0,6,0">
+                    <Grid DockPanel.Dock="Top" Background="#F1F5F9" Margin="6,0,6,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="40"/>
-                            <ColumnDefinition Width="40"/>
-                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="30"/>
                             <ColumnDefinition Width="22"/>
-                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="22"/>
+                            <ColumnDefinition Width="22"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Content="☑ Tất cả" FontWeight="SemiBold" FontSize="9" Background="Transparent" BorderThickness="0" Margin="2,0" Click="SelectAllToggle_Click"/>
+                        <Button Grid.Column="0" Content="☑ Tất cả" FontWeight="SemiBold" FontSize="10" Background="Transparent" BorderThickness="0" Margin="2,0" HorizontalAlignment="Left" Click="SelectAllToggle_Click" ToolTip="Chọn hoặc bỏ chọn mọi dòng"/>
                         <TextBlock Grid.Column="1" Text="Trang" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
                         <TextBlock Grid.Column="2" Text="Dòng" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
-                        <TextBlock Grid.Column="3" Text="Bản" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
-                        <TextBlock Grid.Column="4" Text="🖶" FontSize="9" Margin="2,2" ToolTip="Đã in trong phiên này"/>
+                        <TextBlock Grid.Column="3" Grid.ColumnSpan="3" Text="Số bản" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
+                        <TextBlock Grid.Column="6" Text="🖶" FontSize="10" Margin="2,2" ToolTip="Đã in trong phiên này"/>
                     </Grid>
                     <!-- Virtualized row list: the outer preview panel may contain 10k source rows;
                          never put an ItemsControl inside a ScrollViewer because that disables
@@ -122,13 +124,13 @@
                                     <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="0">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="40"/>
-                                                <ColumnDefinition Width="40"/>
-                                                <ColumnDefinition Width="40"/>
+                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="44"/>
+                                                <ColumnDefinition Width="44"/>
+                                                <ColumnDefinition Width="30"/>
                                                 <ColumnDefinition Width="22"/>
                                                 <ColumnDefinition Width="22"/>
                                                 <ColumnDefinition Width="22"/>
-                                                <ColumnDefinition Width="18"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <!-- Clickable checkmark -->
