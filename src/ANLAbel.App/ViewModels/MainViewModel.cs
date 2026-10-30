@@ -317,6 +317,7 @@ public sealed class MainViewModel : ObservableObject
                 ((RelayCommand)BindSelectedAsExcelFieldCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ApplyFormulaBuilderCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)ReplaceSelectedImageCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)SetRotationCommand).RaiseCanExecuteChanged();
                 OnPropertyChanged(nameof(SelectedObjectTypeText));
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
                 OnPropertyChanged(nameof(SelectedObjectIconPath));

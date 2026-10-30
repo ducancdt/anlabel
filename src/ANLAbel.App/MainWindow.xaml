@@ -1320,7 +1320,7 @@
                 <ColumnDefinition Width="{Binding IsToolboxVisible, Converter={StaticResource BoolToGridLength}, ConverterParameter=6}"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="{Binding IsPropertiesDocked, Converter={StaticResource BoolToGridLength}, ConverterParameter=6}"/>
-                <ColumnDefinition Width="{Binding IsPropertiesDocked, Converter={StaticResource BoolToGridLength}, ConverterParameter=280}"/>
+                <ColumnDefinition Width="{Binding IsPropertiesDocked, Converter={StaticResource BoolToGridLength}, ConverterParameter=300}"/>
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Margin="12,12,0,12" Style="{StaticResource PanelCard}" Visibility="{Binding IsToolboxVisible, Converter={StaticResource BoolToVisibility}}"
@@ -1929,7 +1929,7 @@
                     <Border DockPanel.Dock="Top" Height="42" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="14,0">
                         <DockPanel>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="190" TextTrimming="CharacterEllipsis"
+                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="215" TextTrimming="CharacterEllipsis"
                                            AutomationProperties.AutomationId="Shell.Properties.Title">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
@@ -2168,6 +2168,25 @@
                                                     <TextBox Text="{Binding SelectedObject.HeightMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 </StackPanel>
                                             </Grid>
+                                            <TextBlock Text="{Binding SelectedObject.Rotation, StringFormat=Xoay (hiện tại: {0}°)}" Style="{StaticResource PropLabel}" Margin="0,6,0,1"/>
+                                            <UniformGrid Columns="4" Margin="0,0,0,2">
+                                                <Button Content="0°" Command="{Binding SetRotationCommand}" CommandParameter="0" Padding="4,5" FontSize="11" Margin="0,0,2,0"/>
+                                                <Button Content="90°" Command="{Binding SetRotationCommand}" CommandParameter="90" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
+                                                <Button Content="180°" Command="{Binding SetRotationCommand}" CommandParameter="180" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
+                                                <Button Content="270°" Command="{Binding SetRotationCommand}" CommandParameter="270" Padding="4,5" FontSize="11" Margin="2,0,0,0"/>
+                                            </UniformGrid>
+                                            <TextBlock Text="Điểm neo" Style="{StaticResource PropLabel}" Margin="0,6,0,1"/>
+                                            <UniformGrid Columns="3" Rows="3" HorizontalAlignment="Left" ToolTip="Điểm đứng yên khi đối tượng đổi kích thước theo nội dung">
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor TopLeft" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.TopLeft}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor TopCenter" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.TopCenter}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor TopRight" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.TopRight}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor MiddleLeft" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.MiddleLeft}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor Center" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.Center}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor MiddleRight" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.MiddleRight}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor BottomLeft" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.BottomLeft}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor BottomCenter" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.BottomCenter}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                                <RadioButton Style="{StaticResource RibbonIconRadio}" Width="20" Height="20" GroupName="PropertiesAnchor" AutomationProperties.Name="Properties anchor BottomRight" IsChecked="{Binding SelectedObject.AnchorPoint, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:ObjectAnchorPoint.BottomRight}}"><Ellipse Width="6" Height="6" Fill="#1F4E8C"/></RadioButton>
+                                            </UniformGrid>
                                         </StackPanel>
                                         <StackPanel>
                                             <StackPanel.Style>
@@ -2224,18 +2243,11 @@
                                     <Expander.Header>
                                         <StackPanel>
                                             <TextBlock Text="Nâng cao" FontWeight="SemiBold"/>
-                                            <TextBlock Text="Xoay · căn · sắp xếp · lớp" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0"/>
+                                            <TextBlock Text="Căn · sắp xếp · lớp" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Expander.Header>
                                     <StackPanel Margin="0,6,0,0">
-                                        <TextBlock Text="{Binding SelectedObject.Rotation, StringFormat=Xoay (hiện tại: {0}°)}" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
-                                        <UniformGrid Columns="4" Margin="0,0,0,2">
-                                            <Button Content="0°" Command="{Binding SetRotationCommand}" CommandParameter="0" Padding="4,5" FontSize="11" Margin="0,0,2,0"/>
-                                            <Button Content="90°" Command="{Binding SetRotationCommand}" CommandParameter="90" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
-                                            <Button Content="180°" Command="{Binding SetRotationCommand}" CommandParameter="180" Padding="4,5" FontSize="11" Margin="2,0,2,0"/>
-                                            <Button Content="270°" Command="{Binding SetRotationCommand}" CommandParameter="270" Padding="4,5" FontSize="11" Margin="2,0,0,0"/>
-                                        </UniformGrid>
-                                        <TextBlock Text="Mốc căn chỉnh" Style="{StaticResource PropLabel}" Margin="0,6,0,1"/>
+                                        <TextBlock Text="Mốc căn chỉnh" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <ComboBox x:Name="ArrangeReferenceCombo" SelectedIndex="0" Margin="0,0,0,4">
                                             <ComboBoxItem Content="Khung vùng chọn" Tag="SelectionBounds"/>
                                             <ComboBoxItem Content="Đối tượng mốc (đang chọn)" Tag="KeyObject"/>
@@ -2262,8 +2274,8 @@
                                         <TextBlock Text="Thứ tự lớp" Style="{StaticResource PropLabel}"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Button Content="↑ Đưa lên trên cùng" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
-                                            <Button Grid.Column="2" Content="↓ Đưa xuống dưới cùng" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Content="↑ Lên trên cùng" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Grid.Column="2" Content="↓ Xuống dưới cùng" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

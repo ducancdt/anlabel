@@ -12954,11 +12954,14 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
 
             UIElement Element(string id) => (UIElement)FindByAutomationId(window, id)!;
             AssertEqual(Visibility.Collapsed, Element("Shell.Ribbon.Tab.Design").Visibility, "Design tab appears only with a selection (selected: " + (viewModel.SelectedObject?.Name ?? "none") + ")");
+            var rotationRequeried = false;
+            viewModel.SetRotationCommand.CanExecuteChanged += (_, _) => rotationRequeried = true;
             viewModel.AddTextCommand.Execute(null);
             var text = viewModel.Template.Objects.Last();
             viewModel.SelectedObject = text;
             PumpDispatcher();
             AssertEqual(Visibility.Visible, Element("Shell.Ribbon.Tab.Design").Visibility, "Design tab appears for a selected object");
+            AssertEqual(true, rotationRequeried && viewModel.SetRotationCommand.CanExecute(90), "Rotation buttons enable when an object is selected");
             AssertEqual(Visibility.Visible, Element("Shell.Ribbon.Tab.Text").Visibility, "Text tab appears for a selected text");
             AssertEqual(Visibility.Collapsed, Element("Shell.Ribbon.Tab.Barcode").Visibility, "Barcode tab stays hidden for a text");
             // Evidence images for the side-by-side NiceLabel comparison (TestOutput, not committed).
@@ -12996,6 +12999,34 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 }
             }
 
+            // Properties audit renders: every category for Text, TextBox and Barcode.
+            var modeTabs = (TabControl)window.FindName("PropertiesModeTabs");
+            foreach (var command in new[] { viewModel.AddTextBoxCommand, viewModel.AddBarcodeCommand })
+            {
+                command.Execute(null);
+            }
+
+            foreach (var item in viewModel.Template.Objects.Where(item => item.Type is ObjectType.Text or ObjectType.TextBox or ObjectType.BarcodeCode128).ToArray())
+            {
+                viewModel.SelectedObject = item;
+                for (var index = 0; index < 4; index++)
+                {
+                    modeTabs.SelectedIndex = index;
+                    PumpDispatcher();
+                    var content = (FrameworkElement)window.Content;
+                    content.Measure(new Size(1440, 900));
+                    content.Arrange(new Rect(0, 0, 1440, 900));
+                    content.UpdateLayout();
+                    var shot = new RenderTargetBitmap(1440, 900, 96, 96, PixelFormats.Pbgra32);
+                    shot.Render(content);
+                    using var file = File.Create(Path.Combine(evidence, $"props-{item.Type}-{index}.png"));
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(shot));
+                    encoder.Save(file);
+                }
+            }
+
+            modeTabs.SelectedIndex = 0;
             viewModel.SelectedRibbonTab = RibbonTab.Text;
             viewModel.SelectedObject = null;
             AssertEqual(RibbonTab.Home, viewModel.SelectedRibbonTab, "Clearing the selection returns to the Home tab");
