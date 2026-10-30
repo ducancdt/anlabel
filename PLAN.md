@@ -12,6 +12,8 @@
 - Kịch bản thiết kế mới (kiểm thử hồi quy): hộp thuốc mang GS1 DataMatrix với
   GTIN và số lô từ Excel, hạn dùng từ biến ngày, số serial từ bộ đếm; mỗi hộp
   giải đúng, có dấu phân cách GS sau số lô và serial tăng dần.
+- Xem trước khi in: rê chuột lên một dòng dữ liệu hiện tên từng cột kèm giá trị
+  ("Ma: SP-0001", "Ten: …"), vì danh sách chỉ hiện giá trị.
 
 ## v0.349 — Ngày gõ sai khi in bị trả lại thay vì lặng lẽ in ngày cũ; trình soạn biến nhập gọn và rõ hơn
 

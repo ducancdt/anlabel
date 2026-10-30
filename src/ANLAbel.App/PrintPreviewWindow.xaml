@@ -164,7 +164,7 @@
                                             <!-- Printed-this-session indicator -->
                                             <Image Grid.Column="6" Source="{StaticResource Icon.Printer16}" Width="12" Height="12" Margin="2,0" VerticalAlignment="Center" Visibility="{Binding IsPrinted, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{Binding PrintedIndicatorText}" ToolTip="Thiết bị xác nhận hoàn tất trong phiên này — in lại có thể trùng tem"/>
                                             <!-- Excel data preview -->
-                                            <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0">
+                                            <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0" Background="Transparent" ToolTip="{Binding DataDetails}">
                                                 <TextBlock Text="{Binding Col1}" Margin="0,0,6,0"/>
                                                 <TextBlock Text="{Binding Col2}" Margin="0,0,6,0" Foreground="#5B6B80"/>
                                                 <TextBlock Text="{Binding Col3}" Margin="0,0,6,0" Foreground="#5B6B80"/>

@@ -1875,6 +1875,23 @@ public partial class PrintPreviewWindow : Window
         return columns;
     }
 
+    /// <summary>The row's fields as "name: value" lines (at most 12), so a value in the list can be told apart by its column.</summary>
+    private static string? DescribeRowFields(IReadOnlyDictionary<string, string>? row, List<string> columns)
+    {
+        if (row is null || columns.Count == 0)
+        {
+            return null;
+        }
+
+        var lines = columns.Take(12).Select(column => $"{column}: {(row.TryGetValue(column, out var value) ? value : string.Empty)}").ToList();
+        if (columns.Count > 12)
+        {
+            lines.Add($"… và {columns.Count - 12} cột khác");
+        }
+
+        return string.Join("\n", lines);
+    }
+
     private static string? GetPreviewCol(IReadOnlyDictionary<string, string>? row, List<string> columns, int index)
     {
         if (row is null || index >= columns.Count) return null;

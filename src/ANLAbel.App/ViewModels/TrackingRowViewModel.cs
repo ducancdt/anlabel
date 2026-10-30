@@ -30,6 +30,9 @@ public sealed class TrackingRowViewModel : INotifyPropertyChanged
     public string? Col3 { get; init; }
     public string? Col4 { get; init; }
 
+    /// <summary>Every field of the row as "name: value" lines, for the row's tooltip (the list shows values only).</summary>
+    public string? DataDetails { get; init; }
+
     public string CheckmarkText => _isSelected ? "☑" : "☐";
     public string CopiesDisplay => _copies.ToString();
 

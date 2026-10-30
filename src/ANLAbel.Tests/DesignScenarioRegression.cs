@@ -1432,6 +1432,48 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Print Preview lists each row's values without column names; hovering a
+    /// row names them ("Ma: SP-0001", "Ten: ..."), so two codes side by side can
+    /// be told apart before choosing what to print.
+    /// </summary>
+    public static Task PreviewRowsNameTheirFields()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Hàng", WidthMm = 60, HeightMm = 30, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Tên", BindingExpression = "{Ten}", XMm = 3, YMm = 3, WidthMm = 40, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            IReadOnlyDictionary<string, string>?[] rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-0001", ["Ten"] = "Bu lông M8x40" },
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-0002", ["Ten"] = "Đai ốc M8" }
+            ];
+            var window = new ANLAbel.App.PrintPreviewWindow(
+                template,
+                rows[0],
+                null,
+                new PrintService(),
+                new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(Path.GetTempPath(), $"anlabel-rows-{Guid.NewGuid():N}.csv")),
+                string.Empty,
+                preparedRows: rows);
+            var deadline = DateTime.UtcNow.AddMinutes(1);
+            while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline)
+            {
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                Thread.Sleep(5);
+            }
+
+            var list = (ListBox)window.FindName("TrackingList");
+            var details = list.Items.Cast<ANLAbel.App.ViewModels.TrackingRowViewModel>().Select(row => row.DataDetails).ToArray();
+            Require(details.SequenceEqual(["Ma: SP-0001\nTen: Bu lông M8x40", "Ma: SP-0002\nTen: Đai ốc M8"]),
+                "Each listed row names its fields: " + string.Join(" | ", details));
+            window.Close();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// The Data Manager's prompt editor follows the kind of value (NiceLabel 10
     /// variable data type): a text prompt shows the text rules; choosing Ngày
     /// gives it a date format and shows the date format instead; back to Chữ

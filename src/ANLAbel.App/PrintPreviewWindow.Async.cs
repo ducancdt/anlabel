@@ -91,7 +91,8 @@ public partial class PrintPreviewWindow
                         Col1 = GetPreviewCol(row, excelColumns, 0),
                         Col2 = GetPreviewCol(row, excelColumns, 1),
                         Col3 = GetPreviewCol(row, excelColumns, 2),
-                        Col4 = GetPreviewCol(row, excelColumns, 3)
+                        Col4 = GetPreviewCol(row, excelColumns, 3),
+                        DataDetails = DescribeRowFields(row, excelColumns)
                     });
                     pageNumber += copies;
                 }
