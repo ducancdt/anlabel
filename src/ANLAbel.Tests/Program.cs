@@ -13181,6 +13181,20 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 AssertEqual(true, shellXaml.Contains($"AutomationProperties.AutomationId=\"{noteId}\"", StringComparison.Ordinal), $"{noteId} must exist");
             }
 
+            // Every resizable window keeps a minimum size, so it cannot be dragged down to a sliver.
+            foreach (var xamlPath in Directory.GetFiles(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App"), "*Window.xaml"))
+            {
+                var xaml = File.ReadAllText(xamlPath);
+                var head = xaml[..xaml.IndexOf('>', xaml.IndexOf("<Window", StringComparison.Ordinal))];
+                if (head.Contains("ResizeMode=\"NoResize\"", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                AssertEqual(true, head.Contains("MinWidth=", StringComparison.Ordinal) && head.Contains("MinHeight=", StringComparison.Ordinal),
+                    $"{Path.GetFileName(xamlPath)} is resizable and must declare MinWidth and MinHeight");
+            }
+
             // Narrow window: the ribbon collapses secondary print commands and alignment
             // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
             void LayoutAt(double width)
