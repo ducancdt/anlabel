@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## v0.340 — Ribbon định dạng Chữ định dạng (RTF); Trung tâm in; kích thước tối thiểu của hộp thoại
+
+_Gồm các commit 30/10/2026 (13:54–14:12)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Chủ dự án chọn: khi chọn Chữ định dạng, nhóm Phông chữ trên ribbon định dạng
+  phần chữ bôi đen trong ô soạn, hoặc toàn bộ nội dung nếu không bôi đen; mỗi
+  lần bấm là một bước Hoàn tác.
+- Trung tâm in: cột “Bộ đệm in” và nút Làm mới hiện đúng; thẻ Dữ liệu tách
+  “Dòng Excel” và “Dòng 1 / 2”; tiêu đề Quản lý nguồn dữ liệu thống nhất.
+- Kích thước tối thiểu: Xem trước 960 × 600, Trợ giúp 720 × 480 (hình tự thu
+  nhỏ), Phiên bản 1000 px, Chọn hàng tiêu đề Excel 520 × 380; tiêu đề Nhập
+  dữ liệu Excel thống nhất. Cổng mới: mọi cửa sổ đổi cỡ được phải có kích
+  thước tối thiểu.
+
+**Kiểm tra:** build 0 cảnh báo, 1543 unit, hồi quy 283/283.
+
 ## v0.339 — Rà soát trên app thật: thanh trạng thái, Thuộc tính mọi loại đối tượng, các hộp thoại
 
 _Gồm các commit 30/10/2026 (11:36–12:21), kiểm bằng UI Automation trên bản
