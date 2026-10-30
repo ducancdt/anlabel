@@ -27,6 +27,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <converters:EnumEqualsConverter x:Key="EnumEquals"/>
         <converters:DisplayNameConverter x:Key="DisplayName"/>
+        <converters:ObjectTypeIconConverter x:Key="ObjectTypeIcon"/>
         <DataTemplate x:Key="DisplayNameItem"><TextBlock Text="{Binding Converter={StaticResource DisplayName}}"/></DataTemplate>
         <controls:BoolToGridLengthConverter x:Key="BoolToGridLength"/>
         <CollectionViewSource x:Key="GroupedBarcodeSymbologies" Source="{Binding BarcodeSymbologyOptions}">
@@ -1465,7 +1466,7 @@
                         <DockPanel>
                             <TextBlock Text="{Binding Ui.InsertObjects}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HideToolboxCommand}" ToolTip="Ẩn hộp công cụ">
-                                <Image Style="{StaticResource SmallIconImage}" Source="Icons/collapse_chevron.png"/>
+                                <Image Style="{StaticResource SmallIconImage}" Source="{StaticResource Icon.ChevronUp16}"/>
                             </Button>
                         </DockPanel>
                     </Border>
@@ -1543,7 +1544,7 @@
                                     <TreeView Padding="0,0,0,8" Visibility="Collapsed">
                                         <TreeViewItem IsExpanded="True" Visibility="Collapsed">
                                             <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Folder16}" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem Header="{Binding Template.Name}"/>
                                             <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
@@ -1551,7 +1552,7 @@
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.Objects}" Visibility="Collapsed">
                                             <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/panels.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Đối tượng"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Panels16}" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Đối tượng"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
                                                 <HierarchicalDataTemplate>
@@ -1601,18 +1602,18 @@
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True">
                                             <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><Image Source="Icons/database.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Cơ sở dữ liệu"/></StackPanel>
+                                                <StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Cơ sở dữ liệu"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem Header="{Binding LinkedExcelSourceText}"/>
                                             <TextBlock Text="{Binding ExcelDataFreshnessText}" Foreground="{StaticResource AppMutedBrush}" FontSize="10.5" Margin="4,0,4,2" TextWrapping="Wrap"/>
                                              <TextBlock Text="{Binding ExcelLinkStatusText}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap"/>
                                              <TextBlock Text="{Binding DataTransformError}" Foreground="#DC2626" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding HasDataTransformError, Converter={StaticResource BoolToVisibility}}"/>
-                                            <Button Content="🔗 Liên kết lại Excel..." Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
+                                            <Button Command="{Binding RelinkExcelCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="Liên kết lại Excel"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Link16}" Width="16" Height="16" Margin="0,0,5,0"/><TextBlock Text="Liên kết lại Excel..." VerticalAlignment="Center"/></StackPanel></Button>
                                             <TextBlock Text="{Binding ExcelStaleNoticeText}" Foreground="#B45309" FontSize="11" Margin="4,2" TextWrapping="Wrap" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
-                                            <Button Content="↻ Cập nhật Excel" Command="{Binding RefreshExcelDataCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
-                                            <Button Content="⛔ Bỏ liên kết Excel" Click="UnlinkExcel_Click" Margin="4,2" Padding="6,2" HorizontalAlignment="Left"
+                                            <Button Command="{Binding RefreshExcelDataCommand}" Margin="4,2" Padding="6,2" HorizontalAlignment="Left" Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="Cập nhật Excel"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Refresh16}" Width="16" Height="16" Margin="0,0,5,0"/><TextBlock Text="Cập nhật Excel" VerticalAlignment="Center"/></StackPanel></Button>
+                                            <Button Click="UnlinkExcel_Click" Margin="4,2" Padding="6,2" HorizontalAlignment="Left"
                                                     ToolTip="Bỏ liên kết Excel khỏi mẫu tem này. Ràng buộc đối tượng vẫn giữ — nhập Excel lại để in tiếp."
-                                                    Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}"/>
+                                                    Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="Bỏ liên kết Excel"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Unlink16}" Width="16" Height="16" Margin="0,0,5,0"/><TextBlock Text="Bỏ liên kết Excel" VerticalAlignment="Center"/></StackPanel></Button>
                                              <TreeViewItem Header="{Binding CurrentExcelRowText}"/>
                                              <TreeViewItem Header="Biến đổi" IsExpanded="False" Visibility="Collapsed">
                                                  <ItemsControl ItemsSource="{Binding DataTransforms}">
@@ -1633,7 +1634,7 @@
                                             Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
-                                                <Image Source="Icons/database.png" Width="18" Height="18" Margin="0,0,7,0"/>
+                                                <Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,1,7,0"/>
                                                 <TextBlock Text="Dữ liệu hiện tại" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                             </StackPanel>
                                             <TextBlock Text="{Binding LinkedExcelSourceText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding LinkedExcelSourceText}"/>
@@ -1663,7 +1664,7 @@
                                         </Border.Style>
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                <Image Source="Icons/database.png" Width="22" Height="22" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                                                <Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top"/>
                                                 <StackPanel>
                                                     <TextBlock Text="Chưa liên kết dữ liệu" FontWeight="SemiBold"/>
                                                     <TextBlock Text="Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
@@ -1671,7 +1672,7 @@
                                             </StackPanel>
                                             <Button Click="ImportExcel_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="{StaticResource AppBlueBrush}" Foreground="#FFFFFF" BorderBrush="{StaticResource AppBlueBrush}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                    <TextBlock Text="⊞" FontSize="16" Foreground="#FFFFFF" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                                                    <Image Source="{StaticResource Icon.Excel16}" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"/>
                                                     <TextBlock Text="Nhập Excel / CSV" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </Button>
@@ -1886,7 +1887,7 @@
                                                 <TreeView>
                                                     <TreeViewItem IsExpanded="True">
                                                         <TreeViewItem.Header>
-                                                            <StackPanel Orientation="Horizontal"><Image Source="Icons/folder.png" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem" FontWeight="SemiBold"/></StackPanel>
+                                                            <StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Folder16}" Width="16" Height="16" Margin="0,0,6,0"/><TextBlock Text="Mẫu tem" FontWeight="SemiBold"/></StackPanel>
                                                         </TreeViewItem.Header>
                                                         <TreeViewItem Header="{Binding Template.Name}"/>
                                                         <TreeViewItem Header="{Binding Template.WidthMm, StringFormat={}{0:0.##} mm}"/>
@@ -2104,7 +2105,7 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Border Width="32" Height="32" CornerRadius="5" Background="#FFFFFF" BorderBrush="#BFDBFE" BorderThickness="1" VerticalAlignment="Top">
-                                            <Image Source="Icons/cursor_select.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <Image Source="{StaticResource Icon.Pointer16}" Width="16" Height="16"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                             <TextBlock Text="Chưa chọn đối tượng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
@@ -2116,7 +2117,7 @@
                                 <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Image Source="Icons/folder.png" Width="18" Height="18" Margin="0,0,7,0"/>
+                                            <Image Source="{StaticResource Icon.Folder16}" Width="16" Height="16" Margin="0,1,7,0"/>
                                             <TextBlock Text="Tài liệu" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
                                         </StackPanel>
                                         <Grid Margin="0,2">
@@ -2138,7 +2139,7 @@
                                         </Grid>
                                         <Button Click="PrinterSetup_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="#EAF3FF" BorderBrush="#5B8DD4" Foreground="{StaticResource AppBlueDarkBrush}">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <Image Source="Icons/printer_setup.png" Width="16" Height="16" Margin="0,0,7,0"/>
+                                                <Image Source="{StaticResource Icon.Printer16}" Width="16" Height="16" Margin="0,0,7,0"/>
                                                 <TextBlock Text="Cài đặt tem &amp; máy in" FontWeight="SemiBold"/>
                                             </StackPanel>
                                         </Button>
@@ -2181,7 +2182,7 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Border Width="26" Height="26" CornerRadius="4" Background="#FFFFFF" BorderBrush="#BFDBFE" BorderThickness="1" VerticalAlignment="Top">
-                                            <Image Source="{Binding SelectedObjectIconPath}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <Image Source="{Binding SelectedObject.Type, Converter={StaticResource ObjectTypeIcon}}" Width="16" Height="16"/>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="7,0,0,0">
                                             <TextBlock Text="{Binding SelectedObjectTypeText}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AppBlueDarkBrush}"/>
@@ -2396,8 +2397,8 @@
                                         <TextBlock Text="Thứ tự lớp" Style="{StaticResource PropLabel}"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Button Content="↑ Lên trên cùng" Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11"/>
-                                            <Button Grid.Column="2" Content="↓ Xuống dưới cùng" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11"/>
+                                            <Button Command="{Binding BringToFrontCommand}" Padding="6,5" FontSize="11" AutomationProperties.Name="Lên trên cùng"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.BringToFront16}" Width="16" Height="16" Margin="0,0,5,0"/><TextBlock Text="Lên trên cùng" VerticalAlignment="Center"/></StackPanel></Button>
+                                            <Button Grid.Column="2" Command="{Binding SendToBackCommand}" Padding="6,5" FontSize="11" AutomationProperties.Name="Xuống dưới cùng"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.SendToBack16}" Width="16" Height="16" Margin="0,0,5,0"/><TextBlock Text="Xuống dưới cùng" VerticalAlignment="Center"/></StackPanel></Button>
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -2532,16 +2533,16 @@
                                                 <Grid Margin="0,0,0,6">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                                     <Border Width="24" Height="24" CornerRadius="5" Background="#FFFFFF" VerticalAlignment="Top">
-                                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="Bold">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock"><Setter Property="Text" Value="↗"/><Setter Property="Foreground" Value="#5B6B80"/><Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Text" Value="↻"/><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Text" Value="✓"/><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Text" Value="!"/><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Text" Value="×"/><Setter Property="Foreground" Value="#B42318"/></DataTrigger>
+                                                        <Image Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Image.Style>
+                                                                <Style TargetType="Image"><Setter Property="Source" Value="{StaticResource Icon.Link16}"/><Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Source" Value="{StaticResource Icon.Refresh16}"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Source" Value="{StaticResource Icon.Ok16}"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Source" Value="{StaticResource Icon.Warning16}"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Source" Value="{StaticResource Icon.Error16}"/></DataTrigger>
                                                                 </Style.Triggers></Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
+                                                            </Image.Style>
+                                                        </Image>
                                                     </Border>
                                                     <StackPanel Grid.Column="1">
                                                         <TextBlock Text="{Binding ExcelLinkVerificationTitle}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap">
@@ -2746,10 +2747,10 @@
                                                 <Image Width="16" Height="16" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality">
                                                     <Image.Style>
                                                         <Style TargetType="Image">
-                                                            <Setter Property="Source" Value="Icons/static_text.png"/>
+                                                            <Setter Property="Source" Value="{StaticResource Icon.Text16}"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
-                                                                    <Setter Property="Source" Value="Icons/text_box.png"/>
+                                                                    <Setter Property="Source" Value="{StaticResource Icon.TextBox16}"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>

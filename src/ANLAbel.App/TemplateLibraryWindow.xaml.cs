@@ -1,7 +1,9 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ANLAbel.App.Controls;
 using ANLAbel.App.TemplateLibrary;
 using ANLAbel.Core.Models;
 
@@ -48,21 +50,21 @@ public partial class TemplateLibraryWindow : Window
 
     private void BuildFilters()
     {
-        AddFilterItem($"🗂  Tất cả  ({_all.Count})", _ => true);
+        AddFilterItem("Templates16", $"Tất cả  ({_all.Count})", _ => true);
 
-        AddSectionHeader("⭐ Mẫu của bạn");
-        AddSectionHeader("🏭 Tem tiêu chuẩn");
+        AddSectionHeader("Mẫu của bạn");
+        AddSectionHeader("Tem tiêu chuẩn");
         const string stdGroup = "Tem công nghiệp";
         var stdCount = _all.Count(i => i.Group == stdGroup);
         if (stdCount > 0)
-            AddFilterItem($"📂  Công nghiệp  ({stdCount})", i => i.Group == stdGroup);
+            AddFilterItem("Folder16", $"Công nghiệp  ({stdCount})", i => i.Group == stdGroup);
 
         AddSectionHeader("Theo loại");
         foreach (var ty in new[] { "Chỉ chữ", "Mã vạch", "QR / 2D", "Mã vạch + QR" })
         {
             var count = _all.Count(i => i.TypeText == ty);
             if (count > 0)
-                AddFilterItem($"🏷  {ty}  ({count})", i => i.TypeText == ty);
+                AddFilterItem("Tag16", $"{ty}  ({count})", i => i.TypeText == ty);
         }
     }
 
@@ -81,10 +83,14 @@ public partial class TemplateLibraryWindow : Window
         });
     }
 
-    private void AddFilterItem(string label, Func<GalleryItem, bool> match)
+    private void AddFilterItem(string iconName, string label, Func<GalleryItem, bool> match)
     {
         var def = new FilterDef(label, match);
-        FilterList.Items.Add(new ListBoxItem { Content = label, Tag = def, Padding = new Thickness(10, 6, 8, 6) });
+        var content = new StackPanel { Orientation = Orientation.Horizontal };
+        content.Children.Add(new Image { Source = RibbonIconSet.Get(iconName), Width = 16, Height = 16, Margin = new Thickness(0, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center });
+        content.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center });
+        FilterList.Items.Add(new ListBoxItem { Content = content, Tag = def, Padding = new Thickness(10, 6, 8, 6) });
+        AutomationProperties.SetName((ListBoxItem)FilterList.Items[^1], label);
     }
 
     private void Filter_SelectionChanged(object sender, SelectionChangedEventArgs e)

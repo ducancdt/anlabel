@@ -50,7 +50,8 @@ public sealed class TrackingRowViewModel : INotifyPropertyChanged
         }
     }
 
-    public string PrintedIndicatorText => _isPrinted ? "🖶" : string.Empty;
+    /// <summary>Spoken name of the printer mark the row shows once printed.</summary>
+    public string PrintedIndicatorText => _isPrinted ? "Đã in" : string.Empty;
 
     public bool IsSelected
     {

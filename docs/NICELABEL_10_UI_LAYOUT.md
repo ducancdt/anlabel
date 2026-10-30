@@ -308,6 +308,17 @@ Rules (gates `designer header commands are unique` and the
 icon never stands for two different actions. The quick access row and the
 window buttons use Segoe Fluent Icons glyphs in white, as NiceLabel does.
 
+The same family covers every other window (2026-10-30, after the owner
+reported broken icons): the Data panel, the Properties header (one 16 px icon
+per object type, the toolbox artwork), Print Preview (search, printed mark),
+Update, the template library and the guide (topic list, notes, and its ribbon
+and toolbox figures, which now show the real icons). The old PNG rasters
+(`Icons/*.png`, blurred at 125–150 %) and emoji glyphs (WPF draws them as
+faint outlines or empty boxes, e.g. 🖶) are gone; gate `windows draw vector
+icons, not PNG or emoji` keeps them out of `src/ANLAbel.App`. Code builds
+icons with `RibbonIconSet.Get("Excel16")`. The artwork is generated:
+`python scripts/make_ribbon_icons.py src/ANLAbel.App/Themes/RibbonIcons.xaml`.
+
 ### Backstage (Tệp)
 
 Evidence: `Gui.Core/usercontrols/backstage/*.xaml` and

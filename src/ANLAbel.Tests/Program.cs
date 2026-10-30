@@ -318,7 +318,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("double-click opens the floating properties beside the object", TestDoubleClickOpensFloatingProperties),
     ("rich text box prints formatted text clipped at its frame", TestRichTextBoxPrintsClippedAtFrame),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
-    ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
+    ("windows draw vector icons, not PNG or emoji", TestDesignerIconSourcesExist),
     ("designer shell layout at target scales", TestDesignerShellLayoutAtTargetScales),
     ("ui catalog has valid vietnamese keys", TestUiCatalogHasValidVietnameseKeys),
     ("niceLabel 5 lbl header reader accepts verified layout and rejects variants", TestNiceLabel5LblHeaderReader),
@@ -12374,33 +12374,47 @@ static HashSet<string> CollectMenuAutomationIds(DependencyObject root)
 
 static Task TestDesignerIconSourcesExist()
 {
+    // One icon family (Themes/RibbonIcons.xaml, scripts/make_ribbon_icons.py): every
+    // window draws vector icons. PNG rasters blurred at 125-150 % and emoji glyphs
+    // render as faint monochrome outlines or empty boxes in WPF, so neither may
+    // stand in for an icon.
     var root = FindRepositoryRoot();
-    var xamlPath = Path.Combine(root, "src", "ANLAbel.App", "MainWindow.xaml");
-    var xaml = File.ReadAllText(xamlPath);
-    var icons = System.Text.RegularExpressions.Regex.Matches(xaml, @"Icons/[^""]+\.png")
-        .Select(m => m.Value.Replace('/', Path.DirectorySeparatorChar))
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray();
-    AssertEqual(true, icons.Length > 0, "Designer XAML must reference Icons/*.png rasters");
-    foreach (var rel in icons)
-    {
-        var path = Path.Combine(root, "src", "ANLAbel.App", rel);
-        AssertEqual(true, File.Exists(path), "Shipped XAML must reference an existing icon raster: " + rel);
-    }
-
-    // Vector ribbon icons (Themes/RibbonIcons.xaml): every key a window uses must exist.
-    var iconDictionary = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "Themes", "RibbonIcons.xaml"));
+    var appRoot = Path.Combine(root, "src", "ANLAbel.App");
+    var iconDictionary = File.ReadAllText(Path.Combine(appRoot, "Themes", "RibbonIcons.xaml"));
     var defined = System.Text.RegularExpressions.Regex.Matches(iconDictionary, @"x:Key=""(Icon\.[A-Za-z0-9]+)""")
         .Select(m => m.Groups[1].Value)
         .ToHashSet(StringComparer.Ordinal);
-    foreach (var file in Directory.GetFiles(Path.Combine(root, "src", "ANLAbel.App"), "*.xaml", SearchOption.AllDirectories)
-                 .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                     && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
+    var separator = Path.DirectorySeparatorChar;
+    var sources = Directory.GetFiles(appRoot, "*.xaml", SearchOption.AllDirectories)
+        .Concat(Directory.GetFiles(appRoot, "*.cs", SearchOption.AllDirectories))
+        .Where(path => !path.Contains($"{separator}obj{separator}", StringComparison.Ordinal)
+            && !path.Contains($"{separator}bin{separator}", StringComparison.Ordinal));
+    foreach (var file in sources)
     {
-        foreach (System.Text.RegularExpressions.Match use in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(file), @"StaticResource (Icon\.[A-Za-z0-9]+)\}"))
+        var name = Path.GetFileName(file);
+        var text = File.ReadAllText(file);
+        var raster = System.Text.RegularExpressions.Regex.Match(text, @"Icons/[^""]+\.png");
+        AssertEqual(false, raster.Success, $"{name} draws the PNG raster {raster.Value}; use an Icon.* vector icon");
+        var emoji = text.EnumerateRunes().FirstOrDefault(rune => rune.Value is >= 0x1F300 and <= 0x1FAFF or 0xFE0F);
+        AssertEqual(0, emoji.Value, $"{name} shows the emoji U+{emoji.Value:X4}; use an Icon.* vector icon");
+        foreach (System.Text.RegularExpressions.Match use in System.Text.RegularExpressions.Regex.Matches(text, @"StaticResource (Icon\.[A-Za-z0-9]+)\}"))
         {
-            AssertEqual(true, defined.Contains(use.Groups[1].Value), $"{Path.GetFileName(file)} uses {use.Groups[1].Value}, which Themes/RibbonIcons.xaml does not define");
+            AssertEqual(true, defined.Contains(use.Groups[1].Value), $"{name} uses {use.Groups[1].Value}, which Themes/RibbonIcons.xaml does not define");
         }
+
+        if (text.Contains("RibbonIconSet", StringComparison.Ordinal))
+        {
+            // Views built in code name icons as "Excel16", "Paste32", ...
+            foreach (System.Text.RegularExpressions.Match use in System.Text.RegularExpressions.Regex.Matches(text, @"""([A-Z][A-Za-z]+(?:16|32))"""))
+            {
+                AssertEqual(true, defined.Contains("Icon." + use.Groups[1].Value), $"{name} asks for Icon.{use.Groups[1].Value}, which Themes/RibbonIcons.xaml does not define");
+            }
+        }
+    }
+
+    foreach (var type in Enum.GetValues<ObjectType>())
+    {
+        AssertEqual(true, RibbonIconSet.ForObjectType(type) is System.Windows.Media.DrawingImage, $"{type} must have a vector icon for the Properties header");
     }
 
     return Task.CompletedTask;

@@ -42,4 +42,4 @@ Filled instance of [`figma-ui-handoff-template.md`](figma-ui-handoff-template.md
 
 ## 5. Evidence
 
-`designer header commands are unique` plus `designer icon sources exist on disk`. Fast after version bump.
+`designer header commands are unique` plus `windows draw vector icons, not PNG or emoji`. Fast after version bump.

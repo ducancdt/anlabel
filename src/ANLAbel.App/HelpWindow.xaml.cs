@@ -1,3 +1,4 @@
+using ANLAbel.App.Controls;
 using ANLAbel.App.ViewModels;
 using ANLAbel.Data.Preferences;
 
@@ -92,10 +93,10 @@ public partial class HelpWindow : Window
         Margin = new Thickness(16, 0, 0, 4)
     };
 
-    private static Border InfoBox(string text, string color = "#EFF6FF", string border = "#93C5FD", string emoji = "💡")
+    private static Border InfoBox(string text, string color = "#EFF6FF", string border = "#93C5FD", string icon = "Tip16")
     {
         var panel = new StackPanel { Orientation = Orientation.Horizontal };
-        panel.Children.Add(new TextBlock { Text = emoji, FontSize = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Top });
+        panel.Children.Add(new Image { Source = RibbonIconSet.Get(icon), Width = 16, Height = 16, Margin = new Thickness(0, 1, 8, 0), VerticalAlignment = VerticalAlignment.Top });
         panel.Children.Add(new TextBlock
         {
             Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 12.5,
@@ -108,6 +109,19 @@ public partial class HelpWindow : Window
             Padding = new Thickness(11, 9, 11, 9), Margin = new Thickness(0, 8, 0, 8),
             HorizontalAlignment = HorizontalAlignment.Left, Child = panel
         };
+    }
+
+    private static StackPanel IconLabel(string icon, string text, Brush foreground)
+    {
+        var panel = new StackPanel { Orientation = Orientation.Horizontal };
+        panel.Children.Add(new Border
+        {
+            Background = Brushes.White, CornerRadius = new CornerRadius(3), Padding = new Thickness(1), Margin = new Thickness(0, 0, 7, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new Image { Source = RibbonIconSet.Get(icon), Width = 16, Height = 16 }
+        });
+        panel.Children.Add(new TextBlock { Text = text, Foreground = foreground, VerticalAlignment = VerticalAlignment.Center });
+        return panel;
     }
 
     // A numbered step card: blue circle badge + title + body.
@@ -167,7 +181,7 @@ public partial class HelpWindow : Window
         sp.Children.Add(frame);
         sp.Children.Add(new TextBlock
         {
-            Text = "🖼  " + caption, FontSize = 11.5, FontStyle = FontStyles.Italic,
+            Text = caption, FontSize = 11.5, FontStyle = FontStyles.Italic,
             Foreground = Hex("#5B6B80"), Margin = new Thickness(2, 7, 0, 0),
             TextWrapping = TextWrapping.Wrap, MaxWidth = 560
         });
@@ -230,15 +244,16 @@ public partial class HelpWindow : Window
         return root;
     }
 
-    // Mock of a single ribbon button (icon glyph + 2 lines).
-    private static Border RibbonBtn(string glyph, string l1, string l2, string glyphColor = "#1464D2")
+    // Mock of a single ribbon button (its ribbon icon + 2 lines).
+    private static Border RibbonBtn(string icon, string l1, string l2)
     {
         var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
-        sp.Children.Add(new TextBlock { Text = glyph, FontSize = 18, HorizontalAlignment = HorizontalAlignment.Center, Foreground = Hex(glyphColor), Margin = new Thickness(0, 0, 0, 1) });
+        var size = icon.EndsWith("16", StringComparison.Ordinal) ? 16 : 32;
+        sp.Children.Add(new Image { Source = RibbonIconSet.Get(icon), Width = size, Height = size, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 32 - size, 0, 1) });
         sp.Children.Add(new TextBlock { Text = l1, FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, Foreground = Hex("#334155") });
         if (!string.IsNullOrEmpty(l2))
             sp.Children.Add(new TextBlock { Text = l2, FontSize = 9, HorizontalAlignment = HorizontalAlignment.Center, Foreground = Hex("#94A3B8") });
-        return new Border { Width = 56, Height = 52, Background = Hex("#FFFFFF"), BorderBrush = Hex("#E2E8F0"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(5), Margin = new Thickness(2, 0, 2, 0), Child = sp };
+        return new Border { Width = 64, Height = 66, Background = Hex("#FFFFFF"), BorderBrush = Hex("#E2E8F0"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(5), Margin = new Thickness(2, 0, 2, 0), Child = sp };
     }
 
     private static Border RibbonGroup(string name, params Border[] buttons)
@@ -257,43 +272,43 @@ public partial class HelpWindow : Window
         void Divider() => row.Children.Add(new Border { Width = 1, Background = Hex("#E5EAF1"), Margin = new Thickness(6, 4, 6, 4) });
 
         // Tab Trang chủ, as in the designer (NiceLabel 10 Home tab order).
-        row.Children.Add(RibbonGroup("Bộ nhớ tạm", RibbonBtn("📋", "Dán", string.Empty), RibbonBtn("✂", "Cắt", "Sao chép")));
+        row.Children.Add(RibbonGroup("Bộ nhớ tạm", RibbonBtn("Paste32", "Dán", string.Empty), RibbonBtn("Cut16", "Cắt", "Sao chép")));
         Divider();
-        row.Children.Add(RibbonGroup("Phông chữ", RibbonBtn("A", "Phông", "cỡ · B I U")));
+        row.Children.Add(RibbonGroup("Phông chữ", RibbonBtn("GrowFont16", "Phông", "cỡ · B I U")));
         Divider();
         row.Children.Add(RibbonGroup("Thao tác",
-            RibbonBtn("▶", "In", "Dòng này"), RibbonBtn("🔍", "Xem trước", "Ctrl+P")));
+            RibbonBtn("Print32", "In", "Ctrl+P"), RibbonBtn("PrintOptions32", "Tùy chỉnh", "in")));
         Divider();
         row.Children.Add(RibbonGroup("Quản lý",
-            RibbonBtn("📊", "Nguồn", "dữ liệu", "#1A7F37"), RibbonBtn("🖨", "Thuộc tính", "tài liệu")));
+            RibbonBtn("DataManager32", "Quản lý", "dữ liệu"), RibbonBtn("DocumentProperties32", "Thuộc tính", "tem")));
         Divider();
-        row.Children.Add(RibbonGroup("Đối tượng", RibbonBtn("⧉", "Nhóm", "Sắp xếp"), RibbonBtn("✕", "Xóa", "Chọn", "#2563EB")));
+        row.Children.Add(RibbonGroup("Đối tượng", RibbonBtn("GroupObjects32", "Nhóm", "đối tượng"), RibbonBtn("Arrange32", "Sắp xếp", string.Empty), RibbonBtn("Delete32", "Xóa", string.Empty)));
 
         var sv = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = row, MaxWidth = 560 };
         return sv;
     }
 
     // Toolbox 2×3 tool grid.
-    private static Border ToolTile(string glyph, string name)
+    private static Border ToolTile(string icon, string name)
     {
         var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        sp.Children.Add(new TextBlock { Text = glyph, FontSize = 20, HorizontalAlignment = HorizontalAlignment.Center, Foreground = Hex("#1464D2") });
+        sp.Children.Add(new Image { Source = RibbonIconSet.Get(icon), Width = 32, Height = 32, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
         sp.Children.Add(new TextBlock { Text = name, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, Foreground = Hex("#334155") });
-        return new Border { Width = 96, Height = 58, Background = Hex("#FFFFFF"), BorderBrush = Hex("#DFE8F2"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Margin = new Thickness(4), Child = sp };
+        return new Border { Width = 96, Height = 64, Background = Hex("#FFFFFF"), BorderBrush = Hex("#DFE8F2"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Margin = new Thickness(4), Child = sp };
     }
 
     private static UIElement FigToolbox(bool vi)
     {
         var grid = new UniformGrid { Columns = 3, Rows = 3, Width = 330 };
-        grid.Children.Add(ToolTile("T", vi ? "Chữ" : "Text"));
-        grid.Children.Add(ToolTile("🔤", vi ? "Ô chữ" : "Text Box"));
-        grid.Children.Add(ToolTile("𝐀", vi ? "Chữ RTF" : "Rich Text"));
-        grid.Children.Add(ToolTile("|||", vi ? "Mã vạch" : "Barcode"));
-        grid.Children.Add(ToolTile("🖼", vi ? "Hình ảnh" : "Image"));
-        grid.Children.Add(ToolTile("▭", vi ? "Chữ nhật" : "Rectangle"));
-        grid.Children.Add(ToolTile("╱", vi ? "Đường kẻ" : "Line"));
-        grid.Children.Add(ToolTile("◯", vi ? "Bầu dục" : "Ellipse"));
-        grid.Children.Add(ToolTile("◐", vi ? "Đảo màu" : "Inverse"));
+        grid.Children.Add(ToolTile("Text32", vi ? "Chữ" : "Text"));
+        grid.Children.Add(ToolTile("TextBox32", vi ? "Ô chữ" : "Text Box"));
+        grid.Children.Add(ToolTile("RichText32", vi ? "Chữ RTF" : "Rich Text"));
+        grid.Children.Add(ToolTile("Barcode32", vi ? "Mã vạch" : "Barcode"));
+        grid.Children.Add(ToolTile("Picture32", vi ? "Hình ảnh" : "Image"));
+        grid.Children.Add(ToolTile("Rectangle32", vi ? "Chữ nhật" : "Rectangle"));
+        grid.Children.Add(ToolTile("Line32", vi ? "Đường kẻ" : "Line"));
+        grid.Children.Add(ToolTile("Ellipse32", vi ? "Bầu dục" : "Ellipse"));
+        grid.Children.Add(ToolTile("Inverse32", vi ? "Đảo màu" : "Inverse"));
         return grid;
     }
 
@@ -508,7 +523,7 @@ public partial class HelpWindow : Window
 
         var settings = new Border { Background = Hex("#F8FAFC"), BorderBrush = Hex("#D9E2EC"), BorderThickness = new Thickness(1), Margin = new Thickness(2), Padding = new Thickness(8) };
         var ss = new StackPanel();
-        ss.Children.Add(new TextBlock { Text = vi ? "⚙ Cài đặt in" : "⚙ Print settings", FontWeight = FontWeights.SemiBold, FontSize = 11, Foreground = Hex("#0F4EA8"), Margin = new Thickness(0, 0, 0, 6) });
+        ss.Children.Add(new TextBlock { Text = vi ? "Cài đặt in" : "Print settings", FontWeight = FontWeights.SemiBold, FontSize = 11, Foreground = Hex("#0F4EA8"), Margin = new Thickness(0, 0, 0, 6) });
         foreach (var t in new[] { vi ? "Máy in" : "Printer", vi ? "▸ Kích thước tem và cài đặt máy in…" : "▸ Label size and printer setup…", vi ? "▸ Lưu cài đặt in vào tem" : "▸ Save print settings to the label", vi ? "☑ Chọn dòng trong bảng dưới" : "☑ Tick rows in the table below" })
             ss.Children.Add(new TextBlock { Text = t, FontSize = 11, Foreground = Hex("#334155"), Margin = new Thickness(0, 0, 0, 4) });
         settings.Child = ss;
@@ -516,7 +531,7 @@ public partial class HelpWindow : Window
 
         var bottom = new Border { Background = Hex("#FFFFFF"), BorderBrush = Hex("#D9E2EC"), BorderThickness = new Thickness(1), Margin = new Thickness(2) };
         var bs = new StackPanel { Margin = new Thickness(6) };
-        bs.Children.Add(new TextBlock { Text = vi ? "📑 Bảng dữ liệu Excel — đánh dấu dòng cần in, cột \"Bản\" chỉnh số bản" : "📑 Excel data table — \"Copies\" column sets prints per row", FontSize = 10.5, Foreground = Hex("#5B6B80"), Margin = new Thickness(0, 0, 0, 4) });
+        bs.Children.Add(new TextBlock { Text = vi ? "Bảng dữ liệu Excel — đánh dấu dòng cần in, cột \"Bản\" chỉnh số bản" : "Excel data table — \"Copies\" column sets prints per row", FontSize = 10.5, Foreground = Hex("#5B6B80"), Margin = new Thickness(0, 0, 0, 4) });
         bs.Children.Add(FigDataGrid(vi));
         bottom.Child = bs;
         Grid.SetRow(bottom, 1); Grid.SetColumn(bottom, 0); Grid.SetColumnSpan(bottom, 2); root.Children.Add(bottom);
@@ -575,7 +590,7 @@ public partial class HelpWindow : Window
     private static UIElement FaqItem(string q, string a)
     {
         var sp = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
-        sp.Children.Add(new TextBlock { Text = "❓ " + q, FontWeight = FontWeights.SemiBold, FontSize = 13, Foreground = Hex("#0F172A"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 3) });
+        sp.Children.Add(new TextBlock { Text = q, FontWeight = FontWeights.SemiBold, FontSize = 13, Foreground = Hex("#0F172A"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 3) });
         sp.Children.Add(new TextBlock { Text = a, FontSize = 12.5, Foreground = Hex("#334155"), TextWrapping = TextWrapping.Wrap, LineHeight = 18, Margin = new Thickness(16, 0, 0, 0) });
         return new Border { Background = Hex("#F8FAFC"), BorderBrush = Hex("#E2E8F0"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 10, 12, 11), Margin = new Thickness(0, 0, 0, 8), Child = sp };
     }
@@ -601,7 +616,7 @@ public partial class HelpWindow : Window
 
         // ---------- OVERVIEW ----------
         var s = new StackPanel();
-        s.Children.Add(H1(vi ? "Chào mừng đến với ANLAbel 👋" : "Welcome to ANLAbel 👋"));
+        s.Children.Add(H1(vi ? "Chào mừng đến với ANLAbel" : "Welcome to ANLAbel"));
         s.Children.Add(Sub(vi
             ? "ANLAbel là phần mềm thiết kế và in nhãn (tem) chuyên nghiệp. Bạn vẽ nhãn bằng cách kéo thả, gắn dữ liệu từ Excel, rồi in hàng loạt ra bất kỳ máy in Windows nào. Hướng dẫn này viết cho người mới — cứ đọc theo thứ tự từ trên xuống là dùng được."
             : "ANLAbel is a professional label design and printing app. You draw a label by dragging objects, feed it data from Excel, then print in bulk to any Windows printer. This guide is written for absolute beginners — read top to bottom and you'll be productive."));
@@ -621,7 +636,7 @@ public partial class HelpWindow : Window
 
         // ---------- QUICK START ----------
         var qs = new StackPanel();
-        qs.Children.Add(H1(vi ? "⚡ Bắt đầu trong 5 bước" : "⚡ Get started in 5 steps"));
+        qs.Children.Add(H1(vi ? "Bắt đầu trong 5 bước" : "Get started in 5 steps"));
         qs.Children.Add(Sub(vi ? "Làm lần lượt theo 5 thẻ dưới đây là bạn đã in được nhãn đầu tiên." : "Follow these 5 cards in order and you'll print your first label."));
         qs.Children.Add(StepCard(1, vi ? "Tạo hoặc mở một mẫu tem" : "Create or open a template",
             vi ? "Nhấn Tạo tem mới (Ctrl+N) để tạo tem trống, hoặc Mở tem (Ctrl+O) để mở tệp .anlabel có sẵn; cũng có thể bắt đầu từ Thư viện → Mẫu tem. Khi tạo mới, bạn chọn kích thước tem (rộng × cao tính bằng mm)." : "Click New (Ctrl+N) for a blank label, or Open (Ctrl+O) for an existing .anlabel file. When creating, choose the label size (width × height in mm)."));
@@ -633,12 +648,12 @@ public partial class HelpWindow : Window
             vi ? "Nhấn Nhập Excel, chọn tệp .xlsx và sheet (dòng đầu là tên cột). Chọn một đối tượng, trong thẻ Nội dung đổi Nguồn thành “Trường Excel”, rồi chọn cột." : "Click Import Excel, pick a .xlsx file and sheet (first row = column names). Select an object, set Content → Source to \"Excel Field\", then choose the column."));
         qs.Children.Add(StepCard(5, vi ? "Xem trước & In" : "Preview & print",
             vi ? "Nhấn Xem trước (Ctrl+P) để xem tem với dữ liệu thật. Đánh dấu các dòng cần in, chỉnh số bản ở cột Bản, rồi nhấn In. Đừng quên Lưu (Ctrl+S) để dùng lại." : "Click Preview (Ctrl+P) to see real data. Choose \"Current row\" or \"All rows\", set the Copies column, then Print. Save (Ctrl+S) to reuse later."));
-        qs.Children.Add(InfoBox(vi ? "Bạn chưa cần hiểu hết. Mỗi mục trong menu bên trái sẽ giải thích kỹ kèm hình minh họa." : "You don't need to understand everything yet. Each left-menu topic explains the details with pictures.", "#ECFDF5", "#6EE7B7", "✅"));
+        qs.Children.Add(InfoBox(vi ? "Bạn chưa cần hiểu hết. Mỗi mục trong menu bên trái sẽ giải thích kỹ kèm hình minh họa." : "You don't need to understand everything yet. Each left-menu topic explains the details with pictures.", "#ECFDF5", "#6EE7B7", "Ok16"));
         d["quickstart"] = qs;
 
         // ---------- RIBBON ----------
         var rb = new StackPanel();
-        rb.Children.Add(H1(vi ? "🔧 Thanh lệnh" : "🔧 Ribbon"));
+        rb.Children.Add(H1(vi ? "Thanh lệnh" : "Ribbon"));
         rb.Children.Add(Sub(vi ? "Thanh lệnh trên cùng chia thành các thẻ; mỗi thẻ có các nhóm nút. Thẻ Thiết kế và thẻ theo loại đối tượng (Chữ, Mã vạch, Hình ảnh, Hình dạng) chỉ hiện khi đang chọn đối tượng." : "The top command bar is split into tabs, each with groups of buttons. Design and the object tab (Text, Barcode, Picture, Shape) appear only with a selection."));
         rb.Children.Add(Figure(FigRibbon(vi), vi ? "Thẻ Trang chủ với các nhóm chính." : "The Home tab and its main groups."));
         rb.Children.Add(H2("Nút nhanh và nút Tệp"));
@@ -662,7 +677,7 @@ public partial class HelpWindow : Window
 
         // ---------- CANVAS ----------
         var cv = new StackPanel();
-        cv.Children.Add(H1(vi ? "🎨 Bảng thiết kế" : "🎨 Design Canvas"));
+        cv.Children.Add(H1(vi ? "Bảng thiết kế" : "Design Canvas"));
         cv.Children.Add(Sub(vi ? "Vùng trung tâm — nơi bạn vẽ và sắp xếp nhãn. Có thước kẻ mm ở trên và bên trái." : "The central area where you draw and arrange the label. mm rulers run across the top and down the left."));
         cv.Children.Add(Figure(FigCanvas(vi), vi ? "Bảng thiết kế: thước mm (xám), tờ tem (trắng) và một đối tượng đang chọn với các tay cầm xanh để kéo đổi kích thước." : "Canvas: mm rulers (grey), the white label sheet, and a selected object with 4 blue handles to resize."));
         cv.Children.Add(H2(vi ? "Vẽ một đối tượng mới" : "Drawing a new object"));
@@ -681,7 +696,7 @@ public partial class HelpWindow : Window
 
         // ---------- OBJECTS ----------
         var ob = new StackPanel();
-        ob.Children.Add(H1(vi ? "📦 Các loại đối tượng" : "📦 Object types"));
+        ob.Children.Add(H1(vi ? "Các loại đối tượng" : "Object types"));
         ob.Children.Add(Sub(vi ? "Đây là các “khối xây dựng” để ghép thành tem. Mỗi loại có một mục đích riêng." : "These are the 6 building blocks of every label. Each has its own purpose."));
         ob.Children.Add(Figure(FigObjectGallery(vi), vi ? "Các loại đối tượng trong Hộp công cụ." : "The gallery of 6 object types in the Toolbox."));
         ob.Children.Add(H2(vi ? "Chữ" : "Text"));
@@ -698,9 +713,9 @@ public partial class HelpWindow : Window
 
         // ---------- PROPERTIES PANEL ----------
         var pp = new StackPanel();
-        pp.Children.Add(H1(vi ? "🎛️ Bảng Thuộc tính" : "🎛️ Properties Panel"));
+        pp.Children.Add(H1(vi ? "Bảng Thuộc tính" : "Properties Panel"));
         pp.Children.Add(Sub(vi ? "Bảng bên phải. Khi bạn chọn một đối tượng, nó hiện đúng các tùy chỉnh cho loại đối tượng đó." : "The right-hand panel. When you select an object it shows exactly the options for that object type."));
-        pp.Children.Add(InfoBox(vi ? "Chưa chọn gì? Bảng sẽ ghi “Chưa chọn đối tượng”. Hãy nhấp vào một đối tượng trên bảng thiết kế trước." : "Nothing selected? The panel says \"No object selected\". Click an object on the canvas first.", "#FEF9C3", "#FDE047", "ℹ️"));
+        pp.Children.Add(InfoBox(vi ? "Chưa chọn gì? Bảng sẽ ghi “Chưa chọn đối tượng”. Hãy nhấp vào một đối tượng trên bảng thiết kế trước." : "Nothing selected? The panel says \"No object selected\". Click an object on the canvas first.", "#FEF9C3", "#FDE047", "About16"));
         pp.Children.Add(H2(vi ? "Nội dung — chữ & nguồn" : "Content — text & source"));
         pp.Children.Add(P(vi ? "• Nguồn = Chữ: bạn tự gõ nội dung cố định." : "• Source = Text: you type fixed content yourself."));
         pp.Children.Add(P(vi ? "• Nguồn = Trường Excel: nội dung lấy tự động từ cột Excel đã chọn. Nguồn = Ràng buộc / Công thức: ghép nhiều cột hoặc dùng công thức." : "• Source = Excel Field: content is pulled from the chosen Excel column."));
@@ -720,7 +735,7 @@ public partial class HelpWindow : Window
 
         // ---------- BARCODE ----------
         var bc = new StackPanel();
-        bc.Children.Add(H1(vi ? "📊 Mã vạch & Mã QR" : "📊 Barcode & QR Code"));
+        bc.Children.Add(H1(vi ? "Mã vạch & Mã QR" : "Barcode & QR Code"));
         bc.Children.Add(Sub(vi ? "ANLAbel tạo mã vạch sắc nét, in được, từ nội dung bạn nhập hoặc lấy từ Excel." : "ANLAbel generates crisp, scannable barcodes from text you type or pull from Excel."));
         var bcRow = new StackPanel { Orientation = Orientation.Horizontal };
         bcRow.Children.Add(Figure(FigBarcode(), vi ? "Mã vạch 1D (ví dụ EAN-13)." : "A 1D barcode (e.g. EAN-13)."));
@@ -734,12 +749,12 @@ public partial class HelpWindow : Window
         bc.Children.Add(P(vi ? "• Chế độ 2D: Tự động theo dữ liệu, hoặc Cố định phiên bản / cỡ mô-đun." : "• Sizing Mode: Auto (size by data amount) or Fixed (constant size)."));
         bc.Children.Add(P(vi ? "• Mức ECC (sửa lỗi): L 7% · M 15% · Q 25% · H 30%. Mức cao vẫn quét được khi mã bị xước/bẩn, nhưng mã sẽ dày hơn." : "• Error Correction: L 7% · M 15% · Q 25% · H 30%. Higher levels still scan when scratched/dirty, but make a denser code."));
         bc.Children.Add(P(vi ? "• Phiên bản ký hiệu 1–40 và Cỡ mô-đun (px) dùng ở chế độ cố định." : "• Fixed Version 1–40, Module Size 1–10 px, and DPI."));
-        bc.Children.Add(InfoBox(vi ? "Quan trọng: ở chế độ cố định, dữ liệu phải vừa dung lượng của phiên bản đã chọn — nếu không sẽ báo lỗi đỏ ở bảng Thuộc tính." : "Important: in Fixed mode the data must fit the chosen Version's capacity — otherwise a red error shows in the Properties panel.", "#FEF2F2", "#FCA5A5", "⚠️"));
+        bc.Children.Add(InfoBox(vi ? "Quan trọng: ở chế độ cố định, dữ liệu phải vừa dung lượng của phiên bản đã chọn — nếu không sẽ báo lỗi đỏ ở bảng Thuộc tính." : "Important: in Fixed mode the data must fit the chosen Version's capacity — otherwise a red error shows in the Properties panel.", "#FEF2F2", "#FCA5A5", "Warning16"));
         d["barcode"] = bc;
 
         // ---------- DATA BINDING ----------
         var bd = new StackPanel();
-        bd.Children.Add(H1(vi ? "🔗 Liên kết dữ liệu" : "🔗 Data Binding"));
+        bd.Children.Add(H1(vi ? "Liên kết dữ liệu" : "Data Binding"));
         bd.Children.Add(Sub(vi ? "Đây là tính năng mạnh nhất: thay vì gõ tay từng nhãn, bạn nối một ô trên nhãn vào một cột Excel. Mỗi dòng Excel thành một nhãn." : "This is the most powerful feature: instead of typing each label, you connect a label field to an Excel column. Each Excel row becomes a label."));
         bd.Children.Add(Figure(FigBindingFlow(vi), vi ? "Giá trị trong cột Excel chảy vào ô tương ứng trên nhãn khi in." : "Values from the Excel column flow into the matching label field at print time."));
         bd.Children.Add(H2(vi ? "Các bước liên kết" : "How to bind"));
@@ -747,12 +762,12 @@ public partial class HelpWindow : Window
         bd.Children.Add(StepCard(2, vi ? "Chọn đối tượng" : "Select the object", vi ? "Nhấp vào Chữ, Ô chữ hoặc Mã vạch trên bảng thiết kế." : "Click the Text Box or Barcode on the canvas."));
         bd.Children.Add(StepCard(3, vi ? "Đổi Nguồn" : "Change Source", vi ? "Trong thẻ Nội dung, đặt Nguồn = “Trường Excel”." : "In Content, set Source = \"Excel Field\"."));
         bd.Children.Add(StepCard(4, vi ? "Chọn cột" : "Pick the column", vi ? "Chọn cột trong danh sách “Trường Excel”. Xong! Xem trước để kiểm tra." : "Choose the Excel column from the \"Excel field\" list. Done! Preview to verify."));
-        bd.Children.Add(InfoBox(vi ? "Nếu một đối tượng báo đỏ trong danh sách Lớp hoặc bảng Thuộc tính, nghĩa là cột bị thiếu hoặc đổi tên — hãy liên kết lại." : "If a field shows a red background in the Objects tree or Properties, the column is missing or renamed — rebind it.", "#FEF2F2", "#FCA5A5", "⚠️"));
+        bd.Children.Add(InfoBox(vi ? "Nếu một đối tượng báo đỏ trong danh sách Lớp hoặc bảng Thuộc tính, nghĩa là cột bị thiếu hoặc đổi tên — hãy liên kết lại." : "If a field shows a red background in the Objects tree or Properties, the column is missing or renamed — rebind it.", "#FEF2F2", "#FCA5A5", "Warning16"));
         d["binding"] = bd;
 
         // ---------- EXCEL ----------
         var xl = new StackPanel();
-        xl.Children.Add(H1(vi ? "📑 Dữ liệu Excel" : "📑 Excel Data"));
+        xl.Children.Add(H1(vi ? "Dữ liệu Excel" : "Excel Data"));
         xl.Children.Add(Sub(vi ? "ANLAbel dùng file Excel (.xlsx) như một cơ sở dữ liệu cho nhãn. Mỗi dòng = một nhãn, mỗi cột = một trường." : "ANLAbel uses an Excel (.xlsx) file as the label database. Each row = one label, each column = one field."));
         xl.Children.Add(Figure(FigDataGrid(vi), vi ? "Bảng dữ liệu Excel sau khi nhập. Dòng đầu là tên cột; cột Bản do ANLAbel thêm vào để chỉnh số bản in." : "The imported Excel data. The first row holds column names; the Copies column is added by ANLAbel to set prints per row."));
         xl.Children.Add(H2(vi ? "Chuẩn bị file Excel" : "Preparing the Excel file"));
@@ -765,7 +780,7 @@ public partial class HelpWindow : Window
 
         // ---------- PRINTING ----------
         var pr = new StackPanel();
-        pr.Children.Add(H1(vi ? "🖨️ In ấn" : "🖨️ Printing"));
+        pr.Children.Add(H1(vi ? "In ấn" : "Printing"));
         pr.Children.Add(Sub(vi ? "Khi thiết kế xong, đây là cách đưa nhãn ra giấy/decal." : "Once the design is ready, here's how to get labels onto paper/decal."));
         pr.Children.Add(Figure(FigPrintPreview(vi), vi ? "Cửa sổ Xem trước: nhãn ở giữa, cài đặt in bên phải, bảng dữ liệu Excel phía dưới." : "Print Preview window: the label in the middle, print settings on the right, the Excel data table at the bottom."));
         pr.Children.Add(H2(vi ? "1. Thiết lập máy in" : "1. Printer setup"));
@@ -778,12 +793,12 @@ public partial class HelpWindow : Window
         pr.Children.Add(P(vi ? "Mỗi dòng có cột Bản với nút ▲▼. Mặc định 1 bản. Tăng lên nếu cần in cùng một tem nhiều lần." : "Each row has a Copies column with ▲▼ buttons. Default is 1. Increase it to print the same label multiple times."));
         pr.Children.Add(H2(vi ? "4. Chọn dòng & In" : "4. Print mode & print"));
         pr.Children.Add(P(vi ? "Đánh dấu các dòng cần in trong bảng Dữ liệu Excel (☑ Tất cả để chọn hết), rồi nhấn In. Có thể in nhanh bằng In · Dòng này / In mọi dòng ngay trên thanh công cụ." : "Choose \"Current row only\" or \"All rows\", then Print. You can also print directly from Print Current / Print All Rows on the ribbon."));
-        pr.Children.Add(InfoBox(vi ? "Mỗi lần in đều được ghi vào lịch sử — nhấn Lịch sử in để xem. Lệnh nào chưa rõ kết quả sẽ hiện trong Trung tâm in để đối soát trước khi in lại." : "Every print is logged to a history file — click Print History to open and review it.", "#EFF6FF", "#93C5FD", "🗒️"));
+        pr.Children.Add(InfoBox(vi ? "Mỗi lần in đều được ghi vào lịch sử — nhấn Lịch sử in để xem. Lệnh nào chưa rõ kết quả sẽ hiện trong Trung tâm in để đối soát trước khi in lại." : "Every print is logged to a history file — click Print History to open and review it.", "#EFF6FF", "#93C5FD", "UserGuide16"));
         d["printer"] = pr;
 
         // ---------- CALIBRATION ----------
         var ca = new StackPanel();
-        ca.Children.Add(H1(vi ? "🎯 Hiệu chỉnh khổ in" : "🎯 Calibration"));
+        ca.Children.Add(H1(vi ? "Hiệu chỉnh khổ in" : "Calibration"));
         ca.Children.Add(Sub(vi ? "Đôi khi bản in bị lệch vài milimet so với thiết kế (do máy in). Hiệu chỉnh giúp kéo nó về đúng vị trí." : "Sometimes the print drifts a few millimeters from the design (printer quirk). Calibration nudges it back into place."));
         ca.Children.Add(Figure(FigCalibration(vi), vi ? "Khung xanh nét đứt = vị trí thiết kế; khung đỏ = bản in bị lệch. Lệch X/Y dịch bản in về khớp." : "Blue dashed box = designed position; red box = drifted print. Offset X/Y shifts the print back into alignment."));
         ca.Children.Add(H2(vi ? "Các bước hiệu chỉnh" : "How to calibrate"));
@@ -796,7 +811,7 @@ public partial class HelpWindow : Window
 
         // ---------- SHORTCUTS ----------
         var sh = new StackPanel();
-        sh.Children.Add(H1(vi ? "⌨️ Phím tắt" : "⌨️ Keyboard Shortcuts"));
+        sh.Children.Add(H1(vi ? "Phím tắt" : "Keyboard Shortcuts"));
         sh.Children.Add(Sub(vi ? "Học vài phím tắt giúp bạn làm nhanh hơn rất nhiều." : "A few shortcuts make you much faster."));
         sh.Children.Add(H2(vi ? "Toàn cục" : "Global"));
         sh.Children.Add(ShortcutRow("Ctrl+N", vi ? "Tạo mẫu tem mới" : "New template"));
@@ -814,7 +829,7 @@ public partial class HelpWindow : Window
 
         // ---------- FAQ ----------
         var fq = new StackPanel();
-        fq.Children.Add(H1(vi ? "❓ Hỏi đáp nhanh" : "❓ Quick FAQ"));
+        fq.Children.Add(H1(vi ? "Hỏi đáp nhanh" : "Quick FAQ"));
         fq.Children.Add(Sub(vi ? "Những trục trặc hay gặp của người mới và cách xử lý." : "Common beginner snags and how to fix them."));
         fq.Children.Add(FaqItem(
             vi ? "Bảng Thuộc tính trống?" : "The Properties panel is empty?",
@@ -827,7 +842,7 @@ public partial class HelpWindow : Window
             vi ? "Dữ liệu không hợp lệ với chuẩn đã chọn (ví dụ EAN-13 cần đúng 13 chữ số), hoặc phiên bản QR cố định quá nhỏ so với dữ liệu. Đổi chuẩn hoặc tăng phiên bản." : "The data is invalid for the chosen symbology (e.g. EAN-13 needs exactly 13 digits), or the QR Fixed Version is too small. Change the symbology or raise the Version."));
         fq.Children.Add(FaqItem(
             vi ? "Bản in bị lệch so với thiết kế?" : "The print is offset from the design?",
-            vi ? "Dùng hiệu chỉnh: in tem hiệu chỉnh, đo độ lệch, rồi nhập Lệch X/Y trong Cài đặt máy in. Xem mục 🎯 Hiệu chỉnh." : "Use Calibration: print the test pattern, measure the drift, then enter Offset X/Y. See the 🎯 Calibration topic."));
+            vi ? "Dùng hiệu chỉnh: in tem hiệu chỉnh, đo độ lệch, rồi nhập Lệch X/Y trong Cài đặt máy in. Xem mục Hiệu chỉnh." : "Use Calibration: print the test pattern, measure the drift, then enter Offset X/Y. See the Calibration topic."));
         fq.Children.Add(FaqItem(
             vi ? "Sửa Excel xong mà nhãn không đổi?" : "Edited Excel but the labels didn't change?",
             vi ? "Mở thẻ Dữ liệu và nhấn Cập nhật Excel để nạp lại dữ liệu mới nhất." : "Click Update Excel on the ribbon to reload the latest data."));
@@ -838,14 +853,14 @@ public partial class HelpWindow : Window
 
         // ---------- ABOUT ----------
         var ab = new StackPanel();
-        ab.Children.Add(H1(vi ? "ℹ️ Giới thiệu ANLAbel" : "ℹ️ About ANLAbel"));
+        ab.Children.Add(H1(vi ? "Giới thiệu ANLAbel" : "About ANLAbel"));
         ab.Children.Add(P("ANLAbel - " + (vi ? "Thiết kế Nhãn" : "Label Designer")));
         ab.Children.Add(P((vi ? "Tác giả: " : "Created by ") + "Duc An"));
         ab.Children.Add(P("Email: ducancdt@gmail.com"));
         ab.Children.Add(P((vi ? "Phiên bản: " : "Version: ") + "v0.343"));
         var updateBtn = new Button
         {
-            Content = vi ? "🔄 Kiểm tra bản cập nhật mới (GitHub)" : "🔄 Check for Updates (GitHub)",
+            Content = IconLabel("Refresh16", vi ? "Kiểm tra bản cập nhật mới (GitHub)" : "Check for Updates (GitHub)", Brushes.White),
             Padding = new Thickness(12, 6, 12, 6),
             Margin = new Thickness(0, 8, 0, 14),
             HorizontalAlignment = HorizontalAlignment.Left,

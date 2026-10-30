@@ -8,8 +8,13 @@
         ShowInTaskbar="False"
         Background="{DynamicResource AppCanvasBrush}">
     <Window.Resources>
-        <local:BoolToCheckmarkConverter x:Key="BoolToCheckmarkConverter"/>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ANLAbel.App;component/Themes/RibbonIcons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <local:BoolToCheckmarkConverter x:Key="BoolToCheckmarkConverter"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        </ResourceDictionary>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -67,7 +72,7 @@
                             <ColumnDefinition Width="112"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="🔎" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="11"/>
+                        <Image Grid.Column="0" Source="{StaticResource Icon.Search16}" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <TextBox Grid.Column="1" x:Name="RowFilterBox" AutomationProperties.Name="Lọc dòng Excel" VerticalAlignment="Center" FontSize="11" Padding="4,3"
                                  ToolTip="Nhập một giá trị (ví dụ mã sản phẩm) để tìm dòng khớp. Dòng khớp được tự chọn để in; phần còn lại bị bỏ chọn."
                                  TextChanged="RowFilterBox_TextChanged" PreviewKeyDown="RowFilterBox_PreviewKeyDown"/>
@@ -93,7 +98,7 @@
                         <TextBlock Grid.Column="1" Text="Trang" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
                         <TextBlock Grid.Column="2" Text="Dòng" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
                         <TextBlock Grid.Column="3" Grid.ColumnSpan="3" Text="Số bản" FontWeight="SemiBold" FontSize="10" Margin="4,2"/>
-                        <TextBlock Grid.Column="6" Text="🖶" FontSize="10" Margin="2,2" ToolTip="Đã in trong phiên này"/>
+                        <Image Grid.Column="6" Source="{StaticResource Icon.Printer16}" Width="12" Height="12" Margin="2,2" VerticalAlignment="Center" ToolTip="Đã in trong phiên này"/>
                     </Grid>
                     <!-- Virtualized row list: the outer preview panel may contain 10k source rows;
                          never put an ItemsControl inside a ScrollViewer because that disables
@@ -157,7 +162,7 @@
                                                     Padding="0" Margin="1,0"
                                                     Click="CopiesDown_Click" Tag="{Binding SourceRowNumber}"/>
                                             <!-- Printed-this-session indicator -->
-                                            <TextBlock Grid.Column="6" Text="{Binding PrintedIndicatorText}" FontSize="9" Margin="2,0" ToolTip="Thiết bị xác nhận hoàn tất trong phiên này — in lại có thể trùng tem"/>
+                                            <Image Grid.Column="6" Source="{StaticResource Icon.Printer16}" Width="12" Height="12" Margin="2,0" VerticalAlignment="Center" Visibility="{Binding IsPrinted, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{Binding PrintedIndicatorText}" ToolTip="Thiết bị xác nhận hoàn tất trong phiên này — in lại có thể trùng tem"/>
                                             <!-- Excel data preview -->
                                             <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0">
                                                 <TextBlock Text="{Binding Col1}" Margin="0,0,6,0"/>

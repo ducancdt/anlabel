@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.343
+
+- Sửa icon lỗi: mọi cửa sổ dùng một bộ icon vector (thêm 38 icon 16 px).
+  Bỏ ảnh PNG cũ (mờ ở 125–150 %) và emoji (WPF vẽ thành nét mờ hoặc ô
+  trống) ở bảng Dữ liệu, đầu bảng Thuộc tính, Xem trước khi in (ô tìm, dấu
+  đã in), Cập nhật, Thư viện mẫu và Hướng dẫn (danh mục, ghi chú, hình
+  ribbon/hộp công cụ dùng icon thật; mục đang chọn không còn bị mờ chữ).
+
 ## v0.343 — Quản lý dữ liệu, tab ngữ cảnh và hộp công cụ theo NiceLabel 10
 
 _Gồm các commit 30/10/2026 (17:18–17:51)._

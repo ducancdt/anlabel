@@ -9,6 +9,13 @@
         FontFamily="Segoe UI"
         FontSize="13"
         AutomationProperties.AutomationId="Update.Dialog">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ANLAbel.App;component/Themes/RibbonIcons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -82,11 +89,11 @@
         <!-- Footer Buttons -->
         <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#D9E2EC" BorderThickness="0,1,0,0" Padding="16,10">
             <DockPanel LastChildFill="False">
-                <Button x:Name="GitHubButton" Content="🌐 Xem trên GitHub" DockPanel.Dock="Left" Padding="12,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="GitHubButton_Click" Cursor="Hand"/>
-                <Button x:Name="CheckAgainButton" Content="🔄 Kiểm tra lại" DockPanel.Dock="Left" Margin="8,0,0,0" Padding="12,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="CheckAgainButton_Click" Cursor="Hand"/>
+                <Button x:Name="GitHubButton" DockPanel.Dock="Left" Padding="12,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="GitHubButton_Click" Cursor="Hand" AutomationProperties.Name="Xem trên GitHub"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.HomePage16}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Xem trên GitHub" VerticalAlignment="Center"/></StackPanel></Button>
+                <Button x:Name="CheckAgainButton" DockPanel.Dock="Left" Margin="8,0,0,0" Padding="12,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="CheckAgainButton_Click" Cursor="Hand" AutomationProperties.Name="Kiểm tra lại"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Refresh16}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Kiểm tra lại" VerticalAlignment="Center"/></StackPanel></Button>
 
                 <Button x:Name="CloseButton" Content="Đóng" DockPanel.Dock="Right" Padding="14,6" Background="#F8FAFC" BorderBrush="#D9E2EC" Click="CloseButton_Click" Cursor="Hand" Margin="8,0,0,0"/>
-                <Button x:Name="InstallButton" Content="⬇️ Tải và Cài đặt" DockPanel.Dock="Right" Padding="16,6" Background="#1464D2" Foreground="#FFFFFF" FontWeight="SemiBold" BorderBrush="#0F4EA8" Click="InstallButton_Click" Cursor="Hand" IsEnabled="False"/>
+                <Button x:Name="InstallButton" DockPanel.Dock="Right" Padding="16,6" Background="#1464D2" Foreground="#FFFFFF" FontWeight="SemiBold" BorderBrush="#0F4EA8" Click="InstallButton_Click" Cursor="Hand" IsEnabled="False" AutomationProperties.Name="Tải và Cài đặt"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.CheckUpdates16}" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Tải và Cài đặt" VerticalAlignment="Center"/></StackPanel></Button>
             </DockPanel>
         </Border>
     </Grid>

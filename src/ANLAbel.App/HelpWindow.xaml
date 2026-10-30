@@ -7,6 +7,40 @@
         Background="{DynamicResource AppCanvasBrush}"
         FontFamily="Segoe UI"
         FontSize="13">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ANLAbel.App;component/Themes/RibbonIcons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <!-- Topic list: the chosen topic keeps dark text on a light blue row with an accent bar,
+                 also while the window is inactive. -->
+            <Style x:Key="GuideTopic" TargetType="ListBoxItem">
+                <Setter Property="Padding" Value="10,7"/>
+                <Setter Property="Foreground" Value="#1E293B"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Row" Background="Transparent" BorderBrush="Transparent" BorderThickness="3,0,0,0" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="#F1F5F9"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="#EAF3FF"/>
+                                    <Setter TargetName="Row" Property="BorderBrush" Value="#1464D2"/>
+                                    <Setter Property="Foreground" Value="#0B4A8B"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="200"/>
@@ -18,26 +52,26 @@
             <DockPanel>
                 <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="16,14">
                     <StackPanel>
-                        <TextBlock x:Name="GuideTitle" Text="📖 Hướng dẫn sử dụng" Foreground="White" FontWeight="Bold" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal"><Border Background="#FFFFFF" CornerRadius="3" Padding="2" Margin="0,0,8,0" VerticalAlignment="Center"><Image Source="{StaticResource Icon.UserGuide16}" Width="16" Height="16" Margin="0" VerticalAlignment="Center"/></Border><TextBlock x:Name="GuideTitle" Text="Hướng dẫn sử dụng" Foreground="White" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/></StackPanel>
                     </StackPanel>
                 </Border>
                 <ListBox x:Name="NavListBox" SelectionChanged="NavListBox_SelectionChanged"
                          BorderThickness="0" Background="Transparent"
-                         FontSize="12" Padding="0,4">
-                    <ListBoxItem Padding="10,7" IsSelected="True" Tag="overview">🏠 Tổng quan</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="quickstart">⚡ Hướng dẫn nhanh</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="ribbon">🔧 Thanh lệnh</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="canvas">🎨 Bảng thiết kế</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="objects">📦 Đối tượng</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="properties">🎛️ Bảng thuộc tính</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="barcode">📊 Mã vạch &amp; QR</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="binding">🔗 Liên kết dữ liệu</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="excel">📑 Dữ liệu Excel</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="printer">🖨️ In ấn</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="calibration">🎯 Hiệu chỉnh</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="shortcuts">⌨️ Phím tắt</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="faq">❓ Hỏi đáp</ListBoxItem>
-                    <ListBoxItem Padding="10,7" Tag="about">ℹ️ Giới thiệu</ListBoxItem>
+                         FontSize="12" Padding="0,4" ItemContainerStyle="{StaticResource GuideTopic}">
+                    <ListBoxItem IsSelected="True" Tag="overview" AutomationProperties.Name="Tổng quan"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Home16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Tổng quan" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="quickstart" AutomationProperties.Name="Hướng dẫn nhanh"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.QuickStart16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Hướng dẫn nhanh" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="ribbon" AutomationProperties.Name="Thanh lệnh"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Ribbon16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Thanh lệnh" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="canvas" AutomationProperties.Name="Bảng thiết kế"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Canvas16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Bảng thiết kế" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="objects" AutomationProperties.Name="Đối tượng"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Objects16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Đối tượng" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="properties" AutomationProperties.Name="Bảng thuộc tính"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Properties16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Bảng thuộc tính" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="barcode" AutomationProperties.Name="Mã vạch &amp; QR"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Barcode16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Mã vạch &amp; QR" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="binding" AutomationProperties.Name="Liên kết dữ liệu"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Link16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Liên kết dữ liệu" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="excel" AutomationProperties.Name="Dữ liệu Excel"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Excel16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Dữ liệu Excel" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="printer" AutomationProperties.Name="In ấn"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Printer16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="In ấn" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="calibration" AutomationProperties.Name="Hiệu chỉnh"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Calibration16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Hiệu chỉnh" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="shortcuts" AutomationProperties.Name="Phím tắt"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Keyboard16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Phím tắt" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="faq" AutomationProperties.Name="Hỏi đáp"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.Help16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Hỏi đáp" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="about" AutomationProperties.Name="Giới thiệu"><StackPanel Orientation="Horizontal"><Image Source="{StaticResource Icon.About16}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="Giới thiệu" VerticalAlignment="Center"/></StackPanel></ListBoxItem>
                 </ListBox>
             </DockPanel>
         </Border>

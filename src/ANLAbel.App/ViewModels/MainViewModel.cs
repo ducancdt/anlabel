@@ -320,7 +320,6 @@ public sealed class MainViewModel : ObservableObject
                 ((RelayCommand)SetRotationCommand).RaiseCanExecuteChanged();
                 OnPropertyChanged(nameof(SelectedObjectTypeText));
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
-                OnPropertyChanged(nameof(SelectedObjectIconPath));
                 RaiseRibbonSelectionChanged();
                 RaiseFormulaPreviewChanged();
                 OnPropertyChanged(nameof(BarcodeValidationMessage));
@@ -756,21 +755,6 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string TextBoxValidationMessage => ValidateSelectedTextBox();
-    public string SelectedObjectIconPath => SelectedObject?.Type switch
-    {
-        ObjectType.Text => "Icons/static_text.png",
-        ObjectType.TextBox => "Icons/text_box.png",
-        ObjectType.BarcodeCode128 => "Icons/barcode.png",
-        ObjectType.QRCode => "Icons/qr_code.png",
-        ObjectType.DataMatrix => "Icons/data_matrix.png",
-        ObjectType.Rectangle => "Icons/rectangle.png",
-        ObjectType.Ellipse => "Icons/ellipse.png",
-        ObjectType.Inverse => "Icons/inverse.png",
-        ObjectType.RichTextBox => "Icons/rich_text.png",
-        ObjectType.Line => "Icons/line.png",
-        ObjectType.Image => "Icons/image.png",
-        _ => "Icons/cursor_select.png"
-    };
     /// <summary>
     /// Ribbon tab shown (docs/NICELABEL_10_UI_LAYOUT.md). The contextual
     /// tabs exist only while an object is selected, as in NiceLabel 10.
