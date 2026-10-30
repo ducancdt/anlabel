@@ -96,6 +96,20 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void PromptsFollowThePromptOrderList_ThenUndefinedTokensByFirstUse()
+    {
+        // Quản lý dữ liệu → Thứ tự nhắc: the list order decides what is asked first when printing.
+        var template = Template("{?Free}", "{?Shift}", "{?Lot}");
+        template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" });
+        template.PromptVariables.Add(new PromptVariableDefinition { Name = "Shift", Prompt = "Ca" });
+
+        Assert.Equal(new[] { "Lot", "Shift", "Free" }, JobVariableContract.RequiredPrompts(template).Select(p => p.Name));
+
+        template.PromptVariables.Move(1, 0);
+        Assert.Equal(new[] { "Shift", "Lot", "Free" }, JobVariableContract.RequiredPrompts(template).Select(p => p.Name));
+    }
+
+    [Fact]
     public void ApplyWritesTheSameJobValuesIntoEveryRow()
     {
         var template = Template("{?Lot}/{#NOW:yyMMdd}");

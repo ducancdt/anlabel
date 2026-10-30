@@ -1,5 +1,17 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.342
+
+- Cửa sổ phóng to: thanh trạng thái không còn bị thanh tác vụ che 11 px (đo
+  trực tiếp ở 150 %).
+- Quản lý dữ liệu theo Dynamic Data Manager của NiceLabel 10 (`DataManagerWindow`):
+  ribbon nhỏ, cây Biến nhập khi in / Hàm / Bộ đếm Serial / Cơ sở dữ liệu / Biến
+  nội bộ, trình sửa từng mục, Đồng ý áp dụng một bước Hoàn tác, Hủy bỏ bản
+  nháp. Trang chủ › Quản lý dữ liệu ▾ mở thẳng từng mục.
+- Dữ liệu › Nhập nguồn dữ liệu (lấy biến và hàm từ tem ANLAbel hoặc NiceLabel,
+  giữ hoặc ghi đè tên trùng) và Thứ tự nhắc; thứ tự này nay quyết định thứ tự
+  câu hỏi khi in.
+
 ## v0.342 — Giao diện NiceLabel 10: thanh tiêu đề, dải tab, ribbon và trang Tệp
 
 _Gồm các commit 30/10/2026 (16:57–17:10)._

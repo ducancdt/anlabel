@@ -57,22 +57,35 @@ public static partial class JobVariableContract
         => token.Length > 1 && token[0] == '?';
 
     /// <summary>
-    /// The prompts the operator must answer, in order of first use. A token
-    /// without a definition is a required free-text prompt named after it.
+    /// The prompts the operator must answer. Defined variables come in the order of
+    /// <see cref="LabelTemplate.PromptVariables"/> (Quản lý dữ liệu → Thứ tự nhắc, as
+    /// NiceLabel 10's prompt order); a token without a definition follows as a required
+    /// free-text prompt named after it, in order of first use.
     /// </summary>
     public static IReadOnlyList<PromptVariableDefinition> RequiredPrompts(LabelTemplate template)
     {
         ArgumentNullException.ThrowIfNull(template);
-        var result = new List<PromptVariableDefinition>();
+        var result = new List<(PromptVariableDefinition Prompt, int Order)>();
         foreach (var token in FindTokens(template).Where(IsPromptToken))
         {
             var name = token[1..].Trim();
-            var definition = template.PromptVariables.FirstOrDefault(item =>
-                string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
-            result.Add(definition ?? new PromptVariableDefinition { Name = name });
+            var order = -1;
+            for (var index = 0; index < template.PromptVariables.Count; index++)
+            {
+                if (string.Equals(template.PromptVariables[index].Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    order = index;
+                    break;
+                }
+            }
+
+            result.Add(order >= 0
+                ? (template.PromptVariables[order], order)
+                : (new PromptVariableDefinition { Name = name }, int.MaxValue));
         }
 
-        return result;
+        // OrderBy is stable: undefined prompts keep their order of first use.
+        return result.OrderBy(entry => entry.Order).Select(entry => entry.Prompt).ToArray();
     }
 
     /// <summary>Problem with one entered value, or empty when it is acceptable.</summary>

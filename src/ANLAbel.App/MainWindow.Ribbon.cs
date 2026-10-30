@@ -28,6 +28,48 @@ public partial class MainWindow
 
     private void SharedDataSources_Click(object sender, RoutedEventArgs e) => ShowDatabaseManager();
 
+    // ---- Quản lý dữ liệu (NiceLabel 10 Dynamic Data Manager) -------------------------------------
+
+    private void DataManagerPage_Click(object sender, RoutedEventArgs e) =>
+        ShowDataManager((sender as FrameworkElement)?.Tag as string);
+
+    private void ShowDataManager(string? page)
+    {
+        CommitFocusedEdit();
+        new DataManagerWindow(_viewModel, page) { Owner = this }.ShowDialog();
+    }
+
+    private void ImportDataSources_Click(object sender, RoutedEventArgs e)
+    {
+        CommitFocusedEdit();
+        var template = _viewModel.Template;
+        var dialog = new ImportDataSourcesWindow(_viewModel, template.PromptVariables.ToArray(), template.DataTransforms.ToArray()) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            _viewModel.ApplyDataDefinitions(dialog.Prompts, dialog.Transforms, template.SerialCounter.Clone());
+            _viewModel.StatusText = dialog.Summary + " Ctrl+Z để hoàn tác.";
+        }
+    }
+
+    private void PromptOrder_Click(object sender, RoutedEventArgs e)
+    {
+        CommitFocusedEdit();
+        var template = _viewModel.Template;
+        if (template.PromptVariables.Count < 2)
+        {
+            _viewModel.StatusText = template.PromptVariables.Count == 0
+                ? "Tem chưa có biến nhập khi in. Thêm biến trong Quản lý dữ liệu."
+                : "Tem chỉ có một biến nhập khi in, không cần sắp thứ tự.";
+            return;
+        }
+
+        var dialog = new PromptOrderWindow(template.PromptVariables) { Owner = this };
+        if (dialog.ShowDialog() == true && !dialog.Order.SequenceEqual(template.PromptVariables))
+        {
+            _viewModel.ApplyDataDefinitions(dialog.Order.ToArray(), template.DataTransforms.ToArray(), template.SerialCounter.Clone());
+        }
+    }
+
     // ---- Xem → Thu phóng ------------------------------------------------------------------
 
     private void ZoomPercentBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

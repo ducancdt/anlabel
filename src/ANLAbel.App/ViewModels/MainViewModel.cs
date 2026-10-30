@@ -4262,33 +4262,37 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>Plain-language state of the serial counter for the data settings panel.</summary>
-    public string SerialCounterStatusText
+    public string SerialCounterStatusText => DescribeSerialCounter(Template.SerialCounter);
+
+    /// <summary>
+    /// Plain-language state of <paramref name="counter"/>: off, what to fix, or the next
+    /// number (read from the counter store without reserving it). Quản lý dữ liệu shows
+    /// it for the counter being edited.
+    /// </summary>
+    public string DescribeSerialCounter(SerialCounterDefinition counter)
     {
-        get
+        ArgumentNullException.ThrowIfNull(counter);
+        if (!counter.Enabled)
         {
-            var counter = Template.SerialCounter;
-            if (!counter.Enabled)
-            {
-                return "Bộ đếm đang tắt. Bật để in số serial bằng {#SERIAL}.";
-            }
+            return "Bộ đếm đang tắt. Bật để in số serial bằng {#SERIAL}.";
+        }
 
-            var errors = SerialCounterContract.ValidateDefinition(counter);
-            if (errors.Count > 0)
-            {
-                return string.Join(" ", errors.Select(ANLAbel.App.Services.SerialCounterText.Message));
-            }
+        var errors = SerialCounterContract.ValidateDefinition(counter);
+        if (errors.Count > 0)
+        {
+            return string.Join(" ", errors.Select(ANLAbel.App.Services.SerialCounterText.Message));
+        }
 
-            try
-            {
-                var next = SerialCounterStore.ForCounter(counter).PeekNextValue(counter);
-                return SerialCounterContract.ValueAt(counter, next, 0) is null
-                    ? $"Bộ đếm đã dùng hết khoảng {counter.MinimumValue} – {counter.MaximumValue}. Nới giới hạn, bật quay vòng hoặc đặt lại."
-                    : $"Số kế tiếp: {SerialCounterContract.Format(counter, next)}. Dùng {{{SerialCounterContract.Token}}} trong liên kết dữ liệu của đối tượng.";
-            }
-            catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
-            {
-                return ANLAbel.App.Services.SerialCounterText.Message(exception.Message);
-            }
+        try
+        {
+            var next = SerialCounterStore.ForCounter(counter).PeekNextValue(counter);
+            return SerialCounterContract.ValueAt(counter, next, 0) is null
+                ? $"Bộ đếm đã dùng hết khoảng {counter.MinimumValue} – {counter.MaximumValue}. Nới giới hạn, bật quay vòng hoặc đặt lại."
+                : $"Số kế tiếp: {SerialCounterContract.Format(counter, next)}. Dùng {{{SerialCounterContract.Token}}} trong liên kết dữ liệu của đối tượng.";
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
+        {
+            return ANLAbel.App.Services.SerialCounterText.Message(exception.Message);
         }
     }
 
@@ -4314,6 +4318,64 @@ public sealed class MainViewModel : ObservableObject
     {
         Template.SerialCounter.Reset();
         RaiseSerialCounterPreviewChanged();
+    }
+
+    /// <summary>
+    /// Applies the Quản lý dữ liệu window (NiceLabel 10 Dynamic Data Manager) as one undo
+    /// step: the prompt variables in their order (the order they are asked in when
+    /// printing), the functions, and the serial counter settings.
+    /// </summary>
+    public void ApplyDataDefinitions(
+        IReadOnlyList<PromptVariableDefinition> promptVariables,
+        IReadOnlyList<DataTransformDefinition> transforms,
+        SerialCounterDefinition serialCounter)
+    {
+        ArgumentNullException.ThrowIfNull(promptVariables);
+        ArgumentNullException.ThrowIfNull(transforms);
+        ArgumentNullException.ThrowIfNull(serialCounter);
+        BeginTemplateEditGesture();
+        try
+        {
+            Template.PromptVariables.Clear();
+            foreach (var prompt in promptVariables)
+            {
+                Template.PromptVariables.Add(prompt);
+            }
+
+            Template.DataTransforms.Clear();
+            foreach (var transform in transforms)
+            {
+                Template.DataTransforms.Add(transform);
+            }
+
+            Template.SerialCounter.CopyFrom(serialCounter);
+        }
+        finally
+        {
+            CommitTemplateEditGesture();
+        }
+
+        // Functions feed the preview row; bindings to removed names show as issues.
+        PreviewRow = CreatePreviewRow(SelectedDataItem);
+        RaiseFormulaPreviewChanged();
+        RaiseSerialCounterPreviewChanged();
+        OnPropertyChanged(nameof(DataTransforms));
+        StatusText = "Đã cập nhật dữ liệu của tem (Ctrl+Z để hoàn tác).";
+    }
+
+    /// <summary>
+    /// Reads another label, ANLAbel or NiceLabel, without opening it (Nhập nguồn dữ liệu).
+    /// A damaged file is reported; its backup is not used in its place.
+    /// </summary>
+    public async Task<LabelTemplate> ReadTemplateForImportAsync(string filePath)
+    {
+        var result = await _projectFileService.LoadWithRecoveryAsync(filePath);
+        if (result.RecoveredFromBackup)
+        {
+            throw new InvalidDataException($"Không đọc được “{Path.GetFileName(filePath)}”: {ANLAbel.App.Services.TemplateFailureExplainer.ExplainMessage(result.PrimaryError ?? string.Empty).Problem}");
+        }
+
+        return result.Template;
     }
 
     private void PrinterProfileOnPropertyChanged(object? sender, PropertyChangedEventArgs e)

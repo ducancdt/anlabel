@@ -794,13 +794,7 @@ public partial class MainWindow : Window
 
     private void DataSources_Click(object sender, RoutedEventArgs e)
     {
-        // NiceLabel 10 Dynamic Data Manager: the Data explorer under the toolbox.
-        if (DataContext is MainViewModel viewModel)
-        {
-            viewModel.ShowAllPanelsCommand.Execute(null);
-        }
-
-        WorkspaceTabs.SelectedIndex = 0;
+        ShowDataManager(null);
         e.Handled = true;
     }
 

@@ -53,4 +53,15 @@ public sealed class PromptVariableDefinition : ObservableObject
         get => _required;
         set => SetProperty(ref _required, value);
     }
+
+    /// <summary>A copy to edit without touching this variable (Quản lý dữ liệu works on a draft).</summary>
+    public PromptVariableDefinition Clone() => new()
+    {
+        Name = Name,
+        Prompt = Prompt,
+        DefaultValue = DefaultValue,
+        MaxLength = MaxLength,
+        DigitsOnly = DigitsOnly,
+        Required = Required
+    };
 }

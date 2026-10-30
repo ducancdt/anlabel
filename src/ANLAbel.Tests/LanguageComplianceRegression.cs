@@ -31,6 +31,9 @@ internal static class LanguageComplianceRegression
         "SettingsWindow.xaml",
         "OperatorDialog.xaml",
         "App.xaml",
+        "DataManagerWindow.xaml",
+        "PromptOrderWindow.xaml",
+        "ImportDataSourcesWindow.xaml",
     };
 
     // Thuộc tính XAML mang chuỗi người vận hành nhìn thấy.
@@ -66,6 +69,8 @@ internal static class LanguageComplianceRegression
     {
         "Data Matrix", "DataMatrix", "Print Preview", "DriverManaged",
         "Print Schema", "Win32",
+        // Formula functions are syntax the operator types (Quản lý dữ liệu → Hàm).
+        "FIELD(", "CONCAT(", "MID(", "GS1CHECKDIGIT(",
     };
 
     // Denylist tiếng Anh — các từ tiếng Anh thực tế từng xuất hiện trong UI.

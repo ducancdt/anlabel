@@ -770,4 +770,35 @@
         <GeometryDrawing Brush="#FFFFFF" Geometry="M4.5,9.5 H11.5 V14.5 H4.5 Z"><GeometryDrawing.Pen><Pen Brush="#3D4B5F" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
         <GeometryDrawing Geometry="M6,12 L10,12"><GeometryDrawing.Pen><Pen Brush="#8C9AAF" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
     </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.AddVariable32" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H32 V32 H0 Z"/>
+        <GeometryDrawing Brush="#E8DEF7" Geometry="M5.5,5.5 H22.5 A3,3 0 0 1 25.5,8.5 V21.5 A3,3 0 0 1 22.5,24.5 H5.5 A3,3 0 0 1 2.5,21.5 V8.5 A3,3 0 0 1 5.5,5.5 Z"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Geometry="M7.5,10.5 L13.5,19.5 M13.5,10.5 L7.5,19.5"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="2" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Geometry="M16.5,12.5 H22 M16.5,16.5 H22"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="1.8"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#3FA567" Geometry="M18,24.5 A6.5,6.5 0 1 1 31,24.5 A6.5,6.5 0 1 1 18,24.5 Z"><GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Geometry="M21.25,24.5 H27.75 M24.5,21.25 V27.75"><GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="1.6"/></GeometryDrawing.Pen></GeometryDrawing>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.AddFunction32" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H32 V32 H0 Z"/>
+        <GeometryDrawing Geometry="M10.5,28 V11 C10.5,5.5 14.5,4.5 17.5,5.5 M6.5,13 H15.5"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="2.4" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Geometry="M15.5,15.5 L23,27 M23,15.5 L15.5,27"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="2.4" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#3FA567" Geometry="M19,8 A6,6 0 1 1 31,8 A6,6 0 1 1 19,8 Z"><GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Geometry="M22,8 H28 M25,5 V11"><GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="1.6"/></GeometryDrawing.Pen></GeometryDrawing>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.Counter32" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H32 V32 H0 Z"/>
+        <GeometryDrawing Brush="#E8DEF7" Geometry="M3.5,18.5 H9.5 V28.5 H3.5 Z"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#E8DEF7" Geometry="M12.5,12.5 H18.5 V28.5 H12.5 Z"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#9A79CF" Geometry="M21.5,5.5 H27.5 V28.5 H21.5 Z"><GeometryDrawing.Pen><Pen Brush="#7451AE" Thickness="1"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Geometry="M4,10 L13,4.5"><GeometryDrawing.Pen><Pen Brush="#21804A" Thickness="1.6" StartLineCap="Round" EndLineCap="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+        <GeometryDrawing Brush="#21804A" Geometry="M14.8,3.2 L12.2,7.4 L10.4,3.4 Z"/>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.ArrowUp16" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H16 V16 H0 Z"/>
+        <GeometryDrawing Brush="#2D6CC0" Geometry="M8,2 L14,9 L10,9 L10,14 L6,14 L6,9 L2,9 Z"><GeometryDrawing.Pen><Pen Brush="#1F4F91" Thickness="0.8" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
+    <DrawingImage x:Key="Icon.ArrowDown16" po:Freeze="True"><DrawingImage.Drawing><DrawingGroup>
+        <GeometryDrawing Brush="#00FFFFFF" Geometry="M0,0 H16 V16 H0 Z"/>
+        <GeometryDrawing Brush="#2D6CC0" Geometry="M8,14 L14,7 L10,7 L10,2 L6,2 L6,7 L2,7 Z"><GeometryDrawing.Pen><Pen Brush="#1F4F91" Thickness="0.8" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+    </DrawingGroup></DrawingImage.Drawing></DrawingImage>
 </ResourceDictionary>

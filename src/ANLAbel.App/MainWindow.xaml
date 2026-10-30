@@ -671,8 +671,18 @@
                             <Border Style="{StaticResource RibbonGroupSeparator}"/>
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
-                                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.DataManager32}" Content="Quản lý&#10;dữ liệu" Click="DataSources_Click"
-                                            ToolTip="Quản lý dữ liệu: biến nhập khi in, trường cơ sở dữ liệu, bộ đếm và hàm của tem" AutomationProperties.Name="Data manager" AutomationProperties.AutomationId="Shell.Ribbon.DataSources"/>
+                                    <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.DataManager32}" Content="Quản lý&#10;dữ liệu ▾" Click="DataSources_Click"
+                                                                ToolTip="Quản lý dữ liệu: biến nhập khi in, hàm, bộ đếm và cơ sở dữ liệu của tem (▾: mở thẳng một mục)"
+                                                                AutomationProperties.Name="Data manager" AutomationProperties.AutomationId="Shell.Ribbon.DataSources">
+                                        <controls:RibbonSplitButton.DropDown>
+                                            <ContextMenu>
+                                                <MenuItem Header="Biến nhập khi in…" Tag="Prompts" Click="DataManagerPage_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Variable16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Hàm…" Tag="Functions" Click="DataManagerPage_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Function16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Bộ đếm Serial…" Tag="Counter" Click="DataManagerPage_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Counter16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Cơ sở dữ liệu…" Tag="Database" Click="DataManagerPage_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Database16}"/></MenuItem.Icon></MenuItem>
+                                            </ContextMenu>
+                                        </controls:RibbonSplitButton.DropDown>
+                                    </controls:RibbonSplitButton>
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.DocumentProperties32}" Content="Thuộc tính&#10;tem" Click="PrinterSetup_Click"
                                             ToolTip="Thuộc tính tem: máy in, kích thước tem, giấy và vật liệu" AutomationProperties.Name="Document properties" AutomationProperties.AutomationId="Shell.Ribbon.PrinterSetup"/>
                                 </StackPanel>
@@ -759,6 +769,10 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.DataManager32}" Content="Quản lý&#10;dữ liệu" Click="DataSources_Click"
                                             ToolTip="Quản lý dữ liệu: biến nhập khi in, trường cơ sở dữ liệu, bộ đếm và hàm của tem" AutomationProperties.Name="Data source manager" AutomationProperties.AutomationId="Shell.Ribbon.DataManager"/>
+                                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.ImportDataSources32}" Content="Nhập nguồn&#10;dữ liệu" Click="ImportDataSources_Click"
+                                            ToolTip="Lấy biến nhập khi in và hàm từ một tem khác (ANLAbel hoặc NiceLabel)" AutomationProperties.Name="Import data sources" AutomationProperties.AutomationId="Shell.Ribbon.ImportDataSources"/>
+                                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.PromptOrder32}" Content="Thứ tự&#10;nhắc" Click="PromptOrder_Click"
+                                            ToolTip="Thứ tự các câu hỏi hiện ra khi in" AutomationProperties.Name="Prompt order" AutomationProperties.AutomationId="Shell.Ribbon.PromptOrder"/>
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.SharedSources32}" Content="Nguồn&#10;dùng chung" Click="SharedDataSources_Click"
                                             ToolTip="Nguồn Excel dùng chung giữa các mẫu tem: thêm, kiểm tra, liên kết lại, dọn dẹp" AutomationProperties.Name="Shared data sources" AutomationProperties.AutomationId="Shell.Ribbon.SharedDataSources"/>
                                 </StackPanel>

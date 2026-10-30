@@ -141,5 +141,37 @@ public sealed class SerialCounterDefinition : ObservableObject
     /// <summary>Starts a new number sequence at <see cref="StartValue"/>.</summary>
     public void Reset() => CounterId = NewCounterId();
 
+    /// <summary>A copy to edit without touching this counter (Quản lý dữ liệu works on a draft).</summary>
+    public SerialCounterDefinition Clone()
+    {
+        var copy = new SerialCounterDefinition();
+        copy.CopyFrom(this);
+        return copy;
+    }
+
+    /// <summary>
+    /// Takes every setting of <paramref name="other"/>, including its sequence identity,
+    /// so applying an unchanged draft leaves the number sequence where it is.
+    /// </summary>
+    public void CopyFrom(SerialCounterDefinition other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        CounterId = other.CounterId;
+        StartValue = other.StartValue;
+        Step = other.Step;
+        ChangeEvery = other.ChangeEvery;
+        MinimumValue = other.MinimumValue;
+        MaximumValue = other.MaximumValue;
+        Rollover = other.Rollover;
+        Digits = other.Digits;
+        Prefix = other.Prefix;
+        Suffix = other.Suffix;
+        SharedFolder = other.SharedFolder;
+        Alphabet = other.Alphabet;
+        CustomAlphabet = other.CustomAlphabet;
+        // Last: enabling a counter without an identity would give it a new one.
+        Enabled = other.Enabled;
+    }
+
     private static string NewCounterId() => Guid.NewGuid().ToString("N");
 }

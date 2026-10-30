@@ -1,0 +1,40 @@
+<Window x:Class="ANLAbel.App.ImportDataSourcesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nhập nguồn dữ liệu" Width="600" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="#F1F1F1">
+    <!-- NiceLabel 10 Import Data Sources (datasources/view/datasourceimportdialogview.xaml):
+         source file, then Overwrite or Merge when a name already exists. -->
+    <StackPanel Margin="16">
+        <GroupBox Header="Tệp nguồn" Padding="8,6">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Chọn tệp…" MinWidth="96" Margin="8,0,0,0" Click="Browse_Click" AutomationProperties.AutomationId="ImportDataSources.Browse"/>
+                    <TextBox x:Name="SourcePathBox" IsReadOnly="True" AutomationProperties.Name="Tệp nguồn" AutomationProperties.AutomationId="ImportDataSources.Path"/>
+                </DockPanel>
+                <TextBlock x:Name="SourceSummaryText" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#5B6B80"
+                           Text="Chọn một tem ANLAbel (.anlabel) hoặc NiceLabel (.nlbl, .lbl) để lấy biến nhập khi in và hàm của nó."/>
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="Nhập" Padding="8,6" Margin="0,10,0,0">
+            <StackPanel>
+                <CheckBox x:Name="ImportPromptsBox" Content="Biến nhập khi in" IsChecked="True" Margin="0,2"/>
+                <CheckBox x:Name="ImportFunctionsBox" Content="Hàm" IsChecked="True" Margin="0,2"/>
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="Tùy chọn" Padding="8,6" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock Text="Khi một tên đã có trong tem này:" Margin="0,0,0,4"/>
+                <RadioButton x:Name="MergeRadio" GroupName="ImportMode" Content="Giữ dữ liệu đang có, chỉ thêm tên mới" IsChecked="True"/>
+                <RadioButton x:Name="OverwriteRadio" GroupName="ImportMode" Content="Ghi đè bằng dữ liệu nhập vào"/>
+            </StackPanel>
+        </GroupBox>
+        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Foreground="#5B6B80"
+                   Text="Bộ đếm Serial không được nhập: mỗi tem giữ dãy số riêng để không in trùng số."/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button x:Name="OkButton" Content="Nhập" MinWidth="90" IsDefault="True" IsEnabled="False" Click="Ok_Click" AutomationProperties.AutomationId="ImportDataSources.Ok"/>
+            <Button Content="Hủy" MinWidth="90" Margin="8,0,0,0" IsCancel="True" AutomationProperties.AutomationId="ImportDataSources.Cancel"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

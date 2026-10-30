@@ -326,10 +326,38 @@ removed from the list. ANLAbel always has a label open, so NiceLabel's
 "no document" landing page is the Bắt đầu page here, not a start-up screen.
 Not built: Store, Protection, Close (no ANLAbel equivalent).
 
+### Quản lý dữ liệu (Dynamic Data Manager)
+
+Evidence: `datasources/view/datasourcesdialogview.xaml` — a dialog with a small
+ribbon (General, Add, Database, Variables › Prompt Order, Import and Export),
+a 250 DIP tree of data sources on the left, the selected item's property
+editor on the right, OK / Cancel; `variablepromptorderdialogview.xaml`
+(variables with Move Up / Move Down) and `datasourceimportdialogview.xaml`
+(source file, Overwrite or Merge).
+
+ANLAbel (`DataManagerWindow`, opened from Trang chủ › Quản lý dữ liệu ▾ — the
+▾ opens a section directly — and Dữ liệu › Quản lý dữ liệu):
+
+| Part | ANLAbel |
+| --- | --- |
+| Ribbon | Thêm: Biến nhập khi in · Hàm · Bộ đếm Serial — Sửa: Xóa — Cơ sở dữ liệu: Excel · Tệp văn bản · Sửa cơ sở dữ liệu — Biến: Thứ tự nhắc — Nhập: Nhập nguồn dữ liệu |
+| Tree | Biến nhập khi in (n) · Hàm (n) · Bộ đếm Serial · Cơ sở dữ liệu · Biến nội bộ ({#NOW}, {#SERIAL}) |
+| Editors | variable: name, prompt, default, max length, digits only, required, which objects use it; function: name, formula, its result on the current data row, syntax help; counter: every setting, next number, start a new sequence; database: file, fields, edit / reload / unlink; internal variables: how to write them and today's value |
+| OK / Hủy | Variables, functions and the counter are edited on a draft; Đồng ý checks names (empty, duplicate, braces, clash with a database field), warns about formulas and counter settings that would block printing, then applies everything as one undo step. Hủy asks before dropping changes. Database commands act at once, as on the Data tab. |
+
+Thứ tự nhắc now decides the print dialog: `JobVariableContract.RequiredPrompts`
+asks defined variables in the order of the label's list, then any `{?Tên}`
+without a definition in order of first use (before: always first use, so a
+prompt order list would have had no effect). Nhập nguồn dữ liệu reads an
+ANLAbel or NiceLabel label and merges its variables and functions by name
+(`DataDefinitionImport`: keep existing or overwrite); the serial counter is not
+imported, so each label keeps its own number sequence. Dữ liệu › Nhập nguồn dữ
+liệu and Thứ tự nhắc work on the label directly (one undo step each).
+
+Not built: NiceLabel's global/persistent variables and the database
+connectors outside ANLAbel's scope (Access, SQL Server, ODBC).
+
 ### Still to rebuild
 
-- Quản lý dữ liệu: NiceLabel's Dynamic Data Manager window (variables,
-  counters, functions, databases in one tree with a property editor), with
-  Thứ tự nhắc (prompt order) and Nhập nguồn dữ liệu.
 - Contextual drop-downs: bearer bar, barcode details, colours, outline and
   fill styles.

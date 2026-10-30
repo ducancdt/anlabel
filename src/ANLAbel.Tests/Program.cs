@@ -307,6 +307,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("gs1 industrial AI subset validates weight and variable fields", TestGs1IndustrialAiSubset),
     ("main shell regions match NiceLabel map AutomationIds", TestMainShellRegionsMatchNiceLabelMap),
     ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
+    ("data manager applies variables, functions and counter as one undo step", TestDataManagerAppliesAsOneUndoStep),
     ("dialogs render for the UI audit", TestDialogsRenderForUiAudit),
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("ribbon formats the selected rich text", TestRibbonFormatsRichText),
@@ -13272,6 +13273,75 @@ static Task TestDialogsRenderForUiAudit()
             Save("excel-import", new ExcelImportWindow(main), 900, 640);
             Save("template-revisions", new TemplateRevisionWindow(main), 900, 600);
             Save("update", new UpdateWindow("0.325.0"), 560, 420);
+            main.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" });
+            main.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Shift", Prompt = "Ca" });
+            Save("data-manager", new DataManagerWindow(main), 1000, 660);
+            Save("prompt-order", new PromptOrderWindow(main.Template.PromptVariables), 580, 420);
+            Save("import-data-sources", new ImportDataSourcesWindow(main, main.Template.PromptVariables.ToArray(), main.Template.DataTransforms.ToArray()), 600, 430);
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestDataManagerAppliesAsOneUndoStep()
+{
+    // docs/NICELABEL_10_UI_LAYOUT.md "Quản lý dữ liệu": the window edits a draft; Đồng ý
+    // applies it as one undo step, Hủy (or an unchanged close) leaves the label alone.
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var viewModel = new MainViewModel();
+            var before = viewModel.Template.PromptVariables.Count;
+            void Click(Window window, string id) =>
+                ((System.Windows.Controls.Primitives.ButtonBase)FindByAutomationId(window, id)!).RaiseEvent(
+                    new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+
+            var window = new DataManagerWindow(viewModel);
+            window.Measure(new Size(1000, 660));
+            window.Arrange(new Rect(0, 0, 1000, 660));
+            window.UpdateLayout();
+            Click(window, "DataManager.AddVariable");
+            var prompt = (PromptVariableDefinition)((FrameworkElement)window.FindName("PromptEditor")).DataContext;
+            prompt.Name = "Lot";
+            prompt.Prompt = "Số lô";
+            Click(window, "DataManager.AddFunction");
+            // The draft type is private to the window: set it the way its text boxes do.
+            var function = ((FrameworkElement)window.FindName("FunctionEditor")).DataContext;
+            function.GetType().GetProperty("Name")!.SetValue(function, "Code");
+            function.GetType().GetProperty("Formula")!.SetValue(function, "CONCAT(\"A\", \"-\", \"B\")");
+            AssertEqual(before, viewModel.Template.PromptVariables.Count, "The draft does not touch the label before Đồng ý");
+            Click(window, "DataManager.Ok");
+            AssertEqual(true, window.Accepted, "Đồng ý applies the draft");
+            AssertEqual("Lot", viewModel.Template.PromptVariables.Last().Name, "The new variable is in the label");
+            AssertEqual("Code", viewModel.Template.DataTransforms.Single().Name, "The new function is in the label");
+            viewModel.UndoCommand.Execute(null);
+            AssertEqual(before, viewModel.Template.PromptVariables.Count, "One Ctrl+Z takes the whole edit back");
+            AssertEqual(0, viewModel.Template.DataTransforms.Count, "One Ctrl+Z takes the function back too");
+
+            // Prompt order is the order of the list, and the print dialog asks in that order.
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Shift" });
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot" });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Prompted", BindingExpression = "{?Lot} {?Shift}" });
+            AssertEqual("Shift,Lot", string.Join(",", ANLAbel.Core.Printing.JobVariableContract.RequiredPrompts(viewModel.Template).Select(p => p.Name)),
+                "Thứ tự nhắc: the print dialog follows the variable list");
+
+            var unchanged = new DataManagerWindow(viewModel);
+            unchanged.Close();
+            AssertEqual(false, unchanged.Accepted, "Closing without changes applies nothing");
         }
         catch (Exception ex)
         {
