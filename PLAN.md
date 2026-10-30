@@ -1,5 +1,22 @@
 # ANLAbel Phase 1 Plan
 
+## v0.341 — Trợ năng: tên cho trình đọc màn hình, chú thích nút, thứ tự Tab, viền tiêu điểm, độ tương phản
+
+_Gồm các commit 30/10/2026 (14:32–15:20)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Mọi điều khiển nhận tiêu điểm có tên cho trình đọc màn hình (trước đó 31
+  điều khiển không tên); cổng kiểm mọi ô nhập, danh sách chọn, thanh trượt và
+  thẻ.
+- Nút ▲ ▼ ☑ trong Xem trước và chín chấm Điểm neo có chú thích.
+- Phím Tab đi theo màn hình: tiêu đề → ribbon → hộp công cụ → Dữ liệu → bảng
+  thiết kế → Thuộc tính → thanh trạng thái; Ghim trước Đóng; thẻ Dữ liệu/Lớp/
+  Đối tượng có tên.
+- Viền tiêu điểm xanh liền 2 px ở mọi cửa sổ (chủ dự án tự xem trên màn hình).
+- Chữ phụ đổi sang #5B6B80, đạt WCAG AA 4,5:1 trên mọi nền sáng. Quyết định:
+  không hỗ trợ chế độ tương phản cao của Windows.
+
+**Kiểm tra:** build 0 cảnh báo, 1543 unit, hồi quy 284/284.
+
 ## v0.340 — Ribbon định dạng Chữ định dạng (RTF); Trung tâm in; kích thước tối thiểu của hộp thoại
 
 _Gồm các commit 30/10/2026 (13:54–14:12)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
