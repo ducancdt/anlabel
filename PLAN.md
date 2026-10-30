@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.343
+## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
+
+_Gồm các commit 30/10/2026 (19:13–19:46)._
 
 - Sửa icon lỗi: mọi cửa sổ dùng một bộ icon vector (thêm 38 icon 16 px).
   Bỏ ảnh PNG cũ (mờ ở 125–150 %) và emoji (WPF vẽ thành nét mờ hoặc ô
@@ -20,6 +22,12 @@
 - Tem kiểm thử A5 đủ 15 loại mã gắn với sổ Excel thật: gate giải mã mọi mã ở
   30 dòng (300 DPI) và 10 dòng (600 DPI); dữ liệu sai chặn đúng dòng, đúng mã.
   Đặt `ANLABEL_A5_KIT_DIR` để lấy sổ Excel và tệp .anlabel đem in thật.
+- In thật một tờ A5 (dòng 4 của sổ Excel, 15 loại mã) trên DocuCentre-IV 3065
+  qua PrintService: khổ ISOA5 của trình điều khiển, 600 DPI, vùng in 4,11 mm
+  đã xác minh, preflight đạt; hàng đợi nhận lệnh #96 (1 trang) và trả về
+  trống. Chưa xác minh bản giấy bằng máy quét: chủ dự án kiểm tra tờ in.
+
+**Kiểm tra:** build 0 cảnh báo, 1556 unit, hồi quy 290/290.
 
 ## v0.343 — Quản lý dữ liệu, tab ngữ cảnh và hộp công cụ theo NiceLabel 10
 
