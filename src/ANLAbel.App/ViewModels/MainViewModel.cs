@@ -4552,6 +4552,13 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(SelectedPictureSourceText));
             }
 
+            // The Properties header names the object and its size; keep it current
+            // while the object is renamed, resized or dragged.
+            if (e.PropertyName is nameof(LabelObject.Name) or nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm))
+            {
+                OnPropertyChanged(nameof(SelectedObjectSummaryText));
+            }
+
             if (e.PropertyName is nameof(LabelObject.BindingExpression) or nameof(LabelObject.Text))
             {
                 RaiseFormulaPreviewChanged();

@@ -332,6 +332,29 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>The Properties header ("name | type | W x H mm") follows renames and resizes of the selection.</summary>
+    public static Task PropertiesHeaderFollowsTheSelectedObject()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var item = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 10 };
+            viewModel.Template.Objects.Add(item);
+            viewModel.SelectedObject = item;
+            var raised = 0;
+            viewModel.PropertyChanged += (_, e) => raised += e.PropertyName == nameof(viewModel.SelectedObjectSummaryText) ? 1 : 0;
+            item.WidthMm = 35;
+            item.HeightMm = 12.5;
+            item.Name = "Khung ngoài";
+            Require(raised >= 3, $"The header must refresh on resize and rename; it refreshed {raised} time(s).");
+            Require(viewModel.SelectedObjectSummaryText.StartsWith("Khung ngoài |", StringComparison.Ordinal)
+                    && viewModel.SelectedObjectSummaryText.Replace(',', '.').EndsWith("35 x 12.5 mm", StringComparison.Ordinal),
+                $"Header reads '{viewModel.SelectedObjectSummaryText}'.");
+        });
+
+        return Task.CompletedTask;
+    }
+
     private sealed record DataMatrixCase(string Name, DataMatrixSymbolSize Size, string Data, double X, double Y, double W, double H, double Aspect);
 
     /// <summary>
