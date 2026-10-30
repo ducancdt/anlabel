@@ -856,3 +856,37 @@ built: a `DateAddFunction` whose input is a prompted date.
   pharmacy numbers, multi-line mod-11/mod-97 scripts), the Voice Pick code
   (produce traceability, a label-internal function), ISBT 128 (script
   helper `ISBTNumericPair`).
+
+## §22 Every stored property the importer does not read (2026-10-31)
+
+Scan of all object items in the label XML and all variables and functions in
+the .slnx of the 207 sample and 12 local customer labels, against the names
+the reader uses. Counts are items with a non-default value (customer /
+samples).
+
+- Objects: `MergeName` (every item; the name in printer data, ANLAbel uses
+  `Name`), `PrintAsGraphics`, `UsageType`, `EditorHeights` (designer only),
+  `TextType` (Unknown 0, Text 1, TextBox 2, TextOnPath 3; the importer takes
+  Text/TextBox from the geometry, no TextOnPath item exists), the four
+  `...Cutout` values of a paragraph (6 / 43, stored as 10 mm but used only by
+  a custom `Left/RightBoundaryShape`, which no label sets), `XamlContents`
+  (14 rich texts that also store their RTF, read from there),
+  `IsItemOnBackSide` (0 / 5, two-sided card printing), `CropVariableGraphics`
+  and `DesiredWidth/Height` (designer sizing), report items (out of scope).
+  None changes what an imported label prints.
+- Variables: `MergeName`, `DeviceInternalCounterType`, `DayRolloverTime`
+  (counter reset time), `MultilineLineLength`, `MultilineNumberOfLines`,
+  `MultilineEnabled`, `MultilineWordWrap` (no variable in any label has
+  `IsMultiline` True), `Description` (0 / 358, a designer note; NiceLabel's
+  print form asks with `PromptText`).
+- Functions: `ConcatenateFunction.IgnoreEmptyValues` (4 / 111) skips an empty
+  value and its separator. All four customer uses have no separator (their
+  ";" and "@" are values of their own), so skipping changes nothing; 14
+  sample functions (VDA 4994 "PackageId_Human_Readable", space separator)
+  would print two spaces where NiceLabel prints one when a value is empty.
+  Not built: no customer need, and the formula language has no join that
+  skips empty values. `ExecuteScriptFunction.IsExpression` (28 distinct
+  scripts) are all one `Result = ...` statement, already read;
+  `ScriptType` 2 (16, not VBScript) is not read. `SubsetFunction`
+  `Delimiter` '"' and `FieldNumber` are stored defaults; a `Delimited`
+  subset is refused and its objects are named as not converted.
