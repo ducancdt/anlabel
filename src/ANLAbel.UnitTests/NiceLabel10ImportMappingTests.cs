@@ -1450,6 +1450,109 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void Counters_BecomeTheSerialCounter()
+    {
+        // Serialization_Label: "0001", four digits, increments per label.
+        const string serial = "c1c1c1c1-2222-3333-4444-555555555555";
+        const string down = "c2c2c2c2-2222-3333-4444-555555555555";
+        const string named = "c3c3c3c3-2222-3333-4444-555555555555";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>{serial}</Id>
+                  <Name>varCounter</Name>
+                  <DefaultValue Type="StringContents"><StringValue>0001</StringValue></DefaultValue>
+                  <IncrementType>1</IncrementType>
+                  <PromptText>Start counter Value</PromptText>
+                  <Constraints Type="DataSourceConstraints"><Length>4</Length><FixedLength>True</FixedLength></Constraints>
+                  <Prefix>SN-</Prefix>
+                </Item>
+                <Item Type="Variable">
+                  <Id>{down}</Id>
+                  <Name>Down</Name>
+                  <DefaultValue Type="StringContents"><StringValue>100</StringValue></DefaultValue>
+                  <IncrementType>2</IncrementType>
+                  <Step>5</Step>
+                  <Count>2</Count>
+                </Item>
+                <Item Type="Variable">
+                  <Id>{named}</Id>
+                  <Name>Lettered</Name>
+                  <DefaultValue Type="StringContents"><StringValue>A1</StringValue></DefaultValue>
+                  <IncrementType>1</IncrementType>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        string Bound(string name, string id, int y) => $"""
+            <Item Type="TextDocumentItem">
+              <Name>{name}</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>{y}</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>0001</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{id}</Id></DataSourceReference>
+            </Item>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(
+            Bound("Serial", serial, 2000) + Bound("Again", serial, 12000) + Bound("Down", down, 22000) + Bound("Lettered", named, 32000)), solution), "sample.nlbl");
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        Assert.Equal("{#SERIAL}", byName["Serial"].BindingExpression);
+        Assert.Equal("{#SERIAL}", byName["Again"].BindingExpression);
+        var counter = template.SerialCounter;
+        Assert.True(ANLAbel.Core.Printing.SerialCounterContract.IsActive(template));
+        Assert.Equal((1L, 1L, 1, 4, "SN-", 9999L), (counter.StartValue, counter.Step, counter.ChangeEvery, counter.Digits, counter.Prefix, counter.MaximumValue));
+
+        // Every label of a job gets the next number.
+        Assert.True(ANLAbel.Core.Printing.SerialCounterContract.TryApply(counter, counter.StartValue, new IReadOnlyDictionary<string, string>?[3], out var labels, out var error), error);
+        Assert.Equal(new[] { "SN-0001", "SN-0002", "SN-0003" }, labels.Select(row => row![ANLAbel.Core.Printing.SerialCounterContract.Token]).ToArray());
+
+        // One serial counter per label: a second counter and a non-numeric one stay prompts.
+        Assert.Equal("{?Down}", byName["Down"].BindingExpression);
+        Assert.Equal("{?Lettered}", byName["Lettered"].BindingExpression);
+        Assert.Equal(new[] { "Down", "Lettered" }, template.PromptVariables.Select(prompt => prompt.Name).ToArray());
+    }
+
+    [Fact]
+    public void ACountingDown_CounterKeepsItsStepAndRepeat()
+    {
+        const string down = "c4c4c4c4-2222-3333-4444-555555555555";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>{down}</Id>
+                  <Name>Down</Name>
+                  <DefaultValue Type="StringContents"><StringValue>100</StringValue></DefaultValue>
+                  <IncrementType>2</IncrementType>
+                  <Step>5</Step>
+                  <Count>2</Count>
+                  <IsNotPrompted>True</IsNotPrompted>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format($"""
+            <Item Type="TextDocumentItem">
+              <Name>Down</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>2000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>100</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{down}</Id></DataSourceReference>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var counter = template.SerialCounter;
+        Assert.Equal((100L, -5L, 2, 0), (counter.StartValue, counter.Step, counter.ChangeEvery, counter.Digits));
+        Assert.True(ANLAbel.Core.Printing.SerialCounterContract.TryApply(counter, counter.StartValue, new IReadOnlyDictionary<string, string>?[4], out var labels, out var error), error);
+        Assert.Equal(new[] { "100", "100", "95", "95" }, labels.Select(row => row![ANLAbel.Core.Printing.SerialCounterContract.Token]).ToArray());
+        Assert.Empty(template.PromptVariables);
+    }
+
+    [Fact]
     public void ConcatenatedSpaces_AreKept_AndReferencesShowTheirSamples()
     {
         // "8 PC" from a Concatenate separator " ", from a fixed " " part, and a

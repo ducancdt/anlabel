@@ -1256,6 +1256,7 @@ public static partial class NiceLabel10NlblImporter
         private readonly INiceLabel10TextMeasurer? _measurer;
         private readonly string? _sourceDirectory;
         private readonly HashSet<string> _registeredPrompts = new(StringComparer.Ordinal);
+        private string? _serialCounterVariableId;
 
         private const long MaxGraphicFileBytes = 32 * 1024 * 1024;
 
@@ -1553,6 +1554,11 @@ public static partial class NiceLabel10NlblImporter
                 return ExpandTemplate(template, depth + 1, prompts);
             }
 
+            if (variable.Counter is { } counter && TryUseSerialCounter(variable, counter))
+            {
+                return "{" + SerialCounterContract.Token + "}";
+            }
+
             if (variable.Name.IndexOfAny(new[] { '{', '}' }) >= 0)
             {
                 return null;
@@ -1560,6 +1566,59 @@ public static partial class NiceLabel10NlblImporter
 
             prompts.Add(variable);
             return "{?" + variable.Name + "}";
+        }
+
+        /// <summary>
+        /// A NiceLabel counter becomes the label's serial counter, printed
+        /// through <c>{#SERIAL}</c>: its default is the start value; step,
+        /// direction, labels per value, limits, rollover, prefix and suffix
+        /// carry over, and a fixed length or leading zeros keep their digits.
+        /// Read as a prompt it printed one number on every label of a job.
+        /// ANLAbel reserves the numbers of each job, so a counter NiceLabel
+        /// prompted for continues from its last number instead of asking, and
+        /// a reset rule (another variable or the date changing) is not kept.
+        /// A label has one serial counter: a second counting variable, or one
+        /// whose default is not a whole number, stays a prompt.
+        /// </summary>
+        private bool TryUseSerialCounter(NiceLabel10Variable variable, NiceLabel10Counter counter)
+        {
+            if (_serialCounterVariableId is { } used)
+            {
+                return string.Equals(used, variable.Id, StringComparison.OrdinalIgnoreCase);
+            }
+
+            var start = variable.DefaultValue.Trim();
+            if (start.Length is 0 or > SerialCounterContract.MaximumDigits || !start.All(char.IsAsciiDigit))
+            {
+                return false;
+            }
+
+            var length = Math.Min(variable.MaxLength, SerialCounterContract.MaximumDigits);
+            var padsWithZeros = variable.Padding == 1 && variable.PaddingCharacter == "0";
+            var digits = (variable.FixedLength || padsWithZeros) && length > 0 ? length
+                : start.Length > 1 && start[0] == '0' ? start.Length
+                : 0;
+            var definition = new SerialCounterDefinition
+            {
+                StartValue = long.Parse(start, CultureInfo.InvariantCulture),
+                Step = counter.Decrement ? -counter.Step : counter.Step,
+                ChangeEvery = Math.Min(counter.Repeat, SerialCounterContract.MaximumChangeEvery),
+                MinimumValue = counter.Minimum ?? 0,
+                MaximumValue = counter.Maximum ?? (length > 0 ? (long)Math.Pow(10, length) - 1 : 999_999_999_999_999_999),
+                Rollover = counter.Rollover,
+                Digits = digits,
+                Prefix = variable.Prefix ?? string.Empty,
+                Suffix = variable.Suffix ?? string.Empty,
+                Enabled = true
+            };
+            if (SerialCounterContract.ValidateDefinition(definition).Count > 0)
+            {
+                return false;
+            }
+
+            _template.SerialCounter = definition;
+            _serialCounterVariableId = variable.Id;
+            return true;
         }
 
         private string? ExpandTemplate(string template, int depth, List<NiceLabel10Variable> prompts)

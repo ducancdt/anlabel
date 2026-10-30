@@ -253,6 +253,21 @@ public sealed record NiceLabel10ObjectRecord(
 /// <param name="PaddingCharacter">Stored padding character (<c>PaddingValue</c>).</param>
 /// <param name="FixedLength">Stored "Fixed length" constraint.</param>
 /// <param name="AllowedCharacters">Stored allowed-character set other than the ten digits.</param>
+/// <summary>
+/// A NiceLabel counter variable (<c>IncrementType</c> Increment or Decrement):
+/// <c>Step</c> per change, <c>Count</c> labels sharing one value, optional
+/// limits with rollover, and whether a reset rule (another variable or the
+/// date changing) restarts it.
+/// </summary>
+public sealed record NiceLabel10Counter(
+    bool Decrement,
+    int Step,
+    int Repeat,
+    long? Minimum,
+    long? Maximum,
+    bool Rollover,
+    bool ResetsOnChange);
+
 public sealed record NiceLabel10Variable(
     string Id,
     string Name,
@@ -282,6 +297,9 @@ public sealed record NiceLabel10Variable(
     /// stored <c>SampleValue</c>); null for other data sources.
     /// </summary>
     public string? SampleValue { get; init; }
+
+    /// <summary>The counter rules of a counting variable; null for any other variable.</summary>
+    public NiceLabel10Counter? Counter { get; init; }
 
     /// <summary>
     /// For a <c>DateAddFunction</c> whose day, month or year amount comes from

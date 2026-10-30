@@ -256,7 +256,8 @@ public static partial class NiceLabel10NlblReader
                 AllowedCharacters: string.IsNullOrEmpty(allowed) || allowed == "0123456789" || string.IsNullOrWhiteSpace(ChildText(item, "FormatId")) ? null : allowed)
             {
                 DateFormat = string.IsNullOrWhiteSpace(promptDateFormat) ? null : promptDateFormat,
-                DateInputFormat = string.IsNullOrWhiteSpace(promptDateInputFormat) ? null : promptDateInputFormat
+                DateInputFormat = string.IsNullOrWhiteSpace(promptDateInputFormat) ? null : promptDateInputFormat,
+                Counter = ReadCounter(item)
             };
         }
     }
@@ -280,6 +281,38 @@ public static partial class NiceLabel10NlblReader
         return stored >= 1 && stored < 2958465
             ? DateTime.FromOADate(stored).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : string.Empty;
+    }
+
+    /// <summary>
+    /// A counting variable's rules (Core.Model <c>Variable</c>: <c>IncrementType</c>
+    /// None 0, Increment 1, Decrement 2; <c>Step</c> and <c>Count</c> default 1;
+    /// limits only when <c>HasMinimumValue</c> / <c>HasMaximumValue</c>); null
+    /// for a variable that does not count.
+    /// </summary>
+    private static NiceLabel10Counter? ReadCounter(XElement item)
+    {
+        var incrementType = ChildText(item, "IncrementType")?.Trim();
+        var decrement = incrementType is "2" or "Decrement";
+        if (!decrement && incrementType is not ("1" or "Increment"))
+        {
+            return null;
+        }
+
+        int Positive(string name) => item.Element(name) is null ? 1 : Math.Max(1, (int)ParseDouble(item, name));
+        long? Limit(string flag, string value) =>
+            ParseBool(item, flag)
+            && long.TryParse(ChildText(item.Element(value), "StringValue")?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var limit)
+                ? limit
+                : null;
+
+        return new NiceLabel10Counter(
+            decrement,
+            Positive("Step"),
+            Positive("Count"),
+            Limit("HasMinimumValue", "MinimumValue"),
+            Limit("HasMaximumValue", "MaximumValue"),
+            ParseBool(item, "HasRolloverOnMinimumMaximumValue"),
+            ParseBool(item, "HasRolloverOnVariableChange") || ParseBool(item, "HasRolloverOnDateChange"));
     }
 
     /// <summary>

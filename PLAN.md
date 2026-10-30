@@ -22,6 +22,12 @@
 - Nhập .nlbl: GS1-128 tự tính số kiểm tra làm như NiceLabel, tính trên (độ dài
   AI − 1) chữ số đầu: GTIN 14 số được tính lại chữ số cuối thay vì nối thành 15
   số và bị chặn in (8 mã mẫu NiceLabel nay đọc được).
+- Nhập .nlbl: biến đếm của NiceLabel (tăng/giảm) thành bộ đếm số serial của
+  tem: số bắt đầu, bước, số tem cùng một số, giới hạn, quay vòng, tiền tố, hậu
+  tố và số chữ số (giữ số 0 đầu) theo bản gốc. Trước đây nó thành biến nhập nên
+  mọi tem trong một lệnh in cùng một số. Bộ đếm ANLAbel giữ chỗ số cho từng lệnh
+  nên không trùng số; bộ đếm NiceLabel hỏi số bắt đầu khi in thì nay tự nối tiếp
+  số đã in; quy tắc đặt lại theo ngày hoặc theo biến khác không chuyển được.
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 

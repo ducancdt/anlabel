@@ -786,3 +786,24 @@ built: a `DateAddFunction` whose input is a prompted date.
   `GS1CHECKDIGIT(LEFT(value, n - 1))` for the AIs whose length is fixed (00,
   8017, 8018: 18; 01, 02: 14; 402: 17; 410-417: 13). Decoded sample codes:
   493 -> 501 of 525.
+
+## §20 Counters (2026-10-31)
+
+- Core.Model `Variable`: `IncrementType` (Interfaces enum None 0, Increment 1,
+  Decrement 2), `Step` and `Count` (labels per value) default 1,
+  `HasMinimumValue`/`MinimumValue`, `HasMaximumValue`/`MaximumValue`,
+  `HasRolloverOnMinimumMaximumValue`, reset rules
+  `HasRolloverOnVariableChange` (+ `VariableChangeDataSourceReference`) and
+  `HasRolloverOnDateChange` (+ `DateRolloverChangeType`,
+  `WeekRolloverChangeType`, `DayRolloverTime`), `DeviceInternalCounterType`
+  (printer counter if possible). Samples: 8 counters (ISBT128, Serialization,
+  Serialization_Label, report labels), two prompted for their start value.
+- The reader ignored them, so a counter imported as a prompt and every label
+  of a job printed the same number. The importer now makes the first numeric
+  counter the template's serial counter (`{#SERIAL}`): default = start value,
+  step negated for Decrement, `Count` = change every, limits and rollover,
+  prefix and suffix, digits from a fixed length, zero padding or leading
+  zeros, maximum from the field length. Not kept: the start-value prompt
+  (ANLAbel continues the reserved sequence), reset rules, a second counter
+  (stays a prompt). Gate `an imported NiceLabel serial label numbers every
+  label`.

@@ -921,6 +921,127 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A NiceLabel serial label (a counter variable "0001" with prefix "SN-")
+    /// opened in ANLAbel numbers every label: the counter becomes the label's
+    /// serial counter, one job of five labels scans SN-0001 to SN-0005, the next
+    /// job continues at SN-0006 and a reprint of the first job finds its own
+    /// numbers. Reservations go to a store of this test only.
+    /// </summary>
+    public static async Task ImportedSerialLabelNumbersEveryLabel(Func<IReadOnlyDictionary<string, string>, byte[]> buildPackage)
+    {
+        const string counterId = "b2b2b2b2-0000-4000-8000-000000000001";
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-serial-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var formatXml = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <EuroPlus.NiceLabel Type="Format">
+                  <Name>Serial</Name>
+                  <Media Type="FormatMedia"><Width>60000</Width><Height>30000</Height></Media>
+                  <DocumentItems>
+                    <Item Type="BarcodeDocumentItem">
+                      <Name>SerialCode</Name>
+                      <Geometry Type="PositionGeometry"><X>4000</X><Y>4000</Y></Geometry>
+                      <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>330</BaseBarWidth><ModuleHeight>12000</ModuleHeight></BarcodeData>
+                      <FixedContents>0001</FixedContents>
+                      <DataSourceReference Type="SolutionDataSourceReference"><Id>{counterId}</Id></DataSourceReference>
+                    </Item>
+                  </DocumentItems>
+                </EuroPlus.NiceLabel>
+                """;
+            var solutionXml = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <EuroPlus.NiceLabel Type="Solution">
+                  <Variables>
+                    <Item Type="Variable">
+                      <Id>{counterId}</Id>
+                      <Name>varCounter</Name>
+                      <DefaultValue Type="StringContents"><StringValue>0001</StringValue></DefaultValue>
+                      <IncrementType>1</IncrementType>
+                      <PromptText>Start counter Value</PromptText>
+                      <Constraints Type="DataSourceConstraints"><Length>4</Length><FixedLength>True</FixedLength></Constraints>
+                      <Prefix>SN-</Prefix>
+                    </Item>
+                  </Variables>
+                </EuroPlus.NiceLabel>
+                """;
+            var nlblPath = Path.Combine(directory.FullName, "Serial.nlbl");
+            await File.WriteAllBytesAsync(nlblPath, buildPackage(new Dictionary<string, string>
+            {
+                ["Formats/label"] = formatXml,
+                ["label.slnx"] = solutionXml
+            }));
+
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            await viewModel.OpenAsync(nlblPath);
+            var template = viewModel.Template;
+            var counter = template.SerialCounter;
+            var code = template.Objects.Single(item => item.Name == "SerialCode");
+            Require(ANLAbel.Core.Printing.SerialCounterContract.IsActive(template), "The NiceLabel counter did not become the serial counter.");
+            Require(code.BindingExpression == "{#SERIAL}", $"The code binds '{code.BindingExpression}'.");
+            Require(template.PromptVariables.Count == 0, "The counter still asks for a value at print.");
+
+            var store = new ANLAbel.Data.PrintLogs.SerialCounterStore(Path.Combine(directory.FullName, "reservations.jsonl"));
+            var failures = new List<string>();
+            RunOnSta(() =>
+            {
+                var renderer = new ZxingBarcodeRenderer();
+                var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+                foreach (var (job, labels, expectedFirst) in new[] { ("job-1", 5, 1L), ("job-2", 3, 6L) })
+                {
+                    var first = store.PeekNextValue(counter);
+                    if (first != expectedFirst || !store.TryReserve(counter, job, first, labels, out _, out var reserveError))
+                    {
+                        failures.Add($"{job}: the next number is {first}, expected {expectedFirst}.");
+                        continue;
+                    }
+
+                    if (!ANLAbel.Core.Printing.SerialCounterContract.TryApply(counter, first, new IReadOnlyDictionary<string, string>?[labels], out var rows, out var applyError))
+                    {
+                        failures.Add($"{job}: {applyError}");
+                        continue;
+                    }
+
+                    for (var index = 0; index < rows.Length; index++)
+                    {
+                        var expected = $"SN-{first + index:0000}";
+                        var raster = Rasterize(new LabelVisualRenderer().Render(template, rows[index], plan), template.WidthMm, template.HeightMm);
+                        var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, expected);
+                        var decoded = Decode(raster, code.XMm, code.YMm, widthMm, code.HeightMm, BarcodeFormat.CODE_128);
+                        if (decoded != expected)
+                        {
+                            failures.Add($"{job} label {index + 1}: the code reads '{decoded}', expected '{expected}'.");
+                        }
+                    }
+
+                    var blocking = new PrintPreflightValidator(renderer).Validate(template, rows, Dpi).Issues.Where(issue => issue.IsBlocking);
+                    failures.AddRange(blocking.Select(issue => $"{job}: preflight blocks {issue.ObjectName}: {issue.Message}"));
+                }
+
+                if (store.FindReservation(counter.CounterId, "job-1") is not { FirstValue: 1, LabelCount: 5 })
+                {
+                    failures.Add("A reprint of the first job does not find its own numbers.");
+                }
+            });
+
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    /// <summary>
     /// EAN-13, EAN-8, UPC-A and UPC-E typed without their check digit, and a
     /// UPC-E as its six digits: the print path encodes the whole number (number
     /// system 0 for the six-digit UPC-E, as NiceLabel 10 does), and the digits
