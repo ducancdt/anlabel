@@ -221,6 +221,7 @@ public partial class DataManagerWindow : Window
             case NodeKind.Prompt:
                 PromptEditor.DataContext = node.Item;
                 PromptEditor.Visibility = Visibility.Visible;
+                ShowPromptKind((PromptVariableDefinition)node.Item!);
                 UpdatePromptUsage();
                 break;
             case NodeKind.Function:
@@ -286,6 +287,42 @@ public partial class DataManagerWindow : Window
         InternalHint.Text = hint;
         InternalTokenBox.Text = token;
         InternalValueText.Text = value;
+    }
+
+    private bool _showingPromptKind;
+
+    private void ShowPromptKind(PromptVariableDefinition prompt)
+    {
+        _showingPromptKind = true;
+        var isDate = JobVariableContract.IsDatePrompt(prompt);
+        PromptKindDate.IsChecked = isDate;
+        PromptKindText.IsChecked = !isDate;
+        _showingPromptKind = false;
+    }
+
+    /// <summary>
+    /// NiceLabel 10 variable data type. A date prints in its date format (dd/MM/yyyy
+    /// to start with); back to text, the date formats are cleared.
+    /// </summary>
+    private void PromptKind_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_showingPromptKind || PromptEditor.DataContext is not PromptVariableDefinition prompt)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(sender, PromptKindDate))
+        {
+            if (prompt.DateFormat.Length == 0)
+            {
+                prompt.DateFormat = "dd/MM/yyyy";
+            }
+        }
+        else
+        {
+            prompt.DateFormat = string.Empty;
+            prompt.DateInputFormat = string.Empty;
+        }
     }
 
     private void UpdatePromptUsage()

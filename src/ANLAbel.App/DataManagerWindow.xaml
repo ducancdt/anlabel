@@ -131,19 +131,62 @@
                             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tên biến" AutomationProperties.AutomationId="DataManager.Prompt.Name"/>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Câu nhắc khi in"/>
                             <TextBox Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Câu nhắc khi in" AutomationProperties.AutomationId="DataManager.Prompt.Prompt"/>
+                            <!-- NiceLabel 10 variable data type: the input rules follow the kind of value. -->
+                            <TextBlock Style="{StaticResource EditorLabel}" Text="Kiểu giá trị"/>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="PromptKindText" GroupName="PromptKind" Content="Chữ" Checked="PromptKind_Checked" AutomationProperties.AutomationId="DataManager.Prompt.KindText"/>
+                                <RadioButton x:Name="PromptKindDate" GroupName="PromptKind" Content="Ngày (người in chọn trên lịch)" Margin="18,0,0,0" Checked="PromptKind_Checked" AutomationProperties.AutomationId="DataManager.Prompt.KindDate"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DateFormat}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Định dạng ngày khi in"/>
+                                <ComboBox IsEditable="True" Width="160" HorizontalAlignment="Left" Text="{Binding DateFormat, UpdateSourceTrigger=LostFocus}"
+                                          ToolTip="Người in chọn ngày trên lịch. dd/MM/yyyy in 31/12/2026; yyMMdd in 261231; yyyy-MM-dd in 2026-12-31."
+                                          AutomationProperties.Name="Định dạng ngày khi in" AutomationProperties.AutomationId="DataManager.Prompt.DateFormat">
+                                    <ComboBoxItem Content="dd/MM/yyyy"/>
+                                    <ComboBoxItem Content="yyMMdd"/>
+                                    <ComboBoxItem Content="yyyyMMdd"/>
+                                    <ComboBoxItem Content="yyyy-MM-dd"/>
+                                    <ComboBoxItem Content="dd.MM.yyyy"/>
+                                    <ComboBoxItem Content="MM/yyyy"/>
+                                </ComboBox>
+                                <TextBlock Style="{StaticResource EditorHint}" Margin="0,4,0,0"
+                                           Text="dd/MM/yyyy in 31/12/2026; yyMMdd in 261231; yyyy-MM-dd in 2026-12-31. Lệnh in giữ ngày dạng yyyy-MM-dd; giá trị mặc định cũng ghi như vậy hoặc dd/MM/yyyy."/>
+                            </StackPanel>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Giá trị mặc định"/>
                             <TextBox Text="{Binding DefaultValue, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Giá trị mặc định" AutomationProperties.AutomationId="DataManager.Prompt.Default"/>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự tối đa (0 = không giới hạn)"/>
-                            <TextBox Width="120" HorizontalAlignment="Left" Text="{Binding MaxLength, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Số ký tự tối đa"/>
-                            <CheckBox Content="Độ dài cố định (đúng số ký tự tối đa)" Margin="0,8,0,0" IsChecked="{Binding FixedLength}" AutomationProperties.AutomationId="DataManager.Prompt.FixedLength"/>
-                            <CheckBox Content="Chỉ nhận chữ số" Margin="0,6,0,0" IsChecked="{Binding DigitsOnly}"/>
-                            <CheckBox Content="Bắt buộc nhập" Margin="0,6,0,0" IsChecked="{Binding Required}"/>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Chỉ nhận các ký tự (để trống = mọi ký tự)"/>
-                            <TextBox Text="{Binding AllowedCharacters, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Ký tự cho phép" AutomationProperties.AutomationId="DataManager.Prompt.AllowedCharacters"/>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Danh sách chọn (mỗi dòng một giá trị; người in chọn trong danh sách)"/>
-                            <TextBox Text="{Binding PickList, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" VerticalScrollBarVisibility="Auto"
-                                     AutomationProperties.Name="Danh sách chọn" AutomationProperties.AutomationId="DataManager.Prompt.PickList"/>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Khi in (tiền tố, hậu tố, đệm đến số ký tự tối đa)"/>
+                            <CheckBox Content="Bắt buộc nhập" Margin="0,8,0,0" IsChecked="{Binding Required}"/>
+                            <!-- Text rules: a date is picked, so they apply to text values only. -->
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DateFormat}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự tối đa (0 = không giới hạn)"/>
+                                <TextBox Width="120" HorizontalAlignment="Left" Text="{Binding MaxLength, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Số ký tự tối đa"/>
+                                <CheckBox Content="Độ dài cố định (đúng số ký tự tối đa)" Margin="0,8,0,0" IsChecked="{Binding FixedLength}" AutomationProperties.AutomationId="DataManager.Prompt.FixedLength"/>
+                                <CheckBox Content="Chỉ nhận chữ số" Margin="0,6,0,0" IsChecked="{Binding DigitsOnly}"/>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Chỉ nhận các ký tự (để trống = mọi ký tự)"/>
+                                <TextBox Text="{Binding AllowedCharacters, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Ký tự cho phép" AutomationProperties.AutomationId="DataManager.Prompt.AllowedCharacters"/>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Danh sách chọn (mỗi dòng một giá trị; người in chọn trong danh sách)"/>
+                                <TextBox Text="{Binding PickList, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" VerticalScrollBarVisibility="Auto"
+                                         AutomationProperties.Name="Danh sách chọn" AutomationProperties.AutomationId="DataManager.Prompt.PickList"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource EditorLabel}" Text="Khi in (tiền tố, hậu tố; chữ còn đệm được đến số ký tự tối đa)"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -154,6 +197,16 @@
                                 <TextBox Grid.Column="2" Text="{Binding Suffix, UpdateSourceTrigger=PropertyChanged}" ToolTip="Hậu tố: in sau giá trị" AutomationProperties.Name="Hậu tố" AutomationProperties.AutomationId="DataManager.Prompt.Suffix"/>
                             </Grid>
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DateFormat}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
                                 <ComboBox Width="140" SelectedValue="{Binding Padding}" SelectedValuePath="Tag" AutomationProperties.Name="Đệm" AutomationProperties.AutomationId="DataManager.Prompt.Padding">
                                     <ComboBoxItem Content="Không đệm" Tag="{x:Static enums:PromptPadding.None}"/>
                                     <ComboBoxItem Content="Đệm bên trái" Tag="{x:Static enums:PromptPadding.Left}"/>
@@ -162,17 +215,6 @@
                                 <TextBlock Text="bằng ký tự" VerticalAlignment="Center" Margin="8,0,6,0"/>
                                 <TextBox Width="36" MaxLength="1" Text="{Binding PadCharacter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Ký tự đệm" AutomationProperties.AutomationId="DataManager.Prompt.PadCharacter"/>
                             </StackPanel>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Ngày: định dạng khi in (để trống = giá trị chữ)"/>
-                            <ComboBox IsEditable="True" Width="160" HorizontalAlignment="Left" Text="{Binding DateFormat, UpdateSourceTrigger=LostFocus}"
-                                      ToolTip="Người in chọn ngày trên lịch. dd/MM/yyyy in 31/12/2026; yyMMdd in 261231; yyyy-MM-dd in 2026-12-31."
-                                      AutomationProperties.Name="Định dạng ngày khi in" AutomationProperties.AutomationId="DataManager.Prompt.DateFormat">
-                                <ComboBoxItem Content="dd/MM/yyyy"/>
-                                <ComboBoxItem Content="yyMMdd"/>
-                                <ComboBoxItem Content="yyyyMMdd"/>
-                                <ComboBoxItem Content="yyyy-MM-dd"/>
-                                <ComboBoxItem Content="dd.MM.yyyy"/>
-                                <ComboBoxItem Content="MM/yyyy"/>
-                            </ComboBox>
                             <Border Style="{StaticResource EditorNote}">
                                 <TextBlock x:Name="PromptUsageText" TextWrapping="Wrap" Foreground="#262626"/>
                             </Border>

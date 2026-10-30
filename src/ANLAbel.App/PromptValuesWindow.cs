@@ -93,6 +93,8 @@ public sealed class PromptValuesWindow : Window
                 var picker = new DatePicker
                 {
                     MinWidth = 320,
+                    // The date sits mid-height like the text boxes around it.
+                    VerticalContentAlignment = VerticalAlignment.Center,
                     // Vietnamese dates (dd/MM/yyyy) whatever the Windows region.
                     Language = System.Windows.Markup.XmlLanguage.GetLanguage("vi-VN"),
                     SelectedDate = JobVariableContract.TryParsePromptDate(prompt, initial, out var initialDate) ? initialDate : null

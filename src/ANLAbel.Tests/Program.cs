@@ -76,6 +76,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("an imported table label prints every Excel row", () => DesignScenarioRegression.ImportedTableLabelPrintsEveryRow(BuildSyntheticNlblPackage)),
     ("data rows choose the printed variant", DesignScenarioRegression.RowsChooseThePrintedVariant),
     ("a carton label takes its expiry from a date prompt", DesignScenarioRegression.CartonLabelTakesItsExpiryFromADatePrompt),
+    ("the prompt editor follows the kind of value", DesignScenarioRegression.PromptEditorFollowsTheKindOfValue),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),

@@ -3,7 +3,9 @@
 ## Sau v0.346
 
 - Biến nhập kiểu ngày theo NiceLabel 10 (Date variable): Quản lý dữ liệu › Biến
-  nhập khi in có “Ngày: định dạng khi in” (dd/MM/yyyy, yyMMdd, yyyyMMdd…). Khi in,
+  nhập khi in có “Kiểu giá trị: Chữ / Ngày”; biến ngày chỉ hiện định dạng ngày
+  khi in (dd/MM/yyyy, yyMMdd, yyyyMMdd…) và tiền tố/hậu tố, các quy tắc chữ ẩn
+  đi. Khi in,
   người in chọn ngày trên lịch (thứ tự ngày/tháng/năm) hoặc gõ theo định dạng nhập
   của biến; dòng “Sẽ in” cho thấy giá trị in ra; lệnh in giữ ngày dạng yyyy-MM-dd
   nên in lại vẫn đúng. Chưa có ngày thì bảng thiết kế hiện ngày hôm nay theo định

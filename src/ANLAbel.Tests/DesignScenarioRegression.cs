@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
@@ -916,6 +917,63 @@ internal static class DesignScenarioRegression
         });
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The Data Manager's prompt editor follows the kind of value (NiceLabel 10
+    /// variable data type): a text prompt shows the text rules; choosing Ngày
+    /// gives it a date format and shows the date format instead; back to Chữ
+    /// the date format is cleared.
+    /// </summary>
+    public static Task PromptEditorFollowsTheKindOfValue()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" });
+            var window = new ANLAbel.App.DataManagerWindow(viewModel);
+            var drafts = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_prompts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            var draft = (PromptVariableDefinition)drafts[0]!;
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { draft });
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+
+            T Find<T>(string automationId) where T : FrameworkElement
+                => FindDescendants<T>((DependencyObject)window.Content).Single(element => AutomationProperties.GetAutomationId(element) == automationId);
+            var kindText = Find<RadioButton>("DataManager.Prompt.KindText");
+            var kindDate = Find<RadioButton>("DataManager.Prompt.KindDate");
+            var dateBlock = (FrameworkElement)Find<ComboBox>("DataManager.Prompt.DateFormat").Parent;
+            var textRules = (FrameworkElement)Find<TextBox>("DataManager.Prompt.AllowedCharacters").Parent;
+            Require(kindText.IsChecked == true && dateBlock.Visibility == Visibility.Collapsed && textRules.Visibility == Visibility.Visible,
+                "A text prompt shows its text rules and no date format.");
+
+            kindDate.IsChecked = true;
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            Require(draft.DateFormat == "dd/MM/yyyy" && dateBlock.Visibility == Visibility.Visible && textRules.Visibility == Visibility.Collapsed,
+                $"Choosing Ngày gives the prompt a date format ({draft.DateFormat}) and shows it instead of the text rules.");
+
+            kindText.IsChecked = true;
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            Require(draft.DateFormat.Length == 0 && textRules.Visibility == Visibility.Visible, "Back to Chữ the date format is cleared.");
+            // Not closed: closing an edited draft asks to keep or discard it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private static IEnumerable<T> FindDescendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var descendant in FindDescendants<T>(child))
+            {
+                yield return descendant;
+            }
+        }
     }
 
     /// <summary>Dark pixels (gray below 128) inside a rectangle (mm) of the page.</summary>
