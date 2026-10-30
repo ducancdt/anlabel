@@ -25,7 +25,7 @@ public static class AccessibleNames
 
             if (node is Control control && NeedsName(control))
             {
-                var name = LabelBefore(control) ?? InnerText(control) ?? TooltipSentence(control);
+                var name = control is TabItem ? InnerText(control) : LabelBefore(control) ?? InnerText(control) ?? TooltipSentence(control);
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     AutomationProperties.SetName(control, name.Trim());
@@ -68,7 +68,7 @@ public static class AccessibleNames
     }
 
     private static bool NeedsName(Control control)
-        => control is TextBoxBase or ComboBox or ButtonBase or Slider
+        => (control is TextBoxBase or ComboBox or ButtonBase or Slider || control is TabItem { Header: DependencyObject })
            && string.IsNullOrWhiteSpace(AutomationProperties.GetName(control))
            && control.ReadLocalValue(AutomationProperties.NameProperty) == DependencyProperty.UnsetValue
            && BindingOperations.GetBindingExpressionBase(control, AutomationProperties.NameProperty) is null
@@ -118,7 +118,13 @@ public static class AccessibleNames
 
     private static string? InnerText(Control control)
     {
-        if (control is not ContentControl { Content: DependencyObject content })
+        var content = control switch
+        {
+            HeaderedContentControl { Header: DependencyObject header } => header,
+            ContentControl { Content: DependencyObject inner } => inner,
+            _ => null
+        };
+        if (content is null)
         {
             return null;
         }
