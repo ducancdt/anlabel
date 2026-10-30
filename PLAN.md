@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.345
+
+- Tạo tem mới theo trình tạo tem của NiceLabel 10 (New Label Setup Wizard):
+  hộp Tạo mẫu tem mới có ô “Tiếp theo: chọn máy in và giấy” (bật sẵn); Thuộc
+  tính tem mở ngay theo từng bước Máy in › Kích thước tem › Giấy với Quay lại /
+  Tiếp, bước cuối là Hoàn tất. Không có bước kho tem có sẵn (quyết định của chủ).
+
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 
 _Gồm các commit 30/10/2026 (19:53–21:51)._

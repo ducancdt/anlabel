@@ -57,6 +57,7 @@ public static class UiCatalog
         ["ResolutionDpi"] = "Độ phân giải (DPI)",
         ["Cancel"] = "Hủy",
         ["Create"] = "Tạo mẫu",
+        ["NewTemplateLabelPropertiesNext"] = "Tiếp theo: chọn máy in và giấy (cuộn tem hay tờ nhiều tem)",
         ["HelpTitle"] = "ANLAbel - Hướng dẫn sử dụng",
         ["UserGuide"] = "Hướng dẫn sử dụng"
     };

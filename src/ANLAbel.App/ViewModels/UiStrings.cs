@@ -75,6 +75,7 @@ public sealed class UiStrings : ObservableObject
     public string PrinterNotSelected => Text("PrinterNotSelected");
     public string NewTemplateTitle => Text("NewTemplateTitle");
     public string NewTemplateHeading => Text("NewTemplateHeading");
+    public string NewTemplateLabelPropertiesNext => Text("NewTemplateLabelPropertiesNext");
     public string TemplateName => Text("TemplateName");
     public string WidthMm => Text("WidthMm");
     public string HeightMm => Text("HeightMm");

@@ -215,6 +215,73 @@ internal static class PaperLayoutRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10 New Label Setup Wizard: a new label continues into Label
+    /// Properties (offered by default) as guided steps: Back is off on the first
+    /// page, Next walks printer, label dimensions and paper, and only the last
+    /// page offers Finish.
+    /// </summary>
+    public static Task NewLabelWalksLabelPropertiesStepByStep()
+    {
+        var steps = new List<string>();
+        RunOnSta(() =>
+        {
+            var offered = new NewTemplateWindow().OpenLabelPropertiesNext;
+            Require(offered, "A new label must offer to continue into Label Properties by default.");
+            var printers = new[] { new PrinterInfo { Name = "Office A5", DriverName = "PCL 6" } };
+            var window = new PrinterSetupWindow(printers, initialPrinterName: "Office A5", capabilityService: new SheetCapabilityStub(), initialWidthMm: 60, initialHeightMm: 40)
+            {
+                IsGuided = true
+            };
+            T Field<T>(string name) => (T)typeof(PrinterSetupWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            Exception? inner = null;
+            window.Loaded += (_, _) =>
+            {
+                try
+                {
+                    Pump();
+                    var tabs = Field<TabControl>("SetupTabs");
+                    for (var page = 0; page < tabs.Items.Count; page++)
+                    {
+                        var back = Field<Button>("BackButton");
+                        var next = Field<Button>("NextButton");
+                        var finish = Field<Button>("ApplyButton");
+                        steps.Add($"{tabs.SelectedIndex}:{back.IsEnabled}:{next.Visibility}:{finish.Visibility}:{finish.Content}:{Field<TextBlock>("FooterText").Text}");
+                        if (next.Visibility == Visibility.Visible)
+                        {
+                            next.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                            Pump();
+                        }
+                    }
+
+                    Field<Button>("BackButton").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    Pump();
+                    steps.Add($"back:{tabs.SelectedIndex}");
+                }
+                catch (Exception ex)
+                {
+                    inner = ex;
+                }
+                finally
+                {
+                    window.DialogResult = false;
+                }
+            };
+            window.ShowDialog();
+            if (inner is not null)
+            {
+                throw inner;
+            }
+        });
+
+        Require(steps.Count == 4, "Three pages and one step back expected: " + string.Join(" | ", steps));
+        Require(steps[0] == "0:False:Visible:Collapsed:Hoàn tất:Bước 1/3 · Máy in", "First page: Back off, Next on, no Finish: " + steps[0]);
+        Require(steps[1] == "1:True:Visible:Collapsed:Hoàn tất:Bước 2/3 · Kích thước tem", "Second page: " + steps[1]);
+        Require(steps[2] == "2:True:Collapsed:Visible:Hoàn tất:Bước 3/3 · Giấy · Hoàn tất để áp dụng", "Last page: Finish only: " + steps[2]);
+        Require(steps[3] == "back:1", "Back returns to the previous page: " + steps[3]);
+        return Task.CompletedTask;
+    }
+
     private sealed class SheetCapabilityStub : IPrinterCapabilityService
     {
         public Task<PrinterCapabilitySnapshot> GetSnapshotAsync(string queueName, CancellationToken cancellationToken = default)

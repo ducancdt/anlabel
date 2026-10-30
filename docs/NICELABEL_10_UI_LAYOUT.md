@@ -439,3 +439,14 @@ is already the picture's own size. NiceLabel 10 does not change the frame when t
 resize option changes; only Revert does. Gate: `pictures size and flip in the
 designer as in print` (six pictures, measured on the printed label and on the
 designer canvas against positions worked out from the option definitions).
+
+## New Label Setup Wizard (2026-10-30)
+
+NiceLabel 10 creates a label through `NewFormatWizard` pages: Select the Printer,
+Set the Page Size (roll of labels, sheet of paper, pre-defined stock), Select the
+Label Layout (orientation, rotated), Specify the Label Dimensions, Summary. ANLAbel:
+Tạo mẫu tem mới (name, size, DPI) offers "Tiếp theo: chọn máy in và giấy" (on by
+default); Thuộc tính tem then opens guided (`PrinterSetupWindow.IsGuided`): Máy in ›
+Kích thước tem › Giấy with Quay lại / Tiếp and Hoàn tất on the last page, the same
+pages and checks as Label Properties. No stock step (owner: no software stock
+catalogue). Gate: `a new label walks label properties step by step`.

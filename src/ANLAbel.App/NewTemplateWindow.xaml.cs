@@ -9,6 +9,9 @@ public partial class NewTemplateWindow : Window
 {
     public NewTemplateRequest? Request { get; private set; }
 
+    /// <summary>The new label continues into Label Properties as guided steps (NiceLabel 10 New Label Setup Wizard).</summary>
+    public bool OpenLabelPropertiesNext => LabelPropertiesNextBox.IsChecked == true;
+
     public NewTemplateWindow()
     {
         InitializeComponent();
@@ -19,6 +22,7 @@ public partial class NewTemplateWindow : Window
         WidthLabel.Text = ui.WidthMm;
         HeightLabel.Text = ui.HeightMm;
         DpiLabel.Text = ui.ResolutionDpi;
+        LabelPropertiesNextText.Text = ui.NewTemplateLabelPropertiesNext;
         CancelButton.Content = ui.Cancel;
         CreateButton.Content = ui.Create;
     }

@@ -752,6 +752,66 @@ public partial class PrinterSetupWindow : Window
         DialogResult = true;
     }
 
+    private bool _isGuided;
+
+    /// <summary>
+    /// NiceLabel 10 New Label Setup Wizard: a new label goes through the
+    /// pages in order (printer, label dimensions, paper) with Back and Next,
+    /// and Finish applies them like Apply.
+    /// </summary>
+    public bool IsGuided
+    {
+        get => _isGuided;
+        set
+        {
+            _isGuided = value;
+            if (value)
+            {
+                Title = "Tem mới – Thuộc tính tem";
+                SetupTabs.SelectedIndex = 0;
+            }
+
+            UpdateGuidedFooter();
+        }
+    }
+
+    private void SetupTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Selection changes of the lists inside the pages bubble up here too.
+        if (ReferenceEquals(e.OriginalSource, SetupTabs))
+        {
+            UpdateGuidedFooter();
+        }
+    }
+
+    private void UpdateGuidedFooter()
+    {
+        if (!_isGuided)
+        {
+            return;
+        }
+
+        var steps = SetupTabs.Items.Count;
+        var step = Math.Max(0, SetupTabs.SelectedIndex);
+        var last = step >= steps - 1;
+        BackButton.Visibility = Visibility.Visible;
+        BackButton.IsEnabled = step > 0;
+        NextButton.Visibility = last ? Visibility.Collapsed : Visibility.Visible;
+        ApplyButton.Visibility = last ? Visibility.Visible : Visibility.Collapsed;
+        ApplyButton.Content = "Hoàn tất";
+        var page = (SetupTabs.Items[step] as TabItem)?.Header as string ?? string.Empty;
+        // Short, so four buttons still fit beside it at the window's minimum width.
+        FooterText.Text = last
+            ? $"Bước {step + 1}/{steps} · {page} · Hoàn tất để áp dụng"
+            : $"Bước {step + 1}/{steps} · {page}";
+    }
+
+    private void Back_Click(object sender, RoutedEventArgs e)
+        => SetupTabs.SelectedIndex = Math.Max(0, SetupTabs.SelectedIndex - 1);
+
+    private void Next_Click(object sender, RoutedEventArgs e)
+        => SetupTabs.SelectedIndex = Math.Min(SetupTabs.Items.Count - 1, SetupTabs.SelectedIndex + 1);
+
     private void Skip_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;

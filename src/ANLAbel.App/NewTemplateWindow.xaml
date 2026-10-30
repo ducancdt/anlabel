@@ -25,6 +25,10 @@
                 <ComboBoxItem Content="300"/>
                 <ComboBoxItem Content="600"/>
             </ComboBox>
+            <CheckBox x:Name="LabelPropertiesNextBox" IsChecked="True" Margin="0,2,0,12" AutomationProperties.AutomationId="NewTemplate.LabelPropertiesNext"
+                      ToolTip="Như trình tạo tem của NiceLabel 10: Thuộc tính tem mở ngay sau đó, theo từng bước máy in, kích thước tem và giấy.">
+                <TextBlock x:Name="LabelPropertiesNextText" Text="Tiếp theo: chọn máy in và giấy (cuộn tem hay tờ nhiều tem)" TextWrapping="Wrap"/>
+            </CheckBox>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">

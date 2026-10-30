@@ -1015,6 +1015,12 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() == true)
         {
             _viewModel.NewTemplate(dialog.Request);
+            if (dialog.OpenLabelPropertiesNext)
+            {
+                // NiceLabel 10 New Label Setup Wizard: printer, label dimensions, paper.
+                await ShowPrinterSetupDialogAsync(guided: true);
+            }
+
             await _viewModel.RefreshPrinterQueueStatusAsync();
         }
     }
@@ -1341,7 +1347,7 @@ public partial class MainWindow : Window
         await _viewModel.RefreshPrinterQueueStatusAsync();
     }
 
-    private async Task ShowPrinterSetupDialogAsync()
+    private async Task ShowPrinterSetupDialogAsync(bool guided = false)
     {
         try
         {
@@ -1369,7 +1375,7 @@ public partial class MainWindow : Window
                 initialScaleY: profile.ScaleY,
                 workingTemplate: _viewModel.Template,
                 printService: _viewModel.PrintService,
-                initialLayout: PageLayoutSelection.From(profile)) { Owner = this };
+                initialLayout: PageLayoutSelection.From(profile)) { Owner = this, IsGuided = guided };
             if (dialog.ShowDialog() == true && dialog.SelectedPrinter is not null && dialog.SelectedPaper is not null)
             {
                 _viewModel.ApplyPrinterSelection(

@@ -7,7 +7,7 @@
             <TextBlock Text="Thuộc tính tem" FontSize="20" FontWeight="SemiBold"/>
             <TextBlock Text="Chọn hàng đợi Windows, kích thước tem thiết kế, và giấy/vật liệu của trình điều khiển. Không dùng danh mục khổ có sẵn của phần mềm." Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
         </StackPanel>
-        <TabControl Grid.Row="1" x:Name="SetupTabs" TabStripPlacement="Left" AutomationProperties.AutomationId="PrinterSetup.WorkflowTabs" Background="{DynamicResource AppSurfaceBrush}">
+        <TabControl Grid.Row="1" x:Name="SetupTabs" TabStripPlacement="Left" AutomationProperties.AutomationId="PrinterSetup.WorkflowTabs" Background="{DynamicResource AppSurfaceBrush}" SelectionChanged="SetupTabs_SelectionChanged">
             <TabControl.Resources>
                 <!-- Workflow steps on the left (NiceLabel 10 Label Properties): flat, with an accent bar on the active step -->
                 <Style TargetType="TabItem">
@@ -155,8 +155,8 @@
             </TabItem>
         </TabControl>
         <Grid Grid.Row="2" Margin="0,12,0,0">
-            <TextBlock Text="Chưa ghi nhận gì cho tới khi Áp dụng." Foreground="{DynamicResource AppMutedBrush}" VerticalAlignment="Center"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Hủy" AutomationProperties.AutomationId="PrinterSetup.Cancel" Width="92" Margin="0,0,8,0" Padding="8,6" Click="Skip_Click" IsCancel="True"/><Button x:Name="ApplyButton" AutomationProperties.AutomationId="PrinterSetup.Apply" Content="Áp dụng" Width="120" Padding="8,6" Click="Apply_Click" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/></StackPanel>
+            <TextBlock x:Name="FooterText" Text="Chưa ghi nhận gì cho tới khi Áp dụng." Foreground="{DynamicResource AppMutedBrush}" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Hủy" AutomationProperties.AutomationId="PrinterSetup.Cancel" Width="92" Margin="0,0,8,0" Padding="8,6" Click="Skip_Click" IsCancel="True"/><Button x:Name="BackButton" AutomationProperties.AutomationId="PrinterSetup.Back" Content="‹ Quay lại" Width="100" Margin="0,0,8,0" Padding="8,6" Click="Back_Click" Visibility="Collapsed"/><Button x:Name="NextButton" AutomationProperties.AutomationId="PrinterSetup.Next" Content="Tiếp ›" Width="100" Margin="0,0,8,0" Padding="8,6" Click="Next_Click" Visibility="Collapsed"/><Button x:Name="ApplyButton" AutomationProperties.AutomationId="PrinterSetup.Apply" Content="Áp dụng" Width="120" Padding="8,6" Click="Apply_Click" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/></StackPanel>
         </Grid>
     </Grid>
 </Window>
