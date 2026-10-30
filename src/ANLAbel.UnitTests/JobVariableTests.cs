@@ -110,6 +110,62 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void InputRulesCheckTheAnswerAsNiceLabelDoes()
+    {
+        var shift = new PromptVariableDefinition { Name = "Shift", PickList = "A\nB\r\nC\n" };
+        Assert.Equal(new[] { "A", "B", "C" }, shift.PickListValues);
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(shift, "B"));
+        Assert.Contains("must be one of: A, B, C", JobVariableContract.ValidatePromptValue(shift, "D"));
+
+        var code = new PromptVariableDefinition { Name = "Code", AllowedCharacters = "ABC-0123456789" };
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(code, "AB-12"));
+        Assert.Contains("does not accept 'x'", JobVariableContract.ValidatePromptValue(code, "ABx"));
+
+        var gtin = new PromptVariableDefinition { Name = "GTIN", MaxLength = 14, FixedLength = true, DigitsOnly = true };
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(gtin, "03831234560087"));
+        Assert.Contains("needs exactly 14 characters; 6 were entered", JobVariableContract.ValidatePromptValue(gtin, "123456"));
+
+        // A padded value may be typed shorter: padding fills it to its length.
+        gtin.Padding = PromptPadding.Left;
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(gtin, "123456"));
+    }
+
+    [Fact]
+    public void OutputRulesFormatWhatPrintsButNotTheStoredAnswer()
+    {
+        var weight = new PromptVariableDefinition { Name = "Weight", Prefix = "Weight: ", Suffix = " kg" };
+        Assert.Equal("Weight: 12.9 kg", JobVariableContract.FormatPromptValue(weight, "12.9"));
+        Assert.Equal(string.Empty, JobVariableContract.FormatPromptValue(weight, string.Empty));
+        var po = new PromptVariableDefinition { Name = "PO", MaxLength = 16, Padding = PromptPadding.Left, PadCharacter = "0" };
+        Assert.Equal("0000000000123456", JobVariableContract.FormatPromptValue(po, "123456"));
+        Assert.Equal("123456----------", JobVariableContract.FormatPromptValue(new PromptVariableDefinition { Name = "R", MaxLength = 16, Padding = PromptPadding.Right, PadCharacter = "-" }, "123456"));
+
+        var template = Template("{?Weight}", "{?PO}");
+        template.PromptVariables.Add(weight);
+        template.PromptVariables.Add(po);
+        Assert.True(JobVariableContract.TryResolveValues(template, JobTime, Answers(("Weight", "12.9"), ("PO", "123456")), out var values, out var error), error);
+        Assert.Equal("Weight: 12.9 kg", values["?Weight"]);
+        Assert.Equal("0000000000123456", values["?PO"]);
+        var design = JobVariableContract.ApplyForDesign(template, null, JobTime, Answers(("PO", "42")))!;
+        Assert.Equal("0000000000000042", design["?PO"]);
+    }
+
+    [Fact]
+    public void RulesChangeTheDocumentFingerprintOnlyWhenUsed()
+    {
+        var template = Template("{?Lot}");
+        var lot = new PromptVariableDefinition { Name = "Lot", MaxLength = 8 };
+        template.PromptVariables.Add(lot);
+        var before = DocumentSnapshot.Capture(template).DocumentHash;
+        lot.PadCharacter = "0";
+        Assert.Equal(before, DocumentSnapshot.Capture(template).DocumentHash);
+        lot.Suffix = "/A";
+        Assert.NotEqual(before, DocumentSnapshot.Capture(template).DocumentHash);
+        var copy = lot.Clone();
+        Assert.Equal(("/A", PromptPadding.None), (copy.Suffix, copy.Padding));
+    }
+
+    [Fact]
     public void ApplyWritesTheSameJobValuesIntoEveryRow()
     {
         var template = Template("{?Lot}/{#NOW:yyMMdd}");

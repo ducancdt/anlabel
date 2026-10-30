@@ -1,7 +1,9 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using ANLAbel.App.Services;
+using ANLAbel.Core.Enums;
 using ANLAbel.Core.Models;
 using ANLAbel.Core.Printing;
 
@@ -9,12 +11,15 @@ namespace ANLAbel.App;
 
 /// <summary>
 /// Asks the operator for the label's {?Name} values before a print. Each value
-/// is checked against its definition before the dialog closes.
+/// is checked against its definition before the dialog closes. A pick list is
+/// offered as a list to choose from, and a value with output rules (prefix,
+/// suffix, padding) shows what will print (NiceLabel 10 variable rules).
 /// </summary>
 public sealed class PromptValuesWindow : Window
 {
     private readonly IReadOnlyList<PromptVariableDefinition> _prompts;
-    private readonly List<TextBox> _boxes = new();
+    private readonly List<Control> _inputs = new();
+    private readonly List<Func<string>> _readers = new();
     private readonly TextBlock _problem = new() { Foreground = Brushes.DarkRed, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
 
     private PromptValuesWindow(IReadOnlyList<PromptVariableDefinition> prompts, IReadOnlyDictionary<string, string> previous)
@@ -25,7 +30,6 @@ public sealed class PromptValuesWindow : Window
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         MinWidth = 360;
-
         var panel = new StackPanel { Margin = new Thickness(14) };
         panel.Children.Add(new TextBlock
         {
@@ -34,13 +38,20 @@ public sealed class PromptValuesWindow : Window
             MaxWidth = 420,
             Margin = new Thickness(0, 0, 0, 8)
         });
+
         foreach (var prompt in prompts)
         {
             var label = string.IsNullOrWhiteSpace(prompt.Prompt) ? prompt.Name : prompt.Prompt;
+            var choices = prompt.PickListValues;
             var hints = new List<string>();
             if (prompt.Required)
             {
                 hints.Add("bắt buộc");
+            }
+
+            if (choices.Count > 0)
+            {
+                hints.Add("chọn trong danh sách");
             }
 
             if (prompt.DigitsOnly)
@@ -48,9 +59,16 @@ public sealed class PromptValuesWindow : Window
                 hints.Add("chỉ chữ số");
             }
 
+            if (prompt.AllowedCharacters.Length > 0)
+            {
+                hints.Add($"chỉ các ký tự {prompt.AllowedCharacters}");
+            }
+
             if (prompt.MaxLength > 0)
             {
-                hints.Add($"tối đa {prompt.MaxLength} ký tự");
+                hints.Add(prompt.FixedLength && prompt.Padding == PromptPadding.None
+                    ? $"đúng {prompt.MaxLength} ký tự"
+                    : $"tối đa {prompt.MaxLength} ký tự");
             }
 
             panel.Children.Add(new TextBlock
@@ -58,14 +76,53 @@ public sealed class PromptValuesWindow : Window
                 Text = hints.Count == 0 ? label : $"{label} ({string.Join(", ", hints)})",
                 Margin = new Thickness(0, 4, 0, 2)
             });
-            var box = new TextBox
+
+            var initial = previous.TryGetValue(prompt.Name, out var last) ? last : prompt.DefaultValue;
+            Control input;
+            Func<string> read;
+            if (choices.Count > 0)
             {
-                Text = previous.TryGetValue(prompt.Name, out var last) ? last : prompt.DefaultValue,
-                MinWidth = 320,
-                MaxLength = prompt.MaxLength > 0 ? Math.Min(prompt.MaxLength, JobVariableContract.MaximumPromptLength) : JobVariableContract.MaximumPromptLength
-            };
-            _boxes.Add(box);
-            panel.Children.Add(box);
+                var list = new ComboBox
+                {
+                    ItemsSource = choices,
+                    MinWidth = 320,
+                    SelectedItem = choices.Contains(initial, StringComparer.Ordinal) ? initial : null
+                };
+                input = list;
+                read = () => list.SelectedItem as string ?? string.Empty;
+            }
+            else
+            {
+                var box = new TextBox
+                {
+                    Text = initial,
+                    MinWidth = 320,
+                    MaxLength = prompt.MaxLength > 0 ? Math.Min(prompt.MaxLength, JobVariableContract.MaximumPromptLength) : JobVariableContract.MaximumPromptLength
+                };
+                input = box;
+                read = () => box.Text;
+            }
+
+            AutomationProperties.SetName(input, label);
+            _inputs.Add(input);
+            _readers.Add(read);
+            panel.Children.Add(input);
+            if (prompt.Prefix.Length > 0 || prompt.Suffix.Length > 0 || prompt.Padding != PromptPadding.None)
+            {
+                var printed = new TextBlock { Foreground = Brushes.DimGray, FontSize = 11, Margin = new Thickness(0, 2, 0, 0) };
+                void Show() => printed.Text = "Sẽ in: " + JobVariableContract.FormatPromptValue(prompt, read());
+                if (input is ComboBox comboBox)
+                {
+                    comboBox.SelectionChanged += (_, _) => Show();
+                }
+                else if (input is TextBox textBox)
+                {
+                    textBox.TextChanged += (_, _) => Show();
+                }
+
+                Show();
+                panel.Children.Add(printed);
+            }
         }
 
         panel.Children.Add(_problem);
@@ -77,7 +134,7 @@ public sealed class PromptValuesWindow : Window
         buttons.Children.Add(cancel);
         panel.Children.Add(buttons);
         Content = panel;
-        Loaded += (_, _) => _boxes.FirstOrDefault()?.Focus();
+        Loaded += (_, _) => _inputs.FirstOrDefault()?.Focus();
     }
 
     public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -102,15 +159,17 @@ public sealed class PromptValuesWindow : Window
         Values.Clear();
         for (var i = 0; i < _prompts.Count; i++)
         {
-            var problem = JobVariableContract.ValidatePromptValue(_prompts[i], _boxes[i].Text);
+            // The answer as typed or chosen; the output rules apply when it prints.
+            var answer = _readers[i]();
+            var problem = JobVariableContract.ValidatePromptValue(_prompts[i], answer);
             if (!string.IsNullOrEmpty(problem))
             {
                 _problem.Text = JobVariableText.Message(problem);
-                _boxes[i].Focus();
+                _inputs[i].Focus();
                 return;
             }
 
-            Values[_prompts[i].Name] = _boxes[i].Text;
+            Values[_prompts[i].Name] = answer;
         }
 
         DialogResult = true;

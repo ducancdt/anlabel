@@ -466,3 +466,19 @@ available. The banner on the design surface unlocks for the session (with the
 password when one is set). Protection can be changed only while unlocked. It
 guards against accidental edits; it is not file encryption. Gate: `a protected
 label opens for printing only`.
+
+## Variable input and output rules (2026-10-30)
+
+NiceLabel 10 variable pages (`variables/inputrules…`, `outputrules…`): Pick list,
+Allowed characters, Length with Fixed length, Value required; Prefix and Suffix,
+Padding (on left, on right, surrounding) with a pad character. ANLAbel prompts
+(`PromptVariableDefinition`): PickList (one value per line), FixedLength,
+AllowedCharacters, Prefix, Suffix, Padding Left/Right and PadCharacter, edited in
+Quản lý dữ liệu › Biến nhập khi in. `JobVariableContract.ValidatePromptValue`
+checks the answer; `FormatPromptValue` pads it to the maximum length and adds the
+prefix and suffix when it prints (`TryResolveValues`, and the designer row). The
+print job keeps the answer as entered, so a reprint applies the same rules once.
+The operator dialog offers a pick list as a list and shows "Sẽ in: …". Not built:
+surrounding padding, numeric range, data types (date/time/currency), multiline,
+counters (ANLAbel's serial counter is separate). Gates: `prompt rules guide the
+operator`; unit tests in `JobVariableTests` and the .nlbl mapping.

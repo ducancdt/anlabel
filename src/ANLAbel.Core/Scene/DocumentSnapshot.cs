@@ -94,9 +94,37 @@ public sealed record DocumentSnapshot
                 item.DefaultValue.Length + ":" + item.DefaultValue,
                 item.MaxLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 item.DigitsOnly ? "1" : "0",
-                item.Required ? "1" : "0"))
+                item.Required ? "1" : "0")
+                + RulesFingerprint(item))
             .ToArray();
         return parts.Length == 0 ? string.Empty : string.Join("\n", parts);
+    }
+
+    /// <summary>
+    /// The input and output rules, appended only when a prompt uses one so
+    /// documents saved before them keep their fingerprint.
+    /// </summary>
+    private static string RulesFingerprint(PromptVariableDefinition item)
+    {
+        if (!item.FixedLength
+            && item.AllowedCharacters.Length == 0
+            && item.PickList.Length == 0
+            && item.Prefix.Length == 0
+            && item.Suffix.Length == 0
+            && item.Padding == PromptPadding.None)
+        {
+            return string.Empty;
+        }
+
+        return "|rules|" + string.Join(
+            "|",
+            item.FixedLength ? "1" : "0",
+            item.AllowedCharacters.Length + ":" + item.AllowedCharacters,
+            item.PickList.Length + ":" + item.PickList,
+            item.Prefix.Length + ":" + item.Prefix,
+            item.Suffix.Length + ":" + item.Suffix,
+            item.Padding.ToString(),
+            item.PadCharacter);
     }
 
     private static string SerialCounterFingerprintOf(SerialCounterDefinition? counter)

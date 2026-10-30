@@ -258,6 +258,79 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void VariableRules_BecomePromptRules()
+    {
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>a1a1a1a1-2222-3333-4444-555555555555</Id>
+                  <Name>Security Sign</Name>
+                  <DefaultValue Type="PickListContents"><Values><Item>no</Item><Item>yes</Item></Values><SelectedValue>no</SelectedValue></DefaultValue>
+                  <Constraints Type="DataSourceConstraints"><Length>10</Length></Constraints>
+                </Item>
+                <Item Type="Variable">
+                  <Id>a2a2a2a2-2222-3333-4444-555555555555</Id>
+                  <Name>Product_Weight</Name>
+                  <DefaultValue Type="StringContents"><StringValue>12.9</StringValue></DefaultValue>
+                  <Prefix>Weight: </Prefix>
+                  <Suffix> kg</Suffix>
+                </Item>
+                <Item Type="Variable">
+                  <Id>a3a3a3a3-2222-3333-4444-555555555555</Id>
+                  <Name>PO</Name>
+                  <DefaultValue Type="StringContents"><StringValue>123456</StringValue></DefaultValue>
+                  <Padding>1</Padding>
+                  <PaddingValue>0</PaddingValue>
+                  <Constraints Type="DataSourceConstraints"><Length>16</Length></Constraints>
+                </Item>
+                <Item Type="Variable">
+                  <Id>a4a4a4a4-2222-3333-4444-555555555555</Id>
+                  <Name>GTIN</Name>
+                  <DefaultValue Type="StringContents"><StringValue>03831234560087</StringValue></DefaultValue>
+                  <AllowedCharactersForCustomFormat>0123456789</AllowedCharactersForCustomFormat>
+                  <Constraints Type="DataSourceConstraints"><Length>14</Length><FixedLength>True</FixedLength></Constraints>
+                </Item>
+                <Item Type="Variable">
+                  <Id>a5a5a5a5-2222-3333-4444-555555555555</Id>
+                  <Name>Code</Name>
+                  <DefaultValue Type="StringContents"><StringValue>AB-1</StringValue></DefaultValue>
+                  <FormatId>11111111-aaaa-bbbb-cccc-000000000000</FormatId>
+                  <AllowedCharactersForCustomFormat>ABC-0123456789</AllowedCharactersForCustomFormat>
+                </Item>
+                <Item Type="Variable">
+                  <Id>a6a6a6a6-2222-3333-4444-555555555555</Id>
+                  <Name>Phone</Name>
+                  <DefaultValue Type="StringContents"><StringValue>0123 456</StringValue></DefaultValue>
+                  <AllowedCharactersForCustomFormat>123456789:;ABC</AllowedCharactersForCustomFormat>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        var items = string.Concat(new[] { "a1a1a1a1", "a2a2a2a2", "a3a3a3a3", "a4a4a4a4", "a5a5a5a5", "a6a6a6a6" }.Select((id, index) => $"""
+            <Item Type="TextDocumentItem">
+              <Name>T{index}</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>{1000 + index * 6000}</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>x</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{id}-2222-3333-4444-555555555555</Id></DataSourceReference>
+            </Item>
+            """));
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(items), solution), "sample.nlbl");
+
+        var prompts = template.PromptVariables.ToDictionary(prompt => prompt.Name);
+        Assert.Equal(new[] { "no", "yes" }, prompts["Security Sign"].PickListValues);
+        Assert.Equal("no", prompts["Security Sign"].DefaultValue);
+        Assert.Equal(("Weight: ", " kg"), (prompts["Product_Weight"].Prefix, prompts["Product_Weight"].Suffix));
+        Assert.Equal((ANLAbel.Core.Enums.PromptPadding.Left, "0", 16), (prompts["PO"].Padding, prompts["PO"].PadCharacter, prompts["PO"].MaxLength));
+        Assert.True(prompts["GTIN"].FixedLength && prompts["GTIN"].DigitsOnly && prompts["GTIN"].AllowedCharacters.Length == 0);
+        Assert.Equal("ABC-0123456789", prompts["Code"].AllowedCharacters);
+        // Without a data format the stored set is a leftover NiceLabel does not apply.
+        Assert.Equal(string.Empty, prompts["Phone"].AllowedCharacters);
+    }
+
+    [Fact]
     public void ConcatenatingScript_BecomesTheSameTemplate()
     {
         // GTL license plate: data identifier 1J + script "UN" & supplier & package number.

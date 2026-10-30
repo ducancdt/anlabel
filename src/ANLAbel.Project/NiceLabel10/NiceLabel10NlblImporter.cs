@@ -1344,7 +1344,20 @@ public static partial class NiceLabel10NlblImporter
                 DefaultValue = string.IsNullOrEmpty(storedDefault) ? record.Content : storedDefault,
                 MaxLength = Math.Max(0, variable.MaxLength),
                 Required = variable.Required,
-                DigitsOnly = variable.DigitsOnly
+                DigitsOnly = variable.DigitsOnly,
+                // NiceLabel 10 input and output rules (surrounding padding has no ANLAbel form).
+                FixedLength = variable.FixedLength,
+                AllowedCharacters = variable.AllowedCharacters ?? string.Empty,
+                PickList = variable.PickList is { Count: > 0 } values ? string.Join("\n", values) : string.Empty,
+                Prefix = variable.Prefix ?? string.Empty,
+                Suffix = variable.Suffix ?? string.Empty,
+                Padding = variable.Padding switch
+                {
+                    1 => PromptPadding.Left,
+                    2 => PromptPadding.Right,
+                    _ => PromptPadding.None
+                },
+                PadCharacter = variable.PaddingCharacter ?? "0"
             });
         }
 

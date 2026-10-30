@@ -110,7 +110,57 @@ public static partial class JobVariableContract
             return $"Prompt '{label}' accepts digits only.";
         }
 
+        // NiceLabel 10 input rules: allowed characters, pick list, fixed length
+        // (a padded value may be typed shorter; padding fills it).
+        if (definition.AllowedCharacters.Length > 0 && text.FirstOrDefault(c => !definition.AllowedCharacters.Contains(c)) is var refused and not '\0')
+        {
+            return $"Prompt '{label}' does not accept '{refused}'; allowed characters: {definition.AllowedCharacters}.";
+        }
+
+        var pickList = definition.PickListValues;
+        if (pickList.Count > 0 && text.Length > 0 && !pickList.Contains(text, StringComparer.Ordinal))
+        {
+            return $"Prompt '{label}' must be one of: {string.Join(", ", pickList)}.";
+        }
+
+        if (definition.FixedLength
+            && definition.MaxLength > 0
+            && definition.Padding == ANLAbel.Core.Enums.PromptPadding.None
+            && text.Length > 0
+            && text.Length != definition.MaxLength)
+        {
+            return $"Prompt '{label}' needs exactly {definition.MaxLength} characters; {text.Length} were entered.";
+        }
+
         return string.Empty;
+    }
+
+    /// <summary>
+    /// The printed value of a prompt answer: NiceLabel 10 output rules, padding
+    /// up to the maximum length then the prefix and suffix, for a non-empty
+    /// value. The answer itself is what a reprint stores and replays.
+    /// </summary>
+    public static string FormatPromptValue(PromptVariableDefinition definition, string? answer)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        var text = answer ?? string.Empty;
+        if (text.Length == 0)
+        {
+            return text;
+        }
+
+        if (definition.MaxLength > text.Length)
+        {
+            var pad = definition.PadCharacter[0];
+            text = definition.Padding switch
+            {
+                ANLAbel.Core.Enums.PromptPadding.Left => text.PadLeft(definition.MaxLength, pad),
+                ANLAbel.Core.Enums.PromptPadding.Right => text.PadRight(definition.MaxLength, pad),
+                _ => text
+            };
+        }
+
+        return definition.Prefix + text + definition.Suffix;
     }
 
     /// <summary>Formats a <c>#NOW[+-n unit]...[:format]</c> token at the job time.</summary>
@@ -237,8 +287,8 @@ public static partial class JobVariableContract
 
             var definition = prompts.First(item => string.Equals(item.Name, token[1..].Trim(), StringComparison.OrdinalIgnoreCase));
             copy[token] = knownPromptValues.TryGetValue(definition.Name, out var known) && !string.IsNullOrEmpty(known)
-                ? known
-                : !string.IsNullOrEmpty(definition.DefaultValue) ? definition.DefaultValue : $"‹{definition.Name}›";
+                ? FormatPromptValue(definition, known)
+                : !string.IsNullOrEmpty(definition.DefaultValue) ? FormatPromptValue(definition, definition.DefaultValue) : $"‹{definition.Name}›";
         }
 
         return copy;
@@ -286,7 +336,7 @@ public static partial class JobVariableContract
                 return false;
             }
 
-            resolved[token] = answer ?? string.Empty;
+            resolved[token] = FormatPromptValue(definition, answer);
         }
 
         return true;

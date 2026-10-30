@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -431,6 +432,57 @@ internal static class DesignScenarioRegression
             {
                 throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
             }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// NiceLabel 10 variable rules at print time: a pick list is a list to choose
+    /// from, padding and a suffix show what will print, a value outside the list
+    /// or with a refused character is turned back in Vietnamese, and the answer
+    /// is kept as entered (the rules apply when it prints).
+    /// </summary>
+    public static Task PromptRulesGuideTheOperator()
+    {
+        RunOnSta(() =>
+        {
+            var prompts = new[]
+            {
+                new PromptVariableDefinition { Name = "Shift", Prompt = "Ca", PickList = "A\nB\nC" },
+                new PromptVariableDefinition { Name = "PO", Prompt = "Số PO", MaxLength = 8, Padding = PromptPadding.Left, PadCharacter = "0", Suffix = "/26", AllowedCharacters = "0123456789" }
+            };
+            var window = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
+                typeof(ANLAbel.App.PromptValuesWindow),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new object[] { prompts, new Dictionary<string, string> { ["PO"] = "42" } },
+                null)!;
+            var panel = (StackPanel)window.Content;
+            var list = panel.Children.OfType<ComboBox>().SingleOrDefault();
+            var box = panel.Children.OfType<TextBox>().SingleOrDefault();
+            Require(list is not null && list.Items.Count == 3, "A pick list is offered as a list of its 3 values.");
+            Require(box is not null && box.Text == "42", "The last answer comes back in the text box.");
+            var printed = panel.Children.OfType<TextBlock>().Select(text => text.Text).FirstOrDefault(text => text.StartsWith("Sẽ in:", StringComparison.Ordinal));
+            Require(printed == "Sẽ in: 00000042/26", "Padding and the suffix show what will print: " + printed);
+
+            void Accept() => typeof(ANLAbel.App.PromptValuesWindow).GetMethod("Accept", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+            var problem = panel.Children.OfType<TextBlock>().Last(text => text.Foreground == Brushes.DarkRed);
+            box!.Text = "4x2";
+            list!.SelectedItem = "B";
+            Accept();
+            Require(problem.Text.Contains("không nhận ký tự “x”", StringComparison.Ordinal), "A refused character is turned back in Vietnamese: " + problem.Text);
+            box.Text = "42";
+            try
+            {
+                Accept();
+            }
+            catch (TargetInvocationException closing) when (closing.InnerException is InvalidOperationException)
+            {
+                // The window was never shown as a dialog, so DialogResult cannot close it; the values are set first.
+            }
+            Require(window.Values.TryGetValue("PO", out var po) && po == "42" && window.Values["Shift"] == "B", "The answers are kept as entered.");
+            window.Close();
         });
 
         return Task.CompletedTask;

@@ -71,6 +71,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("x-sized barcodes grow around their anchoring point", DesignScenarioRegression.XSizedBarcodesGrowAroundTheirAnchor),
     ("a new label walks label properties step by step", PaperLayoutRegression.NewLabelWalksLabelPropertiesStepByStep),
     ("a protected label opens for printing only", TestProtectedLabelOpensForPrintingOnly),
+    ("prompt rules guide the operator", DesignScenarioRegression.PromptRulesGuideTheOperator),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),

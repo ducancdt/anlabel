@@ -204,6 +204,13 @@ public sealed record NiceLabel10ObjectRecord(
 /// For a <c>DateAddFunction</c>: the data source whose date the offsets
 /// apply to; null for a variable's own current date.
 /// </param>
+/// <param name="PickList">Stored pick list values (<c>PickListContents</c>); null when the variable has none.</param>
+/// <param name="Prefix">Stored output prefix, spaces kept.</param>
+/// <param name="Suffix">Stored output suffix, spaces kept.</param>
+/// <param name="Padding">Stored padding: 0 none, 1 on left, 2 on right, 3 surrounding.</param>
+/// <param name="PaddingCharacter">Stored padding character (<c>PaddingValue</c>).</param>
+/// <param name="FixedLength">Stored "Fixed length" constraint.</param>
+/// <param name="AllowedCharacters">Stored allowed-character set other than the ten digits.</param>
 public sealed record NiceLabel10Variable(
     string Id,
     string Name,
@@ -219,7 +226,14 @@ public sealed record NiceLabel10Variable(
     string? DataFieldName = null,
     int SystemDateOffsetMonths = 0,
     int SystemDateOffsetYears = 0,
-    string? DateInputId = null);
+    string? DateInputId = null,
+    IReadOnlyList<string>? PickList = null,
+    string? Prefix = null,
+    string? Suffix = null,
+    int Padding = 0,
+    string? PaddingCharacter = null,
+    bool FixedLength = false,
+    string? AllowedCharacters = null);
 
 /// <summary>
 /// A parsed NiceLabel 10 label: stored name, label size in millimetres,

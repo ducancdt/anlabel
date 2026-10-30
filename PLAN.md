@@ -13,6 +13,13 @@
   tắt vẽ; vẫn chọn dữ liệu, máy in và in được. Dải báo trên bảng thiết kế có Mở
   khóa (mật khẩu nếu có) cho phiên làm việc; mở lại tệp thì khóa lại. Chống sửa
   nhầm khi vận hành, không phải mã hóa tệp.
+- Quy tắc biến nhập theo NiceLabel 10 (Input/Output rules): danh sách chọn (người
+  in chọn trong danh sách), độ dài cố định, chỉ nhận các ký tự, tiền tố, hậu tố,
+  đệm trái/phải bằng một ký tự đến số ký tự tối đa. Hộp nhập khi in hiện danh
+  sách thả xuống, gợi ý quy tắc và dòng “Sẽ in: …”; sai quy tắc bị trả lại bằng
+  tiếng Việt. Lệnh in lưu câu trả lời gốc, quy tắc áp khi in nên in lại vẫn đúng.
+  Nhập .nlbl giữ các quy tắc này (PickListContents, Prefix/Suffix, Padding,
+  FixedLength, AllowedCharactersForCustomFormat).
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

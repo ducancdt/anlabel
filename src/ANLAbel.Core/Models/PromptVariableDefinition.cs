@@ -1,3 +1,4 @@
+using ANLAbel.Core.Enums;
 using ANLAbel.Core.Mvvm;
 
 namespace ANLAbel.Core.Models;
@@ -14,6 +15,13 @@ public sealed class PromptVariableDefinition : ObservableObject
     private int _maxLength;
     private bool _digitsOnly;
     private bool _required = true;
+    private bool _fixedLength;
+    private string _allowedCharacters = string.Empty;
+    private string _pickList = string.Empty;
+    private string _prefix = string.Empty;
+    private string _suffix = string.Empty;
+    private PromptPadding _padding;
+    private string _padCharacter = "0";
 
     /// <summary>Name used in bindings without the leading '?', e.g. Lot for {?Lot}.</summary>
     public string Name
@@ -54,6 +62,62 @@ public sealed class PromptVariableDefinition : ObservableObject
         set => SetProperty(ref _required, value);
     }
 
+    /// <summary>NiceLabel 10 "Fixed length": the value has exactly <see cref="MaxLength"/> characters.</summary>
+    public bool FixedLength
+    {
+        get => _fixedLength;
+        set => SetProperty(ref _fixedLength, value);
+    }
+
+    /// <summary>NiceLabel 10 "Allowed characters": when set, the value uses only these characters.</summary>
+    public string AllowedCharacters
+    {
+        get => _allowedCharacters;
+        set => SetProperty(ref _allowedCharacters, value ?? string.Empty);
+    }
+
+    /// <summary>NiceLabel 10 "Pick list": one value per line; the operator picks one of them.</summary>
+    public string PickList
+    {
+        get => _pickList;
+        set => SetProperty(ref _pickList, value ?? string.Empty);
+    }
+
+    /// <summary>The pick list's values, blank lines left out.</summary>
+    public IReadOnlyList<string> PickListValues => PickList
+        .Split('\n')
+        .Select(line => line.TrimEnd('\r'))
+        .Where(line => line.Length > 0)
+        .ToArray();
+
+    /// <summary>NiceLabel 10 output rule: printed before a non-empty value.</summary>
+    public string Prefix
+    {
+        get => _prefix;
+        set => SetProperty(ref _prefix, value ?? string.Empty);
+    }
+
+    /// <summary>NiceLabel 10 output rule: printed after a non-empty value.</summary>
+    public string Suffix
+    {
+        get => _suffix;
+        set => SetProperty(ref _suffix, value ?? string.Empty);
+    }
+
+    /// <summary>NiceLabel 10 output rule: a shorter value is padded up to <see cref="MaxLength"/>.</summary>
+    public PromptPadding Padding
+    {
+        get => _padding;
+        set => SetProperty(ref _padding, Enum.IsDefined(value) ? value : PromptPadding.None);
+    }
+
+    /// <summary>The padding character (one character; 0 by default).</summary>
+    public string PadCharacter
+    {
+        get => _padCharacter;
+        set => SetProperty(ref _padCharacter, string.IsNullOrEmpty(value) ? "0" : value[..1]);
+    }
+
     /// <summary>A copy to edit without touching this variable (Quản lý dữ liệu works on a draft).</summary>
     public PromptVariableDefinition Clone() => new()
     {
@@ -62,6 +126,13 @@ public sealed class PromptVariableDefinition : ObservableObject
         DefaultValue = DefaultValue,
         MaxLength = MaxLength,
         DigitsOnly = DigitsOnly,
-        Required = Required
+        Required = Required,
+        FixedLength = FixedLength,
+        AllowedCharacters = AllowedCharacters,
+        PickList = PickList,
+        Prefix = Prefix,
+        Suffix = Suffix,
+        Padding = Padding,
+        PadCharacter = PadCharacter
     };
 }

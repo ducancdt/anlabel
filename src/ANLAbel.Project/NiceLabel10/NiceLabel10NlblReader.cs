@@ -169,6 +169,7 @@ public static class NiceLabel10NlblReader
             }
 
             var defaultValue = string.Empty;
+            IReadOnlyList<string>? pickList = null;
             string? systemDateFormat = null;
             var systemDateOffsetDays = 0;
             var defaultElement = item.Element("DefaultValue");
@@ -179,6 +180,7 @@ public static class NiceLabel10NlblReader
                     break;
                 case "PickListContents":
                     defaultValue = ChildText(defaultElement, "SelectedValue") ?? string.Empty;
+                    pickList = defaultElement.Element("Values")?.Elements("Item").Select(value => value.Value).Where(value => value.Length > 0).ToArray();
                     break;
                 case "DateTimeContents":
                     // A prompted date; "." is the vendor's empty marker.
@@ -212,6 +214,7 @@ public static class NiceLabel10NlblReader
                 defaultValue = string.Empty;
             }
 
+            var allowed = ChildText(item, "AllowedCharactersForCustomFormat");
             variables[id] = new NiceLabel10Variable(
                 id,
                 name,
@@ -219,11 +222,21 @@ public static class NiceLabel10NlblReader
                 defaultValue,
                 (int)ParseDouble(constraints, "Length"),
                 ParseBool(constraints, "IsRequired"),
-                ChildText(item, "AllowedCharactersForCustomFormat") == "0123456789",
+                allowed == "0123456789",
                 ParseBool(item, "IsNotPrompted"),
                 string.IsNullOrWhiteSpace(systemDateFormat) ? null : systemDateFormat,
                 systemDateOffsetDays,
-                functionTemplate);
+                functionTemplate,
+                PickList: pickList is { Count: > 0 } ? pickList : null,
+                // Output rules keep their spaces ("Weight: ", " kg").
+                Prefix: item.Element("Prefix")?.Value,
+                Suffix: item.Element("Suffix")?.Value,
+                Padding: (int)ParseDouble(item, "Padding"),
+                PaddingCharacter: item.Element("PaddingValue")?.Value,
+                FixedLength: ParseBool(constraints, "FixedLength"),
+                // A custom character set applies only with a data format (FormatId); without one the
+                // variable takes any character and the stored set is a leftover (46 such in the samples).
+                AllowedCharacters: string.IsNullOrEmpty(allowed) || allowed == "0123456789" || string.IsNullOrWhiteSpace(ChildText(item, "FormatId")) ? null : allowed);
         }
     }
 
