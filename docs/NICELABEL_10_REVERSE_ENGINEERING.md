@@ -890,3 +890,36 @@ samples).
   `ScriptType` 2 (16, not VBScript) is not read. `SubsetFunction`
   `Delimiter` '"' and `FieldNumber` are stored defaults; a `Delimited`
   subset is refused and its objects are named as not converted.
+
+## §23 Designer property pages against ANLAbel (2026-10-31)
+
+DesignerLib registers 62 property pages (`[PropertyPage(CategoryName =
+"PropertyPagesMessages....")]`). Without PowerForms (`Form*`), RFID and Report
+pages, the label-design pages and their state in ANLAbel:
+
+- Read and printed: barcode main, details (`InterCharacterGap`), check digit
+  (generate, verify, display), human readable (position, font, bold, italic,
+  auto scaling), content mask, 2D details, graphic style and resize options
+  (none, uniform, fill, flips), text and rich text style, text automatic sizing
+  (`BestFit` with `BestFitMinimum/MaximumFontSize` and `...FontScaling`,
+  `ScaleFactor`), inverse text, format dimensions (labels across/down, gaps,
+  margins, processing order), paper, printer, the object `IsPrintable` flag.
+- Owner decisions, listed in §16: descender bars and quiet zones
+  (`HasDescenderBars`, `HasQuietZones`).
+- Stored but not used by any label here: text effects `Mirror`,
+  `RtlPrinting` and text on a path (`TextType` 3), bearer bars
+  (`FixedThickness`, `VariableThickness`, `VerticalBars`), bar width
+  reduction and space correction, variable label length (`IsReceiptPrinting`,
+  `VariableFormatSize`), paragraph custom boundaries (§22).
+- Relative position (`RelativePositionPropertyPage`): stored as
+  `Geometry/Positioning Type="ItemPositioning"` with
+  `HorizontalPositioningKind` 2, `HorizontalBorderKind` and
+  `HorizontalRelativeItem` (the reference item's id); 24 sample items (ECIA
+  product, GM1724A, GS1-128, HIBC labels), horizontal only, none in the
+  customer labels. The stored X/Y is the design-time result, so the import
+  places the item right for the sample values; NiceLabel moves it with the
+  reference item's edge when the data is longer or shorter, ANLAbel keeps it
+  where it was. Not built.
+- Label corner radius (`HorizontalRadius`, `VerticalRadius`, 50 samples):
+  the die-cut shape shown in the designer; not printed. Not built.
+- Batch printing, cutter, stocks, custom scripts: §16 and out of scope.
