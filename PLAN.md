@@ -28,6 +28,8 @@
   mọi tem trong một lệnh in cùng một số. Bộ đếm ANLAbel giữ chỗ số cho từng lệnh
   nên không trùng số; bộ đếm NiceLabel hỏi số bắt đầu khi in thì nay tự nối tiếp
   số đã in; quy tắc đặt lại theo ngày hoặc theo biến khác không chuyển được.
+- Nhập .nlbl: hộp nhập khi in hỏi theo thứ tự câu hỏi NiceLabel lưu
+  (PromptOrder), không theo thứ tự đối tượng trên tem.
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 

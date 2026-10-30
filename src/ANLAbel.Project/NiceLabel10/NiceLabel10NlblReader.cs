@@ -257,7 +257,8 @@ public static partial class NiceLabel10NlblReader
             {
                 DateFormat = string.IsNullOrWhiteSpace(promptDateFormat) ? null : promptDateFormat,
                 DateInputFormat = string.IsNullOrWhiteSpace(promptDateInputFormat) ? null : promptDateInputFormat,
-                Counter = ReadCounter(item)
+                Counter = ReadCounter(item),
+                PromptOrder = item.Element("PromptOrder") is null ? -1 : (int)ParseDouble(item, "PromptOrder")
             };
         }
     }

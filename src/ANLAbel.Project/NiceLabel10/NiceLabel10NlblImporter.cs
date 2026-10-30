@@ -278,6 +278,7 @@ public static partial class NiceLabel10NlblImporter
         }
 
         SizeBoundBarcodesFromDesignValues(template, boundBarcodes);
+        context.OrderPrompts();
         return template;
     }
 
@@ -1257,6 +1258,7 @@ public static partial class NiceLabel10NlblImporter
         private readonly string? _sourceDirectory;
         private readonly HashSet<string> _registeredPrompts = new(StringComparer.Ordinal);
         private string? _serialCounterVariableId;
+        private readonly Dictionary<string, int> _promptOrders = new(StringComparer.Ordinal);
 
         private const long MaxGraphicFileBytes = 32 * 1024 * 1024;
 
@@ -1653,6 +1655,28 @@ public static partial class NiceLabel10NlblImporter
             return unresolved ? null : expanded;
         }
 
+        /// <summary>
+        /// The print dialog asks in NiceLabel's prompt order (<c>PromptOrder</c>);
+        /// prompts without one follow in the order the label first uses them.
+        /// </summary>
+        public void OrderPrompts()
+        {
+            var ordered = _template.PromptVariables
+                .Select((prompt, index) => (Prompt: prompt, Index: index, Order: _promptOrders.TryGetValue(prompt.Name, out var order) && order >= 0 ? order : int.MaxValue))
+                .OrderBy(entry => entry.Order)
+                .ThenBy(entry => entry.Index)
+                .Select(entry => entry.Prompt)
+                .ToList();
+            for (var index = 0; index < ordered.Count; index++)
+            {
+                var current = _template.PromptVariables.IndexOf(ordered[index]);
+                if (current != index)
+                {
+                    _template.PromptVariables.Move(current, index);
+                }
+            }
+        }
+
         private void RegisterPrompt(NiceLabel10Variable variable, NiceLabel10ObjectRecord record)
         {
             if (!_registeredPrompts.Add(variable.Name)
@@ -1660,6 +1684,8 @@ public static partial class NiceLabel10NlblImporter
             {
                 return;
             }
+
+            _promptOrders[variable.Name] = variable.PromptOrder;
 
             // A variable feeding a rich-text item stores its default in the
             // same rich encoding (base64 text/RTF) as the item's contents.

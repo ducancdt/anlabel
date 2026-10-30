@@ -1450,6 +1450,38 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void Prompts_AreAskedInNiceLabelsPromptOrder()
+    {
+        // Objects use Weight, then Lot, then Note; NiceLabel asks Lot first.
+        const string weight = "d1d1d1d1-2222-3333-4444-555555555555";
+        const string lot = "d2d2d2d2-2222-3333-4444-555555555555";
+        const string note = "d3d3d3d3-2222-3333-4444-555555555555";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable"><Id>{weight}</Id><Name>Weight</Name><DefaultValue Type="StringContents"><StringValue>1</StringValue></DefaultValue><PromptOrder>2</PromptOrder></Item>
+                <Item Type="Variable"><Id>{lot}</Id><Name>Lot</Name><DefaultValue Type="StringContents"><StringValue>L</StringValue></DefaultValue><PromptOrder>1</PromptOrder></Item>
+                <Item Type="Variable"><Id>{note}</Id><Name>Note</Name><DefaultValue Type="StringContents"><StringValue>N</StringValue></DefaultValue></Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        string Bound(string name, string id, int y) => $"""
+            <Item Type="TextDocumentItem">
+              <Name>{name}</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>{y}</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>x</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{id}</Id></DataSourceReference>
+            </Item>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(
+            Bound("NoteText", note, 2000) + Bound("WeightText", weight, 12000) + Bound("LotText", lot, 22000)), solution), "sample.nlbl");
+
+        Assert.Equal(new[] { "Lot", "Weight", "Note" }, template.PromptVariables.Select(prompt => prompt.Name).ToArray());
+    }
+
+    [Fact]
     public void Counters_BecomeTheSerialCounter()
     {
         // Serialization_Label: "0001", four digits, increments per label.

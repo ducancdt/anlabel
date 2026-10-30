@@ -807,3 +807,6 @@ built: a `DateAddFunction` whose input is a prompted date.
   (ANLAbel continues the reserved sequence), reset rules, a second counter
   (stays a prompt). Gate `an imported NiceLabel serial label numbers every
   label`.
+- `PromptOrder` (default -1; set on every sample variable) orders the print
+  dialog. Imported prompts follow it; prompts without one come after, in the
+  order the label first uses them.

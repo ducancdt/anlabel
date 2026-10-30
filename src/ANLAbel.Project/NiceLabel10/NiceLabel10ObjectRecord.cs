@@ -301,6 +301,9 @@ public sealed record NiceLabel10Variable(
     /// <summary>The counter rules of a counting variable; null for any other variable.</summary>
     public NiceLabel10Counter? Counter { get; init; }
 
+    /// <summary>Stored <c>PromptOrder</c>: where the print dialog asks for it (-1 when unset).</summary>
+    public int PromptOrder { get; init; } = -1;
+
     /// <summary>
     /// For a <c>DateAddFunction</c> whose day, month or year amount comes from
     /// another data source: that source's id; null for a fixed amount.
