@@ -1,6 +1,18 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.325 — Ký tự ẩn trong dữ liệu mã vạch; ô Chữ nhận Enter
+## v0.326 — Ký tự ẩn trong dữ liệu mã vạch; ô Chữ nhận Enter; mức PDF417 và bảng ký tự Serial
+
+_Gồm các commit sáng 28/10/2026 (07:49–09:40)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+**Mã vạch và bộ đếm Serial** (đối chiếu bộ mã vạch của NiceLabel 5)
+
+- PDF417: mức sửa lỗi 0–8 và mã rút gọn; tắt sẵn, mã cũ in y hệt.
+- Bộ đếm Serial thêm bảng ký tự: thập lục phân, chữ cái, chữ số kèm chữ cái và
+  bảng tự đặt (có kiểm tra), dùng chung cơ chế giữ chỗ số hiện có.
+- Kiểm tra trước in gợi ý (không chặn) chiều cao EAN-13, EAN-8, UPC-A, UPC-E
+  theo GS1.
+- Ghi chép dịch ngược NiceLabel 5 (hiệu chỉnh khoảng trắng, cờ banding, phiên
+  in): chỉ đối chiếu, không áp dụng thêm.
 
 **Mã vạch** (báo lỗi 2026-10-28: ảnh chụp từ một bản cũ hơn v0.306 báo "Preview
 blocked: row 2 … invalid Code128 data")
