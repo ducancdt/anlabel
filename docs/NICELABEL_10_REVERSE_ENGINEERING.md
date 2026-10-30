@@ -630,6 +630,9 @@ NiceLabel`.
   (layer 20000 holds items 20001…), so the item `ZOrder` alone gives the
   stacking. ANLAbel imported every object at `ZIndex` 0 (file order); the
   importer now ranks `ZIndex` by `ZOrder` (equal values keep file order).
+- Groups: the format's `GroupedItems` holds one
+  `SolutionItemReferenceCollectionWrapper` per group listing member ids (3
+  sample labels); imported members share one ANLAbel `GroupId`.
 - `IsPrintable` False (4 sample items): kept as ANLAbel "Không in".
 - `PositionLocked` (4 sample items) imports as ANLAbel "Khóa vị trí"; text
   `InverseText` (4 sample items, white glyphs on a black box) imports as the

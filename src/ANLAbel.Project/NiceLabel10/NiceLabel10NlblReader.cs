@@ -754,7 +754,8 @@ public static class NiceLabel10NlblReader
 
         return new NiceLabel10Document(name.Trim(), width, height, objects, variables)
         {
-            PrintSetup = ReadPrintSetup(root, media, pageLayout)
+            PrintSetup = ReadPrintSetup(root, media, pageLayout),
+            Groups = ReadGroups(root)
         };
     }
 
@@ -994,6 +995,7 @@ public static class NiceLabel10NlblReader
             HasUnresolvedReference = unresolved,
             ZOrder = (int)ParseDouble(item, "ZOrder"),
             IsPrintable = item.Element("IsPrintable") is null || ParseBool(item, "IsPrintable"),
+            ItemId = ChildText(item, "Id")?.Trim(),
             PositionLocked = ParseBool(item, "PositionLocked"),
             InverseText = ParseBool(item, "InverseText"),
             RotationDegrees = ParseDouble(geometry, "Rotation"),
@@ -1087,6 +1089,21 @@ public static class NiceLabel10NlblReader
 
     private static string? ChildText(XElement? parent, string name) =>
         parent?.Element(name)?.Value;
+
+    /// <summary>
+    /// NiceLabel object groups: <c>GroupedItems</c> holds one
+    /// <c>SolutionItemReferenceCollectionWrapper</c> per group, listing its
+    /// members' ids.
+    /// </summary>
+    private static IReadOnlyList<IReadOnlyList<string>> ReadGroups(XElement root)
+        => (root.Element("GroupedItems")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+            .Select(group => (IReadOnlyList<string>)(group.Element("SolutionItemReferences")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+                .Select(member => ChildText(member, "Id")?.Trim())
+                .OfType<string>()
+                .Where(id => id.Length > 0)
+                .ToArray())
+            .Where(members => members.Count > 1)
+            .ToArray();
 
     /// <summary>
     /// Items of a NiceLabel 10 layer (Document Design › Layers, its

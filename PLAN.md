@@ -1,5 +1,10 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.347
+
+- Nhập .nlbl giữ nhóm đối tượng của NiceLabel (GroupedItems): các đối tượng
+  cùng nhóm nhận chung một nhóm ANLAbel nên chọn và di chuyển cùng nhau.
+
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 
 _Gồm các commit 30–31/10/2026 (23:50–00:30)._

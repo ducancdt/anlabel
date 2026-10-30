@@ -1440,6 +1440,55 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void GroupedItems_ImportAsAGroup()
+    {
+        var document = Parse("""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Format">
+              <Name>Groups</Name>
+              <Media Type="FormatMedia"><Width>100000</Width><Height>60000</Height></Media>
+              <DocumentItems>
+                <Item Type="TextDocumentItem">
+                  <Id>91919191-0000-4000-8000-000000000001</Id>
+                  <Name>Caption</Name>
+                  <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+                  <FixedContents>Lot</FixedContents>
+                </Item>
+                <Item Type="TextDocumentItem">
+                  <Id>91919191-0000-4000-8000-000000000002</Id>
+                  <Name>Value</Name>
+                  <Geometry Type="PositionGeometry"><X>20000</X><Y>1000</Y></Geometry>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+                  <FixedContents>L-1</FixedContents>
+                </Item>
+                <Item Type="TextDocumentItem">
+                  <Id>91919191-0000-4000-8000-000000000003</Id>
+                  <Name>Alone</Name>
+                  <Geometry Type="PositionGeometry"><X>1000</X><Y>20000</Y></Geometry>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+                  <FixedContents>x</FixedContents>
+                </Item>
+              </DocumentItems>
+              <GroupedItems>
+                <Item Type="SolutionItemReferenceCollectionWrapper">
+                  <SolutionItemReferences>
+                    <Item Type="SolutionItemReference"><Id>91919191-0000-4000-8000-000000000001</Id></Item>
+                    <Item Type="SolutionItemReference"><Id>91919191-0000-4000-8000-000000000002</Id></Item>
+                  </SolutionItemReferences>
+                </Item>
+              </GroupedItems>
+            </EuroPlus.NiceLabel>
+            """);
+        var template = NiceLabel10NlblImporter.CreateTemplate(document, "sample.nlbl");
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        Assert.False(string.IsNullOrEmpty(byName["Caption"].GroupId));
+        Assert.Equal(byName["Caption"].GroupId, byName["Value"].GroupId);
+        Assert.True(string.IsNullOrEmpty(byName["Alone"].GroupId));
+    }
+
+    [Fact]
     public void Objects_StackInTheStoredZOrder_AndKeepNotPrintable()
     {
         // The file lists the white caption before the black band it sits on;

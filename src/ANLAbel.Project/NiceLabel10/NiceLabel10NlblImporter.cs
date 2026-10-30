@@ -260,6 +260,22 @@ public static partial class NiceLabel10NlblImporter
             stacking[index].Item.ZIndex = index + 1;
         }
 
+        // NiceLabel groups select and move together, as ANLAbel groups do.
+        foreach (var group in document.Groups)
+        {
+            var members = converted.Where(pair => pair.Record.ItemId is { } itemId && group.Contains(itemId, StringComparer.OrdinalIgnoreCase)).ToList();
+            if (members.Select(pair => pair.Record).Distinct().Count() < 2)
+            {
+                continue;
+            }
+
+            var groupId = Guid.NewGuid().ToString("N");
+            foreach (var (member, _) in members)
+            {
+                member.GroupId = groupId;
+            }
+        }
+
         SizeBoundBarcodesFromDesignValues(template, boundBarcodes);
         return template;
     }

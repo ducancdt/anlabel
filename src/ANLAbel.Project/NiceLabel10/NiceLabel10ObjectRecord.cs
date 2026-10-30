@@ -141,6 +141,9 @@ public sealed record NiceLabel10ObjectRecord(
     /// <summary>Stored <c>IsPrintable</c> (default true); false keeps the object on screen only.</summary>
     public bool IsPrintable { get; init; } = true;
 
+    /// <summary>The stored item <c>Id</c>, which groups refer to; null when absent.</summary>
+    public string? ItemId { get; init; }
+
     /// <summary>Stored <c>PositionLocked</c>: the object cannot be moved in the designer.</summary>
     public bool PositionLocked { get; init; }
 
@@ -314,6 +317,9 @@ public sealed record NiceLabel10Document(
 
     /// <summary>Stored printer and media facts; null when the format stores none.</summary>
     public NiceLabel10PrintSetup? PrintSetup { get; init; }
+
+    /// <summary>Object groups (<c>GroupedItems</c>): each the ids of the items grouped together.</summary>
+    public IReadOnlyList<IReadOnlyList<string>> Groups { get; init; } = Array.Empty<IReadOnlyList<string>>();
 }
 
 /// <summary>One side of a NiceLabel visibility condition: a data source by id, or fixed text.</summary>
