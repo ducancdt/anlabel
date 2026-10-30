@@ -146,6 +146,14 @@ public static partial class JobVariableContract
             return $"Prompt '{label}' needs exactly {definition.MaxLength} characters; {text.Length} were entered.";
         }
 
+        // Minimum length catches a value scanned or typed short; padding up to
+        // the maximum length fills a shorter one, as for a fixed length.
+        var padded = definition.Padding != ANLAbel.Core.Enums.PromptPadding.None && definition.MaxLength >= definition.MinLength;
+        if (definition.MinLength > 0 && !padded && text.Length > 0 && text.Length < definition.MinLength)
+        {
+            return $"Prompt '{label}' needs at least {definition.MinLength} characters; {text.Length} were entered.";
+        }
+
         return string.Empty;
     }
 

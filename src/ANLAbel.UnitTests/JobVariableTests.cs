@@ -191,6 +191,28 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void AMinimumLengthCatchesAShortValue()
+    {
+        var part = new PromptVariableDefinition { Name = "Part", Prompt = "Mã hàng", MinLength = 6, MaxLength = 10 };
+        Assert.Contains("needs at least 6 characters; 4 were entered", JobVariableContract.ValidatePromptValue(part, "AB12"));
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(part, "AB1234"));
+        // An empty answer is the Required rule's business, not this one's.
+        part.Required = false;
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(part, string.Empty));
+        // Padding to the maximum length fills a shorter value.
+        part.Padding = ANLAbel.Core.Enums.PromptPadding.Left;
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(part, "12"));
+        Assert.Equal(6, part.Clone().MinLength);
+
+        var template = Template("{?Part}");
+        var used = new PromptVariableDefinition { Name = "Part" };
+        template.PromptVariables.Add(used);
+        var before = DocumentSnapshot.Capture(template).DocumentHash;
+        used.MinLength = 4;
+        Assert.NotEqual(before, DocumentSnapshot.Capture(template).DocumentHash);
+    }
+
+    [Fact]
     public void ADateFormatChangesTheDocumentFingerprint()
     {
         var template = Template("{?Exp}");

@@ -304,6 +304,9 @@ public sealed record NiceLabel10Variable(
     /// <summary>Stored <c>PromptOrder</c>: where the print dialog asks for it (-1 when unset).</summary>
     public int PromptOrder { get; init; } = -1;
 
+    /// <summary>Stored <c>Constraints/MinLength</c>: the fewest characters a value may have (0 = none).</summary>
+    public int MinLength { get; init; }
+
     /// <summary>
     /// For a <c>DateAddFunction</c> whose day, month or year amount comes from
     /// another data source: that source's id; null for a fixed amount.

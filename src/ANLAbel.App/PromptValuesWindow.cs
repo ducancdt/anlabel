@@ -72,11 +72,18 @@ public sealed class PromptValuesWindow : Window
                 hints.Add($"chỉ các ký tự {prompt.AllowedCharacters}");
             }
 
+            var minimum = prompt.MinLength > 0 && prompt.Padding == PromptPadding.None ? prompt.MinLength : 0;
             if (prompt.MaxLength > 0)
             {
                 hints.Add(prompt.FixedLength && prompt.Padding == PromptPadding.None
                     ? $"đúng {prompt.MaxLength} ký tự"
-                    : $"tối đa {prompt.MaxLength} ký tự");
+                    : minimum > 0 && minimum < prompt.MaxLength
+                        ? $"từ {minimum} đến {prompt.MaxLength} ký tự"
+                        : $"tối đa {prompt.MaxLength} ký tự");
+            }
+            else if (minimum > 0)
+            {
+                hints.Add($"ít nhất {minimum} ký tự");
             }
 
             panel.Children.Add(new TextBlock

@@ -178,6 +178,10 @@
                                 </StackPanel.Style>
                                 <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự tối đa (0 = không giới hạn)"/>
                                 <TextBox Width="120" HorizontalAlignment="Left" Text="{Binding MaxLength, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Số ký tự tối đa"/>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Số ký tự tối thiểu (0 = không yêu cầu)"/>
+                                <TextBox Width="120" HorizontalAlignment="Left" Text="{Binding MinLength, UpdateSourceTrigger=LostFocus}"
+                                         ToolTip="Người in phải nhập ít nhất chừng này ký tự, để bắt giá trị quét hoặc gõ thiếu."
+                                         AutomationProperties.Name="Số ký tự tối thiểu" AutomationProperties.AutomationId="DataManager.Prompt.MinLength"/>
                                 <CheckBox Content="Độ dài cố định (đúng số ký tự tối đa)" Margin="0,8,0,0" IsChecked="{Binding FixedLength}" AutomationProperties.AutomationId="DataManager.Prompt.FixedLength"/>
                                 <CheckBox Content="Chỉ nhận chữ số" Margin="0,6,0,0" IsChecked="{Binding DigitsOnly}"/>
                                 <TextBlock Style="{StaticResource EditorLabel}" Text="Chỉ nhận các ký tự (để trống = mọi ký tự)"/>

@@ -13,6 +13,7 @@ public sealed class PromptVariableDefinition : ObservableObject
     private string _prompt = string.Empty;
     private string _defaultValue = string.Empty;
     private int _maxLength;
+    private int _minLength;
     private bool _digitsOnly;
     private bool _required = true;
     private bool _fixedLength;
@@ -50,6 +51,13 @@ public sealed class PromptVariableDefinition : ObservableObject
     {
         get => _maxLength;
         set => SetProperty(ref _maxLength, Math.Max(0, value));
+    }
+
+    /// <summary>NiceLabel 10 "Minimum length": a value typed has at least this many characters; 0 means none.</summary>
+    public int MinLength
+    {
+        get => _minLength;
+        set => SetProperty(ref _minLength, Math.Max(0, value));
     }
 
     public bool DigitsOnly
@@ -145,6 +153,7 @@ public sealed class PromptVariableDefinition : ObservableObject
         Prompt = Prompt,
         DefaultValue = DefaultValue,
         MaxLength = MaxLength,
+        MinLength = MinLength,
         DigitsOnly = DigitsOnly,
         Required = Required,
         FixedLength = FixedLength,

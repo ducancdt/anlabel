@@ -810,3 +810,7 @@ built: a `DateAddFunction` whose input is a prompted date.
 - `PromptOrder` (default -1; set on every sample variable) orders the print
   dialog. Imported prompts follow it; prompts without one come after, in the
   order the label first uses them.
+- `DataSourceConstraints.MinLength` (default 0; 112 sample variables): when
+  above 0 the data source gets a minimum-length validator, and a `Length`
+  below it is refused. ANLAbel prompts carry it as `MinLength`, checked on a
+  non-empty answer unless padding fills the value to its maximum length.

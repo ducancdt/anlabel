@@ -1482,6 +1482,37 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void MinimumLength_IsKeptAsAnInputRule()
+    {
+        const string despatch = "d4d4d4d4-2222-3333-4444-555555555555";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>{despatch}</Id>
+                  <Name>Despatch_Advice_Number</Name>
+                  <DefaultValue Type="StringContents"><StringValue>123456789012</StringValue></DefaultValue>
+                  <Constraints Type="DataSourceConstraints"><Length>30</Length><MinLength>2</MinLength></Constraints>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format($"""
+            <Item Type="TextDocumentItem">
+              <Name>Despatch</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>2000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>123456789012</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{despatch}</Id></DataSourceReference>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var prompt = Assert.Single(template.PromptVariables);
+        Assert.Equal((2, 30), (prompt.MinLength, prompt.MaxLength));
+    }
+
+    [Fact]
     public void Counters_BecomeTheSerialCounter()
     {
         // Serialization_Label: "0001", four digits, increments per label.

@@ -30,6 +30,9 @@
   số đã in; quy tắc đặt lại theo ngày hoặc theo biến khác không chuyển được.
 - Nhập .nlbl: hộp nhập khi in hỏi theo thứ tự câu hỏi NiceLabel lưu
   (PromptOrder), không theo thứ tự đối tượng trên tem.
+- Biến nhập khi in có quy tắc "Số ký tự tối thiểu" (NiceLabel 10 Minimum
+  length): hộp nhập ghi "từ N đến M ký tự" và trả lại giá trị quét hoặc gõ thiếu
+  bằng tiếng Việt; đặt trong Quản lý dữ liệu, nhập được từ .nlbl.
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 

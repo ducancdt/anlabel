@@ -109,6 +109,10 @@ public sealed record DocumentSnapshot
         var date = item.DateFormat.Length == 0 && item.DateInputFormat.Length == 0
             ? string.Empty
             : "|date|" + item.DateFormat.Length + ":" + item.DateFormat + "|" + item.DateInputFormat.Length + ":" + item.DateInputFormat;
+        if (item.MinLength > 0)
+        {
+            date += "|min|" + item.MinLength.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
         if (!item.FixedLength
             && item.AllowedCharacters.Length == 0
             && item.PickList.Length == 0

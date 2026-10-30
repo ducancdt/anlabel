@@ -518,6 +518,35 @@ internal static class DesignScenarioRegression
 
             Require(dateWindow.Values.TryGetValue("Exp", out var exp) && exp == "2026-12-31", "A date typed in its input format is kept as yyyy-MM-dd: " + exp);
             dateWindow.Close();
+
+            // A minimum length (NiceLabel 10 input rule) is shown and turns a short value back.
+            var parts = new[] { new PromptVariableDefinition { Name = "Part", Prompt = "Mã hàng", MinLength = 6, MaxLength = 10 } };
+            var partWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
+                typeof(ANLAbel.App.PromptValuesWindow),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new object[] { parts, new Dictionary<string, string>() },
+                null)!;
+            var partPanel = (StackPanel)partWindow.Content;
+            Require(partPanel.Children.OfType<TextBlock>().Any(text => text.Text == "Mã hàng (bắt buộc, từ 6 đến 10 ký tự)"), "The prompt says how long the value must be: " + string.Join(" | ", partPanel.Children.OfType<TextBlock>().Select(text => text.Text)));
+            void AcceptPart() => typeof(ANLAbel.App.PromptValuesWindow).GetMethod("Accept", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(partWindow, null);
+            var partProblem = partPanel.Children.OfType<TextBlock>().Last(text => text.Foreground == Brushes.DarkRed);
+            var partBox = partPanel.Children.OfType<TextBox>().Single();
+            partBox.Text = "AB12";
+            AcceptPart();
+            Require(partProblem.Text.Contains("cần ít nhất 6 ký tự", StringComparison.Ordinal), "A value scanned short is turned back in Vietnamese: " + partProblem.Text);
+            partBox.Text = "AB1234";
+            try
+            {
+                AcceptPart();
+            }
+            catch (TargetInvocationException closing) when (closing.InnerException is InvalidOperationException)
+            {
+                // Never shown as a dialog; the values are set before DialogResult.
+            }
+
+            Require(partWindow.Values.TryGetValue("Part", out var part) && part == "AB1234", "A value long enough is kept.");
+            partWindow.Close();
         });
 
         return Task.CompletedTask;
@@ -1160,6 +1189,11 @@ internal static class DesignScenarioRegression
             var textRules = (FrameworkElement)Find<TextBox>("DataManager.Prompt.AllowedCharacters").Parent;
             Require(kindText.IsChecked == true && dateBlock.Visibility == Visibility.Collapsed && textRules.Visibility == Visibility.Visible,
                 "A text prompt shows its text rules and no date format.");
+            var minimum = Find<TextBox>("DataManager.Prompt.MinLength");
+            Require(ReferenceEquals(minimum.Parent, textRules), "The minimum length is one of the text rules.");
+            minimum.Text = "4";
+            minimum.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+            Require(draft.MinLength == 4, $"The minimum length is stored on the prompt ({draft.MinLength}).");
 
             kindDate.IsChecked = true;
             System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);

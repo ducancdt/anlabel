@@ -22,6 +22,8 @@ public static class JobVariableText
             m => $"“{m.Groups["p"].Value}” phải là một giá trị trong danh sách: {m.Groups["v"].Value}"),
         (Rx(@"^Prompt '(?<p>.*)' needs exactly (?<n>\d+) characters; (?<k>\d+) were entered"),
             m => $"“{m.Groups["p"].Value}” cần đúng {m.Groups["n"].Value} ký tự, đã nhập {m.Groups["k"].Value}"),
+        (Rx(@"^Prompt '(?<p>.*)' needs at least (?<n>\d+) characters; (?<k>\d+) were entered"),
+            m => $"“{m.Groups["p"].Value}” cần ít nhất {m.Groups["n"].Value} ký tự, mới nhập {m.Groups["k"].Value}"),
         (Rx(@"^Date field '(?<t>.*)' is not understood"),
             m => $"trường ngày “{m.Groups["t"].Value}” sai cú pháp; dùng {{#NOW}}, {{#NOW:dd/MM/yyyy}} hoặc {{#NOW+30d:dd/MM/yyyy}} (đơn vị d, w, mo, y, h)"),
         (Rx(@"^Date field '(?<t>.*)' has an invalid format '(?<f>.*)'"),

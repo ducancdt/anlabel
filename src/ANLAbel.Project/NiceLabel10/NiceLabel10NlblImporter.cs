@@ -1701,6 +1701,7 @@ public static partial class NiceLabel10NlblImporter
                 // contents are no date).
                 DefaultValue = string.IsNullOrEmpty(storedDefault) && variable.DateFormat is null ? record.Content : storedDefault,
                 MaxLength = Math.Max(0, variable.MaxLength),
+                MinLength = variable.MinLength,
                 Required = variable.Required,
                 DigitsOnly = variable.DigitsOnly,
                 // NiceLabel 10 input and output rules (surrounding padding has no ANLAbel form).
