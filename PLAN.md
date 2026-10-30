@@ -1,5 +1,24 @@
 # ANLAbel Phase 1 Plan
 
+## v0.335 — Giao diện thiết kế theo NiceLabel 10: ribbon theo thẻ, bảng Thuộc tính nổi, nhóm, mặt nạ, Đảo màu, Chữ định dạng
+
+_Gồm các commit đêm 29/10/2026 (23:19–00:03)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Ribbon theo thẻ: Tệp, Trang chủ, Dữ liệu, Xem, Trợ giúp, cùng thẻ Thiết kế
+  và Chữ/Mã vạch/Hình ảnh/Hình dạng chỉ hiện khi chọn đối tượng. Hộp công cụ
+  ba cột; thẻ Dữ liệu/Lớp/Đối tượng có tìm kiếm; bảng Thuộc tính chia
+  Nguồn/Kiểu/Vị trí/Chung; thanh trạng thái có máy in và thu phóng.
+- Bảng Thuộc tính ghim bên phải hoặc nổi cạnh đối tượng (nút ghim, F4, nhấp
+  đúp). Điểm neo 9 vị trí cho đối tượng giãn theo nội dung.
+- Nhóm/Bỏ nhóm; dấu tên và dấu nguồn dữ liệu trên đối tượng; xoay khung nhìn
+  (không xoay tem).
+- Mặt nạ nội dung (Nguồn › Mặt nạ) và Sao định dạng (Ctrl+Shift+C /
+  Ctrl+Shift+V).
+- Đối tượng mới: Đảo màu (đổi đen/trắng phần bên dưới khi in) và Chữ định
+  dạng (RTF, cắt tại khung như Ô chữ).
+
+**Kiểm tra:** build 0 cảnh báo, 1535 unit, hồi quy 279/279.
+
 ## v0.334 — Theo NiceLabel 10: khổ giấy văn phòng, tờ nhiều tem, tỉ lệ phông Chữ, Ô chữ giãn theo nội dung
 
 _Commit tối 29/10/2026 (22:42) theo yêu cầu của chủ dự án._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
