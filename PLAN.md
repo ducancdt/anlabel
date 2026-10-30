@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.352
+## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
+
+_Gồm các commit 31/10/2026 (03:43–04:10)._
 
 - Thiết kế, kiểm tra liên kết: khi tem đã liên kết Excel, công thức đọc biến
   nhập khi in (FIELD("?Tên")), ngày in (FIELD("#NOW:…")) hay số sê-ri
@@ -31,6 +33,8 @@
   bỏ qua chúng và nêu tên trong dòng trạng thái. Trước đây lọc trong Excel còn 3
   đơn hàng vẫn in ra 5 tem. Dữ liệu vẫn được đọc đủ; đánh dấu lại một dòng ẩn thì
   dòng đó được in.
+
+**Kiểm tra:** build 0 cảnh báo, 1713 unit, hồi quy 322/322 (vòng kiểm tra Fast).
 
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 
