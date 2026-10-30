@@ -747,3 +747,25 @@ built: a `DateAddFunction` whose input is a prompted date.
   ANLAbel still draws EAN/UPC bars at one height with the number centred below
   (no descender bars, no first digit left of the symbol, no white-space marks,
   no add-ons).
+
+## §18 Placeholders, spaces and reference defaults (2026-10-31)
+
+- A bound item whose data source has no value at design time stores "?"
+  repeated to the source's length as `FixedContents` (over 1,100 sample items,
+  lengths 1-372; a Concatenate of two keeps its separator: "??????? ???"). A
+  255-character Excel field put a Text frame 0.5 m wide on a 50 mm label and
+  ANLAbel's preflight refused to print it ("outside the design label"). The
+  importer now narrows such a frame from its anchoring point until it is
+  inside the label; fixed texts are never narrowed.
+- `XDocument.Parse` drops whitespace-only text, so `<Separator> </Separator>`
+  (32 sample functions) and a fixed `<StringValue> </StringValue>` part (3)
+  were read as empty and "8 PC" printed "8PC". Whitespace-only leaf values are
+  marked `xml:space="preserve"` before parsing.
+- A variable fed by an `ExtendedDataValueFunction` stores the reference
+  template ("[id] / [id] KG") as its default; the design sample composes each
+  reference's own sample ("647 / 491 KG") instead of measuring the ids.
+- With the application's text measurer, objects whose turned bounds leave
+  the label fell from 49 to 42 across the 207 samples. Most of the rest are
+  fixed texts 0.01-1 mm past an edge (WPF advance widths a little wider than
+  NiceLabel's GDI ones) and codes the samples place partly outside; preflight
+  still blocks them (protected rule, reported to the owner).

@@ -1440,6 +1440,145 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void ConcatenatedSpaces_AreKept_AndReferencesShowTheirSamples()
+    {
+        // "8 PC" from a Concatenate separator " ", from a fixed " " part, and a
+        // variable whose default is the reference template "[Qty] / [Unit] KG".
+        const string qty = "a1a1a1a1-2222-3333-4444-555555555555";
+        const string unit = "a2a2a2a2-2222-3333-4444-555555555555";
+        const string joined = "a3a3a3a3-2222-3333-4444-555555555555";
+        const string spaced = "a4a4a4a4-2222-3333-4444-555555555555";
+        const string weights = "a5a5a5a5-2222-3333-4444-555555555555";
+        const string weightsFunction = "a6a6a6a6-2222-3333-4444-555555555555";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable"><Id>{qty}</Id><Name>Qty</Name><DefaultValue Type="StringContents"><StringValue>8</StringValue></DefaultValue></Item>
+                <Item Type="Variable"><Id>{unit}</Id><Name>Unit</Name><DefaultValue Type="StringContents"><StringValue>PC</StringValue></DefaultValue></Item>
+                <Item Type="Variable">
+                  <Id>{weights}</Id>
+                  <Name>Weights</Name>
+                  <DefaultValue Type="StringContents"><StringValue>[{qty}] / [{unit}] KG</StringValue></DefaultValue>
+                  <InternalFunction Type="ExtendedDataValueFunction">
+                    <Id>{weightsFunction}</Id>
+                    <DataValue Type="ExtendedDataValue">
+                      <DataSourceReferences>
+                        <Item Type="SolutionDataSourceReference"><Id>{qty}</Id></Item>
+                        <Item Type="SolutionDataSourceReference"><Id>{unit}</Id></Item>
+                      </DataSourceReferences>
+                      <FixedValue Type="StringContents"><StringValue>[{qty}] / [{unit}] KG</StringValue></FixedValue>
+                    </DataValue>
+                  </InternalFunction>
+                  <DataSourceReference Type="SolutionDataSourceReference"><Id>{weightsFunction}</Id></DataSourceReference>
+                </Item>
+              </Variables>
+              <Functions>
+                <Item Type="ConcatenateFunction">
+                  <Id>{joined}</Id>
+                  <Name>Joined</Name>
+                  <Separator> </Separator>
+                  <DataValues>
+                    <Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{qty}</Id></DataSourceReference></Item>
+                    <Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{unit}</Id></DataSourceReference></Item>
+                  </DataValues>
+                </Item>
+                <Item Type="ConcatenateFunction">
+                  <Id>{spaced}</Id>
+                  <Name>Spaced</Name>
+                  <DataValues>
+                    <Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{qty}</Id></DataSourceReference></Item>
+                    <Item Type="DataValue"><FixedValue Type="StringContents"><StringValue> </StringValue></FixedValue></Item>
+                    <Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{unit}</Id></DataSourceReference></Item>
+                  </DataValues>
+                </Item>
+              </Functions>
+            </EuroPlus.NiceLabel>
+            """;
+        string Bound(string name, string id, int y) => $"""
+            <Item Type="TextDocumentItem">
+              <Name>{name}</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>{y}</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>18</Height></FontDescriptor>
+              <FixedContents>????????????</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{id}</Id></DataSourceReference>
+            </Item>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(
+            Bound("Joined", joined, 2000) + Bound("Spaced", spaced, 12000) + Bound("Weights", weights, 22000) + """
+            <Item Type="TextDocumentItem">
+              <Name>Drawn</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>32000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>18</Height></FontDescriptor>
+              <FixedContents>8 / PC KG</FixedContents>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        IReadOnlyDictionary<string, string>?[] rows = [null];
+        Assert.True(ANLAbel.Core.Printing.JobVariableContract.TryApply(template, rows, DateTimeOffset.Now, new Dictionary<string, string> { ["Qty"] = "8", ["Unit"] = "PC" }, out var applied, out var error), error);
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        string Printed(string name) => ANLAbel.Core.Expressions.BindingExpressionEvaluator.Evaluate(byName[name].BindingExpression, applied[0]!);
+        Assert.Equal("8 PC", Printed("Joined"));
+        Assert.Equal("8 PC", Printed("Spaced"));
+        Assert.Equal("8 / PC KG", Printed("Weights"));
+
+        // The template is sized from what NiceLabel shows, "8 / PC KG", not from "[id] / [id] KG".
+        Assert.Equal(byName["Drawn"].WidthMm, byName["Weights"].WidthMm, 3);
+    }
+
+    [Fact]
+    public void QuestionMarkPlaceholders_StayInsideTheLabel()
+    {
+        // NiceLabel stores "?" x the field length (255) as a bound item's
+        // contents when the field has no value at design time.
+        var placeholder = new string('?', 255);
+        var template = Import($"""
+            <Item Type="TextDocumentItem">
+              <Name>Price</Name>
+              <Geometry Type="PositionGeometry"><X>16000</X><Y>40000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>{placeholder}</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{FieldId}</Id></DataSourceReference>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>RightAnchored</Name>
+              <Geometry Type="PositionGeometry"><X>80000</X><Y>20000</Y><AnchoringPoint>2</AnchoringPoint></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>{placeholder}</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{FieldId}</Id></DataSourceReference>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Short</Name>
+              <Geometry Type="PositionGeometry"><X>16000</X><Y>50000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>??????</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{FieldId}</Id></DataSourceReference>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Fixed</Name>
+              <Geometry Type="PositionGeometry"><X>16000</X><Y>5000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>{new string('W', 80)}</FixedContents>
+            </Item>
+            """);
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        var price = byName["Price"];
+        Assert.Equal("{ProdCode}", price.BindingExpression);
+        Assert.Equal((16.0, 40.0), (price.XMm, price.YMm));
+        Assert.InRange(price.XMm + price.WidthMm, 99.0, 100.0);
+
+        // A right-anchored placeholder keeps its anchor and narrows to the left edge.
+        var right = byName["RightAnchored"];
+        Assert.InRange(right.XMm, 0.0, 1.0);
+        Assert.Equal(80.0, right.XMm + right.WidthMm, 3);
+
+        // A placeholder that fits keeps its natural size, and fixed text is never narrowed.
+        Assert.True(byName["Short"].WidthMm < 30);
+        Assert.True(byName["Fixed"].XMm + byName["Fixed"].WidthMm > 100);
+    }
+
+    [Fact]
     public void GroupedItems_ImportAsAGroup()
     {
         var document = Parse("""

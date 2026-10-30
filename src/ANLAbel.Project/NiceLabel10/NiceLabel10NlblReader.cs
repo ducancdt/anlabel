@@ -17,7 +17,7 @@ namespace ANLAbel.Project.NiceLabel10;
 /// <see cref="NiceLabel10ObjectKind.Unsupported"/> so the caller can count
 /// them honestly instead of guessing.
 /// </summary>
-public static class NiceLabel10NlblReader
+public static partial class NiceLabel10NlblReader
 {
     // The fixed package password NiceLabel 10's own loader applies to every
     // .nlbl/.nsln package (recovered from its zip wrapper; see the RE doc).
@@ -66,7 +66,7 @@ public static class NiceLabel10NlblReader
 
     private static void ReadVariables(byte[] solutionXml, Dictionary<string, NiceLabel10Variable> variables)
     {
-        var document = XDocument.Parse(DecodeXml(solutionXml));
+        var document = ParseXml(solutionXml);
         // Scripts name their inputs; every declared data source by its id.
         var namesById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var declared in document.Descendants("Item"))
@@ -693,7 +693,7 @@ public static class NiceLabel10NlblReader
         string entryName,
         IReadOnlyDictionary<string, NiceLabel10Variable> variables)
     {
-        var document = XDocument.Parse(DecodeXml(formatXml));
+        var document = ParseXml(formatXml);
         var root = document.Root
             ?? throw new InvalidDataException("The .nlbl format entry is empty.");
         if (!string.Equals(root.Attribute("Type")?.Value, "Format", StringComparison.Ordinal))
@@ -1086,6 +1086,19 @@ public static class NiceLabel10NlblReader
         using var reader = new StreamReader(new MemoryStream(bytes), System.Text.Encoding.UTF8);
         return reader.ReadToEnd();
     }
+
+    /// <summary>
+    /// Parses a stored entry. A value made only of spaces is data in NiceLabel
+    /// (a Concatenate separator " ", a fixed " " between two fields), but
+    /// XDocument drops whitespace-only text unless it is marked
+    /// <c>xml:space="preserve"</c>; such leaf values are marked first, so the
+    /// rest of the document parses exactly as before.
+    /// </summary>
+    private static XDocument ParseXml(byte[] bytes)
+        => XDocument.Parse(SpaceOnlyValue().Replace(DecodeXml(bytes), "<${name}${attributes} xml:space=\"preserve\">${space}</${name}>"));
+
+    [GeneratedRegex(@"<(?<name>[A-Za-z_][\w.\-]*)(?<attributes>(?:\s[^<>/]*)?)>(?<space>[ \t]+)</\k<name>>", RegexOptions.CultureInvariant)]
+    private static partial Regex SpaceOnlyValue();
 
     private static string? ChildText(XElement? parent, string name) =>
         parent?.Element(name)?.Value;

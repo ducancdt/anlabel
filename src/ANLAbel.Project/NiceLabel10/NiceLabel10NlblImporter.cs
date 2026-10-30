@@ -6,6 +6,7 @@ using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
+using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 using ANLAbel.Core.Printing;
 using ANLAbel.Core.Text;
@@ -469,7 +470,8 @@ public static partial class NiceLabel10NlblImporter
         // bounds, so the imported object starts at the natural size of its
         // design-time contents instead of the new-object default frame
         // (which would centre small captions a few millimetres too low).
-        var natural = context.MeasureText(item, context.SampleText(record));
+        var sample = context.SampleText(record);
+        var natural = context.MeasureText(item, sample);
         // Vendor ScaleFactor narrows (< 100) or widens (> 100) the glyphs; it
         // is ANLAbel's Text FontScalePercent, a style factor that keeps the
         // Text content-owned (AutoFit), so the frame is the scaled natural width.
@@ -478,7 +480,60 @@ public static partial class NiceLabel10NlblImporter
         item.WidthMm = natural.WidthMm * scale / 100.0;
         item.HeightMm = natural.HeightMm;
         Place(item, record, item.WidthMm, item.HeightMm);
+        if (expression is not null && sample.Contains('?') && sample.All(character => character is '?' or ' '))
+        {
+            KeepPlaceholderInsideLabel(item, record, context.LabelWidthMm, context.LabelHeightMm);
+        }
+
         return item;
+    }
+
+    /// <summary>
+    /// NiceLabel shows a data source that has no value at design time as "?"
+    /// repeated to the source's length (joined values keep their spaces), and a
+    /// bound item stores that as its contents; a 255-character field puts such a frame far past the label,
+    /// which ANLAbel's preflight refuses to print. The frame is narrowed from
+    /// its anchoring point until it stays inside the label, so a value longer
+    /// than the room left on the label prints compressed into it rather than
+    /// cut off at the label edge. A frame that cannot get inside this way (its
+    /// anchor or height is outside, or it would be narrower than it is high)
+    /// keeps its size for preflight to report.
+    /// </summary>
+    private static void KeepPlaceholderInsideLabel(LabelObject item, NiceLabel10ObjectRecord record, double labelWidthMm, double labelHeightMm)
+    {
+        bool InsideAt(double widthMm)
+        {
+            item.WidthMm = widthMm;
+            Place(item, record, widthMm, item.HeightMm);
+            var bounds = TransformedBoundsContract.GetBounds(item);
+            return bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= labelWidthMm && bounds.Bottom <= labelHeightMm;
+        }
+
+        var naturalWidthMm = item.WidthMm;
+        if (InsideAt(naturalWidthMm))
+        {
+            return;
+        }
+
+        double inside = 0, outside = naturalWidthMm;
+        for (var step = 0; step < 40; step++)
+        {
+            var middle = (inside + outside) / 2;
+            if (InsideAt(middle))
+            {
+                inside = middle;
+            }
+            else
+            {
+                outside = middle;
+            }
+        }
+
+        var fitted = Math.Floor(inside * 1000) / 1000;
+        if (fitted < item.HeightMm || !InsideAt(fitted))
+        {
+            InsideAt(naturalWidthMm);
+        }
     }
 
     private static double FontScalePercent(NiceLabel10ObjectRecord record)
@@ -1194,6 +1249,10 @@ public static partial class NiceLabel10NlblImporter
             _sourceDirectory = sourceDirectory;
         }
 
+        public double LabelWidthMm => _template.WidthMm;
+
+        public double LabelHeightMm => _template.HeightMm;
+
         /// <summary>
         /// Reads a referenced graphic file: the stored path when it exists,
         /// else the same path or file name resolved beside the label. Only
@@ -1331,8 +1390,32 @@ public static partial class NiceLabel10NlblImporter
         /// The value NiceLabel shows for a data source at design time: a
         /// variable's default, or the stored sample of a database field (a
         /// bound item's own contents are only a placeholder such as "Text").
+        /// A default that is a template of references ("[id] / [id] KG")
+        /// shows each reference's own design-time value, as NiceLabel draws
+        /// it; a reference with none leaves the data source without a sample.
         /// </summary>
-        private static string? DesignSample(NiceLabel10Variable variable)
+        private string? DesignSample(NiceLabel10Variable variable, int depth = 0)
+        {
+            var value = DirectDesignSample(variable);
+            if (value is null || !ReferencePattern().IsMatch(value))
+            {
+                return value;
+            }
+
+            if (depth >= MaxFunctionDepth)
+            {
+                return null;
+            }
+
+            var composed = ReferencePattern().Replace(value, match =>
+                _document.VariablesById.TryGetValue(match.Groups[1].Value, out var referenced)
+                && DesignSample(referenced, depth + 1) is { } sample
+                    ? sample
+                    : match.Value);
+            return ReferencePattern().IsMatch(composed) ? null : composed;
+        }
+
+        private static string? DirectDesignSample(NiceLabel10Variable variable)
         {
             if (variable.DateFormat is { Length: > 0 } dateFormat && variable.FunctionTemplate is null)
             {

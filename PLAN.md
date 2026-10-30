@@ -9,6 +9,12 @@
   UPC-E nhập 6 số được hiểu là hệ số 0 như NiceLabel 10 (trước đây bị chặn in
   với lỗi kỹ thuật của bộ mã hóa); UPC-E 7–8 số phải bắt đầu bằng 0 hoặc 1 và có
   số kiểm tra đúng. Lỗi dữ liệu EAN/UPC được báo bằng tiếng Việt.
+- Nhập .nlbl: hàm ghép chuỗi (Concatenate) giữ dấu cách phân cách và phần cố
+  định chỉ là dấu cách (trước đây "8 PC" in thành "8PC"); Text gắn biến có giá
+  trị mặc định dạng tham chiếu ("[id] / [id] KG") đo khung theo giá trị mẫu
+  ("647 / 491 KG"), không theo chuỗi mã id; Text gắn trường chưa có giá trị
+  (NiceLabel lưu "?" lặp theo độ dài trường, ví dụ 255 ký tự) được thu khung
+  từ điểm neo cho nằm trong tem, nên không còn bị chặn in vì "nằm ngoài tem".
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 
