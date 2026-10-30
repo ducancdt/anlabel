@@ -13108,6 +13108,12 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
             AssertEqual(true, shellXaml.Contains("<MultiBinding StringFormat=\"{}{0} ({1})\">", StringComparison.Ordinal) && shellXaml.Contains("AutomationProperties.Name=\"Insert Rectangle\"", StringComparison.Ordinal),
                 "Object browser items and toolbox buttons must carry names for screen readers");
 
+            // No blank Properties pages: shapes explain they have no source, Rich text and Inverse explain their style.
+            foreach (var noteId in new[] { "Shell.Properties.ShapeSourceNote", "Shell.Properties.RichTextStyleNote", "Shell.Properties.InverseStyleNote" })
+            {
+                AssertEqual(true, shellXaml.Contains($"AutomationProperties.AutomationId=\"{noteId}\"", StringComparison.Ordinal), $"{noteId} must exist");
+            }
+
             // Narrow window: the ribbon collapses secondary print commands and alignment
             // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
             void LayoutAt(double width)

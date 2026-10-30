@@ -2345,6 +2345,28 @@
                                 </Border>
                                 </StackPanel>
 
+                                <!-- Shapes have no content or data source (NiceLabel 10 shows no Source page for them) -->
+                                <Border AutomationProperties.AutomationId="Shell.Properties.ShapeSourceNote">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="0"/>
+                                                        <Condition Binding="{Binding IsShapeObjectSelected}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Nguồn" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}"
+                                                   Text="Hình dạng không có nội dung hay nguồn dữ liệu. Đổi viền và nền ở thẻ Kiểu, kích thước ở thẻ Vị trí."/>
+                                    </StackPanel>
+                                </Border>
                                 <StackPanel>
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
@@ -2352,6 +2374,9 @@
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="0">
                                                     <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsShapeObjectSelected}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -2389,6 +2414,14 @@
                                     <StackPanel>
                                         <TextBlock Text="Chữ định dạng" Style="{StaticResource PropTitle}"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <StackPanel.Resources>
+                                                <!-- 26 x 24 buttons: the theme padding would hide B / I / U -->
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Setter Property="MinWidth" Value="0"/>
+                                                    <Setter Property="MinHeight" Value="0"/>
+                                                </Style>
+                                            </StackPanel.Resources>
                                             <Button Width="26" Height="24" Command="EditingCommands.ToggleBold" CommandTarget="{Binding ElementName=RichTextEditor}" ToolTip="Đậm (Ctrl+B)"><TextBlock Text="B" FontWeight="Bold"/></Button>
                                             <Button Width="26" Height="24" Margin="2,0,0,0" Command="EditingCommands.ToggleItalic" CommandTarget="{Binding ElementName=RichTextEditor}" ToolTip="Nghiêng (Ctrl+I)"><TextBlock Text="I" FontStyle="Italic"/></Button>
                                             <Button Width="26" Height="24" Margin="2,0,0,0" Command="EditingCommands.ToggleUnderline" CommandTarget="{Binding ElementName=RichTextEditor}" ToolTip="Gạch chân (Ctrl+U)"><TextBlock Text="U" TextDecorations="Underline"/></Button>
@@ -2588,6 +2621,41 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
+                                <!-- Rich text keeps its fonts inside the RTF content: point to the editor instead of an empty page -->
+                                <Border AutomationProperties.AutomationId="Shell.Properties.InverseStyleNote">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Inverse}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Đảo màu" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}"
+                                                   Text="Đảo màu không có kiểu riêng: khi in, vùng này đổi đen thành trắng và trắng thành đen cho mọi thứ nằm dưới nó. Đổi vùng ở thẻ Vị trí, thứ tự lớp ở thẻ Chung."/>
+                                    </StackPanel>
+                                </Border>
+                                <Border AutomationProperties.AutomationId="Shell.Properties.RichTextStyleNote">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.RichTextBox}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Kiểu chữ" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}"
+                                                   Text="Phông, cỡ, đậm, nghiêng và căn lề của Chữ định dạng nằm trong nội dung. Mở thẻ Nguồn, bôi đen chữ rồi dùng thanh nút phía trên ô soạn."/>
+                                    </StackPanel>
+                                </Border>
                                 <Border>
                                     <Border.Style>
                                         <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
