@@ -634,3 +634,26 @@ a file of printer commands. Out of scope: custom PowerForms.
 - Undo and redo (`Gui.Core/undoredodropdown`): drop-down lists of the named
   actions to undo several at once. ANLAbel's undo keeps whole snapshots
   without names (Ctrl+Z, Ctrl+Y and the quick access buttons). Not built.
+
+## Coverage of the NiceLabel 10 views (2026-10-31)
+
+Every view group extracted from DesignerLib, Gui.Core and WpfControls, and
+where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
+
+| View group (count) | ANLAbel counterpart or decision | Compared in |
+| --- | --- | --- |
+| `mainwindow`, ribbon, panels | Ribbon tabs, toolbox, Data/Layers/Objects, Properties | Ribbon, Panels, Shell rebuild |
+| `menuregion` (11): backstage, passwords, font picker, new label tiles, print form | Tệp backstage, Bảo vệ, font lists, New Label Wizard, Print Preview | Backstage, Protection, Prompts…fonts, Print form |
+| `wizards` (13): new label, database | New Label Wizard, Excel import | New Label Setup Wizard, Database wizard |
+| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu, Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel | Quản lý dữ liệu, Data explorer drag and drop |
+| `propertypages` (128) | Properties panel; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
+| `editors` (6): combo, date, time, rich text, custom boundaries | Prompt editors (dates RE §15), rich text in Properties; custom boundaries unused (RE §22) | Prompts…fonts |
+| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab; layers not built; banners and solutions out | Object browser and layers |
+| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus; in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
+| `statusbarregion`, `printergapadjustment`, `historydialog`, `searchpanel` | Status bar and chips; gap adjustment not needed; operator dialog; no find and replace | Status bar…smaller dialogs |
+| `variablesvaluepromptcontrol`, special characters, clipart, undo list | Prompt window and Print Preview answers; GS1 separators; pictures; snapshot undo | Prompts…symbols |
+| `serialportdataeditor` | Values from a serial port (a scale): not built, no customer label reads one | — |
+| `advancedcolorseparation` | Spot colours for colour printers: not built (one-colour thermal and office printers) | — |
+| `actionseditor`, `Gui.Core/view/actioncontentview`, `scriptbuilder` | PowerForms actions and scripts: out of scope; imported functions become formulas (RE §21) | Print form |
+| `backgroundoperations`, `debug`, styles | Progress and developer views: no operator need | — |
+| `Gui.Core/usercontrols` (78), `propertyeditor` (53), `WpfControls` | Shared editors, licensing and activation (not applicable), record navigation, data grids | Panels, Data explorer |
