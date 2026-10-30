@@ -6,6 +6,11 @@
   nhập" và "Khi in"; số ký tự tối thiểu và tối đa trên một hàng; ô tiền tố và
   hậu tố có nhãn riêng; ô ký tự đệm chỉ bật khi có đệm. Bấm Đồng ý với số ký tự
   tối thiểu lớn hơn tối đa bị từ chối (người in sẽ không nhập được giá trị nào).
+- Hộp nhập khi in, biến kiểu ngày: gõ sai ngày ("31/13/2026", "ngày mai") nay bị
+  trả lại bằng tiếng Việt và chữ gõ sai hiện lại trong ô. Trước đây lịch tự quay
+  về ngày hợp lệ trước đó khi rời ô, nên lệnh in lặng lẽ lấy ngày cũ (in sai hạn
+  dùng). Ngày gõ theo định dạng nhập của biến (ví dụ yyMMdd) được nhận và hiện
+  lên lịch; chữ ngày nằm giữa ô như các ô khác.
 
 ## v0.348 — Số EAN/UPC in đủ, nhập NiceLabel giữ bộ đếm serial, chữ định dạng, nhóm và dấu cách; biến nhập có độ dài tối thiểu
 

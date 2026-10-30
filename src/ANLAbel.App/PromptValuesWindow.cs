@@ -100,16 +100,50 @@ public sealed class PromptValuesWindow : Window
                 var picker = new DatePicker
                 {
                     MinWidth = 320,
-                    // The date sits mid-height like the text boxes around it.
                     VerticalContentAlignment = VerticalAlignment.Center,
                     // Vietnamese dates (dd/MM/yyyy) whatever the Windows region.
                     Language = System.Windows.Markup.XmlLanguage.GetLanguage("vi-VN"),
                     SelectedDate = JobVariableContract.TryParsePromptDate(prompt, initial, out var initialDate) ? initialDate : null
                 };
+                picker.Loaded += (_, _) => CenterDateText(picker);
+
+                // The picker reads dates in its own (vi-VN) format and, when the
+                // box loses focus on a text it cannot read, falls back to its last
+                // good date, so a typo would print the old date. What was typed is
+                // kept for Accept to judge: a date in the prompt's own input format
+                // (yyMMdd) is taken and shown, anything else is turned back.
+                string? typed = null;
+                var reverting = false;
+                picker.DateValidationError += (_, e) =>
+                {
+                    typed = e.Text;
+                    reverting = true;
+                    DateTime? readable = JobVariableContract.TryParsePromptDate(prompt, e.Text, out var date) ? date : null;
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        reverting = false;
+                        if (readable is { } value)
+                        {
+                            picker.SelectedDate = value;
+                        }
+                        else if (picker.Template?.FindName("PART_TextBox", picker) is TextBox box && box.Text != e.Text)
+                        {
+                            // Show the typo where it was typed, beside the message about it.
+                            box.Text = e.Text;
+                        }
+                    }, System.Windows.Threading.DispatcherPriority.Background);
+                };
+                picker.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) =>
+                {
+                    if (!reverting)
+                    {
+                        typed = null;
+                    }
+                }));
                 input = picker;
-                read = () => picker.SelectedDate is { } date
+                read = () => typed ?? (picker.SelectedDate is { } date
                     ? date.ToString(JobVariableContract.DateAnswerFormat, CultureInfo.InvariantCulture)
-                    : picker.Text;
+                    : picker.Text);
             }
             else if (choices.Count > 0)
             {
@@ -169,10 +203,29 @@ public sealed class PromptValuesWindow : Window
         buttons.Children.Add(cancel);
         panel.Children.Add(buttons);
         Content = panel;
+        foreach (var picker in _inputs.OfType<DatePicker>())
+        {
+            CenterDateText(picker);
+        }
+
         Loaded += (_, _) => _inputs.FirstOrDefault()?.Focus();
     }
 
     public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The date sits mid-height like the text boxes around it: the picker's
+    /// template stretches its inner text box, so once the template exists that
+    /// box is centred itself.
+    /// </summary>
+    private static void CenterDateText(DatePicker picker)
+    {
+        picker.ApplyTemplate();
+        if (picker.Template?.FindName("PART_TextBox", picker) is System.Windows.Controls.Primitives.DatePickerTextBox text)
+        {
+            text.VerticalContentAlignment = VerticalAlignment.Center;
+        }
+    }
 
     /// <summary>Shows the dialog; null when the operator cancels.</summary>
     public static IReadOnlyDictionary<string, string>? Ask(

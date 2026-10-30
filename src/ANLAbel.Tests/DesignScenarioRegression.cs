@@ -566,6 +566,8 @@ internal static class DesignScenarioRegression
             var datePanel = (StackPanel)dateWindow.Content;
             var picker = datePanel.Children.OfType<DatePicker>().SingleOrDefault();
             Require(picker is not null && string.Equals(picker.Language.IetfLanguageTag, "vi-VN", StringComparison.OrdinalIgnoreCase), "A date prompt is a calendar in Vietnamese date order.");
+            Require(picker!.Template?.FindName("PART_TextBox", picker) is System.Windows.Controls.Primitives.DatePickerTextBox { VerticalContentAlignment: VerticalAlignment.Center },
+                "The date sits mid-height in its box like the text boxes around it.");
             picker!.SelectedDate = new DateTime(2026, 12, 31);
             var datePrinted = datePanel.Children.OfType<TextBlock>().Select(text => text.Text).FirstOrDefault(text => text.StartsWith("Sẽ in:", StringComparison.Ordinal));
             Require(datePrinted == "Sẽ in: 261231", "The date shows as it prints: " + datePrinted);
@@ -587,6 +589,42 @@ internal static class DesignScenarioRegression
 
             Require(dateWindow.Values.TryGetValue("Exp", out var exp) && exp == "2026-12-31", "A date typed in its input format is kept as yyyy-MM-dd: " + exp);
             dateWindow.Close();
+
+            // A typo in the date box: the picker falls back to its last good date
+            // when the box loses focus; the dialog must not take that old date.
+            var typo = new[] { new PromptVariableDefinition { Name = "Exp", Prompt = "Hạn dùng", DateFormat = "dd/MM/yyyy" } };
+            var typoWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
+                typeof(ANLAbel.App.PromptValuesWindow),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new object[] { typo, new Dictionary<string, string> { ["Exp"] = "2026-12-31" } },
+                null)!;
+            var typoPanel = (StackPanel)typoWindow.Content;
+            var typoPicker = typoPanel.Children.OfType<DatePicker>().Single();
+            var dateBox = (System.Windows.Controls.Primitives.DatePickerTextBox)typoPicker.Template.FindName("PART_TextBox", typoPicker);
+            void AcceptTypo() => typeof(ANLAbel.App.PromptValuesWindow).GetMethod("Accept", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(typoWindow, null);
+            var typoProblem = typoPanel.Children.OfType<TextBlock>().Last(text => text.Foreground == Brushes.DarkRed);
+            dateBox.Text = "31/13/2026";
+            dateBox.RaiseEvent(new RoutedEventArgs(UIElement.LostFocusEvent, dateBox));
+            AcceptTypo();
+            Require(!typoWindow.Values.ContainsKey("Exp") && typoProblem.Text.Contains("cần một ngày", StringComparison.Ordinal),
+                $"A mistyped date is turned back, not replaced by the last good date (kept '{(typoWindow.Values.TryGetValue("Exp", out var kept) ? kept : "")}', said '{typoProblem.Text}').");
+            // The dialog idles between the operator's actions; the typo comes back into the box.
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            Require(dateBox.Text == "31/13/2026", $"The typo shows again beside the message (box '{dateBox.Text}').");
+            dateBox.Text = "15/01/2027";
+            dateBox.RaiseEvent(new RoutedEventArgs(UIElement.LostFocusEvent, dateBox));
+            try
+            {
+                AcceptTypo();
+            }
+            catch (TargetInvocationException closing) when (closing.InnerException is InvalidOperationException)
+            {
+                // Never shown as a dialog; the values are set before DialogResult.
+            }
+
+            Require(typoWindow.Values.TryGetValue("Exp", out var fixedDate) && fixedDate == "2027-01-15", "The corrected date is taken: " + fixedDate);
+            typoWindow.Close();
 
             // A minimum length (NiceLabel 10 input rule) is shown and turns a short value back.
             var parts = new[] { new PromptVariableDefinition { Name = "Part", Prompt = "Mã hàng", MinLength = 6, MaxLength = 10 } };
