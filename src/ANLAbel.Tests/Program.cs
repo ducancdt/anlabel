@@ -13451,6 +13451,43 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 }
             }
 
+            // Object tabs with NiceLabel's groups: Mã vạch (Mã vạch, Thiết lập ▾, Sắp xếp) and
+            // Hình dạng (Đường viền ▾, Tô nền ▾, Sắp xếp); each fits 1024 DIP without shrinking.
+            var textSelection = viewModel.SelectedObject;
+            // The rectangle tool waits for a drag on the canvas, so the shape is added directly.
+            Action addRectangle = () => viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 2, YMm = 2, WidthMm = 30, HeightMm = 20 });
+            foreach (var (add, tab) in new[] { ((Action)(() => viewModel.AddBarcodeCommand.Execute(null)), RibbonTab.Barcode), (addRectangle, RibbonTab.Shape) })
+            {
+                add();
+                viewModel.SelectedObject = viewModel.Template.Objects.Last();
+                PumpDispatcher();
+                AssertEqual(Visibility.Visible, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.Tab." + tab)!).Visibility, $"The {tab} tab appears for its object");
+                viewModel.SelectedRibbonTab = tab;
+                PumpDispatcher();
+                var content = (FrameworkElement)window.Content;
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                var shot = new RenderTargetBitmap(1440, 900, 96, 96, PixelFormats.Pbgra32);
+                shot.Render(content);
+                using (var file = File.Create(Path.Combine(evidence, tab + ".png")))
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(shot));
+                    encoder.Save(file);
+                }
+
+                content.Measure(new Size(1024, 640));
+                content.Arrange(new Rect(0, 0, 1024, 640));
+                content.UpdateLayout();
+                var shown = FindVisualDescendants<Viewbox>((FrameworkElement)window.FindName("RibbonBar")).Single(box => box.Visibility == Visibility.Visible);
+                var natural = ((FrameworkElement)shown.Child).DesiredSize.Width;
+                AssertEqual(true, natural <= shown.ActualWidth + 0.5, $"{tab} tab must fit 1024 DIP without shrinking (needs {natural:0}, has {shown.ActualWidth:0})");
+            }
+
+            viewModel.SelectedObject = textSelection;
+            PumpDispatcher();
+
             // Tệp opens NiceLabel's backstage over the ribbon and the workspace; Back closes it.
             var fileTab = (System.Windows.Controls.Primitives.ButtonBase)FindByAutomationId(window, "Shell.Ribbon.File")!;
             fileTab.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));

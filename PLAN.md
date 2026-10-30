@@ -11,6 +11,9 @@
 - Dữ liệu › Nhập nguồn dữ liệu (lấy biến và hàm từ tem ANLAbel hoặc NiceLabel,
   giữ hoặc ghi đè tên trùng) và Thứ tự nhắc; thứ tự này nay quyết định thứ tự
   câu hỏi khi in.
+- Tab ngữ cảnh theo NiceLabel: Mã vạch (loại mã, dữ liệu; Vạch bao ▾, Chi tiết
+  mã ▾, Chi tiết 2D ▾), Hình dạng (Kiểu viền ▾, Màu viền ▾, độ dày, bo góc; Kiểu
+  tô ▾, Màu tô ▾); nhóm Sắp xếp trên mọi tab đối tượng.
 
 ## v0.342 — Giao diện NiceLabel 10: thanh tiêu đề, dải tab, ribbon và trang Tệp
 

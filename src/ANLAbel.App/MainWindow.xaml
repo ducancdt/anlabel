@@ -429,6 +429,54 @@
                 </StackPanel>
             </Button>
         </DataTemplate>
+        <!-- NiceLabel 10 contextual Arrange group, repeated on each object tab (no AutomationIds: the Design tab owns them) -->
+        <DataTemplate x:Key="RibbonArrangeGroup">
+            <controls:RibbonGroupPanel>
+                <StackPanel Orientation="Horizontal">
+                    <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.BringForward32}" Content="Đưa&#10;lên ▾" Command="{Binding BringForwardCommand}"
+                                                ToolTip="Đưa đối tượng lên một lớp (▾: lên trên cùng)" AutomationProperties.Name="Bring forward">
+                        <controls:RibbonSplitButton.DropDown>
+                            <ContextMenu>
+                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
+                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
+                            </ContextMenu>
+                        </controls:RibbonSplitButton.DropDown>
+                    </controls:RibbonSplitButton>
+                    <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.SendBackward32}" Content="Đưa&#10;xuống ▾" Command="{Binding SendBackwardCommand}"
+                                                ToolTip="Đưa đối tượng xuống một lớp (▾: xuống dưới cùng)" AutomationProperties.Name="Send backward">
+                        <controls:RibbonSplitButton.DropDown>
+                            <ContextMenu>
+                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
+                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
+                            </ContextMenu>
+                        </controls:RibbonSplitButton.DropDown>
+                    </controls:RibbonSplitButton>
+                    <StackPanel Style="{StaticResource RibbonColumn}">
+                        <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Group16}" Content="Nhóm đối tượng" Click="GroupObjects_Click"
+                                ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau" AutomationProperties.Name="Group objects"/>
+                        <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Ungroup16}" Content="Bỏ nhóm" Click="UngroupObjects_Click"
+                                ToolTip="Bỏ nhóm các đối tượng đang chọn" AutomationProperties.Name="Ungroup objects"/>
+                        <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Align16}" Content="Căn chỉnh ▾"
+                                ToolTip="Căn và phân bố các đối tượng đang chọn" AutomationProperties.Name="Align objects">
+                            <controls:Ribbon.DropDown>
+                                <ContextMenu>
+                                    <MenuItem Header="Căn trái" Tag="Left" Click="ArrangeAlign_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.AlignLeft16}"/></MenuItem.Icon></MenuItem>
+                                    <MenuItem Header="Căn giữa theo chiều ngang" Tag="HorizontalCenter" Click="ArrangeAlign_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.AlignCenterH16}"/></MenuItem.Icon></MenuItem>
+                                    <MenuItem Header="Căn phải" Tag="Right" Click="ArrangeAlign_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.AlignRight16}"/></MenuItem.Icon></MenuItem>
+                                    <MenuItem Header="Căn trên" Tag="Top" Click="ArrangeAlign_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.AlignTop16}"/></MenuItem.Icon></MenuItem>
+                                    <MenuItem Header="Căn giữa theo chiều dọc" Tag="VerticalCenter" Click="ArrangeAlign_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.AlignCenterV16}"/></MenuItem.Icon></MenuItem>
+                                    <MenuItem Header="Căn dưới" Tag="Bottom" Click="ArrangeAlign_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.AlignBottom16}"/></MenuItem.Icon></MenuItem>
+                                    <Separator/>
+                                    <MenuItem Header="Phân bố đều theo chiều ngang" Tag="HorizontalGaps" Click="ArrangeDistribute_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.DistributeH16}"/></MenuItem.Icon></MenuItem>
+                                    <MenuItem Header="Phân bố đều theo chiều dọc" Tag="VerticalGaps" Click="ArrangeDistribute_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.DistributeV16}"/></MenuItem.Icon></MenuItem>
+                                </ContextMenu>
+                            </controls:Ribbon.DropDown>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Sắp xếp"/>
+            </controls:RibbonGroupPanel>
+        </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -1113,10 +1161,12 @@
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Hiệu ứng"/>
                             </controls:RibbonGroupPanel>
+                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
+                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource RibbonArrangeGroup}"/>
                         </StackPanel>
                     </Viewbox>
 
-                    <!-- Mã vạch (ngữ cảnh) -->
+                    <!-- Mã vạch (ngữ cảnh): Mã vạch · Thiết lập · Sắp xếp (NiceLabel 10 Barcode tab) -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
                              Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Barcode}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
@@ -1124,17 +1174,85 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Image Source="{StaticResource Icon.Barcode32}" Width="32" Height="32" Margin="2,3,8,0" VerticalAlignment="Top"/>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
-                                        <TextBlock Text="Dữ liệu mã" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,0,0,2"/>
-                                        <TextBox Width="220" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Barcode tab data"/>
-                                        <CheckBox Content="Hiện chữ dưới mã" Margin="0,2,0,0" IsChecked="{Binding SelectedObject.ShowBarcodeText, Mode=TwoWay}" AutomationProperties.Name="Barcode tab human readable"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Loại mã" Width="52" VerticalAlignment="Center" Foreground="{StaticResource RibbonCaptionBrush}"/>
+                                            <ComboBox Width="196" ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}"
+                                                      SelectedValuePath="Value" DisplayMemberPath="DisplayName" ToolTip="Chuẩn mã vạch" AutomationProperties.Name="Barcode tab symbology">
+                                                <ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Dữ liệu" Width="52" VerticalAlignment="Center" Foreground="{StaticResource RibbonCaptionBrush}"/>
+                                            <TextBox Width="196" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Barcode tab data"/>
+                                        </StackPanel>
+                                        <CheckBox Content="Hiện chữ dưới mã" Margin="52,0,0,0" IsChecked="{Binding SelectedObject.ShowBarcodeText, Mode=TwoWay}" AutomationProperties.Name="Barcode tab human readable"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Mã vạch"/>
                             </controls:RibbonGroupPanel>
+                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
+                            <controls:RibbonGroupPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton x:Name="BearerBarToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.BearerBar32}" Content="Vạch bao&#10;▾"
+                                                  ToolTip="Vạch bao (bảo vệ) cho mã vạch tuyến tính, ví dụ ITF-14" AutomationProperties.Name="Bearer bar" AutomationProperties.AutomationId="Shell.Ribbon.BearerBar"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=BearerBarToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=BearerBarToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="280">
+                                            <StackPanel>
+                                                <TextBlock Text="Vạch bao" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}"/>
+                                                <TextBlock Text="Kiểu" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding BearerBarStyleOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.BearerBarStyle, Mode=TwoWay}"
+                                                          AutomationProperties.Name="Kiểu vạch bao"/>
+                                                <TextBlock Text="Độ dày (mm)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <TextBox Text="{Binding SelectedObject.BearerBarThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Độ dày vạch bao"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                    <ToggleButton x:Name="BarcodeDetailsToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.BarcodeDetails32}" Content="Chi tiết&#10;mã ▾"
+                                                  ToolTip="Chữ dưới mã, số kiểm tra, độ rộng vạch hẹp" AutomationProperties.Name="Barcode details" AutomationProperties.AutomationId="Shell.Ribbon.BarcodeDetails"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=BarcodeDetailsToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=BarcodeDetailsToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="320">
+                                            <StackPanel>
+                                                <TextBlock Text="Chi tiết mã" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}"/>
+                                                <TextBlock Text="Vị trí chữ dưới mã" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding BarcodeHriPlacementOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.BarcodeHriPlacement, Mode=TwoWay}"
+                                                          AutomationProperties.Name="Vị trí chữ dưới mã"/>
+                                                <TextBlock Text="Cỡ chữ dưới mã (pt)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <TextBox Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" AutomationProperties.Name="Cỡ chữ dưới mã"/>
+                                                <TextBlock Text="Số kiểm tra" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
+                                                          AutomationProperties.Name="Số kiểm tra"/>
+                                                <CheckBox Content="Hiện số kiểm tra trong chữ dưới mã" Margin="0,6,0,0" IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"/>
+                                                <TextBlock Text="Độ rộng vạch hẹp (mm)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <TextBox Text="{Binding SelectedObject.BarcodeModuleWidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Độ rộng vạch hẹp"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                    <ToggleButton x:Name="Barcode2DToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.Barcode2D32}" Content="Chi tiết&#10;2D ▾"
+                                                  ToolTip="QR, Data Matrix, PDF417: cách tính kích thước, mức sửa lỗi, vùng yên" AutomationProperties.Name="2D barcode details" AutomationProperties.AutomationId="Shell.Ribbon.Barcode2D"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=Barcode2DToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=Barcode2DToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="300">
+                                            <StackPanel>
+                                                <TextBlock Text="Chi tiết mã 2D" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}"/>
+                                                <TextBlock Text="Cách tính kích thước" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName"
+                                                          AutomationProperties.Name="Cách tính kích thước mã 2D"/>
+                                                <TextBlock Text="Mức sửa lỗi (ECC)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName"
+                                                          AutomationProperties.Name="Mức sửa lỗi"/>
+                                                <TextBlock Text="Vùng yên (mô-đun)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
+                                                <ComboBox ItemsSource="{Binding QrQuietZoneModuleOptions}" SelectedItem="{Binding SelectedObject.QrQuietZoneModules, Mode=TwoWay}" AutomationProperties.Name="Vùng yên"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Thiết lập"/>
+                            </controls:RibbonGroupPanel>
+                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
+                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource RibbonArrangeGroup}"/>
                         </StackPanel>
                     </Viewbox>
 
-                    <!-- Hình ảnh (ngữ cảnh) -->
+                    <!-- Hình ảnh (ngữ cảnh): Hình ảnh · Sắp xếp (NiceLabel 10 Picture tab: Resize, Arrange) -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
                              Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Picture}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
@@ -1148,23 +1266,78 @@
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Hình ảnh"/>
                             </controls:RibbonGroupPanel>
+                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
+                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource RibbonArrangeGroup}"/>
                         </StackPanel>
                     </Viewbox>
 
-                    <!-- Hình dạng (ngữ cảnh) -->
+                    <!-- Hình dạng (ngữ cảnh): Đường viền · Tô nền · Sắp xếp (NiceLabel 10 Shape tab) -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
                              Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Shape}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
-                                    <Image Source="{StaticResource Icon.OutlineStyle32}" Width="32" Height="32" Margin="2,3,8,0" VerticalAlignment="Top"/>
+                                    <ToggleButton x:Name="OutlineStyleToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.OutlineStyle32}" Content="Kiểu viền&#10;▾"
+                                                  ToolTip="Nét liền, nét đứt hoặc không viền" AutomationProperties.Name="Outline style" AutomationProperties.AutomationId="Shell.Ribbon.OutlineStyle"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=OutlineStyleToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=OutlineStyleToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="200">
+                                            <ListBox ItemsSource="{Binding OutlineStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}"
+                                                     BorderThickness="0" AutomationProperties.Name="Kiểu viền"/>
+                                        </Border>
+                                    </Popup>
+                                    <ToggleButton x:Name="OutlineColorToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.OutlineColor32}" Content="Màu viền&#10;▾"
+                                                  ToolTip="Màu đường viền" AutomationProperties.Name="Outline colour" AutomationProperties.AutomationId="Shell.Ribbon.OutlineColor"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=OutlineColorToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=OutlineColorToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="236">
+                                            <StackPanel>
+                                                <ListBox ItemsSource="{Binding TextColorOptions}" SelectedItem="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay}" ItemTemplate="{StaticResource RibbonColorSwatch}"
+                                                         ItemsPanel="{StaticResource RibbonSwatchPanel}" BorderThickness="0" AutomationProperties.Name="Bảng màu viền"/>
+                                                <TextBlock Text="Mã màu" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,6,0,2"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Mã màu viền"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
-                                        <TextBlock Text="Độ dày nét (mm)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,0,0,2"/>
-                                        <TextBox Width="110" Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Shape tab outline"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                            <TextBlock Text="Độ dày (mm)" Width="78" VerticalAlignment="Center" Foreground="{StaticResource RibbonCaptionBrush}"/>
+                                            <TextBox Width="64" Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Shape tab outline"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Bo góc (mm)" Width="78" VerticalAlignment="Center" Foreground="{StaticResource RibbonCaptionBrush}"/>
+                                            <TextBox Width="64" Text="{Binding SelectedObject.Style.CornerRadiusMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Shape tab corner radius"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Đường viền"/>
                             </controls:RibbonGroupPanel>
+                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
+                            <controls:RibbonGroupPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <ToggleButton x:Name="FillStyleToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.FillStyle32}" Content="Kiểu tô&#10;▾"
+                                                  ToolTip="Không tô, tô kín hoặc gạch chéo" AutomationProperties.Name="Fill style" AutomationProperties.AutomationId="Shell.Ribbon.FillStyle"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=FillStyleToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=FillStyleToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="200">
+                                            <ListBox ItemsSource="{Binding FillStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}"
+                                                     BorderThickness="0" AutomationProperties.Name="Kiểu tô nền"/>
+                                        </Border>
+                                    </Popup>
+                                    <ToggleButton x:Name="FillColorToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.FillColor32}" Content="Màu tô&#10;▾"
+                                                  ToolTip="Màu tô nền" AutomationProperties.Name="Fill colour" AutomationProperties.AutomationId="Shell.Ribbon.FillColor"/>
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=FillColorToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=FillColorToggle}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Style="{StaticResource RibbonPopupPanel}" Width="236">
+                                            <StackPanel>
+                                                <ListBox ItemsSource="{Binding TextColorOptions}" SelectedItem="{Binding SelectedObject.Style.FillColor, Mode=TwoWay}" ItemTemplate="{StaticResource RibbonColorSwatch}"
+                                                         ItemsPanel="{StaticResource RibbonSwatchPanel}" BorderThickness="0" AutomationProperties.Name="Bảng màu tô"/>
+                                                <TextBlock Text="Mã màu" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,6,0,2"/>
+                                                <TextBox Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Mã màu tô"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Tô nền"/>
+                            </controls:RibbonGroupPanel>
+                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
+                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource RibbonArrangeGroup}"/>
                         </StackPanel>
                     </Viewbox>
                 </Grid>

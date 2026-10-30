@@ -279,8 +279,14 @@ header rows of the side-by-side table above.
 | Xem | Thu phóng: Vừa tài liệu · Vừa đối tượng · Phóng to · Thu nhỏ · % box — Hiện dấu đối tượng: Tên · Nguồn dữ liệu — Căn và lưới: Lưới ▾ (hiện lưới, bước 0,5–10 mm; saved in designer preferences) · Căn theo đối tượng · Căn theo lưới · Không căn — Xoay khung nhìn — Bảng: Hiện lại bảng |
 | Trợ giúp | Trợ giúp: Trợ giúp · Tài liệu hướng dẫn (installed guide) · Tệp mẫu · Hỗ trợ kỹ thuật (project issues page) — Sản phẩm: Giới thiệu · Trang chủ · Kiểm tra cập nhật |
 | Thiết kế | Chung: Không in · Hiển thị · Điều kiện hiển thị ▾ · Tên ▾ — Vị trí: Điểm neo ▾ · Giữ tỉ lệ · Khóa vị trí — Sắp xếp: Đưa lên ▾ · Đưa xuống ▾ (split buttons) · Nhóm đối tượng · Bỏ nhóm · Căn chỉnh ▾ |
-| Chữ | Định dạng (font row) · Thiết lập chữ (Co giãn chữ ngang for Text, Vừa trong khung for Text Box — the protected Text/TextBox controls, bindings unchanged) · Hiệu ứng: Soi gương |
-| Mã vạch / Hình ảnh / Hình dạng | data and human readable · Thay ảnh, Giữ tỉ lệ · độ dày nét |
+| Chữ | Định dạng (font row) · Thiết lập chữ (Co giãn chữ ngang for Text, Vừa trong khung for Text Box — the protected Text/TextBox controls, bindings unchanged) · Hiệu ứng: Soi gương · Sắp xếp |
+| Mã vạch | Mã vạch: loại mã (grouped list), dữ liệu, hiện chữ dưới mã — Thiết lập: Vạch bao ▾ (kiểu, độ dày) · Chi tiết mã ▾ (vị trí và cỡ chữ dưới mã, số kiểm tra, độ rộng vạch hẹp) · Chi tiết 2D ▾ (kích thước, mức sửa lỗi, vùng yên) — Sắp xếp |
+| Hình ảnh | Hình ảnh: Thay ảnh, Giữ tỉ lệ — Sắp xếp |
+| Hình dạng | Đường viền: Kiểu viền ▾ · Màu viền ▾ (bảng màu, mã màu) · độ dày · bo góc — Tô nền: Kiểu tô ▾ · Màu tô ▾ — Sắp xếp |
+
+Every object tab repeats NiceLabel's Sắp xếp group (Đưa lên ▾, Đưa xuống ▾, Nhóm
+đối tượng, Bỏ nhóm, Căn chỉnh ▾); the drop-downs bind the same properties as
+the Properties panel, so both always agree.
 
 Deliberate differences: Căn theo đối tượng and Căn theo lưới stay two
 independent toggles (ANLAbel can snap to both; NiceLabel's three radio
@@ -357,7 +363,8 @@ liệu and Thứ tự nhắc work on the label directly (one undo step each).
 Not built: NiceLabel's global/persistent variables and the database
 connectors outside ANLAbel's scope (Access, SQL Server, ODBC).
 
-### Still to rebuild
+### Still different
 
-- Contextual drop-downs: bearer bar, barcode details, colours, outline and
-  fill styles.
+- Text › Character and Paragraph / Scaling drop-downs stay in the Properties
+  panel: they set the protected Text / TextBox layout (AGENTS.md), which this
+  rebuild does not touch.

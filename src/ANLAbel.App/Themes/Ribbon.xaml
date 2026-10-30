@@ -661,4 +661,21 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- Drop-down panel of a ribbon ▾ toggle (Vạch bao, Chi tiết mã, Màu viền, ...) -->
+    <Style x:Key="RibbonPopupPanel" TargetType="Border">
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="{StaticResource RibbonLineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="TextElement.FontSize" Value="12"/>
+    </Style>
+
+    <ItemsPanelTemplate x:Key="RibbonSwatchPanel">
+        <WrapPanel/>
+    </ItemsPanelTemplate>
+
+    <DataTemplate x:Key="RibbonColorSwatch">
+        <Border Width="20" Height="20" Margin="1" Background="{Binding}" BorderBrush="#8C8C8C" BorderThickness="1" ToolTip="{Binding}"/>
+    </DataTemplate>
 </ResourceDictionary>
