@@ -100,6 +100,9 @@ Luôn `git add` theo đường dẫn cụ thể của phân hệ; **không** dù
 3. Với từng nhóm phân hệ (mục 3):
      git add <đường dẫn cụ thể của nhóm>
      git commit -m "<message theo mục 4>"
-4. Sau khi tách xong các commit thành phần, bump version + commit release:.
+4. Cuối mỗi đợt (xong mục tiêu, hết phiên, hoặc chậm nhất 10 commit thay đổi app):
+   phát hành theo `docs/VERSIONING.md` — script nâng version, nhật ký `PLAN.md`,
+   commit `release: v0.xyz - …`, tag `v0.xyz`, cài lên desktop. Commit chỉ có tài
+   liệu hoặc test không cần version mới.
 5. (Khi người dùng yêu cầu) push nhánh và mở PR.
 ```

@@ -31,6 +31,25 @@ parity are not success criteria.
 
 This direction does not alter the protected Text/TextBox contract below.
 
+## Release and version
+
+The version names the build an operator runs, so it must keep up with the
+commits (`docs/VERSIONING.md`).
+
+- Slice commits never change the version. Notes for unreleased work go under
+  `## Sau v<current>` at the top of `PLAN.md`.
+- Close every batch with a local release: when an owner goal is done, at the
+  end of a work session, and at the latest after 10 commits that change the app
+  (`src/` outside the two test projects, `installer/`). Run
+  `scripts/Set-ANLAbelReleaseVersion.ps1 -Version 0.xyz` (+0.001), turn the
+  `Sau` section into `## v0.xyz — …`, run the gates, commit
+  `release: v0.xyz - …`, tag `v0.xyz`, then install on the desktop.
+- Docs- and test-only commits may follow a release without a new version.
+- Before reporting work as done, check `git log <last release>..HEAD`:
+  unreleased app commits mean the release is still owed. The gate
+  `unreleased app changes stay within the release cadence` fails past 10.
+- Pushing, GitHub releases and pushing tags still need the owner's yes.
+
 ## Protected Text / TextBox contract
 
 The Text/TextBox behavior below is user-approved and must be treated as a protected product contract, not as refactoring latitude.

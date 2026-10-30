@@ -86,6 +86,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("formula engine FIELD and CONCAT", TestFormulaEngine),
     ("template save/load", TestTemplateSaveLoad),
     ("release metadata stays synchronized", TestReleaseMetadataIsSynchronized),
+    ("unreleased app changes stay within the release cadence", TestReleaseCadence),
     ("github release update parser and comparison", TestGitHubReleaseUpdateParser),
     ("template schema envelope migrates legacy and rejects future versions", TestTemplateSchemaEnvelope),
     ("wrong format envelope must not recover from backup", TestWrongFormatEnvelopeDoesNotRecoverFromBackup),
@@ -436,6 +437,58 @@ static Task TestFormulaEngine()
     var parseError = engine.Evaluate("CONCAT(\"A\", FIELD(\"Code\")", row);
     AssertEqual(string.Empty, parseError.Value, "Parse errors should return an empty value");
     AssertEqual(true, parseError.Errors.Count > 0, "Parse errors should be reported");
+    return Task.CompletedTask;
+}
+
+static Task TestReleaseCadence()
+{
+    // docs/VERSIONING.md: every batch ends with a release commit, so the version
+    // names the build an operator runs. 95 commits once sat on v0.325
+    // (2026-10-28..30) and had to be re-cut as v0.326-v0.341.
+    const int MaxUnreleasedAppCommits = 10;
+    var root = FindRepositoryRoot();
+    string? Git(string arguments)
+    {
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo("git", arguments)
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8
+            };
+            using var process = System.Diagnostics.Process.Start(start)!;
+            var error = process.StandardError.ReadToEndAsync();
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            error.Wait();
+            return process.ExitCode == 0 ? output : null;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return null;
+        }
+    }
+
+    var release = Git("log --format=%H%x09%s -n 2000")?
+        .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        .Select(line => line.TrimEnd('\r').Split('\t'))
+        .FirstOrDefault(parts => parts.Length == 2 && parts[1].StartsWith("release: v", StringComparison.Ordinal));
+    if (release is null)
+    {
+        Console.WriteLine("INFO nhịp phát hành: không đọc được lịch sử git hoặc chưa có commit release:; bỏ qua.");
+        return Task.CompletedTask;
+    }
+
+    // App-changing = src/ outside the two test projects, and the installer.
+    var unreleased = Git($"rev-list {release[0]}..HEAD -- src installer \":(exclude)src/ANLAbel.Tests\" \":(exclude)src/ANLAbel.UnitTests\"")?
+        .Split('\n', StringSplitOptions.RemoveEmptyEntries).Length ?? 0;
+    Console.WriteLine($"INFO nhịp phát hành: {unreleased} commit thay đổi app chưa phát hành kể từ “{release[1]}”.");
+    AssertEqual(true, unreleased <= MaxUnreleasedAppCommits,
+        $"{unreleased} commit thay đổi app chưa phát hành kể từ “{release[1]}”: phát hành theo docs/VERSIONING.md (tối đa {MaxUnreleasedAppCommits})");
     return Task.CompletedTask;
 }
 
