@@ -141,6 +141,12 @@ public sealed record NiceLabel10ObjectRecord(
     /// <summary>Stored <c>IsPrintable</c> (default true); false keeps the object on screen only.</summary>
     public bool IsPrintable { get; init; } = true;
 
+    /// <summary>Stored <c>PositionLocked</c>: the object cannot be moved in the designer.</summary>
+    public bool PositionLocked { get; init; }
+
+    /// <summary>Stored text <c>InverseText</c>: white glyphs on a black box.</summary>
+    public bool InverseText { get; init; }
+
     /// <summary>
     /// Visibility conditions of the item and of the layer holding it; the
     /// object prints only when all hold.

@@ -209,6 +209,7 @@ public static partial class NiceLabel10NlblImporter
 
             // NiceLabel "Not printable": shown in the designer, left out of print.
             item.IsPrintable = record.IsPrintable;
+            item.IsLocked = record.PositionLocked;
             if (record.VisibilityConditions.Count > 0 && context.VisibilityFormula(record) is { } condition)
             {
                 item.VisibilityCondition = condition;
@@ -227,6 +228,27 @@ public static partial class NiceLabel10NlblImporter
 
             template.Objects.Add(item);
             converted.Add((item, record));
+            if (record.InverseText && item.Type is ObjectType.Text or ObjectType.TextBox)
+            {
+                // NiceLabel inverse text prints white on a black box: an ANLAbel
+                // inverse area over the text's frame, stacked right above it.
+                var inverse = new LabelObject
+                {
+                    Type = ObjectType.Inverse,
+                    Name = item.Name + " (đảo màu)",
+                    XMm = item.XMm,
+                    YMm = item.YMm,
+                    WidthMm = item.WidthMm,
+                    HeightMm = item.HeightMm,
+                    Rotation = item.Rotation,
+                    IsPrintable = item.IsPrintable,
+                    IsLocked = item.IsLocked,
+                    VisibilityCondition = item.VisibilityCondition,
+                    Style = { FillColor = "#00FFFFFF", BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None, FillStyle = FillStyle.None }
+                };
+                template.Objects.Add(inverse);
+                converted.Add((inverse, record));
+            }
         }
 
         // NiceLabel stacks objects by their stored ZOrder, which need not follow

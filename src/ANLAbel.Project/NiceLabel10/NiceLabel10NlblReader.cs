@@ -988,6 +988,8 @@ public static class NiceLabel10NlblReader
             HasUnresolvedReference = unresolved,
             ZOrder = (int)ParseDouble(item, "ZOrder"),
             IsPrintable = item.Element("IsPrintable") is null || ParseBool(item, "IsPrintable"),
+            PositionLocked = ParseBool(item, "PositionLocked"),
+            InverseText = ParseBool(item, "InverseText"),
             RotationDegrees = ParseDouble(geometry, "Rotation"),
             AnchoringPoint = (int)ParseDouble(geometry, "AnchoringPoint"),
             Underline = underline,

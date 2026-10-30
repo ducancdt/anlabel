@@ -14,6 +14,8 @@
   lên tem thì thêm chữ gắn với nó, góc trên trái tại điểm thả; thả lên chữ, ô
   chữ, mã vạch, QR hoặc Data Matrix thì gắn đối tượng đó; giữ Ctrl để luôn thêm
   chữ mới. Mỗi lần thả là một bước hoàn tác; tem đang bảo vệ không nhận thả.
+- Nhập .nlbl giữ “Khóa vị trí” (PositionLocked) và chữ đảo màu (InverseText:
+  chữ trắng trên nền đen) bằng một vùng Đảo màu đúng khung chữ, đặt ngay trên chữ.
 
 ## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
 

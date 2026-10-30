@@ -1351,6 +1351,38 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void InverseText_GetsAnInverseAreaAbove_AndLockedPositionStays()
+    {
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Title</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>3000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>32</Height></FontDescriptor>
+              <FixedContents>LABEL 1</FixedContents>
+              <InverseText>True</InverseText>
+              <PositionLocked>True</PositionLocked>
+              <ZOrder>2</ZOrder>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Note</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>30000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>note</FixedContents>
+              <ZOrder>5</ZOrder>
+            </Item>
+            """);
+
+        var title = template.Objects.Single(item => item.Name == "Title");
+        var inverse = template.Objects.Single(item => item.Type == ObjectType.Inverse);
+        Assert.True(title.IsLocked);
+        Assert.False(template.Objects.Single(item => item.Name == "Note").IsLocked);
+        Assert.Equal((title.XMm, title.YMm, title.WidthMm, title.HeightMm), (inverse.XMm, inverse.YMm, inverse.WidthMm, inverse.HeightMm));
+        // Right above the text and below the later note.
+        Assert.Equal(title.ZIndex + 1, inverse.ZIndex);
+        Assert.True(inverse.ZIndex < template.Objects.Single(item => item.Name == "Note").ZIndex);
+    }
+
+    [Fact]
     public void Objects_StackInTheStoredZOrder_AndKeepNotPrintable()
     {
         // The file lists the white caption before the black band it sits on;

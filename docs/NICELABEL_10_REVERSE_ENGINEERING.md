@@ -631,6 +631,11 @@ NiceLabel`.
   stacking. ANLAbel imported every object at `ZIndex` 0 (file order); the
   importer now ranks `ZIndex` by `ZOrder` (equal values keep file order).
 - `IsPrintable` False (4 sample items): kept as ANLAbel "Không in".
+- `PositionLocked` (4 sample items) imports as ANLAbel "Khóa vị trí"; text
+  `InverseText` (4 sample items, white glyphs on a black box) imports as the
+  Text plus an ANLAbel Inverse area with the text's frame, stacked right above.
+  Not used by the corpus and not built: `Mirror`, `RTLPrinting`, `Stacked`,
+  `SizeGroup`/`UseSameSize`, `IgnoreExcessiveContent`, `AlternativeRendering`.
 - Rectangle `FillStyle` (vendor `FillStyles`: None 0, Clear 1, Solid 2, then
   hatches): only Solid fills. ANLAbel's style default is a solid white fill,
   and the importer set the style only for Solid, so every open NiceLabel box
