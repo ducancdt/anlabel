@@ -4378,8 +4378,14 @@ public sealed class LabelDesignerCanvas : Canvas
         var drawnWidthDip = Math.Max(1, MmToDip(drawnWidthMm));
         panel.Width = keepsDrawnWidth ? drawnWidthDip : double.NaN;
         panel.HorizontalAlignment = keepsDrawnWidth ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
-        panel.Margin = keepsDrawnWidth && drawnWidthMm > item.WidthMm
-            ? new Thickness(0, 0, MmToDip(item.WidthMm) - drawnWidthDip, 0)
+        // An X-sized linear symbol grows or shrinks away from the anchoring point,
+        // as printed; an oversized PDF417 prints from the frame's left edge.
+        var frameWidthDip = MmToDip(item.WidthMm);
+        var anchorOffsetDip = keepsDrawnWidth && type is not (BarcodeType.QRCode or BarcodeType.DataMatrix or BarcodeType.Aztec or BarcodeType.Pdf417)
+            ? (frameWidthDip - drawnWidthDip) * ObjectAnchorContract.Fractions(item.AnchorPoint).X
+            : 0;
+        panel.Margin = keepsDrawnWidth
+            ? new Thickness(anchorOffsetDip, 0, frameWidthDip - drawnWidthDip - anchorOffsetDip, 0)
             : new Thickness(0);
 
         if (hriLayout.IsEnabled && hriLayout.IsValid)

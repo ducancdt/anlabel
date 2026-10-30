@@ -382,7 +382,38 @@ public sealed class MainViewModel : ObservableObject
         var planDpi = Template.PrinterProfile.Dpi > 0
             ? Template.PrinterProfile.Dpi
             : Template.Dpi > 0 ? Template.Dpi : item.QrDpi;
-        LinearBarcodeProductionWidth.TryApplySizedFromXWidth(item, _barcodeValidator, planDpi);
+        string? payload = null;
+        if (!string.IsNullOrWhiteSpace(item.BindingExpression)
+            && LinearBarcodeProductionWidth.IsLinearBarcodeObject(item)
+            && LinearBarcodeModuleContract.UsesSizedFromX(item.BarcodeWidthMode, item.BarcodeModuleWidthMm))
+        {
+            // A bound code is drawn from the designer's preview row, so its frame
+            // follows that symbol; the placeholder "0" shrank a 60 mm frame to
+            // 19 mm on a click. A field the row does not know keeps the frame.
+            if (DesignPreviewRow is not { } row || !KnowsEveryField(item.BindingExpression, row))
+            {
+                return;
+            }
+
+            var value = ContentMaskContract.ApplyTo(item, ResolveExpression(item.BindingExpression, row));
+            if (string.IsNullOrEmpty(value) || value.Contains('\u2039'))
+            {
+                return;
+            }
+
+            payload = BarcodeCheckDigitContract.ToEncodedPayload(item, value);
+        }
+
+        LinearBarcodeProductionWidth.TryApplySizedFromXWidth(item, _barcodeValidator, planDpi, payload);
+    }
+
+    /// <summary>Every field and prompt the expression reads has a value in <paramref name="row"/>.</summary>
+    private static bool KnowsEveryField(string expression, IReadOnlyDictionary<string, string> row)
+    {
+        var fields = FormulaBindingEvaluator.LooksLikeFormula(expression)
+            ? FormulaBindingEvaluator.Evaluate(expression, row).UsedFields
+            : BindingExpressionEvaluator.GetFields(expression);
+        return fields.All(field => FieldNameResolver.TryGetValue(row, field.Trim(), out _, out _));
     }
 
     public DataView? ExcelDataView

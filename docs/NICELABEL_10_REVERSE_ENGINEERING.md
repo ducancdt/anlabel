@@ -375,8 +375,19 @@ Object sizes used: framed texts, rectangles and graphics have their
 stored frame; barcodes use the frame the importer seeds; position texts
 are measured with the application's text layout (`INiceLabel10TextMeasurer`),
 or, without one, estimated from font metrics (0.55 em per character,
-1.2 em per line). Variable-bound 2D codes have no size until data
-arrives, so their anchor offset is zero.
+1.2 em per line). Bound barcodes are sized from the design-time row
+once every prompt is known (§7, 2026-10-30) and placed again at their
+anchor.
+
+The anchor also decides where a code grows when a row's data is longer or
+shorter than the design value: NiceLabel keeps the anchoring point. ANLAbel
+does the same for X-sized linear codes (`LinearBarcodeProductionWidth.
+AnchorOffsetMm`): print, designer and the preflight edge check place the
+row's symbol at (frame width - symbol width) x anchor fraction along the
+frame, and syncing the frame to the production width keeps the anchor
+(`ObjectAnchorContract.Resize`). Top-left objects, ANLAbel's default, keep
+their left edge as before. Gate: `x-sized barcodes grow around their
+anchoring point`.
 
 ## §9 Solution data sources
 

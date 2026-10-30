@@ -760,17 +760,19 @@ public sealed class PrintPreflightValidator
             return;
         }
 
-        // The print rotates the symbol with its frame, about the frame centre.
+        // The print rotates the symbol with its frame, about the frame centre;
+        // along the frame's width it starts where its anchoring point puts it.
         var halfWidth = item.WidthMm / 2;
         var halfHeight = item.HeightMm / 2;
         var centerX = item.XMm + halfWidth;
         var centerY = item.YMm + halfHeight;
+        var start = LinearBarcodeProductionWidth.AnchorOffsetMm(item, symbolWidthMm);
         var (left, top, right, bottom) = TransformedBoundsContract.NormalizeRotation(item.Rotation) switch
         {
-            90 => (centerX - halfHeight, centerY - halfWidth, centerX + halfHeight, centerY - halfWidth + symbolWidthMm),
-            180 => (centerX + halfWidth - symbolWidthMm, centerY - halfHeight, centerX + halfWidth, centerY + halfHeight),
-            270 => (centerX - halfHeight, centerY + halfWidth - symbolWidthMm, centerX + halfHeight, centerY + halfWidth),
-            _ => (item.XMm, item.YMm, item.XMm + symbolWidthMm, item.YMm + item.HeightMm)
+            90 => (centerX - halfHeight, centerY - halfWidth + start, centerX + halfHeight, centerY - halfWidth + start + symbolWidthMm),
+            180 => (centerX + halfWidth - start - symbolWidthMm, centerY - halfHeight, centerX + halfWidth - start, centerY + halfHeight),
+            270 => (centerX - halfHeight, centerY + halfWidth - start - symbolWidthMm, centerX + halfHeight, centerY + halfWidth - start),
+            _ => (item.XMm + start, item.YMm, item.XMm + start + symbolWidthMm, item.YMm + item.HeightMm)
         };
         const double toleranceMm = 0.01;
         if (left >= -toleranceMm

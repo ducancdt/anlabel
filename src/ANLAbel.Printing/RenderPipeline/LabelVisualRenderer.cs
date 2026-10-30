@@ -547,7 +547,9 @@ public sealed class LabelVisualRenderer
         var objectRect = rect;
         if (Math.Abs(productionWidthDip - rect.Width) > 0.01)
         {
-            objectRect = new Rect(rect.Left, rect.Top, Math.Max(1, productionWidthDip), rect.Height);
+            // A row's symbol grows or shrinks away from the anchoring point.
+            var anchorX = ObjectAnchorContract.Fractions(item.AnchorPoint).X;
+            objectRect = new Rect(rect.Left + (rect.Width - productionWidthDip) * anchorX, rect.Top, Math.Max(1, productionWidthDip), rect.Height);
         }
 
         var hriLayout = BarcodeHriTextLayout.Measure(

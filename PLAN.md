@@ -30,6 +30,11 @@
   giá trị thiết kế rồi đặt lại theo điểm neo; QR/Data Matrix tự động có liên
   kết không còn bị ép vào khung mặc định 20 × 8 mm; biến chỉ “soi” trường CSDL
   (Products.ProdCode) liên kết thẳng trường đó thay vì in “[id]”.
+- Mã vạch cỡ theo X lớn ra quanh điểm neo như NiceLabel 10: dữ liệu dòng dài
+  hoặc ngắn hơn thì mã neo giữa vẫn giữ tâm, neo phải giữ mép phải (in, thiết kế,
+  kiểm tra tràn mép). Chọn một mã có liên kết không còn co khung về độ rộng của
+  “0” (60 mm còn 19 mm chỉ vì một cú nhấp): khung theo dòng xem trước, giữ điểm
+  neo; dòng chưa đủ dữ liệu thì giữ nguyên khung.
 
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 

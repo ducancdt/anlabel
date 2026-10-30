@@ -332,6 +332,110 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10 anchoring point for a bound X-sized code: a row whose data
+    /// prints wider or narrower than the frame grows or shrinks away from the
+    /// anchor, in print and in the designer, and preflight measures it where it
+    /// prints. Three Code 128 frames sized for "12345" with left, centre and
+    /// right anchors; rows "1" and "1234567890ABCDEFGH". Selecting a bound code
+    /// keeps its frame for the designer's row instead of a placeholder "0".
+    /// </summary>
+    public static Task XSizedBarcodesGrowAroundTheirAnchor()
+    {
+        RunOnSta(() =>
+        {
+            const double moduleMm = 0.33;
+            var renderer = new ZxingBarcodeRenderer();
+            var template = new LabelTemplate { Name = "Anchors", WidthMm = 120, HeightMm = 70, Dpi = Dpi };
+            var anchors = new[] { (ObjectAnchorPoint.TopLeft, 0.0, 10.0), (ObjectAnchorPoint.TopCenter, 0.5, 30.0), (ObjectAnchorPoint.TopRight, 1.0, 50.0) };
+            foreach (var (anchor, _, top) in anchors)
+            {
+                var code = new LabelObject
+                {
+                    Type = ObjectType.BarcodeCode128,
+                    BarcodeSymbology = BarcodeSymbology.Code128,
+                    Name = anchor.ToString(),
+                    BindingExpression = "{Ma}",
+                    BarcodeModuleWidthMm = moduleMm,
+                    BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                    BarcodeHriPlacement = BarcodeHriPlacement.None,
+                    AnchorPoint = anchor,
+                    YMm = top,
+                    HeightMm = 8,
+                    Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+                };
+                code.WidthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, "12345");
+                // The anchor sits at x = 60 mm whatever the anchor kind.
+                code.XMm = 60 - code.WidthMm * ObjectAnchorContract.Fractions(anchor).X;
+                template.Objects.Add(code);
+            }
+
+            var failures = new List<string>();
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            foreach (var value in new[] { "1", "1234567890ABCDEFGH" })
+            {
+                var row = new Dictionary<string, string> { ["Ma"] = value };
+                var printed = Rasterize(new LabelVisualRenderer().Render(template, row, plan), template.WidthMm, template.HeightMm);
+                var canvas = new LabelDesignerCanvas { Template = template, Zoom = 1, PreviewRow = row };
+                var size = new Size(MmConverter.MmToDip(template.WidthMm), MmConverter.MmToDip(template.HeightMm));
+                canvas.Measure(size);
+                canvas.Arrange(new Rect(size));
+                canvas.UpdateLayout();
+                var designed = Rasterize(canvas, template.WidthMm, template.HeightMm);
+                foreach (var (anchor, fraction, top) in anchors)
+                {
+                    var code = template.Objects.Single(item => item.Name == anchor.ToString());
+                    var symbolMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, value);
+                    // The symbol's bars sit inside its quiet zone; compare where the anchor
+                    // point falls on the drawn bars, worked out from the anchor definition.
+                    var band = new PictureCase(code.Name, PictureSizing.Proportional, false, false, 0, top, template.WidthMm, 8);
+                    foreach (var (what, raster) in new[] { ("print", printed), ("designer", designed) })
+                    {
+                        var bars = Box(raster, band, 64);
+                        var anchorOnBars = bars.X + bars.W * fraction;
+                        if (bars.W <= 0 || Math.Abs(anchorOnBars - 60) > 0.6 + 2 * moduleMm)
+                        {
+                            failures.Add($"{anchor} '{value}' ({what}): bars {Show(bars)}, the anchor should stay at 60 mm (symbol {symbolMm:0.##} mm).");
+                        }
+                    }
+                }
+
+                // The centred code with the long row runs off neither edge; moved to x = 20 it
+                // runs off the left edge, which only an anchored measurement sees.
+                if (value.Length > 1)
+                {
+                    var centred = template.Objects.Single(item => item.Name == nameof(ObjectAnchorPoint.TopCenter));
+                    var shifted = new LabelTemplate { Name = "Edge", WidthMm = 120, HeightMm = 70, Dpi = Dpi };
+                    var copy = LabelObjectCloner.Clone(centred);
+                    copy.XMm = 20 - copy.WidthMm / 2;
+                    shifted.Objects.Add(copy);
+                    var issues = new PrintPreflightValidator(renderer).Validate(shifted, new IReadOnlyDictionary<string, string>?[] { row }, Dpi).Issues;
+                    if (!issues.Any(issue => issue.IsBlocking && issue.ObjectName == copy.Name))
+                    {
+                        failures.Add($"A centred code whose row prints {LinearBarcodeProductionWidth.ResolveSymbolWidthMm(copy, renderer, Dpi, value):0.#} mm wide around x = 20 mm must be reported running off the left edge.");
+                    }
+                }
+            }
+
+            // Selecting a bound code whose designer row is unknown keeps its frame.
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var bound = new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Bound", BindingExpression = "{?Lot}", XMm = 10, YMm = 10, WidthMm = 60, HeightMm = 12, BarcodeModuleWidthMm = 0.33, BarcodeWidthMode = BarcodeWidthMode.SizedFromX };
+            viewModel.Template.Objects.Add(bound);
+            viewModel.SelectedObject = bound;
+            if (Math.Abs(bound.WidthMm - 60) > 0.01 || Math.Abs(bound.XMm - 10) > 0.01)
+            {
+                failures.Add($"Selecting a bound code with no designer value changed its frame to {bound.XMm:0.##} + {bound.WidthMm:0.##} mm.");
+            }
+
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The Properties header ("name | type | W x H mm") follows renames and resizes of the selection.</summary>
     public static Task PropertiesHeaderFollowsTheSelectedObject()
     {

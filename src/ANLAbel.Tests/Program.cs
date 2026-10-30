@@ -68,6 +68,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("pictures size and flip in the designer as in print", DesignScenarioRegression.PicturesSizeAndFlipInDesignerAsInPrint),
     ("data matrix sizes print as chosen", DesignScenarioRegression.DataMatrixSizesPrintAsChosen),
     ("properties header follows the selected object", DesignScenarioRegression.PropertiesHeaderFollowsTheSelectedObject),
+    ("x-sized barcodes grow around their anchoring point", DesignScenarioRegression.XSizedBarcodesGrowAroundTheirAnchor),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),

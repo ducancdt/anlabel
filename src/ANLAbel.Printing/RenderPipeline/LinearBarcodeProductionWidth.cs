@@ -2,6 +2,7 @@ using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
+using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
 
 namespace ANLAbel.Printing.RenderPipeline;
@@ -94,8 +95,24 @@ public static class LinearBarcodeProductionWidth
             return false;
         }
 
+        // The anchoring point stays where it was (NiceLabel 10), as for Text.
+        var (left, _) = ObjectAnchorContract.Resize(item.XMm, item.YMm, item.WidthMm, item.HeightMm, normalized, item.HeightMm, item.AnchorPoint);
         item.WidthMm = normalized;
+        item.XMm = left;
         return true;
+    }
+
+    /// <summary>
+    /// Where an X-sized symbol of <paramref name="symbolWidthMm"/> starts in its
+    /// frame, along the frame's own width: a row's symbol wider or narrower than
+    /// the frame grows or shrinks away from the object's anchoring point
+    /// (NiceLabel 10), so a centred code stays centred. Top-left objects keep
+    /// their left edge (0).
+    /// </summary>
+    public static double AnchorOffsetMm(LabelObject item, double symbolWidthMm)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return (item.WidthMm - symbolWidthMm) * ObjectAnchorContract.Fractions(item.AnchorPoint).X;
     }
 
     private static BarcodeRenderOptions CreateOptions(LabelObject item)
