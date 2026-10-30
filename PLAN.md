@@ -1,5 +1,24 @@
 # ANLAbel Phase 1 Plan
 
+## v0.327 — Mở tem NiceLabel 5 (.lbl) thành mẫu mới theo khổ tem
+
+_Gồm các commit chiều 28/10/2026 (10:02–14:34)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Mở tệp `.lbl` của NiceLabel 5: bộ đọc tiêu đề (tệp OLE compound, chữ ký
+  NicePower, định dạng phiên bản 29) lấy khổ tem theo 1/100 mm và tạo mẫu
+  ANLAbel trống đúng khổ, đặt tên theo tệp. Biến thể bố cục khác bị từ chối
+  kèm lý do; đối tượng chưa được chuyển.
+- Tệp NiceLabel mở ra như tài liệu mới chưa lưu, nên không bao giờ bị ghi đè
+  bằng tệp ANLAbel.
+- Ghi chép dịch ngược định dạng `.lbl` (bảng ký hiệu TD32, luồng TIO, tiêu đề
+  HIBIC, mã số loại mã vạch).
+- Nhật ký v0.326 bổ sung bằng chứng hộp “Một số dòng bị chặn” qua hàng đợi
+  cổng FILE: (không gửi tem nào).
+
+**Kiểm tra:** 65 tem mẫu cài sẵn của NiceLabel: 28 nhận, 37 biến thể bị từ
+chối đúng thiết kế; cổng hồi quy với tệp tổng hợp; build, 1406 unit và vòng
+chất lượng nhanh xanh.
+
 ## v0.326 — Ký tự ẩn trong dữ liệu mã vạch; ô Chữ nhận Enter; mức PDF417 và bảng ký tự Serial
 
 _Gồm các commit sáng 28/10/2026 (07:49–09:40)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
