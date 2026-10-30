@@ -1,5 +1,22 @@
 # ANLAbel Phase 1 Plan
 
+## v0.333 — Nhập .nlbl: ảnh cạnh tệp tem, biến nhập khi in, máy in và khổ giấy
+
+_Gồm các commit tối 29/10/2026 (19:36–20:22)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Ảnh không nhúng được đọc từ tệp đã lưu hoặc nằm cạnh tệp tem (chỉ đọc, tối
+  đa 32 MB).
+- Bảng Thuộc tính không còn báo `{?Tên}` và `{#NOW…}` là cột thiếu trong bảng
+  tính; liên kết chỉ gồm chúng mang nhãn “Biến nhập khi in”.
+- Nhập cài đặt máy in và khổ giấy trong hợp đồng in: tem cuộn nhận khổ thủ
+  công, độ lệch tem đầu và DPI; tem theo trình điều khiển giữ khổ tự động; máy
+  in của người soạn chỉ được nêu, không tự chọn.
+- Dòng giải thích khi nhập tem không còn bị cảnh báo hàng đợi máy in đè mất.
+- Bộ cài NiceLabel dùng để đối chiếu không được đưa vào repo.
+
+**Kiểm tra:** 104 tem theo trình điều khiển, 92 tờ văn phòng, 11 tem cuộn;
+mọi khổ áp dụng đều qua hợp đồng khổ tem và DPI.
+
 ## v0.332 — Nhập .nlbl: khổ tem theo bố cục trang; chi tiết Code 39, nét, bo góc; hàm MID và GS1CHECKDIGIT
 
 _Gồm các commit tối 29/10/2026 (19:19–19:31)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
