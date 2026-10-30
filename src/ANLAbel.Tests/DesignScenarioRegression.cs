@@ -761,6 +761,163 @@ internal static class DesignScenarioRegression
         }
     }
 
+    /// <summary>
+    /// Variants chosen by the data, as NiceLabel 10 layers do: a QR code and a
+    /// Code 128 share one place on the label; each prints only on rows whose
+    /// Type is (or is not) "qr", compared ignoring case. Every row prints
+    /// exactly the variant it asks for, it decodes, and preflight, which
+    /// checks only what a row prints, blocks no row.
+    /// </summary>
+    public static Task RowsChooseThePrintedVariant()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Variants", WidthMm = 60, HeightMm = 40, Dpi = Dpi };
+            const string isQr = "EQUALS(FIELD(\"Type\"), \"qr\")";
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.QRCode,
+                Name = "QR variant",
+                BindingExpression = "{Code}",
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 22,
+                HeightMm = 22,
+                VisibilityCondition = isQr,
+                ZIndex = 1
+            });
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                Name = "Linear variant",
+                BindingExpression = "{Code}",
+                BarcodeModuleWidthMm = 0.33,
+                BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                BarcodeHriPlacement = BarcodeHriPlacement.None,
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 50,
+                HeightMm = 12,
+                VisibilityCondition = "NOT(" + isQr + ")",
+                ZIndex = 2
+            });
+
+            var rows = new IReadOnlyDictionary<string, string>[]
+            {
+                new Dictionary<string, string> { ["Type"] = "QR", ["Code"] = "A-0001" },
+                new Dictionary<string, string> { ["Type"] = "Code 128", ["Code"] = "B-0002" },
+                new Dictionary<string, string> { ["Type"] = "qr", ["Code"] = "C-0003" }
+            };
+            var failures = new List<string>();
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            foreach (var row in rows)
+            {
+                var raster = Rasterize(new LabelVisualRenderer().Render(template, row, plan), template.WidthMm, template.HeightMm);
+                var wantsQr = string.Equals(row["Type"], "qr", StringComparison.OrdinalIgnoreCase);
+                var qr = Decode(raster, 5, 5, 22, 22, BarcodeFormat.QR_CODE);
+                var linear = Decode(raster, 5, 5, 50, 12, BarcodeFormat.CODE_128);
+                if ((wantsQr ? qr : linear) != row["Code"] || (wantsQr ? linear : qr).Length > 0)
+                {
+                    failures.Add($"Row {row["Code"]} ({row["Type"]}): QR '{qr}', Code 128 '{linear}'.");
+                }
+            }
+
+            var blocking = new PrintPreflightValidator(new ZxingBarcodeRenderer()).Validate(template, rows, Dpi).Issues.Where(issue => issue.IsBlocking).ToArray();
+            failures.AddRange(blocking.Select(issue => $"Preflight blocks {issue.ObjectName}: {issue.Message}"));
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A GS1 carton label whose expiry date comes from a date prompt (NiceLabel
+    /// 10 Date variable printed yyMMdd): GTIN and batch come from the data
+    /// rows, the operator picks the date once for the job, every label's
+    /// GS1-128 decodes with AI 17 = that date, the human date shows
+    /// dd/MM/yyyy, and preflight blocks no row.
+    /// </summary>
+    public static Task CartonLabelTakesItsExpiryFromADatePrompt()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Carton", WidthMm = 100, HeightMm = 60, Dpi = Dpi };
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Exp", Prompt = "Hạn dùng", DateFormat = "yyMMdd" });
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "ExpText", Prompt = "Hạn dùng (chữ)", DateFormat = "dd/MM/yyyy", Required = false });
+            var code = new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                BarcodeApplicationProfile = BarcodeApplicationProfile.Gs1,
+                Name = "SSCC carton",
+                BindingExpression = "(01){GTIN}(17){?Exp}(10){Lot}",
+                BarcodeModuleWidthMm = 0.33,
+                BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                QrQuietZoneModules = 10,
+                BarcodeHriPlacement = BarcodeHriPlacement.None,
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 90,
+                HeightMm = 25,
+                ZIndex = 1
+            };
+            template.Objects.Add(code);
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.Text,
+                Name = "Expiry",
+                BindingExpression = "{?ExpText}",
+                XMm = 5,
+                YMm = 40,
+                WidthMm = 40,
+                HeightMm = 8,
+                Style = { FontSizePt = 12, BorderThicknessMm = 0, TextSizing = TextSizingMode.AutoFit },
+                ZIndex = 2
+            });
+
+            IReadOnlyDictionary<string, string>?[] rows =
+            [
+                new Dictionary<string, string> { ["GTIN"] = "09501101530003", ["Lot"] = "LOT42" },
+                new Dictionary<string, string> { ["GTIN"] = "09501101530003", ["Lot"] = "B7" }
+            ];
+            var answers = new Dictionary<string, string> { ["Exp"] = "2026-12-31", ["ExpText"] = "2026-12-31" };
+            Require(ANLAbel.Core.Printing.JobVariableContract.TryApply(template, rows, DateTimeOffset.Now, answers, out var applied, out var error), error);
+
+            var failures = new List<string>();
+            var renderer = new ZxingBarcodeRenderer();
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            foreach (var row in applied)
+            {
+                var raster = Rasterize(new LabelVisualRenderer().Render(template, row, plan), template.WidthMm, template.HeightMm);
+                var data = "(01)" + row!["GTIN"] + "(17)261231(10)" + row["Lot"];
+                var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, data);
+                var decoded = Decode(raster, code.XMm, code.YMm, widthMm, code.HeightMm, BarcodeFormat.CODE_128).Replace("\u001D", string.Empty, StringComparison.Ordinal);
+                if (decoded != data.Replace("(", string.Empty, StringComparison.Ordinal).Replace(")", string.Empty, StringComparison.Ordinal))
+                {
+                    failures.Add($"Lot {row["Lot"]}: the GS1-128 reads '{decoded}'.");
+                }
+
+                if (row["?ExpText"] != "31/12/2026")
+                {
+                    failures.Add($"Lot {row["Lot"]}: the human date is '{row["?ExpText"]}'.");
+                }
+            }
+
+            var blocking = new PrintPreflightValidator(renderer).Validate(template, applied, Dpi).Issues.Where(issue => issue.IsBlocking).ToArray();
+            failures.AddRange(blocking.Select(issue => $"Preflight blocks {issue.ObjectName}: {issue.Message}"));
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>Dark pixels (gray below 128) inside a rectangle (mm) of the page.</summary>
     private static int Ink(Raster raster, double xMm, double yMm, double widthMm, double heightMm)
     {
