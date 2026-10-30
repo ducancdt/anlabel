@@ -923,3 +923,27 @@ pages, the label-design pages and their state in ANLAbel:
 - Label corner radius (`HorizontalRadius`, `VerticalRadius`, 50 samples):
   the die-cut shape shown in the designer; not printed. Not built.
 - Batch printing, cutter, stocks, custom scripts: §16 and out of scope.
+
+## §24 NiceLabel's validation messages against ANLAbel's checks (2026-10-31)
+
+`EuroPlus.NiceLabel.Core.Resources.ValidationErrorCode` and the format and
+designer resources list what NiceLabel 10 checks in a label. Most entries
+name features a product level lacks ("Text box", "Rich text formatting",
+"Printer counter is not supported"); the ones about the label and its data,
+with ANLAbel's counterpart:
+
+| NiceLabel check | ANLAbel |
+| --- | --- |
+| `ElementOutOfFormat` "Object out of label." | Preflight "Object extends outside the design label bounds" |
+| `TextDoesNotFit` "The text cannot fit into its placeholder." | Text Box overflow and fixed Text frame checks |
+| `MissingDBField`, `DBFieldDeleted` | Missing field blocks the row; the import note names the column (DB03) |
+| `DefaultValueChainReference` "Chain reference detected." | Data Manager functions: dependency cycle error |
+| `MaximumValueSmallerThanMinimum`, `InvalidMinimumValue` | Prompt and counter definitions refuse a minimum above the maximum |
+| `VisibilityConditionDataSourceN` "No data source for visibility condition selected." | A condition reading a column the data lacks hid its object on every label without a word; a check that stops the print is in the pending batch (PLAN.md) |
+| `InvalidImage`, `FileDoesNotExist`, `CannotReadFile` | Missing resources chip and the image preflight |
+| `NoApplicationIdentifiers`, `DataBarGS1128Error` | GS1 `(AI)value` validation against the GS1 registry |
+| `DimensionsDoNotMatchStockWarning` | Stocks are out of scope |
+
+NiceLabel also offers "Limit field length (truncate excessive content)" on a
+database field. ANLAbel does not cut data: a value too long for its frame is
+reported (Text Box overflow, barcode capacity) instead of printed shortened.
