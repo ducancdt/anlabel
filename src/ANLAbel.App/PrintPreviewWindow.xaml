@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ANLAbel.App"
         xmlns:vm="clr-namespace:ANLAbel.App.ViewModels"
-        Title="ANLAbel Xem trước khi in" Height="760" Width="1200"
+        Title="ANLAbel Xem trước khi in" Height="760" Width="1200" MinWidth="960" MinHeight="600"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Background="{DynamicResource AppCanvasBrush}">

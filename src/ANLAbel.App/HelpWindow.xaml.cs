@@ -149,7 +149,8 @@ public partial class HelpWindow : Window
         {
             Background = Hex("#FFFFFF"), BorderBrush = Hex("#CBD5E1"),
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(14), Child = fig,
+            // A narrow window shrinks the figure instead of cutting its right edge.
+            Padding = new Thickness(14), Child = new Viewbox { Child = fig, Stretch = Stretch.Uniform, StretchDirection = StretchDirection.DownOnly },
             HorizontalAlignment = HorizontalAlignment.Left,
             Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 14, ShadowDepth = 2, Opacity = 0.10, Color = Color.FromRgb(0x33, 0x41, 0x55) }
         };
