@@ -425,7 +425,10 @@ Code 128 có chữ tiếng Việt) đều chặn đúng đối tượng sai củ
 Gate này tìm ra lỗi Plessey: ZXing.Net vẽ Plessey theo 1/5 vạch hẹp kèm lề riêng
 100 đơn vị, nên ANLAbel đếm mã 6 chữ số thành 1 245 mô-đun (316 mm ở X 0,254 mm)
 và chặn hoặc ép mã; nay `PlesseyModuleWriter` vẽ cùng chuỗi bit bằng mô-đun
-nguyên (205 mô-đun). Tem in thật một tờ A5 trên máy văn phòng: xem PLAN.md.
+nguyên (205 mô-đun). Tem in thật một tờ A5 trên máy văn phòng (DocuCentre-IV
+3065, 600 DPI, khổ ISOA5 của trình điều khiển): nhật ký lệnh của máy in ghi
+Completed, 1 trang, giấy A5 ở khay 1. Quét lại mã trên giấy: chưa có (cần
+người đặt tờ vào máy quét; công cụ giải mã ảnh quét đã sẵn).
 
 | ID | Bằng chứng phần mềm hiện có | Còn thiếu | Trạng thái |
 | --- | --- | --- | --- |

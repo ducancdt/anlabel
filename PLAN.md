@@ -25,7 +25,9 @@ _Gồm các commit 30/10/2026 (19:13–19:46)._
 - In thật một tờ A5 (dòng 4 của sổ Excel, 15 loại mã) trên DocuCentre-IV 3065
   qua PrintService: khổ ISOA5 của trình điều khiển, 600 DPI, vùng in 4,11 mm
   đã xác minh, preflight đạt; hàng đợi nhận lệnh #96 (1 trang) và trả về
-  trống. Chưa xác minh bản giấy bằng máy quét: chủ dự án kiểm tra tờ in.
+  trống. Nhật ký lệnh của chính máy in (CentreWare) ghi lệnh “ANLAbel A5
+  kiem thu ma vach dong 4”: Completed, 1 trang, ra khay giữa dưới; khay 1 là
+  giấy A5, không có cảnh báo. Mã trên giấy chưa được quét lại.
 
 **Kiểm tra:** build 0 cảnh báo, 1556 unit, hồi quy 290/290.
 
