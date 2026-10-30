@@ -560,6 +560,226 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// A NiceLabel 10 table label as customers bring them: captions in a left
+    /// column with an open frame box drawn over them, a Code 128 bound to an
+    /// Excel field with NiceLabel's default text below the bars, and a free
+    /// text bound to another field whose stored contents are the placeholder
+    /// "Text". Opened, linked to an Excel sheet and printed row by row: the
+    /// captions print, each row's code decodes, the bars keep NiceLabel's
+    /// height, the field text is sized from NiceLabel's field sample and
+    /// prints, and preflight lets every row print.
+    /// </summary>
+    public static async Task ImportedTableLabelPrintsEveryRow(Func<IReadOnlyDictionary<string, string>, byte[]> buildPackage)
+    {
+        const string partId = "a1a1a1a1-0000-4000-8000-000000000001";
+        const string lotId = "a1a1a1a1-0000-4000-8000-000000000002";
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-table-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var formatXml = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <EuroPlus.NiceLabel Type="Format">
+                  <Name>Table</Name>
+                  <Media Type="FormatMedia"><Width>100000</Width><Height>60000</Height></Media>
+                  <DocumentItems>
+                    <Item Type="TextDocumentItem">
+                      <Name>CaptionPart</Name>
+                      <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>12</Height></FontDescriptor>
+                      <Geometry Type="PositionGeometry"><X>3000</X><Y>8000</Y></Geometry>
+                      <FixedContents>Part No</FixedContents>
+                      <ZOrder>1</ZOrder>
+                    </Item>
+                    <Item Type="TextDocumentItem">
+                      <Name>CaptionLot</Name>
+                      <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>12</Height></FontDescriptor>
+                      <Geometry Type="PositionGeometry"><X>3000</X><Y>38000</Y></Geometry>
+                      <FixedContents>Lot</FixedContents>
+                      <ZOrder>2</ZOrder>
+                    </Item>
+                    <Item Type="RectangleDocumentItem">
+                      <Name>Frame</Name>
+                      <Geometry Type="RectGeometry"><Left>1000</Left><Top>1000</Top><Width>98000</Width><Height>58000</Height></Geometry>
+                      <Thickness>400</Thickness>
+                      <FillStyle>0</FillStyle>
+                      <FillColor>FF000000</FillColor>
+                      <ZOrder>3</ZOrder>
+                    </Item>
+                    <Item Type="LineDocumentItem">
+                      <Name>Rule</Name>
+                      <Geometry Type="PointGeometry"><StartPointX>1000</StartPointX><StartPointY>30000</StartPointY><EndPointX>99000</EndPointX><EndPointY>30000</EndPointY></Geometry>
+                      <Thickness>300</Thickness>
+                      <ZOrder>4</ZOrder>
+                    </Item>
+                    <Item Type="LineDocumentItem">
+                      <Name>Column</Name>
+                      <Geometry Type="PointGeometry"><StartPointX>22000</StartPointX><StartPointY>1000</StartPointY><EndPointX>22000</EndPointX><EndPointY>59000</EndPointY></Geometry>
+                      <Thickness>300</Thickness>
+                      <ZOrder>5</ZOrder>
+                    </Item>
+                    <Item Type="BarcodeDocumentItem">
+                      <Name>PartCode</Name>
+                      <Geometry Type="PositionGeometry"><X>25000</X><Y>5000</Y></Geometry>
+                      <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>330</BaseBarWidth><ModuleHeight>9000</ModuleHeight></BarcodeData>
+                      <FixedContents>PN-SAMPLE</FixedContents>
+                      <DataSourceReference Type="SolutionDataSourceReference"><Id>{partId}</Id></DataSourceReference>
+                      <ZOrder>6</ZOrder>
+                    </Item>
+                    <Item Type="TextDocumentItem">
+                      <Name>LotText</Name>
+                      <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>12</Height></FontDescriptor>
+                      <Geometry Type="PositionGeometry"><X>25000</X><Y>38000</Y></Geometry>
+                      <FixedContents>Text</FixedContents>
+                      <DataSourceReference Type="SolutionDataSourceReference"><Id>{lotId}</Id></DataSourceReference>
+                      <ZOrder>7</ZOrder>
+                    </Item>
+                  </DocumentItems>
+                </EuroPlus.NiceLabel>
+                """;
+            var solutionXml = $"""
+                <?xml version="1.0" encoding="utf-8"?>
+                <EuroPlus.NiceLabel Type="Solution">
+                  <Variables></Variables>
+                  <Databases>
+                    <Item Type="OleDb">
+                      <Name>Excel</Name>
+                      <DataSetCollection>
+                        <Item Type="OleDBDatabaseDataSet">
+                          <Name>Parts$</Name>
+                          <FieldCollection>
+                            <Item Type="DBField"><Id>{partId}</Id><Name>Parts$.PartNo</Name><SampleValue Type="StringContents"><StringValue>PN-SAMPLE</StringValue></SampleValue><FieldName>PartNo</FieldName></Item>
+                            <Item Type="DBField"><Id>{lotId}</Id><Name>Parts$.Lot</Name><SampleValue Type="StringContents"><StringValue>LOT-2026-0001</StringValue></SampleValue><FieldName>Lot</FieldName></Item>
+                          </FieldCollection>
+                        </Item>
+                      </DataSetCollection>
+                    </Item>
+                  </Databases>
+                </EuroPlus.NiceLabel>
+                """;
+            var nlblPath = Path.Combine(directory.FullName, "Table.nlbl");
+            await File.WriteAllBytesAsync(nlblPath, buildPackage(new Dictionary<string, string>
+            {
+                ["Formats/label"] = formatXml,
+                ["label.slnx"] = solutionXml
+            }));
+            var excelPath = Path.Combine(directory.FullName, "parts.xlsx");
+            var rowsIn = new[] { ("PN-100-AB", "LOT-0042"), ("PN-2026-00042", "LOT-2026-0099"), ("X7", "L1") };
+            using (var workbook = new ClosedXML.Excel.XLWorkbook())
+            {
+                var sheet = workbook.AddWorksheet("Parts");
+                sheet.Cell(1, 1).Value = "PartNo";
+                sheet.Cell(1, 2).Value = "Lot";
+                for (var index = 0; index < rowsIn.Length; index++)
+                {
+                    sheet.Cell(index + 2, 1).Value = rowsIn[index].Item1;
+                    sheet.Cell(index + 2, 2).Value = rowsIn[index].Item2;
+                }
+
+                workbook.SaveAs(excelPath);
+            }
+
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            await viewModel.OpenAsync(nlblPath);
+            await viewModel.ImportExcelAsync(excelPath, "Parts");
+            var template = viewModel.Template;
+            var rows = viewModel.ExcelDataView!.Cast<System.Data.DataRowView>()
+                .Select(view => (IReadOnlyDictionary<string, string>)view.Row.Table.Columns.Cast<System.Data.DataColumn>()
+                    .ToDictionary(column => column.ColumnName, column => view.Row[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
+            Require(rows.Length == rowsIn.Length, $"The Excel sheet links {rows.Length} rows.");
+
+            RunOnSta(() =>
+            {
+                var failures = new List<string>();
+                var frame = template.Objects.Single(item => item.Name == "Frame");
+                var code = template.Objects.Single(item => item.Name == "PartCode");
+                var lot = template.Objects.Single(item => item.Name == "LotText");
+                if (frame.Style.FillStyle != FillStyle.None)
+                {
+                    failures.Add("The open NiceLabel frame imported filled.");
+                }
+
+                var renderer = new ZxingBarcodeRenderer();
+                var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+                var sampleWidth = new ANLAbel.App.Services.NiceLabel10TextMeasurer().MeasureText(lot, "LOT-2026-0001")!.Value.WidthMm;
+                if (lot.WidthMm < sampleWidth * 0.95)
+                {
+                    failures.Add($"The field text is {lot.WidthMm:0.#} mm wide, not the {sampleWidth:0.#} mm of NiceLabel's field sample.");
+                }
+
+                foreach (var row in rows)
+                {
+                    var raster = Rasterize(new LabelVisualRenderer().Render(template, row, plan), template.WidthMm, template.HeightMm);
+                    foreach (var caption in template.Objects.Where(item => item.Name.StartsWith("Caption", StringComparison.Ordinal)))
+                    {
+                        if (Ink(raster, caption.XMm, caption.YMm, caption.WidthMm, caption.HeightMm) < 30)
+                        {
+                            failures.Add($"Row {row["PartNo"]}: caption {caption.Name} does not print.");
+                        }
+                    }
+
+                    var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, row["PartNo"]);
+                    var decoded = Decode(raster, code.XMm, code.YMm, widthMm, code.HeightMm, BarcodeFormat.CODE_128);
+                    if (decoded != row["PartNo"])
+                    {
+                        failures.Add($"Row {row["PartNo"]}: the code reads '{decoded}'.");
+                    }
+
+                    var layout = BarcodeHriTextLayout.Measure(BarcodeType.Code128, row["PartNo"], widthMm, code.HeightMm,
+                        code.BarcodeHriPlacement, code.BarcodeTextFontSizePt, code.BarcodeHriFontFamily, code.BarcodeHriBold);
+                    if (!layout.IsValid || Math.Abs(layout.SymbolHeightMm - 9) > 0.01)
+                    {
+                        failures.Add($"Row {row["PartNo"]}: the bars are {layout.SymbolHeightMm:0.##} mm, not NiceLabel's 9 mm ({layout.ErrorMessage}).");
+                    }
+
+                    if (Ink(raster, lot.XMm, lot.YMm, lot.WidthMm, lot.HeightMm) < 30)
+                    {
+                        failures.Add($"Row {row["PartNo"]}: the lot text does not print.");
+                    }
+                }
+
+                var blocking = new PrintPreflightValidator(renderer).Validate(template, rows, Dpi).Issues.Where(issue => issue.IsBlocking).ToArray();
+                failures.AddRange(blocking.Select(issue => $"Preflight blocks {issue.ObjectName}: {issue.Message}"));
+                if (failures.Count > 0)
+                {
+                    throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+                }
+            });
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
+    /// <summary>Dark pixels (gray below 128) inside a rectangle (mm) of the page.</summary>
+    private static int Ink(Raster raster, double xMm, double yMm, double widthMm, double heightMm)
+    {
+        int Px(double mm) => (int)Math.Round(mm / 25.4 * Dpi);
+        var count = 0;
+        for (var y = Math.Max(0, Px(yMm)); y < Math.Min(raster.Height, Px(yMm + heightMm)); y++)
+        {
+            for (var x = Math.Max(0, Px(xMm)); x < Math.Min(raster.Width, Px(xMm + widthMm)); x++)
+            {
+                if (raster.Gray[y * raster.Width + x] < 128)
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
     /// <summary>The Properties header ("name | type | W x H mm") follows renames and resizes of the selection.</summary>
     public static Task PropertiesHeaderFollowsTheSelectedObject()
     {
