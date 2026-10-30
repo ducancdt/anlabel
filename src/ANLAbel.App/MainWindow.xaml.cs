@@ -33,6 +33,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         _viewModel.PromptValuesRequested = (prompts, previous) => PromptValuesWindow.Ask(this, prompts, previous);
         InitializeDocumentLifecycle();
+        InitializeWindowChrome();
         DesignerCanvas.EditGestureStarted += (_, _) => _viewModel.BeginTemplateEditGesture();
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
@@ -578,28 +579,12 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    /// <summary>Opens the drop-down of a collapsed ribbon group (narrow window).</summary>
-    private void RibbonMoreMenu_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { ContextMenu: { } menu } button)
-        {
-            menu.PlacementTarget = button;
-            menu.Placement = PlacementMode.Bottom;
-            menu.DataContext = button.DataContext;
-            menu.IsOpen = true;
-        }
-
-        e.Handled = true;
-    }
-
     private void FileMenu_Click(object sender, RoutedEventArgs e)
     {
-        // NiceLabel 10 File backstage: here a menu under the File button.
+        // NiceLabel 10 File backstage: here a menu under the File tab.
         if (FileMenuButton.ContextMenu is { } menu)
         {
-            menu.PlacementTarget = FileMenuButton;
-            menu.Placement = PlacementMode.Bottom;
-            menu.IsOpen = true;
+            Ribbon.Open(menu, FileMenuButton);
         }
 
         e.Handled = true;
@@ -1104,10 +1089,9 @@ public partial class MainWindow : Window
         window.ShowDialog();
     }
 
-    private async void ImportExcel_Click(object sender, RoutedEventArgs e)
+    private void ImportExcel_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ExcelImportWindow(_viewModel) { Owner = this };
-        dialog.ShowDialog();
+        new ExcelImportWindow(_viewModel, ExcelImportStart.BrowseWorkbook) { Owner = this }.ShowDialog();
     }
 
     private async void PrinterSetup_Click(object sender, RoutedEventArgs e)

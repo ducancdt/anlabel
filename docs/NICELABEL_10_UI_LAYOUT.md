@@ -234,3 +234,76 @@ with printer and zoom on the right. Follow-up (same day): the Data explorer now 
 "Biến nhập khi in" (prompt variables) and "Trường dữ liệu" (linked fields)
 — and the design surface shades the physical sheet around the label with
 the other label cells outlined when the sheet is larger than the label.
+
+## Shell rebuild (2026-10-30)
+
+Owner request (2026-10-30, with a screenshot of the v0.341 header): the top
+of the window was unreasonable — a Windows title bar over a 52 px navy band
+(logo, version badge, boxed quick access buttons, printer and paper chips),
+a blue "Tệp" pill, crude tabs, and a Data tab with a few small icons in white
+cards. UI had been added without consistency and without functions behind
+it. Rebuild it consistently, use the reverse-engineering evidence, and
+rebuild the core features 1:1. This section is the record; it supersedes the
+header rows of the side-by-side table above.
+
+### Evidence
+
+- Ribbon tree of `mainwindow.xaml` (DevExpress `DXRibbonWindow`, Office 2010
+  style, quick access shown above the ribbon, i.e. in the title bar):
+  QAT Open · Save · Undo ▾ · Redo ▾; pages and groups as in the table above.
+- Screenshots of NiceLabel 10 at 150 % (outside the repository), measured in
+  device pixels and converted to DIP: title bar 34 DIP, `#0E1D77`, the tab row
+  on the same navy (~22 DIP); File in light cyan `#94D7F0`, other tabs white;
+  the selected tab `#F1F1F1` with a `#D6D6D6` border and blue text;
+  contextual tabs a lighter blue block; ribbon body `#F1F1F1`, ~89 DIP with
+  the group caption (~`#666666`) on the bottom edge and `#D6D6D6` separators;
+  32 DIP icons with the caption under them, 16 DIP icons with the caption
+  beside them, three 22 DIP rows per column; no card backgrounds.
+
+### What the shell is now
+
+| Region | ANLAbel | Notes |
+| --- | --- | --- |
+| Title bar | Own caption (`MainWindow.Chrome.cs`, `WindowChrome`): app icon (click = system menu, double-click = close) · quick access Mới · Mở · Lưu · Hoàn tác · Làm lại · centred title "tên tem* — ANLAbel - Thiết kế tem v0.xyz" · thu nhỏ / phóng to–khôi phục / đóng | Maximised window fits the monitor work area (`WM_GETMINMAXINFO`), no resize border while maximised. Windows 11 Snap Layouts flyout is not offered on the custom maximise button (Win+Z and drag-to-edge still work). |
+| Removed | the 52 px header band | version → title bar and Giới thiệu; GPL notice → Giới thiệu; printer and label size → status bar |
+| Tab row | Tệp (cyan) · Trang chủ · Dữ liệu · Xem · Trợ giúp · contextual Thiết kế + Chữ / Mã vạch / Hình ảnh / Hình dạng | Selected-tab text `#005A9E` and contextual fill `#3D6FC4` are darker than NiceLabel's so the text reaches WCAG AA 4.5:1. Tệp opens a menu until the backstage lands. |
+| Ribbon body | `#F1F1F1`, 92 DIP; shared styles in `Themes/Ribbon.xaml` (large, small, icon, split buttons, check boxes, combos, captions, separators) | Every tab fits 1024 DIP (the minimum window width) without shrinking; the per-tab `Viewbox` only shrinks below that. |
+| Status bar | messages and warning chips · printer (opens Thuộc tính tem) · label size · vừa tài liệu · vừa đối tượng · − slider + · % | NiceLabel's printer combo changes the printer at once; ANLAbel opens Thuộc tính tem so the printer, media and DPI checks still run (no safety contract bypassed). |
+
+### Tabs and commands
+
+| Tab | Groups → commands (all wired to existing features) |
+| --- | --- |
+| Trang chủ | Bộ nhớ tạm: Dán · Cắt · Sao chép · Sao định dạng — Phông chữ: phông, cỡ, tăng/giảm, B I U S, căn 4 kiểu, màu (rich text: same group formats the RTF) — Thao tác: In (Ctrl+P, xem trước và in) · Tùy chỉnh in ▾ (in dòng hiện tại, in mọi dòng, in thử, lịch sử in, xuất lịch sử) — Quản lý: Quản lý dữ liệu · Thuộc tính tem — Căn chỉnh: 3 × 3 icon grid in NiceLabel's column order — Đối tượng: Nhóm đối tượng ▾ · Sắp xếp ▾ (4 layer moves) · Xóa |
+| Dữ liệu | Cơ sở dữ liệu: Excel (asks for a workbook at once) · Tệp văn bản (CSV) · Sửa cơ sở dữ liệu · Nạp lại dữ liệu · Xóa cơ sở dữ liệu (unlink, confirmed) — Quản lý nguồn dữ liệu: Quản lý dữ liệu · Nguồn dùng chung |
+| Xem | Thu phóng: Vừa tài liệu · Vừa đối tượng · Phóng to · Thu nhỏ · % box — Hiện dấu đối tượng: Tên · Nguồn dữ liệu — Căn và lưới: Lưới ▾ (hiện lưới, bước 0,5–10 mm; saved in designer preferences) · Căn theo đối tượng · Căn theo lưới · Không căn — Xoay khung nhìn — Bảng: Hiện lại bảng |
+| Trợ giúp | Trợ giúp: Trợ giúp · Tài liệu hướng dẫn (installed guide) · Tệp mẫu · Hỗ trợ kỹ thuật (project issues page) — Sản phẩm: Giới thiệu · Trang chủ · Kiểm tra cập nhật |
+| Thiết kế | Chung: Không in · Hiển thị · Điều kiện hiển thị ▾ · Tên ▾ — Vị trí: Điểm neo ▾ · Giữ tỉ lệ · Khóa vị trí — Sắp xếp: Đưa lên ▾ · Đưa xuống ▾ (split buttons) · Nhóm đối tượng · Bỏ nhóm · Căn chỉnh ▾ |
+| Chữ | Định dạng (font row) · Thiết lập chữ (Co giãn chữ ngang for Text, Vừa trong khung for Text Box — the protected Text/TextBox controls, bindings unchanged) · Hiệu ứng: Soi gương |
+| Mã vạch / Hình ảnh / Hình dạng | data and human readable · Thay ảnh, Giữ tỉ lệ · độ dày nét |
+
+Deliberate differences: Căn theo đối tượng and Căn theo lưới stay two
+independent toggles (ANLAbel can snap to both; NiceLabel's three radio
+options would remove that); Bảng › Hiện lại bảng recovers hidden panels.
+
+### Icons
+
+ANLAbel draws its own vector icons (`Themes/RibbonIcons.xaml`): 32 × 32 DIP
+for large buttons, 16 × 16 DIP for small ones, one flat palette (ink
+`#3D4B5F`, blue `#2D6CC0`, green `#21804A` for spreadsheets and databases,
+purple `#7451AE` for variables and data sources, red `#C93A3A` for delete),
+1 DIP outlines on half-pixel coordinates. No vendor artwork is copied.
+Rules (gates `designer header commands are unique` and the
+`DesignerHeaderChromeContractTests`): the ribbon uses no PNG rasters, and one
+icon never stands for two different actions. The quick access row and the
+window buttons use Segoe Fluent Icons glyphs in white, as NiceLabel does.
+
+### Still to rebuild
+
+- Tệp: the backstage (Start page with recent files, New, Open, Import,
+  Save, Save As, Print, Close, Options, About, Exit).
+- Quản lý dữ liệu: NiceLabel's Dynamic Data Manager window (variables,
+  counters, functions, databases in one tree with a property editor), with
+  Thứ tự nhắc (prompt order) and Nhập nguồn dữ liệu.
+- Contextual drop-downs: bearer bar, barcode details, colours, outline and
+  fill styles.

@@ -7,32 +7,62 @@ using Microsoft.Win32;
 
 namespace ANLAbel.App;
 
+/// <summary>
+/// How the database window opens (NiceLabel 10 Data tab): Excel and Text File ask for
+/// the file at once, Edit Database shows the linked file and its fields.
+/// </summary>
+public enum ExcelImportStart
+{
+    Review,
+    BrowseWorkbook,
+    BrowseTextFile
+}
+
 public partial class ExcelImportWindow : Window
 {
+    private const int AllDataFilesFilter = 1;
+    private const int WorkbookFilter = 2;
+    private const int TextFileFilter = 3;
+
     private readonly MainViewModel _viewModel;
     private CancellationTokenSource? _cts;
 
-    public ExcelImportWindow(MainViewModel viewModel)
+    public ExcelImportWindow(MainViewModel viewModel, ExcelImportStart start = ExcelImportStart.Review)
     {
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        if (start != ExcelImportStart.Review)
+        {
+            // Cancelling the file picker cancels the wizard.
+            Loaded += async (_, _) => await BrowseAsync(null, start == ExcelImportStart.BrowseTextFile ? TextFileFilter : WorkbookFilter, closeIfCancelled: true);
+        }
     }
 
     private async void Browse_Click(object sender, RoutedEventArgs e)
     {
+        await BrowseAsync(sender as UIElement, AllDataFilesFilter, closeIfCancelled: false);
+    }
+
+    private async Task BrowseAsync(UIElement? browseButton, int filterIndex, bool closeIfCancelled)
+    {
         var dialog = new OpenFileDialog
         {
             Title = "Nhập dữ liệu Excel hoặc CSV",
-            Filter = "Tệp dữ liệu (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Sổ làm việc Excel (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|Tệp CSV (*.csv)|*.csv|Tất cả tệp (*.*)|*.*"
+            Filter = "Tệp dữ liệu (*.xlsx;*.xlsm;*.csv)|*.xlsx;*.xlsm;*.csv|Sổ làm việc Excel (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|Tệp CSV (*.csv)|*.csv|Tất cả tệp (*.*)|*.*",
+            FilterIndex = filterIndex
         };
 
         if (dialog.ShowDialog(this) != true)
         {
+            if (closeIfCancelled)
+            {
+                Close();
+            }
+
             return;
         }
 
-        var browseButton = sender as UIElement;
         if (browseButton is not null)
         {
             browseButton.IsEnabled = false;

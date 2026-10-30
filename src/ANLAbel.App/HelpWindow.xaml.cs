@@ -23,6 +23,16 @@ public partial class HelpWindow : Window
         ShowSection("overview");
     }
 
+    /// <summary>Opens the guide on one topic, e.g. "about" for Trợ giúp → Giới thiệu.</summary>
+    public void ShowTopic(string key)
+    {
+        if (NavListBox.Items.OfType<ListBoxItem>().FirstOrDefault(item => item.Tag as string == key) is { } item)
+        {
+            NavListBox.SelectedItem = item;
+            NavListBox.ScrollIntoView(item);
+        }
+    }
+
     private void NavListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_initialized) return;

@@ -10,19 +10,17 @@ public sealed class DesignerHeaderChromeContractTests
     {
         var inventory = DesignerHeaderChromeInventory.LoadFromRepository();
 
-        Assert.False(inventory.QuickAccess.Any(e => e.Icon.Contains("zoom_", StringComparison.Ordinal)),
+        Assert.False(inventory.QuickAccess.Any(e => e.AutomationId.Contains("Zoom", StringComparison.Ordinal)),
             "Quick Access must not host zoom.");
-        Assert.False(inventory.Ribbon.Any(e => e.Icon.Contains("zoom_", StringComparison.Ordinal)),
-            "Ribbon must not host zoom; zoom stays on the status bar.");
 
-        var headerIcons = inventory.HeaderIcons;
-        var duplicateIcons = headerIcons
-            .GroupBy(icon => icon, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
+        // One icon, one meaning: two header commands share an icon only when they run the same action.
+        var mixed = inventory.QuickAccess.Concat(inventory.Ribbon)
+            .Where(e => e.Icon.Length > 0)
+            .GroupBy(e => e.Icon, StringComparer.Ordinal)
+            .Where(g => g.Select(e => e.Action).Distinct(StringComparer.Ordinal).Count() > 1)
+            .Select(g => g.Key + ": " + string.Join(", ", g.Select(e => e.AutomationId)))
             .ToArray();
-        Assert.True(duplicateIcons.Length == 0,
-            "Two header actions must not share one PNG: " + string.Join(", ", duplicateIcons));
+        Assert.True(mixed.Length == 0, "Two different header actions must not share one icon: " + string.Join("; ", mixed));
 
         var headerIds = inventory.HeaderAutomationIds;
         var duplicateIds = headerIds
@@ -38,10 +36,10 @@ public sealed class DesignerHeaderChromeContractTests
             Assert.Contains(required, headerIds);
         }
 
-        Assert.Contains("Icons/snap_objects.png", headerIcons, StringComparer.OrdinalIgnoreCase);
-        Assert.Contains("Icons/snap_grid.png", headerIcons, StringComparer.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Icons/cursor_select.png", headerIcons, StringComparer.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Icons/table.png", headerIcons, StringComparer.OrdinalIgnoreCase);
+        // docs/NICELABEL_10_UI_LAYOUT.md "Shell rebuild": the ribbon draws one vector icon family.
+        Assert.DoesNotContain(inventory.Ribbon, e => e.Icon.StartsWith("Icons/", StringComparison.Ordinal));
+        Assert.Contains(inventory.Ribbon, e => e.AutomationId == "Shell.Ribbon.SnapObjects" && e.Icon == "Icon.SnapObjects16");
+        Assert.Contains(inventory.Ribbon, e => e.AutomationId == "Shell.Ribbon.SnapGrid" && e.Icon == "Icon.SnapGrid16");
         Assert.Contains("Shell.Status.Zoom", inventory.StatusAutomationIds);
     }
 }
@@ -56,36 +54,40 @@ internal sealed class DesignerHeaderChromeInventory
         "Shell.QuickAccess.Save",
         "Shell.QuickAccess.Undo",
         "Shell.QuickAccess.Redo",
-        "Shell.QuickAccess.Revisions",
         "Shell.Ribbon",
+        "Shell.Ribbon.File",
+        "Shell.File.SaveAs",
+        "Shell.File.Revisions",
+        "Shell.File.Settings",
         "Shell.Ribbon.Templates",
         "Shell.Ribbon.ImportExcel",
+        "Shell.Ribbon.ImportTextFile",
+        "Shell.Ribbon.EditDatabase",
         "Shell.Ribbon.UpdateExcel",
+        "Shell.Ribbon.DeleteDatabase",
         "Shell.Ribbon.PrinterSetup",
         "Shell.Ribbon.Preview",
+        "Shell.Ribbon.PrintMore",
         "Shell.Ribbon.PrintCurrent",
         "Shell.Ribbon.PrintAllRows",
         "Shell.Ribbon.PrintHistory",
         "Shell.Ribbon.ExportExcel",
         "Shell.Ribbon.TestPrint",
         "Shell.Ribbon.Panels",
+        "Shell.Ribbon.Gridlines",
         "Shell.Ribbon.SnapObjects",
         "Shell.Ribbon.SnapGrid",
         "Shell.Ribbon.DeleteSelection",
-        "Shell.Ribbon.Help"
+        "Shell.Ribbon.Help",
+        "Shell.Ribbon.About"
     };
 
-    public sealed record Entry(string AutomationId, string Icon);
+    /// <summary>A header command: its id, the icon it draws and the action it runs.</summary>
+    public sealed record Entry(string AutomationId, string Icon, string Action);
 
     public required IReadOnlyList<Entry> QuickAccess { get; init; }
     public required IReadOnlyList<Entry> Ribbon { get; init; }
     public required IReadOnlyList<string> StatusAutomationIds { get; init; }
-
-    public IReadOnlyList<string> HeaderIcons =>
-        QuickAccess.Concat(Ribbon)
-            .Select(e => e.Icon)
-            .Where(icon => icon.Length > 0)
-            .ToArray();
 
     public IReadOnlyList<string> HeaderAutomationIds =>
         QuickAccess.Select(e => e.AutomationId)
@@ -141,22 +143,57 @@ internal sealed class DesignerHeaderChromeInventory
 
     private static List<Entry> ExtractEntries(string slice, string rootId)
     {
-        var entries = new List<Entry> { new(rootId, string.Empty) };
+        var entries = new List<Entry> { new(rootId, string.Empty, string.Empty) };
+        // Self-closing or paired command elements; a paired element's body holds its glyph or menu icon.
         var controlRx = new Regex(
-            @"<(Button|ToggleButton)\b(?<attrs>[\s\S]*?)>(?<body>[\s\S]*?)</\1>",
+            @"<(?<tag>Button|ToggleButton|RadioButton|MenuItem|controls:RibbonSplitButton)\b(?<attrs>[^>]*?)(?<self>/?)>",
             RegexOptions.CultureInvariant);
         foreach (Match match in controlRx.Matches(slice))
         {
             var attrs = match.Groups["attrs"].Value;
-            var body = match.Groups["body"].Value;
             var id = First(attrs, @"AutomationProperties.AutomationId=""([^""]+)""");
             if (id.Length == 0 || string.Equals(id, rootId, StringComparison.Ordinal))
             {
                 continue;
             }
 
-            var icon = First(attrs + body, @"Source=""(Icons/[^""]+)""");
-            entries.Add(new Entry(id, icon));
+            var body = string.Empty;
+            if (match.Groups["self"].Value.Length == 0)
+            {
+                var close = slice.IndexOf("</" + match.Groups["tag"].Value + ">", match.Index + match.Length, StringComparison.Ordinal);
+                body = close > 0 ? slice.Substring(match.Index + match.Length, close - match.Index - match.Length) : string.Empty;
+            }
+
+            var icon = First(attrs, @"controls:Ribbon.Icon=""\{StaticResource (Icon\.[A-Za-z0-9]+)\}""");
+            if (icon.Length == 0)
+            {
+                // a menu item's own icon, or a quick access glyph
+                icon = First(body, @"^\s*<MenuItem\.Icon>\s*<Image[^>]*Source=""\{StaticResource (Icon\.[A-Za-z0-9]+)\}""");
+            }
+
+            if (icon.Length == 0)
+            {
+                icon = First(body, @"Style=""\{StaticResource ChromeGlyph\}""[^>]*Text=""([^""]+)""");
+            }
+
+            if (icon.Length == 0)
+            {
+                icon = First(attrs + body, @"Source=""(Icons/[^""]+)""");
+            }
+
+            var action = First(attrs, @"Click=""([^""]+)""");
+            var tag = First(attrs, @"\bTag=""([^""]+)""");
+            if (action.Length == 0)
+            {
+                action = First(attrs, @"Command=""([^""]+)""");
+            }
+
+            if (action.Length == 0)
+            {
+                action = First(attrs, @"IsChecked=""([^""]+)""");
+            }
+
+            entries.Add(new Entry(id, icon, action.Length == 0 ? "drop-down " + id : tag.Length == 0 ? action : action + ":" + tag));
         }
 
         return entries;

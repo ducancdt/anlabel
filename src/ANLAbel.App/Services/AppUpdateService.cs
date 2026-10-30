@@ -16,6 +16,8 @@ public sealed class AppUpdateService
 
     public const string DefaultGitHubRepo = "ducancdt/anlabel";
     public const string LatestReleaseUrl = "https://github.com/ducancdt/anlabel/releases/latest";
+    public const string ProjectHomeUrl = "https://github.com/ducancdt/anlabel";
+    public const string ProjectIssuesUrl = "https://github.com/ducancdt/anlabel/issues";
     public const string ApiLatestReleaseUrl = "https://api.github.com/repos/ducancdt/anlabel/releases/latest";
 
     private static HttpClient CreateHttpClient()

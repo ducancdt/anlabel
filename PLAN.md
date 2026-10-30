@@ -1,5 +1,22 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.341
+
+- Dựng lại phần đầu cửa sổ theo NiceLabel 10 (chủ dự án yêu cầu 30/10/2026,
+  `docs/NICELABEL_10_UI_LAYOUT.md` mục "Shell rebuild"): thanh tiêu đề tự vẽ
+  màu xanh đậm chứa thanh truy cập nhanh (Mới, Mở, Lưu, Hoàn tác, Làm lại),
+  bỏ dải tiêu đề 52 px; dải tab cùng màu với Tệp màu xanh nhạt; thân ribbon
+  xám nhạt với nút lớn 32 px, nút nhỏ 16 px, tên nhóm ở cạnh dưới.
+- Bộ icon vector riêng của ANLAbel cho toàn ribbon (một bảng màu, một nghĩa
+  cho mỗi icon); thay các icon PNG đơn sắc và glyph font lẫn lộn.
+- Trang chủ: Thao tác = In + Tùy chỉnh in ▾; Quản lý = Quản lý dữ liệu +
+  Thuộc tính tem; Căn chỉnh dạng lưới 3 × 3; Đối tượng = Nhóm ▾, Sắp xếp ▾,
+  Xóa. Dữ liệu: Excel, Tệp văn bản, Sửa / Nạp lại / Xóa cơ sở dữ liệu, Quản lý
+  dữ liệu, Nguồn dùng chung. Xem: ô %, Lưới ▾ (hiện lưới, bước lưới). Trợ
+  giúp: Tài liệu hướng dẫn, Hỗ trợ kỹ thuật, Giới thiệu, Trang chủ.
+- Thanh trạng thái: máy in, kích thước tem, vừa tài liệu / đối tượng, thanh
+  thu phóng.
+
 ## v0.341 — Trợ năng: tên cho trình đọc màn hình, chú thích nút, thứ tự Tab, viền tiêu điểm, độ tương phản
 
 _Gồm các commit 30/10/2026 (14:32–15:20)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._

@@ -12272,24 +12272,88 @@ static string[] RequiredHeaderAutomationIds() =>
     "Shell.QuickAccess.Save",
     "Shell.QuickAccess.Undo",
     "Shell.QuickAccess.Redo",
-    "Shell.QuickAccess.Revisions",
+    "Shell.Window.Minimize",
+    "Shell.Window.Maximize",
+    "Shell.Window.Close",
     "Shell.Ribbon",
+    "Shell.Ribbon.File",
     "Shell.Ribbon.Templates",
     "Shell.Ribbon.ImportExcel",
+    "Shell.Ribbon.ImportTextFile",
+    "Shell.Ribbon.EditDatabase",
     "Shell.Ribbon.UpdateExcel",
+    "Shell.Ribbon.DeleteDatabase",
+    "Shell.Ribbon.DataManager",
     "Shell.Ribbon.PrinterSetup",
     "Shell.Ribbon.Preview",
-    "Shell.Ribbon.PrintCurrent",
-    "Shell.Ribbon.PrintAllRows",
-    "Shell.Ribbon.PrintHistory",
-    "Shell.Ribbon.ExportExcel",
-    "Shell.Ribbon.TestPrint",
+    "Shell.Ribbon.PrintMore",
     "Shell.Ribbon.Panels",
+    "Shell.Ribbon.Gridlines",
     "Shell.Ribbon.SnapObjects",
     "Shell.Ribbon.SnapGrid",
     "Shell.Ribbon.DeleteSelection",
-    "Shell.Ribbon.Help"
+    "Shell.Ribbon.Help",
+    "Shell.Ribbon.About",
+    "Shell.Ribbon.CheckUpdates"
 ];
+
+// One click further, in the File menu or a ribbon drop-down (NiceLabel 10 "Customize Print ▾").
+static string[] RequiredHeaderMenuAutomationIds() =>
+[
+    "Shell.File.SaveAs",
+    "Shell.File.Revisions",
+    "Shell.File.Settings",
+    "Shell.Ribbon.PrintCurrent",
+    "Shell.Ribbon.PrintAllRows",
+    "Shell.Ribbon.TestPrint",
+    "Shell.Ribbon.PrintHistory",
+    "Shell.Ribbon.ExportExcel"
+];
+
+// AutomationIds of the menu items behind every context menu and ribbon drop-down in the tree.
+static HashSet<string> CollectMenuAutomationIds(DependencyObject root)
+{
+    var hit = new HashSet<string>(StringComparer.Ordinal);
+    void AddMenu(ItemsControl? menu)
+    {
+        foreach (var item in menu?.Items.OfType<MenuItem>() ?? [])
+        {
+            var id = System.Windows.Automation.AutomationProperties.GetAutomationId(item);
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                hit.Add(id);
+            }
+
+            AddMenu(item);
+        }
+    }
+
+    void Walk(DependencyObject node)
+    {
+        if (node is FrameworkElement element)
+        {
+            AddMenu(element.ContextMenu);
+            AddMenu(ANLAbel.App.Controls.Ribbon.GetDropDown(element));
+            if (element is ANLAbel.App.Controls.RibbonSplitButton split)
+            {
+                AddMenu(split.DropDown);
+            }
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            Walk(VisualTreeHelper.GetChild(node, i));
+        }
+    }
+
+    Walk(root);
+    if (root is ContentControl { Content: DependencyObject content })
+    {
+        Walk(content);
+    }
+
+    return hit;
+}
 
 static Task TestDesignerIconSourcesExist()
 {
@@ -12306,6 +12370,22 @@ static Task TestDesignerIconSourcesExist()
         var path = Path.Combine(root, "src", "ANLAbel.App", rel);
         AssertEqual(true, File.Exists(path), "Shipped XAML must reference an existing icon raster: " + rel);
     }
+
+    // Vector ribbon icons (Themes/RibbonIcons.xaml): every key a window uses must exist.
+    var iconDictionary = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "Themes", "RibbonIcons.xaml"));
+    var defined = System.Text.RegularExpressions.Regex.Matches(iconDictionary, @"x:Key=""(Icon\.[A-Za-z0-9]+)""")
+        .Select(m => m.Groups[1].Value)
+        .ToHashSet(StringComparer.Ordinal);
+    foreach (var file in Directory.GetFiles(Path.Combine(root, "src", "ANLAbel.App"), "*.xaml", SearchOption.AllDirectories)
+                 .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                     && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
+    {
+        foreach (System.Text.RegularExpressions.Match use in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(file), @"StaticResource (Icon\.[A-Za-z0-9]+)\}"))
+        {
+            AssertEqual(true, defined.Contains(use.Groups[1].Value), $"{Path.GetFileName(file)} uses {use.Groups[1].Value}, which Themes/RibbonIcons.xaml does not define");
+        }
+    }
+
     return Task.CompletedTask;
 }
 
@@ -12317,35 +12397,16 @@ static Task TestDesignerHeaderCommandsAreUnique()
     var statusStart = xaml.IndexOf("AutomationId=\"Shell.Status\"", StringComparison.Ordinal);
     AssertEqual(true, ribbonStart > 0 && statusStart > ribbonStart, "Ribbon and status markers must exist in shipped XAML");
     var ribbonXaml = xaml.Substring(ribbonStart, statusStart - ribbonStart);
-    AssertEqual(false, ribbonXaml.Contains("zoom_minus.png", StringComparison.Ordinal),
-        "Ribbon must not reuse the status zoom-minus glyph");
-    AssertEqual(false, ribbonXaml.Contains("zoom_plus.png", StringComparison.Ordinal),
-        "Ribbon must not reuse the status zoom-plus glyph");
-    // NiceLabel 10 also puts Zoom In/Out on the View tab (docs/NICELABEL_10_UI_LAYOUT.md);
-    // the ribbon uses its own glyphs, never the status-bar PNGs above.
+    // docs/NICELABEL_10_UI_LAYOUT.md "Shell rebuild": one vector icon family, no PNG rasters in the ribbon.
+    AssertEqual(false, ribbonXaml.Contains("Icons/", StringComparison.Ordinal),
+        "Ribbon commands draw the vector icon set (Themes/RibbonIcons.xaml), not PNG rasters");
+    // NiceLabel 10 also puts Zoom to Document and Zoom In/Out on the View tab.
     AssertEqual(true, ribbonXaml.Contains("Shell.Ribbon.ZoomToDocument", StringComparison.Ordinal),
         "The View tab must offer Zoom to Document as in NiceLabel 10");
-    AssertEqual(true, ribbonXaml.Contains("Icons/snap_objects.png", StringComparison.Ordinal),
+    AssertEqual(true, ribbonXaml.Contains("{StaticResource Icon.SnapObjects16}", StringComparison.Ordinal),
         "Snap-to-objects must use its own header glyph");
-    AssertEqual(true, ribbonXaml.Contains("Icons/snap_grid.png", StringComparison.Ordinal),
+    AssertEqual(true, ribbonXaml.Contains("{StaticResource Icon.SnapGrid16}", StringComparison.Ordinal),
         "Snap-to-grid must use its own header glyph");
-    AssertEqual(false, ribbonXaml.Contains("Icons/cursor_select.png", StringComparison.Ordinal),
-        "Header must not reuse the select-cursor glyph for snap-to-objects");
-    AssertEqual(false, ribbonXaml.Contains("Icons/table.png", StringComparison.Ordinal),
-        "Header must not reuse the table glyph for snap-to-grid");
-
-    var qatSlice = xaml.Substring(
-        xaml.IndexOf("AutomationId=\"Shell.QuickAccess\"", StringComparison.Ordinal),
-        ribbonStart - xaml.IndexOf("AutomationId=\"Shell.QuickAccess\"", StringComparison.Ordinal));
-    var headerIcons = System.Text.RegularExpressions.Regex.Matches(qatSlice + ribbonXaml, @"Source=""(Icons/[^""]+)""")
-        .Select(m => m.Groups[1].Value)
-        .ToList();
-    var duplicateIcons = headerIcons.GroupBy(v => v, StringComparer.OrdinalIgnoreCase)
-        .Where(g => g.Count() > 1)
-        .Select(g => g.Key)
-        .ToArray();
-    AssertEqual(0, duplicateIcons.Length,
-        "Two header actions must not share one PNG: " + string.Join(", ", duplicateIcons));
 
     Exception? failure = null;
     var thread = new Thread(() =>
@@ -12362,6 +12423,13 @@ static Task TestDesignerHeaderCommandsAreUnique()
             {
                 AssertEqual(true, found.Contains(id, StringComparer.Ordinal),
                     $"Shipped header must expose AutomationId '{id}'. Found: {string.Join(", ", found)}");
+            }
+
+            var inMenus = CollectMenuAutomationIds(window);
+            foreach (var id in RequiredHeaderMenuAutomationIds())
+            {
+                AssertEqual(true, inMenus.Contains(id, StringComparer.Ordinal),
+                    $"Header menus must offer AutomationId '{id}'. Found: {string.Join(", ", inMenus)}");
             }
 
             AssertEqual(true, found.Contains("Shell.Status.Zoom", StringComparer.Ordinal),
@@ -12421,6 +12489,13 @@ static Task TestDesignerShellLayoutAtTargetScales()
                 {
                     AssertEqual(true, found.Contains(id, StringComparer.Ordinal),
                         $"{name}: header AutomationId '{id}' must remain reachable at {width:0}x{height:0}");
+                }
+
+                var inMenus = CollectMenuAutomationIds(window);
+                foreach (var id in RequiredHeaderMenuAutomationIds())
+                {
+                    AssertEqual(true, inMenus.Contains(id, StringComparer.Ordinal),
+                        $"{name}: header menu AutomationId '{id}' must remain reachable at {width:0}x{height:0}");
                 }
 
                 AssertEqual(true, found.Contains("Shell.Status.Zoom", StringComparer.Ordinal),
@@ -12537,10 +12612,13 @@ static Task TestMainWindowLoadDoesNotForcePrinterSetup()
     var xaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));
     AssertEqual(false, xaml.Contains("File    Home    Data    View    Solution", StringComparison.Ordinal),
         "The non-functional tab strip must not occupy the opening header");
-    AssertEqual(true, xaml.Contains("Shell.QuickAccess.Settings", StringComparison.Ordinal),
-        "Settings must be reachable from the opening header");
-    AssertEqual(true, xaml.Contains("Ui.PrinterPrefix, Mode=OneWay", StringComparison.Ordinal),
-        "Read-only UI strings bound to Run.Text must be OneWay; TwoWay crashes Window.Show");
+    AssertEqual(true, xaml.Contains("Shell.File.Settings", StringComparison.Ordinal),
+        "Settings must be reachable from the opening header (File menu)");
+    foreach (System.Text.RegularExpressions.Match run in System.Text.RegularExpressions.Regex.Matches(xaml, @"<Run Text=""\{Binding [^""]*"""))
+    {
+        AssertEqual(true, run.Value.Contains("Mode=OneWay", StringComparison.Ordinal),
+            "Read-only values bound to Run.Text must be OneWay; TwoWay crashes Window.Show: " + run.Value);
+    }
 
     Exception? failure = null;
     var thread = new Thread(() =>
@@ -13362,8 +13440,8 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 AssertEqual(true, Contrast(muted, surface) >= 4.5, $"Muted text {muted} on {surface} must reach 4.5:1 (is {Contrast(muted, surface):0.00})");
             }
 
-            // Narrow window: the ribbon collapses secondary print commands and alignment
-            // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
+            // At the minimum window width (1024 DIP) every main tab fits at full size: the
+            // ribbon never shrinks its captions (docs/NICELABEL_10_UI_LAYOUT.md, "Shell rebuild").
             void LayoutAt(double width)
             {
                 var content = (FrameworkElement)window.Content;
@@ -13374,12 +13452,28 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 content.UpdateLayout();
             }
 
-            viewModel.SelectedRibbonTab = RibbonTab.Home;
-            LayoutAt(1024);
-            AssertEqual(Visibility.Visible, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.PrintMore")!).Visibility, "Narrow ribbon offers a 'Thêm lệnh in' drop-down");
-            AssertEqual(Visibility.Visible, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.AlignMore")!).Visibility, "Narrow ribbon offers a 'Căn chỉnh' drop-down");
+            var ribbonBar = (FrameworkElement)window.FindName("RibbonBar");
+            foreach (var tab in new[] { RibbonTab.Home, RibbonTab.Data, RibbonTab.View, RibbonTab.Help, RibbonTab.Design, RibbonTab.Text })
+            {
+                viewModel.SelectedRibbonTab = tab;
+                LayoutAt(1024);
+                var shown = FindVisualDescendants<Viewbox>(ribbonBar).Single(box => box.Visibility == Visibility.Visible);
+                var natural = ((FrameworkElement)shown.Child).DesiredSize.Width;
+                AssertEqual(true, natural <= shown.ActualWidth + 0.5,
+                    $"{tab} tab must fit 1024 DIP without shrinking (needs {natural:0}, has {shown.ActualWidth:0})");
+            }
+
+            // NiceLabel 10 Action group: Print, plus Customize Print ▾ with the other print commands.
+            var customizePrint = (FrameworkElement)FindByAutomationId(window, "Shell.Ribbon.PrintMore")!;
+            var printMenu = ANLAbel.App.Controls.Ribbon.GetDropDown(customizePrint);
+            AssertEqual(true, printMenu is not null, "Customize Print opens a drop-down");
+            var printIds = printMenu!.Items.OfType<MenuItem>().Select(System.Windows.Automation.AutomationProperties.GetAutomationId).ToArray();
+            foreach (var id in new[] { "Shell.Ribbon.PrintCurrent", "Shell.Ribbon.PrintAllRows", "Shell.Ribbon.TestPrint", "Shell.Ribbon.PrintHistory", "Shell.Ribbon.ExportExcel" })
+            {
+                AssertEqual(true, printIds.Contains(id), "Customize Print ▾ must offer " + id);
+            }
+
             LayoutAt(1440);
-            AssertEqual(Visibility.Collapsed, ((UIElement)FindByAutomationId(window, "Shell.Ribbon.PrintMore")!).Visibility, "Wide ribbon shows the print commands themselves");
 
             // Properties audit renders: every category for Text, TextBox and Barcode.
             var modeTabs = (TabControl)window.FindName("PropertiesModeTabs");
@@ -13432,6 +13526,23 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
     }
 
     return Task.CompletedTask;
+}
+
+static IEnumerable<T> FindVisualDescendants<T>(DependencyObject root) where T : DependencyObject
+{
+    for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+    {
+        var child = VisualTreeHelper.GetChild(root, i);
+        if (child is T match)
+        {
+            yield return match;
+        }
+
+        foreach (var descendant in FindVisualDescendants<T>(child))
+        {
+            yield return descendant;
+        }
+    }
 }
 
 static HashSet<string> CollectAutomationIds(DependencyObject root)

@@ -70,6 +70,11 @@ public sealed class LabelDesignerCanvas : Canvas
         DependencyProperty.Register(nameof(GridStepMm), typeof(double), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(SnapGridContract.DefaultStepMm, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnGridPreferenceChanged));
 
+    /// <summary>Draws the design grid (Xem → Lưới, as NiceLabel 10 View → Gridlines). Designer chrome only.</summary>
+    public static readonly DependencyProperty ShowGridProperty =
+        DependencyProperty.Register(nameof(ShowGrid), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnShowGridChanged));
+
     public static readonly DependencyProperty InteractionStatusTextProperty =
         DependencyProperty.Register(nameof(InteractionStatusText), typeof(string), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(string.Empty, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
@@ -239,6 +244,7 @@ public sealed class LabelDesignerCanvas : Canvas
         SetCurrentValue(IsSnapToObjectsEnabledProperty, preferences.SnapToObjects);
         SetCurrentValue(IsSnapToGridEnabledProperty, preferences.SnapToGrid);
         SetCurrentValue(GridStepMmProperty, SnapGridContract.NormalizeStep(preferences.GridStepMm));
+        SetCurrentValue(ShowGridProperty, preferences.ShowGrid);
         CommandBindings.Add(new CommandBinding(DeleteSelectionCommand, (_, e) =>
         {
             e.Handled = DeleteSelection();
@@ -291,6 +297,12 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         get => (bool)GetValue(IsSnapToGridEnabledProperty);
         set => SetValue(IsSnapToGridEnabledProperty, value);
+    }
+
+    public bool ShowGrid
+    {
+        get => (bool)GetValue(ShowGridProperty);
+        set => SetValue(ShowGridProperty, value);
     }
 
     public double GridStepMm
@@ -1101,16 +1113,19 @@ public sealed class LabelDesignerCanvas : Canvas
         DrawSheetArea(dc);
         dc.DrawRectangle(Brushes.White, new Pen(new SolidColorBrush(Color.FromRgb(148, 163, 184)), 1), new Rect(0, 0, width, height));
 
-        var gridStep = MmToDip(SnapGridContract.NormalizeStep(GridStepMm));
-        var gridPen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 0.6);
-        for (var x = gridStep; x < width; x += gridStep)
+        if (ShowGrid)
         {
-            dc.DrawLine(gridPen, new Point(x, 0), new Point(x, height));
-        }
+            var gridStep = MmToDip(SnapGridContract.NormalizeStep(GridStepMm));
+            var gridPen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 0.6);
+            for (var x = gridStep; x < width; x += gridStep)
+            {
+                dc.DrawLine(gridPen, new Point(x, 0), new Point(x, height));
+            }
 
-        for (var y = gridStep; y < height; y += gridStep)
-        {
-            dc.DrawLine(gridPen, new Point(0, y), new Point(width, y));
+            for (var y = gridStep; y < height; y += gridStep)
+            {
+                dc.DrawLine(gridPen, new Point(0, y), new Point(width, y));
+            }
         }
 
         DrawGroupSelection(dc);
@@ -2501,13 +2516,33 @@ public sealed class LabelDesignerCanvas : Canvas
         }
     }
 
+    private static void OnShowGridChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var canvas = (LabelDesignerCanvas)d;
+        canvas.InvalidateVisual();
+        canvas.InteractionStatusText = (bool)e.NewValue ? "Đã hiện lưới" : "Đã ẩn lưới";
+        try
+        {
+            canvas.SaveDesignerPreferences();
+        }
+        catch (IOException)
+        {
+            canvas.InteractionStatusText += " — không lưu được tùy chọn";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            canvas.InteractionStatusText += " — không lưu được tùy chọn";
+        }
+    }
+
     private void SaveDesignerPreferences()
     {
         _designerPreferencesService.Save(new DesignerPreferences
         {
             SnapToObjects = IsSnapToObjectsEnabled,
             SnapToGrid = IsSnapToGridEnabled,
-            GridStepMm = GridStepMm
+            GridStepMm = GridStepMm,
+            ShowGrid = ShowGrid
         });
     }
 
