@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.351
+
+- Mở tệp .nlbl: thông báo nêu tên các đối tượng chưa chuyển đổi được ("chuyển đổi
+  14/15 đối tượng. Còn 1 đối tượng chưa chuyển đổi: Logo") và nhắc tem in sẽ thiếu
+  chúng. Trước đây con số được tính bằng phép trừ nên có thể báo "toàn bộ" khi
+  một chữ đảo màu (thêm một vùng đảo màu) che mất một đối tượng bị bỏ.
+
 ## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
 
 _Gồm các commit 31/10/2026 (02:14–02:15)._

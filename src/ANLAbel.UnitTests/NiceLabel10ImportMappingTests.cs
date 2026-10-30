@@ -1755,6 +1755,37 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void ItemsNotConverted_AreNamed_EvenWhenInverseTextAddsAnObject()
+    {
+        var document = Parse(Format("""
+            <Item Type="TextDocumentItem">
+              <Name>Title</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>3000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>20</Height></FontDescriptor>
+              <FixedContents>LABEL</FixedContents>
+              <InverseText>True</InverseText>
+            </Item>
+            <Item Type="GraphicDocumentItem">
+              <Name>Logo</Name>
+              <Geometry Type="RectGeometry"><Left>70000</Left><Top>5000</Top><Width>15000</Width><Height>8000</Height></Geometry>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Note</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>30000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>note</FixedContents>
+            </Item>
+            """));
+
+        var template = NiceLabel10NlblImporter.CreateTemplate(document, "sample.nlbl", out _, out var notConverted);
+
+        // Three stored items and three objects (the inverse area is extra), yet Logo is missing.
+        Assert.Equal(3, document.TotalObjectCount);
+        Assert.Equal(3, template.Objects.Count);
+        Assert.Equal(new[] { "Logo" }, notConverted);
+    }
+
+    [Fact]
     public void GroupedItems_ImportAsAGroup()
     {
         var document = Parse("""

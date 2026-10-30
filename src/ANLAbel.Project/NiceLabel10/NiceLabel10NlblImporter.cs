@@ -54,8 +54,22 @@ public static partial class NiceLabel10NlblImporter
         string sourcePath,
         out NiceLabelPrinterSetupResult printerSetup,
         INiceLabel10TextMeasurer? textMeasurer = null)
+        => CreateTemplate(document, sourcePath, out printerSetup, out _, textMeasurer);
+
+    /// <summary>
+    /// Creates the template and reports the printer/media handling and the
+    /// stored items that did not become objects, by name, so the operator is
+    /// told exactly what is missing (an inverse text adds an object, so object
+    /// counts alone cannot say it).
+    /// </summary>
+    public static LabelTemplate CreateTemplate(
+        NiceLabel10Document document,
+        string sourcePath,
+        out NiceLabelPrinterSetupResult printerSetup,
+        out IReadOnlyList<string> notConverted,
+        INiceLabel10TextMeasurer? textMeasurer = null)
     {
-        var template = CreateTemplateCore(document, sourcePath, textMeasurer);
+        var template = CreateTemplateCore(document, sourcePath, textMeasurer, out notConverted);
         printerSetup = ApplyPrintSetup(template, document.PrintSetup);
         return template;
     }
@@ -166,7 +180,8 @@ public static partial class NiceLabel10NlblImporter
     private static LabelTemplate CreateTemplateCore(
         NiceLabel10Document document,
         string sourcePath,
-        INiceLabel10TextMeasurer? textMeasurer)
+        INiceLabel10TextMeasurer? textMeasurer,
+        out IReadOnlyList<string> notConverted)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(sourcePath))
@@ -186,6 +201,8 @@ public static partial class NiceLabel10NlblImporter
         var context = new ImportContext(document, template, textMeasurer, Path.GetDirectoryName(Path.GetFullPath(sourcePath)));
         var boundBarcodes = new List<(LabelObject Item, NiceLabel10ObjectRecord Record)>();
         var converted = new List<(LabelObject Item, NiceLabel10ObjectRecord Record)>();
+        var missing = new List<string>();
+        notConverted = missing;
         foreach (var record in document.Objects)
         {
             var item = record.Kind switch
@@ -200,6 +217,7 @@ public static partial class NiceLabel10NlblImporter
             };
             if (item is null)
             {
+                missing.Add(string.IsNullOrWhiteSpace(record.Name) ? "(không tên)" : record.Name.Trim());
                 continue;
             }
 

@@ -2061,10 +2061,18 @@ public sealed class MainViewModel : ObservableObject
             var remainingCount = loadResult.NiceLabelTotalObjectCount is { } storedCount
                 ? Math.Max(0, storedCount - convertedCount)
                 : -1;
+            if (loadResult.NiceLabelNotConverted is { } missing && loadResult.NiceLabelTotalObjectCount is { } stored)
+            {
+                // NiceLabel 10: the importer names what it could not convert; an
+                // inverse text adds an object, so the counts alone cannot say it.
+                convertedCount = stored - missing.Count;
+                remainingCount = missing.Count;
+            }
             StatusText = (convertedCount, remainingCount) switch
             {
                 (0, _) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm). Đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.",
                 (_, 0) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi toàn bộ {convertedCount} đối tượng trong tệp. Hãy lưu thành tệp .anlabel mới.",
+                (_, > 0) when loadResult.NiceLabelNotConverted is { Count: > 0 } names => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount}/{convertedCount + remainingCount} đối tượng. Còn {remainingCount} đối tượng chưa chuyển đổi: {string.Join(", ", names.Take(5))}{(names.Count > 5 ? $" và {names.Count - 5} đối tượng khác" : string.Empty)}; tem in sẽ thiếu các phần này, hãy làm lại chúng rồi lưu thành tệp .anlabel mới.",
                 (_, > 0) => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount} đối tượng (mã vạch, chữ, đoạn văn, hình/kẻ). Còn {remainingCount} đối tượng trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới.",
                 _ => $"Đã nhập khổ tem từ tệp NiceLabel {Path.GetFileName(filePath)} ({Template.WidthMm} x {Template.HeightMm} mm) và chuyển đổi {convertedCount} đối tượng (mã vạch, chữ, đoạn văn, hình/kẻ). Các đối tượng khác trong tệp chưa được chuyển đổi; hãy lưu thành tệp .anlabel mới."
             };

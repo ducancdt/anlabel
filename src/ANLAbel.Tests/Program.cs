@@ -11967,6 +11967,10 @@ static async Task TestOpenNiceLabel10NlblImportsLabel()
         await openingViewModel.RefreshPrinterQueueStatusAsync();
         AssertEqual(true, openingViewModel.StatusText.Contains("Đã nhập khổ tem từ tệp NiceLabel", StringComparison.Ordinal),
             $"The import explanation must survive the post-open printer check; status was: {openingViewModel.StatusText}");
+        AssertEqual(true, result.NiceLabelNotConverted?.SequenceEqual(["Logo"]) == true,
+            "The import must name the stored item it could not convert (the payload-less graphic)");
+        AssertEqual(true, openingViewModel.StatusText.Contains("chuyển đổi 14/15 đối tượng. Còn 1 đối tượng chưa chuyển đổi: Logo", StringComparison.Ordinal),
+            $"The operator must be told which object is missing; status was: {openingViewModel.StatusText}");
         AssertEqual(true, !openingViewModel.HasPrinterQueueWarning || openingViewModel.StatusText.Contains("Cảnh báo máy in", StringComparison.Ordinal),
             $"The printer warning must still be shown after the import explanation; status was: {openingViewModel.StatusText}");
 

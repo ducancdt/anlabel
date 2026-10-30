@@ -25,6 +25,12 @@ public sealed record ProjectLoadResult(
     public int? NiceLabelTotalObjectCount { get; init; }
 
     /// <summary>
+    /// For a NiceLabel 10 import: the names of the stored items that did not
+    /// become ANLAbel objects (empty when all did); null for other files.
+    /// </summary>
+    public IReadOnlyList<string>? NiceLabelNotConverted { get; init; }
+
+    /// <summary>
     /// For a NiceLabel 10 import: what was done with the printer and media
     /// the label was authored for; null otherwise.
     /// </summary>
