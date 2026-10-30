@@ -1828,7 +1828,7 @@
                                             <ItemsControl ItemsSource="{Binding BindingIssues}" Margin="0,8,0,0">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Button Command="{Binding DataContext.SelectBindingIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        <Button Command="{Binding DataContext.SelectBindingIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" AutomationProperties.Name="{Binding Title}"
                                                                 CommandParameter="{Binding}"
                                                                 HorizontalContentAlignment="Stretch"
                                                                 Margin="0,0,0,6"
@@ -3103,8 +3103,8 @@
                                             <TextBlock Text="Tô nền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                             <Grid Margin="0,0,0,4">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
-                                                <ComboBox ItemsSource="{Binding FillStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
-                                                <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                                <ComboBox AutomationProperties.Name="Kiểu tô nền" ItemsSource="{Binding FillStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
+                                                <TextBox Grid.Column="2" AutomationProperties.Name="Màu tô nền" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                                 <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.FillColor}"/>
                                             </Grid>
                                             <TextBlock Text="Bo góc" Style="{StaticResource PropLabel}"/>
@@ -3113,8 +3113,8 @@
                                         <TextBlock Text="Viền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
-                                            <ComboBox ItemsSource="{Binding OutlineStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
-                                            <TextBox Grid.Column="2" Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                            <ComboBox AutomationProperties.Name="Kiểu viền" ItemsSource="{Binding OutlineStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
+                                            <TextBox Grid.Column="2" AutomationProperties.Name="Màu viền" Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
                                         </Grid>
                                         <TextBlock Text="Độ dày (mm)" Style="{StaticResource PropLabel}"/>

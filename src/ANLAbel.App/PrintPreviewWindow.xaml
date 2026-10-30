@@ -44,7 +44,7 @@
                         <TextBlock Text="{Binding CurrentRowSummary}" TextWrapping="Wrap" Foreground="#334155" VerticalAlignment="Center"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Content="◀" Width="36" Click="PreviousPage_Click" ToolTip="Tem trước"/>
-                            <TextBox Text="{Binding PageInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="52" TextAlignment="Center" KeyDown="PageInput_KeyDown"/>
+                            <TextBox Text="{Binding PageInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="52" TextAlignment="Center" KeyDown="PageInput_KeyDown" AutomationProperties.Name="Đến nhãn số" ToolTip="Nhập số nhãn rồi nhấn Enter"/>
                             <TextBlock Text="{Binding PageStatusText}" VerticalAlignment="Center" Margin="6,0,8,0"/>
                             <Button Content="▶" Width="36" Click="NextPage_Click" ToolTip="Tem sau"/>
                         </StackPanel>
@@ -68,7 +68,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="🔎" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="11"/>
-                        <TextBox Grid.Column="1" x:Name="RowFilterBox" VerticalAlignment="Center" FontSize="11" Padding="4,3"
+                        <TextBox Grid.Column="1" x:Name="RowFilterBox" AutomationProperties.Name="Lọc dòng Excel" VerticalAlignment="Center" FontSize="11" Padding="4,3"
                                  ToolTip="Nhập một giá trị (ví dụ mã sản phẩm) để tìm dòng khớp. Dòng khớp được tự chọn để in; phần còn lại bị bỏ chọn."
                                  TextChanged="RowFilterBox_TextChanged" PreviewKeyDown="RowFilterBox_PreviewKeyDown"/>
                         <ComboBox Grid.Column="2" x:Name="RowFilterColumnCombo" Margin="6,0,0,0" FontSize="11" VerticalAlignment="Center"

@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AccessibleNames.Apply(this);
         DataContext = _viewModel;
         _viewModel.PromptValuesRequested = (prompts, previous) => PromptValuesWindow.Ask(this, prompts, previous);
         InitializeDocumentLifecycle();

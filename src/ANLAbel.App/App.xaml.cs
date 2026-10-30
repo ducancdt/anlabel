@@ -13,6 +13,9 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // Every window, dialogs included, names its unlabelled controls for screen readers.
+        EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent,
+            new RoutedEventHandler((sender, _) => ANLAbel.App.Controls.AccessibleNames.Apply((DependencyObject)sender)));
 
         // Plan 13 F03: an unexpected error must not silently close the app and
         // lose the open design, and a failed command must not vanish into Debug

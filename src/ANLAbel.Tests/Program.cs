@@ -13195,6 +13195,31 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                     $"{Path.GetFileName(xamlPath)} is resizable and must declare MinWidth and MinHeight");
             }
 
+            // Screen-reader names: after AccessibleNames every focusable input in the shell has a name.
+            ANLAbel.App.Controls.AccessibleNames.Apply(window);
+            var unnamed = new List<string>();
+            void FindUnnamed(DependencyObject node)
+            {
+                foreach (var child in LogicalTreeHelper.GetChildren(node))
+                {
+                    if (child is not DependencyObject next)
+                    {
+                        continue;
+                    }
+
+                    if (next is TextBox or ComboBox or Slider && string.IsNullOrWhiteSpace(System.Windows.Automation.AutomationProperties.GetName(next))
+                        && System.Windows.Data.BindingOperations.GetBindingExpressionBase(next, System.Windows.Automation.AutomationProperties.NameProperty) is null)
+                    {
+                        unnamed.Add((((FrameworkElement)next).Name is { Length: > 0 } id ? id : next.GetType().Name) + " [" + string.Join("/", System.Windows.Data.BindingOperations.GetBindingExpressionBase(next, next is TextBox ? TextBox.TextProperty : next is ComboBox ? System.Windows.Controls.Primitives.Selector.SelectedItemProperty : RangeBase.ValueProperty)?.ParentBindingBase is System.Windows.Data.Binding b ? b.Path?.Path : "?") + "]");
+                    }
+
+                    FindUnnamed(next);
+                }
+            }
+
+            FindUnnamed(window);
+            AssertEqual(0, unnamed.Count, "Every text box, drop-down and slider has an accessible name: " + string.Join(", ", unnamed));
+
             // Narrow window: the ribbon collapses secondary print commands and alignment
             // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
             void LayoutAt(double width)

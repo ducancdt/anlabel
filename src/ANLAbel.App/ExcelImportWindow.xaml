@@ -48,7 +48,7 @@
                         <TextBlock Text="Tệp dữ liệu" FontWeight="SemiBold"/>
                         <TextBlock Text="Chọn bất kỳ tệp .xlsx, .xlsm hoặc .csv từ máy của bạn." FontSize="12" Foreground="{StaticResource MutedBrush}"/>
                     </StackPanel>
-                    <TextBox x:Name="FilePathTextBox" Grid.Row="2" Text="{Binding Template.DatabaseConfig.FilePath, Mode=OneWay}" IsReadOnly="True" MinHeight="32" Padding="8,5"/>
+                    <TextBox x:Name="FilePathTextBox" Grid.Row="2" AutomationProperties.Name="Tệp dữ liệu" Text="{Binding Template.DatabaseConfig.FilePath, Mode=OneWay}" IsReadOnly="True" MinHeight="32" Padding="8,5"/>
                     <Button Grid.Row="2" Grid.Column="2" Content="Chọn tệp..." Width="104" Click="Browse_Click" Background="{DynamicResource AppPrimaryBrush}" Foreground="White"/>
                 </Grid>
             </Border>
