@@ -13,6 +13,19 @@
         <Color x:Key="ThemeSurfaceSoft">#F8FAFC</Color>
         <Color x:Key="ThemePrimary">#1464D2</Color>
         <Color x:Key="ThemePrimaryDark">#0F4EA8</Color>
+        <!-- Keyboard focus ring (Controls/FocusRing applies it to every window): a solid 2 px blue
+             outline instead of the thin black dotted Windows default that disappears on light buttons. -->
+        <Style x:Key="AppFocusRing">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Rectangle Margin="-2" StrokeThickness="2" RadiusX="5" RadiusY="5" SnapsToDevicePixels="True">
+                            <Rectangle.Stroke><SolidColorBrush Color="{StaticResource ThemePrimary}"/></Rectangle.Stroke>
+                        </Rectangle>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Color x:Key="ThemePrimarySoft">#EAF3FF</Color>
 
         <SolidColorBrush x:Key="ThemeInkBrush" Color="{StaticResource ThemeInk}"/>

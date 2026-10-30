@@ -309,6 +309,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("dialogs render for the UI audit", TestDialogsRenderForUiAudit),
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("ribbon formats the selected rich text", TestRibbonFormatsRichText),
+    ("keyboard focus ring is a visible blue outline", TestKeyboardFocusRing),
     ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
     ("inverse object swaps black and white beneath it in print", TestInverseObjectSwapsBlackAndWhite),
     ("designer shows the inverse area inverted", TestDesignerShowsInverseInverted),
@@ -12830,6 +12831,68 @@ static Task TestGroupObjectsLikeNiceLabel()
             AssertEqual(a.GroupId, copy.GroupId, "Clones (undo, snapshots) keep the group");
             AssertEqual(true, canvas.UngroupSelectedObjects(), "Grouped selection can be ungrouped");
             AssertEqual(string.Empty, a.GroupId + b.GroupId, "Ungroup clears the group id");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestKeyboardFocusRing()
+{
+    // The Windows default focus ring is a thin black dotted line that disappears on the
+    // app's light buttons. Every window gets the app's ring (FocusRing.Apply on Loaded):
+    // check it is assigned to real controls and that it draws a solid blue outline.
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var theme = LoadAppTheme();
+            var ring = (Style)theme[ANLAbel.App.Controls.FocusRing.ResourceKey];
+            var window = new MainWindow();
+            window.Resources.MergedDictionaries.Insert(0, theme);
+            ANLAbel.App.Controls.FocusRing.Apply(window, ring);
+            var buttons = new List<Control>();
+            void Collect(DependencyObject node)
+            {
+                foreach (var child in LogicalTreeHelper.GetChildren(node))
+                {
+                    if (child is Control control) buttons.Add(control);
+                    if (child is DependencyObject next) Collect(next);
+                }
+            }
+
+            Collect(window);
+            var focusable = buttons.Where(c => c.Focusable && c.FocusVisualStyle is not null).ToList();
+            AssertEqual(true, focusable.Count > 50, "The shell has many focusable controls");
+            AssertEqual(0, focusable.Count(c => !ReferenceEquals(c.FocusVisualStyle, ring)), "Every focusable control uses the app focus ring");
+
+            // Draw the ring the way the focus adorner does: a Control with the ring's template.
+            var host = new Grid { Width = 60, Height = 40, Background = Brushes.White };
+            var adorner = new Control { Style = ring, Margin = new Thickness(10) };
+            host.Children.Add(adorner);
+            host.Measure(new Size(60, 40));
+            host.Arrange(new Rect(0, 0, 60, 40));
+            host.UpdateLayout();
+            var raster = new RenderTargetBitmap(60, 40, 96, 96, PixelFormats.Pbgra32);
+            raster.Render(host);
+            var pixels = new byte[60 * 40 * 4];
+            raster.CopyPixels(pixels, 60 * 4, 0);
+            int Blue(int x, int y) { var i = (y * 60 + x) * 4; return pixels[i] > 0xB0 && pixels[i + 2] < 0x40 ? 1 : 0; }
+            AssertEqual(1, Blue(30, 9), "The ring draws a blue line just outside the top edge");
+            AssertEqual(1, Blue(9, 20), "The ring draws a blue line just outside the left edge");
+            AssertEqual(0, Blue(30, 20), "The ring is an outline, not a fill");
         }
         catch (Exception ex)
         {
