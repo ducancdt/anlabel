@@ -1,5 +1,20 @@
 # ANLAbel Phase 1 Plan
 
+## v0.337 — Rà soát giao diện: nhóm ribbon thẳng hàng, nút xoay dùng được, bảng dữ liệu Xem trước, Thiết lập máy in
+
+_Gồm các commit 30/10/2026 (10:38–10:56)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Nhãn các nhóm ribbon thẳng hàng; thẻ Thiết kế không còn bị co nhỏ; chưa
+  chọn máy in thì hiện “Chưa chọn máy in” thay vì để trống; hộp công cụ gọn ở
+  màn nhỏ.
+- Nút xoay 0°/90°/180°/270° trong bảng Thuộc tính trước đây luôn bị khóa; nay
+  dùng được. Thẻ Vị trí có thêm xoay và điểm neo.
+- Tiêu đề cột bảng dữ liệu trong Xem trước nằm đúng phía trên các dòng.
+- Các bước bên trái của Thiết lập máy in dùng kiểu phẳng, bước đang chọn có
+  vạch xanh.
+
+**Kiểm tra:** build 0 cảnh báo, 1543 unit, hồi quy 282/282.
+
 ## v0.336 — NiceLabel 10: Đảo màu hiện đúng khi thiết kế, Không in, soi gương, điều kiện hiển thị, cây Dữ liệu
 
 _Gồm các commit sáng 30/10/2026 (08:23–09:57)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
