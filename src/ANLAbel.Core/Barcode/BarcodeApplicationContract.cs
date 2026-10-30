@@ -652,6 +652,14 @@ public static class BarcodeApplicationContract
                 {
                     errors.Add($"UpcE data length must be 6, 7, or 8 digits; actual length is {data.Length}.");
                 }
+                else if (data.Length > 6 && !RetailBarcodeNumber.IsUpcENumberSystem(data[0]))
+                {
+                    errors.Add("UpcE number system (the first of 7 or 8 digits) must be 0 or 1; give 6 digits for number system 0.");
+                }
+                else if (data.Length == 8 && !RetailBarcodeNumber.HasValidUpcECheckDigit(data))
+                {
+                    errors.Add("UpcE data has an invalid check digit.");
+                }
                 break;
 
             case BarcodeSymbology.ITF:

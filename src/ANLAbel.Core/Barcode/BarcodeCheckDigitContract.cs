@@ -147,6 +147,12 @@ public static class BarcodeCheckDigitContract
         CustomCheckDigitAlgorithm? custom = null)
     {
         var data = payload ?? string.Empty;
+        if (RetailBarcodeNumber.Applies(symbology))
+        {
+            // EAN/UPC always show the whole number, check digit included (GS1).
+            return RetailBarcodeNumber.Complete(symbology, data);
+        }
+
         if (showCheckDigit || !SupportsCheckDigit(symbology, custom) || data.Length < 2)
         {
             return data;
@@ -190,12 +196,15 @@ public static class BarcodeCheckDigitContract
 
     /// <summary>
     /// Text used to size the HRI strip: the raw data, or the displayed text
-    /// when a mask adds formatting characters.
+    /// when a mask adds formatting characters or an EAN/UPC number gains its
+    /// check digit.
     /// </summary>
     public static string HriMeasureText(Models.LabelObject item, string payload)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return BarcodeHriMaskContract.IsUsed(item.BarcodeHriMask) || item.Code128CodeSet == Code128CodeSet.Manual
+        return BarcodeHriMaskContract.IsUsed(item.BarcodeHriMask)
+            || item.Code128CodeSet == Code128CodeSet.Manual
+            || RetailBarcodeNumber.Applies(item.BarcodeSymbology)
             ? FormatHriText(item, item.BarcodeSymbology, payload)
             : BarcodeDataText.TrimInvisible(payload);
     }

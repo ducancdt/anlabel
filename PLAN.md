@@ -4,6 +4,11 @@
 
 - Nhập .nlbl giữ nhóm đối tượng của NiceLabel (GroupedItems): các đối tượng
   cùng nhóm nhận chung một nhóm ANLAbel nên chọn và di chuyển cùng nhau.
+- Mã EAN-13, EAN-8, UPC-A, UPC-E: dòng số dưới mã luôn in đủ số máy quét đọc,
+  kể cả số kiểm tra phần mềm tự tính (trước đây nhập 12 số thì chỉ in 12 số).
+  UPC-E nhập 6 số được hiểu là hệ số 0 như NiceLabel 10 (trước đây bị chặn in
+  với lỗi kỹ thuật của bộ mã hóa); UPC-E 7–8 số phải bắt đầu bằng 0 hoặc 1 và có
+  số kiểm tra đúng. Lỗi dữ liệu EAN/UPC được báo bằng tiếng Việt.
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 

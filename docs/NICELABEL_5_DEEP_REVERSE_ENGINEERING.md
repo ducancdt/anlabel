@@ -431,7 +431,7 @@ cao, rủi ro thấp (không đổi hình học, chỉ cảnh báo), nếu chủ
 | Tùy chọn NL5 | Thuật toán tương ứng | ANLAbel |
 | :--- | :--- | :--- |
 | Include quiet zones | Cộng khoảng trắng đầu/cuối ký hiệu | Có: quiet zone theo module (`QrQuietZoneModules`, hợp đồng tuyến tính) |
-| Descender bars | Kéo dài guard bar EAN/UPC | Chưa có công tắc; renderer vẽ guard bar theo chuẩn |
+| Descender bars | Kéo dài guard bar EAN/UPC | Chưa có: mọi vạch EAN/UPC cùng chiều cao, dãy số căn giữa dưới mã (đính chính 2026-10-31) |
 | Mirror horizontally/vertically | Lật ký hiệu; thường buộc print-as-graphics | Chưa có ở mức đối tượng mã vạch |
 | Intercharacter gap | Đổi khoảng cách giữa ký tự (Code 39) | Có: `Code39IntercharacterGapModules` |
 | Include EAN white space | Chèn ký hiệu `<` `>` báo vùng trắng (suy luận từ tên hàm ở phiên 2026-10-18; đã đính chính ở §24: `PaintSlashes` vẽ nét chéo, không phải `<` `>`) | Chưa có |

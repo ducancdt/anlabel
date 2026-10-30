@@ -114,6 +114,11 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         var normalized = type is BarcodeType.Code39 or BarcodeType.Codabar
             ? data.ToUpperInvariant()
             : data;
+        if (type == BarcodeType.UpcE)
+        {
+            // Six UPC-E digits are number system 0, as GS1 and NiceLabel take them.
+            normalized = RetailBarcodeNumber.ToEncoderInput(BarcodeSymbology.UpcE, normalized);
+        }
 
         if (!options.IsGs1)
         {

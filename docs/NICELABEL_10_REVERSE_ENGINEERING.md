@@ -722,3 +722,28 @@ built: a `DateAddFunction` whose input is a prompted date.
   mod-43 check), the GS1 DataBar function, EAN/UPC add-on symbols, pictures
   read from a file named by a data source (13 graphics), cutter and batch
   printing (driver settings), label sets.
+
+## §17 EAN/UPC number line and descender bars (2026-10-31)
+
+- Barcodes.Core: every EAN/UPC data class carries `CheckDigitOptions =
+  Supported | UserGenerated`, neither `Optional` nor
+  `OptionalHumanInterpretation`, so `HasCheckDigit`, `AutomaticCheckDigit` and
+  `DisplayCheckDigit` are forced on: the number line always shows the check
+  digit. Nine sample EAN-13 items store `DisplayCheckDigit` False; it has no
+  effect for EAN.
+- A new EAN/UPC object starts with the number below, `AutoFontScaling`,
+  `AutomaticCheckDigit`, `HasDescenderBars` and `HasQuietZones` on (EAN base
+  class initializer). All 21 sample EAN-13 items store `HasDescenderBars` True.
+- UPC-E data is six digits; number system 1 is a separate flag
+  (`NumberSystemOneEncoding`), otherwise number system 0.
+- Drawing (Neodynamic `BarcodeBuilder`): `GuardBar = HasDescenderBars` with a
+  computed `GuardBarHeight`, else flat guard bars (`GuardBarHeight =
+  BarHeight`); `DisplayLightMarginIndicator = HasEanWhiteSpaceEnabled`;
+  `AddChecksum = AutomaticCheckDigit`.
+- ANLAbel: `RetailBarcodeNumber.Complete` gives the number the symbol
+  carries (check digit added, six-digit UPC-E as number system 0); the encoder
+  input and the number line both follow it, so the printed digits are the
+  scanned digits (gate `retail codes print the number the scanner reads`).
+  ANLAbel still draws EAN/UPC bars at one height with the number centred below
+  (no descender bars, no first digit left of the symbol, no white-space marks,
+  no add-ons).

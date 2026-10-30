@@ -48,6 +48,16 @@ public static class PreflightIssueText
         (Rx(@"^(?<s>Code128|Code39|Code93) data contains an unsupported character: U\+(?<u>[0-9A-F]{4}) (?:'(?<c>.*?)'|\((?<n>[^)]*)\)) at position (?<p>\d+);"),
             m => $"dữ liệu mã {m.Groups["s"].Value} có ký tự không mã hóa được ở vị trí {m.Groups["p"].Value}: {CharacterText(m.Groups["u"].Value, m.Groups["c"].Value, m.Groups["n"].Value)}; xóa hoặc thay ký tự đó trong ô dữ liệu, hoặc chọn loại mã khác"),
         (Rx(@"^Invalid (?<t>.+?) data\."), m => $"dữ liệu không hợp lệ cho mã {m.Groups["t"].Value}"),
+        (Rx(@"^(?<s>Ean13|Ean8|UpcA|UpcE) data has an invalid check digit"),
+            m => $"chữ số cuối (số kiểm tra) của mã {RetailName(m.Groups["s"].Value)} không đúng; sửa dữ liệu, hoặc bỏ chữ số cuối để phần mềm tự tính"),
+        (Rx(@"^(?<s>Ean13|Ean8|UpcA) data length must be (?<a>\d+) digits \(without check digit\) or (?<b>\d+) digits \(with check digit\); actual length is (?<n>\d+)"),
+            m => $"mã {RetailName(m.Groups["s"].Value)} cần {m.Groups["a"].Value} chữ số (phần mềm tự thêm số kiểm tra) hoặc {m.Groups["b"].Value} chữ số (đã có số kiểm tra); dữ liệu đang có {m.Groups["n"].Value} chữ số"),
+        (Rx(@"^UpcE data length must be 6, 7, or 8 digits; actual length is (?<n>\d+)"),
+            m => $"mã UPC-E cần 6 chữ số (hệ số 0), 7 chữ số (hệ số 0 hoặc 1 đứng đầu) hoặc 8 chữ số (đã có số kiểm tra); dữ liệu đang có {m.Groups["n"].Value} chữ số"),
+        (Rx(@"^UpcE number system \(the first of 7 or 8 digits\) must be 0 or 1"),
+            _ => "chữ số đầu của mã UPC-E 7 hoặc 8 số là hệ số và chỉ được là 0 hoặc 1; nhập 6 chữ số để dùng hệ số 0"),
+        (Rx(@"^(?<s>Ean13|Ean8|UpcA|UpcE) data must contain numeric digits only"),
+            m => $"mã {RetailName(m.Groups["s"].Value)} chỉ nhận chữ số"),
         (Rx(@"^(?<s>.+?) data cannot be empty or whitespace"), m => $"dữ liệu mã {m.Groups["s"].Value} đang trống"),
         (Rx(@"^(?<s>.+?) check-digit policy is Verify but the barcode data is empty"),
             m => $"dữ liệu mã {m.Groups["s"].Value} đang trống nên không kiểm tra được số kiểm tra"),
@@ -160,6 +170,16 @@ public static class PreflightIssueText
             _ => $"“{glyph}” ({code})",
         };
     }
+
+    /// <summary>The name operators know a retail symbology by (EAN-13, not Ean13).</summary>
+    private static string RetailName(string symbology) => symbology switch
+    {
+        "Ean13" => "EAN-13",
+        "Ean8" => "EAN-8",
+        "UpcA" => "UPC-A",
+        "UpcE" => "UPC-E",
+        _ => symbology
+    };
 
     /// <summary>Vietnamese text for one validator message; unknown messages are returned unchanged.</summary>
     public static string Message(string? message)

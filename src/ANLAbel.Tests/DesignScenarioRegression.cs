@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -917,6 +918,99 @@ internal static class DesignScenarioRegression
         });
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// EAN-13, EAN-8, UPC-A and UPC-E typed without their check digit, and a
+    /// UPC-E as its six digits: the print path encodes the whole number (number
+    /// system 0 for the six-digit UPC-E, as NiceLabel 10 does), and the digits
+    /// drawn under the bars are exactly the digits the scanner reads.
+    /// </summary>
+    public static Task RetailCodesPrintTheNumberTheScannerReads()
+    {
+        RunOnSta(() =>
+        {
+            var failures = new List<string>();
+            var renderer = new ZxingBarcodeRenderer();
+            (BarcodeSymbology Symbology, BarcodeFormat Format, string Data, string Read)[] cases =
+            [
+                (BarcodeSymbology.Ean13, BarcodeFormat.EAN_13, "590123412345", "5901234123457"),
+                (BarcodeSymbology.Ean8, BarcodeFormat.EAN_8, "9638507", "96385074"),
+                (BarcodeSymbology.UpcA, BarcodeFormat.UPC_A, "03600029145", "036000291452"),
+                (BarcodeSymbology.UpcE, BarcodeFormat.UPC_E, "123456", "01234565")
+            ];
+            foreach (var (symbology, format, data, read) in cases)
+            {
+                var template = new LabelTemplate { Name = "Retail", WidthMm = 60, HeightMm = 35, Dpi = Dpi };
+                var code = new LabelObject
+                {
+                    Type = ObjectType.BarcodeCode128,
+                    BarcodeSymbology = symbology,
+                    Name = symbology.ToString(),
+                    Text = data,
+                    BarcodeModuleWidthMm = 0.33,
+                    BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                    BarcodeHriPlacement = BarcodeHriPlacement.Below,
+                    BarcodeTextFontSizePt = 9,
+                    XMm = 6,
+                    YMm = 4,
+                    WidthMm = 40,
+                    HeightMm = 26,
+                    ZIndex = 1
+                };
+                template.Objects.Add(code);
+                var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+                var visual = new LabelVisualRenderer().Render(template, null, plan);
+                var raster = Rasterize(visual, template.WidthMm, template.HeightMm);
+                var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, data);
+                var decoded = Decode(raster, code.XMm, code.YMm, widthMm, code.HeightMm, format);
+                var drawn = DrawnCharacters(visual.Drawing);
+                if (decoded != read)
+                {
+                    failures.Add($"{symbology} '{data}': the scanner reads '{decoded}', expected '{read}'.");
+                }
+
+                if (drawn != decoded)
+                {
+                    failures.Add($"{symbology} '{data}': the line under the bars says '{drawn}' but the scanner reads '{decoded}'.");
+                }
+
+                var blocking = new PrintPreflightValidator(renderer).Validate(template, [null], Dpi).Issues.Where(issue => issue.IsBlocking);
+                failures.AddRange(blocking.Select(issue => $"{symbology} '{data}': preflight blocks it: {issue.Message}"));
+            }
+
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Characters of every glyph run in a drawing, in drawing order.</summary>
+    private static string DrawnCharacters(Drawing? drawing)
+    {
+        var text = new StringBuilder();
+        void Visit(Drawing? current)
+        {
+            switch (current)
+            {
+                case DrawingGroup group:
+                    foreach (var child in group.Children)
+                    {
+                        Visit(child);
+                    }
+
+                    break;
+                case GlyphRunDrawing glyphs when glyphs.GlyphRun.Characters is { } characters:
+                    text.Append(characters.ToArray());
+                    break;
+            }
+        }
+
+        Visit(drawing);
+        return text.ToString();
     }
 
     /// <summary>
