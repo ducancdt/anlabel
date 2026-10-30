@@ -548,3 +548,20 @@ Elements creation offers "create objects", "create a table" (a Report, out of
 scope) or nothing. "Create objects" (`AddFormatObjects`) adds one Text per
 field of the data set, bound to it, at x = 5 mm, stacked downwards from
 y = 5 mm. Not built: ANLAbel's Data panel drags each field onto the label.
+
+## Print form (2026-10-31)
+
+NiceLabel 10 prints through a form: the default "Printing Form" (stored in
+the label, `Forms_Printing Form.xml`) holds the quantity, a live label
+preview, the printer list and its setup button, the variable prompts
+(`PromptControl`) and the Print button (open label, set printer, redirect to
+file, print). Its settings are solution variables, also in three customer
+labels: `PrintingForm_Quantity`, `PrintingForm_SkippedLabels`,
+`PrintingForm_IdenticalCopies`, `PrintingForm_LabelSets`,
+`PrintingForm_PrinterName`, `PrintingForm_PrintToFile`, `PrintingForm_LabelName`.
+
+ANLAbel splits it: the print questions first (`PromptValuesWindow`, Enter moves
+to the next question), then Print Preview with the label pages, the Excel rows
+and their copies, labels to skip on a part-used sheet, the printer and its
+setup. Not built: label sets (the whole job repeated N times) and printing to
+a file of printer commands. Out of scope: custom PowerForms.
