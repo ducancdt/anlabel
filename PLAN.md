@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.342
+## v0.343 — Quản lý dữ liệu, tab ngữ cảnh và hộp công cụ theo NiceLabel 10
+
+_Gồm các commit 30/10/2026 (17:18–17:51)._
 
 - Cửa sổ phóng to: thanh trạng thái không còn bị thanh tác vụ che 11 px (đo
   trực tiếp ở 150 %).
@@ -16,6 +18,8 @@
   tô ▾, Màu tô ▾); nhóm Sắp xếp trên mọi tab đối tượng.
 - Hộp công cụ phẳng như NiceLabel (icon vector 32 px, tên dưới icon) và icon
   vector cho thẻ Dữ liệu / Lớp / Đối tượng.
+
+**Kiểm tra:** build 0 cảnh báo, 1552 unit, hồi quy 286/286.
 
 ## v0.342 — Giao diện NiceLabel 10: thanh tiêu đề, dải tab, ribbon và trang Tệp
 
