@@ -483,6 +483,39 @@ internal static class DesignScenarioRegression
             }
             Require(window.Values.TryGetValue("PO", out var po) && po == "42" && window.Values["Shift"] == "B", "The answers are kept as entered.");
             window.Close();
+
+            // A date prompt offers a calendar in Vietnamese order, shows the printed format and keeps yyyy-MM-dd.
+            var dates = new[] { new PromptVariableDefinition { Name = "Exp", Prompt = "Hạn dùng", DateFormat = "yyMMdd", DateInputFormat = "yyMMdd" } };
+            var dateWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
+                typeof(ANLAbel.App.PromptValuesWindow),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new object[] { dates, new Dictionary<string, string>() },
+                null)!;
+            var datePanel = (StackPanel)dateWindow.Content;
+            var picker = datePanel.Children.OfType<DatePicker>().SingleOrDefault();
+            Require(picker is not null && string.Equals(picker.Language.IetfLanguageTag, "vi-VN", StringComparison.OrdinalIgnoreCase), "A date prompt is a calendar in Vietnamese date order.");
+            picker!.SelectedDate = new DateTime(2026, 12, 31);
+            var datePrinted = datePanel.Children.OfType<TextBlock>().Select(text => text.Text).FirstOrDefault(text => text.StartsWith("Sẽ in:", StringComparison.Ordinal));
+            Require(datePrinted == "Sẽ in: 261231", "The date shows as it prints: " + datePrinted);
+            void AcceptDate() => typeof(ANLAbel.App.PromptValuesWindow).GetMethod("Accept", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(dateWindow, null);
+            var dateProblem = datePanel.Children.OfType<TextBlock>().Last(text => text.Foreground == Brushes.DarkRed);
+            picker.SelectedDate = null;
+            picker.Text = "ngày mai";
+            AcceptDate();
+            Require(dateProblem.Text.Contains("cần một ngày", StringComparison.Ordinal), "A text that is no date is turned back in Vietnamese: " + dateProblem.Text);
+            picker.Text = "261231";
+            try
+            {
+                AcceptDate();
+            }
+            catch (TargetInvocationException closing) when (closing.InnerException is InvalidOperationException)
+            {
+                // Never shown as a dialog; the values are set before DialogResult.
+            }
+
+            Require(dateWindow.Values.TryGetValue("Exp", out var exp) && exp == "2026-12-31", "A date typed in its input format is kept as yyyy-MM-dd: " + exp);
+            dateWindow.Close();
         });
 
         return Task.CompletedTask;

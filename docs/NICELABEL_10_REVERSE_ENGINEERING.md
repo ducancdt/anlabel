@@ -670,3 +670,21 @@ longer values into it, by the protected Text contract) squeezed every value
 into the width of "Text". It now measures the field sample, and composes
 fixed text with references ("Po: [id]") from each source's design value.
 Bound barcodes keep their stored-contents sizing (§9).
+
+## §15 Prompted dates (2026-10-31)
+
+A variable whose `DefaultValue` is `DateTimeContents` is a Date variable the
+operator enters at print: `InputFormat` (how it is typed, e.g. `d. MM. yyyy`),
+`OutputFormat` (how it prints, e.g. `yyyyMMdd`), `DateTimeValue` (an OLE date;
+0 or 2958465.99… = 9999-12-31 for none), `UserValue` (`.` for none, the date as
+typed, or `[id]` when linked to another source), `DisplayType` 1, `UsageType` 0
+and a zero `Offset` in all 190 sample variables (26 input/output pairs; input
+and output differ in most). ANLAbel imported them as text prompts, so the
+operator had to type the printed form and the designer showed the item's
+placeholder contents. Now `PromptVariableDefinition.DateFormat` (output) and
+`DateInputFormat` (input): the print dialog offers a calendar (vi-VN order) and
+accepts the input format, dd/MM/yyyy or yyyy-MM-dd; the job keeps yyyy-MM-dd and
+`FormatPromptValue` prints the output format, then the prefix, suffix and
+padding; the designer shows the job day in the output format until a date is
+given. Import keeps both formats and the default. Not built: `DateAddFunction`
+on a prompted date (15 sample functions, e.g. expiry = production date + n).

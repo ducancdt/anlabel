@@ -15,6 +15,9 @@ public static partial class JobVariableContract
     public const string DefaultDateFormat = "dd/MM/yyyy";
     public const int MaximumPromptLength = 200;
 
+    /// <summary>How a date prompt's answer is kept with the job (and replayed by a reprint).</summary>
+    public const string DateAnswerFormat = "yyyy-MM-dd";
+
     /// <summary>
     /// The job-level tokens (text inside braces) used by visible objects, in
     /// their contents or their visibility condition: <c>#NOW...</c> date
@@ -102,6 +105,14 @@ public static partial class JobVariableContract
             return $"Prompt '{label}' needs a value.";
         }
 
+        if (IsDatePrompt(definition))
+        {
+            // A date is picked or typed and kept as yyyy-MM-dd; the text rules do not apply.
+            return string.IsNullOrWhiteSpace(text) || TryParsePromptDate(definition, text, out _)
+                ? string.Empty
+                : $"Prompt '{label}' needs a date such as {DateExample(definition)}.";
+        }
+
         var limit = definition.MaxLength > 0 ? Math.Min(definition.MaxLength, MaximumPromptLength) : MaximumPromptLength;
         if (text.Length > limit)
         {
@@ -152,6 +163,18 @@ public static partial class JobVariableContract
             return text;
         }
 
+        if (IsDatePrompt(definition) && TryParsePromptDate(definition, text, out var date))
+        {
+            try
+            {
+                text = date.ToString(definition.DateFormat, CultureInfo.InvariantCulture);
+            }
+            catch (FormatException)
+            {
+                // A format .NET cannot read prints the date as kept.
+            }
+        }
+
         if (definition.MaxLength > text.Length)
         {
             var pad = definition.PadCharacter[0];
@@ -164,6 +187,54 @@ public static partial class JobVariableContract
         }
 
         return definition.Prefix + text + definition.Suffix;
+    }
+
+    /// <summary>A NiceLabel 10 date variable: the operator gives a date that prints in <see cref="PromptVariableDefinition.DateFormat"/>.</summary>
+    public static bool IsDatePrompt(PromptVariableDefinition definition)
+        => definition.DateFormat.Length > 0;
+
+    /// <summary>
+    /// Reads a date prompt's answer: yyyy-MM-dd as the job keeps it, the
+    /// variable's own input format, or a Vietnamese dd/MM/yyyy.
+    /// </summary>
+    public static bool TryParsePromptDate(PromptVariableDefinition definition, string? text, out DateTime date)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        var formats = new List<string> { DateAnswerFormat, "dd/MM/yyyy", "d/M/yyyy" };
+        if (definition.DateInputFormat.Length > 0)
+        {
+            formats.Insert(1, definition.DateInputFormat);
+        }
+
+        try
+        {
+            return DateTime.TryParseExact((text ?? string.Empty).Trim(), formats.ToArray(), CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        }
+        catch (FormatException)
+        {
+            // An input format .NET cannot read accepts the other forms only.
+            formats.Remove(definition.DateInputFormat);
+            return DateTime.TryParseExact((text ?? string.Empty).Trim(), formats.ToArray(), CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        }
+    }
+
+    /// <summary>The answer as the job keeps it: a date prompt's date as yyyy-MM-dd, any other value as given.</summary>
+    public static string NormalizePromptAnswer(PromptVariableDefinition definition, string? answer)
+        => IsDatePrompt(definition) && TryParsePromptDate(definition, answer, out var date)
+            ? date.ToString(DateAnswerFormat, CultureInfo.InvariantCulture)
+            : answer ?? string.Empty;
+
+    private static string DateExample(PromptVariableDefinition definition)
+    {
+        var example = new DateTime(2026, 12, 31);
+        try
+        {
+            return example.ToString(definition.DateInputFormat.Length > 0 ? definition.DateInputFormat : "dd/MM/yyyy", CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            return example.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+        }
     }
 
     /// <summary>Formats a <c>#NOW[+-n unit]...[:format]</c> token at the job time.</summary>
@@ -291,7 +362,10 @@ public static partial class JobVariableContract
             var definition = prompts.First(item => string.Equals(item.Name, token[1..].Trim(), StringComparison.OrdinalIgnoreCase));
             copy[token] = knownPromptValues.TryGetValue(definition.Name, out var known) && !string.IsNullOrEmpty(known)
                 ? FormatPromptValue(definition, known)
-                : !string.IsNullOrEmpty(definition.DefaultValue) ? FormatPromptValue(definition, definition.DefaultValue) : $"‹{definition.Name}›";
+                : !string.IsNullOrEmpty(definition.DefaultValue) ? FormatPromptValue(definition, definition.DefaultValue)
+                // A date prompt shows the job day in its print format until a date is given.
+                : IsDatePrompt(definition) ? FormatPromptValue(definition, now.LocalDateTime.ToString(DateAnswerFormat, CultureInfo.InvariantCulture))
+                : $"‹{definition.Name}›";
         }
 
         return copy;

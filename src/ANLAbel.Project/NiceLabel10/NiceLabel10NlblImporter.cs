@@ -1295,9 +1295,27 @@ public static partial class NiceLabel10NlblImporter
         /// bound item's own contents are only a placeholder such as "Text").
         /// </summary>
         private static string? DesignSample(NiceLabel10Variable variable)
-            => !string.IsNullOrEmpty(variable.DefaultValue) ? variable.DefaultValue
+        {
+            if (variable.DateFormat is { Length: > 0 } dateFormat && variable.FunctionTemplate is null)
+            {
+                // A prompted date shows a date in its print format (its default, else today).
+                var date = DateTime.TryParseExact(variable.DefaultValue, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var stored)
+                    ? stored
+                    : DateTime.Today;
+                try
+                {
+                    return date.ToString(dateFormat, CultureInfo.InvariantCulture);
+                }
+                catch (FormatException)
+                {
+                    return variable.DefaultValue;
+                }
+            }
+
+            return !string.IsNullOrEmpty(variable.DefaultValue) ? variable.DefaultValue
                 : !string.IsNullOrEmpty(variable.SampleValue) ? variable.SampleValue
                 : null;
+        }
 
         public (double WidthMm, double HeightMm) MeasureText(LabelObject item, string sampleText)
         {
@@ -1413,8 +1431,9 @@ public static partial class NiceLabel10NlblImporter
                 Name = variable.Name,
                 Prompt = variable.PromptText?.Trim() ?? string.Empty,
                 // The stored default; the item's design-time contents stand
-                // in when the variable declares none.
-                DefaultValue = string.IsNullOrEmpty(storedDefault) ? record.Content : storedDefault,
+                // in when the variable declares none (not for a date, whose
+                // contents are no date).
+                DefaultValue = string.IsNullOrEmpty(storedDefault) && variable.DateFormat is null ? record.Content : storedDefault,
                 MaxLength = Math.Max(0, variable.MaxLength),
                 Required = variable.Required,
                 DigitsOnly = variable.DigitsOnly,
@@ -1430,7 +1449,9 @@ public static partial class NiceLabel10NlblImporter
                     2 => PromptPadding.Right,
                     _ => PromptPadding.None
                 },
-                PadCharacter = variable.PaddingCharacter ?? "0"
+                PadCharacter = variable.PaddingCharacter ?? "0",
+                DateFormat = variable.DateFormat ?? string.Empty,
+                DateInputFormat = variable.DateInputFormat ?? string.Empty
             });
         }
 

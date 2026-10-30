@@ -162,6 +162,17 @@
                                 <TextBlock Text="bằng ký tự" VerticalAlignment="Center" Margin="8,0,6,0"/>
                                 <TextBox Width="36" MaxLength="1" Text="{Binding PadCharacter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Ký tự đệm" AutomationProperties.AutomationId="DataManager.Prompt.PadCharacter"/>
                             </StackPanel>
+                            <TextBlock Style="{StaticResource EditorLabel}" Text="Ngày: định dạng khi in (để trống = giá trị chữ)"/>
+                            <ComboBox IsEditable="True" Width="160" HorizontalAlignment="Left" Text="{Binding DateFormat, UpdateSourceTrigger=LostFocus}"
+                                      ToolTip="Người in chọn ngày trên lịch. dd/MM/yyyy in 31/12/2026; yyMMdd in 261231; yyyy-MM-dd in 2026-12-31."
+                                      AutomationProperties.Name="Định dạng ngày khi in" AutomationProperties.AutomationId="DataManager.Prompt.DateFormat">
+                                <ComboBoxItem Content="dd/MM/yyyy"/>
+                                <ComboBoxItem Content="yyMMdd"/>
+                                <ComboBoxItem Content="yyyyMMdd"/>
+                                <ComboBoxItem Content="yyyy-MM-dd"/>
+                                <ComboBoxItem Content="dd.MM.yyyy"/>
+                                <ComboBoxItem Content="MM/yyyy"/>
+                            </ComboBox>
                             <Border Style="{StaticResource EditorNote}">
                                 <TextBlock x:Name="PromptUsageText" TextWrapping="Wrap" Foreground="#262626"/>
                             </Border>

@@ -479,6 +479,7 @@ checks the answer; `FormatPromptValue` pads it to the maximum length and adds th
 prefix and suffix when it prints (`TryResolveValues`, and the designer row). The
 print job keeps the answer as entered, so a reprint applies the same rules once.
 The operator dialog offers a pick list as a list and shows "Sẽ in: …". Not built:
-surrounding padding, numeric range, data types (date/time/currency), multiline,
+surrounding padding, numeric range, time and currency data types (dates: see
+the RE record §15), multiline,
 counters (ANLAbel's serial counter is separate). Gates: `prompt rules guide the
 operator`; unit tests in `JobVariableTests` and the .nlbl mapping.

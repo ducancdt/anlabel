@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -12,8 +13,9 @@ namespace ANLAbel.App;
 /// <summary>
 /// Asks the operator for the label's {?Name} values before a print. Each value
 /// is checked against its definition before the dialog closes. A pick list is
-/// offered as a list to choose from, and a value with output rules (prefix,
-/// suffix, padding) shows what will print (NiceLabel 10 variable rules).
+/// offered as a list to choose from, a date as a calendar, and a value with
+/// output rules (date format, prefix, suffix, padding) shows what will print
+/// (NiceLabel 10 variable rules).
 /// </summary>
 public sealed class PromptValuesWindow : Window
 {
@@ -54,6 +56,12 @@ public sealed class PromptValuesWindow : Window
                 hints.Add("chọn trong danh sách");
             }
 
+            var isDate = JobVariableContract.IsDatePrompt(prompt);
+            if (isDate)
+            {
+                hints.Add("chọn ngày");
+            }
+
             if (prompt.DigitsOnly)
             {
                 hints.Add("chỉ chữ số");
@@ -80,7 +88,21 @@ public sealed class PromptValuesWindow : Window
             var initial = previous.TryGetValue(prompt.Name, out var last) ? last : prompt.DefaultValue;
             Control input;
             Func<string> read;
-            if (choices.Count > 0)
+            if (isDate)
+            {
+                var picker = new DatePicker
+                {
+                    MinWidth = 320,
+                    // Vietnamese dates (dd/MM/yyyy) whatever the Windows region.
+                    Language = System.Windows.Markup.XmlLanguage.GetLanguage("vi-VN"),
+                    SelectedDate = JobVariableContract.TryParsePromptDate(prompt, initial, out var initialDate) ? initialDate : null
+                };
+                input = picker;
+                read = () => picker.SelectedDate is { } date
+                    ? date.ToString(JobVariableContract.DateAnswerFormat, CultureInfo.InvariantCulture)
+                    : picker.Text;
+            }
+            else if (choices.Count > 0)
             {
                 var list = new ComboBox
                 {
@@ -107,11 +129,15 @@ public sealed class PromptValuesWindow : Window
             _inputs.Add(input);
             _readers.Add(read);
             panel.Children.Add(input);
-            if (prompt.Prefix.Length > 0 || prompt.Suffix.Length > 0 || prompt.Padding != PromptPadding.None)
+            if (isDate || prompt.Prefix.Length > 0 || prompt.Suffix.Length > 0 || prompt.Padding != PromptPadding.None)
             {
                 var printed = new TextBlock { Foreground = Brushes.DimGray, FontSize = 11, Margin = new Thickness(0, 2, 0, 0) };
                 void Show() => printed.Text = "Sẽ in: " + JobVariableContract.FormatPromptValue(prompt, read());
-                if (input is ComboBox comboBox)
+                if (input is DatePicker datePicker)
+                {
+                    datePicker.SelectedDateChanged += (_, _) => Show();
+                }
+                else if (input is ComboBox comboBox)
                 {
                     comboBox.SelectionChanged += (_, _) => Show();
                 }
@@ -169,7 +195,8 @@ public sealed class PromptValuesWindow : Window
                 return;
             }
 
-            Values[_prompts[i].Name] = answer;
+            // A date is kept as yyyy-MM-dd whichever way it was entered.
+            Values[_prompts[i].Name] = JobVariableContract.NormalizePromptAnswer(_prompts[i], answer);
         }
 
         DialogResult = true;

@@ -1,5 +1,16 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.346
+
+- Biến nhập kiểu ngày theo NiceLabel 10 (Date variable): Quản lý dữ liệu › Biến
+  nhập khi in có “Ngày: định dạng khi in” (dd/MM/yyyy, yyMMdd, yyyyMMdd…). Khi in,
+  người in chọn ngày trên lịch (thứ tự ngày/tháng/năm) hoặc gõ theo định dạng nhập
+  của biến; dòng “Sẽ in” cho thấy giá trị in ra; lệnh in giữ ngày dạng yyyy-MM-dd
+  nên in lại vẫn đúng. Chưa có ngày thì bảng thiết kế hiện ngày hôm nay theo định
+  dạng in. Nhập .nlbl giữ định dạng nhập/in và ngày mặc định của biến ngày (190
+  biến trong bộ mẫu); quét in 207 tem mẫu đọc được 493/525 mã (trước 463) vì mã
+  GS1 chứa ngày giờ mang ngày thật.
+
 ## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
 
 _Gồm các commit 30/10/2026 (22:01–23:27)._

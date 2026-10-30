@@ -22,6 +22,8 @@ public sealed class PromptVariableDefinition : ObservableObject
     private string _suffix = string.Empty;
     private PromptPadding _padding;
     private string _padCharacter = "0";
+    private string _dateFormat = string.Empty;
+    private string _dateInputFormat = string.Empty;
 
     /// <summary>Name used in bindings without the leading '?', e.g. Lot for {?Lot}.</summary>
     public string Name
@@ -118,6 +120,24 @@ public sealed class PromptVariableDefinition : ObservableObject
         set => SetProperty(ref _padCharacter, string.IsNullOrEmpty(value) ? "0" : value[..1]);
     }
 
+    /// <summary>
+    /// NiceLabel 10 date variable: the format the date prints in (dd/MM/yyyy,
+    /// yyMMdd…). Set, the operator picks a date and the job keeps it as
+    /// yyyy-MM-dd; empty for a text value.
+    /// </summary>
+    public string DateFormat
+    {
+        get => _dateFormat;
+        set => SetProperty(ref _dateFormat, (value ?? string.Empty).Trim());
+    }
+
+    /// <summary>For a date: a format the operator may also type it in (NiceLabel input format).</summary>
+    public string DateInputFormat
+    {
+        get => _dateInputFormat;
+        set => SetProperty(ref _dateInputFormat, (value ?? string.Empty).Trim());
+    }
+
     /// <summary>A copy to edit without touching this variable (Quản lý dữ liệu works on a draft).</summary>
     public PromptVariableDefinition Clone() => new()
     {
@@ -133,6 +153,8 @@ public sealed class PromptVariableDefinition : ObservableObject
         Prefix = Prefix,
         Suffix = Suffix,
         Padding = Padding,
-        PadCharacter = PadCharacter
+        PadCharacter = PadCharacter,
+        DateFormat = DateFormat,
+        DateInputFormat = DateInputFormat
     };
 }

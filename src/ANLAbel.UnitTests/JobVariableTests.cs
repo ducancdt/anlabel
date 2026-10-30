@@ -164,6 +164,45 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void DatePromptsTakeADateAndPrintItInTheirFormat()
+    {
+        // NiceLabel 10 Date variable: picked or typed, kept as yyyy-MM-dd, printed in its format.
+        var expiry = new PromptVariableDefinition { Name = "Exp", Prompt = "Hạn dùng", DateFormat = "yyMMdd", DateInputFormat = "d. MM. yyyy", Prefix = "EXP " };
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(expiry, "2026-12-31"));
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(expiry, "31/12/2026"));
+        Assert.Equal(string.Empty, JobVariableContract.ValidatePromptValue(expiry, "31. 12. 2026"));
+        Assert.Equal("Prompt 'Hạn dùng' needs a date such as 31. 12. 2026.", JobVariableContract.ValidatePromptValue(expiry, "31-12"));
+        Assert.Equal("2026-12-31", JobVariableContract.NormalizePromptAnswer(expiry, "31. 12. 2026"));
+        Assert.Equal("EXP 261231", JobVariableContract.FormatPromptValue(expiry, "2026-12-31"));
+
+        var template = Template("{?Exp}");
+        template.PromptVariables.Add(expiry);
+        IReadOnlyDictionary<string, string>?[] rows = [null];
+        Assert.True(JobVariableContract.TryApply(template, rows, JobTime, Answers(("Exp", "2026-12-31")), out var applied, out var error), error);
+        Assert.Equal("EXP 261231", applied[0]!["?Exp"]);
+
+        // Before a date is given the designer shows the job day as it prints.
+        var design = JobVariableContract.ApplyForDesign(template, null, JobTime, new Dictionary<string, string>());
+        Assert.Equal("EXP 260131", design!["?Exp"]);
+
+        // A text prompt is untouched by the date rules.
+        var lot = new PromptVariableDefinition { Name = "Lot" };
+        Assert.Equal("31/12/2026", JobVariableContract.NormalizePromptAnswer(lot, "31/12/2026"));
+    }
+
+    [Fact]
+    public void ADateFormatChangesTheDocumentFingerprint()
+    {
+        var template = Template("{?Exp}");
+        var expiry = new PromptVariableDefinition { Name = "Exp" };
+        template.PromptVariables.Add(expiry);
+        var before = DocumentSnapshot.Capture(template).DocumentHash;
+        expiry.DateFormat = "yyMMdd";
+        Assert.NotEqual(before, DocumentSnapshot.Capture(template).DocumentHash);
+        Assert.Equal(("yyMMdd", ""), (expiry.Clone().DateFormat, expiry.Clone().DateInputFormat));
+    }
+
+    [Fact]
     public void RulesChangeTheDocumentFingerprintOnlyWhenUsed()
     {
         var template = Template("{?Lot}");

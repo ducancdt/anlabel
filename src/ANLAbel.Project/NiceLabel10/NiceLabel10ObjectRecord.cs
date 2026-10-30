@@ -270,6 +270,12 @@ public sealed record NiceLabel10Variable(
     /// stored <c>SampleValue</c>); null for other data sources.
     /// </summary>
     public string? SampleValue { get; init; }
+
+    /// <summary>For a prompted date (<c>DateTimeContents</c>): the stored output format; null otherwise.</summary>
+    public string? DateFormat { get; init; }
+
+    /// <summary>For a prompted date: the stored input format the operator types it in.</summary>
+    public string? DateInputFormat { get; init; }
 }
 
 /// <summary>

@@ -1173,6 +1173,57 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void PromptedDates_BecomeDatePrompts()
+    {
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>e1e1e1e1-2222-3333-4444-555555555555</Id>
+                  <Name>Ship Date</Name>
+                  <DefaultValue Type="DateTimeContents">
+                    <DateTimeValue>2958465.99999999</DateTimeValue>
+                    <DisplayType>1</DisplayType>
+                    <InputFormat>d. MM. yyyy</InputFormat>
+                    <OutputFormat>yyyyMMdd</OutputFormat>
+                    <UserValue>.</UserValue>
+                  </DefaultValue>
+                </Item>
+                <Item Type="Variable">
+                  <Id>e2e2e2e2-2222-3333-4444-555555555555</Id>
+                  <Name>Pack Date</Name>
+                  <DefaultValue Type="DateTimeContents">
+                    <DateTimeValue>40620</DateTimeValue>
+                    <InputFormat>yyMMdd</InputFormat>
+                    <OutputFormat>dd.MM.yyyy</OutputFormat>
+                    <UserValue>110318</UserValue>
+                  </DefaultValue>
+                </Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        var items = string.Concat(new[] { "e1e1e1e1", "e2e2e2e2" }.Select((id, index) => $"""
+            <Item Type="TextDocumentItem">
+              <Name>D{index}</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>{1000 + index * 6000}</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>x</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{id}-2222-3333-4444-555555555555</Id></DataSourceReference>
+            </Item>
+            """));
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(items), solution), "sample.nlbl");
+
+        var prompts = template.PromptVariables.ToDictionary(prompt => prompt.Name);
+        Assert.Equal(("yyyyMMdd", "d. MM. yyyy", ""), (prompts["Ship Date"].DateFormat, prompts["Ship Date"].DateInputFormat, prompts["Ship Date"].DefaultValue));
+        Assert.Equal(("dd.MM.yyyy", "2011-03-18"), (prompts["Pack Date"].DateFormat, prompts["Pack Date"].DefaultValue));
+        Assert.Equal("18.03.2011", ANLAbel.Core.Printing.JobVariableContract.FormatPromptValue(prompts["Pack Date"], prompts["Pack Date"].DefaultValue));
+        // The text frame is sized from the date as it prints (here the default in dd.MM.yyyy).
+        var em = 10 * 25.4 / 72;
+        Assert.Equal("18.03.2011".Length * 0.55 * em, template.Objects.Single(item => item.Name == "D1").WidthMm, 2);
+    }
+
+    [Fact]
     public void LayerAndItemConditions_BecomeVisibilityFormulas()
     {
         const string solution = """

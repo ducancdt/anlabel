@@ -174,6 +174,8 @@ public static class NiceLabel10NlblReader
             var defaultValue = string.Empty;
             IReadOnlyList<string>? pickList = null;
             string? systemDateFormat = null;
+            string? promptDateFormat = null;
+            string? promptDateInputFormat = null;
             var systemDateOffsetDays = 0;
             var defaultElement = item.Element("DefaultValue");
             switch (defaultElement?.Attribute("Type")?.Value)
@@ -186,10 +188,16 @@ public static class NiceLabel10NlblReader
                     pickList = defaultElement.Element("Values")?.Elements("Item").Select(value => value.Value).Where(value => value.Length > 0).ToArray();
                     break;
                 case "DateTimeContents":
-                    // A prompted date; "." is the vendor's empty marker.
-                    var userValue = ChildText(defaultElement, "UserValue") ?? string.Empty;
-                    defaultValue = userValue == "." ? string.Empty : userValue;
+                {
+                    // A prompted date (NiceLabel Date variable): typed in the
+                    // input format, printed in the output format. A value linked
+                    // to another source ("[id]") is kept for the mirror rule below.
+                    promptDateInputFormat = ChildText(defaultElement, "InputFormat")?.Trim();
+                    promptDateFormat = (ChildText(defaultElement, "OutputFormat") ?? promptDateInputFormat)?.Trim();
+                    var userValue = ChildText(defaultElement, "UserValue")?.Trim() ?? string.Empty;
+                    defaultValue = userValue.StartsWith('[') ? userValue : PromptedDateDefault(defaultElement, userValue, promptDateInputFormat);
                     break;
+                }
                 case "SystemDateTimeContents":
                     systemDateFormat = ChildText(defaultElement, "OutputFormat")
                         ?? ChildText(defaultElement, "InputFormat");
@@ -239,8 +247,33 @@ public static class NiceLabel10NlblReader
                 FixedLength: ParseBool(constraints, "FixedLength"),
                 // A custom character set applies only with a data format (FormatId); without one the
                 // variable takes any character and the stored set is a leftover (46 such in the samples).
-                AllowedCharacters: string.IsNullOrEmpty(allowed) || allowed == "0123456789" || string.IsNullOrWhiteSpace(ChildText(item, "FormatId")) ? null : allowed);
+                AllowedCharacters: string.IsNullOrEmpty(allowed) || allowed == "0123456789" || string.IsNullOrWhiteSpace(ChildText(item, "FormatId")) ? null : allowed)
+            {
+                DateFormat = string.IsNullOrWhiteSpace(promptDateFormat) ? null : promptDateFormat,
+                DateInputFormat = string.IsNullOrWhiteSpace(promptDateInputFormat) ? null : promptDateInputFormat
+            };
         }
+    }
+
+    /// <summary>
+    /// A prompted date's stored default as yyyy-MM-dd: the user value in the
+    /// input format, else the stored OLE date. "." (no value), 0 and the
+    /// far-future placeholder 9999-12-31 give no default.
+    /// </summary>
+    private static string PromptedDateDefault(XElement value, string userValue, string? inputFormat)
+    {
+        if (userValue.Length > 0
+            && userValue != "."
+            && !string.IsNullOrEmpty(inputFormat)
+            && DateTime.TryParseExact(userValue, inputFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var typed))
+        {
+            return typed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        }
+
+        var stored = ParseDouble(value, "DateTimeValue");
+        return stored >= 1 && stored < 2958465
+            ? DateTime.FromOADate(stored).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : string.Empty;
     }
 
     /// <summary>

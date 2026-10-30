@@ -106,6 +106,9 @@ public sealed record DocumentSnapshot
     /// </summary>
     private static string RulesFingerprint(PromptVariableDefinition item)
     {
+        var date = item.DateFormat.Length == 0 && item.DateInputFormat.Length == 0
+            ? string.Empty
+            : "|date|" + item.DateFormat.Length + ":" + item.DateFormat + "|" + item.DateInputFormat.Length + ":" + item.DateInputFormat;
         if (!item.FixedLength
             && item.AllowedCharacters.Length == 0
             && item.PickList.Length == 0
@@ -113,10 +116,10 @@ public sealed record DocumentSnapshot
             && item.Suffix.Length == 0
             && item.Padding == PromptPadding.None)
         {
-            return string.Empty;
+            return date;
         }
 
-        return "|rules|" + string.Join(
+        return date + "|rules|" + string.Join(
             "|",
             item.FixedLength ? "1" : "0",
             item.AllowedCharacters.Length + ":" + item.AllowedCharacters,

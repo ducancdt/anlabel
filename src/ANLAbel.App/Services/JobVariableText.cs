@@ -15,6 +15,7 @@ public static class JobVariableText
         (Rx(@"^Prompt '(?<p>.*)' allows at most (?<n>\d+) characters; (?<k>\d+) were entered"),
             m => $"“{m.Groups["p"].Value}” chỉ cho tối đa {m.Groups["n"].Value} ký tự, đang nhập {m.Groups["k"].Value}"),
         (Rx(@"^Prompt '(?<p>.*)' accepts digits only"), m => $"“{m.Groups["p"].Value}” chỉ nhận chữ số"),
+        (Rx(@"^Prompt '(?<p>.*)' needs a date such as (?<e>.*)\.$"), m => $"“{m.Groups["p"].Value}” cần một ngày, ví dụ {m.Groups["e"].Value}"),
         (Rx(@"^Prompt '(?<p>.*)' does not accept '(?<c>.)'; allowed characters: (?<a>.*)\.$"),
             m => $"“{m.Groups["p"].Value}” không nhận ký tự “{m.Groups["c"].Value}”; chỉ được dùng: {m.Groups["a"].Value}"),
         (Rx(@"^Prompt '(?<p>.*)' must be one of: (?<v>.*)\.$"),
