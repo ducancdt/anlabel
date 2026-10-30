@@ -418,6 +418,12 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
             return new Code128ManualWriter().encode(data, BarcodeFormat.CODE_128, widthPixels, heightPixels, CreateHints(type, options));
         }
 
+        if (type == BarcodeType.Plessey)
+        {
+            // ZXing.Net draws Plessey in fifths of a module; see PlesseyModuleWriter.
+            return new PlesseyModuleWriter().encode(data, BarcodeFormat.PLESSEY, widthPixels, heightPixels, CreateHints(type, options));
+        }
+
         if (!TryGetCode39Geometry(type, options, out var ratio, out var gapModules))
         {
             return new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));

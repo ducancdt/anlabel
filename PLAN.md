@@ -14,6 +14,12 @@
 - In tem trên tờ lớn hơn tem (ví dụ tem trên A5/A4): mỗi trang gửi máy in
   là cả tờ, tem đặt đúng lề; trước đây trang chỉ bằng tem nên phần bị lề
   đẩy ra có thể mất. Xoay 180° xoay cả trang.
+- Sửa Plessey: ZXing.Net vẽ Plessey theo 1/5 vạch hẹp nên mã 6 chữ số bị tính
+  1 245 mô-đun (316 mm) và luôn bị chặn hoặc ép; nay vẽ bằng mô-đun nguyên
+  (205 mô-đun, 57 mm ở X 0,254 mm).
+- Tem kiểm thử A5 đủ 15 loại mã gắn với sổ Excel thật: gate giải mã mọi mã ở
+  30 dòng (300 DPI) và 10 dòng (600 DPI); dữ liệu sai chặn đúng dòng, đúng mã.
+  Đặt `ANLABEL_A5_KIT_DIR` để lấy sổ Excel và tệp .anlabel đem in thật.
 
 ## v0.343 — Quản lý dữ liệu, tab ngữ cảnh và hộp công cụ theo NiceLabel 10
 

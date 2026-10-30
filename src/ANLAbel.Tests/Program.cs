@@ -61,6 +61,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("virtual print scans serial, date, check digit and reduced bars", BarcodeParityRegression.VirtualPrintScansSerialDateCheckDigitAndReducedBars),
     ("label properties lay labels on a sheet like NiceLabel", PaperLayoutRegression.LabelPropertiesLayLabelsOnASheet),
     ("one label on a sheet prints the whole sheet", PaperLayoutRegression.OneLabelOnASheetPrintsTheWholeSheet),
+    ("every barcode on an A5 sheet decodes for every Excel row", DatabaseBarcodeRegression.EveryBarcodeOnAnA5SheetDecodesForEveryExcelRow),
+    ("Excel data a barcode cannot carry blocks its row", DatabaseBarcodeRegression.ExcelDataABarcodeCannotCarryBlocksItsRow),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),
     ("columns known only by position are reported and cannot print", DataHeaderRegression.ColumnsKnownOnlyByPositionAreReportedAndCannotPrint),

@@ -411,6 +411,22 @@ Kết quả chạy: unit 1141/1141 cùng `BarcodeEvidenceMatrixTests` 30/30 tạ
 
 ZBar không đọc Data Matrix, Aztec, PDF417, MSI và Plessey, nên năm loại này vẫn chỉ có bộ đọc trong test.
 
+**Tem A5 đủ 15 loại mã với dữ liệu Excel thật (2026-10-30, gate tự động).** Gate
+`every barcode on an A5 sheet decodes for every Excel row` ghi một sổ Excel thật
+(ClosedXML: ô chữ, ô số 12–14 chữ số, số UPC-A có định dạng giữ số 0 đầu, ngày,
+tiếng Việt, xuống dòng), đọc lại bằng `ExcelDataService` của ứng dụng, chạy
+preflight và vẽ cả trang A5 148 × 210 mm bằng `LabelVisualRenderer` cho 30 dòng ở
+300 DPI và 10 dòng ở 600 DPI, rồi giải mã từng mã trong vùng cột của nó: 15/15
+loại khớp từng ký tự (EAN/UPC kèm số kiểm tra tính độc lập trong test; Plessey
+bằng bộ đọc trong test có kiểm CRC-8). Gate `Excel data a barcode cannot carry
+blocks its row`: 10 giá trị sai (EAN-13 có chữ, EAN-8 thiếu số, UPC-A quá dài,
+UPC-E hệ số 9, ITF lẻ, Codabar ký tự lạ, Code 39 có dấu, MSI/Plessey có chữ,
+Code 128 có chữ tiếng Việt) đều chặn đúng đối tượng sai của dòng đó và chỉ nó.
+Gate này tìm ra lỗi Plessey: ZXing.Net vẽ Plessey theo 1/5 vạch hẹp kèm lề riêng
+100 đơn vị, nên ANLAbel đếm mã 6 chữ số thành 1 245 mô-đun (316 mm ở X 0,254 mm)
+và chặn hoặc ép mã; nay `PlesseyModuleWriter` vẽ cùng chuỗi bit bằng mô-đun
+nguyên (205 mô-đun). Tem in thật một tờ A5 trên máy văn phòng: xem PLAN.md.
+
 | ID | Bằng chứng phần mềm hiện có | Còn thiếu | Trạng thái |
 | --- | --- | --- | --- |
 | B01 | Fixture âm theo từng loại ở trên; preflight chặn payload sai; 10 loại đã đối chiếu bằng ZBar (2026-10-14) | Bộ đọc độc lập cho Data Matrix, Aztec, PDF417, MSI, Plessey; tem in thật | Not verified (vật lý) |

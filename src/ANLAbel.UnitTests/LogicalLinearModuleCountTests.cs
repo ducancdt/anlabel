@@ -52,6 +52,19 @@ public sealed class LogicalLinearModuleCountTests
     }
 
     [Fact]
+    public void Plessey_IsCountedInWholeNarrowModules()
+    {
+        // ZXing.Net draws Plessey in fifths of a narrow bar with its own 100-unit
+        // margins; counted raw, "099343" was 1 245 modules (316 mm at X 0.254 mm).
+        // Start 20 + six digits x 20 + CRC 40 + termination 5 + end 20 = 205 modules.
+        var options = new BarcodeRenderOptions { QuietZoneModules = 10 };
+        Assert.Equal(205 + 20, _renderer.CountLinearModules("099343", BarcodeType.Plessey, options));
+        Assert.Equal(205 - 4 * 20 + 20, _renderer.CountLinearModules("12", BarcodeType.Plessey, options));
+        Assert.True(LinearBarcodeModuleContract.SizedFromXWidthMm(0.254, 225, 600) < 64,
+            "A six-digit Plessey at X 0.254 mm fits a 64 mm column.");
+    }
+
+    [Fact]
     public void CountLinearModules_GrowsWithLongerPayload()
     {
         var shortCount = _renderer.CountLinearModules("A", BarcodeType.Code128, new BarcodeRenderOptions { QuietZoneModules = 2 });
