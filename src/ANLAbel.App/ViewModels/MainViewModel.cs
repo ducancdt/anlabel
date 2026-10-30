@@ -703,6 +703,7 @@ public sealed class MainViewModel : ObservableObject
         new("LEFT / RIGHT", "LEFT(FIELD(\"Code\"), \"4\")", "Lấy số ký tự đầu (LEFT) hoặc cuối (RIGHT) của văn bản."),
         new("MID", "MID(FIELD(\"Code\"), \"3\", \"5\")", "Lấy 5 ký tự bắt đầu từ ký tự thứ 3."),
         new("GS1CHECKDIGIT", "GS1CHECKDIGIT(FIELD(\"GTIN\"))", "Thêm số kiểm tra GS1 vào dãy chữ số (GTIN, SSCC)."),
+        new("HIBCCHECK", "HIBCCHECK(CONCAT(\"+\", FIELD(\"LIC\"), FIELD(\"MaHang\"), \"1\"))", "Mã HIBC cho thiết bị y tế: thêm ký tự kiểm tra (mod 43) vào cuối, ví dụ phần chính + LIC + mã hàng + đơn vị."),
         new("DATEADD / DATEFORMAT", "DATEADD(FIELD(\"NSX\"), \"24\", \"mo\", \"dd/MM/yyyy\")", "Hạn dùng = ngày sản xuất + 24 tháng (đơn vị d, w, mo, y). DATEFORMAT(FIELD(\"NSX\"), \"yyMMdd\") đổi cách ghi ngày, ví dụ cho mã GS1 (17)."),
         new("EQUALS / NOT / AND", "EQUALS(FIELD(\"Loại\"), \"QR\")", "So sánh hai giá trị, không phân biệt hoa thường: bằng nhau cho true. NOT(…) đảo lại, AND(…) cần mọi điều kiện đúng. Dùng cho Điều kiện hiển thị.")
     ];

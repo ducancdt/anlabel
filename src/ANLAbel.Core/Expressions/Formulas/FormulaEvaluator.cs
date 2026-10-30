@@ -8,7 +8,7 @@ public sealed class FormulaEvaluator
     /// </summary>
     public static IReadOnlyList<string> FunctionNames { get; } =
     [
-        "FIELD", "CONCAT", "MID", "GS1CHECKDIGIT", "UPPER", "LOWER", "TRIM", "LEFT", "RIGHT", "EQUALS", "NOT", "AND", "DATEADD", "DATEFORMAT"
+        "FIELD", "CONCAT", "MID", "GS1CHECKDIGIT", "UPPER", "LOWER", "TRIM", "LEFT", "RIGHT", "EQUALS", "NOT", "AND", "DATEADD", "DATEFORMAT", "HIBCCHECK"
     ];
 
     public FormulaEvaluationResult Evaluate(FormulaNode root, IReadOnlyDictionary<string, string?> row)
@@ -49,6 +49,7 @@ public sealed class FormulaEvaluator
             "AND" => EvaluateAnd(call, context),
             "DATEADD" => EvaluateDateAdd(call, context),
             "DATEFORMAT" => EvaluateDateFormat(call, context),
+            "HIBCCHECK" => EvaluateHibcCheck(call, context),
             _ => AddError(context, $"Unknown function '{call.Name}'.")
         };
     }
@@ -283,6 +284,35 @@ public sealed class FormulaEvaluator
 
         return digits + (char)('0' + (10 - (sum % 10)) % 10);
     }
+
+    /// <summary>
+    /// HIBCCHECK(data): the data followed by its HIBC check character, the
+    /// modulo-43 sum of the characters' Code 39 values (HIBC Supplier Labeling
+    /// Standard), e.g. "+A123BJC5D6E71" gives "+A123BJC5D6E71G". An empty value
+    /// stays empty.
+    /// </summary>
+    private static string EvaluateHibcCheck(FormulaFunctionCallNode call, EvaluationContext context)
+    {
+        if (call.Arguments.Count != 1)
+        {
+            return AddError(context, "HIBCCHECK expects exactly one argument.");
+        }
+
+        var data = EvaluateNode(call.Arguments[0], context);
+        if (data.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        if (data.Any(character => !HibcCharacters.Contains(character)))
+        {
+            return AddError(context, "HIBCCHECK accepts digits, capital letters and - . space $ / + % only.");
+        }
+
+        return data + ANLAbel.Core.Barcode.BarcodeCheckDigitContract.ComputeCode39CheckDigit(data);
+    }
+
+    private const string HibcCharacters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%";
 
     private static string EvaluateField(FormulaFunctionCallNode call, EvaluationContext context)
     {

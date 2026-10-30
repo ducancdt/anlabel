@@ -6,6 +6,13 @@
   14/15 đối tượng. Còn 1 đối tượng chưa chuyển đổi: Logo") và nhắc tem in sẽ thiếu
   chúng. Trước đây con số được tính bằng phép trừ nên có thể báo "toàn bộ" khi
   một chữ đảo màu (thêm một vùng đảo màu) che mất một đối tượng bị bỏ.
+- Mở tệp .nlbl: mã HIBC (nhãn thiết bị y tế) được chuyển đổi: phần chính,
+  phần phụ (lô, hạn dùng, số sê-ri) và dạng ghép, kèm ký tự kiểm tra mod 43 như
+  NiceLabel. Công thức có hàm mới HIBCCHECK(...) để tự làm mã HIBC.
+- Mở tệp .nlbl: mã vạch gắn dữ liệu mà NiceLabel lưu dãy "000…" giữ chỗ nay lấy
+  khung theo giá trị lúc thiết kế; trước đây khung tính theo dãy số 0 nên mã căn
+  giữa bị báo "ra ngoài tem" và chặn in (mẫu UDI-HIBC: khung 54,6 mm vượt mép tem
+  100 mm cho mã thực 44 mm).
 
 ## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
 

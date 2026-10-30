@@ -717,11 +717,10 @@ built: a `DateAddFunction` whose input is a prompted date.
   ignores it and the print service never sets `PageOrientation` for thermal
   drivers; whether these labels feed the right way round needs a test on the
   owner's printer before any mapping.
-- Not built (vendor samples only): HIBC (`HibcFunction`: Primary, Secondary,
-  Concatenated; versions 2.5/2.6; seven date formats; five secondary forms;
-  mod-43 check), the GS1 DataBar function, EAN/UPC add-on symbols, pictures
-  read from a file named by a data source (13 graphics), cutter and batch
-  printing (driver settings), label sets.
+- Not built (vendor samples only): HIBC version 2.6 and quantity fields (the
+  rest of HIBC is mapped, §21), the GS1 DataBar function, EAN/UPC add-on
+  symbols, pictures read from a file named by a data source (13 graphics),
+  cutter and batch printing (driver settings), label sets.
 
 ## §17 EAN/UPC number line and descender bars (2026-10-31)
 
@@ -814,3 +813,30 @@ built: a `DateAddFunction` whose input is a prompted date.
   above 0 the data source gets a minimum-length validator, and a `Length`
   below it is refused. ANLAbel prompts carry it as `MinLength`, checked on a
   non-empty answer unless padding fills the value to its maximum length.
+
+## §21 HIBC and zero placeholders (2026-10-31)
+
+- `HibcFunction` (AdvancedFunctions `aq`, HIBC Supplier Labeling Standard
+  2.5): `Mode` 0 Primary, 1 Secondary (`PrimaryFunctionReference`), 2
+  Concatenated (default when absent); `SecondaryPartFormat` 1 "+" (Julian
+  date, YYJJJ only), 2 "+$" lot, 3 "+$$" date and lot, 4 "+$+" serial, 5
+  "+$$+" date and serial; `DateFormat` (`HibcDateFormat`: Unknown 0, MMYY 1,
+  MMDDYY 2 ... YYJJJHH 6) is written as its number before the date, nothing
+  for MMYY and "7" without a date. Primary = "+" LIC, product number, unit of
+  measure; a secondary ends with the primary's check character as link; the
+  concatenated form joins both with "/" under one check character. The check
+  character is the modulo-43 sum of the Code 39 values. ANLAbel adds
+  `HIBCCHECK(data)` (data + check character) and imports the function as a
+  formula. Not mapped: quantity fields, `ProductionDate`, version 2.6, the
+  pre-version-10 two-output form (`IsConcatenated` False without `Mode`).
+  The three UDI-HIBC samples print "+A999F29440Q"; the check character was
+  verified independently.
+- A bound barcode stores "0" repeated to its source's length as
+  `FixedContents`, the barcode form of the "?" placeholder (§18; 37 Code 128
+  and 70 Code 39 sample items, up to 402 zeros). The importer kept frames
+  sized from contents that encode, so the UDI-HIBC code (32 zeros, centre
+  anchor at 75.2 mm) got a 54.6 mm frame past the 100 mm label edge and
+  preflight refused to print a 44 mm code. All-zero contents of a bound code
+  are now a placeholder: the frame follows the design-time value. Sample
+  sweep: 504 of 527 codes decode (was 501), objects outside the label 41
+  (was 43).

@@ -386,9 +386,13 @@ public static partial class NiceLabel10NlblImporter
 
         if (item.BarcodeWidthMode == BarcodeWidthMode.SizedFromX && item.BarcodeModuleWidthMm > 0)
         {
-            // Stored contents that encode are what NiceLabel drew and anchored;
-            // a placeholder ("??????") is replaced by the design-time value.
-            return ProductionModules(item, record.Content) is null && ProductionModules(item, value) is { } modules
+            // Stored contents that encode are what NiceLabel drew and anchored.
+            // A placeholder is replaced by the design-time value: "??????", or
+            // the zeros a bound code stores, "0" repeated to its source's
+            // length (the UDI-HIBC sample's 32 zeros made a centred frame
+            // 54.6 mm wide, past the edge of the label, for a 44 mm code).
+            return (ProductionModules(item, record.Content) is null || record.Content.All(character => character == '0'))
+                && ProductionModules(item, value) is { } modules
                 ? (modules * item.BarcodeModuleWidthMm, item.HeightMm)
                 : null;
         }

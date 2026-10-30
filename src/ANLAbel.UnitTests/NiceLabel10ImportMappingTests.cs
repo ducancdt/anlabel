@@ -425,6 +425,33 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void LinearCodeWithZerosStoredIsSizedFromItsDesignValue()
+    {
+        // A bound code stores "0" repeated to its source's length; NiceLabel
+        // draws the design value (the Qty default, 12) centred at 80 mm. Sized
+        // from the 32 zeros, the frame ran past the 100 mm label edge.
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Quantity</Name>
+              <Geometry Type="PositionGeometry"><X>80000</X><Y>40000</Y><AnchoringPoint>1</AnchoringPoint></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>8000</ModuleHeight></BarcodeData>
+              <FixedContents>00000000000000000000000000000000</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{QtyId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        var modules = new ANLAbel.Barcode.Renderers.ZxingBarcodeRenderer().CountLinearModules(
+            "12",
+            ANLAbel.Barcode.Renderers.BarcodeType.Code128,
+            ANLAbel.Barcode.Options.BarcodeRenderOptions.FromObject(code));
+        Assert.NotNull(modules);
+        Assert.Equal(modules!.Value * 0.25, code.WidthMm, 2);
+        Assert.Equal(80 - code.WidthMm / 2, code.XMm, 2);
+        Assert.True(code.XMm + code.WidthMm <= 100, $"frame {code.XMm:0.#} + {code.WidthMm:0.#} mm");
+    }
+
+    [Fact]
     public void BoundAutomaticDataMatrixFrameHoldsTheStoredAndTheDesignValue()
     {
         // NiceLabel drew each code from its stored contents and grows it with the
@@ -1447,6 +1474,59 @@ public sealed class NiceLabel10ImportMappingTests
         // Right above the text and below the later note.
         Assert.Equal(title.ZIndex + 1, inverse.ZIndex);
         Assert.True(inverse.ZIndex < template.Objects.Single(item => item.Name == "Note").ZIndex);
+    }
+
+    [Fact]
+    public void HibcFunctions_BecomeHibcCheckFormulas()
+    {
+        // UDI-HIBC sample shapes: a primary, a secondary linked to it, and a
+        // concatenated code with a YYMMDD expiry and a lot.
+        const string lic = "e1e1e1e1-2222-3333-4444-555555555555";
+        const string pcn = "e2e2e2e2-2222-3333-4444-555555555555";
+        const string expiry = "e3e3e3e3-2222-3333-4444-555555555555";
+        const string lot = "e4e4e4e4-2222-3333-4444-555555555555";
+        const string primary = "e5e5e5e5-2222-3333-4444-555555555555";
+        const string secondary = "e6e6e6e6-2222-3333-4444-555555555555";
+        const string joined = "e7e7e7e7-2222-3333-4444-555555555555";
+        string Value(string name, string? reference = null, string? fixedText = null) => reference is not null
+            ? $"<{name} Type=\"DataValue\"><DataSourceReference Type=\"SolutionDataSourceReference\"><Id>{reference}</Id></DataSourceReference></{name}>"
+            : fixedText is not null
+                ? $"<{name} Type=\"DataValue\"><FixedValue Type=\"StringContents\"><StringValue>{fixedText}</StringValue></FixedValue></{name}>"
+                : $"<{name} Type=\"DataValue\" />";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable"><Id>{lic}</Id><Name>LIC</Name><DefaultValue Type="StringContents"><StringValue>A999</StringValue></DefaultValue></Item>
+                <Item Type="Variable"><Id>{pcn}</Id><Name>PCN</Name><DefaultValue Type="StringContents"><StringValue>1234</StringValue></DefaultValue></Item>
+                <Item Type="Variable"><Id>{expiry}</Id><Name>Expiry</Name><DefaultValue Type="StringContents"><StringValue>261231</StringValue></DefaultValue></Item>
+                <Item Type="Variable"><Id>{lot}</Id><Name>Lot</Name><DefaultValue Type="StringContents"><StringValue>LOT42</StringValue></DefaultValue></Item>
+              </Variables>
+              <Functions>
+                <Item Type="HibcFunction"><Id>{primary}</Id><Name>Primary</Name><Mode>0</Mode>{Value("LabelerIdCode", lic)}{Value("ProductOrCatalogNumber", pcn)}{Value("UnitOfMeasureId", fixedText: "5")}</Item>
+                <Item Type="HibcFunction"><Id>{secondary}</Id><Name>Secondary</Name><Mode>1</Mode><PrimaryFunctionReference Type="SolutionDataSourceReference"><Id>{primary}</Id></PrimaryFunctionReference><SecondaryPartFormat>2</SecondaryPartFormat>{Value("LotBatch", lot)}{Value("Quantity")}</Item>
+                <Item Type="HibcFunction"><Id>{joined}</Id><Name>Joined</Name><SecondaryPartFormat>3</SecondaryPartFormat><DateFormat>3</DateFormat>{Value("LabelerIdCode", lic)}{Value("ProductOrCatalogNumber", pcn)}{Value("UnitOfMeasureId", fixedText: "5")}{Value("DateField", expiry)}{Value("LotBatch", lot)}</Item>
+              </Functions>
+            </EuroPlus.NiceLabel>
+            """;
+        string Bound(string name, string id, int y) => $"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>{name}</Name>
+              <Geometry Type="PositionGeometry"><X>2000</X><Y>{y}</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>254</BaseBarWidth><ModuleHeight>8000</ModuleHeight></BarcodeData>
+              <FixedContents>+A999</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{id}</Id></DataSourceReference>
+            </Item>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format(
+            Bound("PrimaryCode", primary, 2000) + Bound("SecondaryCode", secondary, 20000) + Bound("JoinedCode", joined, 38000)), solution), "sample.nlbl", out _, out var notConverted);
+
+        Assert.Empty(notConverted);
+        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["?LIC"] = "A999", ["?PCN"] = "1234", ["?Expiry"] = "261231", ["?Lot"] = "LOT42" };
+        string Printed(string name) => ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(template.Objects.Single(item => item.Name == name).BindingExpression, row).Value;
+        Assert.Equal("+A999123457", Printed("PrimaryCode"));
+        Assert.Equal("+$LOT427", Printed("SecondaryCode")[..^1]);
+        Assert.Equal("+A99912345/$$3261231LOT428", Printed("JoinedCode"));
     }
 
     [Fact]

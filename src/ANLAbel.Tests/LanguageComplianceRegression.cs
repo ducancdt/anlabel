@@ -70,7 +70,7 @@ internal static class LanguageComplianceRegression
         "Data Matrix", "DataMatrix", "Print Preview", "DriverManaged",
         "Print Schema", "Win32",
         // Formula functions are syntax the operator types (Quản lý dữ liệu → Hàm).
-        "FIELD(", "CONCAT(", "MID(", "GS1CHECKDIGIT(", "UPPER(", "LOWER(", "TRIM(", "LEFT(", "RIGHT(", "EQUALS(", "NOT(", "AND(", "DATEADD(", "DATEFORMAT(",
+        "FIELD(", "CONCAT(", "MID(", "GS1CHECKDIGIT(", "UPPER(", "LOWER(", "TRIM(", "LEFT(", "RIGHT(", "EQUALS(", "NOT(", "AND(", "DATEADD(", "DATEFORMAT(", "HIBCCHECK(",
     };
 
     // Denylist tiếng Anh — các từ tiếng Anh thực tế từng xuất hiện trong UI.

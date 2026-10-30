@@ -28,6 +28,8 @@ public static class FormulaErrorText
         (Rx("^DATEFORMAT expects a date, a format and an optional read format[.]$"), _ => "Hàm DATEFORMAT cần một ngày, một định dạng và (tùy chọn) định dạng đọc."),
         (Rx("^DATEADD expects a date, an amount, a unit [(]d, w, mo, y[)] and an optional format and read format[.]$"), _ => "Hàm DATEADD cần ngày, số cộng thêm, đơn vị (d, w, mo, y) và (tùy chọn) định dạng in, định dạng đọc."),
         (Rx("^DATEADD amount must be a whole number[.]$"), _ => "Số cộng thêm của DATEADD phải là số nguyên."),
+        (Rx("^HIBCCHECK expects exactly one argument[.]$"), _ => "Hàm HIBCCHECK cần đúng một giá trị."),
+        (Rx("^HIBCCHECK accepts digits, capital letters and - [.] space [$] / [+] % only[.]$"), _ => "Mã HIBC chỉ nhận chữ số, chữ in hoa và các ký tự - . dấu cách $ / + %."),
         (Rx("^DATEADD unit must be d, w, mo or y[.]$"), _ => "Đơn vị của DATEADD phải là d (ngày), w (tuần), mo (tháng) hoặc y (năm)."),
         (Rx("^DATEADD moves the date out of range[.]$"), _ => "DATEADD đưa ngày ra ngoài phạm vi cho phép."),
         (Rx("^Date '(?<d>.*)' is not understood; give it as yyyy-MM-dd or dd/MM/yyyy, or name its format[.]$"), m => $"Không đọc được ngày “{m.Groups["d"].Value}”; hãy ghi dạng yyyy-MM-dd hoặc dd/MM/yyyy, hoặc nêu định dạng của nó."),

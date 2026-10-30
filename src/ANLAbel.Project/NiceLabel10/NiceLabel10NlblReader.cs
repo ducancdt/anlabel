@@ -139,6 +139,14 @@ public static partial class NiceLabel10NlblReader
                     }
 
                     continue;
+                case "HibcFunction":
+                    if (ReadHibc(item) is { } hibcTemplate)
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, null, 0, hibcTemplate);
+                    }
+
+                    continue;
                 case "TransferDataSyntaxFunction":
                     if (ReadTransferDataSyntax(item) is { } envelopeTemplate)
                     {
@@ -421,6 +429,88 @@ public static partial class NiceLabel10NlblReader
         }
 
         return builder.Length == 0 ? null : builder.ToString();
+    }
+
+    /// <summary>
+    /// A <c>HibcFunction</c> (HIBC Supplier Labeling Standard 2.5), written with
+    /// the HIBC check character (<c>HIBCCHECK</c>) as AdvancedFunctions composes
+    /// it: Primary "+" LIC, product or catalog number and unit of measure;
+    /// Secondary "+$" lot, "+$$" date flag, date and lot, "+$+" serial, "+$$+"
+    /// date flag, date and serial, or "+" Julian date and lot, followed by the
+    /// primary's check character as link; Concatenated (the default) joins
+    /// primary and secondary with "/" under one check character. The date flag
+    /// is the <c>HibcDateFormat</c> number (MMDDYY 2 ... YYJJJHH 6), none for
+    /// MMYY and "7" without a date; the date source's text is used as it is
+    /// written. Quantity fields, version 2.6 and the pre-version-10 two-output
+    /// form are not mapped (null).
+    /// </summary>
+    private static string? ReadHibc(XElement function)
+    {
+        if ((int)ParseDouble(function, "Version") == 2
+            || function.Element("Mode") is null && function.Element("IsConcatenated") is not null && !ParseBool(function, "IsConcatenated"))
+        {
+            return null;
+        }
+
+        var mode = function.Element("Mode") is null ? 2 : (int)ParseDouble(function, "Mode");
+        var primary = "+" + Part("LabelerIdCode") + Part("ProductOrCatalogNumber") + Part("UnitOfMeasureId");
+        if (mode == 0)
+        {
+            return Check(primary);
+        }
+
+        if (Part("Quantity").Length > 0 || Part("ProductionDate").Length > 0)
+        {
+            return null;
+        }
+
+        var dateFormat = (int)ParseDouble(function, "DateFormat");
+        var date = Part("DateField");
+        string DatePart() => dateFormat switch
+        {
+            0 => "7",
+            1 => date,
+            >= 2 and <= 6 => dateFormat.ToString(CultureInfo.InvariantCulture) + date,
+            _ => "\0"
+        };
+        var secondary = (int)ParseDouble(function, "SecondaryPartFormat") switch
+        {
+            1 when dateFormat == 5 => "+" + date + Part("LotBatch"),
+            2 => "+$" + Part("LotBatch"),
+            3 => "+$$" + DatePart() + Part("LotBatch"),
+            4 => "+$+" + Part("SerialNumber"),
+            5 => "+$$+" + DatePart() + Part("SerialNumber"),
+            _ => null
+        };
+        if (secondary is null || secondary.Contains('\0'))
+        {
+            return null;
+        }
+
+        if (mode == 1)
+        {
+            // The link character is the primary's check character.
+            return ChildText(function.Element("PrimaryFunctionReference"), "Id")?.Trim() is { Length: > 0 } primaryId
+                ? Check(secondary + NiceLabel10FunctionMarkers.Start + "RIGHT:1" + NiceLabel10FunctionMarkers.Body + "[" + primaryId + "]" + NiceLabel10FunctionMarkers.End)
+                : null;
+        }
+
+        return mode == 2 ? Check(primary + "/" + secondary[1..]) : null;
+
+        string Part(string name)
+        {
+            var value = function.Element(name);
+            if (ChildText(value?.Element("DataSourceReference"), "Id")?.Trim() is { Length: > 0 } reference)
+            {
+                return "[" + reference + "]";
+            }
+
+            var fixedValue = value?.Element("FixedValue");
+            return (ChildText(fixedValue, "StringValue") ?? ChildText(fixedValue, "Int32Value") ?? string.Empty).Trim();
+        }
+
+        static string Check(string body)
+            => NiceLabel10FunctionMarkers.Start + "HIBCCHECK" + NiceLabel10FunctionMarkers.Body + body + NiceLabel10FunctionMarkers.End;
     }
 
     /// <summary>

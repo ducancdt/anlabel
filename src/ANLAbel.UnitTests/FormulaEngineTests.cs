@@ -252,6 +252,29 @@ public sealed class FormulaTextFunctionTests
         Assert.Equal(string.Empty, result.Value);
     }
 
+    [Theory]
+    [InlineData("HIBCCHECK(\"+A123BJC5D6E71\")", "+A123BJC5D6E71G")]
+    [InlineData("HIBCCHECK(CONCAT(\"+\", FIELD(\"LIC\"), FIELD(\"PCN\"), \"5\"))", "+A99912345" + "7")]
+    [InlineData("HIBCCHECK(\"+A99912345/$$3261231LOT42\")", "+A99912345/$$3261231LOT428")]
+    [InlineData("HIBCCHECK(FIELD(\"Empty\"))", "")]
+    public void HibcCheck_AppendsTheModulo43Character(string formula, string expected)
+    {
+        var result = new FormulaEngine().Evaluate(formula, new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["LIC"] = "A999", ["PCN"] = "1234", ["Empty"] = "" });
+        Assert.Empty(result.Errors);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Theory]
+    [InlineData("HIBCCHECK(\"+a123\")")]
+    [InlineData("HIBCCHECK(\"+A1_2\")")]
+    [InlineData("HIBCCHECK()")]
+    public void HibcCheck_RefusesWhatHibcCannotCarry(string formula)
+    {
+        var result = Run(formula);
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(string.Empty, result.Value);
+    }
+
     [Fact]
     public void EveryFunctionStartsAFormula()
     {
