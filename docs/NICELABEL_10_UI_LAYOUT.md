@@ -175,6 +175,13 @@ Owner hand check (2026-10-30): with the Properties panel unpinned, a
 double-click on an object opens the floating panel beside it — confirmed
 working on the installed app.
 
+Owner decision (2026-10-30, UI audit): with a Rich Text Box selected, the
+Home ribbon Font group formats its RTF content, as NiceLabel 10 does. It
+applies to the text selected in the Properties editor, or to the whole
+content when nothing is selected, and stores the RTF as one undoable edit.
+The Text / Text Box font group is unchanged and steps aside for rich text
+(gate `ribbon formats the selected rich text`).
+
 ## Side-by-side check (2026-10-30)
 
 Each ANLAbel ribbon tab (rendered by the layout gate into

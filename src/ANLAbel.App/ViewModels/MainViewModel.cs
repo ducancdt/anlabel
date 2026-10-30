@@ -789,6 +789,7 @@ public sealed class MainViewModel : ObservableObject
         "#FF1F2937", "#FF000000", "#FFFFFFFF", "#FFDC2626", "#FF16A34A", "#FF1D4ED8", "#FFF59E0B", "#FF7C3AED", "#FF64748B"
     ];
     public bool IsTextObjectSelected => SelectedObject?.Type is ObjectType.Text or ObjectType.TextBox;
+    public bool IsRichTextObjectSelected => SelectedObject?.Type is ObjectType.RichTextBox;
     public bool IsBarcodeObjectSelected => SelectedObject?.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix;
     public bool IsImageObjectSelected => SelectedObject?.Type is ObjectType.Image;
     public bool IsShapeObjectSelected => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Line or ObjectType.Inverse;
@@ -797,6 +798,7 @@ public sealed class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(HasSelectedObject));
         OnPropertyChanged(nameof(IsTextObjectSelected));
+        OnPropertyChanged(nameof(IsRichTextObjectSelected));
         OnPropertyChanged(nameof(IsBarcodeObjectSelected));
         OnPropertyChanged(nameof(IsImageObjectSelected));
         OnPropertyChanged(nameof(IsShapeObjectSelected));

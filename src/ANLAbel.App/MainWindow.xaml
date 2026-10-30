@@ -750,6 +750,15 @@
 
                             <Border Style="{StaticResource RibbonSeparator}"/>
                             <controls:RibbonGroupPanel IsEnabled="{Binding IsTextObjectSelected}" AutomationProperties.AutomationId="Shell.Ribbon.Font">
+                                <controls:RibbonGroupPanel.Style>
+                                    <Style TargetType="controls:RibbonGroupPanel">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRichTextObjectSelected}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </controls:RibbonGroupPanel.Style>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,3">
                                     <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
                                               IsTextSearchEnabled="True" AutomationProperties.Name="Ribbon font family" ToolTip="Phông chữ">
@@ -794,6 +803,40 @@
                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}">
                                         <Path Style="{StaticResource AlignIcon}" Width="13" Height="13" Data="M0,1 H16 V3 H0 Z M0,5 H16 V7 H0 Z M0,9 H16 V11 H0 Z M0,13 H16 V15 H0 Z"/>
                                     </RadioButton>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Phông chữ" Margin="0,4,0,0"/>
+                            </controls:RibbonGroupPanel>
+                            <!-- NiceLabel 10: with a Rich Text Box selected the Font group formats its RTF content -
+                                 the text selected in the Properties editor, or all of it when nothing is selected. -->
+                            <controls:RibbonGroupPanel Visibility="{Binding IsRichTextObjectSelected, Converter={StaticResource BoolToVisibility}}" AutomationProperties.AutomationId="Shell.Ribbon.RichFont">
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,3">
+                                    <ComboBox x:Name="RichFontFamilyBox" Width="150" ItemsSource="{Binding FontFamilies}" SelectionChanged="RichFontFamily_Changed"
+                                              IsTextSearchEnabled="True" AutomationProperties.Name="Rich text font family" ToolTip="Phông chữ của Chữ định dạng">
+                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <ComboBox x:Name="RichFontSizeBox" Width="56" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectionChanged="RichFontSize_Changed"
+                                              AutomationProperties.Name="Rich text font size" ToolTip="Cỡ chữ (pt)"/>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Grow" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Rich text grow font"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E8;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Shrink" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Rich text shrink font"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E7;"/></Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Bold" ToolTip="Đậm" AutomationProperties.Name="Rich text bold"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DD;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Italic" ToolTip="Nghiêng" AutomationProperties.Name="Rich text italic"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DB;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Underline" ToolTip="Gạch chân" AutomationProperties.Name="Rich text underline"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DC;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Strikethrough" ToolTip="Gạch ngang" AutomationProperties.Name="Rich text strikethrough"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DE;"/></Button>
+                                    <ComboBox x:Name="RichColorBox" Width="44" Height="26" Margin="2,0,0,0" ItemsSource="{Binding TextColorOptions}" SelectionChanged="RichColor_Changed"
+                                              ToolTip="Màu chữ" AutomationProperties.Name="Rich text colour">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate><Border Width="16" Height="14" Background="{Binding}" BorderBrush="#94A3B8" BorderThickness="1"/></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Border Width="8"/>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Left" ToolTip="Căn trái" AutomationProperties.Name="Rich text align left"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E4;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Center" ToolTip="Căn giữa" AutomationProperties.Name="Rich text align center"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E3;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Right" ToolTip="Căn phải" AutomationProperties.Name="Rich text align right"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E2;"/></Button>
+                                    <Button Style="{StaticResource RibbonIconButton}" Click="RichFormat_Click" Tag="Justify" ToolTip="Căn đều hai bên" AutomationProperties.Name="Rich text justify">
+                                        <Path Style="{StaticResource AlignIcon}" Width="13" Height="13" Data="M0,1 H16 V3 H0 Z M0,5 H16 V7 H0 Z M0,9 H16 V11 H0 Z M0,13 H16 V15 H0 Z"/>
+                                    </Button>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Phông chữ" Margin="0,4,0,0"/>
                             </controls:RibbonGroupPanel>
@@ -2432,8 +2475,8 @@
                                             <Button Width="26" Height="24" Margin="2,0,0,0" Command="EditingCommands.AlignRight" CommandTarget="{Binding ElementName=RichTextEditor}" ToolTip="Căn phải"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8E2;"/></Button>
                                         </StackPanel>
                                         <RichTextBox x:Name="RichTextEditor" Height="150" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"
-                                                     LostKeyboardFocus="RichTextEditor_LostKeyboardFocus" AutomationProperties.Name="Rich text editor"/>
-                                        <TextBlock Text="Bôi đen chữ rồi bấm B, I, U hoặc đổi cỡ. Nội dung được lưu khi rời ô soạn." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                     LostKeyboardFocus="RichTextEditor_LostKeyboardFocus" SelectionChanged="RichTextEditor_SelectionChanged" AutomationProperties.Name="Rich text editor"/>
+                                        <TextBlock Text="Bôi đen chữ rồi bấm B, I, U hoặc đổi cỡ, ở đây hay ở nhóm Phông chữ trên thanh lệnh. Không bôi đen thì thanh lệnh áp cho toàn bộ nội dung." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource PropCard}" Visibility="{Binding SelectedIndex, ElementName=SourceSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">

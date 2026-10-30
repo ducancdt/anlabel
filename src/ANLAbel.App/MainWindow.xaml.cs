@@ -2,6 +2,8 @@ using System.Windows;
 using System.IO;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.Windows.Input;
 using ANLAbel.App.Controls;
 using ANLAbel.App.ViewModels;
@@ -623,9 +625,52 @@ public partial class MainWindow : Window
     {
         _richTextEditorObject = _viewModel.SelectedObject?.Type == ObjectType.RichTextBox ? _viewModel.SelectedObject : null;
         RichTextEditor.Document = RichTextLayout.CreateDocument(_richTextEditorObject?.RichText, 260);
+        SyncRichFontPickers();
     }
 
+    /// <summary>The ribbon's rich-text font and size show the editor selection (or the whole content).</summary>
+    private void SyncRichFontPickers()
+    {
+        if (_richTextEditorObject is null)
+        {
+            return;
+        }
+
+        var range = RichTextEditor.Selection.IsEmpty
+            ? new TextRange(RichTextEditor.Document.ContentStart, RichTextEditor.Document.ContentEnd)
+            : new TextRange(RichTextEditor.Selection.Start, RichTextEditor.Selection.End);
+        var family = (range.GetPropertyValue(TextElement.FontFamilyProperty) as FontFamily)?.Source;
+        RichFontFamilyBox.SelectedItem = family is not null && _viewModel.FontFamilies.Contains(family) ? family : null;
+        var size = range.GetPropertyValue(TextElement.FontSizeProperty) is double dip ? Math.Round(dip * 72.0 / 96.0, 1) : (double?)null;
+        RichFontSizeBox.SelectedItem = size is { } pt && _viewModel.FontSizes.Contains(pt) ? pt : null;
+    }
+
+    private void RichTextEditor_SelectionChanged(object sender, RoutedEventArgs e) => SyncRichFontPickers();
+
     private void RichTextEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        => SaveRichTextEditor();
+
+    /// <summary>
+    /// Ribbon Font group on a Rich Text Box (NiceLabel 10): formats the text
+    /// selected in the Properties editor, or the whole content when nothing is
+    /// selected, then stores the RTF as one undoable edit.
+    /// </summary>
+    private void ApplyRichFormat(Action<TextRange> format)
+    {
+        if (_richTextEditorObject is null || _viewModel.SelectedObject != _richTextEditorObject)
+        {
+            return;
+        }
+
+        var range = RichTextEditor.Selection.IsEmpty
+            ? new TextRange(RichTextEditor.Document.ContentStart, RichTextEditor.Document.ContentEnd)
+            : new TextRange(RichTextEditor.Selection.Start, RichTextEditor.Selection.End);
+        format(range);
+        SaveRichTextEditor();
+        SyncRichFontPickers();
+    }
+
+    private void SaveRichTextEditor()
     {
         if (_richTextEditorObject is not { } item)
         {
@@ -638,6 +683,96 @@ public partial class MainWindow : Window
             _viewModel.BeginTemplateEditGesture();
             item.RichText = rtf;
             _viewModel.CommitTemplateEditGesture();
+        }
+    }
+
+    private static double RichFontSizePt(TextRange range)
+        => range.GetPropertyValue(TextElement.FontSizeProperty) is double dip ? dip * 72.0 / 96.0 : 9;
+
+    private static void ToggleRichDecoration(TextRange range, TextDecorationCollection decoration)
+    {
+        var current = range.GetPropertyValue(Inline.TextDecorationsProperty) as TextDecorationCollection;
+        var has = current is not null && decoration.All(d => current.Any(c => c.Location == d.Location));
+        var next = new TextDecorationCollection(current?.Where(c => decoration.All(d => d.Location != c.Location)) ?? []);
+        if (!has)
+        {
+            foreach (var d in decoration)
+            {
+                next.Add(d);
+            }
+        }
+
+        range.ApplyPropertyValue(Inline.TextDecorationsProperty, next);
+    }
+
+    private void RichFormat_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string action })
+        {
+            return;
+        }
+
+        ApplyRichFormat(range =>
+        {
+            switch (action)
+            {
+                case "Bold":
+                    var bold = range.GetPropertyValue(TextElement.FontWeightProperty) is FontWeight weight && weight == FontWeights.Bold;
+                    range.ApplyPropertyValue(TextElement.FontWeightProperty, bold ? FontWeights.Normal : FontWeights.Bold);
+                    break;
+                case "Italic":
+                    var italic = range.GetPropertyValue(TextElement.FontStyleProperty) is FontStyle style && style == FontStyles.Italic;
+                    range.ApplyPropertyValue(TextElement.FontStyleProperty, italic ? FontStyles.Normal : FontStyles.Italic);
+                    break;
+                case "Underline":
+                    ToggleRichDecoration(range, TextDecorations.Underline);
+                    break;
+                case "Strikethrough":
+                    ToggleRichDecoration(range, TextDecorations.Strikethrough);
+                    break;
+                case "Grow":
+                case "Shrink":
+                    var size = Math.Clamp(RichFontSizePt(range) + (action == "Grow" ? 1 : -1), 4, 200);
+                    range.ApplyPropertyValue(TextElement.FontSizeProperty, size * 96.0 / 72.0);
+                    break;
+                case "Left":
+                    range.ApplyPropertyValue(Paragraph.TextAlignmentProperty, TextAlignment.Left);
+                    break;
+                case "Center":
+                    range.ApplyPropertyValue(Paragraph.TextAlignmentProperty, TextAlignment.Center);
+                    break;
+                case "Right":
+                    range.ApplyPropertyValue(Paragraph.TextAlignmentProperty, TextAlignment.Right);
+                    break;
+                case "Justify":
+                    range.ApplyPropertyValue(Paragraph.TextAlignmentProperty, TextAlignment.Justify);
+                    break;
+            }
+        });
+        e.Handled = true;
+    }
+
+    private void RichFontFamily_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (RichFontFamilyBox.SelectedItem is string family && RichFontFamilyBox.IsDropDownOpen | RichFontFamilyBox.IsKeyboardFocusWithin)
+        {
+            ApplyRichFormat(range => range.ApplyPropertyValue(TextElement.FontFamilyProperty, new FontFamily(family)));
+        }
+    }
+
+    private void RichFontSize_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (RichFontSizeBox.SelectedItem is double size && RichFontSizeBox.IsDropDownOpen | RichFontSizeBox.IsKeyboardFocusWithin)
+        {
+            ApplyRichFormat(range => range.ApplyPropertyValue(TextElement.FontSizeProperty, size * 96.0 / 72.0));
+        }
+    }
+
+    private void RichColor_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (RichColorBox.SelectedItem is string color && RichColorBox.IsDropDownOpen | RichColorBox.IsKeyboardFocusWithin)
+        {
+            ApplyRichFormat(range => range.ApplyPropertyValue(TextElement.ForegroundProperty, new SolidColorBrush((Color)ColorConverter.ConvertFromString(color))));
         }
     }
 

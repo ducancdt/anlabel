@@ -635,7 +635,7 @@ public partial class HelpWindow : Window
         rb.Children.Add(P("• Nút Tệp mở danh sách: Mới, Mở, Lưu, Lưu thành, Mẫu tem, Phiên bản, In, Cài đặt."));
         rb.Children.Add(H2("Thẻ Trang chủ"));
         rb.Children.Add(P("• Bộ nhớ tạm — Dán, Cắt, Sao chép, Sao định dạng (Ctrl+Shift+C / Ctrl+Shift+V)."));
-        rb.Children.Add(P("• Phông chữ — phông, cỡ, tăng/giảm cỡ, đậm, nghiêng, gạch chân, gạch ngang, màu chữ và căn lề cho đối tượng chữ đang chọn."));
+        rb.Children.Add(P("• Phông chữ — phông, cỡ, tăng/giảm cỡ, đậm, nghiêng, gạch chân, gạch ngang, màu chữ và căn lề cho đối tượng chữ đang chọn. Với Chữ định dạng (RTF), nhóm này định dạng phần chữ đang bôi đen trong ô soạn, hoặc toàn bộ nội dung nếu không bôi đen."));
         rb.Children.Add(P("• Thao tác — In dòng này, Xem trước (Ctrl+P), In mọi dòng, In thử, Lịch sử in, Xuất Excel."));
         rb.Children.Add(P("• Quản lý — Nguồn dữ liệu; Thuộc tính tài liệu (khổ tem, máy in, DPI)."));
         rb.Children.Add(P("• Căn chỉnh — căn trái/giữa/phải, trên/giữa/dưới, phân bố đều."));

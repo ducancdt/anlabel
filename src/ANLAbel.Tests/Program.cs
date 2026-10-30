@@ -308,6 +308,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("designer layout follows the NiceLabel 10 ribbon and panels", TestDesignerLayoutFollowsNiceLabel10),
     ("dialogs render for the UI audit", TestDialogsRenderForUiAudit),
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
+    ("ribbon formats the selected rich text", TestRibbonFormatsRichText),
     ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
     ("inverse object swaps black and white beneath it in print", TestInverseObjectSwapsBlackAndWhite),
     ("designer shows the inverse area inverted", TestDesignerShowsInverseInverted),
@@ -12829,6 +12830,72 @@ static Task TestGroupObjectsLikeNiceLabel()
             AssertEqual(a.GroupId, copy.GroupId, "Clones (undo, snapshots) keep the group");
             AssertEqual(true, canvas.UngroupSelectedObjects(), "Grouped selection can be ungrouped");
             AssertEqual(string.Empty, a.GroupId + b.GroupId, "Ungroup clears the group id");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestRibbonFormatsRichText()
+{
+    // NiceLabel 10: with a Rich Text Box selected, the ribbon Font group formats
+    // its RTF content (all of it when nothing is selected in the editor), as one
+    // undoable edit, and the plain Text font group steps aside.
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var window = new MainWindow();
+            var viewModel = (MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            viewModel.AddRichTextBoxCommand.Execute(null);
+            viewModel.SelectedObject = viewModel.Template.Objects.Last();
+            PumpDispatcher();
+            var item = viewModel.SelectedObject!;
+            AssertEqual(true, viewModel.IsRichTextObjectSelected, "A Rich Text Box is selected");
+            AssertEqual(false, viewModel.IsTextObjectSelected, "The plain Text font group stays for Text and Text Box");
+
+            var load = typeof(MainWindow).GetMethod("LoadRichTextEditor", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            load.Invoke(window, null);
+            var click = typeof(MainWindow).GetMethod("RichFormat_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            void Press(string action) { try { click.Invoke(window, [new Button { Tag = action }, new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)]); } catch (System.Reflection.TargetInvocationException ex) { throw ex.InnerException!; } }
+
+            var before = item.RichText;
+            var sizeBox = (ComboBox)window.FindName("RichFontSizeBox");
+            AssertEqual(9.0, sizeBox.SelectedItem, "The ribbon size shows the content size (9 pt)");
+            Press("Bold");
+            AssertEqual(true, item.RichText?.Contains(@"\b\ltrch Ch\u7919? \u273?\u7883?nh d\u7841?ng", StringComparison.Ordinal) == true, "With nothing selected in the editor, Bold makes the whole content one bold run");
+            Press("Center");
+            AssertEqual(true, item.RichText?.Contains(@"\qc", StringComparison.Ordinal) == true, "Centre alignment reaches the stored RTF");
+            var sized = item.RichText;
+            Press("Grow");
+            AssertEqual(false, string.Equals(sized, item.RichText, StringComparison.Ordinal), "Grow font changes the stored RTF");
+            AssertEqual(10.0, sizeBox.SelectedItem, "The ribbon size follows Grow font");
+
+            // Undo restores the template from a snapshot, so read the current object.
+            string? Current() => viewModel.Template.Objects.Single(o => o.Id == item.Id).RichText;
+            viewModel.UndoCommand.Execute(null);
+            AssertEqual(sized, Current(), "Undo reverts the last ribbon format as one step");
+            viewModel.UndoCommand.Execute(null);
+            viewModel.UndoCommand.Execute(null);
+            AssertEqual(before, Current(), "Undo returns to the unformatted content");
+            PumpDispatcher();
+            Press("Italic");
+            AssertEqual(true, System.Text.RegularExpressions.Regex.IsMatch(Current() ?? string.Empty, @"\\i(?![a-z])"), "After undo the ribbon formats the restored object");
         }
         catch (Exception ex)
         {
