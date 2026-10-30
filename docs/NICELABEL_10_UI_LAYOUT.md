@@ -157,3 +157,10 @@ data records on one label, which changes ANLAbel's one-row-per-label print
 job and needs its own decision), and NiceLabel products/integrations outside
 the label designer — PowerForms forms and solutions, Access/SQL Server/ODBC
 connectors, RFID encoding.
+
+## Owner decision (2026-10-30)
+
+The conversion is complete for ANLAbel's scope. The owner chose not to
+build the Report object (only NiceLabel's own samples use it; ANLAbel keeps
+one data row per label) and not to add products outside the label designer
+(PowerForms forms/solutions, Access/SQL Server/ODBC connectors, RFID).
