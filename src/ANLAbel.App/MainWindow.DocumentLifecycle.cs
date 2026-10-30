@@ -65,7 +65,6 @@ public partial class MainWindow
     {
         SetBinding(TitleProperty, new Binding(nameof(MainViewModel.WindowTitle)));
         CommandBindings.Add(new CommandBinding(ApplicationCommands.New, (sender, e) => New_Click(sender, e)));
-        CommandBindings.Add(new CommandBinding(ApplicationCommands.Open, (sender, e) => Open_Click(sender, e)));
         CommandBindings.Add(new CommandBinding(ApplicationCommands.Save, (sender, e) => Save_Click(sender, e)));
         CommandBindings.Add(new CommandBinding(ApplicationCommands.SaveAs, (sender, e) => SaveAs_Click(sender, e)));
         InputBindings.Add(new KeyBinding(ApplicationCommands.SaveAs, Key.S, ModifierKeys.Control | ModifierKeys.Shift));
@@ -193,6 +192,7 @@ public partial class MainWindow
         {
             await _viewModel.SaveAsync(filePath);
             _recovery.DeleteSession();
+            RememberRecentDocument(filePath);
             return true;
         }
         catch (DocumentChangedOnDiskException)
@@ -296,6 +296,7 @@ public partial class MainWindow
         try
         {
             await _viewModel.OpenAsync(filePath);
+            RememberRecentDocument(filePath);
             await _viewModel.RefreshPrinterQueueStatusAsync();
         }
         catch (Exception ex)

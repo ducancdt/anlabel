@@ -42,6 +42,18 @@ public sealed class DesignerHeaderChromeContractTests
         Assert.Contains(inventory.Ribbon, e => e.AutomationId == "Shell.Ribbon.SnapGrid" && e.Icon == "Icon.SnapGrid16");
         Assert.Contains("Shell.Status.Zoom", inventory.StatusAutomationIds);
     }
+
+    [Fact]
+    public void FileTab_OpensTheBackstage_WithSaveAsRevisionsAndOptions()
+    {
+        var xaml = File.ReadAllText(DesignerHeaderChromeInventory.FindMainWindowXaml());
+        Assert.Contains("x:Name=\"FileMenuButton\"", xaml);
+        Assert.DoesNotContain("<Button.ContextMenu>", xaml[xaml.IndexOf("x:Name=\"FileMenuButton\"", StringComparison.Ordinal)..xaml.IndexOf("Shell.Ribbon.Tab.Home", StringComparison.Ordinal)]);
+        foreach (var id in new[] { "Shell.Backstage", "Shell.Backstage.Start", "Shell.Backstage.Open", "Shell.File.SaveAs", "Shell.File.Revisions", "Shell.File.Settings", "Shell.Backstage.About", "Shell.Backstage.Exit" })
+        {
+            Assert.Contains($"AutomationProperties.AutomationId=\"{id}\"", xaml);
+        }
+    }
 }
 
 internal sealed class DesignerHeaderChromeInventory
@@ -56,9 +68,6 @@ internal sealed class DesignerHeaderChromeInventory
         "Shell.QuickAccess.Redo",
         "Shell.Ribbon",
         "Shell.Ribbon.File",
-        "Shell.File.SaveAs",
-        "Shell.File.Revisions",
-        "Shell.File.Settings",
         "Shell.Ribbon.Templates",
         "Shell.Ribbon.ImportExcel",
         "Shell.Ribbon.ImportTextFile",

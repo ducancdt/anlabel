@@ -418,6 +418,17 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Backstage "Tệp gần đây" row: file name over its folder (NiceLabel 10 Recent Files) -->
+        <DataTemplate x:Key="BackstageRecentItem">
+            <Button Style="{StaticResource BackstageListButton}" Click="BackstageRecent_Click" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Folder}" FontSize="11" Foreground="{StaticResource RibbonCaptionBrush}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="Không tìm thấy tệp ở đường dẫn này" FontSize="11" Foreground="#B91C1C"
+                               Visibility="{Binding IsMissing, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+            </Button>
+        </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -442,7 +453,7 @@
                     <Button Style="{StaticResource QuickAccessButton}" Click="New_Click" ToolTip="Tạo tem mới (Ctrl+N)" AutomationProperties.Name="New label" AutomationProperties.AutomationId="Shell.QuickAccess.New">
                         <TextBlock Style="{StaticResource ChromeGlyph}" Text="&#xE8A5;"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Click="Open_Click" ToolTip="Mở tem (Ctrl+O)" AutomationProperties.Name="Open label" AutomationProperties.AutomationId="Shell.QuickAccess.Open">
+                    <Button Style="{StaticResource QuickAccessButton}" Click="OpenBackstage_Click" ToolTip="Mở tem (Ctrl+O)" AutomationProperties.Name="Open label" AutomationProperties.AutomationId="Shell.QuickAccess.Open">
                         <TextBlock Style="{StaticResource ChromeGlyph}" Text="&#xE838;"/>
                     </Button>
                     <Border Width="1" Height="16" Margin="3,0" Background="#3B4BA0"/>
@@ -485,6 +496,9 @@
             </Grid>
         </Border>
 
+        <!-- Everything under the title bar; the backstage (Tệp) covers it -->
+        <Grid x:Name="ShellBody">
+        <DockPanel LastChildFill="True">
         <Border x:Name="RibbonBar" DockPanel.Dock="Top" KeyboardNavigation.TabNavigation="Local" KeyboardNavigation.TabIndex="2"
                 Background="{StaticResource RibbonBodyBrush}" BorderBrush="{StaticResource RibbonLineBrush}" BorderThickness="0,0,0,1"
                 AutomationProperties.AutomationId="Shell.Ribbon"
@@ -503,22 +517,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="FileMenuButton" Style="{StaticResource RibbonFileTab}" Content="Tệp" Click="FileMenu_Click"
                                 AutomationProperties.Name="File" AutomationProperties.AutomationId="Shell.Ribbon.File"
-                                ToolTip="Mới, mở, lưu, in, phiên bản, cài đặt và giới thiệu">
-                            <Button.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Mới…" InputGestureText="Ctrl+N" Click="New_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.New32}"/></MenuItem.Icon></MenuItem>
-                                    <MenuItem Header="Mở…" InputGestureText="Ctrl+O" Click="Open_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Open32}"/></MenuItem.Icon></MenuItem>
-                                    <MenuItem Header="Lưu" InputGestureText="Ctrl+S" Click="Save_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Save32}"/></MenuItem.Icon></MenuItem>
-                                    <MenuItem Header="Lưu thành…" InputGestureText="Ctrl+Shift+S" Click="SaveAs_Click" AutomationProperties.AutomationId="Shell.File.SaveAs"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SaveAs32}"/></MenuItem.Icon></MenuItem>
-                                    <Separator/>
-                                    <MenuItem Header="Mẫu tem…" Click="TemplateLibrary_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SampleFiles32}"/></MenuItem.Icon></MenuItem>
-                                    <MenuItem Header="Phiên bản và bản sao lưu…" Click="RevisionHistory_Click" AutomationProperties.AutomationId="Shell.File.Revisions"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Revisions32}"/></MenuItem.Icon></MenuItem>
-                                    <Separator/>
-                                    <MenuItem Header="In…" InputGestureText="Ctrl+P" Click="PrintPreview_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Print32}"/></MenuItem.Icon></MenuItem>
-                                    <MenuItem Header="Cài đặt…" Click="Settings_Click" AutomationProperties.AutomationId="Shell.File.Settings"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Options32}"/></MenuItem.Icon></MenuItem>
-                                </ContextMenu>
-                            </Button.ContextMenu>
-                        </Button>
+                                ToolTip="Tệp: bắt đầu, mới, mở, lưu, in, phiên bản, tùy chọn và giới thiệu"/>
                         <RadioButton Style="{StaticResource RibbonTab}" Content="Trang chủ" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Home"
                                      IsChecked="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Home}"/>
                         <RadioButton Style="{StaticResource RibbonTab}" Content="Dữ liệu" AutomationProperties.AutomationId="Shell.Ribbon.Tab.Data"
@@ -3238,6 +3237,156 @@
                 </Border>
             </Popup>
 
+        </Grid>
+        </DockPanel>
+
+            <!-- NiceLabel 10 backstage (Tệp): covers the ribbon and the workspace under the title bar.
+                 Pages on the left (Bắt đầu, Mới, Mở, Giới thiệu) show on the right; commands run and close it. -->
+            <Grid x:Name="BackstagePanel" Visibility="Collapsed" Background="{StaticResource BackstagePageBrush}"
+                  KeyboardNavigation.TabNavigation="Cycle" AutomationProperties.AutomationId="Shell.Backstage" AutomationProperties.Name="Tệp">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Background="{StaticResource RibbonChromeBrush}">
+                    <StackPanel>
+                        <Button Style="{StaticResource BackstageBackButton}" Click="CloseBackstage_Click" ToolTip="Quay lại thiết kế (Esc)"
+                                AutomationProperties.Name="Back to the designer" AutomationProperties.AutomationId="Shell.Backstage.Back"/>
+                        <RadioButton x:Name="BackstageStartTab" Style="{StaticResource BackstageTab}" Content="Bắt đầu" Tag="Start" Checked="BackstageTab_Checked" AutomationProperties.AutomationId="Shell.Backstage.Start"/>
+                        <RadioButton x:Name="BackstageNewTab" Style="{StaticResource BackstageTab}" Content="Mới" Tag="New" Checked="BackstageTab_Checked" AutomationProperties.AutomationId="Shell.Backstage.New"/>
+                        <RadioButton x:Name="BackstageOpenTab" Style="{StaticResource BackstageTab}" Content="Mở" Tag="Open" Checked="BackstageTab_Checked" AutomationProperties.AutomationId="Shell.Backstage.Open"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="Nhập tem NiceLabel" Click="BackstageImport_Click"
+                                ToolTip="Mở tem NiceLabel (.nlbl, .lbl) thành mẫu tem mới" AutomationProperties.AutomationId="Shell.Backstage.Import"/>
+                        <Border Style="{StaticResource BackstageSeparator}"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="Lưu" Click="BackstageSave_Click" ToolTip="Lưu tem (Ctrl+S)" AutomationProperties.AutomationId="Shell.Backstage.Save"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="Lưu thành" Click="BackstageSaveAs_Click" ToolTip="Lưu thành tệp khác (Ctrl+Shift+S)" AutomationProperties.AutomationId="Shell.File.SaveAs"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="In" Click="BackstagePrint_Click" ToolTip="Xem trước, chọn dòng và số bản rồi in (Ctrl+P)" AutomationProperties.AutomationId="Shell.Backstage.Print"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="Phiên bản" Click="BackstageRevisions_Click" ToolTip="Phiên bản và bản sao lưu của tem đã lưu" AutomationProperties.AutomationId="Shell.File.Revisions"/>
+                        <Border Style="{StaticResource BackstageSeparator}"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="Tùy chọn" Click="BackstageOptions_Click" ToolTip="Cài đặt ANLAbel" AutomationProperties.AutomationId="Shell.File.Settings"/>
+                        <RadioButton x:Name="BackstageAboutTab" Style="{StaticResource BackstageTab}" Content="Giới thiệu" Tag="About" Checked="BackstageTab_Checked" AutomationProperties.AutomationId="Shell.Backstage.About"/>
+                        <Button Style="{StaticResource BackstageCommand}" Content="Thoát" Click="BackstageExit_Click" ToolTip="Đóng ANLAbel" AutomationProperties.AutomationId="Shell.Backstage.Exit"/>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Column="1">
+                    <!-- Bắt đầu: NiceLabel landing page - create and open on the left, resources on the right -->
+                    <ScrollViewer x:Name="BackstageStartPage" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="40,30,40,30" MaxWidth="1100" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource BackstagePageTitle}" Text="Bắt đầu"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="400"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource BackstageCard}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <Button Style="{StaticResource BackstageLinkButton}" controls:Ribbon.Icon="{StaticResource Icon.New32}" Content="Tạo tem mới" Click="BackstageNewLabel_Click"
+                                                AutomationProperties.AutomationId="Shell.Backstage.Start.New"/>
+                                        <Button Style="{StaticResource BackstageLinkButton}" controls:Ribbon.Icon="{StaticResource Icon.SampleFiles32}" Content="Tạo từ mẫu có sẵn" Click="BackstageTemplates_Click"
+                                                AutomationProperties.AutomationId="Shell.Backstage.Start.Templates"/>
+                                        <Button Style="{StaticResource BackstageLinkButton}" controls:Ribbon.Icon="{StaticResource Icon.Open32}" Content="Mở…" Click="BackstageBrowse_Click"
+                                                AutomationProperties.AutomationId="Shell.Backstage.Start.Open"/>
+                                        <TextBlock Style="{StaticResource BackstageCardHeader}" Text="Tệp gần đây" Margin="4,14,0,6"/>
+                                        <Border Height="1" Background="{StaticResource RibbonLineBrush}" Margin="0,0,0,4"/>
+                                        <ItemsControl x:Name="StartRecentList" ItemTemplate="{StaticResource BackstageRecentItem}" AutomationProperties.AutomationId="Shell.Backstage.Start.Recent"/>
+                                        <TextBlock x:Name="StartRecentEmpty" Text="Chưa có tệp nào. Tem bạn mở hoặc lưu sẽ hiện ở đây." Foreground="{StaticResource RibbonCaptionBrush}"
+                                                   TextWrapping="Wrap" Margin="4,4,4,8"/>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Grid.Column="2">
+                                    <Border Style="{StaticResource BackstageCard}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource BackstageCardHeader}" Text="Tài liệu và trợ giúp" Margin="4,2,0,8"/>
+                                            <UniformGrid Columns="5">
+                                                <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.UserGuide32}" Content="Hướng dẫn&#10;sử dụng" Click="UserGuides_Click" HorizontalAlignment="Center"/>
+                                                <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.Help32}" Content="Trợ giúp" Click="Help_Click" HorizontalAlignment="Center"/>
+                                                <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.SampleFiles32}" Content="Tệp mẫu" Click="BackstageTemplates_Click" HorizontalAlignment="Center"/>
+                                                <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.Support32}" Content="Hỗ trợ&#10;kỹ thuật" Click="TechnicalSupport_Click" HorizontalAlignment="Center"/>
+                                                <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.HomePage32}" Content="Trang chủ" Click="HomePage_Click" HorizontalAlignment="Center"/>
+                                            </UniformGrid>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource BackstageCard}" Margin="0,16,0,0">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource BackstageCardHeader}" Text="Máy in" Margin="4,2,0,8"/>
+                                            <TextBlock TextWrapping="Wrap" Margin="4,0,4,10" Foreground="{StaticResource RibbonTextBrush}">
+                                                <Run Text="Tem in qua hàng đợi máy in Windows. Máy in của tem này: "/><Run FontWeight="SemiBold" Text="{Binding Template.PrinterProfile.PrinterName, Mode=OneWay, Converter={StaticResource EmptyText}, ConverterParameter=chưa chọn, FallbackValue=chưa chọn}"/><Run Text="."/>
+                                            </TextBlock>
+                                            <Button Style="{StaticResource BackstagePrimaryButton}" Content="Thuộc tính tem…" Click="BackstagePrinterSetup_Click" HorizontalAlignment="Left" Margin="4,0,0,4"
+                                                    AutomationProperties.AutomationId="Shell.Backstage.Start.PrinterSetup"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Mới -->
+                    <StackPanel x:Name="BackstageNewPage" Visibility="Collapsed" Margin="40,30,40,30">
+                        <TextBlock Style="{StaticResource BackstagePageTitle}" Text="Mới"/>
+                        <StackPanel Margin="20,0,0,0" HorizontalAlignment="Left">
+                            <Button Style="{StaticResource BackstageTileButton}" controls:Ribbon.Icon="{StaticResource Icon.New32}" Content="Tem trống" Tag="Chọn tên, kích thước và độ phân giải của tem mới."
+                                    Click="BackstageNewLabel_Click" AutomationProperties.AutomationId="Shell.Backstage.New.Blank"/>
+                            <Button Style="{StaticResource BackstageTileButton}" controls:Ribbon.Icon="{StaticResource Icon.SampleFiles32}" Content="Từ mẫu có sẵn" Tag="Bắt đầu từ một mẫu tem trong thư viện."
+                                    Click="BackstageTemplates_Click" AutomationProperties.AutomationId="Shell.Backstage.New.Templates"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Mở: browse on the left, recent documents on the right (NiceLabel Open page) -->
+                    <Grid x:Name="BackstageOpenPage" Visibility="Collapsed" Margin="40,30,40,30">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Style="{StaticResource BackstagePageTitle}" Text="Mở"/>
+                        <DockPanel Grid.Row="1" Margin="20,0,0,0" LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Left">
+                                <Button Style="{StaticResource BackstageTileButton}" controls:Ribbon.Icon="{StaticResource Icon.Open32}" Content="Duyệt…" Tag="Mở tem ANLAbel, NiceLabel hoặc JSON trên máy."
+                                        Click="BackstageBrowse_Click" AutomationProperties.AutomationId="Shell.Backstage.Open.Browse"/>
+                                <Button Style="{StaticResource BackstageTileButton}" controls:Ribbon.Icon="{StaticResource Icon.Import32}" Content="Nhập tem NiceLabel…" Tag="Tệp .nlbl hoặc .lbl thành mẫu tem mới."
+                                        Click="BackstageImport_Click" AutomationProperties.AutomationId="Shell.Backstage.Open.Import"/>
+                            </StackPanel>
+                            <Border DockPanel.Dock="Left" Width="1" Background="#2A7CC2" Margin="25,10,5,0"/>
+                            <DockPanel Margin="25,0,0,0">
+                                <TextBlock DockPanel.Dock="Top" Text="Tệp gần đây" FontFamily="Segoe UI Light" FontSize="24" FontWeight="Bold" Foreground="#2A579A" Margin="0,0,0,10"/>
+                                <TextBlock x:Name="OpenRecentEmpty" DockPanel.Dock="Top" Text="Chưa có tệp nào. Tem bạn mở hoặc lưu sẽ hiện ở đây." Foreground="{StaticResource RibbonCaptionBrush}"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalAlignment="Left">
+                                    <ItemsControl x:Name="OpenRecentList" Width="520" ItemTemplate="{StaticResource BackstageRecentItem}" AutomationProperties.AutomationId="Shell.Backstage.Open.Recent"/>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </DockPanel>
+                    </Grid>
+
+                    <!-- Giới thiệu: version, licence, links -->
+                    <ScrollViewer x:Name="BackstageAboutPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="40,30,40,30" MaxWidth="760" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource BackstagePageTitle}" Text="Giới thiệu"/>
+                            <Border Style="{StaticResource BackstageCard}" Padding="20,16">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="/ANLAbel.App;component/anlabel.ico" Width="48" Height="48" Margin="0,0,14,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Static viewModels:MainViewModel.ApplicationTitle}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}"/>
+                                            <TextBlock Text="Thiết kế và in tem nhãn công nghiệp" Foreground="{StaticResource RibbonCaptionBrush}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <TextBlock Margin="0,16,0,0" TextWrapping="Wrap" Foreground="{StaticResource RibbonTextBrush}"
+                                               Text="Tác giả: Duc An. Phần mềm tự do theo Giấy phép Công cộng GNU, chỉ phiên bản 3 (GPL-3.0): bạn được dùng, nghiên cứu, sửa đổi và phân phối lại theo các điều khoản của giấy phép."/>
+                                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{StaticResource RibbonTextBrush}" FontWeight="SemiBold"
+                                               Text="Phần mềm được cung cấp KHÔNG KÈM BẤT KỲ BẢO HÀNH NÀO."/>
+                                    <WrapPanel Margin="0,16,0,0">
+                                        <Button Style="{StaticResource BackstagePrimaryButton}" Content="Kiểm tra cập nhật…" Click="CheckUpdates_Click" Margin="0,0,8,0" AutomationProperties.AutomationId="Shell.Backstage.About.Updates"/>
+                                        <Button Style="{StaticResource BackstageSecondaryButton}" Content="Trang dự án" Click="HomePage_Click" Margin="0,0,8,0"/>
+                                        <Button Style="{StaticResource BackstageSecondaryButton}" Content="Giấy phép và thư viện bên thứ ba…" Click="About_Click"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

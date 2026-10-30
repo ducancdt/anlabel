@@ -12297,17 +12297,33 @@ static string[] RequiredHeaderAutomationIds() =>
     "Shell.Ribbon.CheckUpdates"
 ];
 
-// One click further, in the File menu or a ribbon drop-down (NiceLabel 10 "Customize Print ▾").
+// One click further, in a ribbon drop-down (NiceLabel 10 "Customize Print ▾").
 static string[] RequiredHeaderMenuAutomationIds() =>
 [
-    "Shell.File.SaveAs",
-    "Shell.File.Revisions",
-    "Shell.File.Settings",
     "Shell.Ribbon.PrintCurrent",
     "Shell.Ribbon.PrintAllRows",
     "Shell.Ribbon.TestPrint",
     "Shell.Ribbon.PrintHistory",
     "Shell.Ribbon.ExportExcel"
+];
+
+// The File tab's backstage (NiceLabel 10): pages and commands.
+static string[] RequiredBackstageAutomationIds() =>
+[
+    "Shell.Backstage",
+    "Shell.Backstage.Back",
+    "Shell.Backstage.Start",
+    "Shell.Backstage.New",
+    "Shell.Backstage.Open",
+    "Shell.Backstage.Import",
+    "Shell.Backstage.Save",
+    "Shell.File.SaveAs",
+    "Shell.Backstage.Print",
+    "Shell.File.Revisions",
+    "Shell.File.Settings",
+    "Shell.Backstage.About",
+    "Shell.Backstage.Exit",
+    "Shell.Backstage.Open.Browse"
 ];
 
 // AutomationIds of the menu items behind every context menu and ribbon drop-down in the tree.
@@ -12430,6 +12446,12 @@ static Task TestDesignerHeaderCommandsAreUnique()
             {
                 AssertEqual(true, inMenus.Contains(id, StringComparer.Ordinal),
                     $"Header menus must offer AutomationId '{id}'. Found: {string.Join(", ", inMenus)}");
+            }
+
+            foreach (var id in RequiredBackstageAutomationIds())
+            {
+                AssertEqual(true, found.Contains(id, StringComparer.Ordinal),
+                    $"The File backstage must expose AutomationId '{id}'");
             }
 
             AssertEqual(true, found.Contains("Shell.Status.Zoom", StringComparer.Ordinal),
@@ -13358,6 +13380,33 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                     smallEncoder.Save(smallFile);
                 }
             }
+
+            // Tệp opens NiceLabel's backstage over the ribbon and the workspace; Back closes it.
+            var fileTab = (System.Windows.Controls.Primitives.ButtonBase)FindByAutomationId(window, "Shell.Ribbon.File")!;
+            fileTab.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            var backstage = (FrameworkElement)FindByAutomationId(window, "Shell.Backstage")!;
+            AssertEqual(Visibility.Visible, backstage.Visibility, "Tệp opens the backstage");
+            foreach (var page in new[] { "Start", "New", "Open", "About" })
+            {
+                ((System.Windows.Controls.Primitives.ToggleButton)FindByAutomationId(window, "Shell.Backstage." + page)!).IsChecked = true;
+                PumpDispatcher();
+                var shown = page switch { "Start" => "BackstageStartPage", "New" => "BackstageNewPage", "Open" => "BackstageOpenPage", _ => "BackstageAboutPage" };
+                AssertEqual(Visibility.Visible, ((FrameworkElement)window.FindName(shown)).Visibility, $"The {page} tab shows its page");
+                var content = (FrameworkElement)window.Content;
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                var shot = new RenderTargetBitmap(1440, 900, 96, 96, PixelFormats.Pbgra32);
+                shot.Render(content);
+                using var file = File.Create(Path.Combine(evidence, $"Backstage-{page}.png"));
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(shot));
+                encoder.Save(file);
+            }
+
+            ((System.Windows.Controls.Primitives.ButtonBase)FindByAutomationId(window, "Shell.Backstage.Back")!).RaiseEvent(
+                new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            AssertEqual(Visibility.Collapsed, backstage.Visibility, "Back closes the backstage");
 
             // Status bar: warning chips keep their room; a long message trims instead of covering them.
             var shellXaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));

@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         _viewModel.PromptValuesRequested = (prompts, previous) => PromptValuesWindow.Ask(this, prompts, previous);
         InitializeDocumentLifecycle();
         InitializeWindowChrome();
+        InitializeBackstage();
         DesignerCanvas.EditGestureStarted += (_, _) => _viewModel.BeginTemplateEditGesture();
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
@@ -576,17 +577,6 @@ public partial class MainWindow : Window
         }
 
         item.Style.TextPaddingMm = paddingMm;
-        e.Handled = true;
-    }
-
-    private void FileMenu_Click(object sender, RoutedEventArgs e)
-    {
-        // NiceLabel 10 File backstage: here a menu under the File tab.
-        if (FileMenuButton.ContextMenu is { } menu)
-        {
-            Ribbon.Open(menu, FileMenuButton);
-        }
-
         e.Handled = true;
     }
 

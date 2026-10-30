@@ -16,6 +16,10 @@
   giúp: Tài liệu hướng dẫn, Hỗ trợ kỹ thuật, Giới thiệu, Trang chủ.
 - Thanh trạng thái: máy in, kích thước tem, vừa tài liệu / đối tượng, thanh
   thu phóng.
+- Tệp mở trang Backstage như NiceLabel: Bắt đầu (tạo, mở, tệp gần đây, tài
+  liệu, máy in), Mới, Mở (Duyệt…, Nhập tem NiceLabel…, tệp gần đây; Ctrl+O),
+  Lưu, Lưu thành, In, Phiên bản, Tùy chọn, Giới thiệu (phiên bản, GPL-3.0),
+  Thoát. Danh sách tệp gần đây (12 tệp) lưu cùng tùy chọn của máy.
 
 ## v0.341 — Trợ năng: tên cho trình đọc màn hình, chú thích nút, thứ tự Tab, viền tiêu điểm, độ tương phản
 

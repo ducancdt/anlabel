@@ -266,7 +266,7 @@ header rows of the side-by-side table above.
 | --- | --- | --- |
 | Title bar | Own caption (`MainWindow.Chrome.cs`, `WindowChrome`): app icon (click = system menu, double-click = close) · quick access Mới · Mở · Lưu · Hoàn tác · Làm lại · centred title "tên tem* — ANLAbel - Thiết kế tem v0.xyz" · thu nhỏ / phóng to–khôi phục / đóng | Maximised window fits the monitor work area (`WM_GETMINMAXINFO`), no resize border while maximised. Windows 11 Snap Layouts flyout is not offered on the custom maximise button (Win+Z and drag-to-edge still work). |
 | Removed | the 52 px header band | version → title bar and Giới thiệu; GPL notice → Giới thiệu; printer and label size → status bar |
-| Tab row | Tệp (cyan) · Trang chủ · Dữ liệu · Xem · Trợ giúp · contextual Thiết kế + Chữ / Mã vạch / Hình ảnh / Hình dạng | Selected-tab text `#005A9E` and contextual fill `#3D6FC4` are darker than NiceLabel's so the text reaches WCAG AA 4.5:1. Tệp opens a menu until the backstage lands. |
+| Tab row | Tệp (cyan) · Trang chủ · Dữ liệu · Xem · Trợ giúp · contextual Thiết kế + Chữ / Mã vạch / Hình ảnh / Hình dạng | Selected-tab text `#005A9E` and contextual fill `#3D6FC4` are darker than NiceLabel's so the text reaches WCAG AA 4.5:1. Tệp opens the backstage (below). |
 | Ribbon body | `#F1F1F1`, 92 DIP; shared styles in `Themes/Ribbon.xaml` (large, small, icon, split buttons, check boxes, combos, captions, separators) | Every tab fits 1024 DIP (the minimum window width) without shrinking; the per-tab `Viewbox` only shrinks below that. |
 | Status bar | messages and warning chips · printer (opens Thuộc tính tem) · label size · vừa tài liệu · vừa đối tượng · − slider + · % | NiceLabel's printer combo changes the printer at once; ANLAbel opens Thuộc tính tem so the printer, media and DPI checks still run (no safety contract bypassed). |
 
@@ -298,10 +298,36 @@ Rules (gates `designer header commands are unique` and the
 icon never stands for two different actions. The quick access row and the
 window buttons use Segoe Fluent Icons glyphs in white, as NiceLabel does.
 
+### Backstage (Tệp)
+
+Evidence: `Gui.Core/usercontrols/backstage/*.xaml` and
+`DesignerLib/mainregion/landingpage/view/*.xaml` (decompiled): backstage items
+are plain text (margin 22,11,60,11), pages sit on `#f1f1f1` under a 36 pt
+Segoe UI Light title; Open has big Browse buttons, a `#2a7cc2` rule and
+"Recent Documents" (24 pt, `#2a579a`); the landing page is a 400 DIP card
+(new label, new from samples, open, recent files) beside resource boxes.
+
+ANLAbel (`MainWindow.Backstage.cs`): Tệp opens a page that covers the ribbon
+and workspace below the title bar; ← or Esc returns to the designer.
+
+| Item | Kind | Does |
+| --- | --- | --- |
+| Bắt đầu | page | Tạo tem mới · Tạo từ mẫu có sẵn · Mở…, Tệp gần đây; Tài liệu và trợ giúp (hướng dẫn, trợ giúp, tệp mẫu, hỗ trợ, trang chủ); Máy in (the label's printer, Thuộc tính tem…) |
+| Mới | page | Tem trống… · Từ mẫu có sẵn… |
+| Mở | page | Duyệt… · Nhập tem NiceLabel… beside Tệp gần đây; Ctrl+O and the quick access Mở open this page, as in NiceLabel |
+| Nhập tem NiceLabel | command | opens `.nlbl` / `.lbl` as a new template |
+| Lưu · Lưu thành · In · Phiên bản · Tùy chọn · Thoát | commands | close the backstage, then run the existing command (unsaved changes are still asked about) |
+| Giới thiệu | page | version, GPL-3.0 and no-warranty notice, updates, project page, third-party licences |
+
+Tệp gần đây: the labels opened or saved last (at most 12, newest first,
+each once) in `recent-documents.json` under the local app-data root
+(`RecentDocumentsService`); a file that has moved is marked and can be
+removed from the list. ANLAbel always has a label open, so NiceLabel's
+"no document" landing page is the Bắt đầu page here, not a start-up screen.
+Not built: Store, Protection, Close (no ANLAbel equivalent).
+
 ### Still to rebuild
 
-- Tệp: the backstage (Start page with recent files, New, Open, Import,
-  Save, Save As, Print, Close, Options, About, Exit).
 - Quản lý dữ liệu: NiceLabel's Dynamic Data Manager window (variables,
   counters, functions, databases in one tree with a property editor), with
   Thứ tự nhắc (prompt order) and Nhập nguồn dữ liệu.
