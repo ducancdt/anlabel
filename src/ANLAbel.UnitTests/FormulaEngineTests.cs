@@ -221,6 +221,37 @@ public sealed class FormulaTextFunctionTests
         Assert.Equal(expected, result.Value);
     }
 
+    [Theory]
+    [InlineData("DATEADD(\"2026-10-31\", \"24\", \"mo\")", "31/10/2028")]
+    [InlineData("DATEADD(FIELD(\"NSX\"), \"-1\", \"d\", \"yyMMdd\")", "251231")]
+    [InlineData("DATEADD(\"31/12/2026\", \"1\", \"w\", \"yyyy-MM-dd\")", "2027-01-07")]
+    [InlineData("DATEADD(\"2026-10-31 14:30:00\", \"1\", \"D\")", "01/11/2026")]
+    [InlineData("DATEADD(\"261031\", \"1\", \"y\", \"dd.MM.yyyy\", \"yyMMdd\")", "31.10.2027")]
+    [InlineData("DATEFORMAT(\"2026-10-31\", \"yyMMdd\")", "261031")]
+    [InlineData("DATEFORMAT(\"261031\", \"dd/MM/yyyy\", \"yyMMdd\")", "31/10/2026")]
+    [InlineData("DATEFORMAT(FIELD(\"Empty\"), \"yyMMdd\")", "")]
+    [InlineData("CONCAT(\"EXP \", DATEADD(FIELD(\"NSX\"), \"2\", \"y\", \"yyyy-MM\"))", "EXP 2028-01")]
+    public void DateFunctions_MoveAndWriteDates(string formula, string expected)
+    {
+        var result = new FormulaEngine().Evaluate(formula, new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["NSX"] = "2026-01-01", ["Empty"] = "" });
+        Assert.Empty(result.Errors);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Theory]
+    [InlineData("DATEADD(\"hôm nay\", \"1\", \"d\")")]
+    [InlineData("DATEADD(\"2026-10-31\", \"một\", \"d\")")]
+    [InlineData("DATEADD(\"2026-10-31\", \"1\", \"q\")")]
+    [InlineData("DATEADD(\"2026-10-31\", \"1\")")]
+    [InlineData("DATEFORMAT(\"2026-10-31\")")]
+    [InlineData("DATEFORMAT(\"31-10\", \"yyMMdd\")")]
+    public void DateFunctions_RejectWhatTheyCannotRead(string formula)
+    {
+        var result = Run(formula);
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(string.Empty, result.Value);
+    }
+
     [Fact]
     public void EveryFunctionStartsAFormula()
     {

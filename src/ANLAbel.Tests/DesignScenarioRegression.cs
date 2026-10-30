@@ -976,6 +976,125 @@ internal static class DesignScenarioRegression
         }
     }
 
+    /// <summary>
+    /// An expiry computed from the Excel production date: the NSX column holds
+    /// real Excel date cells; the GS1-128 carries DATEADD(NSX, 24 months) as
+    /// yyMMdd in AI 17 and the text shows it as dd/MM/yyyy. Every row decodes
+    /// with its own expiry and preflight blocks no row.
+    /// </summary>
+    public static async Task ExpiryComesFromTheExcelProductionDate()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-expiry-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var excelPath = Path.Combine(directory.FullName, "lots.xlsx");
+            var produced = new[] { new DateTime(2026, 10, 31), new DateTime(2026, 2, 28), new DateTime(2025, 12, 1) };
+            using (var workbook = new ClosedXML.Excel.XLWorkbook())
+            {
+                var sheet = workbook.AddWorksheet("Lots");
+                sheet.Cell(1, 1).Value = "GTIN";
+                sheet.Cell(1, 2).Value = "Lot";
+                sheet.Cell(1, 3).Value = "NSX";
+                for (var index = 0; index < produced.Length; index++)
+                {
+                    sheet.Cell(index + 2, 1).Value = "09501101530003";
+                    sheet.Cell(index + 2, 2).Value = "L" + (index + 1);
+                    sheet.Cell(index + 2, 3).Value = produced[index];
+                }
+
+                workbook.SaveAs(excelPath);
+            }
+
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            await viewModel.ImportExcelAsync(excelPath, "Lots");
+            var template = viewModel.Template;
+            template.WidthMm = 100;
+            template.HeightMm = 50;
+            var code = new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                BarcodeApplicationProfile = BarcodeApplicationProfile.Gs1,
+                Name = "Carton",
+                BindingExpression = "CONCAT(\"(01)\", FIELD(\"GTIN\"), \"(17)\", DATEADD(FIELD(\"NSX\"), \"24\", \"mo\", \"yyMMdd\"), \"(10)\", FIELD(\"Lot\"))",
+                BarcodeModuleWidthMm = 0.33,
+                BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                QrQuietZoneModules = 10,
+                BarcodeHriPlacement = BarcodeHriPlacement.None,
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 90,
+                HeightMm = 22,
+                ZIndex = 1
+            };
+            var expiry = new LabelObject
+            {
+                Type = ObjectType.Text,
+                Name = "Expiry",
+                BindingExpression = "DATEADD(FIELD(\"NSX\"), \"24\", \"mo\", \"dd/MM/yyyy\")",
+                XMm = 5,
+                YMm = 35,
+                WidthMm = 40,
+                HeightMm = 8,
+                Style = { FontSizePt = 12, BorderThicknessMm = 0, TextSizing = TextSizingMode.AutoFit },
+                ZIndex = 2
+            };
+            template.Objects.Add(code);
+            template.Objects.Add(expiry);
+            var rows = viewModel.ExcelDataView!.Cast<System.Data.DataRowView>()
+                .Select(view => (IReadOnlyDictionary<string, string>)view.Row.Table.Columns.Cast<System.Data.DataColumn>()
+                    .ToDictionary(column => column.ColumnName, column => view.Row[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
+            Require(rows.Length == produced.Length, $"The Excel sheet links {rows.Length} rows.");
+
+            RunOnSta(() =>
+            {
+                var failures = new List<string>();
+                var renderer = new ZxingBarcodeRenderer();
+                var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+                for (var index = 0; index < rows.Length; index++)
+                {
+                    var row = rows[index];
+                    var due = produced[index].AddMonths(24);
+                    var data = "(01)09501101530003(17)" + due.ToString("yyMMdd", System.Globalization.CultureInfo.InvariantCulture) + "(10)" + row["Lot"];
+                    var raster = Rasterize(new LabelVisualRenderer().Render(template, row, plan), template.WidthMm, template.HeightMm);
+                    var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, data);
+                    var decoded = Decode(raster, code.XMm, code.YMm, widthMm, code.HeightMm, BarcodeFormat.CODE_128).Replace("", string.Empty, StringComparison.Ordinal);
+                    if (decoded != data.Replace("(", string.Empty, StringComparison.Ordinal).Replace(")", string.Empty, StringComparison.Ordinal))
+                    {
+                        failures.Add($"NSX {row["NSX"]}: the GS1-128 reads '{decoded}', expected expiry {due:yyyy-MM-dd}.");
+                    }
+
+                    var text = ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(expiry.BindingExpression, row).Value;
+                    if (text != due.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture))
+                    {
+                        failures.Add($"NSX {row["NSX"]}: the expiry text is '{text}'.");
+                    }
+                }
+
+                var blocking = new PrintPreflightValidator(renderer).Validate(template, rows, Dpi).Issues.Where(issue => issue.IsBlocking).ToArray();
+                failures.AddRange(blocking.Select(issue => $"Preflight blocks {issue.ObjectName}: {issue.Message}"));
+                if (failures.Count > 0)
+                {
+                    throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+                }
+            });
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
     /// <summary>Dark pixels (gray below 128) inside a rectangle (mm) of the page.</summary>
     private static int Ink(Raster raster, double xMm, double yMm, double widthMm, double heightMm)
     {

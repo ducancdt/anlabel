@@ -8,7 +8,7 @@ public sealed class FormulaEvaluator
     /// </summary>
     public static IReadOnlyList<string> FunctionNames { get; } =
     [
-        "FIELD", "CONCAT", "MID", "GS1CHECKDIGIT", "UPPER", "LOWER", "TRIM", "LEFT", "RIGHT", "EQUALS", "NOT", "AND"
+        "FIELD", "CONCAT", "MID", "GS1CHECKDIGIT", "UPPER", "LOWER", "TRIM", "LEFT", "RIGHT", "EQUALS", "NOT", "AND", "DATEADD", "DATEFORMAT"
     ];
 
     public FormulaEvaluationResult Evaluate(FormulaNode root, IReadOnlyDictionary<string, string?> row)
@@ -47,6 +47,8 @@ public sealed class FormulaEvaluator
             "EQUALS" => EvaluateEquals(call, context),
             "NOT" => EvaluateText(call, context, text => FormulaTruth.From(!FormulaTruth.IsTrue(text))),
             "AND" => EvaluateAnd(call, context),
+            "DATEADD" => EvaluateDateAdd(call, context),
+            "DATEFORMAT" => EvaluateDateFormat(call, context),
             _ => AddError(context, $"Unknown function '{call.Name}'.")
         };
     }
@@ -107,6 +109,118 @@ public sealed class FormulaEvaluator
         var left = EvaluateNode(call.Arguments[0], context);
         var right = EvaluateNode(call.Arguments[1], context);
         return FormulaTruth.From(string.Equals(left, right, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>How a date given to DATEADD or DATEFORMAT is read when no read format is named: Excel date cells (yyyy-MM-dd), then the common written forms.</summary>
+    private static readonly string[] DateReadFormats = ["yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss", "dd/MM/yyyy", "d/M/yyyy", "dd.MM.yyyy", "yyyyMMdd"];
+
+    /// <summary>
+    /// DATEFORMAT(date, format[, readFormat]): the date written in format, e.g.
+    /// an Excel date as yyMMdd for a GS1 (17). An empty date gives an empty value.
+    /// </summary>
+    private static string EvaluateDateFormat(FormulaFunctionCallNode call, EvaluationContext context)
+    {
+        if (call.Arguments.Count is < 2 or > 3)
+        {
+            return AddError(context, "DATEFORMAT expects a date, a format and an optional read format.");
+        }
+
+        var text = EvaluateNode(call.Arguments[0], context);
+        var format = EvaluateNode(call.Arguments[1], context);
+        var readFormat = call.Arguments.Count == 3 ? EvaluateNode(call.Arguments[2], context) : null;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        return TryReadDate(text, readFormat, context, out var date) ? WriteDate(date, format, context) : string.Empty;
+    }
+
+    /// <summary>
+    /// DATEADD(date, amount, unit[, format[, readFormat]]): the date moved by amount
+    /// days (d), weeks (w), months (mo) or years (y), written in format (dd/MM/yyyy
+    /// when none), e.g. an expiry from a production date. An empty date gives an
+    /// empty value.
+    /// </summary>
+    private static string EvaluateDateAdd(FormulaFunctionCallNode call, EvaluationContext context)
+    {
+        if (call.Arguments.Count is < 3 or > 5)
+        {
+            return AddError(context, "DATEADD expects a date, an amount, a unit (d, w, mo, y) and an optional format and read format.");
+        }
+
+        var text = EvaluateNode(call.Arguments[0], context);
+        var amountText = EvaluateNode(call.Arguments[1], context).Trim();
+        var unit = EvaluateNode(call.Arguments[2], context).Trim().ToLowerInvariant();
+        var format = call.Arguments.Count >= 4 ? EvaluateNode(call.Arguments[3], context) : "dd/MM/yyyy";
+        var readFormat = call.Arguments.Count == 5 ? EvaluateNode(call.Arguments[4], context) : null;
+        if (!int.TryParse(amountText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var amount))
+        {
+            return AddError(context, "DATEADD amount must be a whole number.");
+        }
+
+        if (unit is not ("d" or "w" or "mo" or "y"))
+        {
+            return AddError(context, "DATEADD unit must be d, w, mo or y.");
+        }
+
+        if (string.IsNullOrWhiteSpace(text) || !TryReadDate(text, readFormat, context, out var date))
+        {
+            return string.Empty;
+        }
+
+        DateTime moved;
+        try
+        {
+            moved = unit switch
+            {
+                "d" => date.AddDays(amount),
+                "w" => date.AddDays(7.0 * amount),
+                "mo" => date.AddMonths(amount),
+                _ => date.AddYears(amount)
+            };
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return AddError(context, "DATEADD moves the date out of range.");
+        }
+
+        return WriteDate(moved, format, context);
+    }
+
+    private static bool TryReadDate(string text, string? readFormat, EvaluationContext context, out DateTime date)
+    {
+        var trimmed = text.Trim();
+        string[] formats = string.IsNullOrEmpty(readFormat) ? DateReadFormats : [readFormat];
+        bool read;
+        try
+        {
+            read = DateTime.TryParseExact(trimmed, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out date);
+        }
+        catch (FormatException)
+        {
+            date = default;
+            read = false;
+        }
+
+        if (!read)
+        {
+            AddError(context, $"Date '{trimmed}' is not understood; give it as yyyy-MM-dd or dd/MM/yyyy, or name its format.");
+        }
+
+        return read;
+    }
+
+    private static string WriteDate(DateTime date, string format, EvaluationContext context)
+    {
+        try
+        {
+            return date.ToString(string.IsNullOrEmpty(format) ? "dd/MM/yyyy" : format, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            return AddError(context, $"Date format '{format}' is not valid.");
+        }
     }
 
     /// <summary>AND(a, b, …): "true" when every value is true (FormulaTruth); every argument is read.</summary>

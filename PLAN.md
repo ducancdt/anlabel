@@ -18,6 +18,12 @@
   chữ mới. Mỗi lần thả là một bước hoàn tác; tem đang bảo vệ không nhận thả.
 - Nhập .nlbl giữ “Khóa vị trí” (PositionLocked) và chữ đảo màu (InverseText:
   chữ trắng trên nền đen) bằng một vùng Đảo màu đúng khung chữ, đặt ngay trên chữ.
+- Hàm ngày trong công thức: DATEADD(ngày, số, đơn vị[, định dạng[, định dạng
+  đọc]]) cộng ngày (d), tuần (w), tháng (mo), năm (y), ví dụ hạn dùng = ngày sản
+  xuất trong Excel + 24 tháng; DATEFORMAT(ngày, định dạng[, định dạng đọc]) đổi
+  cách ghi ngày, ví dụ ngày Excel thành yyMMdd cho mã GS1 (17). Ngày đọc được ở
+  dạng yyyy-MM-dd (ô ngày Excel), dd/MM/yyyy, dd.MM.yyyy, yyyyMMdd hoặc theo
+  định dạng nêu ra; ngày trống cho giá trị trống; lỗi báo bằng tiếng Việt.
 
 ## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
 
