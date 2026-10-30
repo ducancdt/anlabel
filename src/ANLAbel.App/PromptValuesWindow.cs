@@ -171,6 +171,21 @@ public sealed class PromptValuesWindow : Window
             }
 
             AutomationProperties.SetName(input, label);
+            // Enter goes to the next question and only the last one's Enter
+            // accepts: a scanner that ends each scan with Enter must not send
+            // the dialog after the first field with the other fields' old values.
+            var position = _inputs.Count;
+            input.PreviewKeyDown += (_, e) =>
+            {
+                if (e.Key == System.Windows.Input.Key.Enter
+                    && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.None
+                    && position < _prompts.Count - 1
+                    && input is not ComboBox { IsDropDownOpen: true })
+                {
+                    _inputs[position + 1].Focus();
+                    e.Handled = true;
+                }
+            };
             _inputs.Add(input);
             _readers.Add(read);
             panel.Children.Add(input);

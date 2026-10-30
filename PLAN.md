@@ -6,6 +6,10 @@
   chỉ chọn dòng có ô đúng bằng mã đó; trước đây lọc theo "có chứa" nên chọn cả
   SP-00010…SP-00019 để in. Khi không ô nào khớp đúng, lọc vẫn theo "có chứa".
   Dòng đếm ghi rõ "Đúng …" hay "Có chứa …".
+- Hộp nhập khi in: phím Enter chuyển sang câu hỏi kế tiếp, Enter ở câu cuối mới
+  xác nhận. Máy quét gửi Enter sau mỗi lần quét nên trước đây lần quét đầu đã gửi
+  cả hộp thoại kèm giá trị cũ của các ô còn lại; danh sách chọn đang mở vẫn nhận
+  Enter để chốt mục.
 
 ## v0.350 — Giá trị quét quá dài bị trả lại thay vì bị cắt; Xem trước khi in gọn hơn và nêu tên cột
 

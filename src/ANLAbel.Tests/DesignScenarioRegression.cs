@@ -626,6 +626,35 @@ internal static class DesignScenarioRegression
             Require(typoWindow.Values.TryGetValue("Exp", out var fixedDate) && fixedDate == "2027-01-15", "The corrected date is taken: " + fixedDate);
             typoWindow.Close();
 
+            // A scanner ends each scan with Enter: it moves to the next question,
+            // and only the last question's Enter sends the dialog.
+            var three = new[]
+            {
+                new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" },
+                new PromptVariableDefinition { Name = "Qty", Prompt = "Số lượng" },
+                new PromptVariableDefinition { Name = "Op", Prompt = "Người in" }
+            };
+            var threeWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
+                typeof(ANLAbel.App.PromptValuesWindow),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new object[] { three, new Dictionary<string, string> { ["Qty"] = "50", ["Op"] = "An" } },
+                null)!;
+            var boxes = ((StackPanel)threeWindow.Content).Children.OfType<TextBox>().ToArray();
+            bool Enter(TextBox box)
+            {
+                var press = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new TestPresentationSource(), 0, System.Windows.Input.Key.Enter)
+                {
+                    RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent
+                };
+                box.RaiseEvent(press);
+                return press.Handled;
+            }
+
+            Require(boxes.Length == 3 && Enter(boxes[0]) && Enter(boxes[1]) && !Enter(boxes[2]),
+                "Enter moves on from the first two questions and is left to the default button on the last.");
+            threeWindow.Close();
+
             // A scan longer than the maximum is turned back, never cut to fit.
             var lots = new[] { new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô", MaxLength = 8 } };
             var lotWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
@@ -1594,6 +1623,16 @@ internal static class DesignScenarioRegression
         });
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>A presentation source for key events raised on windows that are never shown.</summary>
+    private sealed class TestPresentationSource : PresentationSource
+    {
+        public override Visual? RootVisual { get; set; }
+
+        public override bool IsDisposed => false;
+
+        protected override CompositionTarget? GetCompositionTargetCore() => null;
     }
 
     private static IEnumerable<T> FindDescendants<T>(DependencyObject root) where T : DependencyObject
