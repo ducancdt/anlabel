@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## v0.336 — NiceLabel 10: Đảo màu hiện đúng khi thiết kế, Không in, soi gương, điều kiện hiển thị, cây Dữ liệu
+
+_Gồm các commit sáng 30/10/2026 (08:23–09:57)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Bảng thiết kế vẽ vùng Đảo màu đảo thật như khi in.
+- Thiết kế › Không in (đối tượng chỉ để thiết kế); Xem › Vừa đối tượng và
+  Không căn; Tăng/Giảm cỡ chữ.
+- Gạch ngang, màu chữ, Soi gương, Giữ tỉ lệ, Điều kiện hiển thị (chỉ in ở dòng
+  có giá trị).
+- Thẻ “Thiết kế tem · <tên>” dưới bảng thiết kế; cây Biến nhập khi in / Trường
+  dữ liệu; tô vùng tờ giấy quanh tem khi tờ lớn hơn tem.
+- Ghi quyết định phạm vi của chủ dự án (không làm Report, PowerForms, kết nối
+  CSDL, RFID) và kết quả chủ dự án tự kiểm bảng Thuộc tính nổi.
+
+**Kiểm tra:** build 0 cảnh báo, 1543 unit, hồi quy 281/281.
+
 ## v0.335 — Giao diện thiết kế theo NiceLabel 10: ribbon theo thẻ, bảng Thuộc tính nổi, nhóm, mặt nạ, Đảo màu, Chữ định dạng
 
 _Gồm các commit đêm 29/10/2026 (23:19–00:03)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
