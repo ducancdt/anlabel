@@ -8,7 +8,7 @@
         Background="{DynamicResource AppCanvasBrush}">
     <Window.Resources>
         <SolidColorBrush x:Key="LineBrush" Color="#D9E2EC"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#64748B"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#5B6B80"/>
     </Window.Resources>
     <DockPanel LastChildFill="True">
         <Border DockPanel.Dock="Top" Background="{DynamicResource AppPrimaryBrush}" Padding="20,16">

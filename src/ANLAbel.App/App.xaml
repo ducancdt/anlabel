@@ -6,7 +6,7 @@
     <Application.Resources>
         <!-- Shared industrial desktop theme. MainWindow can override these keys for its ribbon-specific states. -->
         <Color x:Key="ThemeInk">#1E293B</Color>
-        <Color x:Key="ThemeMuted">#64748B</Color>
+        <Color x:Key="ThemeMuted">#5B6B80</Color>
         <Color x:Key="ThemeBorder">#D9E2EC</Color>
         <Color x:Key="ThemeCanvas">#EEF2F6</Color>
         <Color x:Key="ThemeSurface">#FFFFFF</Color>

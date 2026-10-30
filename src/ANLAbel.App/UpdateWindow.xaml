@@ -51,7 +51,7 @@
                                 <TextBlock Text="Phiên bản mới nhất: " FontWeight="SemiBold" Foreground="#475569"/>
                                 <TextBlock x:Name="LatestVersionText" Text="Đang kiểm tra..." FontWeight="Bold" Foreground="#1464D2"/>
                             </StackPanel>
-                            <TextBlock x:Name="ReleaseDateText" Text="" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="ReleaseDateText" Text="" FontSize="11" Foreground="#5B6B80" Margin="0,2,0,0"/>
                         </StackPanel>
                         <Border Grid.Column="1" x:Name="StatusBadge" Background="#EAF3FF" BorderBrush="#B7D7FF" BorderThickness="1" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
                             <TextBlock x:Name="StatusBadgeText" Text="Đang kiểm tra" FontSize="11" FontWeight="SemiBold" Foreground="#1464D2"/>
@@ -74,7 +74,7 @@
                         <TextBlock x:Name="ProgressPercentText" Text="0%" FontWeight="Bold" FontSize="12" Foreground="#1464D2" DockPanel.Dock="Right"/>
                     </DockPanel>
                     <ProgressBar x:Name="DownloadProgressBar" Height="10" Minimum="0" Maximum="100" Value="0" Background="#E2E8F0" Foreground="#1464D2" BorderThickness="0"/>
-                    <TextBlock x:Name="ProgressDetailText" Text="" FontSize="11" Foreground="#64748B" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="ProgressDetailText" Text="" FontSize="11" Foreground="#5B6B80" Margin="0,4,0,0"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

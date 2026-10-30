@@ -19,7 +19,7 @@
         <!-- Footer -->
         <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,10">
             <DockPanel>
-                <TextBlock x:Name="CountText" VerticalAlignment="Center" Foreground="#64748B"/>
+                <TextBlock x:Name="CountText" VerticalAlignment="Center" Foreground="#5B6B80"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
                     <Button x:Name="UseButton" Content="Dùng mẫu này" Click="Use_Click" IsEnabled="False"
                             Padding="16,8" Margin="0,0,8,0" Background="{DynamicResource AppPrimaryBrush}" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>

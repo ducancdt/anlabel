@@ -30,7 +30,7 @@
         </CollectionViewSource>
 
         <Color x:Key="ColorText">#1E293B</Color>
-        <Color x:Key="ColorMuted">#64748B</Color>
+        <Color x:Key="ColorMuted">#5B6B80</Color>
         <Color x:Key="ColorLine">#D9E2EC</Color>
         <Color x:Key="ColorPanel">#FFFFFF</Color>
         <Color x:Key="ColorPanelAlt">#F8FAFC</Color>
@@ -1392,7 +1392,7 @@
             <Grid.Background>
                 <VisualBrush TileMode="Tile" Viewport="0,0,600,300" ViewportUnits="Absolute">
                     <VisualBrush.Visual>
-                        <TextBlock Text="cre: Đức An" FontSize="56" FontWeight="Bold" Foreground="#64748B" Opacity="0.18" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <TextBlock Text="cre: Đức An" FontSize="56" FontWeight="Bold" Foreground="#5B6B80" Opacity="0.18" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </VisualBrush.Visual>
                 </VisualBrush>
             </Grid.Background>
@@ -2510,7 +2510,7 @@
                                                     <Border Width="24" Height="24" CornerRadius="5" Background="#FFFFFF" VerticalAlignment="Top">
                                                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" FontWeight="Bold">
                                                             <TextBlock.Style>
-                                                                <Style TargetType="TextBlock"><Setter Property="Text" Value="↗"/><Setter Property="Foreground" Value="#64748B"/><Style.Triggers>
+                                                                <Style TargetType="TextBlock"><Setter Property="Text" Value="↗"/><Setter Property="Foreground" Value="#5B6B80"/><Style.Triggers>
                                                                     <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Text" Value="↻"/><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
                                                                     <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Text" Value="✓"/><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
                                                                     <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Text" Value="!"/><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>
@@ -2521,7 +2521,7 @@
                                                     </Border>
                                                     <StackPanel Grid.Column="1">
                                                         <TextBlock Text="{Binding ExcelLinkVerificationTitle}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap">
-                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#64748B"/><Style.Triggers>
+                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#5B6B80"/><Style.Triggers>
                                                                 <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
                                                                 <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>

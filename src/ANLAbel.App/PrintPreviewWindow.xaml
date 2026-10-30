@@ -161,9 +161,9 @@
                                             <!-- Excel data preview -->
                                             <StackPanel Grid.Column="7" Orientation="Horizontal" Margin="4,0">
                                                 <TextBlock Text="{Binding Col1}" Margin="0,0,6,0"/>
-                                                <TextBlock Text="{Binding Col2}" Margin="0,0,6,0" Foreground="#64748B"/>
-                                                <TextBlock Text="{Binding Col3}" Margin="0,0,6,0" Foreground="#64748B"/>
-                                                <TextBlock Text="{Binding Col4}" Foreground="#64748B"/>
+                                                <TextBlock Text="{Binding Col2}" Margin="0,0,6,0" Foreground="#5B6B80"/>
+                                                <TextBlock Text="{Binding Col3}" Margin="0,0,6,0" Foreground="#5B6B80"/>
+                                                <TextBlock Text="{Binding Col4}" Foreground="#5B6B80"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -340,7 +340,7 @@
                                       SelectedValuePath="Method"
                                       DisplayMemberPath="DisplayName"
                                       Margin="0,4,0,0"/>
-                            <TextBlock Text="Đồ họa ứng dụng bảo đảm khớp 100% với xem trước trong trình thiết kế." Foreground="#64748B" FontSize="10" TextWrapping="Wrap"/>
+                            <TextBlock Text="Đồ họa ứng dụng bảo đảm khớp 100% với xem trước trong trình thiết kế." Foreground="#5B6B80" FontSize="10" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Expander>
 

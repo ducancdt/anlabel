@@ -27,7 +27,7 @@
 
         <Border DockPanel.Dock="Bottom" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="14,10">
             <DockPanel>
-                <TextBlock x:Name="StatusText" Foreground="#64748B" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBlock x:Name="StatusText" Foreground="#5B6B80" VerticalAlignment="Center" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
                     <Button x:Name="RefreshButton" Content="Làm mới" Click="Refresh_Click" Padding="14,7" Margin="0,0,8,0"/>
                     <Button x:Name="RestoreButton" Content="Khôi phục phiên bản đã chọn" Click="Restore_Click"

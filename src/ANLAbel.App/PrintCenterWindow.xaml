@@ -49,7 +49,7 @@
                     <TextBlock x:Name="FilterSummaryText"
                                Margin="10,0,0,0"
                                VerticalAlignment="Center"
-                               Foreground="#64748B"
+                               Foreground="#5B6B80"
                                Text="0 lệnh"/>
                 </StackPanel>
             </StackPanel>

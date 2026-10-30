@@ -1,7 +1,7 @@
 <Window x:Class="ANLAbel.App.PrintHistoryWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ANLAbel - Lịch sử in" Width="1180" Height="720" MinWidth="900" MinHeight="560" WindowStartupLocation="CenterOwner" Loaded="Window_Loaded"
         AutomationProperties.AutomationId="CC.P5.History.Root" AutomationProperties.Name="Print history">
-    <Window.Resources><SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFF"/><SolidColorBrush x:Key="AppBorderBrush" Color="#D9E2EC"/><SolidColorBrush x:Key="AppMutedBrush" Color="#64748B"/></Window.Resources>
+    <Window.Resources><SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFF"/><SolidColorBrush x:Key="AppBorderBrush" Color="#D9E2EC"/><SolidColorBrush x:Key="AppMutedBrush" Color="#5B6B80"/></Window.Resources>
     <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <DockPanel Margin="0,0,0,14"><Button DockPanel.Dock="Right" VerticalAlignment="Top" Content="{Binding RefreshButtonText}" IsEnabled="{Binding CanRefresh}" Click="Refresh_Click" AutomationProperties.AutomationId="CC.P5.History.Refresh" AutomationProperties.Name="Refresh print history"/>
             <StackPanel><TextBlock Text="Lịch sử in" FontSize="23" FontWeight="SemiBold"/><TextBlock Text="Nguồn gốc chỉ đọc theo vòng đời lưu bền, vết thao tác bổ sung và tóm tắt CSV đã che." Margin="0,4,0,0" Foreground="{StaticResource AppMutedBrush}"/><TextBlock Text="{Binding StatusText}" Margin="0,7,0,0" FontWeight="SemiBold" AutomationProperties.AutomationId="CC.P5.History.SourceStatus" AutomationProperties.Name="History source status"/></StackPanel>

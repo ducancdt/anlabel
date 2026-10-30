@@ -13288,6 +13288,27 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 && shellXaml.Contains("<Border DockPanel.Dock=\"Bottom\" KeyboardNavigation.TabNavigation=\"Local\" KeyboardNavigation.TabIndex=\"4\"", StringComparison.Ordinal),
                 "The status bar must come after the workspace in the Tab order");
 
+            // WCAG AA: secondary (muted) text stays readable on every light surface of the app.
+            static double Luminance(string hex)
+            {
+                var c = (Color)ColorConverter.ConvertFromString(hex);
+                static double Channel(byte v) { var x = v / 255.0; return x <= 0.03928 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4); }
+                return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
+            }
+
+            static double Contrast(string a, string b)
+            {
+                var (la, lb) = (Luminance(a), Luminance(b));
+                return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+            }
+
+            var appXamlText = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "App.xaml"));
+            var muted = System.Text.RegularExpressions.Regex.Match(appXamlText, "x:Key=\"ThemeMuted\">(#[0-9A-Fa-f]{6})<").Groups[1].Value;
+            foreach (var surface in new[] { "#FFFFFF", "#F8FAFC", "#F2F6FB", "#EEF2F6", "#EAF3FF", "#F1F5F9" })
+            {
+                AssertEqual(true, Contrast(muted, surface) >= 4.5, $"Muted text {muted} on {surface} must reach 4.5:1 (is {Contrast(muted, surface):0.00})");
+            }
+
             // Narrow window: the ribbon collapses secondary print commands and alignment
             // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
             void LayoutAt(double width)

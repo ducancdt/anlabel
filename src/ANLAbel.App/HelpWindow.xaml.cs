@@ -57,7 +57,7 @@ public partial class HelpWindow : Window
     private static TextBlock Sub(string text) => new()
     {
         Text = text, FontSize = 13, TextWrapping = TextWrapping.Wrap,
-        Foreground = Hex("#64748B"),
+        Foreground = Hex("#5B6B80"),
         Margin = new Thickness(0, 0, 0, 14)
     };
 
@@ -158,7 +158,7 @@ public partial class HelpWindow : Window
         sp.Children.Add(new TextBlock
         {
             Text = "🖼  " + caption, FontSize = 11.5, FontStyle = FontStyles.Italic,
-            Foreground = Hex("#64748B"), Margin = new Thickness(2, 7, 0, 0),
+            Foreground = Hex("#5B6B80"), Margin = new Thickness(2, 7, 0, 0),
             TextWrapping = TextWrapping.Wrap, MaxWidth = 560
         });
         return sp;
@@ -214,7 +214,7 @@ public partial class HelpWindow : Window
 
         Grid.SetRow(mid, 2); root.Children.Add(mid);
 
-        var status = Zone(vi ? "⑥ Thanh trạng thái — thông báo, máy in & thu phóng" : "⑥ Status bar — messages, printer & zoom", "", "#F1F5F9", "#64748B");
+        var status = Zone(vi ? "⑥ Thanh trạng thái — thông báo, máy in & thu phóng" : "⑥ Status bar — messages, printer & zoom", "", "#F1F5F9", "#5B6B80");
         Grid.SetRow(status, 3); root.Children.Add(status);
 
         return root;
@@ -404,7 +404,7 @@ public partial class HelpWindow : Window
             var box = new Border { Height = 64, Background = Hex("#FFFFFF"), BorderBrush = Hex("#E2E8F0"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6), Child = visual };
             sp.Children.Add(box);
             sp.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, FontSize = 12, Foreground = Hex("#0F172A"), Margin = new Thickness(2, 5, 0, 1) });
-            sp.Children.Add(new TextBlock { Text = note, FontSize = 11, Foreground = Hex("#64748B"), TextWrapping = TextWrapping.Wrap });
+            sp.Children.Add(new TextBlock { Text = note, FontSize = 11, Foreground = Hex("#5B6B80"), TextWrapping = TextWrapping.Wrap });
             return new Border { Child = sp };
         }
         UIElement Center(UIElement e) { e.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center); e.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center); return e; }
@@ -432,7 +432,7 @@ public partial class HelpWindow : Window
         row.Children.Add(new Border { Child = excel });
 
         var arrowSp = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 16, 0), HorizontalAlignment = HorizontalAlignment.Center };
-        arrowSp.Children.Add(new TextBlock { Text = vi ? "Liên kết" : "Bind", FontSize = 10, Foreground = Hex("#64748B"), HorizontalAlignment = HorizontalAlignment.Center });
+        arrowSp.Children.Add(new TextBlock { Text = vi ? "Liên kết" : "Bind", FontSize = 10, Foreground = Hex("#5B6B80"), HorizontalAlignment = HorizontalAlignment.Center });
         arrowSp.Children.Add(new TextBlock { Text = "➜", FontSize = 30, Foreground = Hex("#1464D2"), HorizontalAlignment = HorizontalAlignment.Center });
         arrowSp.Children.Add(new TextBlock { Text = vi ? "Nguồn = Trường Excel" : "Source = Excel Field", FontSize = 9, Foreground = Hex("#94A3B8") });
         row.Children.Add(arrowSp);
@@ -443,7 +443,7 @@ public partial class HelpWindow : Window
             Width = 150, Height = 96, VerticalAlignment = VerticalAlignment.Center
         };
         var lbl = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        lbl.Children.Add(new TextBlock { Text = vi ? "Nhãn in ra" : "Printed label", FontSize = 10, Foreground = Hex("#64748B") });
+        lbl.Children.Add(new TextBlock { Text = vi ? "Nhãn in ra" : "Printed label", FontSize = 10, Foreground = Hex("#5B6B80") });
         lbl.Children.Add(new TextBlock { Text = "12.50 ₫", FontSize = 20, FontWeight = FontWeights.Bold, Foreground = Hex("#0F172A"), HorizontalAlignment = HorizontalAlignment.Center });
         labelBox.Child = lbl;
         row.Children.Add(labelBox);
@@ -506,7 +506,7 @@ public partial class HelpWindow : Window
 
         var bottom = new Border { Background = Hex("#FFFFFF"), BorderBrush = Hex("#D9E2EC"), BorderThickness = new Thickness(1), Margin = new Thickness(2) };
         var bs = new StackPanel { Margin = new Thickness(6) };
-        bs.Children.Add(new TextBlock { Text = vi ? "📑 Bảng dữ liệu Excel — đánh dấu dòng cần in, cột \"Bản\" chỉnh số bản" : "📑 Excel data table — \"Copies\" column sets prints per row", FontSize = 10.5, Foreground = Hex("#64748B"), Margin = new Thickness(0, 0, 0, 4) });
+        bs.Children.Add(new TextBlock { Text = vi ? "📑 Bảng dữ liệu Excel — đánh dấu dòng cần in, cột \"Bản\" chỉnh số bản" : "📑 Excel data table — \"Copies\" column sets prints per row", FontSize = 10.5, Foreground = Hex("#5B6B80"), Margin = new Thickness(0, 0, 0, 4) });
         bs.Children.Add(FigDataGrid(vi));
         bottom.Child = bs;
         Grid.SetRow(bottom, 1); Grid.SetColumn(bottom, 0); Grid.SetColumnSpan(bottom, 2); root.Children.Add(bottom);
@@ -531,9 +531,9 @@ public partial class HelpWindow : Window
         canvas.Children.Add(plbl); Canvas.SetLeft(plbl, 150); Canvas.SetTop(plbl, 146);
 
         // Offset arrow
-        var arrow = new Line { X1 = 120, Y1 = 82, X2 = 156, Y2 = 110, Stroke = Hex("#64748B"), StrokeThickness = 1.5 };
+        var arrow = new Line { X1 = 120, Y1 = 82, X2 = 156, Y2 = 110, Stroke = Hex("#5B6B80"), StrokeThickness = 1.5 };
         canvas.Children.Add(arrow);
-        var off = new TextBlock { Text = vi ? "Lệch X / Y" : "Offset X / Y", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = Hex("#64748B") };
+        var off = new TextBlock { Text = vi ? "Lệch X / Y" : "Offset X / Y", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = Hex("#5B6B80") };
         canvas.Children.Add(off); Canvas.SetLeft(off, 200); Canvas.SetTop(off, 80);
 
         return canvas;
