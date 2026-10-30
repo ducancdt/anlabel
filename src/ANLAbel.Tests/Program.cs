@@ -64,6 +64,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("every barcode on an A5 sheet decodes for every Excel row", DatabaseBarcodeRegression.EveryBarcodeOnAnA5SheetDecodesForEveryExcelRow),
     ("Excel data a barcode cannot carry blocks its row", DatabaseBarcodeRegression.ExcelDataABarcodeCannotCarryBlocksItsRow),
     ("label sheets fill every cell in processing order", DesignScenarioRegression.LabelSheetsFillEveryCellInProcessingOrder),
+    ("serial numbers fill a label sheet in processing order", DesignScenarioRegression.SerialNumbersFillASheetInProcessingOrder),
+    ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("turned objects print readable", DesignScenarioRegression.TurnedObjectsPrintReadable),
     ("pictures size and flip in the designer as in print", DesignScenarioRegression.PicturesSizeAndFlipInDesignerAsInPrint),
     ("data matrix sizes print as chosen", DesignScenarioRegression.DataMatrixSizesPrintAsChosen),

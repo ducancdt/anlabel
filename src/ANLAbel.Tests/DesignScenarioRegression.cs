@@ -76,6 +76,75 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Serial numbers on sheets of labels. A job of 26 labels on an A4 sheet of
+    /// 3 x 8, filled down the columns from the right (NiceLabel processing
+    /// order), numbers its labels S00101 to S00126 in that order over two
+    /// sheets; with two labels per number and five cells already used, the
+    /// pairs follow on from the sixth cell. Every cell is decoded where the
+    /// processing order puts it.
+    /// </summary>
+    public static Task SerialNumbersFillASheetInProcessingOrder()
+    {
+        (SheetCase Sheet, int ChangeEvery)[] cases =
+        [
+            (new("S", 210, 297, 70, 37, 0, 0.5, 3, 8, 0, 0, true, true, false, false, 26), 1),
+            (new("T", 210, 297, 70, 37, 0, 0.5, 3, 8, 0, 0, false, false, false, false, 12, Skip: 5), 2)
+        ];
+        var failures = new List<string>();
+        foreach (var (sheet, changeEvery) in cases)
+        {
+            RunOnSta(() =>
+            {
+                var (template, _) = CreateSheet(sheet);
+                template.Objects.Single().BindingExpression = "{#SERIAL}";
+                template.SerialCounter = new SerialCounterDefinition { StartValue = 101, ChangeEvery = changeEvery, Digits = 5, Prefix = "S", MaximumValue = 99999, Enabled = true };
+                if (!ANLAbel.Core.Printing.SerialCounterContract.TryApply(template.SerialCounter, 101, new IReadOnlyDictionary<string, string>?[sheet.Rows], out var rows, out var error))
+                {
+                    failures.Add($"Sheet {sheet.Id}: {error}");
+                    return;
+                }
+
+                var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = sheet.LabelWidthMm, LabelHeightMm = sheet.LabelHeightMm, OffsetXMm = sheet.LeftMm, OffsetYMm = sheet.TopMm, ScaleX = 1, ScaleY = 1 };
+                var paginator = (DocumentPaginator)typeof(PrintService)
+                    .GetMethod("CreateRowsPaginator", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(new PrintService(), new object?[] { template, rows, plan, sheet.Skip })!;
+                var perPage = sheet.Across * sheet.Down;
+                var pages = (sheet.Rows + sheet.Skip + perPage - 1) / perPage;
+                if (paginator.PageCount != pages)
+                {
+                    failures.Add($"Sheet {sheet.Id}: {sheet.Rows} labels need {pages} sheets, the paginator made {paginator.PageCount}.");
+                    return;
+                }
+
+                for (var page = 0; page < pages; page++)
+                {
+                    var raster = Rasterize(paginator.GetPage(page));
+                    for (var slot = 0; slot < perPage; slot++)
+                    {
+                        var index = page * perPage + slot - sheet.Skip;
+                        var (column, row) = Cell(slot, sheet);
+                        var x = sheet.LeftMm + column * (sheet.LabelWidthMm + sheet.HorizontalGapMm);
+                        var y = sheet.TopMm + row * (sheet.LabelHeightMm + sheet.VerticalGapMm);
+                        var decoded = Decode(raster, x, y, sheet.LabelWidthMm, sheet.LabelHeightMm, BarcodeFormat.CODE_128);
+                        var expected = index >= 0 && index < sheet.Rows ? $"S{101 + index / changeEvery:00000}" : string.Empty;
+                        if (decoded != expected)
+                        {
+                            failures.Add($"Sheet {sheet.Id} page {page + 1} cell column {column + 1} row {row + 1}: read '{decoded}', expected '{expected}'.");
+                        }
+                    }
+                }
+            });
+        }
+
+        if (failures.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, failures.Take(30)));
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static void CheckSheet(SheetCase sheet, List<string> failures)
     {
         var (template, rows) = CreateSheet(sheet);
@@ -1068,6 +1137,78 @@ internal static class DesignScenarioRegression
             {
             }
         }
+    }
+
+    /// <summary>
+    /// A GS1 logistics label numbers its cartons: the SSCC (AI 00) is the
+    /// extension digit and company prefix, the serial counter's nine digits and
+    /// the GS1 check digit. Three cartons scan as three consecutive SSCCs whose
+    /// check digits a scanner would accept, the human line shows the same
+    /// number, and preflight lets them print.
+    /// </summary>
+    public static Task SsccCartonsNumberThemselves()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "SSCC", WidthMm = 100, HeightMm = 50, Dpi = Dpi };
+            template.SerialCounter = new SerialCounterDefinition { StartValue = 41, Digits = 9, MaximumValue = 999_999_999, Enabled = true };
+            var code = new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                BarcodeApplicationProfile = BarcodeApplicationProfile.Gs1,
+                Name = "SSCC",
+                BindingExpression = "CONCAT(\"(00)\", GS1CHECKDIGIT(CONCAT(\"09501101\", FIELD(\"#SERIAL\"))))",
+                BarcodeModuleWidthMm = 0.33,
+                BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                QrQuietZoneModules = 10,
+                BarcodeHriPlacement = BarcodeHriPlacement.Below,
+                BarcodeTextFontSizePt = 9,
+                XMm = 6,
+                YMm = 6,
+                WidthMm = 88,
+                HeightMm = 30,
+                ZIndex = 1
+            };
+            template.Objects.Add(code);
+            if (!ANLAbel.Core.Printing.SerialCounterContract.TryApply(template.SerialCounter, 41, new IReadOnlyDictionary<string, string>?[3], out var rows, out var error))
+            {
+                throw new InvalidOperationException(error);
+            }
+
+            var failures = new List<string>();
+            var renderer = new ZxingBarcodeRenderer();
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            for (var index = 0; index < rows.Length; index++)
+            {
+                var body = "09501101" + (41 + index).ToString("000000000", System.Globalization.CultureInfo.InvariantCulture);
+                var sum = body.Select((digit, position) => (digit - '0') * ((body.Length - position) % 2 == 1 ? 3 : 1)).Sum();
+                var sscc = "00" + body + (char)('0' + (10 - sum % 10) % 10);
+                var visual = new LabelVisualRenderer().Render(template, rows[index], plan);
+                var raster = Rasterize(visual, template.WidthMm, template.HeightMm);
+                var widthMm = LinearBarcodeProductionWidth.ResolveSymbolWidthMm(code, renderer, Dpi, "(00)" + sscc[2..]);
+                var decoded = Decode(raster, code.XMm, code.YMm, widthMm, code.HeightMm, BarcodeFormat.CODE_128).Replace("\u001D", string.Empty, StringComparison.Ordinal);
+                if (decoded != sscc)
+                {
+                    failures.Add($"Carton {index + 1}: the SSCC reads '{decoded}', expected '{sscc}'.");
+                }
+
+                var line = new string(DrawnCharacters(visual.Drawing).Where(char.IsAsciiDigit).ToArray());
+                if (line != sscc)
+                {
+                    failures.Add($"Carton {index + 1}: the human line shows the digits '{line}', not the SSCC '{sscc}'.");
+                }
+            }
+
+            var blocking = new PrintPreflightValidator(renderer).Validate(template, rows, Dpi).Issues.Where(issue => issue.IsBlocking);
+            failures.AddRange(blocking.Select(issue => $"Preflight blocks {issue.ObjectName}: {issue.Message}"));
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
