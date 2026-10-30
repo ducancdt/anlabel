@@ -68,6 +68,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
+    ("print preview filter selects the scanned row", DesignScenarioRegression.PreviewFilterSelectsTheScannedRow),
     ("turned objects print readable", DesignScenarioRegression.TurnedObjectsPrintReadable),
     ("pictures size and flip in the designer as in print", DesignScenarioRegression.PicturesSizeAndFlipInDesignerAsInPrint),
     ("data matrix sizes print as chosen", DesignScenarioRegression.DataMatrixSizesPrintAsChosen),

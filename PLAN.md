@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.350
+
+- Xem trước khi in, ô lọc dòng: quét hoặc gõ đúng một mã (ví dụ "SP-0001") nay
+  chỉ chọn dòng có ô đúng bằng mã đó; trước đây lọc theo "có chứa" nên chọn cả
+  SP-00010…SP-00019 để in. Khi không ô nào khớp đúng, lọc vẫn theo "có chứa".
+  Dòng đếm ghi rõ "Đúng …" hay "Có chứa …".
+
 ## v0.350 — Giá trị quét quá dài bị trả lại thay vì bị cắt; Xem trước khi in gọn hơn và nêu tên cột
 
 _Gồm các commit 31/10/2026 (02:02–02:07)._

@@ -1363,11 +1363,16 @@ public partial class PrintPreviewWindow : Window
             return;
         }
 
+        // A scanned or typed code selects the rows whose cell is exactly that
+        // value: "SP-0001" must not also select SP-00010 to SP-00019 for print.
+        // Only when no cell equals it does the filter fall back to "contains".
+        var column = searchAllColumns ? null : selectedColumn;
+        var exact = _trackingRows.Any(vm => RowMatchesFilter(_allRowsCache.ElementAtOrDefault(vm.SourceRowNumber - 1), column, filterText, exact: true));
         var visible = new List<TrackingRowViewModel>();
         foreach (var vm in _trackingRows)
         {
             var row = _allRowsCache.ElementAtOrDefault(vm.SourceRowNumber - 1);
-            var isMatch = RowMatchesFilter(row, searchAllColumns ? null : selectedColumn, filterText);
+            var isMatch = RowMatchesFilter(row, column, filterText, exact);
             vm.IsSelected = isMatch;
             if (isMatch)
             {
@@ -1379,7 +1384,9 @@ public partial class PrintPreviewWindow : Window
         FilterMatchCountText.Visibility = Visibility.Visible;
         FilterMatchCountText.Text = visible.Count == 0
             ? $"Không có dòng nào khớp \"{filterText}\""
-            : $"Khớp {visible.Count} / {_trackingRows.Count} dòng — đã chọn để in";
+            : exact
+                ? $"Đúng \"{filterText}\": {visible.Count} / {_trackingRows.Count} dòng — đã chọn để in"
+                : $"Có chứa \"{filterText}\": {visible.Count} / {_trackingRows.Count} dòng — đã chọn để in";
         DemoteReadyIfPreparedQuantityDisagrees();
     }
 
@@ -1398,19 +1405,22 @@ public partial class PrintPreviewWindow : Window
         OnPropertyChanged();
     }
 
-    private static bool RowMatchesFilter(IReadOnlyDictionary<string, string>? row, string? column, string filterText)
+    private static bool RowMatchesFilter(IReadOnlyDictionary<string, string>? row, string? column, string filterText, bool exact)
     {
         if (row is null)
         {
             return false;
         }
 
+        bool Matches(string value) => exact
+            ? string.Equals(value.Trim(), filterText, StringComparison.OrdinalIgnoreCase)
+            : value.Contains(filterText, StringComparison.OrdinalIgnoreCase);
         if (string.IsNullOrEmpty(column))
         {
-            return row.Values.Any(value => value.Contains(filterText, StringComparison.OrdinalIgnoreCase));
+            return row.Values.Any(Matches);
         }
 
-        return row.TryGetValue(column, out var columnValue) && columnValue.Contains(filterText, StringComparison.OrdinalIgnoreCase);
+        return row.TryGetValue(column, out var columnValue) && Matches(columnValue);
     }
 
     // ==================== Refresh logic ====================

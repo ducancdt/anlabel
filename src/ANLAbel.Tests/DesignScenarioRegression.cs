@@ -1474,6 +1474,71 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Print Preview's row filter as an operator uses it: scanning a product
+    /// code selects only the row whose cell is that code (not SP-00010 for
+    /// SP-0001), a partial value still selects every row containing it, and
+    /// clearing the filter selects all rows again; the prepared labels follow
+    /// the selection.
+    /// </summary>
+    public static Task PreviewFilterSelectsTheScannedRow()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Hàng", WidthMm = 60, HeightMm = 30, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 40, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            IReadOnlyDictionary<string, string>?[] rows =
+            [
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-0001", ["Ten"] = "Bu lông M8" },
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-00010", ["Ten"] = "Bu lông M10" },
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-0002", ["Ten"] = "Đai ốc M8" }
+            ];
+            var window = new ANLAbel.App.PrintPreviewWindow(
+                template,
+                rows[0],
+                null,
+                new PrintService(),
+                new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(Path.GetTempPath(), $"anlabel-filter-{Guid.NewGuid():N}.csv")),
+                string.Empty,
+                preparedRows: rows);
+            void Settle()
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(30);
+                do
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                    Thread.Sleep(20);
+                }
+                while (window.IsPreviewBusy && DateTime.UtcNow < deadline);
+            }
+
+            Settle();
+            var filter = (TextBox)window.FindName("RowFilterBox");
+            var list = (ListBox)window.FindName("TrackingList");
+            string[] Selected() => list.Items.Cast<ANLAbel.App.ViewModels.TrackingRowViewModel>().Where(row => row.IsSelected).Select(row => row.Col1 ?? string.Empty).ToArray();
+            void Search(string text)
+            {
+                // Typing filters the list at once; Enter prepares the selected labels.
+                filter.Text = text;
+                typeof(ANLAbel.App.PrintPreviewWindow).GetMethod("RefreshPreviewPagesOnly", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+                Settle();
+            }
+
+            Search("SP-0001");
+            Require(Selected().SequenceEqual(["SP-0001"]) && window.Pages.Count == 1,
+                $"Scanning SP-0001 selects that row only (selected {string.Join(", ", Selected())}; {window.Pages.Count} labels prepared).");
+            Search("m8");
+            Require(Selected().SequenceEqual(["SP-0001", "SP-0002"]) && window.Pages.Count == 2,
+                $"A partial value selects every row containing it (selected {string.Join(", ", Selected())}; {window.Pages.Count} labels prepared).");
+            Search(string.Empty);
+            Require(Selected().Length == 3 && window.Pages.Count == 3, $"Clearing the filter selects every row again ({Selected().Length} selected, {window.Pages.Count} prepared).");
+            window.Close();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// The Data Manager's prompt editor follows the kind of value (NiceLabel 10
     /// variable data type): a text prompt shows the text rules; choosing Ngày
     /// gives it a date format and shows the date format instead; back to Chữ
