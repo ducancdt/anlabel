@@ -6,6 +6,12 @@
   độ lệch, vùng in đã xác thực) nằm trong mục "Chi tiết kỹ thuật" thu gọn; hai câu
   ghi chú về cửa sổ Thiết lập tem gộp thành chú thích của nút cài đặt; nút "In"
   nổi bật như nút chính.
+- Hộp nhập khi in: giá trị dài hơn số ký tự tối đa (ví dụ máy quét gửi 9 ký tự vào
+  ô số lô tối đa 8) nay bị trả lại bằng tiếng Việt; trước đây ô chữ cắt bớt ký tự
+  thừa nên tem in giá trị bị cắt mà không báo.
+- Kịch bản thiết kế mới (kiểm thử hồi quy): hộp thuốc mang GS1 DataMatrix với
+  GTIN và số lô từ Excel, hạn dùng từ biến ngày, số serial từ bộ đếm; mỗi hộp
+  giải đúng, có dấu phân cách GS sau số lô và serial tăng dần.
 
 ## v0.349 — Ngày gõ sai khi in bị trả lại thay vì lặng lẽ in ngày cũ; trình soạn biến nhập gọn và rõ hơn
 

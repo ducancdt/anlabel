@@ -66,6 +66,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("label sheets fill every cell in processing order", DesignScenarioRegression.LabelSheetsFillEveryCellInProcessingOrder),
     ("serial numbers fill a label sheet in processing order", DesignScenarioRegression.SerialNumbersFillASheetInProcessingOrder),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
+    ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("turned objects print readable", DesignScenarioRegression.TurnedObjectsPrintReadable),
     ("pictures size and flip in the designer as in print", DesignScenarioRegression.PicturesSizeAndFlipInDesignerAsInPrint),
     ("data matrix sizes print as chosen", DesignScenarioRegression.DataMatrixSizesPrintAsChosen),

@@ -626,6 +626,36 @@ internal static class DesignScenarioRegression
             Require(typoWindow.Values.TryGetValue("Exp", out var fixedDate) && fixedDate == "2027-01-15", "The corrected date is taken: " + fixedDate);
             typoWindow.Close();
 
+            // A scan longer than the maximum is turned back, never cut to fit.
+            var lots = new[] { new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô", MaxLength = 8 } };
+            var lotWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
+                typeof(ANLAbel.App.PromptValuesWindow),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new object[] { lots, new Dictionary<string, string>() },
+                null)!;
+            var lotPanel = (StackPanel)lotWindow.Content;
+            var lotBox = lotPanel.Children.OfType<TextBox>().Single();
+            var lotProblem = lotPanel.Children.OfType<TextBlock>().Last(text => text.Foreground == Brushes.DarkRed);
+            // Typed character by character, as a keyboard-wedge scanner sends it
+            // (setting Text in code would bypass any MaxLength on the box).
+            foreach (var character in "LOT123456")
+            {
+                var composition = new System.Windows.Input.TextComposition(System.Windows.Input.InputManager.Current, lotBox, character.ToString());
+                lotBox.RaiseEvent(new System.Windows.Input.TextCompositionEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, composition) { RoutedEvent = UIElement.TextInputEvent });
+            }
+            try
+            {
+                typeof(ANLAbel.App.PromptValuesWindow).GetMethod("Accept", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(lotWindow, null);
+            }
+            catch (TargetInvocationException closing) when (closing.InnerException is InvalidOperationException)
+            {
+                // Accepted (the value was cut to fit): the window was never shown, so it cannot close.
+            }
+            Require(lotBox.Text == "LOT123456" && !lotWindow.Values.ContainsKey("Lot") && lotProblem.Text.Contains("tối đa 8 ký tự, đang nhập 9", StringComparison.Ordinal),
+                $"A 9-character scan into an 8-character prompt is refused as typed (box '{lotBox.Text}', said '{lotProblem.Text}').");
+            lotWindow.Close();
+
             // A minimum length (NiceLabel 10 input rule) is shown and turns a short value back.
             var parts = new[] { new PromptVariableDefinition { Name = "Part", Prompt = "Mã hàng", MinLength = 6, MaxLength = 10 } };
             var partWindow = (ANLAbel.App.PromptValuesWindow)Activator.CreateInstance(
@@ -1175,6 +1205,65 @@ internal static class DesignScenarioRegression
             {
             }
         }
+    }
+
+    /// <summary>
+    /// Pharmaceutical serialization in a GS1 DataMatrix: GTIN (01) and lot (10)
+    /// from the Excel row, expiry (17) from a date prompt and serial (21) from
+    /// the serial counter. Every pack decodes to its own element string, the
+    /// lot (variable length) is closed by the GS separator before the serial,
+    /// the serials count up and preflight lets the job print.
+    /// </summary>
+    public static Task PharmaPacksCarryGs1DataMatrixSerials()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Pack", WidthMm = 50, HeightMm = 30, Dpi = Dpi };
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Exp", Prompt = "Hạn dùng", DateFormat = "yyMMdd" });
+            template.SerialCounter = new SerialCounterDefinition { StartValue = 1001, Digits = 8, MaximumValue = 99_999_999, Enabled = true };
+            var code = new LabelObject
+            {
+                Type = ObjectType.DataMatrix,
+                Name = "GS1 DataMatrix",
+                BarcodeApplicationProfile = BarcodeApplicationProfile.Gs1,
+                BindingExpression = "(01){GTIN}(17){?Exp}(10){Lot}(21){#SERIAL}",
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 20,
+                HeightMm = 20,
+                Style = { BorderThicknessMm = 0 },
+                ZIndex = 1
+            };
+            template.Objects.Add(code);
+            (string Gtin, string Lot)[] packs = [("09506000134352", "A1B2"), ("09501101530003", "LOT-2026-10"), ("04895123000107", "7")];
+            var rows = packs
+                .Select(pack => (IReadOnlyDictionary<string, string>?)new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["GTIN"] = pack.Gtin, ["Lot"] = pack.Lot })
+                .ToArray();
+            Require(ANLAbel.Core.Printing.JobVariableContract.TryApply(template, rows, DateTimeOffset.Now, new Dictionary<string, string> { ["Exp"] = "2027-06-30" }, out var answered, out var promptError), promptError);
+            Require(ANLAbel.Core.Printing.SerialCounterContract.TryApply(template.SerialCounter, 1001, answered, out var labels, out var serialError), serialError);
+
+            var failures = new List<string>();
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            for (var index = 0; index < labels.Length; index++)
+            {
+                var expected = "01" + packs[index].Gtin + "17270630" + "10" + packs[index].Lot + "\u001D" + "21" + (1001 + index).ToString("00000000", System.Globalization.CultureInfo.InvariantCulture);
+                var raster = Rasterize(new LabelVisualRenderer().Render(template, labels[index], plan), template.WidthMm, template.HeightMm);
+                var decoded = Decode(raster, code.XMm, code.YMm, code.WidthMm, code.HeightMm, BarcodeFormat.DATA_MATRIX);
+                if (decoded != expected)
+                {
+                    failures.Add($"Pack {index + 1}: the DataMatrix reads '{decoded.Replace("\u001D", "<GS>", StringComparison.Ordinal)}', expected '{expected.Replace("\u001D", "<GS>", StringComparison.Ordinal)}'.");
+                }
+            }
+
+            var blocking = new PrintPreflightValidator(new ZxingBarcodeRenderer()).Validate(template, labels, Dpi).Issues.Where(issue => issue.IsBlocking);
+            failures.AddRange(blocking.Select(issue => $"Preflight blocks {issue.ObjectName}: {issue.Message}"));
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

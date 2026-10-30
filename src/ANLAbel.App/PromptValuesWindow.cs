@@ -158,11 +158,13 @@ public sealed class PromptValuesWindow : Window
             }
             else
             {
+                // No MaxLength on the box: a scanner types every character, and a
+                // box that drops the extra ones would print a shortened value without
+                // a word. Accept turns an over-long value back instead.
                 var box = new TextBox
                 {
                     Text = initial,
-                    MinWidth = 320,
-                    MaxLength = prompt.MaxLength > 0 ? Math.Min(prompt.MaxLength, JobVariableContract.MaximumPromptLength) : JobVariableContract.MaximumPromptLength
+                    MinWidth = 320
                 };
                 input = box;
                 read = () => box.Text;
