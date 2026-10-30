@@ -1472,33 +1472,15 @@
 
                     <StackPanel Grid.Row="1" Margin="8,8,8,8">
                         <UniformGrid Columns="3" Rows="3">
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}" AutomationProperties.Name="Insert Text" ToolTip="Chữ (một dòng, nội dung tự sở hữu)">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Chữ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextBoxCommand}" AutomationProperties.Name="Insert Text Box">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/text_box.png"/><TextBlock Text="Ô chữ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRichTextBoxCommand}" AutomationProperties.Name="Insert Rich Text" ToolTip="Chữ định dạng (RTF): nhiều kiểu chữ trong một khung">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rich_text.png"/><TextBlock Text="Chữ RTF" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddBarcodeCommand}" AutomationProperties.Name="Insert Barcode">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/barcode.png"/><TextBlock Text="Mã vạch" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddImageCommand}" AutomationProperties.Name="Insert Picture">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Hình ảnh" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRectangleCommand}" AutomationProperties.Name="Insert Rectangle" ToolTip="Hình chữ nhật">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rectangle.png"/><TextBlock Text="Chữ nhật" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddLineCommand}" AutomationProperties.Name="Insert Line">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/line.png"/><TextBlock Text="Đường kẻ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}" AutomationProperties.Name="Insert Ellipse" ToolTip="Hình bầu dục">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Bầu dục" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddInverseCommand}" AutomationProperties.Name="Insert Inverse" ToolTip="Đảo màu: vùng in đảo ngược đen và trắng bên dưới">
-                                <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/inverse.png"/><TextBlock Text="Đảo màu" TextAlignment="Center" FontSize="11.5"/></StackPanel>
-                            </Button>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Text32}" Content="Chữ" Command="{Binding AddTextCommand}" AutomationProperties.Name="Insert Text" ToolTip="Chữ (một dòng, nội dung tự sở hữu)"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.TextBox32}" Content="Ô chữ" Command="{Binding AddTextBoxCommand}" AutomationProperties.Name="Insert Text Box"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.RichText32}" Content="Chữ RTF" Command="{Binding AddRichTextBoxCommand}" AutomationProperties.Name="Insert Rich Text" ToolTip="Chữ định dạng (RTF): nhiều kiểu chữ trong một khung"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Barcode32}" Content="Mã vạch" Command="{Binding AddBarcodeCommand}" AutomationProperties.Name="Insert Barcode"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Picture32}" Content="Hình ảnh" Command="{Binding AddImageCommand}" AutomationProperties.Name="Insert Picture"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Rectangle32}" Content="Chữ nhật" Command="{Binding AddRectangleCommand}" AutomationProperties.Name="Insert Rectangle" ToolTip="Hình chữ nhật"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Line32}" Content="Đường kẻ" Command="{Binding AddLineCommand}" AutomationProperties.Name="Insert Line"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Ellipse32}" Content="Bầu dục" Command="{Binding AddEllipseCommand}" AutomationProperties.Name="Insert Ellipse" ToolTip="Hình bầu dục"/>
+                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Inverse32}" Content="Đảo màu" Command="{Binding AddInverseCommand}" AutomationProperties.Name="Insert Inverse" ToolTip="Đảo màu: vùng in đảo ngược đen và trắng bên dưới"/>
                         </UniformGrid>
 
                         <TextBlock Text="{Binding DrawingCommandText}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap" Margin="4,8,4,0">
@@ -1533,7 +1515,7 @@
                                 <TabItem>
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
-                                            <Image Source="Icons/database.png" Width="15" Height="15" Margin="0,0,6,0"/>
+                                            <Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,0,6,0"/>
                                             <TextBlock Text="Dữ liệu"/>
                                         </StackPanel>
                                     </TabItem.Header>
@@ -1894,7 +1876,7 @@
                                 <TabItem>
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
-                                            <Image Source="Icons/panels.png" Width="15" Height="15" Margin="0,0,6,0"/>
+                                            <Image Source="{StaticResource Icon.Layers16}" Width="16" Height="16" Margin="0,0,6,0"/>
                                             <TextBlock Text="Lớp"/>
                                         </StackPanel>
                                     </TabItem.Header>
@@ -1934,7 +1916,7 @@
                                 <TabItem AutomationProperties.AutomationId="Shell.Workspace.Objects">
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE7B8;" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <Image Source="{StaticResource Icon.Objects16}" Width="16" Height="16" Margin="0,0,6,0"/>
                                             <TextBlock Text="Đối tượng"/>
                                         </StackPanel>
                                     </TabItem.Header>

@@ -284,6 +284,10 @@ header rows of the side-by-side table above.
 | Hình ảnh | Hình ảnh: Thay ảnh, Giữ tỉ lệ — Sắp xếp |
 | Hình dạng | Đường viền: Kiểu viền ▾ · Màu viền ▾ (bảng màu, mã màu) · độ dày · bo góc — Tô nền: Kiểu tô ▾ · Màu tô ▾ — Sắp xếp |
 
+Toolbox: flat 3 × 3 tiles (`ToolboxTile`) with the same vector family — Chữ,
+Ô chữ, Chữ RTF, Mã vạch, Hình ảnh, Chữ nhật, Đường kẻ, Bầu dục, Đảo màu —
+and the Data / Layers / Objects tabs use 16 DIP vector icons.
+
 Every object tab repeats NiceLabel's Sắp xếp group (Đưa lên ▾, Đưa xuống ▾, Nhóm
 đối tượng, Bỏ nhóm, Căn chỉnh ▾); the drop-downs bind the same properties as
 the Properties panel, so both always agree.

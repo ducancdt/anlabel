@@ -274,7 +274,7 @@
                 <ControlTemplate TargetType="controls:RibbonSplitButton">
                     <Border x:Name="Frame" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2" SnapsToDevicePixels="True">
                         <DockPanel>
-                            <Border x:Name="Main" DockPanel.Dock="Top" Background="Transparent" Padding="4,2,4,1">
+                            <Border x:Name="Main" DockPanel.Dock="Top" Background="Transparent" Padding="4,2,4,0">
                                 <Image x:Name="Icon" Source="{TemplateBinding controls:Ribbon.Icon}" Width="32" Height="32" HorizontalAlignment="Center"/>
                             </Border>
                             <Button x:Name="PART_DropDown" Focusable="False" Foreground="{TemplateBinding Foreground}"
@@ -678,4 +678,11 @@
     <DataTemplate x:Key="RibbonColorSwatch">
         <Border Width="20" Height="20" Margin="1" Background="{Binding}" BorderBrush="#8C8C8C" BorderThickness="1" ToolTip="{Binding}"/>
     </DataTemplate>
+
+    <!-- Toolbox tile (NiceLabel 10 toolbox): a 32 DIP icon over its name, flat until hovered -->
+    <Style x:Key="ToolboxTile" TargetType="ButtonBase" BasedOn="{StaticResource RibbonLargeButton}">
+        <Setter Property="Height" Value="62"/>
+        <Setter Property="Margin" Value="2"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
 </ResourceDictionary>

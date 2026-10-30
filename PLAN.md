@@ -14,6 +14,8 @@
 - Tab ngữ cảnh theo NiceLabel: Mã vạch (loại mã, dữ liệu; Vạch bao ▾, Chi tiết
   mã ▾, Chi tiết 2D ▾), Hình dạng (Kiểu viền ▾, Màu viền ▾, độ dày, bo góc; Kiểu
   tô ▾, Màu tô ▾); nhóm Sắp xếp trên mọi tab đối tượng.
+- Hộp công cụ phẳng như NiceLabel (icon vector 32 px, tên dưới icon) và icon
+  vector cho thẻ Dữ liệu / Lớp / Đối tượng.
 
 ## v0.342 — Giao diện NiceLabel 10: thanh tiêu đề, dải tab, ribbon và trang Tệp
 
