@@ -11835,8 +11835,8 @@ static async Task TestOpenNiceLabel10NlblImportsLabel()
         var lotText = result.Template.Objects[1];
         AssertEqual("{?LotCode}", lotText.BindingExpression, "A DataSourceReference must resolve through the solution (.slnx) variable table");
         var lotPrompt = result.Template.PromptVariables.FirstOrDefault(v => v.Name == "LotCode");
-        AssertEqual(true, lotPrompt is not null && lotPrompt.DefaultValue == "DEFAULT LOT",
-            "The resolved variable must be declared with the item's design-time contents as default when it stores none");
+        AssertEqual(true, lotPrompt is not null && lotPrompt.DefaultValue == string.Empty,
+            "A variable that stores no default must start empty, as in NiceLabel's print form: the item's stored contents are not the variable's value");
         AssertEqual("Enter the lot code", lotPrompt!.Prompt, "The stored PromptText must become the operator prompt");
         AssertEqual(10, lotPrompt.MaxLength, "The stored length constraint must become the prompt maximum length");
         AssertEqual(true, lotPrompt.Required, "The stored IsRequired constraint must make the prompt required");

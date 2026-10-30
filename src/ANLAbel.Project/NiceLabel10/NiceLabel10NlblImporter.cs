@@ -1718,10 +1718,12 @@ public static partial class NiceLabel10NlblImporter
             {
                 Name = variable.Name,
                 Prompt = variable.PromptText?.Trim() ?? string.Empty,
-                // The stored default; the item's design-time contents stand
-                // in when the variable declares none (not for a date, whose
-                // contents are no date).
-                DefaultValue = string.IsNullOrEmpty(storedDefault) && variable.DateFormat is null ? record.Content : storedDefault,
+                // The stored default only: without one the question starts
+                // empty, as in NiceLabel's print form. A bound item's stored
+                // contents are NiceLabel's placeholder ("??????", "000000") or
+                // what it held before it was bound ("123456789012", "Text"),
+                // and printed as data when the operator just pressed Enter.
+                DefaultValue = storedDefault ?? string.Empty,
                 MaxLength = Math.Max(0, variable.MaxLength),
                 MinLength = variable.MinLength,
                 Required = variable.Required,

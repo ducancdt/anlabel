@@ -553,8 +553,29 @@ public static partial class NiceLabel10NlblReader
     /// </summary>
     private static string? ReadScriptConcatenation(XElement function, IReadOnlyDictionary<string, string> namesById)
     {
-        var script = ChildText(function, "Script")?.Trim();
-        var statement = script is null ? null : ScriptStatement.Match(script);
+        // Comment lines ("Rem ..." or "' ...") only say what the script is
+        // for (the MAT and VDA 4992 date of manufacture explains its "094");
+        // the one statement left is read. A script edited with comments is
+        // stored Base64-encoded (UTF-8).
+        var script = ChildText(function, "Script");
+        if (script is not null && string.Equals((string?)function.Element("Script")?.Attribute("Base64Encoded"), "true", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                script = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(script.Trim())).TrimStart('\uFEFF');
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        var statements = script?
+            .Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !ScriptComment.IsMatch(line))
+            .ToArray();
+        var statement = statements is { Length: 1 } ? ScriptStatement.Match(statements[0]) : null;
         if (statement is not { Success: true })
         {
             return null;
@@ -573,6 +594,10 @@ public static partial class NiceLabel10NlblReader
         var parser = new ScriptExpressionParser(statement.Groups["expression"].Value, inputs);
         return parser.Parse();
     }
+
+    private static readonly Regex ScriptComment = new(
+        @"^(Rem(\s|$)|')",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static readonly Regex ScriptStatement = new(
         @"^Result\s*=\s*(?<expression>[^\r\n]+)$",

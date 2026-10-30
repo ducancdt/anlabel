@@ -814,7 +814,7 @@ built: a `DateAddFunction` whose input is a prompted date.
   below it is refused. ANLAbel prompts carry it as `MinLength`, checked on a
   non-empty answer unless padding fills the value to its maximum length.
 
-## §21 HIBC and zero placeholders (2026-10-31)
+## §21 HIBC, zero placeholders and prompts without a default (2026-10-31)
 
 - `HibcFunction` (AdvancedFunctions `aq`, HIBC Supplier Labeling Standard
   2.5): `Mode` 0 Primary, 1 Secondary (`PrimaryFunctionReference`), 2
@@ -840,3 +840,19 @@ built: a `DateAddFunction` whose input is a prompted date.
   are now a placeholder: the frame follows the design-time value. Sample
   sweep: 504 of 527 codes decode (was 501), objects outside the label 41
   (was 43).
+- Prompts without a default: the importer gave such a prompt the bound
+  item's stored contents as default — the placeholders above or what the item
+  held before it was bound ("123456789012", "Text"). In the samples that put
+  "??????????" (215 prompts), "123456789012" (79), zeros (10) and others (6)
+  in the print dialog, printed as data when the operator pressed Enter.
+  NiceLabel's print form starts such a variable empty; ANLAbel now does too
+  (none of the 12 local customer labels had one).
+- `ExecuteScriptFunction` scripts that carry comment lines are stored with
+  `Base64Encoded="true"` (UTF-8). Of 106 scripts, 34 plain and 5 encoded
+  ones are a single `Result = ...` statement once `Rem`/`'` lines are
+  skipped; the encoded ones were not decoded. MAT label's 6D date of
+  manufacture (date + "094", ANSI X12.3 qualifier) now converts, and with it
+  its Data Matrix. Still unconverted and out of scope: PZN/PPN (German
+  pharmacy numbers, multi-line mod-11/mod-97 scripts), the Voice Pick code
+  (produce traceability, a label-internal function), ISBT 128 (script
+  helper `ISBTNumericPair`).

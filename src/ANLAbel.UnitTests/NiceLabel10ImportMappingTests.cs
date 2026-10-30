@@ -1477,6 +1477,84 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void PromptsWithoutADefaultStartEmpty()
+    {
+        // NiceLabel stores "?" or "0" repeated (or the contents before binding)
+        // in a bound item; none of it is the variable's value.
+        const string weight = "f3f3f3f3-2222-3333-4444-555555555555";
+        const string ean = "f4f4f4f4-2222-3333-4444-555555555555";
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable"><Id>{weight}</Id><Name>Weight</Name><SampleValue Type="StringContents"><StringValue>??????</StringValue></SampleValue><Constraints Type="DataSourceConstraints"><Length>10</Length></Constraints></Item>
+                <Item Type="Variable"><Id>{ean}</Id><Name>Ean</Name><Constraints Type="DataSourceConstraints"><Length>12</Length></Constraints></Item>
+              </Variables>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format($"""
+            <Item Type="TextDocumentItem">
+              <Name>Weight text</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>3000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>??????????</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{weight}</Id></DataSourceReference>
+            </Item>
+            <Item Type="BarcodeDocumentItem">
+              <Name>Ean code</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>20000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>250</BaseBarWidth><ModuleHeight>8000</ModuleHeight></BarcodeData>
+              <FixedContents>123456789012</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{ean}</Id></DataSourceReference>
+            </Item>
+            """), solution), "sample.nlbl", out _, out _);
+
+        var prompts = template.PromptVariables.ToDictionary(prompt => prompt.Name);
+        Assert.Equal(string.Empty, prompts["Weight"].DefaultValue);
+        Assert.Equal(string.Empty, prompts["Ean"].DefaultValue);
+        Assert.Equal((10, 12), (prompts["Weight"].MaxLength, prompts["Ean"].MaxLength));
+    }
+
+    [Fact]
+    public void Base64ScriptsWithCommentsAreRead()
+    {
+        // MAT / VDA 4992 material labels: the 6D date of manufacture is the date
+        // followed by "094" (ANSI X12.3 date qualifier), in a script stored
+        // Base64-encoded because it starts with comment lines.
+        const string made = "f1f1f1f1-2222-3333-4444-555555555555";
+        const string script = "f2f2f2f2-2222-3333-4444-555555555555";
+        var body = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+            "Rem 094 is ANSI X12.3 Data Element Number 374 Qualifier\r\n' providing a code specifying type of date\r\nResult = [Made] & \"094\""));
+        var solution = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable"><Id>{made}</Id><Name>Made</Name><DefaultValue Type="StringContents"><StringValue>20261031</StringValue></DefaultValue></Item>
+              </Variables>
+              <Functions>
+                <Item Type="ExecuteScriptFunction"><Id>{script}</Id><Name>Made 6D</Name>
+                  <Script Base64Encoded="true">{body}</Script>
+                  <InputDataSourceReferences><Item Type="SolutionDataSourceReference"><Id>{made}</Id></Item></InputDataSourceReferences>
+                </Item>
+              </Functions>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format($"""
+            <Item Type="TextDocumentItem">
+              <Name>Made text</Name>
+              <Geometry Type="PositionGeometry"><X>3000</X><Y>3000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>??????</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{script}</Id></DataSourceReference>
+            </Item>
+            """), solution), "sample.nlbl", out _, out var notConverted);
+
+        Assert.Empty(notConverted);
+        var text = Assert.Single(template.Objects);
+        Assert.Equal("{?Made}094", text.BindingExpression);
+    }
+
+    [Fact]
     public void HibcFunctions_BecomeHibcCheckFormulas()
     {
         // UDI-HIBC sample shapes: a primary, a secondary linked to it, and a
