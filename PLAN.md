@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.349
+
+- Xem trước khi in (soát thiết kế): các giá trị kỹ thuật của kế hoạch in (DPI,
+  độ lệch, vùng in đã xác thực) nằm trong mục "Chi tiết kỹ thuật" thu gọn; hai câu
+  ghi chú về cửa sổ Thiết lập tem gộp thành chú thích của nút cài đặt; nút "In"
+  nổi bật như nút chính.
+
 ## v0.349 — Ngày gõ sai khi in bị trả lại thay vì lặng lẽ in ngày cũ; trình soạn biến nhập gọn và rõ hơn
 
 _Gồm các commit 31/10/2026 (01:46–01:54)._

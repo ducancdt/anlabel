@@ -219,7 +219,6 @@
                         <StackPanel>
                             <TextBlock Text="{Binding PrinterName}" TextWrapping="Wrap" Foreground="#0F172A" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding LabelSizeText}" Foreground="#475569" Margin="0,4,0,0"/>
-                            <TextBlock Text="{Binding PrintPlanSummaryText}" Foreground="#475569" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             <TextBlock Text="{Binding PreviewTrustStatusText}" FontSize="11" FontWeight="SemiBold" Margin="0,4,0,0" TextWrapping="Wrap">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -240,10 +239,15 @@
                             </TextBlock>
                             <TextBlock Text="{Binding PrinterStatusText}" TextWrapping="Wrap" Foreground="#475569" FontSize="11" Margin="0,6,0,0"
                                        AutomationProperties.AutomationId="PrintPreview.PrinterStatus"/>
+                            <Expander Header="Chi tiết kỹ thuật" FontSize="11" Foreground="#475569" Margin="0,6,0,0" IsExpanded="False"
+                                      AutomationProperties.AutomationId="PrintPreview.PlanDetails">
+                                <TextBlock Text="{Binding PrintPlanSummaryText}" Foreground="#475569" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                            </Expander>
                         </StackPanel>
                     </Border>
 
-                    <Button Content="Kích thước tem và cài đặt máy in..." AutomationProperties.AutomationId="PrintPreview.OpenPrinterSetup" Padding="8,6" Margin="0,0,0,12" Click="LabelPrinterSetup_Click"/>
+                    <Button Content="Kích thước tem và cài đặt máy in..." AutomationProperties.AutomationId="PrintPreview.OpenPrinterSetup" Padding="8,6" Margin="0,0,0,12" Click="LabelPrinterSetup_Click"
+                            ToolTip="Khổ tem, máy in, căn lệch và tỉ lệ in: cùng cửa sổ Thiết lập tem với trình thiết kế."/>
 
                     <Border Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="5" Padding="8" Margin="0,0,0,12">
                         <StackPanel>
@@ -352,7 +356,6 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="Cùng một cửa sổ Thiết lập tem với trình thiết kế. Không có bộ chọn khổ giấy riêng trong Xem trước." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,0,0,12"/>
 
                     <Expander Header="Phương pháp in" IsExpanded="False" Margin="0,6,0,0">
                         <StackPanel Margin="0,8,0,0">
@@ -366,13 +369,13 @@
                         </StackPanel>
                     </Expander>
 
-                    <TextBlock Text="Căn chỉnh lệch/tỉ lệ khổ in nằm trong Thiết lập tem và máy in." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,6,0,0"/>
 
                     <TextBlock Text="Mỗi dòng Excel thành một tem. Chỉnh số bản bằng nút ▲▼." TextWrapping="Wrap" Foreground="#526070" Margin="0,14,0,0"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
                         <Button Content="Đóng" AutomationProperties.AutomationId="PrintPreview.Close" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Close_Click"/>
-                        <Button Content="In" AutomationProperties.AutomationId="PrintPreview.Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanRequestPrint}"/>
+                        <Button Content="In" AutomationProperties.AutomationId="PrintPreview.Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanRequestPrint}"
+                                FontWeight="SemiBold" Foreground="#0B3F86" BorderBrush="#1464D2" BorderThickness="2"/>
                     </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
