@@ -7,6 +7,13 @@
   trống) ở bảng Dữ liệu, đầu bảng Thuộc tính, Xem trước khi in (ô tìm, dấu
   đã in), Cập nhật, Thư viện mẫu và Hướng dẫn (danh mục, ghi chú, hình
   ribbon/hộp công cụ dùng icon thật; mục đang chọn không còn bị mờ chữ).
+- Khổ giấy và chọn giấy theo NiceLabel 10 (Thuộc tính tem): Kích thước tem
+  có Lề (trái/trên nhập, phải/dưới tự tính), Số tem trên trang (ngang/dọc,
+  khoảng cách, thứ tự in, tính số tem vừa tờ); trang Giấy có loại giấy, khổ
+  giấy của máy in, Xoay 180° và hình xem trước. Áp dụng chặn lưới tràn tờ.
+- In tem trên tờ lớn hơn tem (ví dụ tem trên A5/A4): mỗi trang gửi máy in
+  là cả tờ, tem đặt đúng lề; trước đây trang chỉ bằng tem nên phần bị lề
+  đẩy ra có thể mất. Xoay 180° xoay cả trang.
 
 ## v0.343 — Quản lý dữ liệu, tab ngữ cảnh và hộp công cụ theo NiceLabel 10
 

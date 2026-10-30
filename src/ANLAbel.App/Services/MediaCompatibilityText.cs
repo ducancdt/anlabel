@@ -37,7 +37,7 @@ public static class MediaCompatibilityText
         (Rx("^No same-orientation driver media matches the requested physical size"),
             _ => "Không có khổ giấy cùng hướng trong trình điều khiển khớp với kích thước tem."),
         (Rx("^Driver media '(?<n>[^']*)' matches the requested physical size"),
-            m => $"Khổ giấy “{m.Groups["n"].Value}” của trình điều khiển khớp với kích thước tem."),
+            m => $"Khổ giấy “{m.Groups["n"].Value}” có trong trình điều khiển máy in và chứa được tem."),
         (Rx("^Media '(?<n>[^']*)' matches the requested physical size but is a software stock"),
             m => $"Khổ “{m.Groups["n"].Value}” khớp kích thước nhưng chỉ là khổ mẫu của phần mềm, không phải khổ giấy trình điều khiển công bố; chưa thể dùng để in."),
         (Rx("^The selected printer queue is unavailable"),

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using ANLAbel.App.Services;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Geometry;
@@ -44,7 +45,8 @@ public partial class PrinterSetupWindow : Window
         double initialScaleX = 1,
         double initialScaleY = 1,
         LabelTemplate? workingTemplate = null,
-        PrintService? printService = null)
+        PrintService? printService = null,
+        PageLayoutSelection? initialLayout = null)
     {
         _capabilityService = capabilityService ?? new PrinterCapabilityService();
         _preferencesLauncher = preferencesLauncher ?? new WindowsPrinterPreferencesLauncher();
@@ -115,11 +117,39 @@ public partial class PrinterSetupWindow : Window
             WidthBox.Text = orientedW.ToString("0.##");
             HeightBox.Text = orientedH.ToString("0.##");
         }
+
+        var layout = initialLayout ?? PageLayoutSelection.Single;
+        LabelsAcrossBox.Text = Math.Max(1, layout.LabelsAcross).ToString();
+        LabelsDownBox.Text = Math.Max(1, layout.LabelsDown).ToString();
+        HorizontalGapBox.Text = layout.HorizontalGapMm.ToString("0.##");
+        VerticalGapBox.Text = layout.VerticalGapMm.ToString("0.##");
+        ProcessingOrderBox.ItemsSource = ProcessingOrders;
+        ProcessingOrderBox.SelectedItem = ProcessingOrders.FirstOrDefault(order =>
+            order.FillDownFirst == layout.FillDownFirst
+            && order.StartFromRight == layout.StartFromRight
+            && order.StartFromBottom == layout.StartFromBottom) ?? ProcessingOrders[0];
+        Rotated180Box.IsChecked = layout.Rotated180;
+        SelectedLayout = layout;
         _syncing = false;
 
         UpdateSizeSummary();
         UpdateCompatibilityPreview();
     }
+
+    /// <summary>NiceLabel 10 processing orders: fill direction and the corner of the first label.</summary>
+    private static readonly ProcessingOrderOption[] ProcessingOrders =
+    [
+        new("Ngang, bắt đầu từ trên trái", false, false, false),
+        new("Ngang, bắt đầu từ trên phải", false, true, false),
+        new("Ngang, bắt đầu từ dưới trái", false, false, true),
+        new("Ngang, bắt đầu từ dưới phải", false, true, true),
+        new("Dọc, bắt đầu từ trên trái", true, false, false),
+        new("Dọc, bắt đầu từ trên phải", true, true, false),
+        new("Dọc, bắt đầu từ dưới trái", true, false, true),
+        new("Dọc, bắt đầu từ dưới phải", true, true, true)
+    ];
+
+    private sealed record ProcessingOrderOption(string Name, bool FillDownFirst, bool StartFromRight, bool StartFromBottom);
 
     public PrinterInfo? SelectedPrinter { get; private set; }
     public PrinterPaperInfo? SelectedPaper { get; private set; }
@@ -134,6 +164,7 @@ public partial class PrinterSetupWindow : Window
     public double SelectedOffsetYMm { get; private set; }
     public double SelectedScaleX { get; private set; } = 1;
     public double SelectedScaleY { get; private set; } = 1;
+    public PageLayoutSelection SelectedLayout { get; private set; } = PageLayoutSelection.Single;
 
     private async void PrinterBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -501,6 +532,8 @@ public partial class PrinterSetupWindow : Window
             return;
         }
 
+        UpdatePageLayout();
+
         if (!double.TryParse(WidthBox?.Text, out var widthMm) || widthMm <= 0
             || !double.TryParse(HeightBox?.Text, out var heightMm) || heightMm <= 0)
         {
@@ -649,6 +682,24 @@ public partial class PrinterSetupWindow : Window
             return;
         }
 
+        var layout = ReadLayout();
+        if (layout is null)
+        {
+            MessageBox.Show(this, "Số tem ngang và dọc là số nguyên từ 1 đến 100; khoảng cách là số milimét từ 0 trở lên.", "Số tem trên trang", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (SelectedMedia is not null
+            && PrintsWholeSheet(SelectedMedia, w, h, layout)
+            && SheetLayoutContract.EvaluatePlacement(w, h, SelectedMedia.WidthMm, SelectedMedia.HeightMm, SelectedOffsetXMm, SelectedOffsetYMm,
+                layout.LabelsAcross, layout.LabelsDown, layout.HorizontalGapMm, layout.VerticalGapMm) is { IsAllowed: false } placement)
+        {
+            MessageBox.Show(this, ANLAbel.App.Services.PreflightIssueText.Sentence(placement.Diagnostic), "Số tem trên trang", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        SelectedLayout = layout;
+
         if (_capabilitySnapshot is not null)
         {
             SelectedMediaResolution = PrinterMediaResolver.Resolve(
@@ -704,6 +755,206 @@ public partial class PrinterSetupWindow : Window
     private void Skip_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
+    }
+
+    private void Layout_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (!_syncing)
+        {
+            UpdatePageLayout();
+        }
+    }
+
+    private void Layout_Toggled(object sender, RoutedEventArgs e) => Layout_Changed(sender, null!);
+
+    private void ProcessingOrder_Changed(object sender, SelectionChangedEventArgs e) => Layout_Changed(sender, null!);
+
+    /// <summary>NiceLabel 10 "Automatic labels across": as many labels as the paper holds from the margins.</summary>
+    private void AutoLabelsAcross_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsSheetPaper() || DriverMediaBox.SelectedItem is not PrinterPaperInfo paper
+            || !double.TryParse(WidthBox.Text, out var w) || !double.TryParse(HeightBox.Text, out var h) || w <= 0 || h <= 0)
+        {
+            return;
+        }
+
+        LabelsAcrossBox.Text = SheetLayoutContract.FitCount(paper.WidthMm, ReadMm(OffsetXBox, 0), w, Math.Max(0, ReadMm(HorizontalGapBox, 0))).ToString();
+        LabelsDownBox.Text = SheetLayoutContract.FitCount(paper.HeightMm, ReadMm(OffsetYBox, 0), h, Math.Max(0, ReadMm(VerticalGapBox, 0))).ToString();
+    }
+
+    /// <summary>Sheets of paper (manual page size with label settings) may hold several labels.</summary>
+    private bool IsSheetPaper()
+        => ManualMediaRadio?.IsChecked == true && DriverSettingsRadio?.IsChecked != true;
+
+    /// <summary>The page layout as typed; labels on a roll are one upright label per page plus the 180° turn.</summary>
+    private PageLayoutSelection? ReadLayout()
+    {
+        var rotated = Rotated180Box?.IsChecked == true;
+        if (!IsSheetPaper())
+        {
+            return PageLayoutSelection.Single with { Rotated180 = rotated };
+        }
+
+        var order = ProcessingOrderBox?.SelectedItem as ProcessingOrderOption ?? ProcessingOrders[0];
+        if (!int.TryParse(LabelsAcrossBox?.Text, out var across) || !int.TryParse(LabelsDownBox?.Text, out var down)
+            || across is < 1 or > 100 || down is < 1 or > 100
+            || !double.TryParse(HorizontalGapBox?.Text, out var horizontalGap) || !double.TryParse(VerticalGapBox?.Text, out var verticalGap)
+            || !double.IsFinite(horizontalGap) || !double.IsFinite(verticalGap) || horizontalGap < 0 || verticalGap < 0)
+        {
+            return null;
+        }
+
+        return new PageLayoutSelection(across, down, horizontalGap, verticalGap, order.FillDownFirst, order.StartFromRight, order.StartFromBottom, rotated);
+    }
+
+    /// <summary>Same rule as the print service: a grid, or one label on a larger sheet, prints whole sheets.</summary>
+    private static bool PrintsWholeSheet(PrinterPaperInfo paper, double labelWidthMm, double labelHeightMm, PageLayoutSelection layout)
+        => SheetLayoutContract.PrintsWholeSheet(
+            new PrinterProfile
+            {
+                SettingsSource = PrinterSettingsSource.Label,
+                PaperSizeSource = PaperSizeSource.Manual,
+                PhysicalWidthMm = paper.WidthMm,
+                PhysicalHeightMm = paper.HeightMm,
+                LabelsAcross = layout.LabelsAcross,
+                LabelsDown = layout.LabelsDown
+            },
+            labelWidthMm,
+            labelHeightMm);
+
+    /// <summary>
+    /// Margins left on the right and bottom, the labels-per-page summary and
+    /// the preview of the page (NiceLabel 10 Label Dimensions and Paper).
+    /// </summary>
+    private void UpdatePageLayout()
+    {
+        if (LayoutPreview is null || SheetSummaryText is null || RightMarginBox is null || BottomMarginBox is null
+            || PaperSizeText is null || LabelsAcrossGroup is null || LabelsAcrossHint is null)
+        {
+            return;
+        }
+
+        var isSheet = IsSheetPaper();
+        LabelsAcrossGroup.IsEnabled = isSheet;
+        LabelsAcrossHint.Text = isSheet
+            ? "Đặt nhiều tem trên một tờ giấy; mỗi dòng dữ liệu in vào một ô."
+            : "Tem trên cuộn in một tem mỗi trang. Chọn Đặt khổ trang thủ công (tờ giấy) ở trang Giấy để đặt nhiều tem trên một tờ.";
+        var paper = isSheet ? DriverMediaBox?.SelectedItem as PrinterPaperInfo : null;
+        PaperSizeText.Text = paper is not null
+            ? $"{paper.WidthMm:0.##} × {paper.HeightMm:0.##} mm"
+            : isSheet ? "Chọn khổ giấy trong danh sách của máy in." : "Khổ trang theo kích thước tem.";
+        LayoutPreview.Children.Clear();
+        var layout = ReadLayout();
+        if (!double.TryParse(WidthBox?.Text, out var w) || !double.TryParse(HeightBox?.Text, out var h) || w <= 0 || h <= 0 || layout is null)
+        {
+            RightMarginBox.Text = "—";
+            BottomMarginBox.Text = "—";
+            SheetSummaryText.Text = "Nhập kích thước tem, số tem (1–100) và khoảng cách hợp lệ.";
+            SheetSummaryText.Foreground = new SolidColorBrush(Color.FromRgb(180, 35, 24));
+            return;
+        }
+
+        var offsetX = ReadMm(OffsetXBox, 0);
+        var offsetY = ReadMm(OffsetYBox, 0);
+        var pageWidth = paper?.WidthMm ?? w;
+        var pageHeight = paper?.HeightMm ?? h;
+        var right = pageWidth - SheetLayoutContract.ExtentMm(offsetX, w, layout.LabelsAcross, layout.HorizontalGapMm);
+        var bottom = pageHeight - SheetLayoutContract.ExtentMm(offsetY, h, layout.LabelsDown, layout.VerticalGapMm);
+        RightMarginBox.Text = paper is null ? "—" : right.ToString("0.##");
+        BottomMarginBox.Text = paper is null ? "—" : bottom.ToString("0.##");
+
+        var fits = true;
+        string summary;
+        if (paper is null)
+        {
+            summary = "Một tem mỗi trang; khổ trang theo kích thước tem.";
+        }
+        else if (PrintsWholeSheet(paper, w, h, layout))
+        {
+            var placement = SheetLayoutContract.EvaluatePlacement(w, h, paper.WidthMm, paper.HeightMm, offsetX, offsetY,
+                layout.LabelsAcross, layout.LabelsDown, layout.HorizontalGapMm, layout.VerticalGapMm);
+            fits = placement.IsAllowed;
+            summary = !fits
+                ? ANLAbel.App.Services.PreflightIssueText.Sentence(placement.Diagnostic)
+                : layout.LabelsAcross * layout.LabelsDown == 1
+                    ? $"Một tem mỗi trang, cách mép trái {offsetX:0.##} mm và mép trên {offsetY:0.##} mm của tờ {paper.WidthMm:0.##} × {paper.HeightMm:0.##} mm."
+                    : $"{layout.LabelsAcross} × {layout.LabelsDown} tem ({layout.LabelsAcross * layout.LabelsDown} tem mỗi trang) trên tờ {paper.WidthMm:0.##} × {paper.HeightMm:0.##} mm; mỗi dòng dữ liệu in vào một ô.";
+        }
+        else
+        {
+            summary = "Một tem mỗi trang trên giấy cùng kích thước tem.";
+        }
+
+        if (layout.Rotated180)
+        {
+            summary += " Trang in xoay 180°.";
+        }
+
+        SheetSummaryText.Text = summary;
+        SheetSummaryText.Foreground = fits
+            ? new SolidColorBrush(Color.FromRgb(15, 76, 129))
+            : new SolidColorBrush(Color.FromRgb(180, 35, 24));
+        DrawLayoutPreview(pageWidth, pageHeight, w, h, offsetX, offsetY, layout, fits);
+    }
+
+    private void DrawLayoutPreview(double pageWidth, double pageHeight, double labelWidth, double labelHeight,
+        double offsetX, double offsetY, PageLayoutSelection layout, bool fits)
+    {
+        if (pageWidth <= 0 || pageHeight <= 0)
+        {
+            return;
+        }
+
+        var scale = Math.Min(LayoutPreview.Width / pageWidth, LayoutPreview.Height / pageHeight);
+        var left = (LayoutPreview.Width - pageWidth * scale) / 2;
+        var top = (LayoutPreview.Height - pageHeight * scale) / 2;
+        var page = new Rectangle
+        {
+            Width = pageWidth * scale,
+            Height = pageHeight * scale,
+            Fill = Brushes.White,
+            Stroke = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
+            StrokeThickness = 1
+        };
+        Canvas.SetLeft(page, left);
+        Canvas.SetTop(page, top);
+        LayoutPreview.Children.Add(page);
+
+        var count = layout.LabelsAcross * layout.LabelsDown;
+        var cellBrush = new SolidColorBrush(fits ? Color.FromRgb(219, 234, 254) : Color.FromRgb(254, 226, 226));
+        var cellStroke = new SolidColorBrush(fits ? Color.FromRgb(37, 99, 235) : Color.FromRgb(220, 38, 38));
+        for (var index = 0; index < count; index++)
+        {
+            var cell = SheetLayoutContract.CellOrigin(index, labelWidth, labelHeight, layout.LabelsAcross, layout.LabelsDown,
+                layout.HorizontalGapMm, layout.VerticalGapMm, layout.FillDownFirst, layout.StartFromRight, layout.StartFromBottom);
+            var x = offsetX + cell.XMm;
+            var y = offsetY + cell.YMm;
+            if (layout.Rotated180)
+            {
+                // The page turns as a whole: a cell lands mirrored through the page centre.
+                x = pageWidth - x - labelWidth;
+                y = pageHeight - y - labelHeight;
+            }
+
+            var rect = new Rectangle
+            {
+                Width = Math.Max(1, labelWidth * scale),
+                Height = Math.Max(1, labelHeight * scale),
+                Fill = cellBrush,
+                Stroke = cellStroke,
+                StrokeThickness = 1
+            };
+            Canvas.SetLeft(rect, left + x * scale);
+            Canvas.SetTop(rect, top + y * scale);
+            LayoutPreview.Children.Add(rect);
+            if (labelWidth * scale >= 14 && labelHeight * scale >= 12)
+            {
+                var number = new TextBlock { Text = (index + 1).ToString(), FontSize = 9, Foreground = cellStroke };
+                Canvas.SetLeft(number, left + x * scale + 2);
+                Canvas.SetTop(number, top + y * scale + 1);
+                LayoutPreview.Children.Add(number);
+            }
+        }
     }
 
     private async void PrintCalibration_Click(object sender, RoutedEventArgs e)

@@ -460,3 +460,45 @@ verified on this machine — but the import status names it
 (`NiceLabelPrinterSetupText`). Sweep: 104 driver settings, 78 office
 sheets, 14 multi-label sheets, 11 label stocks; every applied page, grid
 and DPI passes the contracts.
+
+### §10.1 Label Properties: Label Dimensions and Paper (2026-10-30)
+
+Evidence: the decompiled `DesignerLib` views and view models
+`FormatDimensionsPropertyPageView(Model)` and `FormatPaperPropertyPageView(Model)`,
+`ProcessingOrder` and `ProcessingOrderType` (`Interfaces.dll`), the margin and
+grid helpers `a.c.a.k.c` (`Core.dll`) and the strings of
+`FormatPropertyDialogXaml.resx`.
+
+- **Paper** page: *Paper Type* — "Automatically set page size based on label
+  dimensions (labels on a roll)" or "Manually set page size (sheets of
+  paper)" (`Media.Type` Roll/Sheet); *Paper* lists the driver's papers
+  (`IPrinterService.GetPaperDetails(printer, DevMode)`, sorted by name) and
+  selects the one whose id equals `Media.PaperFormat.Id` (the `DMPAPER_*`
+  id), else the first; width/height are editable only for the custom paper.
+  Choosing a paper stores it in `Media.PaperFormat`; only the new-label wizard
+  also makes the label that size. *Orientation* Portrait/Landscape
+  (`Media.Orientation` 1/2) and *Rotated* (`PrintRotation` UpsideDown);
+  *Preview* shows the printer and screen layout.
+- **Label Dimensions** page: width/height (`PageLayout.ElementWidth/Height`);
+  *Margins* — left/top are `PageLayout.HorizontalOffset/VerticalOffset`, right
+  is `Media.Width − PageLayout.GetTotalLayoutWidth()` and bottom likewise
+  (what the paper leaves after the labels); *Labels Across* — horizontal and
+  vertical count and gap, *Processing order* (eight `ProcessingOrderType`
+  values: Horizontally/Vertically × start at top left 21 / top right 37 /
+  bottom left 25 / bottom right 41 for horizontal, 22/38/26/42 for vertical —
+  the `WebSettings` flags of §10); *Automatic labels across*; corner radius
+  and variable label size (receipts).
+
+ANLAbel (`PrinterSetupWindow`, Thuộc tính tem) now has the same two pages for
+paper size and paper choice: Kích thước tem › Lề (Trái/Trên = the profile
+offsets, Phải/Dưới computed by `SheetLayoutContract.ExtentMm`), Số tem trên
+trang (counts, gaps, Thứ tự in with the eight orders, "Tính số tem vừa tờ" =
+`SheetLayoutContract.FitCount`), and Giấy › Loại giấy, Giấy (the driver's
+papers), Xoay 180°, Xem trước (the page with numbered cells). Apply refuses a
+page whose labels leave the sheet (`SheetLayoutContract.EvaluatePlacement`).
+A label on a larger sheet chosen by hand, and every grid, prints whole-sheet
+pages with the label at its margins (`SheetLayoutContract.PrintsWholeSheet`);
+before, a single label on A5/A4 went to the driver as a page of the label's
+size. Rotated 180° turns the whole sheet. Not built: landscape paper
+orientation, custom paper sizes, corner radius, variable label size and the
+stock catalogue (owner: no software stock catalogue).

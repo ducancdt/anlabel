@@ -1983,7 +1983,8 @@ public sealed class MainViewModel : ObservableObject
         double? offsetXMm = null,
         double? offsetYMm = null,
         double? scaleX = null,
-        double? scaleY = null)
+        double? scaleY = null,
+        PageLayoutSelection? layout = null)
     {
         PrinterSelectionApplier.Apply(
             Template,
@@ -1998,7 +1999,8 @@ public sealed class MainViewModel : ObservableObject
             offsetXMm,
             offsetYMm,
             scaleX,
-            scaleY);
+            scaleY,
+            layout);
         // "Custom" is the stored name of a typed size; only the display is translated.
         var paperName = string.Equals(paper.Name, "Custom", StringComparison.OrdinalIgnoreCase) ? "tùy chỉnh" : paper.Name;
         var source = pageSizeSource == PaperSizeSource.DriverAutomatic ? "tự động theo driver" : "thủ công";

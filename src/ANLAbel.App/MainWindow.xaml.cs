@@ -1368,7 +1368,8 @@ public partial class MainWindow : Window
                 initialScaleX: profile.ScaleX,
                 initialScaleY: profile.ScaleY,
                 workingTemplate: _viewModel.Template,
-                printService: _viewModel.PrintService) { Owner = this };
+                printService: _viewModel.PrintService,
+                initialLayout: PageLayoutSelection.From(profile)) { Owner = this };
             if (dialog.ShowDialog() == true && dialog.SelectedPrinter is not null && dialog.SelectedPaper is not null)
             {
                 _viewModel.ApplyPrinterSelection(
@@ -1383,7 +1384,8 @@ public partial class MainWindow : Window
                     dialog.SelectedOffsetXMm,
                     dialog.SelectedOffsetYMm,
                     dialog.SelectedScaleX,
-                    dialog.SelectedScaleY);
+                    dialog.SelectedScaleY,
+                    dialog.SelectedLayout);
             }
         }
         catch (Exception ex)

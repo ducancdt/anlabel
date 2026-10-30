@@ -1275,9 +1275,10 @@ public sealed class PrintService
     }
 
     /// <summary>
-    /// One label per page, or — for a sheet layout (NiceLabel 10 multiple
-    /// labels per page) — one physical sheet per page with each row's label
-    /// placed in its grid cell.
+    /// One label per page, or — for a sheet (NiceLabel 10 multiple labels per
+    /// page, or one label on a larger sheet such as A5) — one physical sheet
+    /// per page with each row's label placed in its grid cell from the
+    /// margins. A sheet turned 180° turns as a whole page.
     /// </summary>
     private VisualDocumentPaginator CreateRowsPaginator(
         LabelTemplate template,
@@ -1285,7 +1286,7 @@ public sealed class PrintService
         PrintRenderPlan plan)
     {
         var profile = template.PrinterProfile;
-        if (!SheetLayoutContract.IsSheet(profile.LabelsAcross, profile.LabelsDown))
+        if (!SheetLayoutContract.PrintsWholeSheet(profile, plan.LabelWidthMm, plan.LabelHeightMm))
         {
             return new VisualDocumentPaginator(
                 rowList.Length,
@@ -1293,17 +1294,23 @@ public sealed class PrintService
                 pageNumber => _renderer.Render(template, rowList[pageNumber], plan));
         }
 
-        var perPage = profile.LabelsPerPage;
+        var perPage = Math.Max(1, profile.LabelsPerPage);
         var pageCount = (rowList.Length + perPage - 1) / perPage;
         var sheetSize = new System.Windows.Size(
             MmConverter.MmToDip(profile.PhysicalWidthMm),
             MmConverter.MmToDip(profile.PhysicalHeightMm));
+        var labelPlan = plan.Rotated180 ? plan.WithoutLabelRotation() : plan;
         return new VisualDocumentPaginator(
             pageCount,
             sheetSize,
             pageNumber =>
             {
                 var sheet = new ContainerVisual();
+                if (plan.Rotated180)
+                {
+                    sheet.Transform = new RotateTransform(180, sheetSize.Width / 2, sheetSize.Height / 2);
+                }
+
                 var first = pageNumber * perPage;
                 for (var index = first; index < Math.Min(rowList.Length, first + perPage); index++)
                 {
@@ -1318,7 +1325,7 @@ public sealed class PrintService
                         profile.FillDownFirst,
                         profile.StartFromRight,
                         profile.StartFromBottom);
-                    var label = _renderer.Render(template, rowList[index], plan);
+                    var label = _renderer.Render(template, rowList[index], labelPlan);
                     label.Transform = new TranslateTransform(MmConverter.MmToDip(cell.XMm), MmConverter.MmToDip(cell.YMm));
                     sheet.Children.Add(label);
                 }

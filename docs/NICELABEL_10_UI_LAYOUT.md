@@ -383,3 +383,24 @@ connectors outside ANLAbel's scope (Access, SQL Server, ODBC).
 - Text › Character and Paragraph / Scaling drop-downs stay in the Properties
   panel: they set the protected Text / TextBox layout (AGENTS.md), which this
   rebuild does not touch.
+
+## Label Properties: paper (2026-10-30)
+
+Owner request "biên dịch phần cốt lõi từ khổ giấy, chọn giấy": Thuộc tính tem
+follows NiceLabel 10 Label Properties for paper size and paper choice
+(evidence and mapping: `docs/NICELABEL_10_REVERSE_ENGINEERING.md` §10.1).
+
+| NiceLabel 10 | ANLAbel |
+| --- | --- |
+| Printer | Máy in (unchanged) |
+| Label Dimensions › Label Dimensions | Kích thước tem › Rộng, Cao, Hướng |
+| Label Dimensions › Margins | Kích thước tem › Lề: Trái, Trên, Phải, Dưới (right/bottom read-only, computed) |
+| Label Dimensions › Labels Across | Kích thước tem › Số tem trên trang: Số tem ngang/dọc, Khoảng cách, Thứ tự in, Tính số tem vừa tờ |
+| Paper › Paper Type | Giấy › Loại giấy (tem trên cuộn / tờ giấy) |
+| Paper › Paper | Giấy › Giấy (driver papers) and its size |
+| Paper › Orientation › Rotated | Giấy › Hướng in › Xoay 180° |
+| Paper › Preview | Giấy › Xem trước (page with numbered label cells) |
+
+Calibration scale stays under Giấy › Căn chỉnh khổ in. Gates: `label
+properties lay labels on a sheet like NiceLabel`, `one label on a sheet prints
+the whole sheet`.

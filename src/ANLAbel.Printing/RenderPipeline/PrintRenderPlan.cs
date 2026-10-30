@@ -104,11 +104,24 @@ public sealed class PrintRenderPlan
             thermalRasterGolden: thermalRasterGolden,
             effectiveOutput: EffectiveOutput);
 
+    /// <summary>
+    /// The same plan drawing each label upright: a sheet of labels turns 180°
+    /// as a whole page (NiceLabel 10 Paper › Rotated), not label by label.
+    /// </summary>
+    public PrintRenderPlan WithoutLabelRotation()
+        => Clone(
+            outputContractHash: OutputContractHash,
+            outputContractTicketVerified: OutputContractTicketVerified,
+            thermalRasterGolden: ThermalRasterGolden,
+            effectiveOutput: EffectiveOutput,
+            rotated180: false);
+
     private PrintRenderPlan Clone(
         string outputContractHash,
         bool outputContractTicketVerified,
         ThermalRasterGoldenBinding? thermalRasterGolden,
-        EffectiveOutputContract? effectiveOutput)
+        EffectiveOutputContract? effectiveOutput,
+        bool? rotated180 = null)
     {
         return new PrintRenderPlan
         {
@@ -123,7 +136,7 @@ public sealed class PrintRenderPlan
             ScaleX = ScaleX,
             ScaleY = ScaleY,
             GapMm = GapMm,
-            Rotated180 = Rotated180,
+            Rotated180 = rotated180 ?? Rotated180,
             MediaType = MediaType,
             FeedDirection = FeedDirection,
             MarginMm = MarginMm,

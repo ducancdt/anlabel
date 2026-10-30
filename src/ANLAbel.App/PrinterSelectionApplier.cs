@@ -25,7 +25,8 @@ public static class PrinterSelectionApplier
         double? offsetXMm = null,
         double? offsetYMm = null,
         double? scaleX = null,
-        double? scaleY = null)
+        double? scaleY = null,
+        PageLayoutSelection? layout = null)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(printer);
@@ -61,6 +62,25 @@ public static class PrinterSelectionApplier
             throw new InvalidOperationException(scaleDecision.Diagnostic);
         }
 
+        if (layout is not null && SheetLayoutContract.IsSheet(layout.LabelsAcross, layout.LabelsDown))
+        {
+            var sheet = SheetLayoutContract.Evaluate(
+                widthMm,
+                heightMm,
+                media.WidthMm,
+                media.HeightMm,
+                offsetXMm ?? template.PrinterProfile.OffsetXMm,
+                offsetYMm ?? template.PrinterProfile.OffsetYMm,
+                layout.LabelsAcross,
+                layout.LabelsDown,
+                layout.HorizontalGapMm,
+                layout.VerticalGapMm);
+            if (!sheet.IsAllowed)
+            {
+                throw new InvalidOperationException(sheet.Diagnostic);
+            }
+        }
+
         template.WidthMm = widthMm;
         template.HeightMm = heightMm;
         template.Dpi = dpi;
@@ -92,6 +112,18 @@ public static class PrinterSelectionApplier
 
         template.PrinterProfile.ScaleX = nextScaleX;
         template.PrinterProfile.ScaleY = nextScaleY;
+        if (layout is not null)
+        {
+            var profile = template.PrinterProfile;
+            profile.LabelsAcross = layout.LabelsAcross;
+            profile.LabelsDown = layout.LabelsDown;
+            profile.HorizontalGapMm = layout.HorizontalGapMm;
+            profile.VerticalGapMm = layout.VerticalGapMm;
+            profile.FillDownFirst = layout.FillDownFirst;
+            profile.StartFromRight = layout.StartFromRight;
+            profile.StartFromBottom = layout.StartFromBottom;
+            profile.Rotated180 = layout.Rotated180;
+        }
     }
 
     /// <summary>
@@ -154,3 +186,36 @@ public readonly record struct PrinterSelectionOutcome(
     double OffsetYMm,
     double ScaleX,
     double ScaleY);
+
+/// <summary>
+/// How labels sit on a page (NiceLabel 10 Label Dimensions › Labels Across and
+/// Paper › Rotated): label columns and rows, the gaps between them, the
+/// processing order and the 180° turn. The margins travel as the offsets.
+/// </summary>
+public sealed record PageLayoutSelection(
+    int LabelsAcross,
+    int LabelsDown,
+    double HorizontalGapMm,
+    double VerticalGapMm,
+    bool FillDownFirst,
+    bool StartFromRight,
+    bool StartFromBottom,
+    bool Rotated180)
+{
+    /// <summary>One label per page, upright.</summary>
+    public static PageLayoutSelection Single { get; } = new(1, 1, 0, 0, false, false, false, false);
+
+    public static PageLayoutSelection From(PrinterProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        return new(
+            profile.LabelsAcross,
+            profile.LabelsDown,
+            profile.HorizontalGapMm,
+            profile.VerticalGapMm,
+            profile.FillDownFirst,
+            profile.StartFromRight,
+            profile.StartFromBottom,
+            profile.Rotated180);
+    }
+}

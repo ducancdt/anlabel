@@ -69,40 +69,69 @@
                     <TextBlock x:Name="SizeSummaryText" AutomationProperties.AutomationId="PrinterSetup.SizeSummary" Text="100 × 50 mm" Foreground="#0F4C81" FontSize="18" FontWeight="SemiBold" Margin="0,16,0,14"/>
                     <TextBlock Text="Hướng" FontWeight="SemiBold"/>
                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0"><RadioButton x:Name="PortraitRadio" AutomationProperties.AutomationId="PrinterSetup.OrientationPortrait" GroupName="LabelOrientationGroup" Content="Dọc" IsChecked="True" Margin="0,0,24,0" Checked="Orientation_Changed"/><RadioButton x:Name="LandscapeRadio" AutomationProperties.AutomationId="PrinterSetup.OrientationLandscape" GroupName="LabelOrientationGroup" Content="Ngang" Checked="Orientation_Changed"/></StackPanel>
+
+                    <!-- NiceLabel 10 Label Dimensions › Margins: left/top place the first label on the page;
+                         right/bottom are what the paper leaves after the labels. -->
+                    <TextBlock Text="Lề" FontWeight="SemiBold" Margin="0,18,0,2"/>
+                    <TextBlock Text="Lề trái và trên đặt tem đầu tiên trên trang (với tem cuộn đây là độ lệch khi in). Lề phải và dưới tự tính từ khổ giấy." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,0,0,6"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <StackPanel><TextBlock Text="Trái (mm)"/><TextBox x:Name="OffsetXBox" AutomationProperties.AutomationId="PrinterSetup.OffsetX" Text="0" Margin="0,4,0,10" TextChanged="Layout_Changed"/></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="Trên (mm)"/><TextBox x:Name="OffsetYBox" AutomationProperties.AutomationId="PrinterSetup.OffsetY" Text="0" Margin="0,4,0,10" TextChanged="Layout_Changed"/></StackPanel>
+                        <StackPanel Grid.Row="1"><TextBlock Text="Phải (mm)"/><TextBox x:Name="RightMarginBox" AutomationProperties.AutomationId="PrinterSetup.RightMargin" IsReadOnly="True" Background="#F1F5F9" Text="—" Margin="0,4,0,10"/></StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="Dưới (mm)"/><TextBox x:Name="BottomMarginBox" AutomationProperties.AutomationId="PrinterSetup.BottomMargin" IsReadOnly="True" Background="#F1F5F9" Text="—" Margin="0,4,0,10"/></StackPanel>
+                    </Grid>
+
+                    <!-- NiceLabel 10 Label Dimensions › Labels Across (sheets of paper). -->
+                    <TextBlock Text="Số tem trên trang" FontWeight="SemiBold" Margin="0,8,0,2"/>
+                    <TextBlock x:Name="LabelsAcrossHint" Text="Đặt nhiều tem trên một tờ giấy; mỗi dòng dữ liệu in vào một ô." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,0,0,6"/>
+                    <Grid x:Name="LabelsAcrossGroup">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <StackPanel><TextBlock Text="Số tem ngang"/><TextBox x:Name="LabelsAcrossBox" AutomationProperties.AutomationId="PrinterSetup.LabelsAcross" Text="1" Margin="0,4,0,10" TextChanged="Layout_Changed"/></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="Khoảng cách ngang (mm)"/><TextBox x:Name="HorizontalGapBox" AutomationProperties.AutomationId="PrinterSetup.HorizontalGap" Text="0" Margin="0,4,0,10" TextChanged="Layout_Changed"/></StackPanel>
+                        <StackPanel Grid.Row="1"><TextBlock Text="Số tem dọc"/><TextBox x:Name="LabelsDownBox" AutomationProperties.AutomationId="PrinterSetup.LabelsDown" Text="1" Margin="0,4,0,10" TextChanged="Layout_Changed"/></StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2"><TextBlock Text="Khoảng cách dọc (mm)"/><TextBox x:Name="VerticalGapBox" AutomationProperties.AutomationId="PrinterSetup.VerticalGap" Text="0" Margin="0,4,0,10" TextChanged="Layout_Changed"/></StackPanel>
+                        <StackPanel Grid.Row="2"><TextBlock Text="Thứ tự in"/><ComboBox x:Name="ProcessingOrderBox" AutomationProperties.AutomationId="PrinterSetup.ProcessingOrder" DisplayMemberPath="Name" Margin="0,4,0,0" SelectionChanged="ProcessingOrder_Changed"/></StackPanel>
+                        <Button Grid.Row="2" Grid.Column="2" x:Name="AutoLabelsAcrossButton" AutomationProperties.AutomationId="PrinterSetup.AutoLabelsAcross" Content="Tính số tem vừa tờ" Padding="10,5" HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="AutoLabelsAcross_Click"
+                                ToolTip="Đặt số tem ngang và dọc nhiều nhất vừa khổ giấy từ lề trái/trên (Automatic labels across của NiceLabel)"/>
+                    </Grid>
+                    <TextBlock x:Name="SheetSummaryText" AutomationProperties.AutomationId="PrinterSetup.SheetSummary" TextWrapping="Wrap" Margin="0,12,0,0"/>
                 </StackPanel></ScrollViewer>
             </TabItem>
-            <TabItem Header="Giấy / Vật liệu" AutomationProperties.AutomationId="PrinterSetup.PaperMediaTab">
+            <TabItem Header="Giấy" AutomationProperties.AutomationId="PrinterSetup.PaperMediaTab">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="18" MaxWidth="680" HorizontalAlignment="Left">
-                    <TextBlock Text="Giấy / Vật liệu" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Text="Tự động: trình điều khiển sở hữu khổ trang (tem trên cuộn). Thủ công: chọn vật liệu trình điều khiển đã công bố, hoặc nhập milimét trên tab Kích thước tem. Không có danh mục khổ có sẵn của phần mềm." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
-                    <TextBlock Text="Nguồn trang / vật liệu" FontWeight="SemiBold"/>
+                    <TextBlock Text="Giấy" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="Chọn tem trên cuộn hoặc tờ giấy của máy in. Khổ giấy lấy từ trình điều khiển máy in; phần mềm không có danh mục khổ riêng." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,4,0,14"/>
+                    <TextBlock Text="Loại giấy" FontWeight="SemiBold"/>
                     <StackPanel Margin="0,6,0,14">
                         <RadioButton x:Name="DriverAutomaticRadio" GroupName="PageSourceGroup" AutomationProperties.AutomationId="PrinterSetup.PageSourceDriverAutomatic" Content="Tự động đặt khổ trang theo kích thước tem (tem trên cuộn)" Margin="0,0,0,8" Checked="PageSource_Changed"/>
                         <RadioButton x:Name="ManualMediaRadio" GroupName="PageSourceGroup" AutomationProperties.AutomationId="PrinterSetup.PageSourceManual" Content="Đặt khổ trang thủ công (tờ giấy)" IsChecked="True" Checked="PageSource_Changed"/>
                     </StackPanel>
-                    <TextBlock Text="Vật liệu do trình điều khiển đã chọn công bố" FontWeight="SemiBold"/>
-                    <ComboBox x:Name="DriverMediaBox" AutomationProperties.AutomationId="PrinterSetup.DriverMedia" DisplayMemberPath="DisplayName" Margin="0,4,0,12" MinWidth="500" SelectionChanged="MediaSelection_Changed"/>
-                    <Border Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" Padding="10" CornerRadius="5"><TextBlock Text="Áp dụng kiểm tra vật liệu vật lý so với tem thiết kế. Khi lệch sẽ bị chặn thay vì âm thầm đổi khổ giấy khác." TextWrapping="Wrap" Foreground="#1E3A5F"/></Border>
-                    <Border x:Name="CompatibilityCard" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10" CornerRadius="5" Margin="0,10,0,0">
-                        <StackPanel><TextBlock Text="Tương thích" FontWeight="SemiBold"/><TextBlock x:Name="MediaCompatibilityText" AutomationProperties.AutomationId="PrinterSetup.CompatibilityStatus" Text="Chọn một máy in để kiểm tra tương thích vật liệu." TextWrapping="Wrap" Margin="0,4,0,0"/></StackPanel>
-                    </Border>
-                    <TextBlock Text="Căn chỉnh khổ in" FontWeight="SemiBold" Margin="0,16,0,4"/>
-                    <TextBlock Text="Lệch và tỉ lệ là hiệu chỉnh in vật lý sau khi đo tem. Không dùng chúng để đổi kích thước tem thiết kế. Tem trên cuộn: chọn Tự động ở trên để trình điều khiển đặt khổ theo tem." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,0,0,10"/>
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition Width="12"/>
-                            <ColumnDefinition/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Lệch X (mm)" FontWeight="SemiBold"/>
-                            <TextBox x:Name="OffsetXBox" AutomationProperties.AutomationId="PrinterSetup.OffsetX" Text="0" Margin="0,4,0,10"/>
+                            <TextBlock Text="Giấy" FontWeight="SemiBold"/>
+                            <ComboBox x:Name="DriverMediaBox" AutomationProperties.AutomationId="PrinterSetup.DriverMedia" DisplayMemberPath="DisplayName" Margin="0,4,0,6" MinWidth="300" SelectionChanged="MediaSelection_Changed"/>
+                            <TextBlock x:Name="PaperSizeText" AutomationProperties.AutomationId="PrinterSetup.PaperSize" Foreground="#0F4C81" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                            <TextBlock Text="Hướng in" FontWeight="SemiBold"/>
+                            <CheckBox x:Name="Rotated180Box" AutomationProperties.AutomationId="PrinterSetup.Rotated180" Content="Xoay 180° (in ngược đầu)" Margin="0,6,0,12" Checked="Layout_Toggled" Unchecked="Layout_Toggled"/>
+                            <Border Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" Padding="10" CornerRadius="5"><TextBlock Text="Áp dụng kiểm tra giấy vật lý so với tem thiết kế. Khi lệch sẽ bị chặn thay vì âm thầm đổi khổ giấy khác." TextWrapping="Wrap" Foreground="#1E3A5F"/></Border>
                         </StackPanel>
+                        <!-- NiceLabel 10 Paper › Preview: the page and where each label lands on it. -->
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Lệch Y (mm)" FontWeight="SemiBold"/>
-                            <TextBox x:Name="OffsetYBox" AutomationProperties.AutomationId="PrinterSetup.OffsetY" Text="0" Margin="0,4,0,10"/>
+                            <TextBlock Text="Xem trước" FontWeight="SemiBold"/>
+                            <Border Background="#E2E8F0" CornerRadius="4" Margin="0,4,0,0" Padding="8" Height="236">
+                                <Canvas x:Name="LayoutPreview" AutomationProperties.AutomationId="PrinterSetup.LayoutPreview" Width="184" Height="220" ClipToBounds="True"/>
+                            </Border>
                         </StackPanel>
                     </Grid>
+                    <Border x:Name="CompatibilityCard" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10" CornerRadius="5" Margin="0,10,0,0">
+                        <StackPanel><TextBlock Text="Tương thích" FontWeight="SemiBold"/><TextBlock x:Name="MediaCompatibilityText" AutomationProperties.AutomationId="PrinterSetup.CompatibilityStatus" Text="Chọn một máy in để kiểm tra tương thích giấy." TextWrapping="Wrap" Margin="0,4,0,0"/></StackPanel>
+                    </Border>
+                    <TextBlock Text="Căn chỉnh khổ in" FontWeight="SemiBold" Margin="0,16,0,4"/>
+                    <TextBlock Text="Tỉ lệ là hiệu chỉnh in vật lý sau khi đo tem; lề trái/trên ở trang Kích thước tem dời tem trên trang. Không dùng chúng để đổi kích thước tem thiết kế." TextWrapping="Wrap" Foreground="{DynamicResource AppMutedBrush}" Margin="0,0,0,10"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -120,7 +149,7 @@
                     </Grid>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="In hiệu chỉnh" AutomationProperties.AutomationId="PrinterSetup.PrintCalibration" Padding="8,5" Click="PrintCalibration_Click"/>
-                        <Button Content="Đặt lại lệch/tỉ lệ" AutomationProperties.AutomationId="PrinterSetup.ResetCalibration" Padding="8,5" Margin="8,0,0,0" Click="ResetCalibration_Click"/>
+                        <Button Content="Đặt lại lề và tỉ lệ" AutomationProperties.AutomationId="PrinterSetup.ResetCalibration" Padding="8,5" Margin="8,0,0,0" Click="ResetCalibration_Click"/>
                     </StackPanel>
                 </StackPanel></ScrollViewer>
             </TabItem>

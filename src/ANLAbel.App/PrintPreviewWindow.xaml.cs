@@ -286,7 +286,8 @@ public partial class PrintPreviewWindow : Window
             initialScaleX: _template.PrinterProfile.ScaleX,
             initialScaleY: _template.PrinterProfile.ScaleY,
             workingTemplate: _template,
-            printService: _printService) { Owner = this };
+            printService: _printService,
+            initialLayout: PageLayoutSelection.From(_template.PrinterProfile)) { Owner = this };
         if (dialog.ShowDialog() == true)
         {
             if (dialog.SelectedPrinter is not null && dialog.SelectedPaper is not null)
@@ -306,7 +307,8 @@ public partial class PrintPreviewWindow : Window
                         dialog.SelectedOffsetXMm,
                         dialog.SelectedOffsetYMm,
                         dialog.SelectedScaleX,
-                        dialog.SelectedScaleY);
+                        dialog.SelectedScaleY,
+                        dialog.SelectedLayout);
                     _selectedPrinterName = dialog.SelectedPrinter.Name;
                 }
                 catch (InvalidOperationException ex)

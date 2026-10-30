@@ -59,6 +59,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("real templates open, save, render and pass preflight", AcceptanceRegression.RealTemplatesOpenSaveRenderAndPassPreflight),
     ("designer, preview and print draw the same barcode", BarcodeParityRegression.DesignerPreviewAndPrintDrawTheSameBarcode),
     ("virtual print scans serial, date, check digit and reduced bars", BarcodeParityRegression.VirtualPrintScansSerialDateCheckDigitAndReducedBars),
+    ("label properties lay labels on a sheet like NiceLabel", PaperLayoutRegression.LabelPropertiesLayLabelsOnASheet),
+    ("one label on a sheet prints the whole sheet", PaperLayoutRegression.OneLabelOnASheetPrintsTheWholeSheet),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),
     ("columns known only by position are reported and cannot print", DataHeaderRegression.ColumnsKnownOnlyByPositionAreReportedAndCannotPrint),
@@ -5474,7 +5476,7 @@ static Task TestPrinterSetupSeparatesMediaConcepts()
         "Printer Setup must give queue and settings ownership a dedicated workflow tab");
     AssertEqual(true, xaml.Contains("Header=\"Kích thước tem\"", StringComparison.Ordinal),
         "Authored label geometry must be visually separate from physical driver media");
-    AssertEqual(true, xaml.Contains("Header=\"Giấy / Vật liệu\"", StringComparison.Ordinal),
+    AssertEqual(true, xaml.Contains("Header=\"Giấy\" AutomationProperties.AutomationId=\"PrinterSetup.PaperMediaTab\"", StringComparison.Ordinal),
         "Driver-advertised physical media must have a dedicated workflow tab");
     AssertEqual(false, xaml.Contains("Header=\"4  Khổ có sẵn\"", StringComparison.Ordinal)
         || xaml.Contains("PrinterSetup.StocksTab", StringComparison.Ordinal)
@@ -5593,6 +5595,18 @@ static Task TestPrinterSetupOrientationInteractivity()
         "PrinterSetup.CompatibilityStatus",
         "PrinterSetup.OffsetX",
         "PrinterSetup.OffsetY",
+        "PrinterSetup.RightMargin",
+        "PrinterSetup.BottomMargin",
+        "PrinterSetup.LabelsAcross",
+        "PrinterSetup.LabelsDown",
+        "PrinterSetup.HorizontalGap",
+        "PrinterSetup.VerticalGap",
+        "PrinterSetup.ProcessingOrder",
+        "PrinterSetup.AutoLabelsAcross",
+        "PrinterSetup.SheetSummary",
+        "PrinterSetup.PaperSize",
+        "PrinterSetup.Rotated180",
+        "PrinterSetup.LayoutPreview",
         "PrinterSetup.ScaleX",
         "PrinterSetup.ScaleY",
         "PrinterSetup.PrintCalibration",
