@@ -628,8 +628,8 @@ a file of printer commands. Out of scope: custom PowerForms.
   for a character of the data.
 - Clipart gallery (`Gui.Core/clipartgallerydialog`): pick a picture from a
   clipart folder, with its path. The installed NiceLabel 10 has no clipart
-  folder. Eight customer labels carry a picture, a RoHS mark, which imports
-  as a picture. Not built: a built-in symbol set.
+  folder. Eight customer labels carry one picture each; those checked are a
+  RoHS mark, which imports as a picture. Not built: a built-in symbol set.
 - Undo and redo (`Gui.Core/undoredodropdown`): drop-down lists of the named
   actions to undo several at once. ANLAbel's undo keeps whole snapshots
   without names (Ctrl+Z, Ctrl+Y and the quick access buttons). Not built.
