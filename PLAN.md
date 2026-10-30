@@ -1,5 +1,24 @@
 # ANLAbel Phase 1 Plan
 
+## v0.330 — Mở tem NiceLabel 10 (.nlbl) thành mẫu mới
+
+_Gồm các commit tối 29/10/2026 (18:28–18:32)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Đọc gói `.nlbl` (WinZip AES-256, tự cài đặt theo đặc tả công khai) và
+  chuyển: chữ, ô chữ, mã vạch tuyến tính, QR, DataMatrix, PDF417, ảnh PNG/WMF
+  nhúng, đường kẻ, hình chữ nhật. Đối tượng đặt theo điểm neo và góc xoay của
+  NiceLabel.
+- Tệp giải pháp `.slnx` cung cấp biến nhập khi in, trường ngày hiện tại, ghép
+  chuỗi và cột dữ liệu.
+- Đối tượng dùng script, hàm GS1/HIBC, GS1 DataBar, ảnh không kèm dữ liệu, chữ
+  RTF và báo cáo để nguyên và được đếm trong dòng trạng thái.
+- Hộp Mở tệp nhận “Tem NiceLabel (*.lbl;*.nlbl)”; tem NiceLabel truyền qua dòng
+  lệnh cũng mở được. Mã ma trận lấy kích thước theo lưới mô-đun của bộ mã hóa.
+
+**Kiểm tra:** 207/207 tệp mẫu mở được, 5.971/6.467 đối tượng chuyển; cổng hồi
+quy với gói tổng hợp (hình học, liên kết, trường ngày, vị trí neo và xoay, ảnh
+nhúng, kết xuất qua đường in, từ chối gói bị sửa).
+
 ## v0.329 — Hộp thoại nhiều lựa chọn bằng tiếng Việt; mã vạch .lbl lưu kích thước cũ
 
 _Gồm các commit đầu chiều 29/10/2026 (13:24–14:13)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
