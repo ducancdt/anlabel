@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.341
+## v0.342 — Giao diện NiceLabel 10: thanh tiêu đề, dải tab, ribbon và trang Tệp
+
+_Gồm các commit 30/10/2026 (16:57–17:10)._
 
 - Dựng lại phần đầu cửa sổ theo NiceLabel 10 (chủ dự án yêu cầu 30/10/2026,
   `docs/NICELABEL_10_UI_LAYOUT.md` mục "Shell rebuild"): thanh tiêu đề tự vẽ
@@ -20,6 +22,8 @@
   liệu, máy in), Mới, Mở (Duyệt…, Nhập tem NiceLabel…, tệp gần đây; Ctrl+O),
   Lưu, Lưu thành, In, Phiên bản, Tùy chọn, Giới thiệu (phiên bản, GPL-3.0),
   Thoát. Danh sách tệp gần đây (12 tệp) lưu cùng tùy chọn của máy.
+
+**Kiểm tra:** build 0 cảnh báo, 1547 unit, hồi quy 285/285.
 
 ## v0.341 — Trợ năng: tên cho trình đọc màn hình, chú thích nút, thứ tự Tab, viền tiêu điểm, độ tương phản
 
