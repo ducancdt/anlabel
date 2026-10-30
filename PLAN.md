@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.346
+## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
+
+_Gồm các commit 30–31/10/2026 (23:50–00:30)._
 
 - Biến nhập kiểu ngày theo NiceLabel 10 (Date variable): Quản lý dữ liệu › Biến
   nhập khi in có “Kiểu giá trị: Chữ / Ngày”; biến ngày chỉ hiện định dạng ngày
@@ -27,6 +29,11 @@
 - Nhập .nlbl: hàm cộng ngày của NiceLabel có số ngày/tháng/năm lấy từ nguồn khác
   (hạn dùng = ngày sản xuất + “Expiry (days)”) thành công thức DATEADD trên ngày
   in; biến số ngày thành biến nhập khi in.
+- Kịch bản thiết kế mới (kiểm thử hồi quy): tem bảng nhập từ NiceLabel in đúng
+  mọi dòng Excel; dòng dữ liệu chọn biến thể in (QR hoặc Code 128); tem thùng
+  GS1 lấy hạn dùng từ biến ngày; hạn dùng tính từ ngày sản xuất trong Excel.
+
+**Kiểm tra:** build 0 cảnh báo, 1645 unit, hồi quy 308/308 (vòng kiểm tra Fast).
 
 ## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
 
