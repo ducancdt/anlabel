@@ -86,6 +86,10 @@ public partial class DataManagerWindow : Window
     private bool _changed;
     private bool _closingAccepted;
 
+    // The name each question had when the window opened, to carry a rename
+    // into the objects that use it.
+    private readonly Dictionary<PromptVariableDefinition, string> _originalNames = new(ReferenceEqualityComparer.Instance);
+
     public DataManagerWindow(MainViewModel viewModel, string? start = null)
     {
         InitializeComponent();
@@ -95,6 +99,7 @@ public partial class DataManagerWindow : Window
         _counter = viewModel.Template.SerialCounter.Clone();
         foreach (var prompt in _prompts)
         {
+            _originalNames[prompt] = prompt.Name;
             prompt.PropertyChanged += Draft_PropertyChanged;
         }
 
@@ -338,15 +343,22 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        var users = _viewModel.Template.Objects
-            .Where(item => Mentions(item.BindingExpression, prompt.Name) || Mentions(item.VisibilityCondition, prompt.Name))
+        string[] Users(string name) => _viewModel.Template.Objects
+            .Where(item => Mentions(item.BindingExpression, name) || Mentions(item.VisibilityCondition, name))
             .Select(item => item.Name)
             .ToArray();
-        var original = _viewModel.Template.PromptVariables.Any(item => string.Equals(item.Name, prompt.Name, StringComparison.OrdinalIgnoreCase));
+        if (_originalNames.TryGetValue(prompt, out var original)
+            && !string.Equals(original, prompt.Name.Trim(), StringComparison.Ordinal)
+            && Users(original) is { Length: > 0 } moving)
+        {
+            PromptUsageText.Text = $"Đổi tên từ {{?{original}}}: khi bấm Đồng ý, {moving.Length} đối tượng ({string.Join(", ", moving)}) chuyển sang {{?{prompt.Name.Trim()}}}.";
+            return;
+        }
+
+        var users = Users(prompt.Name);
         PromptUsageText.Text = users.Length == 0
             ? $"Chưa đối tượng nào dùng {{?{prompt.Name}}}. Gõ {{?{prompt.Name}}} vào nguồn dữ liệu của một đối tượng để dùng biến này."
-            : $"Dùng ở {users.Length} đối tượng: {string.Join(", ", users)}."
-              + (original ? string.Empty : " Tên này mới: đối tượng đang dùng tên cũ sẽ báo lỗi liên kết cho tới khi sửa.");
+            : $"Dùng ở {users.Length} đối tượng: {string.Join(", ", users)}.";
     }
 
     private static bool Mentions(string? expression, string name) =>
@@ -689,7 +701,19 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        _viewModel.ApplyDataDefinitions(_prompts.ToArray(), definitions, _counter);
+        // A question renamed here keeps the objects that use it.
+        var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prompt in _prompts)
+        {
+            if (_originalNames.TryGetValue(prompt, out var original)
+                && !string.IsNullOrWhiteSpace(original)
+                && !string.Equals(original, prompt.Name.Trim(), StringComparison.Ordinal))
+            {
+                renames[original] = prompt.Name.Trim();
+            }
+        }
+
+        _viewModel.ApplyDataDefinitions(_prompts.ToArray(), definitions, _counter, renames);
         Accepted = true;
         _closingAccepted = true;
         Close();

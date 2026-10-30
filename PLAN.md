@@ -21,6 +21,12 @@
 - Mở tệp .nlbl: kịch bản một dòng có dòng chú thích (Rem …) nay được đọc, nên
   Data Matrix của tem vật tư MAT (ngày sản xuất 6D = ngày + "094") được chuyển
   đổi thay vì bị bỏ.
+- Quản lý dữ liệu: đổi tên một biến nhập khi in nay đổi theo ở mọi đối tượng đang
+  dùng nó ({?Tên}, FIELD("?Tên") trong công thức, điều kiện hiển thị, hàm), như
+  NiceLabel. Trước đây đối tượng giữ tên cũ: khi in, hộp nhập hỏi tên cũ mà không
+  còn quy tắc nhập (chỉ số, độ dài tối đa, bắt buộc), và câu "sẽ báo lỗi liên kết"
+  trong cửa sổ là sai vì không có lỗi nào được báo. Trước khi bấm Đồng ý, cửa sổ
+  nêu đối tượng nào sẽ chuyển sang tên mới; Ctrl+Z hoàn tác cả hai.
 
 ## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
 

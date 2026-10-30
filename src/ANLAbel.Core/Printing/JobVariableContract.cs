@@ -440,6 +440,34 @@ public static partial class JobVariableContract
         return true;
     }
 
+    /// <summary>
+    /// The expression with renamed prompts: <c>{?Old}</c> becomes <c>{?New}</c>
+    /// and a formula's <c>FIELD("?Old")</c> becomes <c>FIELD("?New")</c>, every
+    /// name in one pass (so two prompts can swap names); everything else stays
+    /// as written. <paramref name="renames"/> maps old to new names and should
+    /// ignore case, as prompts are looked up. NiceLabel binds a variable by its
+    /// id, so a renamed variable keeps every object that uses it.
+    /// </summary>
+    public static string RenamePrompts(string? expression, IReadOnlyDictionary<string, string> renames)
+    {
+        ArgumentNullException.ThrowIfNull(renames);
+        if (string.IsNullOrEmpty(expression) || renames.Count == 0)
+        {
+            return expression ?? string.Empty;
+        }
+
+        string Rename(Match match) => renames.TryGetValue(match.Groups["name"].Value.Trim(), out var renamed)
+            ? match.Groups["open"].Value + renamed + match.Groups["close"].Value
+            : match.Value;
+        return PromptFieldPattern().Replace(PromptPlaceholderPattern().Replace(expression, Rename), Rename);
+    }
+
+    [GeneratedRegex(@"(?<open>\{\s*\?)(?<name>[^{}]+?)(?<close>\s*\})")]
+    private static partial Regex PromptPlaceholderPattern();
+
+    [GeneratedRegex(@"(?<open>FIELD\s*\(\s*""\?)(?<name>[^""]+)(?<close>""\s*\))", RegexOptions.IgnoreCase)]
+    private static partial Regex PromptFieldPattern();
+
     [GeneratedRegex(@"\{([^{}]+)\}")]
     private static partial Regex TokenPattern();
 

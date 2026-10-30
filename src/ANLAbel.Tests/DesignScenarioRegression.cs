@@ -1625,6 +1625,51 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Renaming a print question in the Data Manager carries the objects that
+    /// use it, as NiceLabel (which binds a variable by id): a text "Lô: {?Lot}"
+    /// and a barcode formula reading FIELD("?Lot") follow the new name, so the
+    /// print dialog asks the renamed question with its rules (digits only, at
+    /// most 8) instead of a bare "Lot" without them. The editor says so before
+    /// Đồng ý, and Ctrl+Z restores the name and both objects.
+    /// </summary>
+    public static Task PromptRenameCarriesItsObjects()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô", MaxLength = 8, DigitsOnly = true, Required = true });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô", BindingExpression = "Lô: {?Lot}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, Name = "Mã lô", BindingExpression = "CONCAT(\"L\", FIELD(\"?Lot\"))", XMm = 3, YMm = 12, WidthMm = 40, HeightMm = 10 });
+            var window = new ANLAbel.App.DataManagerWindow(viewModel);
+            var drafts = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_prompts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            var draft = (PromptVariableDefinition)drafts[0]!;
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { draft });
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+
+            draft.Name = "SoLo";
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var usage = ((TextBlock)window.FindName("PromptUsageText")).Text;
+            Require(usage.Contains("Đổi tên từ {?Lot}", StringComparison.Ordinal) && usage.Contains("2 đối tượng (Lô, Mã lô)", StringComparison.Ordinal) && usage.Contains("{?SoLo}", StringComparison.Ordinal),
+                "Before Đồng ý the editor says which objects move to the new name: " + usage);
+
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("Ok_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object?[] { null, null });
+            string[] Bindings() => viewModel.Template.Objects.Select(item => item.BindingExpression).ToArray();
+            Require(Bindings().SequenceEqual(["Lô: {?SoLo}", "CONCAT(\"L\", FIELD(\"?SoLo\"))"]),
+                "Both objects use the renamed question: " + string.Join(" | ", Bindings()));
+            var asked = ANLAbel.Core.Printing.JobVariableContract.RequiredPrompts(viewModel.Template);
+            Require(asked.Count == 1 && asked[0] is { Name: "SoLo", MaxLength: 8, DigitsOnly: true, Required: true },
+                "The print dialog asks the renamed question with its rules: " + string.Join(", ", asked.Select(prompt => $"{prompt.Name} max {prompt.MaxLength}")));
+            Require(viewModel.StatusText.Contains("2 đối tượng dùng tên biến mới", StringComparison.Ordinal), "The status line says the objects moved: " + viewModel.StatusText);
+
+            viewModel.UndoCommand.Execute(null);
+            Require(Bindings().SequenceEqual(["Lô: {?Lot}", "CONCAT(\"L\", FIELD(\"?Lot\"))"]) && viewModel.Template.PromptVariables.Single().Name == "Lot",
+                "Ctrl+Z restores the name and both objects: " + string.Join(" | ", Bindings()));
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>A presentation source for key events raised on windows that are never shown.</summary>
     private sealed class TestPresentationSource : PresentationSource
     {

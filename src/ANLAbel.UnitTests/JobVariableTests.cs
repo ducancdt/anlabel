@@ -38,6 +38,19 @@ public sealed class JobVariableTests : IDisposable
         => pairs.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
 
     [Theory]
+    [InlineData("{?Lot}", "{?SoLo}")]
+    [InlineData("Lô: { ?lot } / {?Qty}", "Lô: { ?SoLo } / {?Qty}")]
+    [InlineData("CONCAT(\"L\", FIELD(\"?Lot\"), FIELD( \"Lot\" ))", "CONCAT(\"L\", FIELD(\"?SoLo\"), FIELD( \"Lot\" ))")]
+    [InlineData("{Lot}{#NOW:yyMMdd}{?Lotto}", "{Lot}{#NOW:yyMMdd}{?Lotto}")]
+    [InlineData("{?A}-{?B}", "{?B}-{?A}")]
+    [InlineData("", "")]
+    public void RenamePrompts_MovesOnlyThePromptReferences(string expression, string expected)
+    {
+        var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Lot"] = "SoLo", ["A"] = "B", ["B"] = "A" };
+        Assert.Equal(expected, JobVariableContract.RenamePrompts(expression, renames));
+    }
+
+    [Theory]
     [InlineData("#NOW", "31/01/2026")]
     [InlineData("#NOW:yyyy-MM-dd HH:mm", "2026-01-31 22:15")]
     [InlineData("#NOW+1d:dd/MM/yyyy", "01/02/2026")]
