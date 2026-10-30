@@ -12615,6 +12615,33 @@ static Task TestDesignerShowsInverseInverted()
 
             AssertEqual(true, Luma(0.25) > 200, "Black beneath the left half of the Inverse shows white");
             AssertEqual(true, Luma(0.75) < 60, "White beneath the right half of the Inverse shows black");
+
+            // Sheet shading evidence (TestOutput): A4 sheet, 2 x 7 labels of 99.1 x 38.1 mm.
+            var sheetTemplate = new LabelTemplate { Name = "Sheet", WidthMm = 99.1, HeightMm = 38.1, Dpi = 300 };
+            sheetTemplate.PrinterProfile.PhysicalWidthMm = 210;
+            sheetTemplate.PrinterProfile.PhysicalHeightMm = 297;
+            sheetTemplate.PrinterProfile.OffsetXMm = 4.65;
+            sheetTemplate.PrinterProfile.OffsetYMm = 15.15;
+            sheetTemplate.PrinterProfile.LabelsAcross = 2;
+            sheetTemplate.PrinterProfile.LabelsDown = 7;
+            sheetTemplate.PrinterProfile.HorizontalGapMm = 2.5;
+            var sheetCanvas = new LabelDesignerCanvas { Template = sheetTemplate, Zoom = 1 };
+            var host = new Border { Padding = new Thickness(MmConverter.MmToDip(6), MmConverter.MmToDip(17), 0, 0), Background = Brushes.LightGray, Child = sheetCanvas };
+            var hostWidth = (int)MmConverter.MmToDip(216);
+            var hostHeight = (int)MmConverter.MmToDip(300);
+            host.Measure(new Size(hostWidth, hostHeight));
+            host.Arrange(new Rect(0, 0, hostWidth, hostHeight));
+            host.UpdateLayout();
+            var sheetShot = new RenderTargetBitmap(hostWidth, hostHeight, 96, 96, PixelFormats.Pbgra32);
+            sheetShot.Render(host);
+            var sheetFile = Path.Combine(FindRepositoryRoot(), "TestOutput", "nicelabel-layout", "sheet-shading.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(sheetFile)!);
+            using (var stream = File.Create(sheetFile))
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(sheetShot));
+                encoder.Save(stream);
+            }
         }
         catch (Exception ex)
         {
