@@ -261,6 +261,18 @@
 
                     <TextBlock Text="Chế độ in" FontWeight="SemiBold"/>
                     <TextBlock Text="Dùng ô chọn trong bảng Dữ liệu Excel để chọn dòng cần in." TextWrapping="Wrap" Foreground="#526070" Margin="0,4,0,10"/>
+                    <TextBlock Text="{Binding DataOpenInExcelText}" TextWrapping="Wrap" Foreground="#92400E" Margin="0,0,0,10"
+                               AutomationProperties.AutomationId="PrintPreview.DataOpenInExcel">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
 
                     <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="#F8FAFC" Padding="8" Margin="0,0,0,12">
                         <StackPanel>

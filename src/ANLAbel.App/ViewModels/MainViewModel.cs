@@ -984,6 +984,41 @@ public sealed class MainViewModel : ObservableObject
     public string ExcelDataFreshnessText => HasLinkedExcelSource && !IsExcelLinkBroken && _excelDataReadAtLocal is not null
         ? $"Dữ liệu đọc lúc {_excelDataReadAtLocal.Value:HH:mm:ss}"
         : string.Empty;
+
+    /// <summary>Reminder shown while the linked file is open in Excel (edits not saved there do not print).</summary>
+    public const string ExcelOpenInExcelHint = "Tệp đang mở trong Excel: nếu vừa sửa số liệu, hãy Lưu trong Excel rồi bấm Cập nhật Excel trước khi in.";
+
+    private string _excelOpenInExcelText = string.Empty;
+
+    public string ExcelOpenInExcelText
+    {
+        get => _excelOpenInExcelText;
+        private set => SetProperty(ref _excelOpenInExcelText, value);
+    }
+
+    /// <summary>
+    /// Re-checks whether the linked file is open in Excel: after a read and when
+    /// the operator comes back from another window. Off the UI thread and
+    /// bounded, as the file may sit on a slow network drive.
+    /// </summary>
+    public async Task RefreshExcelOpenHintAsync()
+    {
+        var path = HasLinkedExcelSource && !IsExcelLinkBroken ? Template.DatabaseConfig.FilePath : null;
+        var open = false;
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            try
+            {
+                open = await Task.Run(() => ExcelOwnerFile.IsOpenInExcel(path)).WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+            }
+            catch (TimeoutException)
+            {
+                open = false;
+            }
+        }
+
+        ExcelOpenInExcelText = open ? ExcelOpenInExcelHint : string.Empty;
+    }
     public ExcelLinkVerificationState ExcelLinkVerificationState
     {
         get => _excelLinkVerificationState;
@@ -2298,6 +2333,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ExcelDataFreshnessText));
         IsExcelDataStale = false;
         MarkExcelLinkVerified(table.Rows.Count, table.Columns.Count);
+        await RefreshExcelOpenHintAsync().ConfigureAwait(true);
         StartWatchingExcelFile(filePath);
 
         var issueCount = GetBindingIssues().Count;
@@ -2812,6 +2848,7 @@ public sealed class MainViewModel : ObservableObject
         _excelDataReadAtLocal = null;
         _excelDataSourceWriteTimeUtc = null;
         _excelDataSourceIdentity = null;
+        ExcelOpenInExcelText = string.Empty;
 
         OnPropertyChanged(nameof(HasLinkedExcelSource));
         OnPropertyChanged(nameof(LinkedExcelSourceText));

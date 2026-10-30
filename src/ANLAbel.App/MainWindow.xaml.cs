@@ -40,6 +40,8 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
         DesignerCanvas.DataSourceDropped += (_, e) => _viewModel.DropDataSource(e.Binding, e.XMm, e.YMm, e.Target, e.NewObject);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        // Back from Excel: say whether the linked file is still open there.
+        Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
         BindObjectBrowser();
         DesignerCanvas.PreviewMouseLeftButtonDown += DesignerCanvas_PropertiesDoubleClick;
         InputBindings.Add(new System.Windows.Input.KeyBinding(

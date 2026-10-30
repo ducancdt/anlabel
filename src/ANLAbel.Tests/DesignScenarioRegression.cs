@@ -1803,6 +1803,73 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The linked data file open in Excel: ANLAbel prints the saved file, so
+    /// quantities typed in Excel and not saved print as before. While Excel's
+    /// owner file "~$name" sits beside it, the Data card and Print Preview say
+    /// to save in Excel and press Cập nhật Excel; once it is gone, they don't.
+    /// Nothing is blocked.
+    /// </summary>
+    public static Task OpenWorkbookRemindsToSaveFirst()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-open-in-excel-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            RunOnSta(() =>
+            {
+                var csv = Path.Combine(directory.FullName, "Hang.csv");
+                var owner = Path.Combine(directory.FullName, "~$Hang.csv");
+                File.WriteAllText(csv, "Ma,SoLuong\nSP-1,10\nSP-2,20\n");
+                var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+                viewModel.ImportExcelAsync(csv, "CSV").GetAwaiter().GetResult();
+                Require(viewModel.ExcelOpenInExcelText.Length == 0, "A closed file needs no reminder: " + viewModel.ExcelOpenInExcelText);
+
+                File.WriteAllText(owner, "owner");
+                viewModel.RefreshExcelOpenHintAsync().GetAwaiter().GetResult();
+                Require(viewModel.ExcelOpenInExcelText == ANLAbel.App.ViewModels.MainViewModel.ExcelOpenInExcelHint,
+                    "The Data card reminds to save in Excel: " + viewModel.ExcelOpenInExcelText);
+
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+                Require(viewModel.TryBuildPrintPreviewRows(out var rows, out var rowError), rowError);
+                var window = new ANLAbel.App.PrintPreviewWindow(
+                    viewModel.Template,
+                    rows[0],
+                    viewModel.ExcelDataView,
+                    new PrintService(),
+                    new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(directory.FullName, "log.csv")),
+                    string.Empty,
+                    preparedRows: rows,
+                    excelSourceIdentity: viewModel.ImportedExcelDataSourceIdentity);
+                var deadline = DateTime.UtcNow.AddSeconds(10);
+                while (window.DataOpenInExcelText.Length == 0 && DateTime.UtcNow < deadline)
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                    Thread.Sleep(20);
+                }
+
+                Require(window.DataOpenInExcelText == ANLAbel.App.ViewModels.MainViewModel.ExcelOpenInExcelHint,
+                    "Print Preview reminds to save in Excel: " + window.DataOpenInExcelText);
+                window.Close();
+
+                File.Delete(owner);
+                viewModel.RefreshExcelOpenHintAsync().GetAwaiter().GetResult();
+                Require(viewModel.ExcelOpenInExcelText.Length == 0, "Once Excel closes the file the reminder goes: " + viewModel.ExcelOpenInExcelText);
+            });
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still

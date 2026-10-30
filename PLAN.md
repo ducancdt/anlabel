@@ -20,6 +20,11 @@
   (bảng mã Windows-1258, không phải UTF-8) vẫn bị từ chối để không in sai dấu,
   nhưng thông báo nay nói rõ nguyên nhân và cách làm: nhập thẳng tệp .xlsx, hoặc
   lưu lại kiểu “CSV UTF-8 (Comma delimited)”.
+- Dữ liệu Excel: khi tệp đã liên kết đang mở trong Excel, thẻ Dữ liệu hiện tại và
+  Xem trước khi in nhắc “Tệp đang mở trong Excel: nếu vừa sửa số liệu, hãy Lưu
+  trong Excel rồi bấm Cập nhật Excel trước khi in”. ANLAbel đọc tệp đã lưu, nên
+  số liệu vừa gõ mà chưa lưu sẽ không được in; trước đây không có dấu hiệu nào.
+  Chỉ nhắc, không chặn in; kiểm tra lại mỗi khi quay về cửa sổ ANLAbel.
 
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 

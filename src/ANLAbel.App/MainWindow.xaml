@@ -1683,6 +1683,8 @@
                                             <TextBlock Text="{Binding CurrentExcelRowText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,3,0,0"/>
                                             <TextBlock Text="{Binding ExcelDataFreshnessText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                             <TextBlock Text="{Binding ExcelLinkStatusText}" FontSize="10.5" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding ExcelOpenInExcelText}" FontSize="10.5" Foreground="#92400E" TextWrapping="Wrap" Margin="0,3,0,0"
+                                                       AutomationProperties.AutomationId="Shell.Data.OpenInExcel"/>
                                             <WrapPanel Margin="0,7,0,0">
                                                 <Button Content="Liên kết lại Excel..." Command="{Binding RelinkExcelCommand}" Padding="7,3" Margin="0,0,5,5"
                                                         Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>

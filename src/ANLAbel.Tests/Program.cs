@@ -89,6 +89,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("renaming a function keeps the objects that use it", DesignScenarioRegression.FunctionRenameCarriesItsObjects),
     ("print-time fields are not broken links and functions read the serial", DesignScenarioRegression.PrintTimeFieldsAreNotBrokenLinks),
     ("the data panel lists functions and print-time fields", DesignScenarioRegression.DataPanelListsFunctionsAndPrintTimeFields),
+    ("an open workbook reminds the operator to save it first", DesignScenarioRegression.OpenWorkbookRemindsToSaveFirst),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

@@ -126,6 +126,7 @@ public partial class PrintPreviewWindow : Window
             && !string.IsNullOrWhiteSpace(template.DatabaseConfig.FilePath);
 
         DataContext = this;
+        _ = CheckDataOpenInExcelAsync();
         _filterDebounceTimer.Tick += (_, _) =>
         {
             _filterDebounceTimer.Stop();
@@ -1995,6 +1996,29 @@ public partial class PrintPreviewWindow : Window
         return true;
     }
 
+
+    /// <summary>Reminder while the linked data file is open in Excel: edits not saved there do not print.</summary>
+    public string DataOpenInExcelText { get; private set; } = string.Empty;
+
+    private async Task CheckDataOpenInExcelAsync()
+    {
+        var path = _template.DatabaseConfig.FilePath;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            // Bounded and off the UI thread: the file may sit on a slow network drive.
+            var open = await Task.Run(() => ANLAbel.Data.Excel.ExcelOwnerFile.IsOpenInExcel(path)).WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
+            DataOpenInExcelText = open ? ANLAbel.App.ViewModels.MainViewModel.ExcelOpenInExcelHint : string.Empty;
+            OnPropertyChanged();
+        }
+        catch (TimeoutException)
+        {
+        }
+    }
 
     private void OnPropertyChanged()
     {
