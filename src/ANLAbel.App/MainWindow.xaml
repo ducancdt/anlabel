@@ -1386,31 +1386,31 @@
 
                     <StackPanel Grid.Row="1" Margin="8,8,8,8">
                         <UniformGrid Columns="3" Rows="3">
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}" ToolTip="Chữ (một dòng, nội dung tự sở hữu)">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextCommand}" AutomationProperties.Name="Insert Text" ToolTip="Chữ (một dòng, nội dung tự sở hữu)">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/static_text.png"/><TextBlock Text="Chữ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextBoxCommand}">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddTextBoxCommand}" AutomationProperties.Name="Insert Text Box">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/text_box.png"/><TextBlock Text="Ô chữ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRichTextBoxCommand}" ToolTip="Chữ định dạng (RTF): nhiều kiểu chữ trong một khung">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRichTextBoxCommand}" AutomationProperties.Name="Insert Rich Text" ToolTip="Chữ định dạng (RTF): nhiều kiểu chữ trong một khung">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rich_text.png"/><TextBlock Text="Chữ RTF" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddBarcodeCommand}">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddBarcodeCommand}" AutomationProperties.Name="Insert Barcode">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/barcode.png"/><TextBlock Text="Mã vạch" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddImageCommand}">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddImageCommand}" AutomationProperties.Name="Insert Picture">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/image.png"/><TextBlock Text="Hình ảnh" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRectangleCommand}" ToolTip="Hình chữ nhật">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddRectangleCommand}" AutomationProperties.Name="Insert Rectangle" ToolTip="Hình chữ nhật">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/rectangle.png"/><TextBlock Text="Chữ nhật" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddLineCommand}">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddLineCommand}" AutomationProperties.Name="Insert Line">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/line.png"/><TextBlock Text="Đường kẻ" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}" ToolTip="Hình bầu dục">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddEllipseCommand}" AutomationProperties.Name="Insert Ellipse" ToolTip="Hình bầu dục">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/ellipse.png"/><TextBlock Text="Bầu dục" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddInverseCommand}" ToolTip="Đảo màu: vùng in đảo ngược đen và trắng bên dưới">
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddInverseCommand}" AutomationProperties.Name="Insert Inverse" ToolTip="Đảo màu: vùng in đảo ngược đen và trắng bên dưới">
                                 <StackPanel><Image Style="{StaticResource IconImage}" Source="Icons/inverse.png"/><TextBlock Text="Đảo màu" TextAlignment="Center" FontSize="11.5"/></StackPanel>
                             </Button>
                         </UniformGrid>
@@ -1860,8 +1860,14 @@
                                             <!-- Screen readers read the object name and type, not the model class name -->
                                             <ListBox.ItemContainerStyle>
                                                 <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                                                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
-                                                    <Setter Property="AutomationProperties.ItemType" Value="{Binding Type, Converter={StaticResource DisplayName}}"/>
+                                                    <Setter Property="AutomationProperties.Name">
+                                                        <Setter.Value>
+                                                            <MultiBinding StringFormat="{}{0} ({1})">
+                                                                <Binding Path="Name"/>
+                                                                <Binding Path="Type" Converter="{StaticResource DisplayName}"/>
+                                                            </MultiBinding>
+                                                        </Setter.Value>
+                                                    </Setter>
                                                 </Style>
                                             </ListBox.ItemContainerStyle>
                                             <ListBox.ItemTemplate>
@@ -1975,8 +1981,18 @@
                 <DockPanel LastChildFill="True">
                     <Border DockPanel.Dock="Top" Height="42" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="14,0">
                         <DockPanel>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" MaxWidth="215" TextTrimming="CharacterEllipsis"
+                            <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HidePropertiesCommand}" ToolTip="Đóng thuộc tính" AutomationProperties.AutomationId="Shell.Properties.Close">
+                                <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE711;" FontSize="11"/>
+                            </Button>
+                            <ToggleButton DockPanel.Dock="Right" Width="26" Height="24" Margin="0,0,2,0" Background="Transparent" BorderThickness="0"
+                                          IsChecked="{Binding IsPropertiesPinned, Mode=TwoWay}" Click="PropertiesPin_Click"
+                                          ToolTip="Ghim bảng thuộc tính bên phải (F4). Bỏ ghim: bảng nổi cạnh đối tượng khi nhấp đúp, như NiceLabel."
+                                          AutomationProperties.Name="Pin properties" AutomationProperties.AutomationId="Shell.Properties.Pin">
+                                <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE718;" FontSize="12"/>
+                            </ToggleButton>
+                            <!-- The title fills what the pin and close buttons leave and trims; it never runs under them -->
+                            <Grid VerticalAlignment="Center" Margin="0,0,4,0">
+                                <TextBlock FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
                                            AutomationProperties.AutomationId="Shell.Properties.Title">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
@@ -1996,16 +2012,7 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                            </StackPanel>
-                            <Button DockPanel.Dock="Right" Style="{StaticResource PanelHeaderButton}" Command="{Binding HidePropertiesCommand}" ToolTip="Đóng thuộc tính" AutomationProperties.AutomationId="Shell.Properties.Close">
-                                <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE711;" FontSize="11"/>
-                            </Button>
-                            <ToggleButton DockPanel.Dock="Right" Width="26" Height="24" Margin="0,0,2,0" Background="Transparent" BorderThickness="0"
-                                          IsChecked="{Binding IsPropertiesPinned, Mode=TwoWay}" Click="PropertiesPin_Click"
-                                          ToolTip="Ghim bảng thuộc tính bên phải (F4). Bỏ ghim: bảng nổi cạnh đối tượng khi nhấp đúp, như NiceLabel."
-                                          AutomationProperties.Name="Pin properties" AutomationProperties.AutomationId="Shell.Properties.Pin">
-                                <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE718;" FontSize="12"/>
-                            </ToggleButton>
+                            </Grid>
                         </DockPanel>
                     </Border>
 
