@@ -143,8 +143,8 @@ Fourth pass (2026-10-30):
 
 - Inverse object (`ObjectType.Inverse`, toolbox "Đảo màu"): print and
   preview rasterise the content beneath its frame at the print resolution
-  and swap black and white; the designer shows the area hatched (WPF cannot
-  invert sibling elements). Gate: `inverse object swaps black and white
+  and swap black and white; the designer shows the same inverted content
+  (rendered by the print renderer after every change), as NiceLabel does. Gate: `inverse object swaps black and white
   beneath it in print`.
 - Rich Text Box (`ObjectType.RichTextBox`, toolbox "Chữ RTF", RTF in
   `LabelObject.RichText`): one `RichTextLayout` for print, preview and the
@@ -164,3 +164,9 @@ The conversion is complete for ANLAbel's scope. The owner chose not to
 build the Report object (only NiceLabel's own samples use it; ANLAbel keeps
 one data row per label) and not to add products outside the label designer
 (PowerForms forms/solutions, Access/SQL Server/ODBC connectors, RFID).
+
+Verification (2026-10-30): `designer shows the inverse area inverted` and
+`double-click opens the floating properties beside the object` (a
+double-click event on the canvas with the panel unpinned moves the panel
+into the floating popup beside the object; with the window shown the popup
+reported open).

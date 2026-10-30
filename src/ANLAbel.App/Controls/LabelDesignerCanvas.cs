@@ -1680,7 +1680,7 @@ public sealed class LabelDesignerCanvas : Canvas
                 border.ToolTip = objectError;
                 if (item.Type == ObjectType.Inverse)
                 {
-                    // Keep the hatched marker; print/preview do the real inversion.
+                    // The inverted content is drawn by RefreshInverseElements.
                     border.BorderThickness = new Thickness(1);
                     border.BorderBrush = Brushes.Black;
                     border.ToolTip = objectError ?? "Vùng đảo màu: khi in, đen và trắng bên dưới được đảo ngược";
@@ -1742,6 +1742,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         ApplyObjectRotation(element, item);
+        ScheduleInverseRefresh();
 
         element.InvalidateMeasure();
         element.InvalidateArrange();
@@ -2929,6 +2930,68 @@ public sealed class LabelDesignerCanvas : Canvas
         foreach (var item in _selectedObjects)
         {
             dc.DrawRectangle(fill, ReferenceEquals(item, SelectedObject) && _selectedObjects.Count > 1 ? keyPen : pen, InflateRect(GetObjectBounds(item), 3));
+        }
+    }
+
+    private bool _inverseRefreshPending;
+
+    /// <summary>
+    /// Inverse areas show the real result in the designer, as NiceLabel 10:
+    /// after any change the content beneath each Inverse is rendered by the
+    /// print renderer and drawn inverted inside its frame (coalesced).
+    /// </summary>
+    private void ScheduleInverseRefresh()
+    {
+        if (_inverseRefreshPending || Template is null || !Template.Objects.Any(item => item.Type == ObjectType.Inverse))
+        {
+            return;
+        }
+
+        _inverseRefreshPending = true;
+        Dispatcher.BeginInvoke(RefreshInverseElements, System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    private void RefreshInverseElements()
+    {
+        _inverseRefreshPending = false;
+        if (Template is null)
+        {
+            return;
+        }
+
+        const int previewDpi = 203;
+        foreach (var inverse in Template.Objects.Where(item => item.Type == ObjectType.Inverse).ToArray())
+        {
+            if (!_objectElements.TryGetValue(inverse, out var element) || element is not Border border)
+            {
+                continue;
+            }
+
+            var beneath = new LabelTemplate { WidthMm = Template.WidthMm, HeightMm = Template.HeightMm, Dpi = previewDpi };
+            foreach (var item in Template.Objects.Where(item => item.IsVisible && item.ZIndex < inverse.ZIndex).OrderBy(item => item.ZIndex))
+            {
+                beneath.Objects.Add(item);
+            }
+
+            var plan = new PrintRenderPlan
+            {
+                Dpi = previewDpi,
+                DpiX = previewDpi,
+                DpiY = previewDpi,
+                LabelWidthMm = Template.WidthMm,
+                LabelHeightMm = Template.HeightMm
+            };
+            var frame = new Rect(
+                MmConverter.MmToDip(inverse.XMm),
+                MmConverter.MmToDip(inverse.YMm),
+                MmConverter.MmToDip(inverse.WidthMm),
+                MmConverter.MmToDip(inverse.HeightMm));
+            var rendered = new LabelVisualRenderer().Render(beneath, PreviewRow, plan);
+            if (rendered.Drawing is { } drawing
+                && LabelVisualRenderer.CreateInvertedRegion(drawing, frame, previewDpi, previewDpi) is { } inverted)
+            {
+                border.Background = new ImageBrush(inverted) { Stretch = Stretch.Fill };
+            }
         }
     }
 

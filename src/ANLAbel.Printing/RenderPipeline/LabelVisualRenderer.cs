@@ -188,7 +188,7 @@ public sealed class LabelVisualRenderer
         dc.DrawDrawing(layer);
     }
 
-    internal static BitmapSource? CreateInvertedRegion(Drawing content, Rect frame, int dpiX, int dpiY)
+    public static BitmapSource? CreateInvertedRegion(Drawing content, Rect frame, int dpiX, int dpiY)
     {
         dpiX = dpiX > 0 ? dpiX : 300;
         dpiY = dpiY > 0 ? dpiY : 300;

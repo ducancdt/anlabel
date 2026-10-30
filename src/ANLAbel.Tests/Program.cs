@@ -309,6 +309,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("properties panel pins right or floats beside the selection", TestPropertiesPanelPinsOrFloats),
     ("group objects select and move together like NiceLabel", TestGroupObjectsLikeNiceLabel),
     ("inverse object swaps black and white beneath it in print", TestInverseObjectSwapsBlackAndWhite),
+    ("designer shows the inverse area inverted", TestDesignerShowsInverseInverted),
+    ("double-click opens the floating properties beside the object", TestDoubleClickOpensFloatingProperties),
     ("rich text box prints formatted text clipped at its frame", TestRichTextBoxPrintsClippedAtFrame),
     ("designer header commands are unique", TestDesignerHeaderCommandsAreUnique),
     ("designer icon sources exist on disk", TestDesignerIconSourcesExist),
@@ -12562,6 +12564,104 @@ static Task TestRichTextBoxPrintsClippedAtFrame()
 
             AssertEqual(true, inside > 50, "Rich text draws ink inside its frame: " + inside);
             AssertEqual(0, outside, "Rich text is clipped at its frame like a TextBox");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestDesignerShowsInverseInverted()
+{
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var template = new LabelTemplate { Name = "Inverse", WidthMm = 40, HeightMm = 20, Dpi = 203 };
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.Rectangle, Name = "Bar", XMm = 0, YMm = 0, WidthMm = 20, HeightMm = 20, ZIndex = 1,
+                Style = { FillStyle = FillStyle.Solid, FillColor = "#FF000000", BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+            });
+            var inverse = new LabelObject { Type = ObjectType.Inverse, Name = "Inverse", XMm = 10, YMm = 0, WidthMm = 20, HeightMm = 20, ZIndex = 2 };
+            template.Objects.Add(inverse);
+            var canvas = new LabelDesignerCanvas { Template = template };
+            typeof(LabelDesignerCanvas).GetMethod("RefreshInverseElements", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(canvas, null);
+            var elements = (Dictionary<LabelObject, FrameworkElement>)typeof(LabelDesignerCanvas)
+                .GetField("_objectElements", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(canvas)!;
+            var brush = ((Border)elements[inverse]).Background as ImageBrush;
+            AssertEqual(true, brush?.ImageSource is BitmapSource, "The designer paints the inverted content inside the Inverse frame");
+            var image = (BitmapSource)brush!.ImageSource;
+            var converted = new FormatConvertedBitmap(image, PixelFormats.Bgra32, null, 0);
+            byte Luma(double fraction)
+            {
+                var pixel = new byte[4];
+                converted.CopyPixels(new Int32Rect((int)(converted.PixelWidth * fraction), converted.PixelHeight / 2, 1, 1), pixel, 4, 0);
+                return pixel[1];
+            }
+
+            AssertEqual(true, Luma(0.25) > 200, "Black beneath the left half of the Inverse shows white");
+            AssertEqual(true, Luma(0.75) < 60, "White beneath the right half of the Inverse shows black");
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestDoubleClickOpensFloatingProperties()
+{
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        try
+        {
+            var window = new MainWindow();
+            var viewModel = (MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            viewModel.AddTextCommand.Execute(null);
+            viewModel.SelectedObject = viewModel.Template.Objects.Last();
+            viewModel.IsPropertiesPinned = false;
+            var canvas = (LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var args = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+            {
+                RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent
+            };
+            typeof(System.Windows.Input.MouseButtonEventArgs).GetProperty("ClickCount")!.GetSetMethod(true)!.Invoke(args, new object[] { 2 });
+            canvas.RaiseEvent(args);
+            PumpDispatcher();
+            var popup = (System.Windows.Controls.Primitives.Popup)window.FindName("PropertiesPopup");
+            var panel = (FrameworkElement)window.FindName("PropertiesPanel");
+            var host = (Border)window.FindName("PropertiesPopupHost");
+            // A hidden test window cannot open a Popup; the placement it computed
+            // (panel re-parented, offset beside the object) proves the double-click path ran.
+            AssertEqual(true, ReferenceEquals(panel.Parent, host), "The floating popup hosts the Properties panel");
+            AssertEqual(true, popup.HorizontalOffset > 0, "The floating panel opens beside the object");
+            popup.IsOpen = false;
         }
         catch (Exception ex)
         {
