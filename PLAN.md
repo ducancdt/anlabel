@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## v0.339 — Rà soát trên app thật: thanh trạng thái, Thuộc tính mọi loại đối tượng, các hộp thoại
+
+_Gồm các commit 30/10/2026 (11:36–12:21), kiểm bằng UI Automation trên bản
+cài, màn hình 150 %._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Thanh trạng thái: thẻ cảnh báo máy in không còn bị nút Máy in che.
+- Thuộc tính mã vạch: “Chế độ 2D” và “Mức ECC” hiện đủ giá trị.
+- Phiên bản mẫu tem, Nhập dữ liệu Excel và sơ đồ Trợ giúp không còn cắt chữ;
+  danh sách Đối tượng và chín nút công cụ có tên cho trình đọc màn hình; tiêu
+  đề Thuộc tính không chạy dưới nút ghim.
+- Chữ định dạng: nút B/I/U/A+/A-/căn hiện đủ; thẻ Kiểu của Chữ định dạng và
+  Đảo màu có ghi chú; hình dạng không còn mời “Liên kết Excel…”.
+- Lịch sử in: ô tìm có nhãn, nút Làm mới gọn, cột “Mẫu tem / hàng đợi” hiện đủ.
+
+**Kiểm tra:** build 0 cảnh báo, 1543 unit, hồi quy 282/282.
+
 ## v0.338 — Rà soát giao diện: Trợ giúp theo bố cục mới, hộp thoại theo màu thật, ribbon thu gọn khi cửa sổ hẹp
 
 _Gồm các commit 30/10/2026 (11:06–11:26)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
