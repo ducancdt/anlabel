@@ -533,3 +533,18 @@ From DesignerLib `mainregion/view/objectbrowser.xaml`,
   ANLAbel has no layers; an imported label keeps its objects, and objects on
   a hidden layer are not printed (the `Label_layers` sample). No customer
   label uses layers. Not built.
+
+## Database wizard (2026-10-31)
+
+NiceLabel 10's database wizard (`wizards/view/database`, `DatabaseWizard`,
+`OpenDatabaseWizardDialogCommand`) runs: welcome, connection type,
+connection, connection settings, table and fields, other data set settings
+(Data, Fields and Usage tabs), printing options (labels per record),
+elements creation. ANLAbel's Excel import covers the steps a workbook or CSV
+needs: file, sheet, header row, the
+fields used on the label, and labels per record through the copies column.
+
+Elements creation offers "create objects", "create a table" (a Report, out of
+scope) or nothing. "Create objects" (`AddFormatObjects`) adds one Text per
+field of the data set, bound to it, at x = 5 mm, stacked downwards from
+y = 5 mm. Not built: ANLAbel's Data panel drags each field onto the label.
