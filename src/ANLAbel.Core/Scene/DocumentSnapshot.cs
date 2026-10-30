@@ -281,6 +281,7 @@ public sealed record SceneObjectSnapshot
     public PictureSizing PictureSizing { get; init; }
     public bool PictureFlipHorizontal { get; init; }
     public bool PictureFlipVertical { get; init; }
+    public DataMatrixSymbolSize DataMatrixSymbolSize { get; init; }
     public string VisibilityCondition { get; init; } = string.Empty;
     public string GroupId { get; init; } = string.Empty;
     public string ContentMask { get; init; } = string.Empty;
@@ -364,6 +365,7 @@ public sealed record SceneObjectSnapshot
             PictureSizing = item.PictureSizing,
             PictureFlipHorizontal = item.PictureFlipHorizontal,
             PictureFlipVertical = item.PictureFlipVertical,
+            DataMatrixSymbolSize = item.DataMatrixSymbolSize,
             VisibilityCondition = item.VisibilityCondition,
             GroupId = item.GroupId,
             ContentMask = item.ContentMask,
@@ -797,6 +799,13 @@ internal static class SceneHash
             Append(builder, item.PictureSizing.ToString());
             Append(builder, item.PictureFlipHorizontal);
             Append(builder, item.PictureFlipVertical);
+        }
+
+        if (item.DataMatrixSymbolSize != DataMatrixSymbolSize.Auto)
+        {
+            // Appended only when used so documents saved before this field keep their fingerprint.
+            Append(builder, "datamatrix-size");
+            Append(builder, item.DataMatrixSymbolSize.ToString());
         }
         Append(builder, item.Style.FontFamily);
         Append(builder, item.Style.TextResourceFingerprint);

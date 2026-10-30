@@ -817,6 +817,38 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void DataMatrixFormat_BecomesTheChosenSymbolSize()
+    {
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Fixed</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>15</DatamatrixFormat></BarcodeData>
+              <FixedContents>12345</FixedContents>
+            </Item>
+            <Item Type="BarcodeDocumentItem">
+              <Name>Narrow</Name>
+              <Geometry Type="PositionGeometry"><X>40000</X><Y>1000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>25</DatamatrixFormat></BarcodeData>
+              <FixedContents>12345</FixedContents>
+            </Item>
+            <Item Type="BarcodeDocumentItem">
+              <Name>Automatic</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>40000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>0</DatamatrixFormat></BarcodeData>
+              <FixedContents>12345</FixedContents>
+            </Item>
+            """);
+
+        var codes = template.Objects.ToDictionary(item => item.Name);
+        Assert.Equal(DataMatrixSymbolSize.C52x52, codes["Fixed"].DataMatrixSymbolSize);
+        Assert.Equal((26.0, 26.0), (codes["Fixed"].WidthMm, codes["Fixed"].HeightMm));
+        Assert.Equal(DataMatrixSymbolSize.C8x18, codes["Narrow"].DataMatrixSymbolSize);
+        Assert.Equal((9.0, 4.0), (codes["Narrow"].WidthMm, codes["Narrow"].HeightMm));
+        Assert.Equal(DataMatrixSymbolSize.Auto, codes["Automatic"].DataMatrixSymbolSize);
+    }
+
+    [Fact]
     public void GraphicResizeModeAndMirrors_BecomePictureSizingAndFlips()
     {
         var payload = Convert.ToBase64String(TinyPng(3, 2));

@@ -1578,6 +1578,9 @@ public sealed class MainViewModel : ObservableObject
     public ICommand ResetPictureSizeCommand { get; }
 
     public IReadOnlyList<PictureSizing> PictureSizings { get; } = Enum.GetValues<PictureSizing>();
+
+    /// <summary>NiceLabel 10 Data Matrix formats: Auto, the square sizes, then the rectangular ones.</summary>
+    public IReadOnlyList<DataMatrixSymbolSize> DataMatrixSymbolSizeOptions { get; } = Enum.GetValues<DataMatrixSymbolSize>();
     public ICommand AddTextBoxCommand { get; }
     public ICommand AddExcelFieldCommand { get; }
     public ICommand BindSelectedAsExcelFieldCommand { get; }

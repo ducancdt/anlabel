@@ -4,6 +4,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ANLAbel.App.Controls;
+using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Geometry;
 using ANLAbel.Core.Models;
@@ -320,6 +321,105 @@ internal static class DesignScenarioRegression
                 {
                     failures.Add($"{name}: read '{decoded}', expected '{data}'.");
                 }
+            }
+
+            if (failures.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private sealed record DataMatrixCase(string Name, DataMatrixSymbolSize Size, string Data, double X, double Y, double W, double H, double Aspect);
+
+    /// <summary>
+    /// NiceLabel 10 Data Matrix format. Automatic size prints the smallest
+    /// square symbol (eight letters used to come out 8 x 32 in a square frame);
+    /// a chosen square or rectangular size prints with that shape and decodes;
+    /// data too long for the chosen size is refused, in Vietnamese, rather than
+    /// grown; choosing a rectangular size gives the designer frame its shape.
+    /// </summary>
+    public static Task DataMatrixSizesPrintAsChosen()
+    {
+        RunOnSta(() =>
+        {
+            var cases = new[]
+            {
+                new DataMatrixCase("Auto eight letters", DataMatrixSymbolSize.Auto, "ABCDEFGH", 5, 5, 20, 20, 1),
+                new DataMatrixCase("Fixed 52 x 52", DataMatrixSymbolSize.C52x52, "LOT-2026-10-30", 35, 5, 30, 30, 1),
+                new DataMatrixCase("Rectangle 8 x 18", DataMatrixSymbolSize.C8x18, "12345", 5, 45, 36, 16, 18.0 / 8),
+                new DataMatrixCase("Rectangle 16 x 48", DataMatrixSymbolSize.C16x48, "SN:A1B2C3D4E5F6", 45, 45, 60, 20, 48.0 / 16)
+            };
+            // Data comes through a field, as printed from Excel; each code has its own column.
+            var row = cases.Select((code, index) => (Key: "C" + index, code.Data)).ToDictionary(pair => pair.Key, pair => pair.Data);
+            var template = new LabelTemplate { Name = "Data Matrix sizes", WidthMm = 110, HeightMm = 75, Dpi = Dpi };
+            foreach (var code in cases)
+            {
+                template.Objects.Add(new LabelObject
+                {
+                    Type = ObjectType.BarcodeCode128,
+                    BarcodeSymbology = BarcodeSymbology.DataMatrix,
+                    Name = code.Name,
+                    BindingExpression = "{C" + Array.IndexOf(cases, code) + "}",
+                    XMm = code.X,
+                    YMm = code.Y,
+                    WidthMm = code.W,
+                    HeightMm = code.H,
+                    QrQuietZoneModules = 0,
+                    DataMatrixSymbolSize = code.Size,
+                    Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
+                });
+            }
+
+            var failures = new List<string>();
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+            var printed = Rasterize(new LabelVisualRenderer().Render(template, row, plan), template.WidthMm, template.HeightMm);
+            foreach (var code in cases)
+            {
+                var frame = new PictureCase(code.Name, PictureSizing.Proportional, false, false, code.X, code.Y, code.W, code.H);
+                var symbol = Box(printed, frame, 64);
+                var aspect = symbol.H > 0 ? symbol.W / symbol.H : 0;
+                var decoded = Decode(printed, code.X, code.Y, code.W, code.H, BarcodeFormat.DATA_MATRIX);
+                if (decoded != code.Data || Math.Abs(aspect - code.Aspect) > 0.12 * code.Aspect)
+                {
+                    failures.Add($"{code.Name}: decoded '{decoded}', symbol {Show(symbol)} (width/height {aspect:0.00}, expected {code.Aspect:0.00}).");
+                }
+            }
+
+            // A chosen size too small for the row's data blocks that row with a plain reason.
+            var narrow = template.Objects.Single(item => item.Name == "Rectangle 8 x 18");
+            var tooLong = new Dictionary<string, string>(row) { ["C2"] = "SERIAL-0123456789-ABCDEFGHIJ" };
+            var rows = new IReadOnlyDictionary<string, string>?[] { row, tooLong };
+            var preflight = new PrintPreflightValidator(new ZxingBarcodeRenderer()).Validate(template, rows, Dpi);
+            var refused = preflight.Issues.Where(issue => issue.IsBlocking && issue.ObjectName == narrow.Name).ToArray();
+            var reason = refused.Length == 1 ? ANLAbel.App.Services.PreflightIssueText.Sentence(refused[0].Message) : string.Empty;
+            if (refused.Length != 1 || refused[0].RowNumber != 2 || !reason.Contains("không vừa khổ Data Matrix 8 × 18", StringComparison.Ordinal))
+            {
+                failures.Add("Data too long for 8 x 18 must block only row 2 with a Vietnamese reason; got "
+                    + (refused.Length == 0 ? "nothing" : string.Join(" | ", refused.Select(issue => $"row {issue.RowNumber}: {issue.Message} -> {ANLAbel.App.Services.PreflightIssueText.Sentence(issue.Message)}"))));
+            }
+
+            // Choosing a rectangular size gives the designer frame the symbol's shape (width kept).
+            var designer = new LabelTemplate { Name = "Designer", WidthMm = 60, HeightMm = 40, Dpi = Dpi };
+            var square = new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.DataMatrix, Name = "Dm", BindingExpression = "{Dm}", QrQuietZoneModules = 1, XMm = 5, YMm = 5, WidthMm = 26, HeightMm = 26 };
+            designer.Objects.Add(square);
+            var canvas = new LabelDesignerCanvas { Template = designer, Zoom = 1 };
+            canvas.Measure(new Size(400, 300));
+            canvas.Arrange(new Rect(0, 0, 400, 300));
+            canvas.UpdateLayout();
+            square.DataMatrixSymbolSize = DataMatrixSymbolSize.C12x26;
+            var expectedHeight = 26.0 * (12 + 2) / (26 + 2);
+            if (Math.Abs(square.WidthMm - 26) > 0.01 || Math.Abs(square.HeightMm - expectedHeight) > 0.02)
+            {
+                failures.Add($"Choosing 12 x 26 should make the 26 mm frame {expectedHeight:0.00} mm high; it is {square.WidthMm:0.##} x {square.HeightMm:0.##} mm.");
+            }
+
+            square.DataMatrixSymbolSize = DataMatrixSymbolSize.Auto;
+            if (Math.Abs(square.HeightMm - square.WidthMm) > 0.02)
+            {
+                failures.Add($"Back to Auto the frame should be square again; it is {square.WidthMm:0.##} x {square.HeightMm:0.##} mm.");
             }
 
             if (failures.Count > 0)

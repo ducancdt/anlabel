@@ -25,7 +25,8 @@ public static class QrObjectGeometryContract
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        if (!item.IsSquare2DCodeLike())
+        // A chosen Data Matrix size decides the modules; the frame stays the operator's.
+        if (!item.IsSquare2DCodeLike() || DataMatrixSymbolSizes.HasChosenSize(item))
         {
             return null;
         }
@@ -69,7 +70,7 @@ public static class QrObjectGeometryContract
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        if (!item.IsSquare2DCodeLike())
+        if (!item.IsSquare2DCodeLike() || DataMatrixSymbolSizes.HasChosenSize(item))
         {
             return null;
         }

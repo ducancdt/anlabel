@@ -28,6 +28,9 @@ public sealed class BarcodeRenderOptions
     /// <summary>Truncated PDF417 (narrower symbol without right row indicators/stop pattern).</summary>
     public bool Pdf417Truncated { get; init; }
 
+    /// <summary>Data Matrix symbol size; Auto is the smallest square symbol (NiceLabel 10).</summary>
+    public DataMatrixSymbolSize DataMatrixSymbolSize { get; init; }
+
     /// <summary>
     /// The one place a label object's barcode settings become encoder options,
     /// so designer, preflight, sizing and print always encode the same symbol.
@@ -46,7 +49,8 @@ public sealed class BarcodeRenderOptions
             Code39IntercharacterGapModules = item.Code39IntercharacterGapModules,
             Code128CodeSet = item.Code128CodeSet,
             Pdf417ErrorCorrectionLevel = item.Pdf417ErrorCorrectionLevel,
-            Pdf417Truncated = item.Pdf417Truncated
+            Pdf417Truncated = item.Pdf417Truncated,
+            DataMatrixSymbolSize = item.DataMatrixSymbolSize
         };
     }
 }

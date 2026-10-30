@@ -339,7 +339,20 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         }
         else if (type == BarcodeType.DataMatrix)
         {
-            hints[EncodeHintType.DATA_MATRIX_SHAPE] = SymbolShapeHint.FORCE_NONE;
+            // NiceLabel 10: Auto is the smallest square symbol (its barcode library
+            // leaves rectangular sizes out of Auto); a chosen size is exactly that
+            // size, and data it cannot hold fails to encode instead of growing it.
+            if (DataMatrixSymbolSizes.Cells(options.DataMatrixSymbolSize) is { } cells)
+            {
+                var size = new Dimension(cells.Columns, cells.Rows);
+                hints[EncodeHintType.DATA_MATRIX_SHAPE] = cells.Rows == cells.Columns ? SymbolShapeHint.FORCE_SQUARE : SymbolShapeHint.FORCE_RECTANGLE;
+                hints[EncodeHintType.MIN_SIZE] = size;
+                hints[EncodeHintType.MAX_SIZE] = size;
+            }
+            else
+            {
+                hints[EncodeHintType.DATA_MATRIX_SHAPE] = SymbolShapeHint.FORCE_SQUARE;
+            }
         }
         else if (type == BarcodeType.Pdf417)
         {

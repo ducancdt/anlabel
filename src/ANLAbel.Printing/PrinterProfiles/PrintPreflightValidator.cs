@@ -635,6 +635,13 @@ public sealed class PrintPreflightValidator
             _ => BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
         };
 
+        // A chosen Data Matrix size that cannot hold the data does not encode; say why.
+        if (FixedDataMatrixSizeProblem(item, data) is { } sizeProblem)
+        {
+            issues.Add(new PrintPreflightIssue(rowIndex + 1, item.Name, item.Type.ToString(), sizeProblem));
+            return;
+        }
+
         // Render as the print does: plan DPI, falling back to the object's own DPI.
         var dpiX = printDpi is > 0 ? printDpi.Value : item.QrDpi > 0 ? item.QrDpi : 203;
         var dpiY = printDpiY is > 0 ? printDpiY.Value : dpiX;
@@ -695,6 +702,35 @@ public sealed class PrintPreflightValidator
             : 0;
         return $"Fixed QR capacity exceeded: {byteCount} UTF-8 byte(s) for version {version} / {item.QrErrorCorrection}, capacity {capacity}. Choose a larger version, reduce data, or use Auto size.";
     }
+
+    /// <summary>
+    /// The issue text when the chosen Data Matrix size cannot hold
+    /// <paramref name="data"/> (the encoded payload), otherwise null. NiceLabel 10
+    /// refuses such a code rather than enlarging it, and so does print here.
+    /// Data that does not encode at any size is left to the render check.
+    /// </summary>
+    public static string? FixedDataMatrixSizeProblem(LabelObject item, string data)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (!DataMatrixSymbolSizes.HasChosenSize(item)
+            || DataMatrixSymbolSizes.Cells(item.DataMatrixSymbolSize) is not { } cells
+            || string.IsNullOrEmpty(data)
+            || MatrixCounter.CountMatrixModules(data, BarcodeType.DataMatrix, BarcodeRenderOptions.FromObject(item)) is not null)
+        {
+            return null;
+        }
+
+        var automatic = LabelObjectCloner.Clone(item);
+        automatic.DataMatrixSymbolSize = DataMatrixSymbolSize.Auto;
+        if (MatrixCounter.CountMatrixModules(data, BarcodeType.DataMatrix, BarcodeRenderOptions.FromObject(automatic)) is null)
+        {
+            return null;
+        }
+
+        return $"Fixed Data Matrix size exceeded: {data.Length} character(s) do not fit {cells.Rows}x{cells.Columns}. Choose a larger size or Auto.";
+    }
+
+    private static readonly ZxingBarcodeRenderer MatrixCounter = new();
 
     /// <summary>
     /// A SizedFromX linear symbol prints at its production width for this row

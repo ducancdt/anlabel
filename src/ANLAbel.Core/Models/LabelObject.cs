@@ -26,6 +26,7 @@ public sealed class LabelObject : ObservableObject
     private PictureSizing _pictureSizing;
     private bool _pictureFlipHorizontal;
     private bool _pictureFlipVertical;
+    private DataMatrixSymbolSize _dataMatrixSymbolSize;
     private string _visibilityCondition = string.Empty;
     private ObjectAnchorPoint _anchorPoint;
     private string _groupId = string.Empty;
@@ -197,6 +198,13 @@ public sealed class LabelObject : ObservableObject
     {
         get => _pictureFlipVertical;
         set => SetProperty(ref _pictureFlipVertical, value);
+    }
+
+    /// <summary>Data Matrix symbol size (NiceLabel 10 Data Matrix format); Auto is the smallest square symbol.</summary>
+    public DataMatrixSymbolSize DataMatrixSymbolSize
+    {
+        get => _dataMatrixSymbolSize;
+        set => SetProperty(ref _dataMatrixSymbolSize, Enum.IsDefined(value) ? value : DataMatrixSymbolSize.Auto);
     }
 
     /// <summary>

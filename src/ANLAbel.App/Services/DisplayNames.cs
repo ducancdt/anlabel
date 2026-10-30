@@ -25,6 +25,11 @@ public static class DisplayNames
         _ => "Đối tượng",
     };
 
+    private static string ForDataMatrixSize(DataMatrixSymbolSize size)
+        => ANLAbel.Core.Barcode.DataMatrixSymbolSizes.Cells(size) is { } cells
+            ? cells.Rows == cells.Columns ? $"{cells.Rows} × {cells.Columns}" : $"{cells.Rows} × {cells.Columns} (chữ nhật)"
+            : size.ToString();
+
     public static string For(object? value) => value switch
     {
         null => string.Empty,
@@ -64,6 +69,8 @@ public static class DisplayNames
         PictureSizing.Proportional => "Co giãn theo tỉ lệ",
         PictureSizing.Stretch => "Kéo đầy khung",
         PictureSizing.Original => "Giữ cỡ gốc",
+        DataMatrixSymbolSize.Auto => "Tự động (vuông nhỏ nhất)",
+        DataMatrixSymbolSize size => ForDataMatrixSize(size),
         TextDirectionMode.Auto => "Tự động",
         TextDirectionMode.LeftToRight => "Trái sang phải",
         TextDirectionMode.RightToLeft => "Phải sang trái",

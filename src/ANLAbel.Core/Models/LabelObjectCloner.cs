@@ -26,6 +26,7 @@ public static class LabelObjectCloner
             PictureSizing = source.PictureSizing,
             PictureFlipHorizontal = source.PictureFlipHorizontal,
             PictureFlipVertical = source.PictureFlipVertical,
+            DataMatrixSymbolSize = source.DataMatrixSymbolSize,
             VisibilityCondition = source.VisibilityCondition,
             GroupId = source.GroupId,
             ContentMask = source.ContentMask,

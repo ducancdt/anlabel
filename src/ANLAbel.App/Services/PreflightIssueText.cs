@@ -74,6 +74,8 @@ public static class PreflightIssueText
         (Rx(@"^GS1 data is empty"), _ => "dữ liệu GS1 đang trống"),
         (Rx(@"^GS1 data must use \(AI\)value notation"), _ => "dữ liệu GS1 phải viết dạng (AI)giá trị"),
         (Rx(@"^GS1 (?:AI|application identifier) (?<ai>\d+)"), m => $"dữ liệu GS1 sai ở AI ({m.Groups["ai"].Value})"),
+        (Rx(@"^Fixed Data Matrix size exceeded: (?<c>\d+) character\(s\) do not fit (?<r>\d+)x(?<k>\d+)"),
+            m => $"dữ liệu ({m.Groups["c"].Value} ký tự) không vừa khổ Data Matrix {m.Groups["r"].Value} × {m.Groups["k"].Value} đã chọn; chọn khổ lớn hơn hoặc Tự động"),
         (Rx(@"^Fixed QR capacity exceeded: (?<b>\d+) UTF-8 byte"),
             m => $"dữ liệu ({m.Groups["b"].Value} byte) vượt dung lượng phiên bản QR đã chọn; chọn phiên bản lớn hơn hoặc Tự động"),
         (Rx(@"^2D barcode frame is too small for this row: requires at least (?<r>[\d.,]+) mm but the authored frame is (?<a>[\d.,]+) mm"),

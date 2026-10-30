@@ -646,6 +646,12 @@ public static partial class NiceLabel10NlblImporter
             item.HeightMm = cells.Rows * record.BarcodeModuleWidthMm;
         }
 
+        if (DataMatrixSymbolSizes.AppliesTo(item))
+        {
+            // The chosen symbol size prints as authored (DMRE sizes stay automatic).
+            item.DataMatrixSymbolSize = DataMatrixSymbolSizes.FromVendorFormat(record.BarcodeFormatValue);
+        }
+
         return item;
     }
 

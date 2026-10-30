@@ -333,6 +333,7 @@ public sealed class LabelVisualRenderer
             PictureSizing = snapshot.PictureSizing,
             PictureFlipHorizontal = snapshot.PictureFlipHorizontal,
             PictureFlipVertical = snapshot.PictureFlipVertical,
+            DataMatrixSymbolSize = snapshot.DataMatrixSymbolSize,
             VisibilityCondition = snapshot.VisibilityCondition,
             GroupId = snapshot.GroupId,
             ContentMask = snapshot.ContentMask,

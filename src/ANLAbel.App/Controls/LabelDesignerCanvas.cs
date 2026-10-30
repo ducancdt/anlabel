@@ -1849,10 +1849,19 @@ public sealed class LabelDesignerCanvas : Canvas
                 TryApplyMatrixAutoSize(item);
             }
 
+            // A chosen Data Matrix size gets a frame of its own proportions.
+            if (e.PropertyName == nameof(LabelObject.DataMatrixSymbolSize)
+                && DataMatrixSymbolSizes.AppliesTo(item)
+                && !_matrixAutoSizingObjects.Contains(item))
+            {
+                FitFrameToDataMatrixSize(item);
+            }
+
             // Enforce square for non-auto-sized matrix barcodes when user changes W or H
             if (e.PropertyName is nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm)
                 && IsMatrixBarcode(item)
                 && !IsAutoSizedMatrixBarcode(item)
+                && !(DataMatrixSymbolSizes.AppliesTo(item) && DataMatrixSymbolSizes.IsRectangular(item.DataMatrixSymbolSize))
                 && !_matrixAutoSizingObjects.Contains(item)
                 && Math.Abs(item.WidthMm - item.HeightMm) > 0.01)
             {
@@ -4202,6 +4211,12 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            // A chosen Data Matrix size too small for the data does not encode at all.
+            if (ANLAbel.Printing.PrinterProfiles.PrintPreflightValidator.FixedDataMatrixSizeProblem(item, data) is { } dataMatrixSize)
+            {
+                return ANLAbel.App.Services.PreflightIssueText.Sentence(dataMatrixSize);
+            }
+
             var pixels = _barcodeRenderer.RenderBarcode(data, type, productionWidthMm, symbolHeightMm, planDpi, CreateBarcodeRenderOptions(item));
             // A fixed QR version too small for the data is the cause the print
             // reports, so its advice comes first (a larger version, not a larger
@@ -4553,6 +4568,33 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         return item.QrDpi > 0 ? item.QrDpi : 203;
+    }
+
+    /// <summary>
+    /// NiceLabel 10 Data Matrix format: the frame keeps its width and takes the
+    /// chosen symbol's proportions with its quiet zone; Auto and square sizes
+    /// are square.
+    /// </summary>
+    private void FitFrameToDataMatrixSize(LabelObject item)
+    {
+        var quiet = 2 * Math.Max(0, item.QrQuietZoneModules);
+        var heightMm = DataMatrixSymbolSizes.Cells(item.DataMatrixSymbolSize) is { } cells
+            ? item.WidthMm * (cells.Rows + quiet) / (cells.Columns + quiet)
+            : item.WidthMm;
+        if (Math.Abs(item.HeightMm - heightMm) <= QrObjectGeometryContract.SizeToleranceMm)
+        {
+            return;
+        }
+
+        _matrixAutoSizingObjects.Add(item);
+        try
+        {
+            item.HeightMm = Math.Round(heightMm, 2);
+        }
+        finally
+        {
+            _matrixAutoSizingObjects.Remove(item);
+        }
     }
 
     private bool TryApplyMatrixAutoSize(LabelObject item)

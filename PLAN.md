@@ -14,6 +14,11 @@
   ảnh. Nhập .nlbl giữ chế độ kéo đầy khung và hai kiểu lật.
 - Thuộc tính › Nguồn của ảnh: thẻ Nguồn ảnh (ảnh nhúng trong tem, số điểm
   ảnh, dpi, cỡ gốc, Chọn hình ảnh…) thay cho ô “Nguồn: Chữ” không dùng được.
+- Data Matrix theo NiceLabel 10: “Tự động” là khổ vuông nhỏ nhất (trước đây
+  bộ mã hóa có thể chọn chữ nhật: 8 chữ cái in thành dải 19 × 4,7 mm trong khung
+  20 × 20); Khổ Data Matrix chọn 24 khổ vuông hoặc 6 khổ chữ nhật, in đúng khổ,
+  dữ liệu dài quá khổ thì chặn dòng đó với lý do rõ ràng; khung theo hình khổ chữ
+  nhật; nhập .nlbl giữ khổ (DatamatrixFormat).
 
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 

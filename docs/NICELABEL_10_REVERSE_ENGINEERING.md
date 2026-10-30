@@ -502,3 +502,37 @@ before, a single label on A5/A4 went to the driver as a page of the label's
 size. Rotated 180° turns the whole sheet. Not built: landscape paper
 orientation, custom paper sizes, corner radius, variable label size and the
 stock catalogue (owner: no software stock catalogue).
+
+## §11 Data Matrix symbol size (2026-10-30)
+
+Evidence (installed NiceLabel 10, `bin.net`):
+
+- `DesignerLib` `BarcodeDatamatrixPropertyPageViewModel` lists the *Format*
+  choices: Automatic, 24 square sizes 10x10…144x144, six rectangular ECC 200
+  sizes 8x18, 8x32, 12x26, 12x36, 16x36, 16x48, and DMRE sizes (ISO/IEC 21471,
+  8x48…26x64, plus *AutoDmre*). Stored as `DatamatrixFormat`: Auto 0, the
+  square sizes 1–24, the rectangular sizes 25–30.
+- Barcodes are drawn by the bundled Neodynamic library
+  (`Neodynamic.WPF.Barcode.dll`). Its automatic search walks the first 30
+  sizes and takes the first that holds the data codewords **and is square**,
+  unless `DataMatrixIncludeRectFormatsInAutoMode` is set ("whether to consider
+  Rectangular DataMatrix Formats when DataMatrixFormat is set to Auto. Default
+  is false"). `Barcodes.Core` never sets it, so NiceLabel's Automatic is the
+  smallest square symbol. *AutoDmre* searches the DMRE sizes only.
+- A chosen size whose capacity is below the data codewords is not enlarged:
+  the library throws `BarcodeException(15000)` and the label does not print.
+- Corpus: 88 Data Matrix codes in the 207 sample labels; 29 use a chosen
+  size (`DatamatrixFormat` 15 = 52x52 ×28, 10 = 32x32 ×1), none DMRE.
+
+ANLAbel before: `DatamatrixFormat` only sized the imported frame; the encoder
+(ZXing, `SymbolShapeHint.FORCE_NONE`) picked its own size and could pick a
+rectangle in Auto (eight letters gave 8x32, printed as a 19 x 4.7 mm strip in a
+20 x 20 mm frame). Now (`DataMatrixSymbolSize`, `DataMatrixSymbolSizes`):
+Auto encodes `FORCE_SQUARE`; a chosen size encodes exactly that size
+(`MIN_SIZE` = `MAX_SIZE`, square or rectangle shape); data too long for it is
+refused by preflight and marked in the designer ("dữ liệu (N ký tự) không vừa
+khổ Data Matrix R × C đã chọn; chọn khổ lớn hơn hoặc Tự động"); choosing a
+rectangular size gives the frame the symbol's proportions with its quiet zone;
+import keeps the vendor size (DMRE stays Auto: the encoder has no DMRE). UI:
+Mã vạch › Chi tiết 2D and Thuộc tính › Kiểu › Khổ Data Matrix. Gate: `data
+matrix sizes print as chosen`.

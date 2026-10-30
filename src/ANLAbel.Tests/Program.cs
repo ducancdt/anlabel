@@ -66,6 +66,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("label sheets fill every cell in processing order", DesignScenarioRegression.LabelSheetsFillEveryCellInProcessingOrder),
     ("turned objects print readable", DesignScenarioRegression.TurnedObjectsPrintReadable),
     ("pictures size and flip in the designer as in print", DesignScenarioRegression.PicturesSizeAndFlipInDesignerAsInPrint),
+    ("data matrix sizes print as chosen", DesignScenarioRegression.DataMatrixSizesPrintAsChosen),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),
