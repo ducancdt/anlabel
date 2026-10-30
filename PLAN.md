@@ -1,5 +1,27 @@
 # ANLAbel Phase 1 Plan
 
+## v0.334 — Theo NiceLabel 10: khổ giấy văn phòng, tờ nhiều tem, tỉ lệ phông Chữ, Ô chữ giãn theo nội dung
+
+_Commit tối 29/10/2026 (22:42) theo yêu cầu của chủ dự án._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+**Giấy và máy in**
+
+- Bỏ chặn A4, Letter, Legal, A3 (cạnh 8–1000 mm).
+- Lưới tem trên tờ: số tem ngang/dọc, khoảng cách, thứ tự điền, góc bắt đầu;
+  kiểm tra lưới nằm trong tờ; mỗi dòng dữ liệu in vào một ô, mỗi trang một
+  tờ. Mã băm tài liệu tem đơn không đổi.
+- Nhập `.nlbl` áp khoảng cách và tờ nhiều tem làm khổ vật lý.
+
+**Chữ** (đổi hợp đồng Text/TextBox theo yêu cầu; cập nhật AGENTS.md, PLAN.md
+và tài liệu TextBox)
+
+- Tỉ lệ phông của Chữ 10–400 % (Font Scaling của NiceLabel); ScaleFactor khi
+  nhập dùng thuộc tính này.
+- Ô chữ “Giãn chiều cao theo nội dung” (VariableHeight): giữ bề rộng, chiều
+  cao theo chữ khi thiết kế và khi in.
+
+**Kiểm tra:** build 0 cảnh báo, 1518 unit, hồi quy 274/274.
+
 ## v0.333 — Nhập .nlbl: ảnh cạnh tệp tem, biến nhập khi in, máy in và khổ giấy
 
 _Gồm các commit tối 29/10/2026 (19:36–20:22)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
