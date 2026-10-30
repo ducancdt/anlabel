@@ -12957,6 +12957,12 @@ static Task TestDialogsRenderForUiAudit()
             Save("print-preview", new PrintPreviewWindow(template, null, null, new PrintService(), new PrintLogService(), string.Empty), 1200, 760);
             Save("new-template", new NewTemplateWindow(), 400, 325);
             Save("settings", new SettingsWindow(), 520, 420);
+            var main = new MainViewModel();
+            Save("help", new HelpWindow(), 900, 640);
+            Save("database-manager", new DatabaseManagerWindow(main), 1000, 680);
+            Save("excel-import", new ExcelImportWindow(main), 900, 640);
+            Save("template-revisions", new TemplateRevisionWindow(main), 900, 600);
+            Save("update", new UpdateWindow("0.325.0"), 560, 420);
         }
         catch (Exception ex)
         {

@@ -194,7 +194,7 @@ public partial class HelpWindow : Window
         var title = Zone(vi ? "① Thanh tiêu đề — tên máy in & khổ giấy" : "① Title bar — printer name & paper size", "", "#0D237A", "#FFFFFF");
         Grid.SetRow(title, 0); root.Children.Add(title);
 
-        var ribbon = Zone(vi ? "② Thanh công cụ — Thư viện · Dữ liệu · In ấn · Làm việc · Chọn · Trợ giúp" : "② Ribbon — File · Edit · Data · Printer · View · Zoom · Help", "", "#EAF3FF", "#0F4EA8");
+        var ribbon = Zone(vi ? "② Thanh lệnh — Tệp · Trang chủ · Dữ liệu · Xem · Trợ giúp (+ Thiết kế, Chữ… khi chọn đối tượng)" : "② Ribbon — File · Home · Data · View · Help (+ Design, Text… with a selection)", "", "#EAF3FF", "#0F4EA8");
         Grid.SetRow(ribbon, 1); root.Children.Add(ribbon);
 
         var mid = new Grid();
@@ -202,7 +202,7 @@ public partial class HelpWindow : Window
         mid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         mid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
 
-        var toolbox = Zone(vi ? "③ Hộp công cụ" : "③ Toolbox", vi ? "Công cụ + Nguồn dữ liệu" : "Tools + Data sources", "#F8FAFC", "#334155");
+        var toolbox = Zone(vi ? "③ Hộp công cụ" : "③ Toolbox", vi ? "Công cụ + Dữ liệu · Lớp · Đối tượng" : "Tools + Data · Layers · Objects", "#F8FAFC", "#334155");
         Grid.SetColumn(toolbox, 0); mid.Children.Add(toolbox);
 
         var canvas = Zone(vi ? "④ Bảng thiết kế" : "④ Design Canvas", vi ? "Nơi bạn vẽ nhãn, có thước kẻ mm" : "Where you draw the label, with mm rulers", "#FFFFFF", "#0F172A");
@@ -213,7 +213,7 @@ public partial class HelpWindow : Window
 
         Grid.SetRow(mid, 2); root.Children.Add(mid);
 
-        var status = Zone(vi ? "⑥ Thanh trạng thái — thông báo & thu phóng" : "⑥ Status bar — messages & Zoom slider", "", "#F1F5F9", "#64748B");
+        var status = Zone(vi ? "⑥ Thanh trạng thái — thông báo, máy in & thu phóng" : "⑥ Status bar — messages, printer & zoom", "", "#F1F5F9", "#64748B");
         Grid.SetRow(status, 3); root.Children.Add(status);
 
         return root;
@@ -245,16 +245,18 @@ public partial class HelpWindow : Window
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         void Divider() => row.Children.Add(new Border { Width = 1, Background = Hex("#E5EAF1"), Margin = new Thickness(6, 4, 6, 4) });
 
-        row.Children.Add(RibbonGroup("Thư viện", RibbonBtn("📚", "Mẫu tem", string.Empty)));
+        // Tab Trang chủ, as in the designer (NiceLabel 10 Home tab order).
+        row.Children.Add(RibbonGroup("Bộ nhớ tạm", RibbonBtn("📋", "Dán", string.Empty), RibbonBtn("✂", "Cắt", "Sao chép")));
         Divider();
-        row.Children.Add(RibbonGroup("Dữ liệu",
-            RibbonBtn("📊", "Nhập", "Excel", "#1A7F37"), RibbonBtn("↻", "Cập nhật", "Excel", "#1A7F37")));
+        row.Children.Add(RibbonGroup("Phông chữ", RibbonBtn("A", "Phông", "cỡ · B I U")));
         Divider();
-        row.Children.Add(RibbonGroup("In ấn",
-            RibbonBtn("🖨", "Máy in", "Cài đặt"), RibbonBtn("🔍", "Xem trước", "Ctrl+P"),
-            RibbonBtn("▶", "In", "Dòng này"), RibbonBtn("⏩", "In mọi", "dòng")));
+        row.Children.Add(RibbonGroup("Thao tác",
+            RibbonBtn("▶", "In", "Dòng này"), RibbonBtn("🔍", "Xem trước", "Ctrl+P")));
         Divider();
-        row.Children.Add(RibbonGroup("Trợ giúp", RibbonBtn("?", "Trợ giúp", "F1", "#2563EB")));
+        row.Children.Add(RibbonGroup("Quản lý",
+            RibbonBtn("📊", "Nguồn", "dữ liệu", "#1A7F37"), RibbonBtn("🖨", "Thuộc tính", "tài liệu")));
+        Divider();
+        row.Children.Add(RibbonGroup("Đối tượng", RibbonBtn("⧉", "Nhóm", "Sắp xếp"), RibbonBtn("✕", "Xóa", "Chọn", "#2563EB")));
 
         var sv = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = row, MaxWidth = 560 };
         return sv;
@@ -271,14 +273,16 @@ public partial class HelpWindow : Window
 
     private static UIElement FigToolbox(bool vi)
     {
-        var grid = new UniformGrid { Columns = 2, Rows = 4, Width = 230 };
+        var grid = new UniformGrid { Columns = 3, Rows = 3, Width = 330 };
         grid.Children.Add(ToolTile("T", vi ? "Chữ" : "Text"));
         grid.Children.Add(ToolTile("🔤", vi ? "Ô chữ" : "Text Box"));
+        grid.Children.Add(ToolTile("𝐀", vi ? "Chữ RTF" : "Rich Text"));
         grid.Children.Add(ToolTile("|||", vi ? "Mã vạch" : "Barcode"));
-        grid.Children.Add(ToolTile("╱", vi ? "Đường kẻ" : "Line"));
-        grid.Children.Add(ToolTile("▭", vi ? "Hình chữ nhật" : "Rectangle"));
-        grid.Children.Add(ToolTile("◯", vi ? "Hình bầu dục" : "Ellipse"));
         grid.Children.Add(ToolTile("🖼", vi ? "Hình ảnh" : "Image"));
+        grid.Children.Add(ToolTile("▭", vi ? "Chữ nhật" : "Rectangle"));
+        grid.Children.Add(ToolTile("╱", vi ? "Đường kẻ" : "Line"));
+        grid.Children.Add(ToolTile("◯", vi ? "Bầu dục" : "Ellipse"));
+        grid.Children.Add(ToolTile("◐", vi ? "Đảo màu" : "Inverse"));
         return grid;
     }
 
@@ -410,6 +414,8 @@ public partial class HelpWindow : Window
         wrap.Children.Add(Cell(Center(new Rectangle { Width = 110, Height = 2, Fill = Hex("#0F172A") }), vi ? "Đường kẻ" : "Line", vi ? "Đường phân cách" : "Divider line"));
         wrap.Children.Add(Cell(Center(new Rectangle { Width = 100, Height = 36, Stroke = Hex("#0F172A"), StrokeThickness = 1.5 }), vi ? "Hình chữ nhật" : "Rectangle", vi ? "Khung viền" : "Border / frame"));
         wrap.Children.Add(Cell(Center(new Ellipse { Width = 56, Height = 38, Stroke = Hex("#0F172A"), StrokeThickness = 1.5 }), vi ? "Hình bầu dục" : "Ellipse", vi ? "Hình tròn / bầu dục" : "Circle / ellipse"));
+        wrap.Children.Add(Cell(Center(new TextBlock { Text = "Đậm nghiêng", FontWeight = FontWeights.Bold, FontStyle = FontStyles.Italic, FontSize = 15, Foreground = Hex("#0F172A") }), vi ? "Chữ RTF" : "Rich Text", vi ? "Nhiều kiểu chữ trong một khung" : "Several text styles in one frame"));
+        wrap.Children.Add(Cell(Center(new Border { Width = 100, Height = 36, Background = Hex("#0F172A"), Child = new TextBlock { Text = "ĐẢO", Foreground = Hex("#FFFFFF"), FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } }), vi ? "Đảo màu" : "Inverse", vi ? "Đảo đen/trắng phần bên dưới khi in" : "Swaps black and white beneath it in print"));
         return wrap;
     }
 
@@ -621,30 +627,26 @@ public partial class HelpWindow : Window
 
         // ---------- RIBBON ----------
         var rb = new StackPanel();
-        rb.Children.Add(H1(vi ? "🔧 Thanh công cụ" : "🔧 Ribbon Toolbar"));
-        rb.Children.Add(Sub(vi ? "Thanh công cụ trên cùng, chia thành các nhóm. Đây là nơi bạn ra lệnh chính." : "The top toolbar, split into groups. This is where you trigger the main commands."));
-        rb.Children.Add(Figure(FigRibbon(vi), vi ? "Mô phỏng thanh công cụ với các nhóm và nút chính." : "Mock-up of the ribbon with its groups and main buttons."));
-        rb.Children.Add(H2("Nút nhanh trên thanh tiêu đề"));
-        rb.Children.Add(P("• Tạo tem mới (Ctrl+N), Mở tem (Ctrl+O), Lưu tem (Ctrl+S), Lưu thành… (Ctrl+Shift+S)."));
-        rb.Children.Add(P("• Hoàn tác (Ctrl+Z) / Làm lại (Ctrl+Y)."));
-        rb.Children.Add(P("• Phiên bản mẫu tem — xem và khôi phục các bản đã lưu trước đó."));
-        rb.Children.Add(H2("Nhóm Thư viện"));
-        rb.Children.Add(P("• Mẫu tem — bắt đầu từ một mẫu có sẵn."));
-        rb.Children.Add(H2("Nhóm Dữ liệu"));
-        rb.Children.Add(P("• Nhập Excel — liên kết một tệp Excel (.xlsx) hoặc CSV làm nguồn dữ liệu."));
-        rb.Children.Add(P("• Cập nhật Excel — nạp lại dữ liệu khi tệp đã thay đổi."));
-        rb.Children.Add(H2("Nhóm In ấn"));
-        rb.Children.Add(P("• Máy in · Cài đặt — chọn máy in, khổ tem, DPI, hướng in và căn chỉnh khổ in."));
-        rb.Children.Add(P("• Xem trước (Ctrl+P) — mở cửa sổ xem trước khi in."));
-        rb.Children.Add(P("• In · Dòng này / In mọi dòng — in nhanh dòng đang chọn / mọi dòng đã nhập."));
-        rb.Children.Add(P("• Lịch sử in — xem các lệnh in đã ghi lại."));
-        rb.Children.Add(P("• Xuất Excel — xuất lịch sử in ra một tệp Excel định dạng sẵn."));
-        rb.Children.Add(P("• In thử — in tem hiệu chỉnh để căn chỉnh máy in."));
-        rb.Children.Add(H2("Nhóm Làm việc · Chọn · Trợ giúp"));
-        rb.Children.Add(P("• Bảng · hiện lại — hiện lại Hộp công cụ và bảng Thuộc tính nếu lỡ ẩn."));
-        rb.Children.Add(P("• Đối tượng · dính / Lưới · dính — bật hoặc tắt việc hít vào đối tượng và lưới khi kéo."));
-        rb.Children.Add(P("• Xóa · Chọn — xóa đối tượng đang chọn (hoặc nhấn phím Delete)."));
-        rb.Children.Add(P("• Trợ giúp (F1) — mở cửa sổ hướng dẫn này; Cập nhật — kiểm tra phiên bản mới."));
+        rb.Children.Add(H1(vi ? "🔧 Thanh lệnh" : "🔧 Ribbon"));
+        rb.Children.Add(Sub(vi ? "Thanh lệnh trên cùng chia thành các thẻ; mỗi thẻ có các nhóm nút. Thẻ Thiết kế và thẻ theo loại đối tượng (Chữ, Mã vạch, Hình ảnh, Hình dạng) chỉ hiện khi đang chọn đối tượng." : "The top command bar is split into tabs, each with groups of buttons. Design and the object tab (Text, Barcode, Picture, Shape) appear only with a selection."));
+        rb.Children.Add(Figure(FigRibbon(vi), vi ? "Thẻ Trang chủ với các nhóm chính." : "The Home tab and its main groups."));
+        rb.Children.Add(H2("Nút nhanh và nút Tệp"));
+        rb.Children.Add(P("• Tạo tem mới (Ctrl+N), Mở tem (Ctrl+O), Lưu tem (Ctrl+S), Lưu thành… (Ctrl+Shift+S), Hoàn tác (Ctrl+Z), Làm lại (Ctrl+Y)."));
+        rb.Children.Add(P("• Nút Tệp mở danh sách: Mới, Mở, Lưu, Lưu thành, Mẫu tem, Phiên bản, In, Cài đặt."));
+        rb.Children.Add(H2("Thẻ Trang chủ"));
+        rb.Children.Add(P("• Bộ nhớ tạm — Dán, Cắt, Sao chép, Sao định dạng (Ctrl+Shift+C / Ctrl+Shift+V)."));
+        rb.Children.Add(P("• Phông chữ — phông, cỡ, tăng/giảm cỡ, đậm, nghiêng, gạch chân, gạch ngang, màu chữ và căn lề cho đối tượng chữ đang chọn."));
+        rb.Children.Add(P("• Thao tác — In dòng này, Xem trước (Ctrl+P), In mọi dòng, In thử, Lịch sử in, Xuất Excel."));
+        rb.Children.Add(P("• Quản lý — Nguồn dữ liệu; Thuộc tính tài liệu (khổ tem, máy in, DPI)."));
+        rb.Children.Add(P("• Căn chỉnh — căn trái/giữa/phải, trên/giữa/dưới, phân bố đều."));
+        rb.Children.Add(P("• Đối tượng — Đưa lên/xuống, Nhóm/Bỏ nhóm, Xóa (hoặc phím Delete)."));
+        rb.Children.Add(H2("Thẻ Dữ liệu · Xem · Trợ giúp"));
+        rb.Children.Add(P("• Dữ liệu — Nhập Excel/CSV, Cập nhật Excel, Quản lý nguồn dữ liệu."));
+        rb.Children.Add(P("• Xem — Vừa tài liệu, Vừa đối tượng, Phóng to/Thu nhỏ; hiện tên đối tượng và dấu nguồn dữ liệu; căn theo đối tượng, theo lưới hoặc không căn; hiện lại bảng; xoay khung nhìn."));
+        rb.Children.Add(P("• Trợ giúp — hướng dẫn này (F1), Mẫu tem, Cập nhật phần mềm."));
+        rb.Children.Add(H2("Thẻ Thiết kế và thẻ theo đối tượng"));
+        rb.Children.Add(P("• Thiết kế — Không in, Hiển thị, Khóa vị trí, Giữ tỉ lệ, Tên, Điều kiện in, Điểm neo, Sắp xếp."));
+        rb.Children.Add(P("• Chữ — phông và cỡ, co giãn chữ ngang, vừa trong khung (Ô chữ), soi gương; Mã vạch — dữ liệu mã và chữ dưới mã; Hình ảnh — thay ảnh; Hình dạng — độ dày nét."));
         d["ribbon"] = rb;
 
         // ---------- CANVAS ----------
@@ -659,10 +661,10 @@ public partial class HelpWindow : Window
         cv.Children.Add(H2(vi ? "Chọn, di chuyển, xóa" : "Select, move, delete"));
         cv.Children.Add(P(vi ? "• Nhấp vào một đối tượng để chọn — sẽ hiện 4 tay cầm vuông ở góc." : "• Click an object to select it — four square handles appear at the corners."));
         cv.Children.Add(P(vi ? "• Kéo thân đối tượng để di chuyển; kéo tay cầm để đổi kích thước." : "• Drag the body to move; drag a handle to resize."));
-        cv.Children.Add(P(vi ? "• Nhấn phím Delete (hoặc nút Xóa · Chọn trên thanh công cụ) để xóa." : "• Press Delete (or the Delete Selection button) to remove it."));
+        cv.Children.Add(P(vi ? "• Nhấn phím Delete (hoặc nút Xóa ở thẻ Trang chủ) để xóa." : "• Press Delete (or the Delete Selection button) to remove it."));
         cv.Children.Add(H2(vi ? "Phóng to / thu nhỏ" : "Zooming"));
         cv.Children.Add(P(vi ? "• Giữ Ctrl rồi lăn chuột để zoom quanh con trỏ." : "• Hold Ctrl and scroll the wheel to zoom around the cursor."));
-        cv.Children.Add(P(vi ? "• Hoặc dùng mức Thu phóng ở góc dưới bên phải." : "• Use the Zoom − / + buttons on the ribbon, or the slider at the bottom-right."));
+        cv.Children.Add(P(vi ? "• Hoặc dùng thẻ Xem (Vừa tài liệu, Phóng to, Thu nhỏ) hay thanh trượt thu phóng ở góc dưới bên phải." : "• Use the Zoom − / + buttons on the ribbon, or the slider at the bottom-right."));
         cv.Children.Add(InfoBox(vi ? "Thước kẻ luôn tính bằng milimet (mm) — đúng với kích thước in thật, không phải pixel màn hình." : "Rulers are always in millimeters (mm) — matching the real printed size, not screen pixels."));
         d["canvas"] = cv;
 
@@ -691,8 +693,12 @@ public partial class HelpWindow : Window
         pp.Children.Add(H2(vi ? "Nội dung — chữ & nguồn" : "Content — text & source"));
         pp.Children.Add(P(vi ? "• Nguồn = Chữ: bạn tự gõ nội dung cố định." : "• Source = Text: you type fixed content yourself."));
         pp.Children.Add(P(vi ? "• Nguồn = Trường Excel: nội dung lấy tự động từ cột Excel đã chọn. Nguồn = Ràng buộc / Công thức: ghép nhiều cột hoặc dùng công thức." : "• Source = Excel Field: content is pulled from the chosen Excel column."));
-        pp.Children.Add(H2(vi ? "Nâng cao — xoay, căn, sắp xếp, lớp" : "Transform — rotation"));
-        pp.Children.Add(P(vi ? "Xoay đối tượng 0° / 90° / 180° / 270°. Hữu ích khi in mã vạch dọc." : "Rotate the object 0° / 90° / 180° / 270°. Handy for vertical barcodes."));
+        pp.Children.Add(H2(vi ? "Các thẻ Nguồn · Kiểu · Vị trí · Chung" : "Source · Style · Position · General tabs"));
+        pp.Children.Add(P(vi ? "• Nguồn — nội dung và nguồn dữ liệu; thẻ con Mặt nạ định dạng nội dung, ví dụ (***) ***-****." : "• Source — content and data source; the Mask sub-page formats the content, e.g. (***) ***-****."));
+        pp.Children.Add(P(vi ? "• Kiểu — phông, cỡ, căn lề, màu, các tùy chọn mã vạch hoặc hình." : "• Style — font, size, alignment, colour, barcode or shape options."));
+        pp.Children.Add(P(vi ? "• Vị trí — X, Y, rộng, cao, xoay 0° / 90° / 180° / 270° và điểm neo." : "• Position — X, Y, width, height, rotation and anchoring point."));
+        pp.Children.Add(P(vi ? "• Chung — căn, phân bố, thứ tự lớp, hiển thị và khóa." : "• General — align, distribute, layer order, visibility and lock."));
+        pp.Children.Add(P(vi ? "• Nút ghim trên tiêu đề (hoặc F4): ghim bảng bên phải, hoặc bỏ ghim để bảng nổi cạnh đối tượng khi nhấp đúp." : "• The pin button (or F4) docks the panel on the right, or unpinned it floats beside the object on double-click."));
         pp.Children.Add(H2(vi ? "Kiểu chữ" : "Text Style"));
         pp.Children.Add(P(vi ? "Chỉ hiện với Chữ và Ô chữ: chọn phông, cỡ chữ (pt), căn lề, chữ đậm / nghiêng / gạch chân." : "Only for Text/Text Box: choose Font, Size (points), alignment, and Bold / Italic / Underline."));
         pp.Children.Add(H2(vi ? "Mã vạch" : "Barcode options"));
@@ -726,7 +732,7 @@ public partial class HelpWindow : Window
         bd.Children.Add(Sub(vi ? "Đây là tính năng mạnh nhất: thay vì gõ tay từng nhãn, bạn nối một ô trên nhãn vào một cột Excel. Mỗi dòng Excel thành một nhãn." : "This is the most powerful feature: instead of typing each label, you connect a label field to an Excel column. Each Excel row becomes a label."));
         bd.Children.Add(Figure(FigBindingFlow(vi), vi ? "Giá trị trong cột Excel chảy vào ô tương ứng trên nhãn khi in." : "Values from the Excel column flow into the matching label field at print time."));
         bd.Children.Add(H2(vi ? "Các bước liên kết" : "How to bind"));
-        bd.Children.Add(StepCard(1, vi ? "Nhập Excel" : "Import Excel", vi ? "Nhấn Nhập Excel trên thanh công cụ, chọn tệp và sheet." : "Click Import Excel on the ribbon, choose the file and sheet."));
+        bd.Children.Add(StepCard(1, vi ? "Nhập Excel" : "Import Excel", vi ? "Mở thẻ Dữ liệu, nhấn Excel/CSV, chọn tệp và sheet." : "Click Import Excel on the ribbon, choose the file and sheet."));
         bd.Children.Add(StepCard(2, vi ? "Chọn đối tượng" : "Select the object", vi ? "Nhấp vào Chữ, Ô chữ hoặc Mã vạch trên bảng thiết kế." : "Click the Text Box or Barcode on the canvas."));
         bd.Children.Add(StepCard(3, vi ? "Đổi Nguồn" : "Change Source", vi ? "Trong thẻ Nội dung, đặt Nguồn = “Trường Excel”." : "In Content, set Source = \"Excel Field\"."));
         bd.Children.Add(StepCard(4, vi ? "Chọn cột" : "Pick the column", vi ? "Chọn cột trong danh sách “Trường Excel”. Xong! Xem trước để kiểm tra." : "Choose the Excel column from the \"Excel field\" list. Done! Preview to verify."));
@@ -770,9 +776,9 @@ public partial class HelpWindow : Window
         ca.Children.Add(Sub(vi ? "Đôi khi bản in bị lệch vài milimet so với thiết kế (do máy in). Hiệu chỉnh giúp kéo nó về đúng vị trí." : "Sometimes the print drifts a few millimeters from the design (printer quirk). Calibration nudges it back into place."));
         ca.Children.Add(Figure(FigCalibration(vi), vi ? "Khung xanh nét đứt = vị trí thiết kế; khung đỏ = bản in bị lệch. Lệch X/Y dịch bản in về khớp." : "Blue dashed box = designed position; red box = drifted print. Offset X/Y shifts the print back into alignment."));
         ca.Children.Add(H2(vi ? "Các bước hiệu chỉnh" : "How to calibrate"));
-        ca.Children.Add(StepCard(1, vi ? "Mở Cài đặt máy in" : "Open Printer Setup", vi ? "Nhấn Máy in · Cài đặt trên thanh công cụ." : "Click Printer Setup on the ribbon."));
+        ca.Children.Add(StepCard(1, vi ? "Mở Cài đặt máy in" : "Open Printer Setup", vi ? "Ở thẻ Trang chủ, nhấn Thuộc tính tài liệu (hoặc nút Máy in ở thanh trạng thái)." : "Click Printer Setup on the ribbon."));
         ca.Children.Add(StepCard(2, vi ? "Tìm phần Căn chỉnh khổ in" : "Find the calibration section", vi ? "Ở phần dưới của cửa sổ Cài đặt máy in." : "Near the bottom of Printer Setup."));
-        ca.Children.Add(StepCard(3, vi ? "In mẫu thử" : "Print the test pattern", vi ? "Nhấn “In hiệu chỉnh” (hoặc In thử trên thanh công cụ) và đo độ lệch trên giấy bằng thước." : "Click \"Print calibration\" (or Test Print on the ribbon) and measure the drift on paper with a ruler."));
+        ca.Children.Add(StepCard(3, vi ? "In mẫu thử" : "Print the test pattern", vi ? "Nhấn “In hiệu chỉnh” (hoặc In thử ở thẻ Trang chủ) và đo độ lệch trên giấy bằng thước." : "Click \"Print calibration\" (or Test Print on the ribbon) and measure the drift on paper with a ruler."));
         ca.Children.Add(StepCard(4, vi ? "Nhập Lệch & Tỉ lệ" : "Enter Offset & Scale", vi ? "Lệch X/Y dịch chuyển (mm); Tỉ lệ X/Y sửa sai số kích thước. Không dùng chúng để đổi kích thước tem thiết kế." : "Offset X/Y shifts (mm); Scale X/Y corrects size error."));
         ca.Children.Add(InfoBox(vi ? "Ví dụ: nếu tem in lệch sang phải 2 mm, đặt Lệch X = -2 để kéo ngược lại." : "Example: if the label prints 2mm too far right, set Offset X = -2.00 to pull it back."));
         d["calibration"] = ca;
@@ -801,7 +807,7 @@ public partial class HelpWindow : Window
         fq.Children.Add(Sub(vi ? "Những trục trặc hay gặp của người mới và cách xử lý." : "Common beginner snags and how to fix them."));
         fq.Children.Add(FaqItem(
             vi ? "Bảng Thuộc tính trống?" : "The Properties panel is empty?",
-            vi ? "Bạn chưa chọn đối tượng nào. Nhấp vào một đối tượng trên bảng thiết kế. Nếu lỡ ẩn bảng, nhấn Bảng · hiện lại trên thanh công cụ." : "Nothing is selected. Click an object on the canvas. If the panel is hidden, click Panels restore on the ribbon."));
+            vi ? "Bạn chưa chọn đối tượng nào. Nhấp vào một đối tượng trên bảng thiết kế. Nếu lỡ ẩn bảng, mở thẻ Xem và nhấn Bảng · hiện lại." : "Nothing is selected. Click an object on the canvas. If the panel is hidden, click Panels restore on the ribbon."));
         fq.Children.Add(FaqItem(
             vi ? "Liên kết Excel hiện nền đỏ?" : "An Excel binding shows red?",
             vi ? "Cột nguồn bị thiếu hoặc đã đổi tên trong tệp Excel. Chọn lại cột trong thẻ Nội dung → Trường Excel, hoặc nhấn Cập nhật Excel." : "The source column is missing or was renamed in the Excel file. Re-pick it in Content → Excel field, or click Update Excel."));
@@ -813,7 +819,7 @@ public partial class HelpWindow : Window
             vi ? "Dùng hiệu chỉnh: in tem hiệu chỉnh, đo độ lệch, rồi nhập Lệch X/Y trong Cài đặt máy in. Xem mục 🎯 Hiệu chỉnh." : "Use Calibration: print the test pattern, measure the drift, then enter Offset X/Y. See the 🎯 Calibration topic."));
         fq.Children.Add(FaqItem(
             vi ? "Sửa Excel xong mà nhãn không đổi?" : "Edited Excel but the labels didn't change?",
-            vi ? "Nhấn Cập nhật Excel trên thanh công cụ để nạp lại dữ liệu mới nhất." : "Click Update Excel on the ribbon to reload the latest data."));
+            vi ? "Mở thẻ Dữ liệu và nhấn Cập nhật Excel để nạp lại dữ liệu mới nhất." : "Click Update Excel on the ribbon to reload the latest data."));
         fq.Children.Add(FaqItem(
             vi ? "Lỡ thao tác sai?" : "Made a mistake?",
             vi ? "Nhấn Ctrl+Z để hoàn tác, Ctrl+Y để làm lại." : "Press Ctrl+Z to undo, Ctrl+Y to redo."));

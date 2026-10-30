@@ -38,14 +38,14 @@
                   CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column"
                   GridLinesVisibility="Horizontal" BorderBrush="#D9E2EC" Background="White">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Phiên bản" Binding="{Binding Kind, Converter={StaticResource RevisionText}}" Width="150"/>
-                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={StaticResource RevisionText}, ConverterParameter=Status}" Width="130"/>
-                <DataGridTextColumn Header="Tên mẫu tem" Binding="{Binding TemplateName}" Width="180"/>
-                <DataGridTextColumn Header="Ghi lần cuối (cục bộ)" Binding="{Binding LastWriteText}" Width="155"/>
-                <DataGridTextColumn Header="Kích cỡ" Binding="{Binding SizeText}" Width="85"/>
-                <DataGridTextColumn Header="Mã băm (tiền tố)" Binding="{Binding DocumentHashText}" Width="105"/>
-                <DataGridTextColumn Header="Đường dẫn" Binding="{Binding Path}" Width="260"/>
-                <DataGridTextColumn Header="Chẩn đoán" Binding="{Binding Diagnostic, Converter={StaticResource RevisionText}, ConverterParameter=Diagnostic}" Width="*"/>
+                <DataGridTextColumn Header="Phiên bản" Binding="{Binding Kind, Converter={StaticResource RevisionText}}" Width="120"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={StaticResource RevisionText}, ConverterParameter=Status}" Width="110"/>
+                <DataGridTextColumn Header="Tên mẫu tem" Binding="{Binding TemplateName}" Width="150"/>
+                <DataGridTextColumn Header="Ghi lần cuối (cục bộ)" Binding="{Binding LastWriteText}" Width="145"/>
+                <DataGridTextColumn Header="Kích cỡ" Binding="{Binding SizeText}" Width="70"/>
+                <DataGridTextColumn Header="Mã băm (tiền tố)" Binding="{Binding DocumentHashText}" Width="120"/>
+                <DataGridTextColumn Header="Đường dẫn" Binding="{Binding Path}" Width="*" MinWidth="120"/>
+                <DataGridTextColumn Header="Chẩn đoán" Binding="{Binding Diagnostic, Converter={StaticResource RevisionText}, ConverterParameter=Diagnostic}" Width="*" MinWidth="140"/>
             </DataGrid.Columns>
         </DataGrid>
 
