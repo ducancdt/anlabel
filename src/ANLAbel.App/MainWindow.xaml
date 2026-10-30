@@ -1284,9 +1284,9 @@
                     <ColumnDefinition/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
-                    <Button Click="PrinterQueueWarning_Click"
+                <!-- Warning chips keep their room; a long status message trims instead of covering them -->
+                <DockPanel VerticalAlignment="Center" LastChildFill="True" Margin="0,0,12,0">
+                    <Button DockPanel.Dock="Right" Click="PrinterQueueWarning_Click"
                             Visibility="{Binding HasPrinterQueueWarning, Converter={StaticResource BoolToVisibility}}"
                             Margin="12,0,0,0"
                             Padding="7,2"
@@ -1296,7 +1296,7 @@
                             ToolTip="{Binding PrinterQueueStatusMessage}">
                         <TextBlock Text="{Binding PrinterQueueStatusText}" FontWeight="SemiBold"/>
                     </Button>
-                    <Button Click="ReviewPrintRecovery_Click"
+                    <Button DockPanel.Dock="Right" Click="ReviewPrintRecovery_Click"
                             Visibility="{Binding HasPendingPrintRecovery, Converter={StaticResource BoolToVisibility}}"
                             Margin="12,0,0,0"
                             Padding="7,2"
@@ -1306,7 +1306,7 @@
                             ToolTip="Xem xét lệnh in chưa chắc chắn; tự động thử lại đã tắt">
                         <TextBlock Text="{Binding PrintRecoveryStatusText}" FontWeight="SemiBold"/>
                     </Button>
-                    <Button Click="MissingResources_Click"
+                    <Button DockPanel.Dock="Right" Click="MissingResources_Click"
                             Visibility="{Binding HasMissingResources, Converter={StaticResource BoolToVisibility}}"
                             Margin="12,0,0,0"
                             Padding="7,2"
@@ -1317,7 +1317,8 @@
                             ToolTip="{Binding MissingResourcesDetail}">
                         <TextBlock Text="{Binding MissingResourcesText}" FontWeight="SemiBold"/>
                     </Button>
-                </StackPanel>
+                    <TextBlock Text="{Binding StatusText}" ToolTip="{Binding StatusText}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </DockPanel>
                 <!-- NiceLabel 10 status bar: printer selector, zoom to document, zoom slider, percentage -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.AutomationId="Shell.Status.Zoom">
                     <Button Click="PrinterSetup_Click" Padding="8,2" Margin="0,0,12,0" Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}"

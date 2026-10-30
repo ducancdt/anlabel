@@ -13098,6 +13098,12 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                 }
             }
 
+            // Status bar: warning chips keep their room; a long message trims instead of covering them.
+            var shellXaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));
+            AssertEqual(true, shellXaml.Contains("<TextBlock Text=\"{Binding StatusText}\" ToolTip=\"{Binding StatusText}\" Foreground=\"{StaticResource AppMutedBrush}\" VerticalAlignment=\"Center\" TextTrimming=\"CharacterEllipsis\"/>", StringComparison.Ordinal)
+                && shellXaml.Contains("<Button DockPanel.Dock=\"Right\" Click=\"PrinterQueueWarning_Click\"", StringComparison.Ordinal),
+                "A long status message must trim, not push the printer warning under the printer button");
+
             // Narrow window: the ribbon collapses secondary print commands and alignment
             // into drop-down buttons instead of shrinking every caption (Office/NiceLabel ribbon).
             void LayoutAt(double width)
