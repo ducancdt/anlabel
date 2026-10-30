@@ -81,7 +81,7 @@ public sealed class LabelVisualRenderer
         {
             DrawLayered(
                 dc,
-                template.Objects.Where(item => item.IsVisible).OrderBy(item => item.ZIndex).Select(item => (item, (CompiledSceneNode?)null)),
+                template.Objects.Where(item => item.IsVisible && item.IsPrintable).OrderBy(item => item.ZIndex).Select(item => (item, (CompiledSceneNode?)null)),
                 row, dpiX, dpiY, labelWidthMm, labelHeightMm);
         }
 
@@ -136,7 +136,7 @@ public sealed class LabelVisualRenderer
             .Where(item => item.IsVisible)
             .OrderBy(item => item.ZIndex)
             .ThenBy(item => item.Id, StringComparer.Ordinal)
-            .Where(node => snapshots.ContainsKey(node.Id))
+            .Where(node => snapshots.ContainsKey(node.Id) && snapshots[node.Id].IsPrintable)
             .Select(node => (CreateRenderObject(snapshots[node.Id]), (CompiledSceneNode?)node));
         DrawLayered(dc, ordered, row, dpiX, dpiY, labelWidthMm, labelHeightMm);
     }
@@ -320,6 +320,7 @@ public sealed class LabelVisualRenderer
             IsLocked = snapshot.IsLocked,
             IsVisible = snapshot.IsVisible,
             AnchorPoint = snapshot.AnchorPoint,
+            IsPrintable = snapshot.IsPrintable,
             GroupId = snapshot.GroupId,
             ContentMask = snapshot.ContentMask,
             ContentMaskCharacter = snapshot.ContentMaskCharacter,

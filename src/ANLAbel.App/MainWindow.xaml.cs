@@ -710,6 +710,48 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void FontGrow_Click(object sender, RoutedEventArgs e) => StepFontSize(1);
+
+    private void FontShrink_Click(object sender, RoutedEventArgs e) => StepFontSize(-1);
+
+    /// <summary>NiceLabel 10 Grow/Shrink Font: one point per click.</summary>
+    private void StepFontSize(double stepPt)
+    {
+        if (_viewModel.SelectedObject is { } item && item.Type is ObjectType.Text or ObjectType.TextBox)
+        {
+            item.Style.FontSizePt = Math.Clamp(Math.Round(item.Style.FontSizePt + stepPt), 1, 400);
+        }
+    }
+
+    private void DoNotAlign_Click(object sender, RoutedEventArgs e)
+    {
+        DesignerCanvas.IsSnapToObjectsEnabled = false;
+        DesignerCanvas.IsSnapToGridEnabled = false;
+        e.Handled = true;
+    }
+
+    private void ZoomToObjects_Click(object sender, RoutedEventArgs e)
+    {
+        var items = _viewModel.Template.Objects.Where(item => item.IsVisible).ToArray();
+        if (items.Length == 0)
+        {
+            ZoomToDocument_Click(sender, e);
+            return;
+        }
+
+        var widthMm = Math.Max(1, items.Max(item => item.XMm + item.WidthMm) - Math.Min(0, items.Min(item => item.XMm)));
+        var heightMm = Math.Max(1, items.Max(item => item.YMm + item.HeightMm) - Math.Min(0, items.Min(item => item.YMm)));
+        var fit = Math.Min(
+            DesignerScrollViewer.ViewportWidth / (MmConverter.MmToDip(widthMm) + 212),
+            DesignerScrollViewer.ViewportHeight / (MmConverter.MmToDip(heightMm) + 172));
+        if (double.IsFinite(fit) && fit > 0)
+        {
+            _viewModel.Zoom = Math.Clamp(fit, 0.25, 4);
+        }
+
+        e.Handled = true;
+    }
+
     private void Zoom100_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel viewModel)

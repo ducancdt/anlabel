@@ -21,6 +21,7 @@ public static class LabelObjectCloner
             IsLocked = source.IsLocked,
             IsVisible = source.IsVisible,
             AnchorPoint = source.AnchorPoint,
+            IsPrintable = source.IsPrintable,
             GroupId = source.GroupId,
             ContentMask = source.ContentMask,
             ContentMaskCharacter = source.ContentMaskCharacter,

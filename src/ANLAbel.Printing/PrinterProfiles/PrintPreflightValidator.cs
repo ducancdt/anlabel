@@ -39,7 +39,8 @@ public sealed class PrintPreflightValidator
         IProgress<PrintPreflightProgress>? progress = null)
     {
         var issues = new List<PrintPreflightIssue>();
-        var visibleItems = template.Objects.Where(item => item.IsVisible).ToArray();
+        // Not-printable objects (NiceLabel 10 Design > Not Printable) are not checked for print.
+        var visibleItems = template.Objects.Where(item => item.IsVisible && item.IsPrintable).ToArray();
         var totalUnits = Math.Max(1, visibleItems.Length * Math.Max(1, rows.Count));
         var completedUnits = 0;
         var reportStride = Math.Max(1, totalUnits / 100);

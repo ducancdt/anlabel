@@ -174,3 +174,22 @@ reported open).
 Owner hand check (2026-10-30): with the Properties panel unpinned, a
 double-click on an object opens the floating panel beside it — confirmed
 working on the installed app.
+
+## Side-by-side check (2026-10-30)
+
+Each ANLAbel ribbon tab (rendered by the layout gate into
+`TestOutput/nicelabel-layout/`) was placed under the NiceLabel 10 screenshot
+of the same tab (kept outside the repository) and compared group by group.
+
+| Tab | NiceLabel 10 groups | ANLAbel | Remaining difference |
+| --- | --- | --- | --- |
+| Home | Clipboard · Font · Action · Management · Align · Objects | Bộ nhớ tạm (Dán, Cắt, Sao chép, Sao định dạng) · Phông chữ (phông, cỡ, tăng/giảm, B I U, căn 4 kiểu) · Thao tác · Quản lý · Căn chỉnh · Đối tượng (Đưa lên/xuống, Nhóm/Bỏ nhóm, Xóa) | strikethrough, colour button (colour stays in Properties) |
+| Data | Database wizard · Data Source Management · RFID | Nhập dữ liệu (Excel/CSV, Cập nhật) · Quản lý nguồn dữ liệu | Access/SQL/ODBC, RFID — out of scope by owner decision |
+| View | Zoom · Object Markers · Alignment and Gridlines · Rotation | Thu phóng (Vừa tài liệu, Vừa đối tượng, Phóng to/Thu nhỏ, %) · Hiện dấu đối tượng (Tên, Nguồn dữ liệu) · Căn và lưới (Theo đối tượng, Theo lưới, Không căn) · Bảng · Xoay khung nhìn | Printer Element / Events markers (no such ANLAbel concepts) |
+| Help | Help · Product | Trợ giúp (Trợ giúp, Mẫu tem) · Sản phẩm (Cập nhật) | — |
+| Design | General · Positioning · Arrange | Chung (Không in, Hiển thị, Khóa vị trí, Tên) · Điểm neo · Sắp xếp | Visibility conditions, Relative Position, Keep Aspect Ratio |
+| Text | Format · Text Settings · Arrange | Định dạng (phông, cỡ, tăng/giảm, B I U, căn) · Thiết lập chữ (Co giãn chữ ngang, Vừa trong khung) | Character and Paragraph spacing, Effects (mirror/inverse text) |
+
+Also added in this pass: Design > Không in (`LabelObject.IsPrintable`, left
+out of print, preview and preflight), View > Vừa đối tượng and Không căn,
+Grow/Shrink Font and Text-tab alignment.

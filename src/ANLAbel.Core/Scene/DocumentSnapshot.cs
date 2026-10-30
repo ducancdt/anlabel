@@ -276,6 +276,7 @@ public sealed record SceneObjectSnapshot
     public bool IsLocked { get; init; }
     public bool IsVisible { get; init; }
     public ObjectAnchorPoint AnchorPoint { get; init; }
+    public bool IsPrintable { get; init; } = true;
     public string GroupId { get; init; } = string.Empty;
     public string ContentMask { get; init; } = string.Empty;
     public string ContentMaskCharacter { get; init; } = "*";
@@ -353,6 +354,7 @@ public sealed record SceneObjectSnapshot
             IsLocked = item.IsLocked,
             IsVisible = item.IsVisible,
             AnchorPoint = item.AnchorPoint,
+            IsPrintable = item.IsPrintable,
             GroupId = item.GroupId,
             ContentMask = item.ContentMask,
             ContentMaskCharacter = item.ContentMaskCharacter,
@@ -658,6 +660,12 @@ internal static class SceneHash
         Append(builder, item.ZIndex);
         Append(builder, item.IsLocked);
         Append(builder, item.IsVisible);
+        if (!item.IsPrintable)
+        {
+            // Only non-printable objects carry it, so older document hashes are unchanged.
+            Append(builder, "not-printable");
+        }
+
         if (item.AnchorPoint != ObjectAnchorPoint.TopLeft)
         {
             // Only anchored objects carry it, so older document hashes are unchanged.

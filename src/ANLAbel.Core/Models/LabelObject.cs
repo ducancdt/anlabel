@@ -21,6 +21,7 @@ public sealed class LabelObject : ObservableObject
     private int _zIndex;
     private bool _isLocked;
     private bool _isVisible = true;
+    private bool _isPrintable = true;
     private ObjectAnchorPoint _anchorPoint;
     private string _groupId = string.Empty;
     private string _contentMask = string.Empty;
@@ -153,6 +154,16 @@ public sealed class LabelObject : ObservableObject
     {
         get => _isVisible;
         set => SetProperty(ref _isVisible, value);
+    }
+
+    /// <summary>
+    /// False keeps the object on the design surface but out of print and
+    /// preview (NiceLabel 10 Design &gt; Not Printable).
+    /// </summary>
+    public bool IsPrintable
+    {
+        get => _isPrintable;
+        set => SetProperty(ref _isPrintable, value);
     }
 
     /// <summary>

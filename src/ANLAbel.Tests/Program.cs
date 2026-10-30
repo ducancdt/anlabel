@@ -12711,6 +12711,15 @@ static Task TestInverseObjectSwapsBlackAndWhite()
             AssertEqual(true, Luma(15) > 200, "Black bar under the Inverse turns white");
             AssertEqual(true, Luma(25) < 60, "White label under the Inverse turns black");
             AssertEqual(true, Luma(35) > 200, "White label outside the Inverse stays white");
+
+            // NiceLabel 10 Not Printable: the object stays in the design but leaves print and preview.
+            template.Objects.Remove(template.Objects.Single(item => item.Type == ObjectType.Inverse));
+            template.Objects[0].IsPrintable = false;
+            var hidden = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            hidden.Render(new LabelVisualRenderer().Render(template, null, plan));
+            var probe = new byte[4];
+            hidden.CopyPixels(new Int32Rect((int)MmConverter.MmToDip(5), height / 2, 1, 1), probe, 4, 0);
+            AssertEqual(true, probe[1] > 200, "A not-printable object is left out of print");
         }
         catch (Exception ex)
         {
@@ -12873,7 +12882,8 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
             foreach (var id in new[] { "Shell.Ribbon.File", "Shell.Ribbon.Tab.Home", "Shell.Ribbon.Tab.Data", "Shell.Ribbon.Tab.View", "Shell.Ribbon.Tab.Help",
                          "Shell.Ribbon.Paste", "Shell.Ribbon.Cut", "Shell.Ribbon.Copy", "Shell.Ribbon.Font", "Shell.Ribbon.DataSources",
                          "Shell.Ribbon.ZoomToDocument", "Shell.Status.Printer", "Shell.Properties.Title",
-                         "Shell.Ribbon.Group", "Shell.Ribbon.Ungroup", "Shell.Ribbon.AnchorPoint", "Shell.Ribbon.ObjectMarkers", "Shell.Ribbon.RotateView", "Shell.Properties.Pin" })
+                         "Shell.Ribbon.Group", "Shell.Ribbon.Ungroup", "Shell.Ribbon.AnchorPoint", "Shell.Ribbon.ObjectMarkers", "Shell.Ribbon.RotateView", "Shell.Properties.Pin",
+                         "Shell.Ribbon.ZoomToObjects", "Shell.Ribbon.DoNotAlign", "Shell.Ribbon.NotPrintable", "Shell.Ribbon.FormatPainter" })
             {
                 AssertEqual(true, found.Contains(id, StringComparer.Ordinal), "NiceLabel layout must expose " + id);
             }
@@ -12887,6 +12897,25 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
             AssertEqual(Visibility.Visible, Element("Shell.Ribbon.Tab.Design").Visibility, "Design tab appears for a selected object");
             AssertEqual(Visibility.Visible, Element("Shell.Ribbon.Tab.Text").Visibility, "Text tab appears for a selected text");
             AssertEqual(Visibility.Collapsed, Element("Shell.Ribbon.Tab.Barcode").Visibility, "Barcode tab stays hidden for a text");
+            // Evidence images for the side-by-side NiceLabel comparison (TestOutput, not committed).
+            var evidence = Path.Combine(FindRepositoryRoot(), "TestOutput", "nicelabel-layout");
+            Directory.CreateDirectory(evidence);
+            foreach (var tab in new[] { RibbonTab.Home, RibbonTab.Data, RibbonTab.View, RibbonTab.Help, RibbonTab.Design, RibbonTab.Text })
+            {
+                viewModel.SelectedRibbonTab = tab;
+                PumpDispatcher();
+                var content = (FrameworkElement)window.Content;
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                var shot = new RenderTargetBitmap(1440, 900, 96, 96, PixelFormats.Pbgra32);
+                shot.Render(content);
+                using var file = File.Create(Path.Combine(evidence, tab + ".png"));
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(shot));
+                encoder.Save(file);
+            }
+
             viewModel.SelectedRibbonTab = RibbonTab.Text;
             viewModel.SelectedObject = null;
             AssertEqual(RibbonTab.Home, viewModel.SelectedRibbonTab, "Clearing the selection returns to the Home tab");
