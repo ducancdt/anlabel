@@ -34,6 +34,9 @@
   được tính trước khi có giá trị nhập: biến không được hỏi, phần đó của tem in
   ra trống (có dữ liệu Excel thì bị chặn in vì "lỗi chuyển đổi dữ liệu"), và
   màn hình thiết kế báo nhầm thiếu cột "?Tên".
+- Quản lý dữ liệu, Hàm: đổi tên một hàm cũng đổi theo ở đối tượng ({Tên}) và ở
+  các hàm khác đọc nó (FIELD("Tên")), như NiceLabel. Trước đây đối tượng còn
+  dùng tên cũ nên bị báo thiếu trường và chặn in.
 
 ## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
 

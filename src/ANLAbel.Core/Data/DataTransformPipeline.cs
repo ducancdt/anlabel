@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using ANLAbel.Core.Expressions.Formulas;
 
 namespace ANLAbel.Core.Data;
@@ -34,9 +35,36 @@ public sealed record DataTransformResult(
 /// when it appears later in a workspace list. Cycles and invalid formulas fail
 /// closed with diagnostics instead of producing an order-dependent print value.
 /// </summary>
-public static class DataTransformPipeline
+public static partial class DataTransformPipeline
 {
     private static readonly FormulaEngine FormulaEngine = new();
+
+    /// <summary>
+    /// The expression with renamed functions: <c>{Old}</c> and
+    /// <c>FIELD("Old")</c> become <c>{New}</c> and <c>FIELD("New")</c>, every
+    /// name in one pass; prompts (<c>{?...}</c>), dates (<c>{#...}</c>) and other
+    /// fields stay as written. <paramref name="renames"/> maps old to new names
+    /// and should ignore case, as fields are looked up.
+    /// </summary>
+    public static string RenameReferences(string? expression, IReadOnlyDictionary<string, string> renames)
+    {
+        ArgumentNullException.ThrowIfNull(renames);
+        if (string.IsNullOrEmpty(expression) || renames.Count == 0)
+        {
+            return expression ?? string.Empty;
+        }
+
+        string Rename(Match match) => renames.TryGetValue(match.Groups["name"].Value.Trim(), out var renamed)
+            ? match.Groups["open"].Value + renamed + match.Groups["close"].Value
+            : match.Value;
+        return FieldCallPattern().Replace(PlaceholderPattern().Replace(expression, Rename), Rename);
+    }
+
+    [GeneratedRegex(@"(?<open>\{\s*)(?<name>[^{}?#\s][^{}]*?)(?<close>\s*\})")]
+    private static partial Regex PlaceholderPattern();
+
+    [GeneratedRegex(@"(?<open>FIELD\s*\(\s*"")(?<name>[^""?#][^""]*)(?<close>""\s*\))", RegexOptions.IgnoreCase)]
+    private static partial Regex FieldCallPattern();
 
     public static string ComputeFingerprint(IEnumerable<DataTransformDefinition>? definitions)
     {

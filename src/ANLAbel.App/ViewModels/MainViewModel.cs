@@ -4567,12 +4567,15 @@ public sealed class MainViewModel : ObservableObject
         IReadOnlyList<PromptVariableDefinition> promptVariables,
         IReadOnlyList<DataTransformDefinition> transforms,
         SerialCounterDefinition serialCounter,
-        IReadOnlyDictionary<string, string>? promptRenames = null)
+        IReadOnlyDictionary<string, string>? promptRenames = null,
+        IReadOnlyDictionary<string, string>? functionRenames = null)
     {
         ArgumentNullException.ThrowIfNull(promptVariables);
         ArgumentNullException.ThrowIfNull(transforms);
         ArgumentNullException.ThrowIfNull(serialCounter);
         var renames = promptRenames ?? new Dictionary<string, string>();
+        var functions = functionRenames ?? new Dictionary<string, string>();
+        string Renamed(string? expression) => DataTransformPipeline.RenameReferences(JobVariableContract.RenamePrompts(expression, renames), functions);
         var moved = 0;
         BeginTemplateEditGesture();
         try
@@ -4583,15 +4586,16 @@ public sealed class MainViewModel : ObservableObject
                 Template.PromptVariables.Add(prompt);
             }
 
-            // A renamed question keeps the objects that use it (NiceLabel binds
-            // by variable id); otherwise they would ask the old name, without
-            // its rules, at print. One edit gesture, so Ctrl+Z restores both.
-            if (renames.Count > 0)
+            // A renamed question or function keeps the objects that use it
+            // (NiceLabel binds by id); otherwise they would ask the old name,
+            // without its rules, or miss the function at print. One edit
+            // gesture, so Ctrl+Z restores both.
+            if (renames.Count > 0 || functions.Count > 0)
             {
                 foreach (var item in Template.Objects)
                 {
-                    var binding = JobVariableContract.RenamePrompts(item.BindingExpression, renames);
-                    var condition = JobVariableContract.RenamePrompts(item.VisibilityCondition, renames);
+                    var binding = Renamed(item.BindingExpression);
+                    var condition = Renamed(item.VisibilityCondition);
                     if (binding != (item.BindingExpression ?? string.Empty) || condition != (item.VisibilityCondition ?? string.Empty))
                     {
                         item.BindingExpression = binding;
@@ -4604,9 +4608,9 @@ public sealed class MainViewModel : ObservableObject
             Template.DataTransforms.Clear();
             foreach (var transform in transforms)
             {
-                Template.DataTransforms.Add(renames.Count == 0
+                Template.DataTransforms.Add(renames.Count == 0 && functions.Count == 0
                     ? transform
-                    : transform with { Formula = JobVariableContract.RenamePrompts(transform.Formula, renames) });
+                    : transform with { Formula = Renamed(transform.Formula) });
             }
 
             Template.SerialCounter.CopyFrom(serialCounter);
@@ -4622,7 +4626,7 @@ public sealed class MainViewModel : ObservableObject
         RaiseSerialCounterPreviewChanged();
         OnPropertyChanged(nameof(DataTransforms));
         StatusText = moved > 0
-            ? $"Đã cập nhật dữ liệu của tem; {moved} đối tượng dùng tên biến mới (Ctrl+Z để hoàn tác)."
+            ? $"Đã cập nhật dữ liệu của tem; {moved} đối tượng dùng tên mới (Ctrl+Z để hoàn tác)."
             : "Đã cập nhật dữ liệu của tem (Ctrl+Z để hoàn tác).";
     }
 

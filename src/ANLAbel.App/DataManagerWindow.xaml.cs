@@ -697,13 +697,45 @@ public partial class DataManagerWindow : Window
             return;
         }
 
+        // A question or function renamed here keeps the objects and functions
+        // that use it; ApplyDataDefinitions moves them, once.
+        var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prompt in _prompts)
+        {
+            if (_originalNames.TryGetValue(prompt, out var original)
+                && !string.IsNullOrWhiteSpace(original)
+                && !string.Equals(original, prompt.Name.Trim(), StringComparison.Ordinal))
+            {
+                renames[original] = prompt.Name.Trim();
+            }
+        }
+
+        var functionRenames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var function in _functions)
+        {
+            if (function.Source?.Name?.Trim() is { Length: > 0 } original
+                && function.Name.Length > 0
+                && !string.Equals(original, function.Name, StringComparison.Ordinal))
+            {
+                functionRenames[original] = function.Name;
+            }
+        }
+
         var warnings = new List<string>();
         var definitions = _functions.Select(function => function.ToDefinition()).ToArray();
         if (definitions.Length > 0)
         {
+            // Checked as they will be once renamed: a function reading a renamed
+            // one is not an error.
+            var renamed = definitions
+                .Select(definition => definition with
+                {
+                    Formula = DataTransformPipeline.RenameReferences(JobVariableContract.RenamePrompts(definition.Formula, renames), functionRenames)
+                })
+                .ToArray();
             var check = DataTransformPipeline.Evaluate(
-                DataRecord.Create(WithPrintTimeValues(_viewModel.ExcelHeaders.Select(field => new KeyValuePair<string, string>(field, string.Empty)), definitions)),
-                definitions);
+                DataRecord.Create(WithPrintTimeValues(_viewModel.ExcelHeaders.Select(field => new KeyValuePair<string, string>(field, string.Empty)), renamed)),
+                renamed);
             warnings.AddRange(check.Errors.Select(FormulaErrorText.Translate));
         }
 
@@ -724,19 +756,7 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        // A question renamed here keeps the objects that use it.
-        var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var prompt in _prompts)
-        {
-            if (_originalNames.TryGetValue(prompt, out var original)
-                && !string.IsNullOrWhiteSpace(original)
-                && !string.Equals(original, prompt.Name.Trim(), StringComparison.Ordinal))
-            {
-                renames[original] = prompt.Name.Trim();
-            }
-        }
-
-        _viewModel.ApplyDataDefinitions(_prompts.ToArray(), definitions, _counter, renames);
+        _viewModel.ApplyDataDefinitions(_prompts.ToArray(), definitions, _counter, renames, functionRenames);
         Accepted = true;
         _closingAccepted = true;
         Close();

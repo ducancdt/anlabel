@@ -85,6 +85,17 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Theory]
+    [InlineData("{MaLo}", "{MaHang}")]
+    [InlineData("Lô { malo } / {?MaLo} / {#NOW:yyMMdd} / {MaLoCu}", "Lô { MaHang } / {?MaLo} / {#NOW:yyMMdd} / {MaLoCu}")]
+    [InlineData("CONCAT(FIELD(\"MaLo\"), FIELD(\"?MaLo\"))", "CONCAT(FIELD(\"MaHang\"), FIELD(\"?MaLo\"))")]
+    [InlineData("{A}{B}", "{B}{A}")]
+    public void RenameReferences_MovesOnlyTheRenamedFunctions(string expression, string expected)
+    {
+        var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["MaLo"] = "MaHang", ["A"] = "B", ["B"] = "A" };
+        Assert.Equal(expected, ANLAbel.Core.Data.DataTransformPipeline.RenameReferences(expression, renames));
+    }
+
+    [Theory]
     [InlineData("{?Lot}", "{?SoLo}")]
     [InlineData("Lô: { ?lot } / {?Qty}", "Lô: { ?SoLo } / {?Qty}")]
     [InlineData("CONCAT(\"L\", FIELD(\"?Lot\"), FIELD( \"Lot\" ))", "CONCAT(\"L\", FIELD(\"?SoLo\"), FIELD( \"Lot\" ))")]

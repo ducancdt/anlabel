@@ -1660,11 +1660,48 @@ internal static class DesignScenarioRegression
             var asked = ANLAbel.Core.Printing.JobVariableContract.RequiredPrompts(viewModel.Template);
             Require(asked.Count == 1 && asked[0] is { Name: "SoLo", MaxLength: 8, DigitsOnly: true, Required: true },
                 "The print dialog asks the renamed question with its rules: " + string.Join(", ", asked.Select(prompt => $"{prompt.Name} max {prompt.MaxLength}")));
-            Require(viewModel.StatusText.Contains("2 đối tượng dùng tên biến mới", StringComparison.Ordinal), "The status line says the objects moved: " + viewModel.StatusText);
+            Require(viewModel.StatusText.Contains("2 đối tượng dùng tên mới", StringComparison.Ordinal), "The status line says the objects moved: " + viewModel.StatusText);
 
             viewModel.UndoCommand.Execute(null);
             Require(Bindings().SequenceEqual(["Lô: {?Lot}", "CONCAT(\"L\", FIELD(\"?Lot\"))"]) && viewModel.Template.PromptVariables.Single().Name == "Lot",
                 "Ctrl+Z restores the name and both objects: " + string.Join(" | ", Bindings()));
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Renaming a function in the Data Manager keeps the objects and the
+    /// functions that read it: a text {MaLo} and a function Tag reading
+    /// FIELD("MaLo") follow the new name MaHang, so the printed row still
+    /// carries it; Ctrl+Z restores both.
+    /// </summary>
+    public static Task FunctionRenameCarriesItsObjects()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" });
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MaLo", "CONCAT(\"L-\", FIELD(\"?Lot\"))"));
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tag", "CONCAT(\"[\", FIELD(\"MaLo\"), \"]\")"));
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã lô", BindingExpression = "{MaLo}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Nhãn", BindingExpression = "{Tag}", XMm = 3, YMm = 12, WidthMm = 30, HeightMm = 6 });
+            var window = new ANLAbel.App.DataManagerWindow(viewModel, "Functions");
+            var functions = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            var draft = functions[0]!;
+            draft.GetType().GetProperty("Name")!.SetValue(draft, "MaHang");
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("Ok_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object?[] { null, null });
+
+            string[] Bindings() => viewModel.Template.Objects.Select(item => item.BindingExpression).ToArray();
+            Require(Bindings().SequenceEqual(["{MaHang}", "{Tag}"]) && viewModel.Template.DataTransforms[1].Formula == "CONCAT(\"[\", FIELD(\"MaHang\"), \"]\")",
+                "The object and the function reading it use the new name: " + string.Join(" | ", Bindings()) + " / " + viewModel.Template.DataTransforms[1].Formula);
+            Require(ANLAbel.Core.Printing.JobVariableContract.TryApply(viewModel.Template, [null], DateTimeOffset.Now, new Dictionary<string, string> { ["Lot"] = "7" }, out var printed, out var error)
+                    && printed[0]!["MaHang"] == "L-7" && printed[0]!["Tag"] == "[L-7]",
+                "The printed row carries the renamed function and the one built on it: " + error);
+
+            viewModel.UndoCommand.Execute(null);
+            Require(Bindings().SequenceEqual(["{MaLo}", "{Tag}"]) && viewModel.Template.DataTransforms[0].Name == "MaLo",
+                "Ctrl+Z restores the function name and its objects: " + string.Join(" | ", Bindings()));
         });
 
         return Task.CompletedTask;
