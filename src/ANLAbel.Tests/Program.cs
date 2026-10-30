@@ -12909,6 +12909,17 @@ static Task TestPropertiesPanelPinsOrFloats()
     return Task.CompletedTask;
 }
 
+/// <summary>App.xaml's shared theme as a dictionary, for test renders (a test process has no Application).</summary>
+static ResourceDictionary LoadAppTheme()
+{
+    var appXaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "App.xaml"));
+    var resourcesStart = appXaml.IndexOf("<Application.Resources>", StringComparison.Ordinal) + "<Application.Resources>".Length;
+    var resourcesEnd = appXaml.IndexOf("</Application.Resources>", StringComparison.Ordinal);
+    return (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(
+        "<ResourceDictionary xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">"
+        + appXaml[resourcesStart..resourcesEnd] + "</ResourceDictionary>");
+}
+
 static Task TestDialogsRenderForUiAudit()
 {
     // Evidence renders of the main dialogs (TestOutput/ui-audit, not committed).
@@ -13022,6 +13033,7 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
         try
         {
             var window = new MainWindow();
+            window.Resources.MergedDictionaries.Insert(0, LoadAppTheme());
             var viewModel = new MainViewModel();
             window.DataContext = viewModel;
             window.Measure(new Size(1440, 900));

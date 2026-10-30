@@ -660,6 +660,16 @@
         <Border DockPanel.Dock="Top" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1"
                 AutomationProperties.AutomationId="Shell.Ribbon"
                 AutomationProperties.Name="Ribbon">
+            <Border.Resources>
+                <!-- Compact pickers for the ribbon's font row: text centred in a 26 px box -->
+                <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="MinHeight" Value="0"/>
+                    <Setter Property="Padding" Value="6,2,4,2"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                </Style>
+            </Border.Resources>
             <DockPanel>
                 <!-- Tab strip: Tệp | Trang chủ | Dữ liệu | Xem | Trợ giúp | contextual (NiceLabel 10 order, docs/NICELABEL_10_UI_LAYOUT.md) -->
                 <Border DockPanel.Dock="Top" Background="#063B66" Padding="10,0,10,0">
@@ -740,11 +750,11 @@
                             <Border Style="{StaticResource RibbonSeparator}"/>
                             <controls:RibbonGroupPanel IsEnabled="{Binding IsTextObjectSelected}" AutomationProperties.AutomationId="Shell.Ribbon.Font">
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,3">
-                                    <ComboBox Width="150" Height="24" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
+                                    <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
                                               IsTextSearchEnabled="True" AutomationProperties.Name="Ribbon font family" ToolTip="Phông chữ">
                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <ComboBox Width="56" Height="24" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
+                                    <ComboBox Width="56" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
                                               AutomationProperties.Name="Ribbon font size" ToolTip="Cỡ chữ (pt)"/>
                                     <Button Style="{StaticResource RibbonIconButton}" Click="FontGrow_Click" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Grow font"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E8;"/></Button>
                                     <Button Style="{StaticResource RibbonIconButton}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Shrink font"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E7;"/></Button>
@@ -1117,11 +1127,11 @@
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,3">
-                                    <ComboBox Width="150" Height="24" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
+                                    <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
                                               AutomationProperties.Name="Text tab font family" ToolTip="Phông chữ">
                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <ComboBox Width="56" Height="24" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
+                                    <ComboBox Width="56" Margin="4,0,0,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
                                               AutomationProperties.Name="Text tab font size" ToolTip="Cỡ chữ (pt)"/>
                                     <Button Style="{StaticResource RibbonIconButton}" Click="FontGrow_Click" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Grow font"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E8;"/></Button>
                                     <Button Style="{StaticResource RibbonIconButton}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Shrink font"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E7;"/></Button>
