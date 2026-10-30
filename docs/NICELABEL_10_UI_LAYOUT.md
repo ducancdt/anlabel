@@ -517,3 +517,19 @@ serial `{#SERIAL}` while the counter is on, the print date
 dropped from "Khi in" is named "Số sê-ri" or "Ngày in". One mapping
 (`MainWindow.DataTreeBinding`) turns a tree item into its binding. Gate:
 `the data panel lists functions and print-time fields`.
+
+## Object browser and layers (2026-10-31)
+
+From DesignerLib `mainregion/view/objectbrowser.xaml`,
+`objectbrowseritemadditionalcontrols.xaml` and `layerexplorer.xaml`:
+
+- Object browser: a generic selector list of the label's objects (drag
+  enabled); the only per-row extra is a lightning marker for objects with
+  actions (PowerForms). ANLAbel's "Đối tượng" tab lists name and type with a
+  search box and selects on the canvas: on par for labels.
+- Layer explorer: layers with show/hide and lock toggles, new, delete,
+  rename, properties, move up and down, copy, paste, duplicate, merge down,
+  merge visible, hide other layers, show all, lock other layers, unlock all.
+  ANLAbel has no layers; an imported label keeps its objects, and objects on
+  a hidden layer are not printed (the `Label_layers` sample). No customer
+  label uses layers. Not built.
