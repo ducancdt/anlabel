@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## v0.329 — Hộp thoại nhiều lựa chọn bằng tiếng Việt; mã vạch .lbl lưu kích thước cũ
+
+_Gồm các commit đầu chiều 29/10/2026 (13:24–14:13)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Hộp hỏi in lại, hỏi bỏ qua dòng lỗi và mọi hộp Có/Không/Hủy còn lại (xóa và
+  dọn nguồn dữ liệu, đặt lại bộ đếm Serial, mở tệp vừa xuất, bỏ liên kết
+  Excel, thiết lập hàng đợi máy in, hủy lệnh in, khôi phục phiên bản, tải và
+  cài cập nhật) dùng hộp thoại tiếng Việt của app. Kết quả và lựa chọn mặc
+  định giữ nguyên, kể cả mặc định an toàn khi đặt lại Serial. Đóng mục “Còn
+  sót” của v0.326.
+- `.lbl`: mã vạch có kích thước lưu từ lúc thiết kế (đã cũ) vẫn chuyển được
+  nhờ đối chiếu theo vị trí; tỉ lệ kích thước giới hạn 0,5–2.
+- Ghi chép: biến V33 và nội dung RTF của `.lbl` để nguyên.
+
+**Kiểm tra:** các commit của đợt này không ghi số liệu cổng riêng.
+
 ## v0.328 — Nhập tem NiceLabel 5 (.lbl) kèm đối tượng
 
 _Gồm các commit sáng 29/10/2026 (11:16)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
