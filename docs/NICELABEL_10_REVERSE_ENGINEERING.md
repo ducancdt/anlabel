@@ -691,5 +691,13 @@ placeholder contents. Now `PromptVariableDefinition.DateFormat` (output) and
 accepts the input format, dd/MM/yyyy or yyyy-MM-dd; the job keeps yyyy-MM-dd and
 `FormatPromptValue` prints the output format, then the prefix, suffix and
 padding; the designer shows the job day in the output format until a date is
-given. Import keeps both formats and the default. Not built: `DateAddFunction`
-on a prompted date (15 sample functions, e.g. expiry = production date + n).
+given. Import keeps both formats and the default.
+
+`DateAddFunction` (15 sample functions): `InputDataSourceReference` is the date
+moved (a current-date variable in all 15), `Day`/`Month`/`Year` are fixed
+amounts or a `DataSourceReference` (11: a prompt "Expiry (days)" defaulting to
+100, or a database field). Fixed amounts stay `{#NOW+n…:format}` tokens; amounts
+from a source now import as `DATEFORMAT(DATEADD(FIELD("#NOW…:yyyy-MM-dd"),
+FIELD("?Expiry (days)"), "d", "yyyy-MM-dd"), "<format>")` (formula functions
+DATEADD/DATEFORMAT, carried through templates by a raw formula marker). Not
+built: a `DateAddFunction` whose input is a prompted date.

@@ -159,7 +159,13 @@ public static class NiceLabel10NlblReader
                             null,
                             SystemDateOffsetMonths: (int)ParseDouble(item.Element("Month")?.Element("FixedValue"), "Int32Value"),
                             SystemDateOffsetYears: (int)ParseDouble(item.Element("Year")?.Element("FixedValue"), "Int32Value"),
-                            DateInputId: input);
+                            DateInputId: input)
+                        {
+                            // An amount may come from another data source ("Expiry (days)").
+                            DateOffsetDaysSourceId = ChildText(item.Element("Day")?.Element("DataSourceReference"), "Id")?.Trim(),
+                            DateOffsetMonthsSourceId = ChildText(item.Element("Month")?.Element("DataSourceReference"), "Id")?.Trim(),
+                            DateOffsetYearsSourceId = ChildText(item.Element("Year")?.Element("DataSourceReference"), "Id")?.Trim()
+                        };
                     }
 
                     continue;

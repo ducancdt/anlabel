@@ -277,6 +277,18 @@ public sealed record NiceLabel10Variable(
     /// </summary>
     public string? SampleValue { get; init; }
 
+    /// <summary>
+    /// For a <c>DateAddFunction</c> whose day, month or year amount comes from
+    /// another data source: that source's id; null for a fixed amount.
+    /// </summary>
+    public string? DateOffsetDaysSourceId { get; init; }
+
+    /// <summary>See <see cref="DateOffsetDaysSourceId"/>, for months.</summary>
+    public string? DateOffsetMonthsSourceId { get; init; }
+
+    /// <summary>See <see cref="DateOffsetDaysSourceId"/>, for years.</summary>
+    public string? DateOffsetYearsSourceId { get; init; }
+
     /// <summary>For a prompted date (<c>DateTimeContents</c>): the stored output format; null otherwise.</summary>
     public string? DateFormat { get; init; }
 

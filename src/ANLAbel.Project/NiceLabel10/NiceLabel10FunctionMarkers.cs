@@ -20,6 +20,13 @@ internal static class NiceLabel10FunctionMarkers
     public static bool ContainsMarker(string expression) => expression.IndexOf(Start) >= 0;
 
     /// <summary>
+    /// A span that is already a formula (<c>Start = formula Body End</c>), for
+    /// values no single function marker can describe (a date moved by another
+    /// data source's amount). It joins the template's other terms as written.
+    /// </summary>
+    public static string Raw(string formula) => Start + "=" + formula + Body + End;
+
+    /// <summary>
     /// Rewrites a <c>{Field}</c> expression carrying function markers into a
     /// formula: literal text becomes string literals, placeholders
     /// <c>FIELD("name")</c>, marked spans <c>NAME(inner, args…)</c>; several
@@ -56,6 +63,20 @@ internal static class NiceLabel10FunctionMarkers
                 FlushLiteral();
                 terms.Add("FIELD(" + Quote(text[(index + 1)..close].Trim()) + ")");
                 index = close + 1;
+                continue;
+            }
+
+            if (ch == Start && index + 1 < text.Length && text[index + 1] == '=')
+            {
+                var rawEnd = text.IndexOf(Body, index + 2);
+                if (rawEnd < 0 || rawEnd + 1 >= text.Length || text[rawEnd + 1] != End)
+                {
+                    return null;
+                }
+
+                FlushLiteral();
+                terms.Add(text[(index + 2)..rawEnd]);
+                index = rawEnd + 2;
                 continue;
             }
 

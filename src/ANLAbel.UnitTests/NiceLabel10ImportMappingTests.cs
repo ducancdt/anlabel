@@ -1173,6 +1173,63 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void DateMovedByAnotherSource_BecomesADateAddFormula()
+    {
+        // UDI samples: Expiry Date = Mfg Date (today) + "Expiry (days)", a prompt.
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>f1f1f1f1-2222-3333-4444-555555555555</Id>
+                  <Name>Mfg Date</Name>
+                  <DefaultValue Type="SystemDateTimeContents"><OutputFormat>yyyy-MM-dd</OutputFormat></DefaultValue>
+                </Item>
+                <Item Type="Variable">
+                  <Id>f2f2f2f2-2222-3333-4444-555555555555</Id>
+                  <Name>Expiry (days)</Name>
+                  <DefaultValue Type="StringContents"><StringValue>100</StringValue></DefaultValue>
+                </Item>
+              </Variables>
+              <Functions>
+                <Item Type="DateAddFunction">
+                  <Id>f3f3f3f3-2222-3333-4444-555555555555</Id>
+                  <Name>Expiry Date</Name>
+                  <Day Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>f2f2f2f2-2222-3333-4444-555555555555</Id></DataSourceReference></Day>
+                  <Month Type="DataValue"><FixedValue Type="IntegerContents" /></Month>
+                  <Year Type="DataValue"><FixedValue Type="IntegerContents" /></Year>
+                  <InputDataSourceReference Type="SolutionDataSourceReference"><Id>f1f1f1f1-2222-3333-4444-555555555555</Id></InputDataSourceReference>
+                  <OutputFormat>yyMMdd</OutputFormat>
+                </Item>
+              </Functions>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format("""
+            <Item Type="TextDocumentItem">
+              <Name>Expiry</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>EXP 260209</FixedContents>
+              <Contents Type="ExtendedDataValue">
+                <FixedValue Type="StringContents"><StringValue>EXP [f3f3f3f3-2222-3333-4444-555555555555]</StringValue></FixedValue>
+                <DataSourceReferences><Item Type="SolutionDataSourceReference"><Id>f3f3f3f3-2222-3333-4444-555555555555</Id></Item></DataSourceReferences>
+              </Contents>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var expiry = Assert.Single(template.Objects);
+        Assert.Equal("CONCAT(\"EXP \", DATEFORMAT(DATEADD(FIELD(\"#NOW:yyyy-MM-dd\"), FIELD(\"?Expiry (days)\"), \"d\", \"yyyy-MM-dd\"), \"yyMMdd\"))", expiry.BindingExpression);
+        var prompt = Assert.Single(template.PromptVariables);
+        Assert.Equal(("Expiry (days)", "100"), (prompt.Name, prompt.DefaultValue));
+
+        // At print the job day moves by the answer.
+        IReadOnlyDictionary<string, string>?[] rows = [null];
+        var jobTime = new DateTimeOffset(2026, 10, 31, 9, 0, 0, TimeSpan.FromHours(7));
+        Assert.True(ANLAbel.Core.Printing.JobVariableContract.TryApply(template, rows, jobTime, new Dictionary<string, string> { ["Expiry (days)"] = "100" }, out var applied, out var error), error);
+        Assert.Equal("EXP 270208", ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(expiry.BindingExpression, applied[0]!).Value);
+    }
+
+    [Fact]
     public void PromptedDates_BecomeDatePrompts()
     {
         const string solution = """

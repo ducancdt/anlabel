@@ -24,6 +24,9 @@
   cách ghi ngày, ví dụ ngày Excel thành yyMMdd cho mã GS1 (17). Ngày đọc được ở
   dạng yyyy-MM-dd (ô ngày Excel), dd/MM/yyyy, dd.MM.yyyy, yyyyMMdd hoặc theo
   định dạng nêu ra; ngày trống cho giá trị trống; lỗi báo bằng tiếng Việt.
+- Nhập .nlbl: hàm cộng ngày của NiceLabel có số ngày/tháng/năm lấy từ nguồn khác
+  (hạn dùng = ngày sản xuất + “Expiry (days)”) thành công thức DATEADD trên ngày
+  in; biến số ngày thành biến nhập khi in.
 
 ## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
 

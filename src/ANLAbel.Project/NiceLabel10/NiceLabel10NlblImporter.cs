@@ -1359,6 +1359,8 @@ public static partial class NiceLabel10NlblImporter
                 // input date; only the current date can be reproduced, so the
                 // input must itself be a current-date variable (chains allowed).
                 int days = variable.SystemDateOffsetDays, months = variable.SystemDateOffsetMonths, years = variable.SystemDateOffsetYears;
+                var amounts = new List<(string SourceId, string Unit)>();
+                CollectAmounts(variable);
                 var input = variable;
                 var hops = 0;
                 while (input.DateInputId is { } inputId)
@@ -1373,6 +1375,7 @@ public static partial class NiceLabel10NlblImporter
                     days += next.SystemDateOffsetDays;
                     months += next.SystemDateOffsetMonths;
                     years += next.SystemDateOffsetYears;
+                    CollectAmounts(next);
                     input = next;
                 }
 
@@ -1383,7 +1386,46 @@ public static partial class NiceLabel10NlblImporter
                 }
 
                 var offset = Offset(days, "d") + Offset(months, "mo") + Offset(years, "y");
-                return "{#NOW" + offset + ":" + format + "}";
+                if (amounts.Count == 0)
+                {
+                    return "{#NOW" + offset + ":" + format + "}";
+                }
+
+                // Amounts from other data sources ("Expiry (days)", a database
+                // field): the job day moved by each with DATEADD, in the format.
+                var formula = "FIELD(" + NiceLabel10FunctionMarkers.Quote("#NOW" + offset + ":yyyy-MM-dd") + ")";
+                foreach (var (sourceId, unit) in amounts)
+                {
+                    if (depth + 1 > MaxFunctionDepth
+                        || !_document.VariablesById.TryGetValue(sourceId, out var amountVariable)
+                        || ExpressionFor(amountVariable, depth + 1, prompts) is not { } amountExpression
+                        || NiceLabel10FunctionMarkers.ToFormula(amountExpression) is not { } amount)
+                    {
+                        return null;
+                    }
+
+                    formula = "DATEADD(" + formula + ", " + amount + ", " + NiceLabel10FunctionMarkers.Quote(unit) + ", \"yyyy-MM-dd\")";
+                }
+
+                return NiceLabel10FunctionMarkers.Raw("DATEFORMAT(" + formula + ", " + NiceLabel10FunctionMarkers.Quote(format) + ")");
+
+                void CollectAmounts(NiceLabel10Variable step)
+                {
+                    if (step.DateOffsetDaysSourceId is { Length: > 0 } dayId)
+                    {
+                        amounts.Add((dayId, "d"));
+                    }
+
+                    if (step.DateOffsetMonthsSourceId is { Length: > 0 } monthId)
+                    {
+                        amounts.Add((monthId, "mo"));
+                    }
+
+                    if (step.DateOffsetYearsSourceId is { Length: > 0 } yearId)
+                    {
+                        amounts.Add((yearId, "y"));
+                    }
+                }
 
                 static string Offset(int amount, string unit) =>
                     amount == 0 ? string.Empty : amount.ToString("+#;-#", CultureInfo.InvariantCulture) + unit;
