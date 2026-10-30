@@ -12919,11 +12919,26 @@ static Task TestDialogsRenderForUiAudit()
         {
             var output = Path.Combine(FindRepositoryRoot(), "TestOutput", "ui-audit");
             Directory.CreateDirectory(output);
+            // The app's shared theme lives in App.xaml (Application resources), which a
+            // test process does not load; merge the same dictionary into each window.
+            var appXaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "App.xaml"));
+            var resourcesStart = appXaml.IndexOf("<Application.Resources>", StringComparison.Ordinal) + "<Application.Resources>".Length;
+            var resourcesEnd = appXaml.IndexOf("</Application.Resources>", StringComparison.Ordinal);
+            var themeXaml = "<ResourceDictionary xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">"
+                + appXaml[resourcesStart..resourcesEnd] + "</ResourceDictionary>";
             void Save(string name, Window window, double fallbackWidth, double fallbackHeight)
             {
+                window.Resources.MergedDictionaries.Add((ResourceDictionary)System.Windows.Markup.XamlReader.Parse(themeXaml));
                 var width = double.IsNaN(window.Width) ? fallbackWidth : window.Width;
                 var height = double.IsNaN(window.Height) ? fallbackHeight : window.Height;
                 var content = (FrameworkElement)window.Content;
+                if (window.SizeToContent is SizeToContent.Height or SizeToContent.WidthAndHeight)
+                {
+                    // A dialog that sizes to its content: render at the height it asks for.
+                    content.Measure(new Size(width, double.PositiveInfinity));
+                    height = Math.Ceiling(content.DesiredSize.Height);
+                }
+
                 content.Measure(new Size(width, height));
                 content.Arrange(new Rect(0, 0, width, height));
                 content.UpdateLayout();

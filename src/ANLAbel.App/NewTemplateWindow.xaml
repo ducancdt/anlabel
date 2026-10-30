@@ -1,7 +1,7 @@
 <Window x:Class="ANLAbel.App.NewTemplateWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Mẫu tem mới" Height="325" Width="400"
+        Title="Mẫu tem mới" Width="400" SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource AppCanvasBrush}">
