@@ -340,6 +340,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("opening a niceLabel 5 lbl imports its label size as a new template", TestOpenNiceLabel5LblImportsLabelSize),
     ("opening a niceLabel 10 nlbl imports its label as a new template", TestOpenNiceLabel10NlblImportsLabel),
     ("imported barcode text prints like NiceLabel", TestImportedBarcodeTextPrintsLikeNiceLabel),
+    ("an imported box leaves what lies under it visible", TestImportedBoxLeavesWhatLiesUnderItVisible),
     ("settings window exposes language settings", TestSettingsWindowExposesLanguageSettings),
     ("main window load does not force printer setup", TestMainWindowLoadDoesNotForcePrinterSetup),
     ("bộ quy chuẩn Việt hóa chặn tiếng Anh trên file đã enforce", LanguageComplianceRegression.Run)
@@ -11980,6 +11981,100 @@ static byte[] SyntheticGrayPng(int width, int height)
     using var stream = new MemoryStream();
     encoder.Save(stream);
     return stream.ToArray();
+}
+
+// A NiceLabel table label draws its captions first and the frame box over
+// them without a fill; the box must not hide the captions in print.
+static async Task TestImportedBoxLeavesWhatLiesUnderItVisible()
+{
+    var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-nlbl-box-" + Guid.NewGuid().ToString("N")));
+    try
+    {
+        const string formatXml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Format">
+              <Name>Box</Name>
+              <Media Type="FormatMedia"><Width>60000</Width><Height>30000</Height></Media>
+              <DocumentItems>
+                <Item Type="TextDocumentItem">
+                  <Name>Caption</Name>
+                  <Geometry Type="PositionGeometry"><X>10000</X><Y>10000</Y></Geometry>
+                  <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>14</Height></FontDescriptor>
+                  <FixedContents>QTY</FixedContents>
+                  <ZOrder>1</ZOrder>
+                </Item>
+                <Item Type="RectangleDocumentItem">
+                  <Name>Frame</Name>
+                  <Geometry Type="RectGeometry"><Left>2000</Left><Top>2000</Top><Width>56000</Width><Height>26000</Height></Geometry>
+                  <Thickness>400</Thickness>
+                  <FillStyle>0</FillStyle>
+                  <FillColor>FF000000</FillColor>
+                  <ZOrder>2</ZOrder>
+                </Item>
+              </DocumentItems>
+            </EuroPlus.NiceLabel>
+            """;
+        const string solutionXml = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution"><Variables></Variables></EuroPlus.NiceLabel>
+            """;
+        var nlblPath = Path.Combine(directory.FullName, "Box.nlbl");
+        await File.WriteAllBytesAsync(nlblPath, BuildSyntheticNlblPackage(new Dictionary<string, string>
+        {
+            ["Formats/label"] = formatXml,
+            ["label.slnx"] = solutionXml
+        }));
+        var template = (await new ProjectFileService(new NiceLabel10TextMeasurer()).LoadWithRecoveryAsync(nlblPath)).Template;
+        var caption = template.Objects.Single(item => item.Name == "Caption");
+        var frame = template.Objects.Single(item => item.Name == "Frame");
+        AssertEqual(true, frame.ZIndex > caption.ZIndex, "The box is drawn over the caption, as stored");
+        AssertEqual(FillStyle.None, frame.Style.FillStyle, "A box NiceLabel does not fill stays open");
+
+        var inkInCaption = 0;
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var plan = new PrintRenderPlan { Dpi = 300, DpiX = 300, DpiY = 300, LabelWidthMm = template.WidthMm, LabelHeightMm = template.HeightMm };
+                var bitmap = RenderTestBitmap(new LabelVisualRenderer().Render(template, null, plan), MmConverter.MmToDip(template.WidthMm), MmConverter.MmToDip(template.HeightMm));
+                var pixels = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4];
+                bitmap.CopyPixels(pixels, bitmap.PixelWidth * 4, 0);
+                var left = (int)MmConverter.MmToDip(caption.XMm);
+                var top = (int)MmConverter.MmToDip(caption.YMm);
+                var right = (int)MmConverter.MmToDip(caption.XMm + caption.WidthMm);
+                var bottom = (int)MmConverter.MmToDip(caption.YMm + caption.HeightMm);
+                for (var y = top; y < bottom; y++)
+                {
+                    for (var x = left; x < right; x++)
+                    {
+                        var index = (y * bitmap.PixelWidth + x) * 4;
+                        if (pixels[index + 3] > 200 && pixels[index] < 100 && pixels[index + 1] < 100 && pixels[index + 2] < 100)
+                        {
+                            inkInCaption++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            throw failure;
+        }
+
+        AssertEqual(true, inkInCaption > 20, $"The caption under the open box must print ({inkInCaption} dark pixels)");
+    }
+    finally
+    {
+        try { directory.Delete(recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
 }
 
 // NiceLabel 10 draws a linear code's text outside its stored bar height, in

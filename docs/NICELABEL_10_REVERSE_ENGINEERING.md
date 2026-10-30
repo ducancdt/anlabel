@@ -631,6 +631,12 @@ NiceLabel`.
   stacking. ANLAbel imported every object at `ZIndex` 0 (file order); the
   importer now ranks `ZIndex` by `ZOrder` (equal values keep file order).
 - `IsPrintable` False (4 sample items): kept as ANLAbel "Không in".
+- Rectangle `FillStyle` (vendor `FillStyles`: None 0, Clear 1, Solid 2, then
+  hatches): only Solid fills. ANLAbel's style default is a solid white fill,
+  and the importer set the style only for Solid, so every open NiceLabel box
+  became opaque and hid what lay under it (11 customer table labels draw the
+  frame box after their captions). Open styles now import as no fill; gate
+  `an imported box leaves what lies under it visible`.
 - Layers: `DocumentDesign/Layers/Layer` with `ChildReferences` (item ids),
   `ZOrder`, `IsVisibleInDesignTime`, `IsItemOnBackSide` (two-sided print,
   not built) and a visibility condition. 10 sample labels have layers; the

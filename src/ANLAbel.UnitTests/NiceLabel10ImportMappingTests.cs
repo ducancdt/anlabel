@@ -674,6 +674,32 @@ public sealed class NiceLabel10ImportMappingTests
         Assert.Equal(1.5, template.Objects[1].Style.CornerRadiusMm, 3);
     }
 
+    [Theory]
+    [InlineData("", FillStyle.None)]
+    [InlineData("<FillStyle>0</FillStyle>", FillStyle.None)]
+    [InlineData("<FillStyle>1</FillStyle>", FillStyle.None)]
+    [InlineData("<FillStyle>5</FillStyle>", FillStyle.None)]
+    [InlineData("<FillStyle>2</FillStyle><FillColor>FF102030</FillColor>", FillStyle.Solid)]
+    public void RectangleFill_IsOpenUnlessSolid(string fill, FillStyle expected)
+    {
+        // A NiceLabel box without a solid fill leaves what lies under it visible.
+        var template = Import($"""
+            <Item Type="RectangleDocumentItem">
+              <Name>Box</Name>
+              <Geometry Type="RectGeometry"><Left>2000</Left><Top>2000</Top><Width>90000</Width><Height>50000</Height></Geometry>
+              <Thickness>400</Thickness>
+              {fill}
+            </Item>
+            """);
+
+        var box = Assert.Single(template.Objects);
+        Assert.Equal(expected, box.Style.FillStyle);
+        if (expected == FillStyle.Solid)
+        {
+            Assert.Equal("#FF102030", box.Style.FillColor);
+        }
+    }
+
     [Fact]
     public void SheetLayout_UsesTheLabelElementSizeNotThePage()
     {

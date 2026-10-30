@@ -41,6 +41,10 @@
   NiceLabel), NOT, AND. Biến nhập chỉ dùng trong điều kiện hiển thị nay cũng
   được hỏi khi in. Mọi hàm công thức đều mở đầu được một công thức (trước chỉ
   FIELD, CONCAT, MID, GS1CHECKDIGIT nên UPPER(…) đứng đầu bị in nguyên văn).
+- Sửa nhập .nlbl: hình chữ nhật NiceLabel không tô (None/Clear) giữ phần trong
+  trống. Trước đây hình nhập vào nhận kiểu mặc định của ANLAbel là tô trắng
+  đặc, nên che mọi thứ nằm dưới: trên tem dạng bảng của khách, khung bao vẽ
+  sau che hết nhãn cột trái và tên công ty.
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

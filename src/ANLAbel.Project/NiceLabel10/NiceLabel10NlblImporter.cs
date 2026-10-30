@@ -1001,8 +1001,10 @@ public static partial class NiceLabel10NlblImporter
         ApplyItemColor(item, record);
 
         // Vendor FillStyles (Interfaces.dll): None, Clear, Solid, then
-        // hatch patterns ANLAbel does not offer. Only Solid maps; hatch
-        // patterns keep the default outline look rather than a wrong fill.
+        // hatch patterns ANLAbel does not offer. Solid fills with the stored
+        // colour; every other style leaves the inside open as NiceLabel draws
+        // None and Clear. ANLAbel's own default is a white fill, which hid
+        // whatever lay under an imported box (the captions of a table label).
         if (record.FillStyleValue == 2)
         {
             item.Style.FillStyle = FillStyle.Solid;
@@ -1011,6 +1013,10 @@ public static partial class NiceLabel10NlblImporter
             {
                 item.Style.FillColor = "#" + hex.ToUpperInvariant();
             }
+        }
+        else
+        {
+            item.Style.FillStyle = FillStyle.None;
         }
 
         Place(item, record, record.WidthMm, record.HeightMm);
