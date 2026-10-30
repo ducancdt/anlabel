@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.351
+## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
+
+_Gồm các commit 31/10/2026 (02:21–03:26)._
 
 - Mở tệp .nlbl: thông báo nêu tên các đối tượng chưa chuyển đổi được ("chuyển đổi
   14/15 đối tượng. Còn 1 đối tượng chưa chuyển đổi: Logo") và nhắc tem in sẽ thiếu
@@ -37,6 +39,8 @@
 - Quản lý dữ liệu, Hàm: đổi tên một hàm cũng đổi theo ở đối tượng ({Tên}) và ở
   các hàm khác đọc nó (FIELD("Tên")), như NiceLabel. Trước đây đối tượng còn
   dùng tên cũ nên bị báo thiếu trường và chặn in.
+
+**Kiểm tra:** build 0 cảnh báo, 1705 unit, hồi quy 318/318 (vòng kiểm tra Fast).
 
 ## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
 
