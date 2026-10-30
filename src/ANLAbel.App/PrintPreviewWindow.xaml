@@ -135,7 +135,7 @@
                                             </Grid.ColumnDefinitions>
                                             <!-- Clickable checkmark -->
                                             <Button Grid.Column="0"
-                                                    Content="{Binding CheckmarkText}"
+                                                    Content="{Binding CheckmarkText}" ToolTip="Chọn hoặc bỏ chọn dòng này để in" AutomationProperties.Name="Chọn dòng"
                                                     FontSize="14"
                                                     Padding="4,0"
                                                     Background="Transparent"
@@ -150,10 +150,10 @@
                                             <!-- Copies count -->
                                             <TextBlock Grid.Column="3" Text="{Binding CopiesDisplay}" Margin="4,0" TextAlignment="Center"/>
                                             <!-- Up/Down buttons -->
-                                            <Button Grid.Column="4" Content="▲" FontSize="7" Width="18" Height="16"
+                                            <Button Grid.Column="4" Content="▲" FontSize="7" Width="18" Height="16" ToolTip="Tăng số bản của dòng này" AutomationProperties.Name="Tăng số bản"
                                                     Padding="0" Margin="0,0"
                                                     Click="CopiesUp_Click" Tag="{Binding SourceRowNumber}"/>
-                                            <Button Grid.Column="5" Content="▼" FontSize="7" Width="18" Height="16"
+                                            <Button Grid.Column="5" Content="▼" FontSize="7" Width="18" Height="16" ToolTip="Giảm số bản của dòng này" AutomationProperties.Name="Giảm số bản"
                                                     Padding="0" Margin="1,0"
                                                     Click="CopiesDown_Click" Tag="{Binding SourceRowNumber}"/>
                                             <!-- Printed-this-session indicator -->
