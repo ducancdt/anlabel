@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.348
+## v0.349 — Ngày gõ sai khi in bị trả lại thay vì lặng lẽ in ngày cũ; trình soạn biến nhập gọn và rõ hơn
+
+_Gồm các commit 31/10/2026 (01:46–01:54)._
 
 - Quản lý dữ liệu, trình soạn biến nhập (soát thiết kế): hai nhóm "Quy tắc
   nhập" và "Khi in"; số ký tự tối thiểu và tối đa trên một hàng; ô tiền tố và
@@ -11,6 +13,8 @@
   về ngày hợp lệ trước đó khi rời ô, nên lệnh in lặng lẽ lấy ngày cũ (in sai hạn
   dùng). Ngày gõ theo định dạng nhập của biến (ví dụ yyMMdd) được nhận và hiện
   lên lịch; chữ ngày nằm giữa ô như các ô khác.
+
+**Kiểm tra:** build 0 cảnh báo, 1681 unit, hồi quy 312/312 (vòng kiểm tra Fast).
 
 ## v0.348 — Số EAN/UPC in đủ, nhập NiceLabel giữ bộ đếm serial, chữ định dạng, nhóm và dấu cách; biến nhập có độ dài tối thiểu
 
