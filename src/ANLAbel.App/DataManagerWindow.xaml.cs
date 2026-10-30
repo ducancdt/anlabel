@@ -374,9 +374,11 @@ public partial class DataManagerWindow : Window
         }
 
         var fields = _viewModel.ExcelHeaders.ToArray();
+        // Print-time values a function can read, as the Data panel offers them.
+        const string printTime = "biến nhập khi in (FIELD(\"?Tên\")), ngày in (FIELD(\"#NOW:dd/MM/yyyy\")), số sê-ri (FIELD(\"#SERIAL\")) và hàm khác";
         FunctionFieldsText.Text = fields.Length == 0
-            ? "Tem chưa liên kết cơ sở dữ liệu: FIELD chỉ đọc được biến nhập khi in ({?Tên} viết là FIELD(\"?Tên\")) và hàm khác."
-            : "Trường của cơ sở dữ liệu: " + string.Join(", ", fields) + ".";
+            ? "Tem chưa liên kết cơ sở dữ liệu: FIELD đọc được " + printTime + "."
+            : "Trường của cơ sở dữ liệu: " + string.Join(", ", fields) + ". FIELD còn đọc được " + printTime + ".";
         if (string.IsNullOrWhiteSpace(draft.Name) || string.IsNullOrWhiteSpace(draft.Formula))
         {
             FunctionResultText.Text = "Đặt tên và viết công thức để xem kết quả.";

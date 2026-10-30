@@ -1579,7 +1579,7 @@
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE749;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Khi in" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
-                                                <DataTemplate><TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" "/><Run Text="{Binding Binding, Mode=OneWay}" Foreground="{StaticResource AppMutedBrush}"/></TextBlock></DataTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding Label}" ToolTip="{Binding Binding}"/></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                     </TreeView>

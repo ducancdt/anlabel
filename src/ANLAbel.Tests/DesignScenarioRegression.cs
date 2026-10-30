@@ -1788,6 +1788,14 @@ internal static class DesignScenarioRegression
             viewModel.ApplyDataDefinitions(viewModel.Template.PromptVariables.ToArray(), viewModel.Template.DataTransforms.ToArray(), off);
             Settle();
             Require(Bindings(sections[3]).SequenceEqual(["{#NOW:dd/MM/yyyy}"]), "Without the counter only the print date is offered: " + string.Join(" ", Bindings(sections[3])));
+
+            // Dropped on the label, each becomes a text named after what it shows.
+            viewModel.DropDataSource("{#NOW:dd/MM/yyyy}", 5, 5, null, newObject: true);
+            viewModel.DropDataSource("{#SERIAL}", 5, 15, null, newObject: true);
+            viewModel.DropDataSource("{MaLo}", 5, 25, null, newObject: true);
+            var dropped = viewModel.Template.Objects.TakeLast(3).Select(item => $"{item.Name}={item.BindingExpression}").ToArray();
+            Require(dropped.SequenceEqual(["Ngày in={#NOW:dd/MM/yyyy}", "Số sê-ri={#SERIAL}", "MaLo={MaLo}"]),
+                "Dropped fields get readable names: " + string.Join(", ", dropped));
             window.Close();
         });
 

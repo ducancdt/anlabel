@@ -4211,7 +4211,11 @@ public sealed class MainViewModel : ObservableObject
                 return;
             }
 
-            var name = binding.Trim().TrimStart('{').TrimEnd('}').TrimStart('?').Trim();
+            // Named after what it shows; a print-time field gets a readable name.
+            var token = binding.Trim().TrimStart('{').TrimEnd('}').Trim();
+            var name = JobVariableContract.IsSerialToken(token) ? "Số sê-ri"
+                : JobVariableContract.IsDateToken(token) ? "Ngày in"
+                : token.TrimStart('?').Trim();
             // The toolbox Text's defaults: content-owned, sized by the bound value.
             AddObject(new LabelObject
             {

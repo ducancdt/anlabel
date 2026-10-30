@@ -13,7 +13,9 @@
 - Bảng Dữ liệu (bên trái) liệt kê thêm các hàm của Quản lý dữ liệu và mục "Khi
   in" (số sê-ri khi đã bật bộ đếm, ngày in), như bảng dữ liệu của NiceLabel;
   kéo một mục lên tem để thêm chữ gắn với nó, không cần nhớ cú pháp {Tên},
-  {#SERIAL} hay {#NOW:dd/MM/yyyy}.
+  {#SERIAL} hay {#NOW:dd/MM/yyyy}. Chữ kéo vào được đặt tên dễ đọc ("Ngày in",
+  "Số sê-ri") thay vì "#NOW:dd/MM/yyyy"; cửa sổ Hàm nhắc FIELD đọc được ngày
+  in và số sê-ri.
 
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 
