@@ -1547,7 +1547,9 @@
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel Margin="4,8">
                                     <!-- NiceLabel 10 Data explorer: variables and data fields as a tree -->
-                                    <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields">
+                                    <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields"
+                                              PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove"
+                                              ToolTip="Kéo một biến hoặc trường lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới).">
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.PromptVariables}">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70F;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Biến nhập khi in" FontWeight="SemiBold"/></StackPanel>

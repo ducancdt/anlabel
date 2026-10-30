@@ -521,6 +521,45 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10 Data explorer drag and drop: a field dropped on the label
+    /// becomes a Text bound to it at the drop point, a prompt dropped on an
+    /// object binds that object, Ctrl adds a new Text even over an object, and
+    /// each drop is one undo step. The canvas finds the topmost object under
+    /// the drop point.
+    /// </summary>
+    public static Task DataSourcesDropOnTheLabel()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Hộp", Text = "Ô chữ", XMm = 30, YMm = 20, WidthMm = 30, HeightMm = 8, ZIndex = 1 };
+            viewModel.Template.Objects.Add(box);
+
+            viewModel.DropDataSource("{Lot}", 12.5, 6, target: null, newObject: false);
+            var lot = viewModel.Template.Objects.LastOrDefault();
+            Require(lot is not null && lot.Type == ObjectType.Text && lot.BindingExpression == "{Lot}" && lot.Name == "Lot", "A field dropped on the label becomes a Text bound to it.");
+            Require(Math.Abs(lot!.XMm - 12.5) < 0.001 && Math.Abs(lot.YMm - 6) < 0.001, $"The Text's top-left corner is the drop point ({lot.XMm:0.##}, {lot.YMm:0.##}).");
+
+            viewModel.DropDataSource("{?PO}", 35, 22, box, newObject: false);
+            Require(box.BindingExpression == "{?PO}" && viewModel.Template.Objects.Count == 2, "A prompt dropped on an object binds that object.");
+            viewModel.UndoCommand.Execute(null);
+            // Undo restores a copy of the template; find the box again.
+            box = viewModel.Template.Objects.Single(item => item.Name == "Hộp");
+            Require(box.BindingExpression.Length == 0 && viewModel.Template.Objects.Count == 2, "Undo takes back the binding in one step.");
+            viewModel.DropDataSource("{?PO}", 35, 22, box, newObject: true);
+            Require(viewModel.Template.Objects.Count == 3 && box.BindingExpression.Length == 0, "Ctrl adds a new Text even over an object.");
+
+            var canvas = new LabelDesignerCanvas { Template = viewModel.Template, Zoom = 2 };
+            // (32, 21) mm lies in the box only; the Ctrl-added Text starts at (35, 22).
+            var target = canvas.DataSourceDropTarget(new Point(MmConverter.MmToDip(32) * 2, MmConverter.MmToDip(21) * 2));
+            Require(ReferenceEquals(target, box), "The canvas finds the object under the drop point at any zoom.");
+            Require(canvas.DataSourceDropTarget(new Point(MmConverter.MmToDip(90) * 2, MmConverter.MmToDip(50) * 2)) is null, "An empty spot has no target.");
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The Properties header ("name | type | W x H mm") follows renames and resizes of the selection.</summary>
     public static Task PropertiesHeaderFollowsTheSelectedObject()
     {

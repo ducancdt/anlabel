@@ -34,6 +34,12 @@ public sealed class LabelDesignerCanvas : Canvas
     public event EventHandler? EditGestureCompleted;
     public event EventHandler? EditGestureCanceled;
 
+    /// <summary>Data format of a field or prompt dragged from the Data explorer: its binding text.</summary>
+    public const string DataSourceDragFormat = "ANLAbel.DataSourceBinding";
+
+    /// <summary>A field or prompt from the Data explorer was dropped on the label.</summary>
+    public event EventHandler<DataSourceDroppedEventArgs>? DataSourceDropped;
+
     public static readonly DependencyProperty TemplateProperty =
         DependencyProperty.Register(nameof(Template), typeof(LabelTemplate), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(null, OnTemplateChanged));
@@ -166,6 +172,9 @@ public sealed class LabelDesignerCanvas : Canvas
         Background = Brushes.Transparent;
         ClipToBounds = false;
         Focusable = true;
+        AllowDrop = true;
+        DragOver += CanvasDragOver;
+        Drop += CanvasDrop;
         MouseLeftButtonDown += CanvasMouseButtonDown;
         MouseRightButtonDown += CanvasMouseButtonDown;
         MouseMove += CanvasMouseMove;
@@ -2563,6 +2572,51 @@ public sealed class LabelDesignerCanvas : Canvas
             item.IsChecked = item.Tag is double step
                 && Math.Abs(step - GridStepMm) < 0.0001;
         }
+    }
+
+    private void CanvasDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = Template is not null && e.Data.GetDataPresent(DataSourceDragFormat)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void CanvasDrop(object sender, DragEventArgs e)
+    {
+        if (Template is null || e.Data.GetData(DataSourceDragFormat) is not string binding)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(this);
+        DataSourceDropped?.Invoke(this, new DataSourceDroppedEventArgs(
+            binding,
+            DipToMm(point.X),
+            DipToMm(point.Y),
+            DataSourceDropTarget(point),
+            (e.KeyStates & DragDropKeyStates.ControlKey) != 0));
+        e.Handled = true;
+    }
+
+    /// <summary>The topmost visible, unlocked object whose bounds hold the point (DIPs on this canvas).</summary>
+    public LabelObject? DataSourceDropTarget(Point dipPoint)
+    {
+        if (Template is null)
+        {
+            return null;
+        }
+
+        var xMm = DipToMm(dipPoint.X);
+        var yMm = DipToMm(dipPoint.Y);
+        return Template.Objects
+            .Where(item => item.IsVisible && !item.IsLocked && item.Type != ObjectType.Line)
+            .OrderByDescending(item => item.ZIndex)
+            .FirstOrDefault(item =>
+            {
+                var bounds = TransformedBoundsContract.GetBounds(item);
+                return xMm >= bounds.Left && xMm <= bounds.Right && yMm >= bounds.Top && yMm <= bounds.Bottom;
+            });
     }
 
     private void CanvasMouseButtonDown(object sender, MouseButtonEventArgs e)

@@ -38,6 +38,7 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureStarted += (_, _) => _viewModel.BeginTemplateEditGesture();
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
+        DesignerCanvas.DataSourceDropped += (_, e) => _viewModel.DropDataSource(e.Binding, e.XMm, e.YMm, e.Target, e.NewObject);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         BindObjectBrowser();
         DesignerCanvas.PreviewMouseLeftButtonDown += DesignerCanvas_PropertiesDoubleClick;
@@ -1397,6 +1398,42 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show(this, $"Không thể đọc danh sách máy in đã cài đặt.\n\n{ANLAbel.App.Services.OperationFailureExplainer.StatusLine(ex)}", "Cài đặt máy in", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private Point? _dataDragStart;
+
+    private void DataTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        => _dataDragStart = e.GetPosition(null);
+
+    /// <summary>
+    /// NiceLabel 10 Data explorer: a prompt or field dragged onto the label
+    /// becomes a bound Text there, or binds the object it is dropped on.
+    /// </summary>
+    private void DataTree_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dataDragStart is not { } start || e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        var moved = e.GetPosition(null) - start;
+        if (Math.Abs(moved.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(moved.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        _dataDragStart = null;
+        var binding = (e.OriginalSource as FrameworkElement)?.DataContext switch
+        {
+            ANLAbel.Core.Models.PromptVariableDefinition prompt when prompt.Name.Length > 0 => "{?" + prompt.Name + "}",
+            string field when field.Length > 0 => "{" + field + "}",
+            _ => null
+        };
+        if (binding is not null)
+        {
+            DragDrop.DoDragDrop((DependencyObject)sender, new DataObject(ANLAbel.App.Controls.LabelDesignerCanvas.DataSourceDragFormat, binding), DragDropEffects.Copy);
         }
     }
 }

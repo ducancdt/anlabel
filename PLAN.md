@@ -10,6 +10,10 @@
   dạng in. Nhập .nlbl giữ định dạng nhập/in và ngày mặc định của biến ngày (190
   biến trong bộ mẫu); quét in 207 tem mẫu đọc được 493/525 mã (trước 463) vì mã
   GS1 chứa ngày giờ mang ngày thật.
+- Kéo thả từ ô Dữ liệu như NiceLabel 10: kéo một biến nhập hoặc trường dữ liệu
+  lên tem thì thêm chữ gắn với nó, góc trên trái tại điểm thả; thả lên chữ, ô
+  chữ, mã vạch, QR hoặc Data Matrix thì gắn đối tượng đó; giữ Ctrl để luôn thêm
+  chữ mới. Mỗi lần thả là một bước hoàn tác; tem đang bảo vệ không nhận thả.
 
 ## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
 

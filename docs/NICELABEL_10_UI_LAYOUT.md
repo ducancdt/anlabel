@@ -483,3 +483,18 @@ surrounding padding, numeric range, time and currency data types (dates: see
 the RE record §15), multiline,
 counters (ANLAbel's serial counter is separate). Gates: `prompt rules guide the
 operator`; unit tests in `JobVariableTests` and the .nlbl mapping.
+
+## Data explorer drag and drop (2026-10-31)
+
+NiceLabel 10 (`DocumentPageView.HostCanvas_Drop`, `DropGenericSelectItemOnSurface`,
+`DropGenericSelectorItemOnObject`): a data source dragged from the Dynamic Data
+Explorer onto the design surface creates an object bound to it (a Text, or the
+armed toolbox tool), onto an object assigns the data source to that object when
+it can show data, and with Ctrl creates a new object instead. ANLAbel: the Data
+tree's prompts (`{?Name}`) and fields (`{Field}`) drag onto `LabelDesignerCanvas`
+(`DataSourceDragFormat`); `DataSourceDropTarget` finds the topmost visible,
+unlocked object under the point; `MainViewModel.DropDataSource` binds a Text,
+Text Box, barcode, QR or Data Matrix, or adds a toolbox-default Text whose
+top-left corner is the drop point, as one undo step; a protected label takes
+no drop. Not built: dropping onto an armed toolbox tool, dropping a whole data
+set. Gate: `fields and prompts drop on the label`.

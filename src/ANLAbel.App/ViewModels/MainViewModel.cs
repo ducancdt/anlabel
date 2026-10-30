@@ -4175,6 +4175,61 @@ public sealed class MainViewModel : ObservableObject
         RecordTemplateChange();
     }
 
+    /// <summary>
+    /// NiceLabel 10 Data explorer drag and drop. Dropped on an object that shows
+    /// data (text, text box, barcode, 2D code) the field or prompt binds it;
+    /// dropped on the label, or with Ctrl held, it becomes a Text bound to it
+    /// whose top-left corner is the drop point. One undo step either way.
+    /// </summary>
+    public void DropDataSource(string binding, double xMm, double yMm, LabelObject? target, bool newObject)
+    {
+        if (IsEditingLocked || string.IsNullOrWhiteSpace(binding))
+        {
+            return;
+        }
+
+        BeginTemplateEditGesture();
+        try
+        {
+            if (!newObject
+                && target is not null
+                && target.Type is ObjectType.Text or ObjectType.TextBox or ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix)
+            {
+                target.BindingExpression = binding;
+                SelectedObject = target;
+                StatusText = $"Đã gắn {binding} cho {target.Name}.";
+                return;
+            }
+
+            var name = binding.Trim().TrimStart('{').TrimEnd('}').TrimStart('?').Trim();
+            // The toolbox Text's defaults: content-owned, sized by the bound value.
+            AddObject(new LabelObject
+            {
+                Type = ObjectType.Text,
+                Name = string.IsNullOrEmpty(name) ? "Chữ" : name,
+                Text = string.Empty,
+                BindingExpression = binding,
+                XMm = Math.Clamp(xMm, 0, Math.Max(0, Template.WidthMm - 1)),
+                YMm = Math.Clamp(yMm, 0, Math.Max(0, Template.HeightMm - 1)),
+                WidthMm = 35,
+                HeightMm = 10,
+                Style =
+                {
+                    FontSizePt = 11,
+                    BorderThicknessMm = 0,
+                    VerticalAlignment = TextVerticalAlignmentMode.Center,
+                    TextSizing = TextSizingMode.AutoFit,
+                    TextOverflow = TextOverflowMode.AllowOverflow
+                }
+            });
+            StatusText = $"Đã thêm chữ gắn {binding}.";
+        }
+        finally
+        {
+            CommitTemplateEditGesture();
+        }
+    }
+
     private void AddObject(LabelObject labelObject)
     {
         labelObject.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
