@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.347
+## v0.348 — Số EAN/UPC in đủ, nhập NiceLabel giữ bộ đếm serial, chữ định dạng, nhóm và dấu cách; biến nhập có độ dài tối thiểu
+
+_Gồm các commit 31/10/2026 (00:37–01:36)._
 
 - Nhập .nlbl giữ nhóm đối tượng của NiceLabel (GroupedItems): các đối tượng
   cùng nhóm nhận chung một nhóm ANLAbel nên chọn và di chuyển cùng nhau.
@@ -33,6 +35,12 @@
 - Biến nhập khi in có quy tắc "Số ký tự tối thiểu" (NiceLabel 10 Minimum
   length): hộp nhập ghi "từ N đến M ký tự" và trả lại giá trị quét hoặc gõ thiếu
   bằng tiếng Việt; đặt trong Quản lý dữ liệu, nhập được từ .nlbl.
+- Kịch bản thiết kế mới (kiểm thử hồi quy): mã bán lẻ in đúng số máy quét đọc;
+  tem serial nhập từ NiceLabel đánh số mọi tem, lệnh sau nối tiếp; số serial
+  trên tờ nhiều tem đi đúng thứ tự xếp tem; tem thùng SSCC tự đánh số với số
+  kiểm tra hợp lệ.
+
+**Kiểm tra:** build 0 cảnh báo, 1681 unit, hồi quy 312/312 (vòng kiểm tra Fast).
 
 ## v0.347 — Biến nhập kiểu ngày, kéo thả trường lên tem, hàm ngày DATEADD/DATEFORMAT, nhập .nlbl thêm đầy đủ
 

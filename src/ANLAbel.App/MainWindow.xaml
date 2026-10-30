@@ -6,7 +6,7 @@
         xmlns:enums="clr-namespace:ANLAbel.Core.Enums;assembly=ANLAbel.Core"
         xmlns:converters="clr-namespace:ANLAbel.App.Converters"
         xmlns:barcode="clr-namespace:ANLAbel.Core.Barcode;assembly=ANLAbel.Core"
-        Title="ANLAbel - Thiết kế tem v0.347"
+        Title="ANLAbel - Thiết kế tem v0.348"
         Icon="/ANLAbel.App;component/anlabel.ico"
         Height="720" Width="1280"
         MinHeight="600" MinWidth="1024"
