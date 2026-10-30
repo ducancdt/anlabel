@@ -201,6 +201,17 @@ public static class NiceLabel10NlblReader
                 functionTemplate = ChildText(function.Element("DataValue")?.Element("FixedValue"), "StringValue");
             }
 
+            // A variable linked to another data source whose value is just that
+            // source ("[id]") mirrors it: the database wizard's "Table.Field"
+            // variables. Read as a prompt it printed the literal "[id]".
+            if (functionTemplate is null
+                && ChildText(item.Element("DataSourceReference"), "Id")?.Trim() is { Length: > 0 } linkedId
+                && string.Equals(defaultValue.Trim(), "[" + linkedId + "]", StringComparison.OrdinalIgnoreCase))
+            {
+                functionTemplate = "[" + linkedId + "]";
+                defaultValue = string.Empty;
+            }
+
             variables[id] = new NiceLabel10Variable(
                 id,
                 name,

@@ -4,8 +4,11 @@ using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
+using ANLAbel.Core.Expressions;
+using ANLAbel.Core.Expressions.Formulas;
 using ANLAbel.Core.Models;
 using ANLAbel.Core.Printing;
+using ANLAbel.Core.Text;
 
 namespace ANLAbel.Project.NiceLabel10;
 
@@ -180,6 +183,7 @@ public static partial class NiceLabel10NlblImporter
         };
 
         var context = new ImportContext(document, template, textMeasurer, Path.GetDirectoryName(Path.GetFullPath(sourcePath)));
+        var boundBarcodes = new List<(LabelObject Item, NiceLabel10ObjectRecord Record)>();
         foreach (var record in document.Objects)
         {
             var item = record.Kind switch
@@ -208,10 +212,143 @@ public static partial class NiceLabel10NlblImporter
                 item.ContentMaskCharacter = record.ContentMaskCharacter;
             }
 
+            if (record.Kind == NiceLabel10ObjectKind.Barcode && !string.IsNullOrWhiteSpace(item.BindingExpression))
+            {
+                boundBarcodes.Add((item, record));
+            }
+
             template.Objects.Add(item);
         }
 
+        SizeBoundBarcodesFromDesignValues(template, boundBarcodes);
         return template;
+    }
+
+    /// <summary>
+    /// NiceLabel draws a bound barcode whose size follows its data (an
+    /// X-sized linear code, an automatic 2D code, PDF417) from the
+    /// design-time values of its variables, and its stored anchoring point
+    /// belongs to that size. The stored contents are often a placeholder
+    /// ("??????") or stale, so frames sized from them were wrong: a centred
+    /// GS1-128 landed off the label, an ECIA Data Matrix printed with
+    /// two-dot modules. Once every prompt is known, such frames are sized
+    /// from the designer's own design-time row (prompt defaults, the current
+    /// date) and placed again at the stored anchor. A row that leaves a
+    /// field unknown, or data that does not encode, keeps the frame.
+    /// </summary>
+    private static void SizeBoundBarcodesFromDesignValues(
+        LabelTemplate template,
+        IReadOnlyList<(LabelObject Item, NiceLabel10ObjectRecord Record)> codes)
+    {
+        if (codes.Count == 0)
+        {
+            return;
+        }
+
+        IReadOnlyDictionary<string, string> row;
+        try
+        {
+            row = JobVariableContract.ApplyForDesign(template, null, DateTimeOffset.Now, new Dictionary<string, string>())
+                ?? new Dictionary<string, string>();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        foreach (var (item, record) in codes)
+        {
+            if (DesignValue(item.BindingExpression, row) is not { } value
+                || DesignSize(item, record, ContentMaskContract.ApplyTo(item, value)) is not { } size)
+            {
+                continue;
+            }
+
+            item.WidthMm = size.WidthMm;
+            item.HeightMm = size.HeightMm;
+            Place(item, record, item.WidthMm, item.HeightMm);
+        }
+    }
+
+    /// <summary>The expression's value for the design-time row; null when a field or prompt is unknown.</summary>
+    private static string? DesignValue(string expression, IReadOnlyDictionary<string, string> row)
+    {
+        string value;
+        IEnumerable<string> fields;
+        if (FormulaBindingEvaluator.LooksLikeFormula(expression))
+        {
+            var result = FormulaBindingEvaluator.Evaluate(expression, row);
+            if (result.Errors.Count > 0)
+            {
+                return null;
+            }
+
+            value = result.Value;
+            fields = result.UsedFields;
+        }
+        else
+        {
+            value = BindingExpressionEvaluator.Evaluate(expression, row);
+            fields = BindingExpressionEvaluator.GetFields(expression);
+        }
+
+        // ‹Name› stands for a prompt without a default.
+        return string.IsNullOrEmpty(value)
+            || value.Contains('‹')
+            || fields.Any(field => !FieldNameResolver.TryGetValue(row, field.Trim(), out _, out _))
+                ? null
+                : value;
+    }
+
+    private static (double WidthMm, double HeightMm)? DesignSize(LabelObject item, NiceLabel10ObjectRecord record, string value)
+    {
+        if (item.BarcodeSymbology == BarcodeSymbology.Pdf417 && item.Type == ObjectType.BarcodeCode128)
+        {
+            // PDF417 keeps the stored contents' grid: the automatic column count
+            // differs between encoders, so long data reshapes the symbol.
+            return null;
+        }
+
+        if (item.BarcodeWidthMode == BarcodeWidthMode.SizedFromX && item.BarcodeModuleWidthMm > 0)
+        {
+            // Stored contents that encode are what NiceLabel drew and anchored;
+            // a placeholder ("??????") is replaced by the design-time value.
+            return ProductionModules(item, record.Content) is null && ProductionModules(item, value) is { } modules
+                ? (modules * item.BarcodeModuleWidthMm, item.HeightMm)
+                : null;
+        }
+
+        var automatic = item.Type == ObjectType.QRCode
+            ? item.QrSizingMode == QrSizingMode.AutoSizeByData
+            : item.Type == ObjectType.DataMatrix && item.DataMatrixSymbolSize == DataMatrixSymbolSize.Auto;
+        if (!automatic || record.BarcodeModuleWidthMm <= 0 || SymbolModules(item, value) is not { } designed)
+        {
+            return null;
+        }
+
+        // The frame holds both what NiceLabel drew (the stored contents) and the
+        // design-time data, each at the authored module width: a 2D code here
+        // is fitted into its frame, where NiceLabel's grows with its data.
+        var stored = SymbolModules(item, record.Content);
+        return (Math.Max(designed.Columns, stored?.Columns ?? 0) * record.BarcodeModuleWidthMm,
+            Math.Max(designed.Rows, stored?.Rows ?? 0) * record.BarcodeModuleWidthMm);
+    }
+
+    /// <summary>The bare symbol (no quiet zone) of a QR or Data Matrix for <paramref name="value"/>.</summary>
+    private static (int Columns, int Rows)? SymbolModules(LabelObject item, string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        var symbol = LabelObjectCloner.Clone(item);
+        symbol.QrQuietZoneModules = 0;
+        return new ZxingBarcodeRenderer().CountMatrixModules(
+                value,
+                item.Type == ObjectType.QRCode ? BarcodeType.QRCode : BarcodeType.DataMatrix,
+                BarcodeRenderOptions.FromObject(symbol)) is { } grid
+            ? (grid.WidthModules, grid.HeightModules)
+            : null;
     }
 
     private static LabelObject? TextLike(NiceLabel10ObjectRecord record, ObjectType type, ImportContext context)
@@ -491,11 +628,15 @@ public static partial class NiceLabel10NlblImporter
         if (record.BarcodeModuleWidthMm > 0)
         {
             // NiceLabel stores the authored module (X) width; keep it as the
-            // production module width and estimate the designer frame from
-            // the symbology's module count so the frame starts close.
+            // production module width. The frame is the width the print gives
+            // the stored contents (numeric runs pack two digits per Code 128
+            // character), so a centre- or right-anchored code is placed where
+            // NiceLabel draws it; a per-character estimate made GS1-128 codes
+            // twice as wide and pushed them off the label's left edge.
             item.BarcodeModuleWidthMm = record.BarcodeModuleWidthMm;
             item.BarcodeWidthMode = BarcodeWidthMode.SizedFromX;
-            var modules = EstimateModules(record.BarcodeDataType!, record.Content.Length, record.BarcodeRatio);
+            var modules = ProductionModules(item, record.Content)
+                ?? EstimateModules(record.BarcodeDataType!, record.Content.Length, record.BarcodeRatio);
             if (modules > 0)
             {
                 item.WidthMm = modules * record.BarcodeModuleWidthMm;
@@ -503,6 +644,36 @@ public static partial class NiceLabel10NlblImporter
         }
 
         return item;
+    }
+
+    /// <summary>
+    /// Modules the shipped encoder prints for <paramref name="contents"/>,
+    /// quiet zone included, as the print sizes an X-sized code; null when the
+    /// contents do not encode (a placeholder sample), so the estimate stands in.
+    /// </summary>
+    private static int? ProductionModules(LabelObject item, string contents)
+    {
+        BarcodeType? type = item.BarcodeSymbology switch
+        {
+            BarcodeSymbology.Code128 => BarcodeType.Code128,
+            BarcodeSymbology.Code39 => BarcodeType.Code39,
+            BarcodeSymbology.Ean13 => BarcodeType.Ean13,
+            _ => null
+        };
+        if (type is null || string.IsNullOrEmpty(contents))
+        {
+            return null;
+        }
+
+        try
+        {
+            var payload = BarcodeCheckDigitContract.ToEncodedPayload(item, contents);
+            return new ZxingBarcodeRenderer().CountLinearModules(payload, type.Value, BarcodeRenderOptions.FromObject(item));
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or FormatException)
+        {
+            return null;
+        }
     }
 
     private static Code39WideNarrowRatio Code39Ratio(double ratio) => ratio switch
@@ -644,6 +815,28 @@ public static partial class NiceLabel10NlblImporter
         {
             item.WidthMm = cells.Columns * record.BarcodeModuleWidthMm;
             item.HeightMm = cells.Rows * record.BarcodeModuleWidthMm;
+        }
+
+        // A bound automatic code has no data yet, so the model cannot size it and
+        // it kept the default 20 x 8 mm frame, its symbol squeezed into the height
+        // (VDA 4992: 679 characters). NiceLabel draws it from its design-time
+        // contents at the authored module width, the same frame rule as a chosen size.
+        if (expression is not null
+            && record.BarcodeModuleWidthMm > 0
+            && !string.IsNullOrEmpty(record.Content)
+            && (isQr ? record.BarcodeFormatValue <= 0 : DataMatrixCells(record.BarcodeFormatValue) is null))
+        {
+            var symbol = LabelObjectCloner.Clone(item);
+            symbol.QrQuietZoneModules = 0;
+            var grid = new ZxingBarcodeRenderer().CountMatrixModules(
+                record.Content,
+                isQr ? BarcodeType.QRCode : BarcodeType.DataMatrix,
+                BarcodeRenderOptions.FromObject(symbol));
+            if (grid is { } modules)
+            {
+                item.WidthMm = modules.WidthModules * record.BarcodeModuleWidthMm;
+                item.HeightMm = modules.HeightModules * record.BarcodeModuleWidthMm;
+            }
         }
 
         if (DataMatrixSymbolSizes.AppliesTo(item))

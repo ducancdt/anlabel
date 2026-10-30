@@ -296,6 +296,30 @@ an acceptance check.
   Left/Right, check-digit helpers), HIBC or date arithmetic on prompted
   dates, 13 graphics, 4 rich-text templates, 15 report items. The 12 local
   customer labels convert 334/334.
+- Print-and-scan sweep (2026-10-30, scratch tool, not committed): every
+  sample label imported, printed by `LabelVisualRenderer` at 300 dpi with the
+  designer's design-time row (prompt defaults, today's date), and every
+  converted barcode decoded with ZXing inside its own frame (an X-sized code
+  at its production width). Before: 370 of 527 decoded. Fixed in the
+  importer: (1) linear frames counted by the shipped encoder instead of one
+  Code 128 character per stored character (GS1-128 numeric runs pack two
+  digits), so centre- and right-anchored codes no longer land off the left
+  edge (GS1-128 sample at x = -32 mm); (2) a bound code whose stored
+  contents are a placeholder or stale is sized from the design-time value and
+  placed again at its anchor, and a bound automatic QR/Data Matrix keeps a
+  frame holding both the stored contents and that value at the authored
+  module (it kept the default 20 x 8 mm: VDA 4992 squeezed 679 characters
+  into 8 mm, ECIA codes printed two-dot modules); (3) a variable that only
+  mirrors another data source (`DataSourceReference` + default `[id]`, the
+  database wizard's `Products.ProdCode`) binds that source instead of
+  printing "[id]". After: 465 decoded. The 58 left are the fixed 52x52 VDA
+  4994 envelopes refused as NiceLabel refuses them (296-322 characters),
+  sample data that is not valid for its symbology (GS1 (01) with 15 digits,
+  (15) "20.05.16", EAN-13 wrong check digit, Code 39 "*...*"), an X of
+  0.13 mm, a 5-digit add-on typed as EAN-13, and layouts whose neighbours
+  sit in the quiet zone. Local customer labels: the two codes not decoded
+  hold a stray line break ("10062648" + CR LF, typed into the fixed text) and
+  are refused by preflight with the character and position.
 - 205 rotated and 615 anchored objects are placed through §8; the
   importer's frames are consistent with the vendor runtime geometry for
   every quarter turn (unit tests `NiceLabel10PlacementTests`).

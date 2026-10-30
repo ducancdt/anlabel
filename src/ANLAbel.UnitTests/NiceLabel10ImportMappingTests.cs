@@ -28,6 +28,8 @@ public sealed class NiceLabel10ImportMappingTests
     private const string ScriptId = "f1f1f1f1-2222-3333-4444-555555555555";
     private const string ScriptCallId = "f2f2f2f2-2222-3333-4444-555555555555";
     private const string AscScriptId = "f3f3f3f3-2222-3333-4444-555555555555";
+    private const string FieldId = "f4f4f4f4-2222-3333-4444-555555555555";
+    private const string FieldAliasId = "f5f5f5f5-2222-3333-4444-555555555555";
 
     private const string SolutionXml = $"""
         <?xml version="1.0" encoding="utf-8"?>
@@ -64,6 +66,17 @@ public sealed class NiceLabel10ImportMappingTests
                   <FixedValue Type="StringContents"><StringValue>Lot [{LotId}] packed [{DateId}]</StringValue></FixedValue>
                 </DataValue>
               </InternalFunction>
+            </Item>
+            <Item Type="DBField">
+              <Id>{FieldId}</Id>
+              <Name>ProdCode</Name>
+              <FieldName>ProdCode</FieldName>
+            </Item>
+            <Item Type="Variable">
+              <Id>{FieldAliasId}</Id>
+              <Name>Products.ProdCode</Name>
+              <DefaultValue Type="StringContents"><StringValue>[{FieldId}]</StringValue><UserValue>[{FieldId}]</UserValue></DefaultValue>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{FieldId}</Id></DataSourceReference>
             </Item>
             <Item Type="Variable">
               <Id>{QtyId}</Id>
@@ -262,6 +275,120 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void VariableMirroringADatabaseField_BindsTheField()
+    {
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Product</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="Ean13BarcodeData"><BaseBarWidth>330</BaseBarWidth><ModuleHeight>15000</ModuleHeight></BarcodeData>
+              <FixedContents>977000000001</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{FieldAliasId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal("{ProdCode}", code.BindingExpression);
+        Assert.DoesNotContain(template.PromptVariables, prompt => prompt.Name == "Products.ProdCode");
+    }
+
+    [Fact]
+    public void LinearFrameIsTheProductionWidthSoAnchoredCodesStayOnTheLabel()
+    {
+        // GS1-128 (02)+(37) at X 0.5 mm, anchored at its centre (AnchoringPoint 4)
+        // at x = 50 mm: the digits pack two per character, so the frame is about
+        // 95 mm and starts near 2.5 mm, not 160 mm wide from x = -30 mm.
+        var template = Import("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Gs1</Name>
+              <Geometry Type="PositionGeometry"><X>50000</X><Y>40000</Y><AnchoringPoint>4</AnchoringPoint></Geometry>
+              <BarcodeData Type="GS1128BarcodeData"><BaseBarWidth>500</BaseBarWidth><ModuleHeight>20000</ModuleHeight></BarcodeData>
+              <FixedContents>(02)03831234560087(37)0001</FixedContents>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        var modules = new ANLAbel.Barcode.Renderers.ZxingBarcodeRenderer().CountLinearModules(
+            "(02)03831234560087(37)0001",
+            ANLAbel.Barcode.Renderers.BarcodeType.Code128,
+            ANLAbel.Barcode.Options.BarcodeRenderOptions.FromObject(code));
+        Assert.NotNull(modules);
+        Assert.Equal(modules!.Value * 0.5, code.WidthMm, 3);
+        Assert.Equal(50 - code.WidthMm / 2, code.XMm, 3);
+        Assert.True(code.XMm > 0 && code.WidthMm < 110, $"frame {code.XMm:0.#} + {code.WidthMm:0.#} mm");
+    }
+
+    [Fact]
+    public void LinearCodeWithAPlaceholderIsSizedFromItsDesignValue()
+    {
+        // "??" is not Code 39, so NiceLabel's stored contents say nothing about the
+        // printed width; the Qty prompt's default (12) does. Centre anchor at 50 mm.
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Quantity</Name>
+              <Geometry Type="PositionGeometry"><X>50000</X><Y>40000</Y><AnchoringPoint>4</AnchoringPoint></Geometry>
+              <BarcodeData Type="Code39BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight></BarcodeData>
+              <FixedContents>??</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{QtyId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        var code = Assert.Single(template.Objects);
+        var modules = new ANLAbel.Barcode.Renderers.ZxingBarcodeRenderer().CountLinearModules(
+            "12",
+            ANLAbel.Barcode.Renderers.BarcodeType.Code39,
+            ANLAbel.Barcode.Options.BarcodeRenderOptions.FromObject(code));
+        Assert.NotNull(modules);
+        Assert.Equal(modules!.Value * 0.3, code.WidthMm, 2);
+        Assert.Equal(50 - code.WidthMm / 2, code.XMm, 2);
+    }
+
+    [Fact]
+    public void BoundAutomaticDataMatrixFrameHoldsTheStoredAndTheDesignValue()
+    {
+        // NiceLabel drew each code from its stored contents and grows it with the
+        // data at the authored module; the frame here holds both.
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Short stored</Name>
+              <Geometry Type="PositionGeometry"><X>5000</X><Y>5000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>381</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>0</DatamatrixFormat></BarcodeData>
+              <FixedContents>00</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{ConcatId}</Id></DataSourceReference>
+            </Item>
+            <Item Type="BarcodeDocumentItem">
+              <Name>Long stored</Name>
+              <Geometry Type="PositionGeometry"><X>50000</X><Y>5000</Y></Geometry>
+              <BarcodeData Type="DatamatrixBarcodeData"><BaseBarWidth>381</BaseBarWidth><ModuleHeight>0</ModuleHeight><DatamatrixFormat>0</DatamatrixFormat></BarcodeData>
+              <FixedContents>SUPPLIER DATA LINE 1 / LINE 2 / LINE 3</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        var codes = template.Objects.ToDictionary(item => item.Name);
+        var row = ANLAbel.Core.Printing.JobVariableContract.ApplyForDesign(template, null, DateTimeOffset.Now, new Dictionary<string, string>())!;
+        double Side(LabelObject code, string value)
+        {
+            var bare = ANLAbel.Core.Models.LabelObjectCloner.Clone(code);
+            bare.QrQuietZoneModules = 0;
+            var grid = new ANLAbel.Barcode.Renderers.ZxingBarcodeRenderer().CountMatrixModules(
+                value,
+                ANLAbel.Barcode.Renderers.BarcodeType.DataMatrix,
+                ANLAbel.Barcode.Options.BarcodeRenderOptions.FromObject(bare));
+            Assert.NotNull(grid);
+            return grid!.Value.WidthModules * 0.381;
+        }
+
+        // Frames are kept to 0.01 mm.
+        var caption = ANLAbel.Core.Expressions.BindingExpressionEvaluator.Evaluate(codes["Short stored"].BindingExpression, row);
+        Assert.Equal(Side(codes["Short stored"], caption), codes["Short stored"].WidthMm, 2);
+        Assert.True(codes["Short stored"].WidthMm > Side(codes["Short stored"], "00") + 0.5);
+        Assert.Equal(Side(codes["Long stored"], "SUPPLIER DATA LINE 1 / LINE 2 / LINE 3"), codes["Long stored"].WidthMm, 2);
+        Assert.Equal(codes["Long stored"].WidthMm, codes["Long stored"].HeightMm, 2);
+        Assert.Equal((50.0, 5.0), (codes["Long stored"].XMm, codes["Long stored"].YMm));
+    }
+
+    [Fact]
     public void ScriptWithACall_IsNotConverted()
     {
         var template = Import($"""
@@ -416,9 +543,10 @@ public sealed class NiceLabel10ImportMappingTests
 
         // Three variables, the date-add, both GS1 functions, three data
         // identifier functions, the format-06 envelope, the subset and the
-        // concatenating script; the other-format envelope and the script
-        // that calls UCase are not registered.
-        Assert.Equal(13, document.VariablesById.Count);
+        // concatenating script, a database field and the variable mirroring
+        // it; the other-format envelope and the script that calls UCase are
+        // not registered.
+        Assert.Equal(15, document.VariablesById.Count);
         Assert.False(document.VariablesById.ContainsKey(EnvelopeOtherFormatId));
         Assert.False(document.VariablesById.ContainsKey(ScriptCallId));
         var lot = document.VariablesById[LotId];

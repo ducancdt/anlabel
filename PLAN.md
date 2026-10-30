@@ -23,6 +23,13 @@
   [Package Number]`, 52/68 script mẫu: biển số kiện GTL, VDA 4902, GM1724) được
   dịch thành mẫu ghép trường; bộ mẫu NiceLabel chuyển được 98,1% đối tượng (trước
   96,4%). Script khác (UCase, Left…) vẫn báo chưa chuyển.
+- Nhập .nlbl in ra đúng như thiết kế: in thử mọi tem mẫu NiceLabel bằng bộ vẽ
+  của ANLAbel và quét lại từng mã (370 → 465 / 527 mã đọc được). Khung mã vạch
+  tuyến tính đo bằng bộ mã hóa thật (mã GS1-128 neo giữa không còn lệch ra
+  ngoài mép trái); mã có liên kết mà nội dung lưu là ký tự giữ chỗ thì đo theo
+  giá trị thiết kế rồi đặt lại theo điểm neo; QR/Data Matrix tự động có liên
+  kết không còn bị ép vào khung mặc định 20 × 8 mm; biến chỉ “soi” trường CSDL
+  (Products.ProdCode) liên kết thẳng trường đó thay vì in “[id]”.
 
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 
