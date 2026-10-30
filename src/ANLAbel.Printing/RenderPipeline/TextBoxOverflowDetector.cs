@@ -308,9 +308,20 @@ public static class TextBoxOverflowDetector
             }
         };
 
-        if (item.Style.Underline)
+        if (item.Style.Underline || item.Style.Strikethrough)
         {
-            text.SetTextDecorations(TextDecorations.Underline);
+            var decorations = new TextDecorationCollection();
+            if (item.Style.Underline)
+            {
+                decorations.Add(TextDecorations.Underline);
+            }
+
+            if (item.Style.Strikethrough)
+            {
+                decorations.Add(TextDecorations.Strikethrough);
+            }
+
+            text.SetTextDecorations(decorations);
         }
 
         return text;

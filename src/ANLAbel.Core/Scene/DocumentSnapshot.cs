@@ -277,6 +277,8 @@ public sealed record SceneObjectSnapshot
     public bool IsVisible { get; init; }
     public ObjectAnchorPoint AnchorPoint { get; init; }
     public bool IsPrintable { get; init; } = true;
+    public bool KeepAspectRatio { get; init; }
+    public string VisibilityCondition { get; init; } = string.Empty;
     public string GroupId { get; init; } = string.Empty;
     public string ContentMask { get; init; } = string.Empty;
     public string ContentMaskCharacter { get; init; } = "*";
@@ -355,6 +357,8 @@ public sealed record SceneObjectSnapshot
             IsVisible = item.IsVisible,
             AnchorPoint = item.AnchorPoint,
             IsPrintable = item.IsPrintable,
+            KeepAspectRatio = item.KeepAspectRatio,
+            VisibilityCondition = item.VisibilityCondition,
             GroupId = item.GroupId,
             ContentMask = item.ContentMask,
             ContentMaskCharacter = item.ContentMaskCharacter,
@@ -430,6 +434,8 @@ public sealed record ObjectStyleSnapshot
     public bool Bold { get; init; }
     public bool Italic { get; init; }
     public bool Underline { get; init; }
+    public bool Strikethrough { get; init; }
+    public bool MirrorText { get; init; }
     public TextAlignmentMode Alignment { get; init; }
     public TextDirectionMode TextDirection { get; init; }
     public TextSizingMode TextSizing { get; init; }
@@ -469,6 +475,8 @@ public sealed record ObjectStyleSnapshot
             Bold = style.Bold,
             Italic = style.Italic,
             Underline = style.Underline,
+            Strikethrough = style.Strikethrough,
+            MirrorText = style.MirrorText,
             Alignment = style.Alignment,
             TextDirection = style.TextDirection,
             TextSizing = style.TextSizing,
@@ -660,6 +668,13 @@ internal static class SceneHash
         Append(builder, item.ZIndex);
         Append(builder, item.IsLocked);
         Append(builder, item.IsVisible);
+        if (item.VisibilityCondition.Length > 0)
+        {
+            // Only conditional objects carry it, so older document hashes are unchanged.
+            Append(builder, "visibility-condition");
+            Append(builder, item.VisibilityCondition);
+        }
+
         if (!item.IsPrintable)
         {
             // Only non-printable objects carry it, so older document hashes are unchanged.
@@ -776,6 +791,13 @@ internal static class SceneHash
         Append(builder, item.Style.Bold);
         Append(builder, item.Style.Italic);
         Append(builder, item.Style.Underline);
+        if (item.Style.Strikethrough || item.Style.MirrorText)
+        {
+            // Only styles that use them carry them, so older document hashes are unchanged.
+            Append(builder, "text-effects");
+            Append(builder, item.Style.Strikethrough);
+            Append(builder, item.Style.MirrorText);
+        }
         Append(builder, item.Style.Alignment.ToString());
         Append(builder, item.Style.TextDirection.ToString());
         Append(builder, item.Style.TextSizing.ToString());

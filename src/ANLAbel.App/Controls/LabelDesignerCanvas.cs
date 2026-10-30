@@ -1713,6 +1713,8 @@ public sealed class LabelDesignerCanvas : Canvas
                         textHost.Width = frameW;
                         textHost.Height = frameH;
                         textHost.PreviewVisual = CreateTextVisual(item, width, height);
+                        textHost.RenderTransformOrigin = new Point(0.5, 0.5);
+                        textHost.RenderTransform = item.Style.MirrorText ? new ScaleTransform(-1, 1) : Transform.Identity;
                     }
                 else if (border.Child is VisualPreviewHost textBoxHost && item.Type == ObjectType.TextBox)
                 {
@@ -1725,6 +1727,8 @@ public sealed class LabelDesignerCanvas : Canvas
                     textBoxHost.Width = frameW;
                     textBoxHost.Height = frameH;
                     textBoxHost.PreviewVisual = CreateTextBoxVisual(item, width, height);
+                    textBoxHost.RenderTransformOrigin = new Point(0.5, 0.5);
+                    textBoxHost.RenderTransform = item.Style.MirrorText ? new ScaleTransform(-1, 1) : Transform.Identity;
                 }
                 else if (border.Child is Image image && item.Type == ObjectType.Image)
                 {
@@ -5133,6 +5137,12 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         var modifierFlags = GetResizeModifierFlags(delta);
+        if (item.KeepAspectRatio)
+        {
+            // NiceLabel 10 Keep Aspect Ratio: always resize proportionally.
+            modifierFlags |= ResizeModifierFlags.PreserveAspectRatio;
+        }
+
         if (modifierFlags != ResizeModifierFlags.None)
         {
             var adjusted = ResizeModifierContract.Apply(

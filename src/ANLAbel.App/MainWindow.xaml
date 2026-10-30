@@ -732,6 +732,13 @@
                                     <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" ToolTip="Gạch chân" AutomationProperties.Name="Ribbon underline">
                                         <TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DC;"/>
                                     </ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Strikethrough, Mode=TwoWay}" ToolTip="Gạch ngang" AutomationProperties.Name="Strikethrough"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DE;"/></ToggleButton>
+                                    <ComboBox Width="44" Height="26" Margin="2,0,0,0" ItemsSource="{Binding TextColorOptions}" SelectedItem="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay}"
+                                              ToolTip="Màu chữ" AutomationProperties.Name="Text colour">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate><Border Width="16" Height="14" Background="{Binding}" BorderBrush="#94A3B8" BorderThickness="1"/></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                     <Border Width="8"/>
                                     <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="RibbonTextAlign" ToolTip="Căn trái" AutomationProperties.Name="Ribbon align left"
                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}">
@@ -988,10 +995,16 @@
                                                   ToolTip="Đối tượng vẫn hiện khi thiết kế nhưng không có trong bản in và xem trước" AutomationProperties.Name="Design not printable" AutomationProperties.AutomationId="Shell.Ribbon.NotPrintable"/>
                                         <CheckBox Content="Hiển thị" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,2" AutomationProperties.Name="Design visible"/>
                                         <CheckBox Content="Khóa vị trí" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" Margin="0,2" AutomationProperties.Name="Design lock"/>
+                                        <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectedObject.KeepAspectRatio, Mode=TwoWay}" Margin="0,2"
+                                                  ToolTip="Kéo khung luôn giữ tỉ lệ rộng/cao" AutomationProperties.Name="Keep aspect ratio" AutomationProperties.AutomationId="Shell.Ribbon.KeepAspectRatio"/>
                                     </StackPanel>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="Tên" FontSize="11" Foreground="{StaticResource AppMutedBrush}"/>
                                         <TextBox Width="140" Text="{Binding SelectedObject.Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Design name"/>
+                                        <TextBlock Text="Điều kiện hiển thị" FontSize="11" Foreground="{StaticResource AppMutedBrush}" Margin="0,4,0,0"/>
+                                        <TextBox Width="140" Text="{Binding SelectedObject.VisibilityCondition, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                 ToolTip="Trường hoặc công thức, ví dụ {Lô}. Đối tượng chỉ in ở dòng có giá trị khác rỗng, 0, false, không. Để trống: luôn in."
+                                                 AutomationProperties.Name="Visibility condition" AutomationProperties.AutomationId="Shell.Ribbon.VisibilityCondition"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Chung" Margin="0,6,0,0"/>
@@ -1088,6 +1101,13 @@
                                     <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" ToolTip="Đậm"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DD;"/></ToggleButton>
                                     <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" ToolTip="Nghiêng"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DB;"/></ToggleButton>
                                     <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" ToolTip="Gạch chân"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DC;"/></ToggleButton>
+                                    <ToggleButton Style="{StaticResource RibbonIconToggle}" IsChecked="{Binding SelectedObject.Style.Strikethrough, Mode=TwoWay}" ToolTip="Gạch ngang" AutomationProperties.Name="Strikethrough"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8DE;"/></ToggleButton>
+                                    <ComboBox Width="44" Height="26" Margin="2,0,0,0" ItemsSource="{Binding TextColorOptions}" SelectedItem="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay}"
+                                              ToolTip="Màu chữ" AutomationProperties.Name="Text colour">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate><Border Width="16" Height="14" Background="{Binding}" BorderBrush="#94A3B8" BorderThickness="1"/></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                     <Border Width="8"/>
                                     <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="TextTabAlign" ToolTip="Căn trái" IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E4;"/></RadioButton>
                                     <RadioButton Style="{StaticResource RibbonIconRadio}" GroupName="TextTabAlign" ToolTip="Căn giữa" IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Center}}"><TextBlock Style="{StaticResource RibbonSmallGlyph}" Margin="0" Text="&#xE8E3;"/></RadioButton>
@@ -1131,6 +1151,14 @@
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Thiết lập chữ" Margin="0,6,0,0"/>
+                            </StackPanel>
+                            <Border Style="{StaticResource RibbonSeparator}"/>
+                            <StackPanel>
+                                <StackPanel Margin="0,10,0,0">
+                                    <CheckBox Content="Soi gương" IsChecked="{Binding SelectedObject.Style.MirrorText, Mode=TwoWay}"
+                                              ToolTip="In chữ ngược trái-phải (dán sau kính, in chuyển nhiệt)" AutomationProperties.Name="Mirror text" AutomationProperties.AutomationId="Shell.Ribbon.MirrorText"/>
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource RibbonGroupLabel}" Text="Hiệu ứng" Margin="0,22,0,0"/>
                             </StackPanel>
                         </StackPanel>
                     </Viewbox>

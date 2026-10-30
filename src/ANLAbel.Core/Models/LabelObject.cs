@@ -22,6 +22,8 @@ public sealed class LabelObject : ObservableObject
     private bool _isLocked;
     private bool _isVisible = true;
     private bool _isPrintable = true;
+    private bool _keepAspectRatio;
+    private string _visibilityCondition = string.Empty;
     private ObjectAnchorPoint _anchorPoint;
     private string _groupId = string.Empty;
     private string _contentMask = string.Empty;
@@ -164,6 +166,23 @@ public sealed class LabelObject : ObservableObject
     {
         get => _isPrintable;
         set => SetProperty(ref _isPrintable, value);
+    }
+
+    /// <summary>Resizing keeps the width/height ratio (NiceLabel 10 Keep Aspect Ratio).</summary>
+    public bool KeepAspectRatio
+    {
+        get => _keepAspectRatio;
+        set => SetProperty(ref _keepAspectRatio, value);
+    }
+
+    /// <summary>
+    /// Field or formula deciding per data row whether the object prints
+    /// (NiceLabel 10 Visibility Settings); empty means always.
+    /// </summary>
+    public string VisibilityCondition
+    {
+        get => _visibilityCondition;
+        set => SetProperty(ref _visibilityCondition, value ?? string.Empty);
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using System.Text;
 using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Text;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Barcode;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
@@ -66,6 +67,12 @@ public sealed class PrintPreflightValidator
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var row = rows[rowIndex];
+                if (!VisibilityConditionContract.IsShown(item.VisibilityCondition, row))
+                {
+                    // Hidden for this row by its visibility condition: nothing prints to check.
+                    continue;
+                }
+
                 if (TryResolveExpression(item, row, rowIndex, issues, out var data))
                 {
                     // Content mask (NiceLabel 10 Source > Mask) applies before every content check.

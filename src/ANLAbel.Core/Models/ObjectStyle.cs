@@ -11,6 +11,8 @@ public sealed class ObjectStyle : ObservableObject
     private bool _bold;
     private bool _italic;
     private bool _underline;
+    private bool _strikethrough;
+    private bool _mirrorText;
     private TextAlignmentMode _alignment = TextAlignmentMode.Left;
     private TextDirectionMode _textDirection = TextDirectionMode.Auto;
     private TextSizingMode _textSizing = TextSizingMode.AutoFit;
@@ -73,6 +75,20 @@ public sealed class ObjectStyle : ObservableObject
     {
         get => _underline;
         set => SetProperty(ref _underline, value);
+    }
+
+    /// <summary>Strikethrough (NiceLabel 10 Font group).</summary>
+    public bool Strikethrough
+    {
+        get => _strikethrough;
+        set => SetProperty(ref _strikethrough, value);
+    }
+
+    /// <summary>Mirrored text, drawn left-right reversed (NiceLabel 10 Text &gt; Effects &gt; Mirror).</summary>
+    public bool MirrorText
+    {
+        get => _mirrorText;
+        set => SetProperty(ref _mirrorText, value);
     }
 
     public TextAlignmentMode Alignment

@@ -14,6 +14,7 @@ using ANLAbel.Barcode.Options;
 using ANLAbel.Barcode.Renderers;
 using ANLAbel.Core.Text;
 using ANLAbel.Core.Barcode;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Enums;
 using ANLAbel.Core.Expressions;
 using ANLAbel.Core.Expressions.Formulas;
@@ -160,6 +161,11 @@ public sealed class LabelVisualRenderer
         var layerContext = layer.Open();
         foreach (var (item, node) in ordered)
         {
+            if (!VisibilityConditionContract.IsShown(item.VisibilityCondition, row))
+            {
+                continue;
+            }
+
             if ((node?.Type ?? item.Type) != ObjectType.Inverse)
             {
                 DrawObject(layerContext, item, row, dpiX, dpiY, labelWidthMm, labelHeightMm, node);
@@ -295,6 +301,8 @@ public sealed class LabelVisualRenderer
                 Bold = snapshot.Style.Bold,
                 Italic = snapshot.Style.Italic,
                 Underline = snapshot.Style.Underline,
+                Strikethrough = snapshot.Style.Strikethrough,
+                MirrorText = snapshot.Style.MirrorText,
                 Alignment = snapshot.Style.Alignment,
                 TextDirection = snapshot.Style.TextDirection,
                 TextSizing = snapshot.Style.TextSizing,
@@ -321,6 +329,8 @@ public sealed class LabelVisualRenderer
             IsVisible = snapshot.IsVisible,
             AnchorPoint = snapshot.AnchorPoint,
             IsPrintable = snapshot.IsPrintable,
+            KeepAspectRatio = snapshot.KeepAspectRatio,
+            VisibilityCondition = snapshot.VisibilityCondition,
             GroupId = snapshot.GroupId,
             ContentMask = snapshot.ContentMask,
             ContentMaskCharacter = snapshot.ContentMaskCharacter,
@@ -371,10 +381,19 @@ public sealed class LabelVisualRenderer
         switch (objectType)
         {
             case ObjectType.Text:
-                DrawTextObject(dc, item, rect, row, constrainToBox: false);
-                break;
             case ObjectType.TextBox:
-                DrawTextObject(dc, item, rect, row, constrainToBox: true);
+                // NiceLabel 10 Effects > Mirror: reflect the text about its frame centre.
+                if (item.Style.MirrorText)
+                {
+                    dc.PushTransform(new ScaleTransform(-1, 1, rect.Left + rect.Width / 2, rect.Top + rect.Height / 2));
+                }
+
+                DrawTextObject(dc, item, rect, row, constrainToBox: objectType == ObjectType.TextBox);
+                if (item.Style.MirrorText)
+                {
+                    dc.Pop();
+                }
+
                 break;
             case ObjectType.Rectangle:
                 dc.DrawRoundedRectangle(

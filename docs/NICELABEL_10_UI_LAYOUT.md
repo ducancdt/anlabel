@@ -183,13 +183,30 @@ of the same tab (kept outside the repository) and compared group by group.
 
 | Tab | NiceLabel 10 groups | ANLAbel | Remaining difference |
 | --- | --- | --- | --- |
-| Home | Clipboard · Font · Action · Management · Align · Objects | Bộ nhớ tạm (Dán, Cắt, Sao chép, Sao định dạng) · Phông chữ (phông, cỡ, tăng/giảm, B I U, căn 4 kiểu) · Thao tác · Quản lý · Căn chỉnh · Đối tượng (Đưa lên/xuống, Nhóm/Bỏ nhóm, Xóa) | strikethrough, colour button (colour stays in Properties) |
+| Home | Clipboard · Font · Action · Management · Align · Objects | Bộ nhớ tạm (Dán, Cắt, Sao chép, Sao định dạng) · Phông chữ (phông, cỡ, tăng/giảm, B I U, căn 4 kiểu) · Thao tác · Quản lý · Căn chỉnh · Đối tượng (Đưa lên/xuống, Nhóm/Bỏ nhóm, Xóa) | — (strikethrough and colour added 2026-10-30) |
 | Data | Database wizard · Data Source Management · RFID | Nhập dữ liệu (Excel/CSV, Cập nhật) · Quản lý nguồn dữ liệu | Access/SQL/ODBC, RFID — out of scope by owner decision |
 | View | Zoom · Object Markers · Alignment and Gridlines · Rotation | Thu phóng (Vừa tài liệu, Vừa đối tượng, Phóng to/Thu nhỏ, %) · Hiện dấu đối tượng (Tên, Nguồn dữ liệu) · Căn và lưới (Theo đối tượng, Theo lưới, Không căn) · Bảng · Xoay khung nhìn | Printer Element / Events markers (no such ANLAbel concepts) |
 | Help | Help · Product | Trợ giúp (Trợ giúp, Mẫu tem) · Sản phẩm (Cập nhật) | — |
-| Design | General · Positioning · Arrange | Chung (Không in, Hiển thị, Khóa vị trí, Tên) · Điểm neo · Sắp xếp | Visibility conditions, Relative Position, Keep Aspect Ratio |
-| Text | Format · Text Settings · Arrange | Định dạng (phông, cỡ, tăng/giảm, B I U, căn) · Thiết lập chữ (Co giãn chữ ngang, Vừa trong khung) | Character and Paragraph spacing, Effects (mirror/inverse text) |
+| Design | General · Positioning · Arrange | Chung (Không in, Hiển thị, Khóa vị trí, Tên) · Điểm neo · Sắp xếp | Relative Position (see below) |
+| Text | Format · Text Settings · Arrange | Định dạng (phông, cỡ, tăng/giảm, B I U, căn) · Thiết lập chữ (Co giãn chữ ngang, Vừa trong khung) | Character and Paragraph spacing (see below) |
 
 Also added in this pass: Design > Không in (`LabelObject.IsPrintable`, left
 out of print, preview and preflight), View > Vừa đối tượng and Không căn,
 Grow/Shrink Font and Text-tab alignment.
+
+Added after the side-by-side check (2026-10-30): Strikethrough and a text
+colour picker (Home and Text tabs), Text > Hiệu ứng > Soi gương (mirrored
+text in designer, preview and print), Design > Giữ tỉ lệ (resize always
+proportional) and Design > Điều kiện hiển thị (`VisibilityConditionContract`:
+the object prints only on rows where the field/formula is not empty, 0,
+false, no or không; preflight skips it on hidden rows).
+
+Still different, by design:
+
+- Relative Position: in NiceLabel it moves an object when a variable-size
+  neighbour grows. ANLAbel Text keeps its frame at print time (it
+  compresses into it), so there is no growing neighbour to follow.
+- Character and Paragraph spacing: WPF's text layout used for print parity
+  has no letter-spacing; adding it needs a glyph-level layout of its own.
+- Printer Element and Events markers: ANLAbel has no printer-internal
+  elements or object events to mark.

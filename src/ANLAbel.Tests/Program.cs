@@ -12720,6 +12720,42 @@ static Task TestInverseObjectSwapsBlackAndWhite()
             var probe = new byte[4];
             hidden.CopyPixels(new Int32Rect((int)MmConverter.MmToDip(5), height / 2, 1, 1), probe, 4, 0);
             AssertEqual(true, probe[1] > 200, "A not-printable object is left out of print");
+
+            // NiceLabel 10 Visibility Settings: printed only on rows where the condition has a value.
+            template.Objects[0].IsPrintable = true;
+            template.Objects[0].VisibilityCondition = "{Show}";
+            byte ProbeRow(string show)
+            {
+                var row = new Dictionary<string, string> { ["Show"] = show };
+                var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(new LabelVisualRenderer().Render(template, row, plan));
+                var sample = new byte[4];
+                bitmap.CopyPixels(new Int32Rect((int)MmConverter.MmToDip(5), height / 2, 1, 1), sample, 4, 0);
+                return sample[1];
+            }
+
+            AssertEqual(true, ProbeRow("1") < 60, "A conditional object prints on a row whose condition has a value");
+            AssertEqual(true, ProbeRow("0") > 200, "A conditional object is hidden on a row whose condition is 0");
+
+            // NiceLabel 10 Effects > Mirror: the same text drawn reflected.
+            var mirrorTemplate = new LabelTemplate { Name = "Mirror", WidthMm = 40, HeightMm = 20, Dpi = 203 };
+            var mirrored = new LabelObject { Type = ObjectType.Text, Name = "L", Text = "L", XMm = 5, YMm = 2, WidthMm = 20, HeightMm = 16, Style = { FontSizePt = 40 } };
+            mirrorTemplate.Objects.Add(mirrored);
+            string Signature()
+            {
+                var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(new LabelVisualRenderer().Render(mirrorTemplate, null, plan));
+                var all = new byte[width * height * 4];
+                bitmap.CopyPixels(all, width * 4, 0);
+                return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(all));
+            }
+
+            var normal = Signature();
+            mirrored.Style.MirrorText = true;
+            AssertEqual(false, normal == Signature(), "Mirrored text prints differently from normal text");
+            mirrored.Style.MirrorText = false;
+            mirrored.Style.Strikethrough = true;
+            AssertEqual(false, normal == Signature(), "Strikethrough adds a line through the text");
         }
         catch (Exception ex)
         {
@@ -12883,7 +12919,8 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                          "Shell.Ribbon.Paste", "Shell.Ribbon.Cut", "Shell.Ribbon.Copy", "Shell.Ribbon.Font", "Shell.Ribbon.DataSources",
                          "Shell.Ribbon.ZoomToDocument", "Shell.Status.Printer", "Shell.Properties.Title",
                          "Shell.Ribbon.Group", "Shell.Ribbon.Ungroup", "Shell.Ribbon.AnchorPoint", "Shell.Ribbon.ObjectMarkers", "Shell.Ribbon.RotateView", "Shell.Properties.Pin",
-                         "Shell.Ribbon.ZoomToObjects", "Shell.Ribbon.DoNotAlign", "Shell.Ribbon.NotPrintable", "Shell.Ribbon.FormatPainter" })
+                         "Shell.Ribbon.ZoomToObjects", "Shell.Ribbon.DoNotAlign", "Shell.Ribbon.NotPrintable", "Shell.Ribbon.FormatPainter",
+                         "Shell.Ribbon.MirrorText", "Shell.Ribbon.KeepAspectRatio", "Shell.Ribbon.VisibilityCondition" })
             {
                 AssertEqual(true, found.Contains(id, StringComparer.Ordinal), "NiceLabel layout must expose " + id);
             }
