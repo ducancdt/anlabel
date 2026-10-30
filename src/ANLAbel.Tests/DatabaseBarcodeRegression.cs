@@ -579,6 +579,14 @@ internal static class A5BarcodeSheet
         template.DatabaseConfig.SheetName = SheetName;
         template.DatabaseConfig.HeaderRowIndex = 1;
         template.DatabaseConfig.KeyField = "STT";
+        // As Nhập Excel leaves a linked label: every column available and offered to the objects.
+        var header = Header;
+        for (var column = 0; column < header.Length; column++)
+        {
+            template.DatabaseConfig.AvailableFields.Add(new DatabaseField { Name = header[column], DisplayName = header[column], SourceColumn = column + 1 });
+            template.DatabaseConfig.LabelFields.Add(new DatabaseField { Name = header[column], DisplayName = header[column], SourceColumn = column + 1 });
+        }
+
         var z = 0;
         LabelObject Text(string name, string binding, double x, double y, double size, bool bold = false, double width = 30) => new()
         {
