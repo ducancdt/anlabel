@@ -1746,6 +1746,55 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The Data panel lists what a label can show, as NiceLabel's data explorer:
+    /// prompts, sheet fields, the Data Manager functions and the values given at
+    /// print time (the serial while the counter is on, the print date); each
+    /// drags onto the label with its binding.
+    /// </summary>
+    public static Task DataPanelListsFunctionsAndPrintTimeFields()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot" });
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MaLo", "CONCAT(\"L-\", FIELD(\"?Lot\"))"));
+            var counter = viewModel.Template.SerialCounter.Clone();
+            counter.Enabled = true;
+            viewModel.ApplyDataDefinitions(viewModel.Template.PromptVariables.ToArray(), viewModel.Template.DataTransforms.ToArray(), counter);
+            var window = new ANLAbel.App.MainWindow { DataContext = viewModel };
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            Settle();
+            var tree = FindDescendants<TreeView>(window).Single(element => AutomationProperties.GetAutomationId(element) == "Shell.Workspace.DataTree");
+            var sections = tree.Items.OfType<TreeViewItem>().ToArray();
+            string Heading(TreeViewItem item) => string.Concat(FindDescendants<TextBlock>((DependencyObject)item.Header).Select(text => text.Text).Where(text => text.Length > 1));
+            Require(sections.Select(Heading).SequenceEqual(["Biến nhập khi in", "Trường dữ liệu", "Hàm", "Khi in"]),
+                "The Data panel has prompts, fields, functions and print-time values: " + string.Join(", ", sections.Select(Heading)));
+
+            var binding = typeof(ANLAbel.App.MainWindow).GetMethod("DataTreeBinding", BindingFlags.Static | BindingFlags.NonPublic)!;
+            string?[] Bindings(TreeViewItem section) => section.Items.Cast<object>().Select(item => (string?)binding.Invoke(null, new[] { item })).ToArray();
+            Require(Bindings(sections[0]).SequenceEqual(["{?Lot}"]) && Bindings(sections[2]).SequenceEqual(["{MaLo}"])
+                    && Bindings(sections[3]).SequenceEqual(["{#SERIAL}", "{#NOW:dd/MM/yyyy}"]),
+                $"Each item drags with its binding: {string.Join(" ", Bindings(sections[0]))} | {string.Join(" ", Bindings(sections[2]))} | {string.Join(" ", Bindings(sections[3]))}");
+
+            var off = viewModel.Template.SerialCounter.Clone();
+            off.Enabled = false;
+            viewModel.ApplyDataDefinitions(viewModel.Template.PromptVariables.ToArray(), viewModel.Template.DataTransforms.ToArray(), off);
+            Settle();
+            Require(Bindings(sections[3]).SequenceEqual(["{#NOW:dd/MM/yyyy}"]), "Without the counter only the print date is offered: " + string.Join(" ", Bindings(sections[3])));
+            window.Close();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still

@@ -4467,7 +4467,20 @@ public sealed class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(DesignPreviewRow));
         OnPropertyChanged(nameof(SerialCounterStatusText));
+        OnPropertyChanged(nameof(PrintTimeDataFields));
     }
+
+    /// <summary>
+    /// Fields given at print time that the Data panel offers for dragging onto
+    /// the label, as NiceLabel's data explorer lists its internal values: the
+    /// serial while the counter is on, and the print date.
+    /// </summary>
+    public IReadOnlyList<DataTreeField> PrintTimeDataFields =>
+        SerialCounterContract.IsActive(Template)
+            ? [new DataTreeField("Số sê-ri", "{" + SerialCounterContract.Token + "}"), PrintDateField]
+            : [PrintDateField];
+
+    private static readonly DataTreeField PrintDateField = new("Ngày in", "{#NOW:" + JobVariableContract.DefaultDateFormat + "}");
 
     /// <summary>
     /// The row the designer canvas renders: <see cref="PreviewRow"/> plus the

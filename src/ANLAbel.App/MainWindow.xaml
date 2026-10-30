@@ -1549,7 +1549,7 @@
                                     <!-- NiceLabel 10 Data explorer: variables and data fields as a tree -->
                                     <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields"
                                               PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove"
-                                              ToolTip="Kéo một biến hoặc trường lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới).">
+                                              ToolTip="Kéo một biến, trường, hàm hoặc giá trị khi in lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới).">
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.PromptVariables}">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70F;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Biến nhập khi in" FontWeight="SemiBold"/></StackPanel>
@@ -1564,6 +1564,22 @@
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
                                                 <DataTemplate><TextBlock Text="{Binding StringFormat={}{{{0}}}}"/></DataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
+                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.DataTransforms}">
+                                            <TreeViewItem.Header>
+                                                <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8EF;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Hàm" FontWeight="SemiBold"/></StackPanel>
+                                            </TreeViewItem.Header>
+                                            <TreeViewItem.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding Name, StringFormat={}{{{0}}}}"/></DataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
+                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding PrintTimeDataFields}">
+                                            <TreeViewItem.Header>
+                                                <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE749;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Khi in" FontWeight="SemiBold"/></StackPanel>
+                                            </TreeViewItem.Header>
+                                            <TreeViewItem.ItemTemplate>
+                                                <DataTemplate><TextBlock><Run Text="{Binding Label, Mode=OneWay}"/><Run Text=" "/><Run Text="{Binding Binding, Mode=OneWay}" Foreground="{StaticResource AppMutedBrush}"/></TextBlock></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                     </TreeView>

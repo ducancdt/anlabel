@@ -1410,6 +1410,16 @@ public partial class MainWindow : Window
     /// NiceLabel 10 Data explorer: a prompt or field dragged onto the label
     /// becomes a bound Text there, or binds the object it is dropped on.
     /// </summary>
+    /// <summary>The binding an object dropped from a Data panel item gets; null for a heading.</summary>
+    private static string? DataTreeBinding(object? item) => item switch
+    {
+        ANLAbel.Core.Models.PromptVariableDefinition prompt when prompt.Name.Length > 0 => "{?" + prompt.Name + "}",
+        ANLAbel.Core.Data.DataTransformDefinition function when !string.IsNullOrWhiteSpace(function.Name) => "{" + function.Name.Trim() + "}",
+        ANLAbel.App.ViewModels.DataTreeField field => field.Binding,
+        string field when field.Length > 0 => "{" + field + "}",
+        _ => null
+    };
+
     private void DataTree_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (_dataDragStart is not { } start || e.LeftButton != MouseButtonState.Pressed)
@@ -1425,12 +1435,7 @@ public partial class MainWindow : Window
         }
 
         _dataDragStart = null;
-        var binding = (e.OriginalSource as FrameworkElement)?.DataContext switch
-        {
-            ANLAbel.Core.Models.PromptVariableDefinition prompt when prompt.Name.Length > 0 => "{?" + prompt.Name + "}",
-            string field when field.Length > 0 => "{" + field + "}",
-            _ => null
-        };
+        var binding = DataTreeBinding((e.OriginalSource as FrameworkElement)?.DataContext);
         if (binding is not null)
         {
             DragDrop.DoDragDrop((DependencyObject)sender, new DataObject(ANLAbel.App.Controls.LabelDesignerCanvas.DataSourceDragFormat, binding), DragDropEffects.Copy);

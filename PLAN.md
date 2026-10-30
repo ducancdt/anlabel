@@ -10,6 +10,10 @@
 - Quản lý dữ liệu, Hàm: hàm đọc số sê-ri (FIELD("#SERIAL")) nay nhận đúng số
   của từng tem khi in, hiện số kế tiếp khi thiết kế và số bắt đầu trong cửa sổ
   Hàm; trước đây phần đó in ra trống và bị chặn in vì thiếu trường.
+- Bảng Dữ liệu (bên trái) liệt kê thêm các hàm của Quản lý dữ liệu và mục "Khi
+  in" (số sê-ri khi đã bật bộ đếm, ngày in), như bảng dữ liệu của NiceLabel;
+  kéo một mục lên tem để thêm chữ gắn với nó, không cần nhớ cú pháp {Tên},
+  {#SERIAL} hay {#NOW:dd/MM/yyyy}.
 
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 
