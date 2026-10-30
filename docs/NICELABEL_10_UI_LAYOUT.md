@@ -565,3 +565,43 @@ to the next question), then Print Preview with the label pages, the Excel rows
 and their copies, labels to skip on a part-used sheet, the printer and its
 setup. Not built: label sets (the whole job repeated N times) and printing to
 a file of printer commands. Out of scope: custom PowerForms.
+
+## Status bar, function editors and smaller dialogs (2026-10-31)
+
+- Status bar (`statusbarregion/view/statusbarview.xaml`, `StatusBarViewModel`):
+  a lock marker on the left while the label or solution is protected ("Label
+  or solution editing is locked. Unlock to start editing."); on the right the
+  RFID tag state, "Windows mode" ("Printer does not use advanced driver
+  interface"), a printer selector that the view keeps hidden, and the zoom
+  slider. ANLAbel: the protection banner above the label says the same and
+  holds the unlock box; the status bar has the printer, the label size, zoom
+  to document and to objects, the zoom slider with its percentage, and chips
+  for a printer queue problem, an uncertain print job and missing resources.
+  Windows mode does not apply: ANLAbel always prints through the Windows
+  driver. RFID is out of scope.
+- Function editors (`propertypages/view/functions`, `FunctionPropertyXaml`):
+  each function type has its own form. Concatenate lists its input data
+  sources (add a data source, "Add fixed text", move, delete) with a delimiter
+  and "Ignore empty values"; Subset takes a fixed offset and length, or a
+  field number of delimited text with a text qualifier; DateOffset adds days,
+  months and years, each fixed or from a data source, and formats the result;
+  Linear computes f(x) = ax ± b or x/a ± b with decimal places and
+  separators. ANLAbel's Data Manager function is one formula with its result
+  for the current row, and an object's data source joins values directly
+  (`{?Lot}-{#SERIAL}`), which covers Concatenate without a function. The 12
+  customer labels hold four functions, all Concatenate, and they import as
+  formulas. Not built: a form per function type.
+- Print gap adjustment (`printergapadjustment`, Label Properties › Printer):
+  "Enter the print gap adjustment values for the desired color ribbons", one
+  value per ribbon colour (black, blue, CMYK, green, orange, red, white,
+  yellow and three custom ones) for printers with several ribbons. No customer
+  or sample label stores it. Not built.
+- Message dialog (`Gui.Core/historydialog`): a warning icon and message, an
+  expander with the earlier messages, and Ctrl+C copies the text, as Windows
+  message boxes do. ANLAbel's `OperatorDialog` states the problem, what was
+  affected and the next action, with technical detail in a muted line; its
+  text cannot be copied.
+- Find and replace (`Gui.Core/searchpanel`) belongs to the rich text editor:
+  find, find next and previous, replace, replace all. ANLAbel edits rich text
+  in the Properties panel (bold, italic, underline, font and size), without
+  find and replace.
