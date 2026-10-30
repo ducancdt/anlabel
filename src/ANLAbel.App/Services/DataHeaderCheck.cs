@@ -191,6 +191,12 @@ public static class DataHeaderCheck
         {
             foreach (var field in fields)
             {
+                // A function may read a prompt or date: answered at print time, no column.
+                if (JobVariableContract.IsPromptToken(field.Trim()) || JobVariableContract.IsDateToken(field.Trim()))
+                {
+                    continue;
+                }
+
                 var ties = FieldNameResolver.FindTies(field, names);
                 if (ties.Count == 0)
                 {

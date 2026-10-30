@@ -5708,14 +5708,18 @@ public sealed class MainViewModel : ObservableObject
         var source = dataRow.Table.Columns
             .Cast<DataColumn>()
             .ToDictionary(column => column.ColumnName, column => dataRow[column]?.ToString() ?? string.Empty, StringComparer.OrdinalIgnoreCase);
-        if (Template.DataTransforms.Count == 0)
+        // A function that reads a print-time value (a prompt or the job date)
+        // runs once those values are known (JobVariableContract.TryApply).
+        var dependent = JobVariableContract.JobDependentTransforms(Template);
+        var transforms = Template.DataTransforms.Where(transform => !dependent.Contains(transform)).ToArray();
+        if (transforms.Length == 0)
         {
             return source;
         }
 
         var transformed = DataTransformPipeline.Evaluate(
             DataRecord.Create(source.Select(pair => new KeyValuePair<string, string?>(pair.Key, pair.Value))),
-            Template.DataTransforms);
+            transforms);
         if (!transformed.IsValid)
         {
             error = string.Join(" ", transformed.Errors.Select(ANLAbel.App.Services.FormulaErrorText.Translate));
@@ -5726,7 +5730,7 @@ public sealed class MainViewModel : ObservableObject
         // A name that matches several fields loosely resolves to the first of them,
         // so the order must be the one DB03 checks, not the record's hash order.
         var ordered = new Dictionary<string, string>(source, StringComparer.OrdinalIgnoreCase);
-        foreach (var transform in Template.DataTransforms)
+        foreach (var transform in transforms)
         {
             if (transformed.Record.Values.TryGetValue(transform.Name, out var value))
             {

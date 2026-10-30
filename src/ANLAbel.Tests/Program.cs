@@ -85,6 +85,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("an imported NiceLabel serial label numbers every label", () => DesignScenarioRegression.ImportedSerialLabelNumbersEveryLabel(BuildSyntheticNlblPackage)),
     ("the prompt editor follows the kind of value", DesignScenarioRegression.PromptEditorFollowsTheKindOfValue),
     ("renaming a print question keeps the objects that use it", DesignScenarioRegression.PromptRenameCarriesItsObjects),
+    ("data manager functions read print questions", DesignScenarioRegression.FunctionsReadPrintQuestions),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

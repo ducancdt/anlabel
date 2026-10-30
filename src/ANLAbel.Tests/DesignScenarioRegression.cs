@@ -1670,6 +1670,43 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// A Data Manager function reads a print question, as the editor says it
+    /// can and as NiceLabel functions read prompted variables: MaLo =
+    /// CONCAT("L-", FIELD("?Lot")) on a text {MaLo}. The editor shows its
+    /// result with the question's placeholder instead of an error, the print
+    /// dialog asks "Lot" (it asked nothing), the printed row carries "L-123"
+    /// (it printed nothing) and the designer reports no missing column "?Lot".
+    /// </summary>
+    public static Task FunctionsReadPrintQuestions()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô", Required = true });
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MaLo", "CONCAT(\"L-\", FIELD(\"?Lot\"))"));
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã lô", BindingExpression = "{MaLo}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+
+            var window = new ANLAbel.App.DataManagerWindow(viewModel, "Functions");
+            var functions = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new[] { functions[0]! });
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var result = ((TextBlock)window.FindName("FunctionResultText")).Text;
+            Require(result == "L-‹Lot›", "The function editor shows the result with the question's placeholder: " + result);
+
+            var asked = ANLAbel.Core.Printing.JobVariableContract.RequiredPrompts(viewModel.Template);
+            Require(asked.Select(prompt => prompt.Name).SequenceEqual(["Lot"]), "The print dialog asks the question the function reads: " + string.Join(", ", asked.Select(prompt => prompt.Name)));
+            Require(viewModel.TryBuildPrintPreviewRows(out var rows, out var rowError), "The print rows build: " + rowError);
+            Require(ANLAbel.Core.Printing.JobVariableContract.TryApply(viewModel.Template, rows, DateTimeOffset.Now, new Dictionary<string, string> { ["Lot"] = "123" }, out var printed, out var error)
+                    && printed[0]!["MaLo"] == "L-123",
+                "The printed row carries the function's value: " + error);
+            Require(!viewModel.HasBindingIssues, "No missing column is reported for the question: " + string.Join(" | ", viewModel.BindingIssues.Select(issue => issue.StatusText)));
+            // Not closed: closing an edited draft asks to keep or discard it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>A presentation source for key events raised on windows that are never shown.</summary>
     private sealed class TestPresentationSource : PresentationSource
     {

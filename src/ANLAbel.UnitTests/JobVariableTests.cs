@@ -37,6 +37,53 @@ public sealed class JobVariableTests : IDisposable
     private static Dictionary<string, string> Answers(params (string Key, string Value)[] pairs)
         => pairs.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
 
+    [Fact]
+    public void FunctionsReadPromptsAndTheJobDate_OnceTheJobValuesAreKnown()
+    {
+        // NiceLabel functions read prompted variables. LotCode reads a prompt and
+        // an Excel column, Tag builds on LotCode, Made reads the job date; Upper
+        // reads the sheet only and keeps running on the data row.
+        var template = Template("{Tag}", "{Made}", "{Upper}");
+        template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", MaxLength = 8, DigitsOnly = true });
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tag", "CONCAT(\"[\", FIELD(\"LotCode\"), \"]\")"));
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("LotCode", "CONCAT(FIELD(\"Ma\"), \"/\", FIELD(\"?Lot\"))"));
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Made", "FIELD(\"#NOW:yyMMdd\")"));
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Upper", "UPPER(FIELD(\"Ma\"))"));
+
+        Assert.Equal(new[] { "?Lot", "#NOW:yyMMdd" }, JobVariableContract.FindTokens(template));
+        Assert.Equal(new[] { "Tag", "LotCode", "Made" }, JobVariableContract.JobDependentTransforms(template).Select(transform => transform.Name));
+        Assert.Equal("Lot", Assert.Single(JobVariableContract.RequiredPrompts(template)).Name);
+
+        IReadOnlyDictionary<string, string>?[] rows =
+        [
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "a1", ["Upper"] = "A1" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "b2", ["Upper"] = "B2" }
+        ];
+        Assert.True(JobVariableContract.TryApply(template, rows, JobTime, Answers(("Lot", "123")), out var printed, out var error), error);
+        Assert.Equal(new[] { "[a1/123]", "[b2/123]" }, printed.Select(row => row!["Tag"]));
+        Assert.All(printed, row => Assert.Equal("260131", row!["Made"]));
+        Assert.Equal("B2", printed[1]!["Upper"]);
+
+        // The prompt's own rules still apply to the answer.
+        Assert.False(JobVariableContract.TryApply(template, rows, JobTime, Answers(("Lot", "12x")), out _, out var refused));
+        Assert.Contains("digits only", refused);
+
+        // The designer shows the function with the question's placeholder.
+        var design = JobVariableContract.ApplyForDesign(template, rows[0], JobTime, Answers())!;
+        Assert.Equal("[a1/‹Lot›]", design["Tag"]);
+    }
+
+    [Fact]
+    public void FunctionThatFailsWithTheJobValues_StopsThePrintWithItsReason()
+    {
+        // Without a data row the column the function reads is missing.
+        var template = Template("{LotCode}");
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("LotCode", "CONCAT(FIELD(\"Ma\"), FIELD(\"?Lot\"))"));
+
+        Assert.False(JobVariableContract.TryApply(template, [null], JobTime, Answers(("Lot", "123")), out _, out var error));
+        Assert.Equal("Transform 'LotCode': Field 'Ma' was not found.", error);
+    }
+
     [Theory]
     [InlineData("{?Lot}", "{?SoLo}")]
     [InlineData("Lô: { ?lot } / {?Qty}", "Lô: { ?SoLo } / {?Qty}")]

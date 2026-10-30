@@ -41,6 +41,12 @@ public static class JobVariableText
     public static string Message(string? message)
     {
         var text = (message ?? string.Empty).Trim();
+        if (text.StartsWith("Transform ", StringComparison.Ordinal))
+        {
+            // A function reading a prompt or date runs with the job's values.
+            return FormulaErrorText.Translate(text);
+        }
+
         foreach (var (pattern, describe) in Rules)
         {
             var match = pattern.Match(text);

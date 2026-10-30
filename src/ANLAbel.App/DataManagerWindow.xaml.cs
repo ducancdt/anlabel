@@ -383,15 +383,38 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        var source = fields.Select(field => new KeyValuePair<string, string?>(
-            field,
-            _viewModel.PreviewRow is { } row && row.TryGetValue(field, out var value) ? value : string.Empty));
-        var result = DataTransformPipeline.Evaluate(
-            DataRecord.Create(source),
-            _functions.Where(function => !string.IsNullOrWhiteSpace(function.Name)).Select(function => function.ToDefinition()).ToArray());
+        var definitions = _functions.Where(function => !string.IsNullOrWhiteSpace(function.Name)).Select(function => function.ToDefinition()).ToArray();
+        var source = WithPrintTimeValues(
+            fields.Select(field => new KeyValuePair<string, string>(
+                field,
+                _viewModel.PreviewRow is { } row && row.TryGetValue(field, out var value) ? value : string.Empty)),
+            definitions);
+        var result = DataTransformPipeline.Evaluate(DataRecord.Create(source), definitions);
         FunctionResultText.Text = result.IsValid
             ? (result.Record.Values.TryGetValue(draft.Name, out var output) ? output ?? string.Empty : string.Empty) is { Length: > 0 } text ? text : "(rỗng)"
             : "Lỗi: " + string.Join(" ", result.Errors.Select(FormulaErrorText.Translate));
+    }
+
+    /// <summary>
+    /// The data fields plus a design value for each prompt and date the
+    /// functions read (they are answered at print time).
+    /// </summary>
+    private IEnumerable<KeyValuePair<string, string?>> WithPrintTimeValues(
+        IEnumerable<KeyValuePair<string, string>> fields,
+        IReadOnlyList<DataTransformDefinition> definitions)
+    {
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var field in fields)
+        {
+            values.TryAdd(field.Key, field.Value);
+        }
+
+        foreach (var printTime in JobVariableContract.DesignValuesForTransforms(_prompts.ToArray(), definitions, DateTimeOffset.Now, _viewModel.LastPromptValues))
+        {
+            values.TryAdd(printTime.Key, printTime.Value);
+        }
+
+        return values;
     }
 
     private void UpdateCounterStatus()
@@ -679,7 +702,7 @@ public partial class DataManagerWindow : Window
         if (definitions.Length > 0)
         {
             var check = DataTransformPipeline.Evaluate(
-                DataRecord.Create(_viewModel.ExcelHeaders.Select(field => new KeyValuePair<string, string?>(field, string.Empty))),
+                DataRecord.Create(WithPrintTimeValues(_viewModel.ExcelHeaders.Select(field => new KeyValuePair<string, string>(field, string.Empty)), definitions)),
                 definitions);
             warnings.AddRange(check.Errors.Select(FormulaErrorText.Translate));
         }

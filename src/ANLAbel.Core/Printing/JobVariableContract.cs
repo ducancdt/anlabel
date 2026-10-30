@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using ANLAbel.Core.Data;
 using ANLAbel.Core.Models;
 
 namespace ANLAbel.Core.Printing;
@@ -26,14 +27,152 @@ public static partial class JobVariableContract
     public static IReadOnlyList<string> FindTokens(LabelTemplate template)
     {
         ArgumentNullException.ThrowIfNull(template);
-        return template.Objects
-            .Where(item => item.IsVisible)
-            .SelectMany(item => new[] { item.BindingExpression, item.VisibilityCondition })
-            .Where(expression => !string.IsNullOrWhiteSpace(expression))
-            .SelectMany(expression => ExpressionTokens(expression))
-            .Where(token => IsDateToken(token) || IsPromptToken(token))
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
+        var functions = FunctionsByName(template);
+        var tokens = new List<string>();
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Visit(IEnumerable<string> names)
+        {
+            foreach (var name in names)
+            {
+                if (IsDateToken(name) || IsPromptToken(name))
+                {
+                    if (!tokens.Contains(name, StringComparer.Ordinal))
+                    {
+                        tokens.Add(name);
+                    }
+                }
+                else if (functions.TryGetValue(name, out var function) && visited.Add(name))
+                {
+                    // A function the label prints reads its own fields: the
+                    // prompts and dates among them are asked for this job too.
+                    Visit(ExpressionTokens(function.Formula));
+                }
+            }
+        }
+
+        foreach (var expression in template.Objects
+                     .Where(item => item.IsVisible)
+                     .SelectMany(item => new[] { item.BindingExpression, item.VisibilityCondition })
+                     .Where(expression => !string.IsNullOrWhiteSpace(expression)))
+        {
+            Visit(ExpressionTokens(expression));
+        }
+
+        return tokens.ToArray();
+    }
+
+    /// <summary>
+    /// The template's functions (Data Manager "Hàm") that read a print-time
+    /// value, a prompt or the job date, directly or through another function,
+    /// in template order. NiceLabel functions read prompted variables; these
+    /// run once the job's values are known (<see cref="TryApply"/>,
+    /// <see cref="ApplyForDesign"/>), the others on the data row.
+    /// </summary>
+    public static IReadOnlyList<DataTransformDefinition> JobDependentTransforms(LabelTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        return JobDependentTransforms(template.DataTransforms);
+    }
+
+    private static IReadOnlyList<DataTransformDefinition> JobDependentTransforms(IEnumerable<DataTransformDefinition> transforms)
+    {
+        var all = transforms.ToArray();
+        var reads = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (var transform in all.Where(transform => !string.IsNullOrWhiteSpace(transform.Name)))
+        {
+            reads.TryAdd(transform.Name.Trim(), ExpressionTokens(transform.Formula).ToArray());
+        }
+
+        var dependent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool grew;
+        do
+        {
+            grew = false;
+            foreach (var (name, fields) in reads)
+            {
+                if (!dependent.Contains(name) && fields.Any(field => IsDateToken(field) || IsPromptToken(field) || dependent.Contains(field)))
+                {
+                    grew = dependent.Add(name);
+                }
+            }
+        }
+        while (grew);
+
+        return all.Where(transform => dependent.Contains(transform.Name?.Trim() ?? string.Empty)).ToArray();
+    }
+
+    /// <summary>
+    /// A design-time value for every prompt and date the functions read (the
+    /// last answer, the default, today, else "‹Name›"), so a function can be
+    /// tried before the job is printed.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> DesignValuesForTransforms(
+        IReadOnlyList<PromptVariableDefinition> prompts,
+        IEnumerable<DataTransformDefinition> transforms,
+        DateTimeOffset now,
+        IReadOnlyDictionary<string, string> knownPromptValues)
+    {
+        ArgumentNullException.ThrowIfNull(prompts);
+        ArgumentNullException.ThrowIfNull(transforms);
+        ArgumentNullException.ThrowIfNull(knownPromptValues);
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var token in transforms
+                     .Where(transform => !string.IsNullOrWhiteSpace(transform.Formula))
+                     .SelectMany(transform => ExpressionTokens(transform.Formula))
+                     .Where(token => IsDateToken(token) || IsPromptToken(token)))
+        {
+            values.TryAdd(token, DesignTokenValue(token, prompts, now, knownPromptValues));
+        }
+
+        return values;
+    }
+
+    private static Dictionary<string, DataTransformDefinition> FunctionsByName(LabelTemplate template)
+    {
+        var functions = new Dictionary<string, DataTransformDefinition>(StringComparer.OrdinalIgnoreCase);
+        foreach (var transform in template.DataTransforms.Where(transform => !string.IsNullOrWhiteSpace(transform.Name)))
+        {
+            functions.TryAdd(transform.Name.Trim(), transform);
+        }
+
+        return functions;
+    }
+
+    /// <summary>
+    /// Evaluates the functions that read print-time values over a row that
+    /// already holds those values and writes their outputs into it.
+    /// </summary>
+    private static bool TryApplyJobTransforms(IReadOnlyList<DataTransformDefinition> dependent, Dictionary<string, string> row, out string error)
+    {
+        error = string.Empty;
+        if (dependent.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var transform in dependent)
+        {
+            row.Remove(transform.Name.Trim());
+        }
+
+        var result = DataTransformPipeline.Evaluate(
+            DataRecord.Create(row.Select(pair => new KeyValuePair<string, string?>(pair.Key, pair.Value))),
+            dependent);
+        if (!result.IsValid)
+        {
+            error = string.Join(" ", result.Errors);
+            return false;
+        }
+
+        foreach (var transform in dependent)
+        {
+            if (result.Record.Values.TryGetValue(transform.Name.Trim(), out var value))
+            {
+                row[transform.Name.Trim()] = value ?? string.Empty;
+            }
+        }
+
+        return true;
     }
 
     private static readonly IReadOnlyDictionary<string, string> EmptyRow =
@@ -321,7 +460,8 @@ public static partial class JobVariableContract
             return false;
         }
 
-        withValues = new IReadOnlyDictionary<string, string>?[rows.Count];
+        var dependent = JobDependentTransforms(template);
+        var prepared = new IReadOnlyDictionary<string, string>?[rows.Count];
         for (var i = 0; i < rows.Count; i++)
         {
             var copy = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -338,9 +478,15 @@ public static partial class JobVariableContract
                 copy[pair.Key] = pair.Value;
             }
 
-            withValues[i] = copy;
+            if (!TryApplyJobTransforms(dependent, copy, out error))
+            {
+                return false;
+            }
+
+            prepared[i] = copy;
         }
 
+        withValues = prepared;
         return true;
     }
 
@@ -374,22 +520,34 @@ public static partial class JobVariableContract
         var prompts = RequiredPrompts(template);
         foreach (var token in tokens)
         {
-            if (IsDateToken(token))
-            {
-                copy[token] = TryFormatDate(token, now, out var date, out _) ? date : "{" + token + "}";
-                continue;
-            }
-
-            var definition = prompts.First(item => string.Equals(item.Name, token[1..].Trim(), StringComparison.OrdinalIgnoreCase));
-            copy[token] = knownPromptValues.TryGetValue(definition.Name, out var known) && !string.IsNullOrEmpty(known)
-                ? FormatPromptValue(definition, known)
-                : !string.IsNullOrEmpty(definition.DefaultValue) ? FormatPromptValue(definition, definition.DefaultValue)
-                // A date prompt shows the job day in its print format until a date is given.
-                : IsDatePrompt(definition) ? FormatPromptValue(definition, now.LocalDateTime.ToString(DateAnswerFormat, CultureInfo.InvariantCulture))
-                : $"‹{definition.Name}›";
+            copy[token] = DesignTokenValue(token, prompts, now, knownPromptValues);
         }
 
+        // A function reading a prompt shows its design value too.
+        TryApplyJobTransforms(JobDependentTransforms(template), copy, out _);
         return copy;
+    }
+
+    private static string DesignTokenValue(
+        string token,
+        IReadOnlyList<PromptVariableDefinition> prompts,
+        DateTimeOffset now,
+        IReadOnlyDictionary<string, string> knownPromptValues)
+    {
+        if (IsDateToken(token))
+        {
+            return TryFormatDate(token, now, out var date, out _) ? date : "{" + token + "}";
+        }
+
+        var name = token[1..].Trim();
+        var definition = prompts.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase))
+            ?? new PromptVariableDefinition { Name = name };
+        return knownPromptValues.TryGetValue(definition.Name, out var known) && !string.IsNullOrEmpty(known)
+            ? FormatPromptValue(definition, known)
+            : !string.IsNullOrEmpty(definition.DefaultValue) ? FormatPromptValue(definition, definition.DefaultValue)
+            // A date prompt shows the job day in its print format until a date is given.
+            : IsDatePrompt(definition) ? FormatPromptValue(definition, now.LocalDateTime.ToString(DateAnswerFormat, CultureInfo.InvariantCulture))
+            : $"‹{definition.Name}›";
     }
 
     /// <summary>The value of every job token, keyed by the token text.</summary>

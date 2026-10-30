@@ -27,6 +27,13 @@
   còn quy tắc nhập (chỉ số, độ dài tối đa, bắt buộc), và câu "sẽ báo lỗi liên kết"
   trong cửa sổ là sai vì không có lỗi nào được báo. Trước khi bấm Đồng ý, cửa sổ
   nêu đối tượng nào sẽ chuyển sang tên mới; Ctrl+Z hoàn tác cả hai.
+- Quản lý dữ liệu, Hàm: hàm đọc biến nhập khi in (FIELD("?Tên")) hoặc ngày in
+  (FIELD("#NOW:…")) nay chạy được, như cửa sổ vẫn hướng dẫn và như NiceLabel:
+  khi in, hộp nhập hỏi biến mà hàm đọc, rồi hàm được tính với giá trị vừa nhập;
+  cửa sổ Hàm hiện kết quả với giá trị mẫu thay vì báo lỗi. Trước đây hàm luôn
+  được tính trước khi có giá trị nhập: biến không được hỏi, phần đó của tem in
+  ra trống (có dữ liệu Excel thì bị chặn in vì "lỗi chuyển đổi dữ liệu"), và
+  màn hình thiết kế báo nhầm thiếu cột "?Tên".
 
 ## v0.351 — Quét mã chọn đúng dòng cần in; Enter sang câu hỏi kế tiếp
 
