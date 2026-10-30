@@ -1,5 +1,18 @@
 # ANLAbel Phase 1 Plan
 
+## v0.338 — Rà soát giao diện: Trợ giúp theo bố cục mới, hộp thoại theo màu thật, ribbon thu gọn khi cửa sổ hẹp
+
+_Gồm các commit 30/10/2026 (11:06–11:26)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Trợ giúp mô tả thanh lệnh theo thẻ, hộp công cụ 3 × 3 và các thẻ Thuộc tính;
+  cột của Phiên bản mẫu tem không còn bị cắt.
+- Mẫu tem mới không còn để nút che ô DPI; nút “☑ Tất cả” và “✕” trong Xem
+  trước hiện đủ; ô phông và cỡ chữ trên ribbon căn giữa.
+- Dưới 1200 px, ribbon gộp lệnh in phụ thành “Thêm lệnh in ▾” và tám nút căn
+  thành “Căn chỉnh ▾”.
+
+**Kiểm tra:** build 0 cảnh báo, 1543 unit, hồi quy 282/282.
+
 ## v0.337 — Rà soát giao diện: nhóm ribbon thẳng hàng, nút xoay dùng được, bảng dữ liệu Xem trước, Thiết lập máy in
 
 _Gồm các commit 30/10/2026 (10:38–10:56)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
