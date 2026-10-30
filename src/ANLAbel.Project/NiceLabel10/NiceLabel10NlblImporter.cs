@@ -1265,15 +1265,39 @@ public static partial class NiceLabel10NlblImporter
         /// </summary>
         public string SampleText(NiceLabel10ObjectRecord record)
         {
-            if (record.VariableId is { } id
-                && _document.VariablesById.TryGetValue(id, out var variable)
-                && !string.IsNullOrEmpty(variable.DefaultValue))
+            if (record.ContentTemplate is { } template)
             {
-                return record.IsRichText ? NiceLabel10RichText.ToPlainText(variable.DefaultValue) : variable.DefaultValue;
+                // Fixed text with references ("Po: [id]"): each reference shows
+                // its data source's design-time value, as NiceLabel draws it.
+                var composed = ReferencePattern().Replace(template, match =>
+                    _document.VariablesById.TryGetValue(match.Groups[1].Value, out var referenced)
+                    && DesignSample(referenced) is { } value
+                        ? value
+                        : match.Value);
+                if (!ReferencePattern().IsMatch(composed))
+                {
+                    return composed;
+                }
+            }
+            else if (record.VariableId is { } id
+                && _document.VariablesById.TryGetValue(id, out var variable)
+                && DesignSample(variable) is { } sample)
+            {
+                return record.IsRichText ? NiceLabel10RichText.ToPlainText(sample) : sample;
             }
 
             return record.Content;
         }
+
+        /// <summary>
+        /// The value NiceLabel shows for a data source at design time: a
+        /// variable's default, or the stored sample of a database field (a
+        /// bound item's own contents are only a placeholder such as "Text").
+        /// </summary>
+        private static string? DesignSample(NiceLabel10Variable variable)
+            => !string.IsNullOrEmpty(variable.DefaultValue) ? variable.DefaultValue
+                : !string.IsNullOrEmpty(variable.SampleValue) ? variable.SampleValue
+                : null;
 
         public (double WidthMm, double HeightMm) MeasureText(LabelObject item, string sampleText)
         {

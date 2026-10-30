@@ -1246,6 +1246,60 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void TextBoundToADatabaseField_IsSizedFromTheFieldSample()
+    {
+        // The bound item stores the placeholder "Text"; NiceLabel shows the field's
+        // stored sample, so the imported frame is that sample's natural size.
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Databases>
+                <Item Type="OleDb">
+                  <DataSetCollection>
+                    <Item Type="OleDBDatabaseDataSet">
+                      <FieldCollection>
+                        <Item Type="DBField">
+                          <Id>f1f1f1f1-2222-3333-4444-555555555555</Id>
+                          <Name>Sheet1$.MPN</Name>
+                          <SampleValue Type="StringContents"><StringValue>SEMCG-MR-00135</StringValue></SampleValue>
+                          <FieldName>MPN</FieldName>
+                        </Item>
+                      </FieldCollection>
+                    </Item>
+                  </DataSetCollection>
+                </Item>
+              </Databases>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format("""
+            <Item Type="TextDocumentItem">
+              <Name>Bound</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>Text</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>f1f1f1f1-2222-3333-4444-555555555555</Id></DataSourceReference>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Composed</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>9000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>MPN:</FixedContents>
+              <Contents Type="ExtendedDataValue">
+                <FixedValue Type="StringContents"><StringValue>MPN: [f1f1f1f1-2222-3333-4444-555555555555]</StringValue></FixedValue>
+                <DataSourceReferences><Item Type="SolutionDataSourceReference"><Id>f1f1f1f1-2222-3333-4444-555555555555</Id></Item></DataSourceReferences>
+              </Contents>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        Assert.Equal("{MPN}", byName["Bound"].BindingExpression);
+        // The importer's font-metric estimate without a measurer: 0.55 em per character.
+        var em = 10 * 25.4 / 72;
+        Assert.Equal("SEMCG-MR-00135".Length * 0.55 * em, byName["Bound"].WidthMm, 2);
+        Assert.Equal("MPN: SEMCG-MR-00135".Length * 0.55 * em, byName["Composed"].WidthMm, 2);
+    }
+
+    [Fact]
     public void Objects_StackInTheStoredZOrder_AndKeepNotPrintable()
     {
         // The file lists the white caption before the black band it sits on;

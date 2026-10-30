@@ -263,7 +263,14 @@ public sealed record NiceLabel10Variable(
     int Padding = 0,
     string? PaddingCharacter = null,
     bool FixedLength = false,
-    string? AllowedCharacters = null);
+    string? AllowedCharacters = null)
+{
+    /// <summary>
+    /// The design-time sample NiceLabel shows for a database field (its
+    /// stored <c>SampleValue</c>); null for other data sources.
+    /// </summary>
+    public string? SampleValue { get; init; }
+}
 
 /// <summary>
 /// A parsed NiceLabel 10 label: stored name, label size in millimetres,

@@ -656,3 +656,17 @@ NiceLabel`.
   conditional give `AND`. A prompt used only by a condition is asked at print
   (`JobVariableContract.FindTokens` reads conditions too). Sample sweep: the
   `Label_layers` QR decodes and its hidden Code 128 variant is not printed.
+
+## §14 Design-time samples of database fields (2026-10-30)
+
+A text bound to a data source stores a placeholder in `FixedContents` (the
+contents it had before binding: "Text", "Text Box", "Po:"); NiceLabel shows
+the data source's design value instead: a variable's `DefaultValue`, a
+database field's `SampleValue` (`DBField`/`CsvDBField`, also cached per data
+set in `FieldsSampleValueCache`). In the 12 local customer labels 35 of the 48
+bound texts have a field sample. The importer sized position texts from the
+placeholder, so ANLAbel Text (which keeps its frame at print and compresses
+longer values into it, by the protected Text contract) squeezed every value
+into the width of "Text". It now measures the field sample, and composes
+fixed text with references ("Po: [id]") from each source's design value.
+Bound barcodes keep their stored-contents sizing (§9).

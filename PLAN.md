@@ -45,6 +45,10 @@
   trống. Trước đây hình nhập vào nhận kiểu mặc định của ANLAbel là tô trắng
   đặc, nên che mọi thứ nằm dưới: trên tem dạng bảng của khách, khung bao vẽ
   sau che hết nhãn cột trái và tên công ty.
+- Nhập .nlbl: ô chữ gắn trường Excel lấy khung theo giá trị mẫu NiceLabel lưu
+  cho trường (cũng là giá trị NiceLabel hiện khi thiết kế), kể cả ô ghép chữ
+  cố định với trường (“Po: …”). Trước đây khung đo theo chữ giữ chỗ của ô
+  (“Text”, “Po:”) nên khi in giá trị thật bị nén vào bề rộng của chữ đó.
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

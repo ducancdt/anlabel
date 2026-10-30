@@ -97,7 +97,10 @@ public static class NiceLabel10NlblReader
                     // row by column name.
                     variables[id] = new NiceLabel10Variable(
                         id, name, null, string.Empty, 0, false, false, true, null, 0, null,
-                        DataFieldName: ChildText(item, "FieldName")?.Trim() is { Length: > 0 } field ? field : name);
+                        DataFieldName: ChildText(item, "FieldName")?.Trim() is { Length: > 0 } field ? field : name)
+                    {
+                        SampleValue = ChildText(item.Element("SampleValue"), "StringValue")
+                    };
                     continue;
                 case "ConcatenateFunction":
                     variables[id] = new NiceLabel10Variable(
