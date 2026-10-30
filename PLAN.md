@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.345
+## v0.346 — Trình tạo tem mới, bảo vệ tem, quy tắc biến nhập, hàm chữ và điều kiện; tem .nlbl in như NiceLabel
+
+_Gồm các commit 30/10/2026 (22:01–23:27)._
 
 - Tạo tem mới theo trình tạo tem của NiceLabel 10 (New Label Setup Wizard):
   hộp Tạo mẫu tem mới có ô “Tiếp theo: chọn máy in và giấy” (bật sẵn); Thuộc
@@ -49,6 +51,8 @@
   cho trường (cũng là giá trị NiceLabel hiện khi thiết kế), kể cả ô ghép chữ
   cố định với trường (“Po: …”). Trước đây khung đo theo chữ giữ chỗ của ô
   (“Text”, “Po:”) nên khi in giá trị thật bị nén vào bề rộng của chữ đó.
+
+**Kiểm tra:** build 0 cảnh báo, 1625 unit, hồi quy 302/302 (vòng kiểm tra Fast).
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 
