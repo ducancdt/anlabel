@@ -508,3 +508,12 @@ Text Box, barcode, QR or Data Matrix, or adds a toolbox-default Text whose
 top-left corner is the drop point, as one undo step; a protected label takes
 no drop. Not built: dropping onto an armed toolbox tool, dropping a whole data
 set. Gate: `fields and prompts drop on the label`.
+
+Functions and print-time values (2026-10-31, v0.353): NiceLabel's explorer
+lists functions and internal values beside variables. The Data tree adds
+"Hàm" (the Data Manager functions, dropped as `{Name}`) and "Khi in" (the
+serial `{#SERIAL}` while the counter is on, the print date
+`{#NOW:dd/MM/yyyy}`), shown by label with the binding as tooltip; a text
+dropped from "Khi in" is named "Số sê-ri" or "Ngày in". One mapping
+(`MainWindow.DataTreeBinding`) turns a tree item into its binding. Gate:
+`the data panel lists functions and print-time fields`.
