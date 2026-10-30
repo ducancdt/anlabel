@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.349
+## v0.350 — Giá trị quét quá dài bị trả lại thay vì bị cắt; Xem trước khi in gọn hơn và nêu tên cột
+
+_Gồm các commit 31/10/2026 (02:02–02:07)._
 
 - Xem trước khi in (soát thiết kế): các giá trị kỹ thuật của kế hoạch in (DPI,
   độ lệch, vùng in đã xác thực) nằm trong mục "Chi tiết kỹ thuật" thu gọn; hai câu
@@ -14,6 +16,8 @@
   giải đúng, có dấu phân cách GS sau số lô và serial tăng dần.
 - Xem trước khi in: rê chuột lên một dòng dữ liệu hiện tên từng cột kèm giá trị
   ("Ma: SP-0001", "Ten: …"), vì danh sách chỉ hiện giá trị.
+
+**Kiểm tra:** build 0 cảnh báo, 1681 unit, hồi quy 314/314 (vòng kiểm tra Fast).
 
 ## v0.349 — Ngày gõ sai khi in bị trả lại thay vì lặng lẽ in ngày cũ; trình soạn biến nhập gọn và rõ hơn
 
