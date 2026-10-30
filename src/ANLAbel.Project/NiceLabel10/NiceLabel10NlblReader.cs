@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace ANLAbel.Project.NiceLabel10;
@@ -66,6 +67,17 @@ public static class NiceLabel10NlblReader
     private static void ReadVariables(byte[] solutionXml, Dictionary<string, NiceLabel10Variable> variables)
     {
         var document = XDocument.Parse(DecodeXml(solutionXml));
+        // Scripts name their inputs; every declared data source by its id.
+        var namesById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var declared in document.Descendants("Item"))
+        {
+            if (ChildText(declared, "Id")?.Trim() is { Length: > 0 } declaredId
+                && ChildText(declared, "Name")?.Trim() is { Length: > 0 } declaredName)
+            {
+                namesById[declaredId] = declaredName;
+            }
+        }
+
         foreach (var item in document.Descendants("Item"))
         {
             var itemType = item.Attribute("Type")?.Value;
@@ -108,6 +120,14 @@ public static class NiceLabel10NlblReader
                     }
 
                     continue;
+                case "ExecuteScriptFunction":
+                    if (ReadScriptConcatenation(item, namesById) is { } scriptTemplate)
+                    {
+                        variables[id] = new NiceLabel10Variable(
+                            id, name, null, string.Empty, 0, false, false, true, null, 0, scriptTemplate);
+                    }
+
+                    continue;
                 case "AscFactFunction":
                     if (ReadAscComposition(item) is { } ascTemplate)
                     {
@@ -142,9 +162,9 @@ public static class NiceLabel10NlblReader
                     continue;
                 }
                 default:
-                    // Other solution functions (scripts, GS1/HIBC composition,
-                    // subsets, date arithmetic) have no ANLAbel equivalent;
-                    // objects referencing them stay unconverted.
+                    // Other solution functions (HIBC composition, other
+                    // script kinds) have no ANLAbel equivalent; objects
+                    // referencing them stay unconverted.
                     continue;
             }
 
@@ -311,6 +331,71 @@ public static class NiceLabel10NlblReader
     private const char GroupSeparator = '\u001D';
     private const char RecordSeparator = '\u001E';
     private const char EndOfTransmission = '\u0004';
+
+    /// <summary>
+    /// An <c>ExecuteScriptFunction</c> whose VBScript is a single
+    /// concatenation, <c>Result = "UN" &amp; SupplierID &amp; [Package Number]</c>
+    /// (52 of the 68 scripts in the vendor samples, the license plates and
+    /// data-identifier fields of GTL, VDA and automotive labels): string
+    /// literals and the function's own inputs by name (VBScript names ignore
+    /// case), joined by <c>&amp;</c>. It becomes the same <c>[id]</c> template a
+    /// <c>ConcatenateFunction</c> gives. Any other script (calls such as UCase
+    /// or Left, arithmetic, several statements, names that are not its
+    /// inputs) is not translated, so objects using it stay unconverted.
+    /// </summary>
+    private static string? ReadScriptConcatenation(XElement function, IReadOnlyDictionary<string, string> namesById)
+    {
+        var script = ChildText(function, "Script")?.Trim();
+        var match = script is null ? null : ScriptConcatenation.Match(script);
+        if (match is not { Success: true })
+        {
+            return null;
+        }
+
+        var inputs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var reference in function.Element("InputDataSourceReferences")?.Elements("Item") ?? Enumerable.Empty<XElement>())
+        {
+            if (ChildText(reference, "Id")?.Trim() is { Length: > 0 } inputId
+                && namesById.TryGetValue(inputId, out var inputName))
+            {
+                inputs[inputName] = inputId;
+            }
+        }
+
+        var template = new System.Text.StringBuilder();
+        foreach (Capture term in match.Groups["term"].Captures)
+        {
+            var text = term.Value;
+            if (text[0] == '"')
+            {
+                // A bracket in a literal would read as a reference in the template.
+                var literal = text[1..^1].Replace("\"\"", "\"", StringComparison.Ordinal);
+                if (literal.IndexOfAny(new[] { '[', ']' }) >= 0)
+                {
+                    return null;
+                }
+
+                template.Append(literal);
+                continue;
+            }
+
+            var inputNameUsed = text[0] == '[' ? text[1..^1].Trim() : text;
+            if (!inputs.TryGetValue(inputNameUsed, out var referenceId))
+            {
+                return null;
+            }
+
+            template.Append('[').Append(referenceId).Append(']');
+        }
+
+        return template.ToString();
+    }
+
+    private const string ScriptTerm = @"(?<term>""(?:[^""\r\n]|"""")*""|\[[^\]\r\n]+\]|[A-Za-z_][A-Za-z0-9_]*)";
+
+    private static readonly Regex ScriptConcatenation = new(
+        @"^Result\s*=\s*" + ScriptTerm + @"(?:\s*&\s*" + ScriptTerm + @")*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// An <c>AscFactFunction</c> composes ANSI MH10.8.2 data-identifier

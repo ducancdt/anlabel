@@ -19,6 +19,10 @@
   20 × 20); Khổ Data Matrix chọn 24 khổ vuông hoặc 6 khổ chữ nhật, in đúng khổ,
   dữ liệu dài quá khổ thì chặn dòng đó với lý do rõ ràng; khung theo hình khổ chữ
   nhật; nhập .nlbl giữ khổ (DatamatrixFormat).
+- Nhập .nlbl: script NiceLabel chỉ nối chuỗi (`Result = "UN" & SupplierID &
+  [Package Number]`, 52/68 script mẫu: biển số kiện GTL, VDA 4902, GM1724) được
+  dịch thành mẫu ghép trường; bộ mẫu NiceLabel chuyển được 98,1% đối tượng (trước
+  96,4%). Script khác (UCase, Left…) vẫn báo chưa chuyển.
 
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 

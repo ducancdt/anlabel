@@ -25,6 +25,9 @@ public sealed class NiceLabel10ImportMappingTests
     private const string EnvelopeId = "cccccccc-2222-3333-4444-555555555555";
     private const string EnvelopeOtherFormatId = "dddddddd-2222-3333-4444-555555555555";
     private const string SubsetId = "eeeeeeee-2222-3333-4444-555555555555";
+    private const string ScriptId = "f1f1f1f1-2222-3333-4444-555555555555";
+    private const string ScriptCallId = "f2f2f2f2-2222-3333-4444-555555555555";
+    private const string AscScriptId = "f3f3f3f3-2222-3333-4444-555555555555";
 
     private const string SolutionXml = $"""
         <?xml version="1.0" encoding="utf-8"?>
@@ -133,6 +136,28 @@ public sealed class NiceLabel10ImportMappingTests
                 <Item Type="TransferDataSyntaxFormat"><FormatId>1</FormatId><DataValues><Item Type="DataValue"><DataSourceReference Type="SolutionDataSourceReference"><Id>{LotId}</Id></DataSourceReference></Item></DataValues></Item>
               </Formats>
             </Item>
+            <Item Type="ExecuteScriptFunction">
+              <Id>{ScriptId}</Id>
+              <Name>License plate data</Name>
+              <Script>Result = &quot;UN&quot; &amp; lot &amp; [Qty] &amp; &quot;-&quot;&quot;A&quot;&quot;&quot;</Script>
+              <InputDataSourceReferences>
+                <Item Type="SolutionDataSourceReference"><Id>{LotId}</Id></Item>
+                <Item Type="SolutionDataSourceReference"><Id>{QtyId}</Id></Item>
+              </InputDataSourceReferences>
+            </Item>
+            <Item Type="ExecuteScriptFunction">
+              <Id>{ScriptCallId}</Id>
+              <Name>Upper lot</Name>
+              <Script>Result = UCase(Lot)</Script>
+              <InputDataSourceReferences><Item Type="SolutionDataSourceReference"><Id>{LotId}</Id></Item></InputDataSourceReferences>
+            </Item>
+            <Item Type="AscFactFunction">
+              <Id>{AscScriptId}</Id>
+              <Name>License plate</Name>
+              <DataValues>
+                <Item Type="AscFactDataValue"><AscFactIdentifierName>1J</AscFactIdentifierName><IsUsingShortTitle>False</IsUsingShortTitle><DataSourceReference Type="SolutionDataSourceReference"><Id>{ScriptId}</Id></DataSourceReference></Item>
+              </DataValues>
+            </Item>
           </Functions>
         </EuroPlus.NiceLabel>
         """;
@@ -217,6 +242,39 @@ public sealed class NiceLabel10ImportMappingTests
 
         // Offset 2 (characters skipped) and length 5 → MID start 3.
         Assert.Equal("MID(FIELD(\"?Lot\"), \"3\", \"5\")", Assert.Single(template.Objects).BindingExpression);
+    }
+
+    [Fact]
+    public void ConcatenatingScript_BecomesTheSameTemplate()
+    {
+        // GTL license plate: data identifier 1J + script "UN" & supplier & package number.
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>License plate</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight></BarcodeData>
+              <FixedContents>1JUN000125</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{AscScriptId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        Assert.Equal("1JUN{?Lot}{?Qty}-\"A\"", Assert.Single(template.Objects).BindingExpression);
+    }
+
+    [Fact]
+    public void ScriptWithACall_IsNotConverted()
+    {
+        var template = Import($"""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Upper</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight></BarcodeData>
+              <FixedContents>L-001</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>{ScriptCallId}</Id></DataSourceReference>
+            </Item>
+            """);
+
+        Assert.Empty(template.Objects);
     }
 
     [Fact]
@@ -356,11 +414,13 @@ public sealed class NiceLabel10ImportMappingTests
     {
         var document = Parse(Format(string.Empty));
 
-        // Three variables, the date-add, both GS1 functions, two data
-        // identifier functions, the format-06 envelope and the subset; the
-        // other-format envelope is not registered.
-        Assert.Equal(11, document.VariablesById.Count);
+        // Three variables, the date-add, both GS1 functions, three data
+        // identifier functions, the format-06 envelope, the subset and the
+        // concatenating script; the other-format envelope and the script
+        // that calls UCase are not registered.
+        Assert.Equal(13, document.VariablesById.Count);
         Assert.False(document.VariablesById.ContainsKey(EnvelopeOtherFormatId));
+        Assert.False(document.VariablesById.ContainsKey(ScriptCallId));
         var lot = document.VariablesById[LotId];
         Assert.Equal("Lot", lot.Name);
         Assert.Equal("Enter the lot", lot.PromptText);

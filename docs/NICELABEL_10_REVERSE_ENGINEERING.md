@@ -288,6 +288,14 @@ an acceptance check.
   bound objects whose binding had silently fallen back to their sample
   text because no variable resolved (§2); they now either bind or are
   reported.
+- 2026-10-30, after translating one-statement concatenating scripts
+  (`ExecuteScriptFunction`, `Result = "UN" & SupplierID & [Package Number]`:
+  52 of the 68 sample scripts, the license plates and data-identifier fields
+  of the GTL, VDA 4902 and GM1724 labels): 6,345 converted (98.1%);
+  unconverted = 33 barcodes and 57 texts bound to other scripts (UCase,
+  Left/Right, check-digit helpers), HIBC or date arithmetic on prompted
+  dates, 13 graphics, 4 rich-text templates, 15 report items. The 12 local
+  customer labels convert 334/334.
 - 205 rotated and 615 anchored objects are placed through §8; the
   importer's frames are consistent with the vendor runtime geometry for
   every quarter turn (unit tests `NiceLabel10PlacementTests`).
