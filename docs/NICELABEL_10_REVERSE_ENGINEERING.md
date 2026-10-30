@@ -980,3 +980,30 @@ General "1200", `#,##0` and comma style "1,200", `0.00` "1200.00". The two
 agree only when the cell format happens to match the field; a quantity in a
 comma-style column prints "1,200" in ANLAbel and "1200" in NiceLabel, inside
 barcodes too. Owner decision (number separators); not changed.
+
+## §26 Editing several selected objects (2026-10-31)
+
+NiceLabel 10's property pages, which also back the ribbon's font group, edit
+every selected object at once:
+
+- `TextStylePropertyPageViewModel.FontSize` (DesignerLib) calls
+  `SetValue(value, …, TextPropertyXaml.FontSizeUndoDesc, (item, size) => …)`
+  with an action that sets the size on an item that has a font and skips
+  the others. With nothing selected it sets
+  `ApplicationSettings.FontSize`, the size of new text objects.
+- `SolutionItemPropertyPageViewModel<TItem>.SetValue` (Gui.Core) passes the
+  action to a helper that copies the page's item list and calls the action
+  for each item, under the one undo description.
+- A page shows only when it suits the whole selection
+  (`TextStylePropertyPageViewModel.IsValidPropertyPage` refuses a selection
+  with a rich text box or a form table), and choices such as the font sizes
+  offered are the intersection over the selected items.
+- Barcode pages work the same way (`Barcode2DPropertyPageViewModel`
+  overrides `SetValue`). The `*SelectionItemCommandArguments` types (font
+  width and height, bar width, module height) record the undo of a resize
+  of the selection on the design surface, not property edits.
+
+ANLAbel's Properties panel and ribbon edit the key object; font family,
+size, style, colour and alignment now go to every selected text and text
+box (pending batch). Barcode settings and the other pages still edit the
+key object only.
