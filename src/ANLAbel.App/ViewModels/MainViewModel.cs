@@ -785,7 +785,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Text colours offered by the ribbon (NiceLabel 10 Font colour); stored as ARGB.</summary>
     public IReadOnlyList<string> TextColorOptions { get; } =
     [
-        "#FF000000", "#FFFFFFFF", "#FFDC2626", "#FF16A34A", "#FF1D4ED8", "#FFF59E0B", "#FF7C3AED", "#FF64748B"
+        "#FF1F2937", "#FF000000", "#FFFFFFFF", "#FFDC2626", "#FF16A34A", "#FF1D4ED8", "#FFF59E0B", "#FF7C3AED", "#FF64748B"
     ];
     public bool IsTextObjectSelected => SelectedObject?.Type is ObjectType.Text or ObjectType.TextBox;
     public bool IsBarcodeObjectSelected => SelectedObject?.Type is ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix;

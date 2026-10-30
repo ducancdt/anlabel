@@ -210,3 +210,14 @@ Still different, by design:
   has no letter-spacing; adding it needs a glyph-level layout of its own.
 - Printer Element and Events markers: ANLAbel has no printer-internal
   elements or object events to mark.
+
+Full-window side-by-side (2026-10-30): the NiceLabel 10 designer (sample
+label, Properties pinned) next to ANLAbel (layout gate render) — same
+regions in the same places: quick access row, tab strip, ribbon; toolbox
+above the Data/Layers/Objects explorer on the left; rulers and design
+surface in the middle with the document tab below it (added in this pass:
+`Shell.DocumentTabs`, "Thiết kế tem · <tên>"); pinned Properties with
+Source/Style/Position/General and Source/Mask on the right; status bar
+with printer and zoom on the right. Differences in content, not layout:
+NiceLabel's Data explorer lists solution variables (ANLAbel's lists the
+linked Excel/CSV fields), and NiceLabel shades the non-printable page area.

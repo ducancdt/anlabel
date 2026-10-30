@@ -1796,6 +1796,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="26"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="28"/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="38"/>
@@ -1856,6 +1857,18 @@
                         </Border>
                     </Grid>
                 </ScrollViewer>
+                <!-- NiceLabel 10 document tab strip under the design surface (TabStripPlacement Bottom) -->
+                <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0"
+                        AutomationProperties.AutomationId="Shell.DocumentTabs" AutomationProperties.Name="Document tabs">
+                    <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
+                        <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1,0,1,1" Padding="12,3" CornerRadius="0,0,4,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Thiết kế tem" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Template.Name, StringFormat={} · {0}}" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" Visibility="{Binding IsPropertiesDocked, Converter={StaticResource BoolToVisibility}}"/>

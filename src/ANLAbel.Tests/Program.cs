@@ -12920,7 +12920,7 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
                          "Shell.Ribbon.ZoomToDocument", "Shell.Status.Printer", "Shell.Properties.Title",
                          "Shell.Ribbon.Group", "Shell.Ribbon.Ungroup", "Shell.Ribbon.AnchorPoint", "Shell.Ribbon.ObjectMarkers", "Shell.Ribbon.RotateView", "Shell.Properties.Pin",
                          "Shell.Ribbon.ZoomToObjects", "Shell.Ribbon.DoNotAlign", "Shell.Ribbon.NotPrintable", "Shell.Ribbon.FormatPainter",
-                         "Shell.Ribbon.MirrorText", "Shell.Ribbon.KeepAspectRatio", "Shell.Ribbon.VisibilityCondition" })
+                         "Shell.Ribbon.MirrorText", "Shell.Ribbon.KeepAspectRatio", "Shell.Ribbon.VisibilityCondition", "Shell.DocumentTabs" })
             {
                 AssertEqual(true, found.Contains(id, StringComparer.Ordinal), "NiceLabel layout must expose " + id);
             }
