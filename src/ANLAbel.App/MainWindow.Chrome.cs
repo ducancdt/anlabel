@@ -4,13 +4,14 @@ using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Shell;
+using System.Windows.Threading;
 
 namespace ANLAbel.App;
 
 /// <summary>
 /// NiceLabel 10 title bar (docs/NICELABEL_10_UI_LAYOUT.md, "Shell rebuild"): the window
 /// draws its own navy caption with the quick access commands, so the minimise, maximise
-/// and close buttons, the system menu and the maximised bounds are handled here.
+/// and close buttons, the system menu and the maximised layout are handled here.
 /// </summary>
 public partial class MainWindow
 {
@@ -19,9 +20,12 @@ public partial class MainWindow
 
     private void InitializeWindowChrome()
     {
-        SourceInitialized += (_, _) =>
-            HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ChromeWindowProc);
-        StateChanged += (_, _) => ApplyWindowChromeState();
+        StateChanged += (_, _) =>
+        {
+            ApplyWindowChromeState();
+            QueueFitMaximizedContent();
+        };
+        SizeChanged += (_, _) => QueueFitMaximizedContent();
         ApplyWindowChromeState();
     }
 
@@ -41,9 +45,53 @@ public partial class MainWindow
             UseAeroCaptionButtons = false
         });
         MaximizeGlyph.Text = maximized ? "" : "";
-        var label = maximized ? "Khôi phục" : "Phóng to";
-        MaximizeButton.ToolTip = label;
+        MaximizeButton.ToolTip = maximized ? "Khôi phục" : "Phóng to";
         AutomationProperties.SetName(MaximizeButton, maximized ? "Restore" : "Maximize");
+    }
+
+    private void QueueFitMaximizedContent() =>
+        Dispatcher.BeginInvoke(FitMaximizedContent, DispatcherPriority.Loaded);
+
+    /// <summary>
+    /// Windows places a maximised window a frame's width beyond the monitor on every side.
+    /// Measured on the shown content (2026-10-30, 150 %): WPF pulls the content back on the
+    /// left, top and right but the bottom 11 px stay under the taskbar. Whatever part of
+    /// the content still lies outside the work area becomes a margin, so the status bar
+    /// ends exactly at the taskbar.
+    /// </summary>
+    private void FitMaximizedContent()
+    {
+        if (Content is not FrameworkElement root)
+        {
+            return;
+        }
+
+        var margin = new Thickness(0);
+        var source = PresentationSource.FromVisual(this);
+        var handle = new WindowInteropHelper(this).Handle;
+        if (WindowState == WindowState.Maximized && source?.CompositionTarget is { } target && handle != IntPtr.Zero)
+        {
+            const uint MonitorDefaultToNearest = 2;
+            var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+            if (GetMonitorInfo(MonitorFromWindow(handle, MonitorDefaultToNearest), ref info))
+            {
+                // Content bounds in device pixels without the margin being corrected.
+                var current = root.Margin;
+                var topLeft = root.PointToScreen(new Point(-current.Left, -current.Top));
+                var bottomRight = root.PointToScreen(new Point(root.ActualWidth + current.Right, root.ActualHeight + current.Bottom));
+                var toDip = target.TransformFromDevice;
+                margin = new Thickness(
+                    Math.Max(0, info.Work.Left - topLeft.X) * toDip.M11,
+                    Math.Max(0, info.Work.Top - topLeft.Y) * toDip.M22,
+                    Math.Max(0, bottomRight.X - info.Work.Right) * toDip.M11,
+                    Math.Max(0, bottomRight.Y - info.Work.Bottom) * toDip.M22);
+            }
+        }
+
+        if (root.Margin != margin)
+        {
+            root.Margin = margin;
+        }
     }
 
     private void MinimizeWindow_Click(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
@@ -79,39 +127,6 @@ public partial class MainWindow
         SystemCommands.ShowSystemMenu(this, fromDevice?.Transform(corner) ?? corner);
     }
 
-    /// <summary>
-    /// A custom caption keeps the maximised window inside the monitor's work area (not
-    /// under the taskbar, no edge cut off by the hidden frame).
-    /// </summary>
-    private static IntPtr ChromeWindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        const int WmGetMinMaxInfo = 0x0024;
-        if (msg == WmGetMinMaxInfo)
-        {
-            FitMaximizedBoundsToWorkArea(hwnd, lParam);
-        }
-
-        return IntPtr.Zero;
-    }
-
-    private static void FitMaximizedBoundsToWorkArea(IntPtr hwnd, IntPtr lParam)
-    {
-        const uint MonitorDefaultToNearest = 2;
-        var monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
-        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
-        {
-            return;
-        }
-
-        var limits = Marshal.PtrToStructure<MinMaxInfo>(lParam);
-        limits.MaxPosition.X = info.Work.Left - info.Monitor.Left;
-        limits.MaxPosition.Y = info.Work.Top - info.Monitor.Top;
-        limits.MaxSize.X = info.Work.Right - info.Work.Left;
-        limits.MaxSize.Y = info.Work.Bottom - info.Work.Top;
-        Marshal.StructureToPtr(limits, lParam, false);
-    }
-
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
 
@@ -120,29 +135,12 @@ public partial class MainWindow
     private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint
-    {
-        public int X;
-        public int Y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect
     {
         public int Left;
         public int Top;
         public int Right;
         public int Bottom;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MinMaxInfo
-    {
-        public NativePoint Reserved;
-        public NativePoint MaxSize;
-        public NativePoint MaxPosition;
-        public NativePoint MinTrackSize;
-        public NativePoint MaxTrackSize;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
