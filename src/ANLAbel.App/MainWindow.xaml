@@ -1384,6 +1384,25 @@
                                     </TabItem.Header>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel Margin="4,8">
+                                    <!-- NiceLabel 10 Data explorer: variables and data fields as a tree -->
+                                    <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields">
+                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.PromptVariables}">
+                                            <TreeViewItem.Header>
+                                                <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70F;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Biến nhập khi in" FontWeight="SemiBold"/></StackPanel>
+                                            </TreeViewItem.Header>
+                                            <TreeViewItem.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding Name, StringFormat={}? {0}}"/></DataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
+                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding ExcelHeaders}">
+                                            <TreeViewItem.Header>
+                                                <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE80A;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Trường dữ liệu" FontWeight="SemiBold"/></StackPanel>
+                                            </TreeViewItem.Header>
+                                            <TreeViewItem.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding StringFormat={}{{{0}}}}"/></DataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
+                                    </TreeView>
                                     <TreeView Padding="0,0,0,8" Visibility="Collapsed">
                                         <TreeViewItem IsExpanded="True" Visibility="Collapsed">
                                             <TreeViewItem.Header>

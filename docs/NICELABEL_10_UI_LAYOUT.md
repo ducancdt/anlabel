@@ -218,6 +218,7 @@ above the Data/Layers/Objects explorer on the left; rulers and design
 surface in the middle with the document tab below it (added in this pass:
 `Shell.DocumentTabs`, "Thiết kế tem · <tên>"); pinned Properties with
 Source/Style/Position/General and Source/Mask on the right; status bar
-with printer and zoom on the right. Differences in content, not layout:
-NiceLabel's Data explorer lists solution variables (ANLAbel's lists the
-linked Excel/CSV fields), and NiceLabel shades the non-printable page area.
+with printer and zoom on the right. Follow-up (same day): the Data explorer now opens with NiceLabel's tree —
+"Biến nhập khi in" (prompt variables) and "Trường dữ liệu" (linked fields)
+— and the design surface shades the physical sheet around the label with
+the other label cells outlined when the sheet is larger than the label.

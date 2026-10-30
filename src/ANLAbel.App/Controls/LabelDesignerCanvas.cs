@@ -1098,6 +1098,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         var width = MmToDip(Template.WidthMm);
         var height = MmToDip(Template.HeightMm);
+        DrawSheetArea(dc);
         dc.DrawRectangle(Brushes.White, new Pen(new SolidColorBrush(Color.FromRgb(148, 163, 184)), 1), new Rect(0, 0, width, height));
 
         var gridStep = MmToDip(SnapGridContract.NormalizeStep(GridStepMm));
@@ -1164,6 +1165,44 @@ public sealed class LabelDesignerCanvas : Canvas
                 dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(20, 100, 210)), null, tag);
                 dc.DrawText(text, new Point(tag.Left + 4, tag.Top + 1));
             }
+        }
+    }
+
+    /// <summary>
+    /// NiceLabel 10 shades the page around the label: when the physical sheet
+    /// is larger than the label (office sheet, several labels per page) the
+    /// sheet is drawn pale behind the label with the other label cells outlined.
+    /// </summary>
+    private void DrawSheetArea(DrawingContext dc)
+    {
+        var profile = Template?.PrinterProfile;
+        if (Template is null || profile is null || profile.PhysicalWidthMm <= 0 || profile.PhysicalHeightMm <= 0
+            || (profile.LabelsPerPage <= 1
+                && profile.PhysicalWidthMm <= Template.WidthMm + 0.5
+                && profile.PhysicalHeightMm <= Template.HeightMm + 0.5))
+        {
+            return;
+        }
+
+        var sheet = new Rect(
+            -MmToDip(profile.OffsetXMm),
+            -MmToDip(profile.OffsetYMm),
+            MmToDip(profile.PhysicalWidthMm),
+            MmToDip(profile.PhysicalHeightMm));
+        dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(254, 249, 195)), new Pen(new SolidColorBrush(Color.FromRgb(202, 138, 4)), 1), sheet);
+        var cellPen = new Pen(new SolidColorBrush(Color.FromRgb(161, 161, 170)), 1) { DashStyle = DashStyles.Dash };
+        for (var index = 1; index < profile.LabelsPerPage; index++)
+        {
+            var cell = ANLAbel.Core.Printing.SheetLayoutContract.CellOrigin(
+                index, Template.WidthMm, Template.HeightMm, profile.LabelsAcross, profile.LabelsDown,
+                profile.HorizontalGapMm, profile.VerticalGapMm, profile.FillDownFirst, profile.StartFromRight, profile.StartFromBottom);
+            var first = ANLAbel.Core.Printing.SheetLayoutContract.CellOrigin(
+                0, Template.WidthMm, Template.HeightMm, profile.LabelsAcross, profile.LabelsDown,
+                profile.HorizontalGapMm, profile.VerticalGapMm, profile.FillDownFirst, profile.StartFromRight, profile.StartFromBottom);
+            dc.DrawRectangle(
+                Brushes.White,
+                cellPen,
+                new Rect(MmToDip(cell.XMm - first.XMm), MmToDip(cell.YMm - first.YMm), MmToDip(Template.WidthMm), MmToDip(Template.HeightMm)));
         }
     }
 
