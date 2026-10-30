@@ -605,3 +605,31 @@ a file of printer commands. Out of scope: custom PowerForms.
   find, find next and previous, replace, replace all. ANLAbel edits rich text
   in the Properties panel (bold, italic, underline, font and size), without
   find and replace.
+
+## Prompts, special characters, fonts and symbols (2026-10-31)
+
+- Print-time prompts (`Gui.Core/variablesvaluepromptcontrol`): one grid with
+  a prompt column and a value column; the cell shows the formatted value and
+  the validation error as a tooltip. ANLAbel asks the same questions one per
+  row in `PromptValuesWindow` (Enter moves to the next) and repeats the
+  answers in Print Preview.
+- Special characters: every NiceLabel value box has "Insert special
+  character" (a menu of control characters such as GS, RS and EOT, also on a
+  button beside the box). ANLAbel adds the GS1 separators itself from the
+  `(AI)value` notation, and an imported ISO/IEC 15434 envelope keeps its
+  control characters, but a formula string only knows `\n`, `\r` and `\t`,
+  so a new envelope (`[)>` RS 06 GS … RS EOT) cannot be typed. No customer
+  label uses one. Not built.
+- Font picker (`menuregion/fontselectordropdown.xaml`): each family drawn in
+  its own face with an "Abc 123" sample, an icon for TrueType or printer
+  (device) fonts, and "Show printer fonts only". ANLAbel's lists draw each
+  family in its own face; printer fonts do not apply because ANLAbel prints
+  through the Windows driver, and preflight names a font that has no glyph
+  for a character of the data.
+- Clipart gallery (`Gui.Core/clipartgallerydialog`): pick a picture from a
+  clipart folder, with its path. The installed NiceLabel 10 has no clipart
+  folder. Eight customer labels carry a picture, a RoHS mark, which imports
+  as a picture. Not built: a built-in symbol set.
+- Undo and redo (`Gui.Core/undoredodropdown`): drop-down lists of the named
+  actions to undo several at once. ANLAbel's undo keeps whole snapshots
+  without names (Ctrl+Z, Ctrl+Y and the quick access buttons). Not built.
