@@ -1,5 +1,21 @@
 # ANLAbel Phase 1 Plan
 
+## v0.328 — Nhập tem NiceLabel 5 (.lbl) kèm đối tượng
+
+_Gồm các commit sáng 29/10/2026 (11:16)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
+
+- Chuyển đối tượng khi mở `.lbl`: mã vạch (giá trị cố định, gắn biến, biến
+  thể UPC-A), chữ một và nhiều dòng với phông, cỡ, đậm và căn ngang, đoạn văn
+  thành Ô chữ, hình chữ nhật và đường kẻ; đối chiếu kích thước theo
+  inch/cm/mm; nhận tùy chọn PDF417 và bộ đếm Serial.
+- Dòng trạng thái báo đúng số đối tượng chưa chuyển. Bản ghi chưa chứng minh
+  được (biến toàn cục, đoạn RTF, ảnh ngoài, MaxiCode, Bookland, EAN-14) để
+  nguyên, không đoán.
+
+**Kiểm tra:** cổng nhập `.lbl` mở rộng: mã vạch và chữ gắn biến, phông Courier
+New, nội dung nhiều dòng, đoạn văn thành Ô chữ, chữ neo phải, biến thể UPC-A,
+mực in kiểm qua đường in thật, tổng số đối tượng.
+
 ## v0.327 — Mở tem NiceLabel 5 (.lbl) thành mẫu mới theo khổ tem
 
 _Gồm các commit chiều 28/10/2026 (10:02–14:34)._ _Số phiên bản được gắn bổ sung ngày 30/10/2026 theo `docs/VERSIONING.md`: các commit này đã nằm trong bản cài vẫn ghi v0.325._
