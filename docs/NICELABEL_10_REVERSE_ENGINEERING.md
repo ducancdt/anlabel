@@ -701,3 +701,21 @@ from a source now import as `DATEFORMAT(DATEADD(FIELD("#NOW…:yyyy-MM-dd"),
 FIELD("?Expiry (days)"), "d", "yyyy-MM-dd"), "<format>")` (formula functions
 DATEADD/DATEFORMAT, carried through templates by a raw formula marker). Not
 built: a `DateAddFunction` whose input is a prompted date.
+
+## §16 Observations not mapped (2026-10-31)
+
+- 2D code page: three local customer QR codes store `CodePage` 932
+  (Shift-JIS) and concatenate fields that hold Vietnamese text ("HĐMB").
+  Shift-JIS has no "Đ", so NiceLabel most likely encodes it as "?"; ANLAbel
+  encodes UTF-8 (ZXing `CHARACTER_SET`, with ECI), which keeps the text. Not
+  mapped, deliberately.
+- Media orientation: three local customer labels (100 x 77 mm) store
+  `Media/Orientation` 2 (landscape, DEVMODE `DMORIENT_LANDSCAPE`). The importer
+  ignores it and the print service never sets `PageOrientation` for thermal
+  drivers; whether these labels feed the right way round needs a test on the
+  owner's printer before any mapping.
+- Not built (vendor samples only): HIBC (`HibcFunction`: Primary, Secondary,
+  Concatenated; versions 2.5/2.6; seven date formats; five secondary forms;
+  mod-43 check), the GS1 DataBar function, EAN/UPC add-on symbols, pictures
+  read from a file named by a data source (13 graphics), cutter and batch
+  printing (driver settings), label sets.
