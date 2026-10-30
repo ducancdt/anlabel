@@ -182,6 +182,11 @@ content when nothing is selected, and stores the RTF as one undoable edit.
 The Text / Text Box font group is unchanged and steps aside for rich text
 (gate `ribbon formats the selected rich text`).
 
+Owner decisions (2026-10-30, UI audit, accessibility pass): the keyboard
+focus ring is the app's solid blue outline (gate `keyboard focus ring is a
+visible blue outline`); the owner checks it on screen by hand. Windows
+high-contrast mode is not supported: the app keeps its own colours.
+
 ## Side-by-side check (2026-10-30)
 
 Each ANLAbel ribbon tab (rendered by the layout gate into
