@@ -74,6 +74,28 @@ public sealed class JobVariableTests : IDisposable
     }
 
     [Fact]
+    public void FunctionsReadingTheSerial_RunOnceEachLabelHasItsNumber()
+    {
+        // Code reads a prompt and the serial, Tag builds on Code: both wait for
+        // the serial numbers, which are given after the job values.
+        var template = Template("{Tag}");
+        template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot" });
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Code", "CONCAT(FIELD(\"?Lot\"), \"-\", FIELD(\"#SERIAL\"))"));
+        template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tag", "CONCAT(\"[\", FIELD(\"Code\"), \"]\")"));
+
+        Assert.Equal(new[] { "Code", "Tag" }, JobVariableContract.JobDependentTransforms(template).Select(transform => transform.Name));
+        Assert.Equal("Lot", Assert.Single(JobVariableContract.RequiredPrompts(template)).Name);
+        Assert.True(JobVariableContract.TryApply(template, [null, null], JobTime, Answers(("Lot", "L7")), out var withValues, out var error), error);
+        Assert.False(withValues[0]!.ContainsKey("Tag"));
+
+        IReadOnlyDictionary<string, string>?[] numbered = withValues
+            .Select((row, index) => (IReadOnlyDictionary<string, string>?)new Dictionary<string, string>(row!, StringComparer.OrdinalIgnoreCase) { ["#SERIAL"] = (41 + index).ToString(System.Globalization.CultureInfo.InvariantCulture) })
+            .ToArray();
+        Assert.True(JobVariableContract.TryApplySerialTransforms(template, numbered, out var printed, out error), error);
+        Assert.Equal(new[] { "[L7-41]", "[L7-42]" }, printed.Select(row => row!["Tag"]));
+    }
+
+    [Fact]
     public void FunctionThatFailsWithTheJobValues_StopsThePrintWithItsReason()
     {
         // Without a data row the column the function reads is missing.

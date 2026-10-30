@@ -164,7 +164,7 @@ public static class DataHeaderCheck
             ? FormulaFields(expression)
             : BindingExpressionEvaluator.GetFields(expression).Where(field => !string.IsNullOrWhiteSpace(field)).ToArray();
         return fields
-            .Where(field => !JobVariableContract.IsPromptToken(field.Trim()) && !JobVariableContract.IsDateToken(field.Trim()))
+            .Where(field => !JobVariableContract.IsPromptToken(field.Trim()) && !JobVariableContract.IsDateToken(field.Trim()) && !JobVariableContract.IsSerialToken(field))
             .ToArray();
     }
 
@@ -191,8 +191,8 @@ public static class DataHeaderCheck
         {
             foreach (var field in fields)
             {
-                // A function may read a prompt or date: answered at print time, no column.
-                if (JobVariableContract.IsPromptToken(field.Trim()) || JobVariableContract.IsDateToken(field.Trim()))
+                // A function may read a prompt, date or serial: given at print time, no column.
+                if (JobVariableContract.IsPromptToken(field.Trim()) || JobVariableContract.IsDateToken(field.Trim()) || JobVariableContract.IsSerialToken(field))
                 {
                     continue;
                 }

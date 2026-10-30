@@ -409,7 +409,11 @@ public partial class DataManagerWindow : Window
             values.TryAdd(field.Key, field.Value);
         }
 
-        foreach (var printTime in JobVariableContract.DesignValuesForTransforms(_prompts.ToArray(), definitions, DateTimeOffset.Now, _viewModel.LastPromptValues))
+        // The label's first serial stands in for {#SERIAL} while the counter is on.
+        var serialSample = _counter.Enabled && SerialCounterContract.ValidateDefinition(_counter).Count == 0
+            ? SerialCounterContract.Format(_counter, _counter.StartValue)
+            : null;
+        foreach (var printTime in JobVariableContract.DesignValuesForTransforms(_prompts.ToArray(), definitions, DateTimeOffset.Now, _viewModel.LastPromptValues, serialSample))
         {
             values.TryAdd(printTime.Key, printTime.Value);
         }

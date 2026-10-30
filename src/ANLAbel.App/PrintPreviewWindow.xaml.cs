@@ -1683,6 +1683,16 @@ public partial class PrintPreviewWindow : Window
             if (SerialCounterContract.TryApply(_template.SerialCounter, first, rows, out var withSerials, out var serialError))
             {
                 rows = withSerials;
+
+                // A function reading {#SERIAL} gets each label's number now.
+                if (JobVariableContract.TryApplySerialTransforms(_template, rows, out var withFunctions, out var functionError))
+                {
+                    rows = withFunctions;
+                }
+                else
+                {
+                    _serialProblem = ANLAbel.App.Services.JobVariableText.Message(functionError);
+                }
             }
             else
             {

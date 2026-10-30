@@ -1671,6 +1671,81 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Fields given at print time are not broken links, and functions read the
+    /// serial. With a sheet linked, a formula reading a question or the date,
+    /// {#SERIAL} and a formula reading it were listed as broken bindings
+    /// ("Field '?Lot' was not found"); a Data Manager function SN reading
+    /// {#SERIAL} printed nothing. Now the designer row and every printed row
+    /// carry SN with that label's number, the function editor shows a sample,
+    /// and {#SERIAL} is still reported when the counter is off.
+    /// </summary>
+    public static Task PrintTimeFieldsAreNotBrokenLinks()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-print-time-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            RunOnSta(() => PrintTimeFieldsAreNotBrokenLinksOnSta(directory.FullName));
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static void PrintTimeFieldsAreNotBrokenLinksOnSta(string directory)
+    {
+        {
+            var csv = Path.Combine(directory, "rows.csv");
+            File.WriteAllText(csv, "Ma,Ten\nSP-1,Bu long\nSP-2,Dai oc\n");
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            // Before any window: no dispatcher context for the import to wait on.
+            viewModel.ImportExcelAsync(csv, "CSV").GetAwaiter().GetResult();
+            var template = viewModel.Template;
+            template.SerialCounter.Enabled = true;
+            template.SerialCounter.StartValue = 41;
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot" });
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("SN", "CONCAT(FIELD(\"Ma\"), \"/\", FIELD(\"#SERIAL\"))"));
+            LabelObject Text(string name, string binding, double y) => new() { Type = ObjectType.Text, Name = name, BindingExpression = binding, XMm = 3, YMm = y, WidthMm = 40, HeightMm = 6 };
+            template.Objects.Add(Text("Lô", "CONCAT(\"L-\", FIELD(\"?Lot\"))", 2));
+            template.Objects.Add(Text("Ngày", "CONCAT(FIELD(\"Ma\"), FIELD(\"#NOW:yyMMdd\"))", 10));
+            template.Objects.Add(Text("Sê-ri", "{#SERIAL}", 18));
+            template.Objects.Add(Text("Sê-ri công thức", "CONCAT(\"N\", FIELD(\"#SERIAL\"))", 26));
+            template.Objects.Add(Text("Mã sê-ri", "{SN}", 34));
+
+            Require(!viewModel.HasBindingIssues, "Print-time fields are not broken links: " + string.Join(" | ", viewModel.BindingIssues.Select(issue => $"{issue.ObjectName}: {string.Join(", ", issue.MissingFields.Concat(issue.Errors))}")));
+            var design = viewModel.DesignPreviewRow!;
+            Require(design.TryGetValue("SN", out var designSn) && designSn == "SP-1/" + design["#SERIAL"], "The designer shows the function with the next serial: " + string.Join(";", design.Select(pair => pair.Key + "=" + pair.Value)));
+
+            Require(viewModel.TryBuildPrintPreviewRows(out var rows, out var rowError), "The print rows build: " + rowError);
+            Require(ANLAbel.Core.Printing.JobVariableContract.TryApply(template, rows, DateTimeOffset.Now, new Dictionary<string, string> { ["Lot"] = "7" }, out var withValues, out var valueError), valueError);
+            Require(ANLAbel.Core.Printing.SerialCounterContract.TryApply(template.SerialCounter, 41, withValues, out var numbered, out var serialError), serialError);
+            Require(ANLAbel.Core.Printing.JobVariableContract.TryApplySerialTransforms(template, numbered, out var printed, out var functionError)
+                    && printed.Select(row => row!["SN"]).SequenceEqual(["SP-1/41", "SP-2/42"]),
+                "Each printed row carries its own serial in the function: " + functionError + " " + string.Join(", ", printed.Select(row => row?.GetValueOrDefault("SN"))));
+
+            var window = new ANLAbel.App.DataManagerWindow(viewModel, "Functions");
+            var functions = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new[] { functions[0]! });
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var result = ((TextBlock)window.FindName("FunctionResultText")).Text;
+            Require(result == "SP-1/41", "The function editor tries the function with the counter's first number: " + result);
+
+            template.SerialCounter.Enabled = false;
+            Require(viewModel.BindingIssues.Any(issue => issue.ObjectName == "Sê-ri" && issue.MissingFields.Contains("#SERIAL")),
+                "With the counter off, {#SERIAL} is still reported: " + string.Join(" | ", viewModel.BindingIssues.Select(issue => issue.ObjectName)));
+            // Not closed: closing an edited draft asks to keep or discard it.
+        }
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still

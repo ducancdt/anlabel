@@ -4055,7 +4055,7 @@ public sealed class MainViewModel : ObservableObject
 
         return PreviewRow is null
             ? new FormulaEvaluationResult(expression, Array.Empty<string>(), Array.Empty<string>())
-            : FormulaBindingEvaluator.Evaluate(expression, PreviewRow);
+            : FormulaBindingEvaluator.Evaluate(expression, WithPrintTimeDesignValues(PreviewRow));
     }
 
     private void RaiseFormulaBuilderChanged()
@@ -4488,9 +4488,15 @@ public sealed class MainViewModel : ObservableObject
             try
             {
                 var next = SerialCounterStore.ForCounter(Template.SerialCounter).PeekNextValue(Template.SerialCounter);
-                return SerialCounterContract.TryApply(Template.SerialCounter, next, new[] { row }, out var rows, out _)
-                    ? rows[0]
-                    : row;
+                if (!SerialCounterContract.TryApply(Template.SerialCounter, next, new[] { row }, out var rows, out _))
+                {
+                    return row;
+                }
+
+                // A function reading {#SERIAL} shows the next number too.
+                return JobVariableContract.TryApplySerialTransforms(Template, rows, out var withFunctions, out _)
+                    ? withFunctions[0]
+                    : rows[0];
             }
             catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or UnauthorizedAccessException)
             {
@@ -5123,7 +5129,7 @@ public sealed class MainViewModel : ObservableObject
 
         return PreviewRow is null
             ? new FormulaEvaluationResult(SelectedObject.BindingExpression, Array.Empty<string>(), Array.Empty<string>())
-            : FormulaBindingEvaluator.Evaluate(SelectedObject.BindingExpression, PreviewRow);
+            : FormulaBindingEvaluator.Evaluate(SelectedObject.BindingExpression, WithPrintTimeDesignValues(PreviewRow));
     }
 
     private BindingPreviewResult EvaluateSelectedBinding()
@@ -5152,17 +5158,16 @@ public sealed class MainViewModel : ObservableObject
             .ToArray();
         if (FormulaBindingEvaluator.LooksLikeFormula(expression))
         {
-            // Prompt (?Name) and date (#NOW) fields are answered at print
-            // time, not read from the sheet: analyse with their design
-            // values and never report them as missing columns.
-            var analysisRow = JobVariableContract.ApplyForDesign(Template, CreateBindingAnalysisRow(), DateTimeOffset.Now, _lastPromptValues)
-                ?? CreateBindingAnalysisRow();
+            // Prompt (?Name), date (#NOW) and serial (#SERIAL) fields are given
+            // at print time, not read from the sheet: analyse and preview with
+            // their design values and never report them as missing columns.
+            var analysisRow = WithPrintTimeDesignValues(CreateBindingAnalysisRow());
             var analysis = FormulaBindingEvaluator.Evaluate(expression, analysisRow);
             var previewEvaluation = PreviewRow is null
                 ? new FormulaEvaluationResult(string.Empty, Array.Empty<string>(), analysis.UsedFields)
-                : FormulaBindingEvaluator.Evaluate(expression, PreviewRow);
+                : FormulaBindingEvaluator.Evaluate(expression, WithPrintTimeDesignValues(PreviewRow));
             var missingFields = analysis.UsedFields
-                .Where(field => !IsJobVariableField(field) && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
+                .Where(field => !IsPrintTimeField(field) && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             var errors = analysis.Errors
@@ -5187,7 +5192,7 @@ public sealed class MainViewModel : ObservableObject
             : Array.Empty<string>();
         var missingPlaceholderFields = usedFields
             .Where(field => !string.IsNullOrWhiteSpace(field)
-                            && !IsJobVariableField(field)
+                            && !IsPrintTimeField(field)
                             && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
             .Select(field => field.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -5281,6 +5286,39 @@ public sealed class MainViewModel : ObservableObject
     {
         var token = field?.Trim() ?? string.Empty;
         return JobVariableContract.IsPromptToken(token) || JobVariableContract.IsDateToken(token);
+    }
+
+    /// <summary>
+    /// A field given at print time: a prompt, the job date, or {#SERIAL} while
+    /// the label's counter is on (without it the serial is genuinely missing).
+    /// </summary>
+    private bool IsPrintTimeField(string? field)
+        => IsJobVariableField(field) || (JobVariableContract.IsSerialToken(field) && SerialCounterContract.IsActive(Template));
+
+    /// <summary>
+    /// <paramref name="row"/> with design values for the fields given at print
+    /// time (the prompt's last answer or default, else ‹Name›; today; the
+    /// counter's first serial) and the functions that read them, so a binding
+    /// reading them is checked and previewed instead of reported as an error.
+    /// </summary>
+    private IReadOnlyDictionary<string, string> WithPrintTimeDesignValues(IReadOnlyDictionary<string, string> row)
+    {
+        var withJobValues = JobVariableContract.ApplyForDesign(Template, row, DateTimeOffset.Now, _lastPromptValues) ?? row;
+        if (!SerialCounterContract.IsActive(Template) || SerialCounterContract.ValidateDefinition(Template.SerialCounter).Count > 0)
+        {
+            return withJobValues;
+        }
+
+        var copy = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in withJobValues)
+        {
+            copy[pair.Key] = pair.Value;
+        }
+
+        copy.TryAdd(SerialCounterContract.Token, SerialCounterContract.Format(Template.SerialCounter, Template.SerialCounter.StartValue));
+        return JobVariableContract.TryApplySerialTransforms(Template, [copy], out var rows, out _) && rows[0] is { } withSerial
+            ? withSerial
+            : copy;
     }
 
     private Dictionary<string, string> CreateBindingAnalysisRow()
@@ -5874,7 +5912,13 @@ public sealed class MainViewModel : ObservableObject
                 throw new InvalidOperationException(ANLAbel.App.Services.SerialCounterText.Message(serialError));
             }
 
-            rows = serialRows;
+            // A function reading {#SERIAL} gets each label's number now.
+            if (!JobVariableContract.TryApplySerialTransforms(printTemplate, serialRows, out var functionRows, out var functionError))
+            {
+                throw new InvalidOperationException(ANLAbel.App.Services.JobVariableText.Message(functionError));
+            }
+
+            rows = functionRows;
         }
 
         var preflight = await _printService.ValidateRowsAsync(printTemplate, rows, effectivePlan).ConfigureAwait(true);

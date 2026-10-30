@@ -1,5 +1,16 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.352
+
+- Thiết kế, kiểm tra liên kết: khi tem đã liên kết Excel, công thức đọc biến
+  nhập khi in (FIELD("?Tên")), ngày in (FIELD("#NOW:…")) hay số sê-ri
+  ({#SERIAL}) không còn bị liệt kê là liên kết hỏng ("Liên kết có lỗi xác thực",
+  "thiếu trường #SERIAL"); xem trước công thức hiện giá trị mẫu. {#SERIAL} vẫn
+  được báo khi chưa bật bộ đếm.
+- Quản lý dữ liệu, Hàm: hàm đọc số sê-ri (FIELD("#SERIAL")) nay nhận đúng số
+  của từng tem khi in, hiện số kế tiếp khi thiết kế và số bắt đầu trong cửa sổ
+  Hàm; trước đây phần đó in ra trống và bị chặn in vì thiếu trường.
+
 ## v0.352 — Mở tem NiceLabel đúng hơn (mã HIBC, câu hỏi không có sẵn giá trị giả); đổi tên biến và hàm giữ liên kết; hàm đọc được giá trị nhập khi in
 
 _Gồm các commit 31/10/2026 (02:21–03:26)._

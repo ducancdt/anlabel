@@ -63,18 +63,71 @@ public static partial class JobVariableContract
 
     /// <summary>
     /// The template's functions (Data Manager "Hàm") that read a print-time
-    /// value, a prompt or the job date, directly or through another function,
-    /// in template order. NiceLabel functions read prompted variables; these
-    /// run once the job's values are known (<see cref="TryApply"/>,
-    /// <see cref="ApplyForDesign"/>), the others on the data row.
+    /// value, a prompt, the job date or the serial number, directly or through
+    /// another function, in template order. NiceLabel functions read prompted
+    /// variables and counters; these run once the values are known
+    /// (<see cref="TryApply"/>, <see cref="ApplyForDesign"/>, and
+    /// <see cref="TryApplySerialTransforms"/> for the serial), the others on
+    /// the data row.
     /// </summary>
     public static IReadOnlyList<DataTransformDefinition> JobDependentTransforms(LabelTemplate template)
     {
         ArgumentNullException.ThrowIfNull(template);
-        return JobDependentTransforms(template.DataTransforms);
+        return ClassifyTransforms(template.DataTransforms).PrintTime;
     }
 
-    private static IReadOnlyList<DataTransformDefinition> JobDependentTransforms(IEnumerable<DataTransformDefinition> transforms)
+    /// <summary>
+    /// Once each row has its serial number: evaluates the functions that read
+    /// <c>{#SERIAL}</c>, directly or through another function, and writes
+    /// their outputs (the job's prompts and date are already in the rows).
+    /// </summary>
+    public static bool TryApplySerialTransforms(
+        LabelTemplate template,
+        IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        out IReadOnlyDictionary<string, string>?[] withValues,
+        out string error)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(rows);
+        withValues = rows.ToArray();
+        error = string.Empty;
+        var serial = ClassifyTransforms(template.DataTransforms).Serial;
+        if (serial.Length == 0)
+        {
+            return true;
+        }
+
+        var prepared = new IReadOnlyDictionary<string, string>?[rows.Count];
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var copy = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (rows[i] is { } row)
+            {
+                foreach (var pair in row)
+                {
+                    copy[pair.Key] = pair.Value;
+                }
+            }
+
+            if (!TryApplyJobTransforms(serial, copy, out error))
+            {
+                withValues = Array.Empty<IReadOnlyDictionary<string, string>?>();
+                return false;
+            }
+
+            prepared[i] = copy;
+        }
+
+        withValues = prepared;
+        return true;
+    }
+
+    /// <summary>
+    /// The functions that read a print-time value, and among them those that
+    /// read the serial number (given after the job values), each closed over
+    /// functions that read them.
+    /// </summary>
+    private static (DataTransformDefinition[] PrintTime, DataTransformDefinition[] Serial) ClassifyTransforms(IEnumerable<DataTransformDefinition> transforms)
     {
         var all = transforms.ToArray();
         var reads = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
@@ -83,22 +136,37 @@ public static partial class JobVariableContract
             reads.TryAdd(transform.Name.Trim(), ExpressionTokens(transform.Formula).ToArray());
         }
 
-        var dependent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        bool grew;
-        do
+        HashSet<string> Readers(Func<string, bool> reads0)
         {
-            grew = false;
-            foreach (var (name, fields) in reads)
+            var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool grew;
+            do
             {
-                if (!dependent.Contains(name) && fields.Any(field => IsDateToken(field) || IsPromptToken(field) || dependent.Contains(field)))
+                grew = false;
+                foreach (var (name, fields) in reads)
                 {
-                    grew = dependent.Add(name);
+                    if (!found.Contains(name) && fields.Any(field => reads0(field) || found.Contains(field)))
+                    {
+                        grew |= found.Add(name);
+                    }
                 }
             }
-        }
-        while (grew);
+            while (grew);
 
-        return all.Where(transform => dependent.Contains(transform.Name?.Trim() ?? string.Empty)).ToArray();
+            return found;
+        }
+
+        DataTransformDefinition[] Pick(HashSet<string> names) => all.Where(transform => names.Contains(transform.Name?.Trim() ?? string.Empty)).ToArray();
+        return (
+            Pick(Readers(field => IsDateToken(field) || IsPromptToken(field) || IsSerialToken(field))),
+            Pick(Readers(field => IsSerialToken(field))));
+    }
+
+    /// <summary>The functions evaluated with the job values: print-time ones not waiting for the serial.</summary>
+    private static DataTransformDefinition[] JobValueTransforms(LabelTemplate template)
+    {
+        var (printTime, serial) = ClassifyTransforms(template.DataTransforms);
+        return printTime.Where(transform => !serial.Contains(transform)).ToArray();
     }
 
     /// <summary>
@@ -110,7 +178,8 @@ public static partial class JobVariableContract
         IReadOnlyList<PromptVariableDefinition> prompts,
         IEnumerable<DataTransformDefinition> transforms,
         DateTimeOffset now,
-        IReadOnlyDictionary<string, string> knownPromptValues)
+        IReadOnlyDictionary<string, string> knownPromptValues,
+        string? serialSample = null)
     {
         ArgumentNullException.ThrowIfNull(prompts);
         ArgumentNullException.ThrowIfNull(transforms);
@@ -119,9 +188,11 @@ public static partial class JobVariableContract
         foreach (var token in transforms
                      .Where(transform => !string.IsNullOrWhiteSpace(transform.Formula))
                      .SelectMany(transform => ExpressionTokens(transform.Formula))
-                     .Where(token => IsDateToken(token) || IsPromptToken(token)))
+                     .Where(token => IsDateToken(token) || IsPromptToken(token) || (serialSample is not null && IsSerialToken(token))))
         {
-            values.TryAdd(token, DesignTokenValue(token, prompts, now, knownPromptValues));
+            // The serial only when the label numbers itself: otherwise the
+            // function cannot get one and its check says so.
+            values.TryAdd(token, IsSerialToken(token) ? serialSample! : DesignTokenValue(token, prompts, now, knownPromptValues));
         }
 
         return values;
@@ -200,6 +271,10 @@ public static partial class JobVariableContract
 
     public static bool IsPromptToken(string token)
         => token.Length > 1 && token[0] == '?';
+
+    /// <summary>The label's serial number field (<c>{#SERIAL}</c>), given each label at print time.</summary>
+    public static bool IsSerialToken(string? token)
+        => string.Equals(token?.Trim(), SerialCounterContract.Token, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// The prompts the operator must answer. Defined variables come in the order of
@@ -460,7 +535,7 @@ public static partial class JobVariableContract
             return false;
         }
 
-        var dependent = JobDependentTransforms(template);
+        var dependent = JobValueTransforms(template);
         var prepared = new IReadOnlyDictionary<string, string>?[rows.Count];
         for (var i = 0; i < rows.Count; i++)
         {
@@ -524,7 +599,7 @@ public static partial class JobVariableContract
         }
 
         // A function reading a prompt shows its design value too.
-        TryApplyJobTransforms(JobDependentTransforms(template), copy, out _);
+        TryApplyJobTransforms(JobValueTransforms(template), copy, out _);
         return copy;
     }
 
