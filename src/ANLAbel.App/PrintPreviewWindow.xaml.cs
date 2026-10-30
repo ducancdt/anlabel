@@ -71,6 +71,10 @@ public partial class PrintPreviewWindow : Window
     private readonly DispatcherTimer _filterDebounceTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private const string AllColumnsFilterOption = "(Tất cả cột)";
     private const int PreviewCacheCapacity = 8;
+    // NiceLabel 10 "Number of skipped labels": empty cells at the start of the first sheet.
+    private int _skipLabels;
+    // A sheet preview serves every label on it; a sheet at 300 DPI is large, so keep two.
+    private readonly Dictionary<int, PreviewRasterResult> _sheetImageCache = new();
     private readonly Dictionary<int, PreviewRasterResult> _previewImageCache = new();
     private readonly LinkedList<int> _previewImageLru = new();
     private PrintRenderPlan? _previewPlan;
@@ -198,7 +202,30 @@ public partial class PrintPreviewWindow : Window
         get => _pageInput;
         set => _pageInput = value;
     }
-    public string PageStatusText => Pages.Count == 0 ? "Không có nhãn" : $"Nhãn {_currentPageIndex + 1} / {Pages.Count}";
+    public string PageStatusText => Pages.Count == 0
+        ? "Không có nhãn"
+        : IsSheetOfLabels
+            ? $"Nhãn {_currentPageIndex + 1} / {Pages.Count} · tờ {SheetIndexOf(_currentPageIndex) + 1} / {SheetCount}, ô {(_currentPageIndex + _skipLabels) % LabelsPerSheet + 1}"
+            : $"Nhãn {_currentPageIndex + 1} / {Pages.Count}";
+
+    /// <summary>The label prints several to a sheet (NiceLabel 10 labels across); preview shows whole sheets.</summary>
+    public bool IsSheetOfLabels => SheetLayoutContract.IsSheet(_template.PrinterProfile.LabelsAcross, _template.PrinterProfile.LabelsDown);
+
+    private int LabelsPerSheet => Math.Max(1, _template.PrinterProfile.LabelsPerPage);
+
+    private int SheetCount => SheetLayoutContract.SheetCount(Pages.Count, LabelsPerSheet, _skipLabels);
+
+    private int SheetIndexOf(int labelIndex) => (labelIndex + _skipLabels) / LabelsPerSheet;
+
+    public string SheetLayoutText
+    {
+        get
+        {
+            var profile = _template.PrinterProfile;
+            return $"{profile.LabelsAcross} × {profile.LabelsDown} tem mỗi tờ {profile.PhysicalWidthMm:0.##} × {profile.PhysicalHeightMm:0.##} mm; "
+                + $"{Pages.Count} tem in trên {SheetCount} tờ.";
+        }
+    }
     public string CurrentRowSummary => CreateRowSummary(_previewRows.ElementAtOrDefault(_currentPageIndex));
     public string SelectedRowsText
     {
@@ -762,7 +789,8 @@ public partial class PrintPreviewWindow : Window
                     rows,
                     _selectedPrinterName ?? string.Empty,
                     $"{_template.Name} preview print",
-                    expectedOutputContractHash: effectivePlan.OutputContractHash))
+                    expectedOutputContractHash: effectivePlan.OutputContractHash,
+                    skipLabels: IsSheetOfLabels ? _skipLabels : 0))
                 with { ManifestFingerprint = manifest.Fingerprint, Manifest = manifest };
             dispatchedPrintResult = printResult;
             printResult = await _printService.ResolveSpoolJobIdentityAsync(
@@ -1399,9 +1427,17 @@ public partial class PrintPreviewWindow : Window
         _previewImageCache.Clear();
         _previewImageLru.Clear();
 
+        _sheetImageCache.Clear();
         var plan = _previewPlan ?? _printService.CreateDesignPlan(_template);
         var width = MmConverter.MmToDip(plan.LabelWidthMm);
         var height = MmConverter.MmToDip(plan.LabelHeightMm);
+        if (IsSheetOfLabels)
+        {
+            // Each label previews the whole sheet it prints on.
+            width = MmConverter.MmToDip(_template.PrinterProfile.PhysicalWidthMm);
+            height = MmConverter.MmToDip(_template.PrinterProfile.PhysicalHeightMm);
+        }
+
         Pages.AddRange(PrintPreviewPageViewModel.CreateMetadata(_previewRows.Length, width, height));
     }
 
@@ -1473,6 +1509,12 @@ public partial class PrintPreviewWindow : Window
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        if (IsSheetOfLabels)
+        {
+            await EnsureSheetPreviewImageAsync(pageIndex, cancellationToken, operation);
+            return;
+        }
+
         var drawing = _printService.CreatePreviewDrawing(
             _template,
             _previewRows.ElementAtOrDefault(pageIndex),
@@ -1512,6 +1554,74 @@ public partial class PrintPreviewWindow : Window
                 Pages[oldest.Value].PreviewRasterIdentity = null;
             }
         }
+    }
+
+    /// <summary>The sheet that carries this label, as the print paginator lays it out.</summary>
+    private async Task EnsureSheetPreviewImageAsync(int pageIndex, CancellationToken cancellationToken, CancellationTokenSource? operation)
+    {
+        var sheetIndex = SheetIndexOf(pageIndex);
+        if (!_sheetImageCache.TryGetValue(sheetIndex, out var raster))
+        {
+            var sheet = _printService.CreateSheetPreview(_template, _previewRows, pageIndex, _previewPlan, _skipLabels);
+            raster = await PreviewRasterizer.RenderSnapshotAsync(sheet.Drawing, sheet.WidthDip, sheet.HeightDip, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (operation is not null && !IsCurrentPreviewOperation(operation))
+            {
+                return;
+            }
+
+            foreach (var stale in _sheetImageCache.Keys.Where(key => key != sheetIndex).ToArray())
+            {
+                _sheetImageCache.Remove(stale);
+            }
+
+            _sheetImageCache[sheetIndex] = raster;
+        }
+
+        foreach (var page in Pages.Where(page => page.PreviewImage is not null))
+        {
+            page.PreviewImage = null;
+            page.PreviewRasterIdentity = null;
+        }
+
+        Pages[pageIndex].PreviewImage = raster.Image;
+        Pages[pageIndex].PreviewRasterIdentity = raster.RasterIdentity;
+    }
+
+    private void SkipLabelsBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            ApplySkipLabels();
+        }
+    }
+
+    private void SkipLabelsBox_LostFocus(object sender, RoutedEventArgs e) => ApplySkipLabels();
+
+    /// <summary>
+    /// Cells already used at the start of the first sheet: 0 up to one less
+    /// than the cells of a sheet. The preview redraws the sheets; printing
+    /// sends the same number.
+    /// </summary>
+    private void ApplySkipLabels()
+    {
+        var limit = LabelsPerSheet - 1;
+        if (!int.TryParse(SkipLabelsBox.Text, out var skip) || skip < 0 || skip > limit)
+        {
+            SkipLabelsBox.Text = _skipLabels.ToString();
+            MessageBox.Show(this, $"Số ô bỏ qua là số nguyên từ 0 đến {limit} (tờ có {LabelsPerSheet} ô).", "Tờ nhiều tem", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (skip == _skipLabels)
+        {
+            return;
+        }
+
+        _skipLabels = skip;
+        _sheetImageCache.Clear();
+        OnPropertyChanged();
+        EnsureCurrentPreviewImage();
     }
 
     private void TouchPreviewCache(int pageIndex)

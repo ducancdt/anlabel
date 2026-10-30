@@ -173,7 +173,7 @@ internal static class PaperLayoutRegression
                 IReadOnlyDictionary<string, string>?[] rows = [null, null];
                 var paginator = (DocumentPaginator)typeof(PrintService)
                     .GetMethod("CreateRowsPaginator", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .Invoke(new PrintService(), new object?[] { template, rows, plan })!;
+                    .Invoke(new PrintService(), new object?[] { template, rows, plan, 0 })!;
                 Require(paginator.PageCount == 2, "Each row prints its own A5 page.");
                 Require(Math.Abs(paginator.PageSize.Width - MmConverter.MmToDip(148)) < 0.5 && Math.Abs(paginator.PageSize.Height - MmConverter.MmToDip(210)) < 0.5,
                     $"The page sent to the driver must be the A5 sheet, not the label: {paginator.PageSize}.");
@@ -208,7 +208,7 @@ internal static class PaperLayoutRegression
             var stockPlan = new PrintRenderPlan { Dpi = 203, DpiX = 203, DpiY = 203, LabelWidthMm = 100, LabelHeightMm = 50, ScaleX = 1, ScaleY = 1 };
             var stockPages = (DocumentPaginator)typeof(PrintService)
                 .GetMethod("CreateRowsPaginator", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .Invoke(new PrintService(), new object?[] { stock, new IReadOnlyDictionary<string, string>?[] { null }, stockPlan })!;
+                .Invoke(new PrintService(), new object?[] { stock, new IReadOnlyDictionary<string, string>?[] { null }, stockPlan, 0 })!;
             Require(Math.Abs(stockPages.PageSize.Width - MmConverter.MmToDip(100)) < 0.5, "Label stock keeps a page of the label's size.");
         });
 

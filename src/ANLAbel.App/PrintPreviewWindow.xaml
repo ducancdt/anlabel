@@ -335,6 +335,23 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- NiceLabel 10 prints sheets of labels whole and can skip the used cells of a partly used first sheet. -->
+                    <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="#F8FAFC" Padding="8" Margin="0,0,0,12"
+                            Visibility="{Binding IsSheetOfLabels, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Text="Tờ nhiều tem" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding SheetLayoutText}" TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,2,0,6"/>
+                            <DockPanel LastChildFill="True">
+                                <TextBlock Text="Bỏ qua" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBox x:Name="SkipLabelsBox" Width="44" Text="0" TextAlignment="Center" VerticalAlignment="Center"
+                                         AutomationProperties.AutomationId="PrintPreview.SkipLabels" AutomationProperties.Name="Số ô bỏ qua"
+                                         KeyDown="SkipLabelsBox_KeyDown" LostFocus="SkipLabelsBox_LostFocus"
+                                         ToolTip="Số ô đã dùng ở đầu tờ đầu tiên; tem đầu in vào ô kế tiếp theo thứ tự in"/>
+                                <TextBlock Text="ô đầu của tờ đầu (tờ đã dùng dở)" VerticalAlignment="Center" Margin="6,0,0,0" TextWrapping="Wrap"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="Cùng một cửa sổ Thiết lập tem với trình thiết kế. Không có bộ chọn khổ giấy riêng trong Xem trước." TextWrapping="Wrap" Foreground="#526070" FontSize="11" Margin="0,0,0,12"/>
 
                     <Expander Header="Phương pháp in" IsExpanded="False" Margin="0,6,0,0">

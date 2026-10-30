@@ -56,6 +56,20 @@ public sealed class SheetLayoutContractTests
     }
 
     [Fact]
+    public void SkippedLabelsLeaveOneCellAndAddSheets()
+    {
+        // NiceLabel "Number of skipped labels" on an A4 sheet of 3 x 8 labels.
+        Assert.Equal(5, SheetLayoutContract.ClampSkippedLabels(5, 24));
+        Assert.Equal(23, SheetLayoutContract.ClampSkippedLabels(99, 24));
+        Assert.Equal(0, SheetLayoutContract.ClampSkippedLabels(-3, 24));
+        Assert.Equal(0, SheetLayoutContract.ClampSkippedLabels(4, 1));
+        Assert.Equal(2, SheetLayoutContract.SheetCount(26, 24, 0));
+        Assert.Equal(1, SheetLayoutContract.SheetCount(19, 24, 5));
+        Assert.Equal(2, SheetLayoutContract.SheetCount(20, 24, 5));
+        Assert.Equal(0, SheetLayoutContract.SheetCount(0, 24, 5));
+    }
+
+    [Fact]
     public void GridsAndOneLabelOnALargerSheetPrintWholeSheets()
     {
         static PrinterProfile Paper(double width, double height, int across = 1,

@@ -404,3 +404,13 @@ follows NiceLabel 10 Label Properties for paper size and paper choice
 Calibration scale stays under Giấy › Căn chỉnh khổ in. Gates: `label
 properties lay labels on a sheet like NiceLabel`, `one label on a sheet prints
 the whole sheet`.
+
+Printing a sheet of labels (NiceLabel 10 print form "Number of skipped labels" and
+its page preview): Xem trước khi in shows each label on the whole sheet it prints
+on (`PrintService.CreateSheetPreview`, the renderer's own drawing per cell), says
+which sheet and cell it lands in, and Tờ nhiều tem › Bỏ qua N ô đầu của tờ đầu
+leaves the used cells of a partly used first sheet empty; printing sends the same
+number (`PrintRowsWithResultAsync(skipLabels:)`). Gates: `label sheets fill every
+cell in processing order` (A4 3 × 8 and 2 × 5, A5 2 × 2 turned 180°, skipped cells,
+every cell decoded on the printed page and on the preview), `print preview shows
+sheets whole and skips used cells`, `turned objects print readable`.

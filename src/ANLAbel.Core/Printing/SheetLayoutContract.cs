@@ -102,6 +102,23 @@ public static class SheetLayoutContract
     }
 
     /// <summary>
+    /// Cells left empty at the start of the first sheet (NiceLabel 10 print
+    /// "Number of skipped labels"), so a partly used sheet of labels can be
+    /// printed again: never negative and always leaving one cell to print on.
+    /// A label per page has no cells to skip.
+    /// </summary>
+    public static int ClampSkippedLabels(int skippedLabels, int labelsPerPage)
+        => labelsPerPage <= 1 ? 0 : Math.Clamp(skippedLabels, 0, labelsPerPage - 1);
+
+    /// <summary>Sheets needed for <paramref name="labels"/> after the skipped cells.</summary>
+    public static int SheetCount(int labels, int labelsPerPage, int skippedLabels)
+    {
+        labelsPerPage = Math.Max(1, labelsPerPage);
+        var skip = ClampSkippedLabels(skippedLabels, labelsPerPage);
+        return labels <= 0 ? 0 : (labels + skip + labelsPerPage - 1) / labelsPerPage;
+    }
+
+    /// <summary>
     /// How many labels fit along one axis of the sheet after the margin
     /// (NiceLabel 10 "Automatic labels across"); at least one.
     /// </summary>

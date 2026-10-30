@@ -345,6 +345,7 @@ public sealed class PrintService
         string printerName,
         string description,
         string? expectedOutputContractHash = null,
+        int skipLabels = 0,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(template);
@@ -364,16 +365,22 @@ public sealed class PrintService
                 rowSnapshot,
                 printerName,
                 description,
-                expectedOutputContractHash),
+                expectedOutputContractHash,
+                skipLabels),
             cancellationToken);
     }
 
+    /// <param name="skipLabels">
+    /// Cells left empty at the start of the first sheet of a sheet of labels
+    /// (NiceLabel "Number of skipped labels"); ignored for a label per page.
+    /// </param>
     public PrintJobResult PrintRowsWithResult(
         LabelTemplate template,
         IEnumerable<IReadOnlyDictionary<string, string>?> rows,
         string printerName,
         string description,
-        string? expectedOutputContractHash = null)
+        string? expectedOutputContractHash = null,
+        int skipLabels = 0)
     {
         if (string.IsNullOrWhiteSpace(printerName))
         {
@@ -388,7 +395,7 @@ public sealed class PrintService
         try
         {
             var dialog = CreatePrintDialog(template, printerName);
-            return PrintRowsWithDialog(template, rows, dialog, description, printerName, expectedOutputContractHash);
+            return PrintRowsWithDialog(template, rows, dialog, description, printerName, expectedOutputContractHash, skipLabels);
         }
         catch (Exception ex)
         {
@@ -491,7 +498,8 @@ public sealed class PrintService
         WpfPrintDialog dialog,
         string description,
         string? requestedPrinterName,
-        string? expectedOutputContractHash = null)
+        string? expectedOutputContractHash = null,
+        int skipLabels = 0)
     {
         var rowList = rows.ToArray();
         if (rowList.Length == 0)
@@ -537,7 +545,7 @@ public sealed class PrintService
         // this window invalidates the prepared output; no label is submitted.
         plan = RevalidateDispatchPlan(dialog, template, plan, requestedTicket, requestedTicketHash, expectedOutputContractHash);
         var knownSpoolJobs = CaptureSpoolJobs(dialog.PrintQueue);
-        var paginator = CreateRowsPaginator(template, rowList, plan);
+        var paginator = CreateRowsPaginator(template, rowList, plan, skipLabels);
 
         try
         {
@@ -1283,7 +1291,8 @@ public sealed class PrintService
     private VisualDocumentPaginator CreateRowsPaginator(
         LabelTemplate template,
         IReadOnlyDictionary<string, string>?[] rowList,
-        PrintRenderPlan plan)
+        PrintRenderPlan plan,
+        int skipLabels = 0)
     {
         var profile = template.PrinterProfile;
         if (!SheetLayoutContract.PrintsWholeSheet(profile, plan.LabelWidthMm, plan.LabelHeightMm))
@@ -1295,7 +1304,8 @@ public sealed class PrintService
         }
 
         var perPage = Math.Max(1, profile.LabelsPerPage);
-        var pageCount = (rowList.Length + perPage - 1) / perPage;
+        var skip = SheetLayoutContract.ClampSkippedLabels(skipLabels, perPage);
+        var pageCount = SheetLayoutContract.SheetCount(rowList.Length, perPage, skip);
         var sheetSize = new System.Windows.Size(
             MmConverter.MmToDip(profile.PhysicalWidthMm),
             MmConverter.MmToDip(profile.PhysicalHeightMm));
@@ -1311,11 +1321,17 @@ public sealed class PrintService
                     sheet.Transform = new RotateTransform(180, sheetSize.Width / 2, sheetSize.Height / 2);
                 }
 
-                var first = pageNumber * perPage;
-                for (var index = first; index < Math.Min(rowList.Length, first + perPage); index++)
+                for (var slot = 0; slot < perPage; slot++)
                 {
+                    // The first sheet starts after the skipped cells.
+                    var index = pageNumber * perPage + slot - skip;
+                    if (index < 0 || index >= rowList.Length)
+                    {
+                        continue;
+                    }
+
                     var cell = SheetLayoutContract.CellOrigin(
-                        index,
+                        slot,
                         plan.LabelWidthMm,
                         plan.LabelHeightMm,
                         profile.LabelsAcross,
@@ -1332,6 +1348,91 @@ public sealed class PrintService
 
                 return sheet;
             });
+    }
+
+    /// <summary>
+    /// The sheet that carries label <paramref name="labelIndex"/> as printing
+    /// lays it out (NiceLabel 10 previews a sheet of labels whole): every label
+    /// of that sheet in its cell from the margins, the skipped cells of the
+    /// first sheet left empty, the sheet turned when it prints rotated 180°.
+    /// Each label is the renderer's own drawing for the plan, as printed.
+    /// </summary>
+    public SheetPreview CreateSheetPreview(
+        LabelTemplate template,
+        IReadOnlyList<IReadOnlyDictionary<string, string>?> rows,
+        int labelIndex,
+        PrintRenderPlan? plan = null,
+        int skipLabels = 0)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(rows);
+        plan ??= CreatePlan(template, null);
+        var profile = template.PrinterProfile;
+        var perPage = Math.Max(1, profile.LabelsPerPage);
+        var skip = SheetLayoutContract.ClampSkippedLabels(skipLabels, perPage);
+        var position = Math.Max(0, labelIndex) + skip;
+        var sheetIndex = position / perPage;
+        var sheet = new DrawingGroup();
+        var widthDip = MmConverter.MmToDip(profile.PhysicalWidthMm);
+        var heightDip = MmConverter.MmToDip(profile.PhysicalHeightMm);
+        var page = new Rect(0, 0, widthDip, heightDip);
+        sheet.Children.Add(new GeometryDrawing(System.Windows.Media.Brushes.White, null, new RectangleGeometry(page)));
+        var labels = new DrawingGroup();
+        if (plan.Rotated180)
+        {
+            labels.Transform = new RotateTransform(180, widthDip / 2, heightDip / 2);
+        }
+
+        var labelPlan = plan.Rotated180 ? plan.WithoutLabelRotation() : plan;
+        for (var slot = 0; slot < perPage; slot++)
+        {
+            var index = sheetIndex * perPage + slot - skip;
+            if (index < 0 || index >= rows.Count)
+            {
+                continue;
+            }
+
+            var cell = SheetLayoutContract.CellOrigin(
+                slot,
+                labelPlan.LabelWidthMm,
+                labelPlan.LabelHeightMm,
+                profile.LabelsAcross,
+                profile.LabelsDown,
+                profile.HorizontalGapMm,
+                profile.VerticalGapMm,
+                profile.FillDownFirst,
+                profile.StartFromRight,
+                profile.StartFromBottom);
+            if (_renderer.Render(template, rows[index], labelPlan).Drawing is { } drawing)
+            {
+                var placed = new DrawingGroup { Transform = new TranslateTransform(MmConverter.MmToDip(cell.XMm), MmConverter.MmToDip(cell.YMm)) };
+                placed.Children.Add(drawing);
+                labels.Children.Add(placed);
+            }
+        }
+
+        sheet.Children.Add(labels);
+        sheet.ClipGeometry = new RectangleGeometry(page);
+        // The printed label visuals draw bitmaps nearest-neighbour with aliased edges.
+        RenderOptions.SetBitmapScalingMode(sheet, BitmapScalingMode.NearestNeighbor);
+        RenderOptions.SetEdgeMode(sheet, EdgeMode.Aliased);
+        if (!sheet.CanFreeze)
+        {
+            sheet = sheet.Clone();
+            if (!sheet.CanFreeze)
+            {
+                throw new InvalidOperationException("Sheet preview drawing contains a thread-affine resource.");
+            }
+        }
+
+        sheet.Freeze();
+        return new SheetPreview(
+            sheet,
+            widthDip,
+            heightDip,
+            sheetIndex,
+            SheetLayoutContract.SheetCount(rows.Count, perPage, skip),
+            position % perPage);
     }
 
     private static System.Windows.Size CreatePageSize(PrintRenderPlan plan)
@@ -1471,3 +1572,10 @@ public sealed class PrintService
         }
     }
 }
+
+/// <summary>
+/// One sheet of labels for Print Preview: its drawing and size, its index
+/// among the job's sheets, and the cell (in processing order) of the label it
+/// was asked for.
+/// </summary>
+public sealed record SheetPreview(Drawing Drawing, double WidthDip, double HeightDip, int SheetIndex, int SheetCount, int Cell);

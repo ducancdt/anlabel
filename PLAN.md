@@ -1,5 +1,14 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.344
+
+- In tờ nhiều tem theo NiceLabel 10: Xem trước khi in hiện cả tờ chứa tem
+  đang xem (tờ mấy, ô mấy) và có “Bỏ qua N ô đầu của tờ đầu” để in tiếp tờ
+  đã dùng dở; lệnh in gửi đúng số ô bỏ qua.
+- Kịch bản thiết kế/in nhiều trường hợp: tờ A4 3 × 8 và 2 × 5, A5 2 × 2 xoay
+  180°, mọi thứ tự in, ô bỏ qua, trang cuối thiếu; mã xoay 0/90/180/270°. Mọi
+  ô được giải mã trên trang in và trên ảnh xem trước.
+
 ## v0.344 — Icon vector mọi cửa sổ, khổ giấy và chọn giấy theo NiceLabel 10, tem A5 đủ 15 loại mã với Excel
 
 _Gồm các commit 30/10/2026 (19:13–19:46)._
