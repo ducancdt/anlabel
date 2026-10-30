@@ -206,8 +206,8 @@ public sealed class MainViewModel : ObservableObject
         BringForwardCommand = new RelayCommand(BringForward, () => SelectedObject is not null);
         SendBackwardCommand = new RelayCommand(SendBackward, () => SelectedObject is not null);
         SetRotationCommand = new RelayCommand(parameter => SetRotation(parameter), _ => SelectedObject is not null);
-        UndoCommand = new RelayCommand(Undo, () => _undoStack.Count > 0);
-        RedoCommand = new RelayCommand(Redo, () => _redoStack.Count > 0);
+        UndoCommand = new RelayCommand(Undo, () => !IsEditingLocked && _undoStack.Count > 0);
+        RedoCommand = new RelayCommand(Redo, () => !IsEditingLocked && _redoStack.Count > 0);
         ZoomInCommand = new RelayCommand(() => Zoom = Math.Min(4, Zoom + 0.1));
         ZoomOutCommand = new RelayCommand(() => Zoom = Math.Max(0.25, Zoom - 0.1));
         NewTemplateCommand = new RelayCommand(parameter => NewTemplate(parameter as NewTemplateRequest));
@@ -247,7 +247,94 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(SelectedCopiesFieldName));
                 OnPropertyChanged(nameof(DataTransforms));
                 RaiseSerialCounterPreviewChanged();
+                RaiseEditingLockChanged();
             }
+        }
+    }
+
+    private bool _editingUnlocked;
+
+    /// <summary>
+    /// NiceLabel 10 Protection: a protected label opens for printing only; its
+    /// design stays locked until it is unlocked in this session.
+    /// </summary>
+    public bool IsEditingLocked => Template.ProtectFromEditing && !_editingUnlocked;
+
+    public bool IsEditingAllowed => !IsEditingLocked;
+
+    public bool HasEditingPassword => !string.IsNullOrEmpty(Template.EditingPasswordHash);
+
+    public bool IsTextObjectEditable => IsTextObjectSelected && IsEditingAllowed;
+
+    public string EditingProtectionStatusText => !Template.ProtectFromEditing
+        ? "Tem chưa được bảo vệ: ai mở tem cũng sửa được."
+        : IsEditingLocked
+            ? HasEditingPassword
+                ? "Tem được bảo vệ và đang khóa chỉnh sửa. Nhập mật khẩu ở dải báo trên bảng thiết kế để mở khóa, rồi mới đổi hoặc tắt bảo vệ."
+                : "Tem được bảo vệ và đang khóa chỉnh sửa. Bấm Mở khóa ở dải báo trên bảng thiết kế, rồi mới đổi hoặc tắt bảo vệ."
+            : "Tem được bảo vệ; đã mở khóa chỉnh sửa trong phiên này. Mở lại tệp sẽ khóa lại.";
+
+    /// <summary>Unlocks editing for this session; a password-protected label needs its password.</summary>
+    public bool TryUnlockEditing(string? password)
+    {
+        if (!IsEditingLocked)
+        {
+            return true;
+        }
+
+        if (HasEditingPassword && !EditingProtection.VerifyPassword(Template.EditingPasswordHash, password))
+        {
+            StatusText = "Sai mật khẩu: tem vẫn khóa chỉnh sửa.";
+            return false;
+        }
+
+        _editingUnlocked = true;
+        RaiseEditingLockChanged();
+        StatusText = "Đã mở khóa chỉnh sửa trong phiên này.";
+        return true;
+    }
+
+    /// <summary>
+    /// Turns protection on, with an optional password, or off. Either needs the
+    /// label unlocked, so a locked label's protection cannot be replaced without
+    /// its password. Turning it on locks the label at once.
+    /// </summary>
+    public bool SetEditingProtection(bool protect, string? password)
+    {
+        if (IsEditingLocked)
+        {
+            StatusText = "Mở khóa tem trước khi thay đổi bảo vệ.";
+            return false;
+        }
+
+        if (!protect)
+        {
+            Template.ProtectFromEditing = false;
+            Template.EditingPasswordHash = string.Empty;
+            StatusText = "Đã tắt bảo vệ. Lưu tem để ghi vào tệp.";
+            RaiseEditingLockChanged();
+            return true;
+        }
+
+        Template.EditingPasswordHash = string.IsNullOrEmpty(password) ? string.Empty : EditingProtection.CreatePasswordHash(password);
+        Template.ProtectFromEditing = true;
+        SelectedObject = null;
+        _editingUnlocked = false;
+        RaiseEditingLockChanged();
+        StatusText = "Tem đã được bảo vệ khỏi chỉnh sửa. Lưu tem để giữ bảo vệ trong tệp.";
+        return true;
+    }
+
+    private void RaiseEditingLockChanged()
+    {
+        OnPropertyChanged(nameof(IsEditingLocked));
+        OnPropertyChanged(nameof(IsEditingAllowed));
+        OnPropertyChanged(nameof(HasEditingPassword));
+        OnPropertyChanged(nameof(IsTextObjectEditable));
+        OnPropertyChanged(nameof(EditingProtectionStatusText));
+        if (UndoCommand is not null)
+        {
+            RaiseHistoryCanExecuteChanged();
         }
     }
 
@@ -844,6 +931,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsBarcodeObjectSelected));
         OnPropertyChanged(nameof(IsImageObjectSelected));
         OnPropertyChanged(nameof(IsShapeObjectSelected));
+        OnPropertyChanged(nameof(IsTextObjectEditable));
         OnPropertyChanged(nameof(SelectedPictureSourceText));
         var contextualOpen = SelectedRibbonTab switch
         {
@@ -4275,6 +4363,11 @@ public sealed class MainViewModel : ObservableObject
             _syncingTemplatePrinterSize = false;
         }
 
+        if (e.PropertyName is nameof(LabelTemplate.ProtectFromEditing) or nameof(LabelTemplate.EditingPasswordHash))
+        {
+            RaiseEditingLockChanged();
+        }
+
         RecordTemplateChange();
     }
 
@@ -5414,6 +5507,9 @@ public sealed class MainViewModel : ObservableObject
 
     private void ResetHistory()
     {
+        // A document just opened, created or recovered starts locked when protected.
+        _editingUnlocked = false;
+        RaiseEditingLockChanged();
         _explicitEditGestureActive = false;
         _explicitEditGesturePreChangeSnapshot = string.Empty;
         CancelPendingHistory();

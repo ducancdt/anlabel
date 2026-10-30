@@ -70,6 +70,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("properties header follows the selected object", DesignScenarioRegression.PropertiesHeaderFollowsTheSelectedObject),
     ("x-sized barcodes grow around their anchoring point", DesignScenarioRegression.XSizedBarcodesGrowAroundTheirAnchor),
     ("a new label walks label properties step by step", PaperLayoutRegression.NewLabelWalksLabelPropertiesStepByStep),
+    ("a protected label opens for printing only", TestProtectedLabelOpensForPrintingOnly),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
     ("an oversized 2D symbol blocks and the designer draws it like the print", BarcodeParityRegression.OversizedTwoDimensionalSymbolsBlockAndDrawLikeThePrint),
@@ -13232,6 +13233,93 @@ static Task TestPropertiesPanelPinsOrFloats()
 }
 
 /// <summary>App.xaml's shared theme as a dictionary, for test renders (a test process has no Application).</summary>
+static Task TestProtectedLabelOpensForPrintingOnly()
+{
+    // NiceLabel 10 Info › Protection, "Protect document from editing": the design
+    // surface, alignment, contextual tabs and undo are locked while printing stays
+    // available; a wrong password keeps the label locked, the right one unlocks it
+    // for the session; the file keeps the protection and only a hash of the
+    // password, and opening it again locks it.
+    Exception? failure = null;
+    var thread = new Thread(() =>
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"anlabel-protect-{Guid.NewGuid():N}.anlabel");
+        // Awaits in the view model resume on this window's thread, as in the app.
+        SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
+        try
+        {
+            var window = new MainWindow();
+            window.Resources.MergedDictionaries.Insert(0, LoadAppTheme());
+            var viewModel = (MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            PumpDispatcher();
+            viewModel.AddTextCommand.Execute(null);
+            PumpDispatcher();
+            var canvas = (UIElement)window.FindName("DesignerCanvas");
+            UIElement Element(string id) => (UIElement)FindByAutomationId(window, id)!;
+            AssertEqual(true, canvas.IsEnabled && !viewModel.IsEditingLocked, "A new label is editable");
+
+            AssertEqual(true, viewModel.SetEditingProtection(true, "Kho-2026"), "Protection turns on with a password");
+            PumpDispatcher();
+            AssertEqual(true, viewModel.IsEditingLocked && viewModel.HasEditingPassword, "Turning protection on locks the label");
+            AssertEqual(false, canvas.IsEnabled, "A protected label locks the design surface");
+            AssertEqual(false, viewModel.UndoCommand.CanExecute(null), "A protected label locks undo");
+            AssertEqual(false, Element("Shell.Ribbon.Align").IsEnabled, "A protected label locks alignment");
+            AssertEqual(true, Element("Shell.Ribbon.Preview").IsEnabled, "Printing stays available on a protected label");
+            AssertEqual(Visibility.Visible, Element("Shell.ProtectionBanner").Visibility, "The design surface says the label is protected");
+            AssertEqual(false, viewModel.SetEditingProtection(false, null), "A locked label's protection cannot be turned off");
+            AssertEqual(false, viewModel.SetEditingProtection(true, "khac"), "A locked label's password cannot be replaced");
+            AssertEqual(false, viewModel.TryUnlockEditing("sai"), "A wrong password keeps the label locked");
+            AssertEqual(true, viewModel.IsEditingLocked, "Still locked after a wrong password");
+
+            AssertEqual(true, viewModel.TryUnlockEditing("Kho-2026") && !viewModel.IsEditingLocked, "The right password unlocks editing");
+            PumpDispatcher();
+            AssertEqual(true, canvas.IsEnabled, "Unlocked, the design surface works again");
+            AssertEqual(Visibility.Collapsed, Element("Shell.ProtectionBanner").Visibility, "Unlocked, the banner goes away");
+
+            var service = new ANLAbel.Project.SaveLoad.ProjectFileService();
+            // The template belongs to the window's thread; save it there, pumping like the open below.
+            var saving = service.SaveAsync(viewModel.Template, path);
+            while (!saving.IsCompleted)
+            {
+                PumpDispatcher();
+            }
+
+            saving.GetAwaiter().GetResult();
+            AssertEqual(false, File.ReadAllText(path).Contains("Kho-2026", StringComparison.Ordinal), "The file never holds the password");
+            var opening = viewModel.OpenAsync(path);
+            while (!opening.IsCompleted)
+            {
+                PumpDispatcher();
+            }
+
+            opening.GetAwaiter().GetResult();
+            AssertEqual(true, viewModel.Template.ProtectFromEditing && viewModel.IsEditingLocked, "Opening a protected label locks it again");
+            AssertEqual(true, ANLAbel.Core.Models.EditingProtection.VerifyPassword(viewModel.Template.EditingPasswordHash, "Kho-2026"), "The file keeps the password hash");
+            window.Close();
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start();
+    thread.Join();
+    if (failure is not null)
+    {
+        throw failure;
+    }
+
+    return Task.CompletedTask;
+}
+
 static ResourceDictionary LoadAppTheme()
 {
     var appXaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "App.xaml"));

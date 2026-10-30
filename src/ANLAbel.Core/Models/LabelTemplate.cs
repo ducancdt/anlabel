@@ -20,6 +20,8 @@ public sealed class LabelTemplate : ObservableObject
     private PrinterProfile _printerProfile = new();
     private DatabaseConfig _databaseConfig = new();
     private SerialCounterDefinition _serialCounter = new();
+    private bool _protectFromEditing;
+    private string _editingPasswordHash = string.Empty;
 
     public string Id
     {
@@ -31,6 +33,24 @@ public sealed class LabelTemplate : ObservableObject
     {
         get => _name;
         set => SetProperty(ref _name, value);
+    }
+
+    /// <summary>
+    /// NiceLabel 10 Protection, "Protect document from editing": the label opens
+    /// for printing only until it is unlocked. Guards approved labels against
+    /// accidental edits; it does not encrypt the file.
+    /// </summary>
+    public bool ProtectFromEditing
+    {
+        get => _protectFromEditing;
+        set => SetProperty(ref _protectFromEditing, value);
+    }
+
+    /// <summary>Salted hash of the unlock password (<see cref="EditingProtection"/>); empty when none is required.</summary>
+    public string EditingPasswordHash
+    {
+        get => _editingPasswordHash;
+        set => SetProperty(ref _editingPasswordHash, value ?? string.Empty);
     }
 
     public double WidthMm

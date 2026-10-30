@@ -6,6 +6,13 @@
   hộp Tạo mẫu tem mới có ô “Tiếp theo: chọn máy in và giấy” (bật sẵn); Thuộc
   tính tem mở ngay theo từng bước Máy in › Kích thước tem › Giấy với Quay lại /
   Tiếp, bước cuối là Hoàn tất. Không có bước kho tem có sẵn (quyết định của chủ).
+- Bảo vệ tem khỏi chỉnh sửa theo NiceLabel 10 (Info › Protection): Tệp › Bảo vệ
+  bật bảo vệ, có thể kèm mật khẩu (lưu dạng băm PBKDF2, tệp không chứa mật khẩu).
+  Tem được bảo vệ mở ra ở chế độ chỉ in: khóa bảng thiết kế, hộp công cụ, Lớp,
+  Đối tượng, Thuộc tính, các nhóm sửa trên ribbon, tab ngữ cảnh, hoàn tác và phím
+  tắt vẽ; vẫn chọn dữ liệu, máy in và in được. Dải báo trên bảng thiết kế có Mở
+  khóa (mật khẩu nếu có) cho phiên làm việc; mở lại tệp thì khóa lại. Chống sửa
+  nhầm khi vận hành, không phải mã hóa tệp.
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

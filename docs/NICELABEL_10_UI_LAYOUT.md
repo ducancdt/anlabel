@@ -450,3 +450,19 @@ default); Thuộc tính tem then opens guided (`PrinterSetupWindow.IsGuided`): M
 Kích thước tem › Giấy with Quay lại / Tiếp and Hoàn tất on the last page, the same
 pages and checks as Label Properties. No stock step (owner: no software stock
 catalogue). Gate: `a new label walks label properties step by step`.
+
+## Protection (2026-10-30)
+
+NiceLabel 10 Backstage › Info › Protection: "Protect document from editing",
+optionally "Requires a password to unlock document"; a locked document shows
+"Label or solution editing is locked. Unlock to start editing." ANLAbel: Tệp ›
+Bảo vệ (`LabelTemplate.ProtectFromEditing`, `EditingPasswordHash` = salted
+PBKDF2-SHA256 via `EditingProtection`). A protected label opens locked
+(`MainViewModel.IsEditingLocked`, reset whenever a document is opened, created or
+recovered): the design surface, toolbox, Layers, Objects, Properties, the Home
+groups Bộ nhớ tạm / Phông chữ / Căn chỉnh / Đối tượng, the contextual tabs, undo and
+the drawing shortcuts are off; data, printer (Thuộc tính tem) and printing stay
+available. The banner on the design surface unlocks for the session (with the
+password when one is set). Protection can be changed only while unlocked. It
+guards against accidental edits; it is not file encryption. Gate: `a protected
+label opens for printing only`.

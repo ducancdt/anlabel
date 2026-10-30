@@ -67,6 +67,7 @@ public partial class MainWindow
             "New" => BackstageNewTab,
             "Open" => BackstageOpenTab,
             "About" => BackstageAboutTab,
+            "Protection" => BackstageProtectionTab,
             _ => BackstageStartTab
         };
         tab.IsChecked = true;
@@ -97,6 +98,58 @@ public partial class MainWindow
         BackstageNewPage.Visibility = page is "New" ? Visibility.Visible : Visibility.Collapsed;
         BackstageOpenPage.Visibility = page is "Open" ? Visibility.Visible : Visibility.Collapsed;
         BackstageAboutPage.Visibility = page is "About" ? Visibility.Visible : Visibility.Collapsed;
+        BackstageProtectionPage.Visibility = page is "Protection" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ProtectionEnable_Click(object sender, RoutedEventArgs e)
+    {
+        string? password = null;
+        if (ProtectionRequirePasswordBox.IsChecked == true)
+        {
+            if (ProtectionPasswordBox.Password.Length < 4)
+            {
+                MessageBox.Show(this, "Mật khẩu cần ít nhất 4 ký tự.", "Bảo vệ tem", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (!string.Equals(ProtectionPasswordBox.Password, ProtectionPasswordConfirmBox.Password, StringComparison.Ordinal))
+            {
+                MessageBox.Show(this, "Hai lần nhập mật khẩu không khớp.", "Bảo vệ tem", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            password = ProtectionPasswordBox.Password;
+        }
+
+        if (!_viewModel.SetEditingProtection(true, password))
+        {
+            MessageBox.Show(this, _viewModel.StatusText, "Bảo vệ tem", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        ProtectionPasswordBox.Clear();
+        ProtectionPasswordConfirmBox.Clear();
+    }
+
+    private void ProtectionDisable_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.SetEditingProtection(false, null))
+        {
+            MessageBox.Show(this, _viewModel.StatusText, "Bảo vệ tem", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void UnlockEditing_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.TryUnlockEditing(UnlockPasswordBox.Password);
+        UnlockPasswordBox.Clear();
+    }
+
+    private void UnlockPasswordBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            UnlockEditing_Click(sender, e);
+        }
     }
 
     private void BackstageTab_Checked(object sender, RoutedEventArgs e)

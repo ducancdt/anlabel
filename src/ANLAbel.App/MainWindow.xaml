@@ -598,7 +598,7 @@
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
                              Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Home}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
-                            <controls:RibbonGroupPanel>
+                            <controls:RibbonGroupPanel IsEnabled="{Binding IsEditingAllowed}">
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.Paste32}" Content="Dán" Click="Paste_Click"
                                             ToolTip="Dán (Ctrl+V)" AutomationProperties.Name="Paste" AutomationProperties.AutomationId="Shell.Ribbon.Paste"/>
@@ -617,7 +617,7 @@
                             </controls:RibbonGroupPanel>
 
                             <Border Style="{StaticResource RibbonGroupSeparator}"/>
-                            <controls:RibbonGroupPanel IsEnabled="{Binding IsTextObjectSelected}" AutomationProperties.AutomationId="Shell.Ribbon.Font">
+                            <controls:RibbonGroupPanel IsEnabled="{Binding IsTextObjectEditable}" AutomationProperties.AutomationId="Shell.Ribbon.Font">
                                 <controls:RibbonGroupPanel.Style>
                                     <Style TargetType="controls:RibbonGroupPanel" BasedOn="{StaticResource {x:Type controls:RibbonGroupPanel}}">
                                         <Style.Triggers>
@@ -667,7 +667,7 @@
                             </controls:RibbonGroupPanel>
                             <!-- NiceLabel 10: with a Rich Text Box selected the Font group formats its RTF content -
                                  the text selected in the Properties editor, or all of it when nothing is selected. -->
-                            <controls:RibbonGroupPanel Visibility="{Binding IsRichTextObjectSelected, Converter={StaticResource BoolToVisibility}}" AutomationProperties.AutomationId="Shell.Ribbon.RichFont">
+                            <controls:RibbonGroupPanel IsEnabled="{Binding IsEditingAllowed}" Visibility="{Binding IsRichTextObjectSelected, Converter={StaticResource BoolToVisibility}}" AutomationProperties.AutomationId="Shell.Ribbon.RichFont">
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                     <ComboBox x:Name="RichFontFamilyBox" Width="150" ItemsSource="{Binding FontFamilies}" SelectionChanged="RichFontFamily_Changed"
                                               IsTextSearchEnabled="True" AutomationProperties.Name="Rich text font family" ToolTip="Phông chữ của Chữ định dạng">
@@ -739,7 +739,7 @@
                             </controls:RibbonGroupPanel>
 
                             <Border Style="{StaticResource RibbonGroupSeparator}"/>
-                            <controls:RibbonGroupPanel AutomationProperties.AutomationId="Shell.Ribbon.Align">
+                            <controls:RibbonGroupPanel AutomationProperties.AutomationId="Shell.Ribbon.Align" IsEnabled="{Binding IsEditingAllowed}">
                                 <StackPanel Orientation="Horizontal" Margin="0,1,0,0" IsEnabled="{Binding HasSelectedObject}">
                                     <StackPanel>
                                         <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.AlignLeft16}" Tag="Left" Click="ArrangeAlign_Click" ToolTip="Căn trái" AutomationProperties.Name="Align left objects"/>
@@ -761,7 +761,7 @@
                             </controls:RibbonGroupPanel>
 
                             <Border Style="{StaticResource RibbonGroupSeparator}"/>
-                            <controls:RibbonGroupPanel>
+                            <controls:RibbonGroupPanel IsEnabled="{Binding IsEditingAllowed}">
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.GroupObjects32}" Content="Nhóm&#10;đối tượng ▾"
                                             IsEnabled="{Binding HasSelectedObject}" ToolTip="Nhóm hoặc bỏ nhóm các đối tượng đang chọn" AutomationProperties.Name="Group objects" AutomationProperties.AutomationId="Shell.Ribbon.GroupMenu">
@@ -956,7 +956,7 @@
 
                     <!-- Thiết kế (ngữ cảnh): Chung · Vị trí · Sắp xếp -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
-                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Design}">
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Design}" IsEnabled="{Binding IsEditingAllowed}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -1085,7 +1085,7 @@
 
                     <!-- Chữ (ngữ cảnh): Định dạng · Thiết lập chữ · Hiệu ứng -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
-                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Text}">
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Text}" IsEnabled="{Binding IsEditingAllowed}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
@@ -1169,7 +1169,7 @@
 
                     <!-- Mã vạch (ngữ cảnh): Mã vạch · Thiết lập · Sắp xếp (NiceLabel 10 Barcode tab) -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
-                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Barcode}">
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Barcode}" IsEnabled="{Binding IsEditingAllowed}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -1262,7 +1262,7 @@
 
                     <!-- Hình ảnh (ngữ cảnh): Hình ảnh · Sắp xếp (NiceLabel 10 Picture tab: Resize, Arrange) -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
-                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Picture}">
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Picture}" IsEnabled="{Binding IsEditingAllowed}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -1295,7 +1295,7 @@
 
                     <!-- Hình dạng (ngữ cảnh): Đường viền · Tô nền · Sắp xếp (NiceLabel 10 Shape tab) -->
                     <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top"
-                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Shape}">
+                             Visibility="{Binding SelectedRibbonTab, Converter={StaticResource RibbonTabConverter}, ConverterParameter=Shape}" IsEnabled="{Binding IsEditingAllowed}">
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -1492,7 +1492,7 @@
                         </DockPanel>
                     </Border>
 
-                    <StackPanel Grid.Row="1" Margin="8,8,8,8">
+                    <StackPanel Grid.Row="1" Margin="8,8,8,8" IsEnabled="{Binding IsEditingAllowed}">
                         <UniformGrid Columns="3" Rows="3">
                             <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Text32}" Content="Chữ" Command="{Binding AddTextCommand}" AutomationProperties.Name="Insert Text" ToolTip="Chữ (một dòng, nội dung tự sở hữu)"/>
                             <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.TextBox32}" Content="Ô chữ" Command="{Binding AddTextBoxCommand}" AutomationProperties.Name="Insert Text Box"/>
@@ -1895,7 +1895,7 @@
                                     </StackPanel>
                                     </ScrollViewer>
                                 </TabItem>
-                                <TabItem>
+                                <TabItem IsEnabled="{Binding IsEditingAllowed}">
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
                                             <Image Source="{StaticResource Icon.Layers16}" Width="16" Height="16" Margin="0,0,6,0"/>
@@ -1935,7 +1935,7 @@
                                         </StackPanel>
                                     </ScrollViewer>
                                 </TabItem>
-                                <TabItem AutomationProperties.AutomationId="Shell.Workspace.Objects">
+                                <TabItem AutomationProperties.AutomationId="Shell.Workspace.Objects" IsEnabled="{Binding IsEditingAllowed}">
                                     <TabItem.Header>
                                         <StackPanel Orientation="Horizontal">
                                             <Image Source="{StaticResource Icon.Objects16}" Width="16" Height="16" Margin="0,0,6,0"/>
@@ -2038,6 +2038,7 @@
                     <Grid Margin="92,72,120,100">
                         <Border Background="Transparent" BorderBrush="Transparent" BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Top">
                             <controls:LabelDesignerCanvas x:Name="DesignerCanvas"
+                                                          IsEnabled="{Binding IsEditingAllowed}"
                                                           Template="{Binding Template}"
                                                           SelectedObject="{Binding SelectedObject, Mode=TwoWay}"
                                                           PreviewRow="{Binding DesignPreviewRow}"
@@ -2049,6 +2050,20 @@
                         </Border>
                     </Grid>
                 </ScrollViewer>
+                <!-- NiceLabel 10 Protection: a protected label is for printing until unlocked -->
+                <Border Grid.Row="1" Grid.Column="1" Panel.ZIndex="10" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,10,0,0" Padding="12,7"
+                        Background="#FFF7E6" BorderBrush="#E2A93A" BorderThickness="1" CornerRadius="6"
+                        Visibility="{Binding IsEditingLocked, Converter={StaticResource BoolToVisibility}}"
+                        AutomationProperties.AutomationId="Shell.ProtectionBanner" AutomationProperties.Name="Tem được bảo vệ">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="{StaticResource Icon.Lock16}" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Tem được bảo vệ khỏi chỉnh sửa: chỉ chọn dữ liệu, máy in và in." VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <PasswordBox x:Name="UnlockPasswordBox" Width="120" VerticalAlignment="Center" Margin="0,0,6,0" KeyDown="UnlockPasswordBox_KeyDown"
+                                     Visibility="{Binding HasEditingPassword, Converter={StaticResource BoolToVisibility}}"
+                                     AutomationProperties.Name="Mật khẩu mở khóa" AutomationProperties.AutomationId="Shell.ProtectionBanner.Password"/>
+                        <Button Content="Mở khóa" Padding="10,3" Click="UnlockEditing_Click" AutomationProperties.AutomationId="Shell.ProtectionBanner.Unlock"/>
+                    </StackPanel>
+                </Border>
                 <!-- NiceLabel 10 document tab strip under the design surface (TabStripPlacement Bottom) -->
                 <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#F2F6FB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0"
                         AutomationProperties.AutomationId="Shell.DocumentTabs" AutomationProperties.Name="Document tabs">
@@ -2170,7 +2185,7 @@
                         </Grid>
 
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Margin="7,7,7,4">
+                            <StackPanel Margin="7,7,7,4" IsEnabled="{Binding IsEditingAllowed}">
                                 <StackPanel.Resources>
                                     <!-- Compact controls scoped to the Properties panel only -->
                                     <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -3490,6 +3505,7 @@
                         <Button Style="{StaticResource BackstageCommand}" Content="Lưu thành" Click="BackstageSaveAs_Click" ToolTip="Lưu thành tệp khác (Ctrl+Shift+S)" AutomationProperties.AutomationId="Shell.File.SaveAs"/>
                         <Button Style="{StaticResource BackstageCommand}" Content="In" Click="BackstagePrint_Click" ToolTip="Xem trước, chọn dòng và số bản rồi in (Ctrl+P)" AutomationProperties.AutomationId="Shell.Backstage.Print"/>
                         <Button Style="{StaticResource BackstageCommand}" Content="Phiên bản" Click="BackstageRevisions_Click" ToolTip="Phiên bản và bản sao lưu của tem đã lưu" AutomationProperties.AutomationId="Shell.File.Revisions"/>
+                        <RadioButton x:Name="BackstageProtectionTab" Style="{StaticResource BackstageTab}" Content="Bảo vệ" Tag="Protection" Checked="BackstageTab_Checked" AutomationProperties.AutomationId="Shell.Backstage.Protection"/>
                         <Border Style="{StaticResource BackstageSeparator}"/>
                         <Button Style="{StaticResource BackstageCommand}" Content="Tùy chọn" Click="BackstageOptions_Click" ToolTip="Cài đặt ANLAbel" AutomationProperties.AutomationId="Shell.File.Settings"/>
                         <RadioButton x:Name="BackstageAboutTab" Style="{StaticResource BackstageTab}" Content="Giới thiệu" Tag="About" Checked="BackstageTab_Checked" AutomationProperties.AutomationId="Shell.Backstage.About"/>
@@ -3588,6 +3604,49 @@
                     </Grid>
 
                     <!-- Giới thiệu: version, licence, links -->
+                    <!-- Bảo vệ: NiceLabel 10 Info › Protection, "Protect document from editing" -->
+                    <StackPanel x:Name="BackstageProtectionPage" Visibility="Collapsed" Margin="40,30,40,30" MaxWidth="640" HorizontalAlignment="Left">
+                        <TextBlock Style="{StaticResource BackstagePageTitle}" Text="Bảo vệ"/>
+                        <Border Style="{StaticResource BackstageCard}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource BackstageCardHeader}" Text="Bảo vệ tem khỏi chỉnh sửa" Margin="4,2,0,6"/>
+                                <TextBlock TextWrapping="Wrap" Margin="4,0,4,8" Foreground="{StaticResource RibbonTextBrush}"
+                                           Text="Tem mở ra ở chế độ chỉ in: không sửa được đối tượng, thuộc tính hay bố cục; vẫn chọn dữ liệu, máy in và in được. Đây là chống sửa nhầm khi vận hành, không mã hóa tệp."/>
+                                <TextBlock Text="{Binding EditingProtectionStatusText}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="4,0,4,10"
+                                           AutomationProperties.AutomationId="Shell.Backstage.Protection.Status"/>
+                                <StackPanel IsEnabled="{Binding IsEditingAllowed}">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                <CheckBox x:Name="ProtectionRequirePasswordBox" Content="Yêu cầu mật khẩu để mở khóa" Margin="4,0,0,8" AutomationProperties.AutomationId="Shell.Backstage.Protection.RequirePassword"/>
+                                <Grid Margin="4,0,4,12" IsEnabled="{Binding IsChecked, ElementName=ProtectionRequirePasswordBox}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Mật khẩu (ít nhất 4 ký tự)"/>
+                                        <PasswordBox x:Name="ProtectionPasswordBox" Margin="0,3,0,0" AutomationProperties.Name="Mật khẩu bảo vệ"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Nhập lại mật khẩu"/>
+                                        <PasswordBox x:Name="ProtectionPasswordConfirmBox" Margin="0,3,0,0" AutomationProperties.Name="Nhập lại mật khẩu bảo vệ"/>
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Margin="4,0,0,4">
+                                    <Button Style="{StaticResource BackstagePrimaryButton}" Content="Bật bảo vệ" Click="ProtectionEnable_Click" AutomationProperties.AutomationId="Shell.Backstage.Protection.Enable"/>
+                                    <Button Style="{StaticResource BackstageSecondaryButton}" Content="Tắt bảo vệ" Click="ProtectionDisable_Click" Margin="8,0,0,0" AutomationProperties.AutomationId="Shell.Backstage.Protection.Disable"/>
+                                </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
                     <ScrollViewer x:Name="BackstageAboutPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="40,30,40,30" MaxWidth="760" HorizontalAlignment="Left">
                             <TextBlock Style="{StaticResource BackstagePageTitle}" Text="Giới thiệu"/>

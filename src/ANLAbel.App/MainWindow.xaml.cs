@@ -55,7 +55,7 @@ public partial class MainWindow : Window
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(() =>
             {
-                if (_formatPainterSource is { } source && _viewModel.SelectedObject is { } target && !ReferenceEquals(source, target))
+                if (!_viewModel.IsEditingLocked && _formatPainterSource is { } source && _viewModel.SelectedObject is { } target && !ReferenceEquals(source, target))
                 {
                     ApplyFormatPainter(source, target);
                 }
@@ -372,7 +372,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (Keyboard.Modifiers != ModifierKeys.None || IsTextInputTarget(e.OriginalSource))
+        if (Keyboard.Modifiers != ModifierKeys.None || IsTextInputTarget(e.OriginalSource) || _viewModel.IsEditingLocked)
         {
             return;
         }

@@ -1375,6 +1375,14 @@ def _():
             stroke(a, ORANGE, 1.3), shape(h, ORANGE)]
 
 
+@icon('Lock16', 16)
+def _():
+    return [stroke('M5,7.5 V5 A3,3 0 0 1 11,5 V7.5', INK, 1.5),
+            shape(rect(2.5, 7, 13.5, 14.5), YELLOW_L, Pen(YELLOW_D)),
+            shape(circle(8, 10.5, 1.2), YELLOW_D),
+            stroke('M8,11 V12.8', YELLOW_D, 1.2, cap='Round')]
+
+
 def emit():
     out = ['<!-- ANLAbel ribbon icons (docs/NICELABEL_10_UI_LAYOUT.md, "Icons"): large icons 32 x 32 DIP,',
            '     small 16 x 16 DIP, one flat palette, 1 DIP outlines on half-pixel coordinates. Each icon',
