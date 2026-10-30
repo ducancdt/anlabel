@@ -161,7 +161,7 @@ public sealed class NiceLabel10ImportMappingTests
             <Item Type="ExecuteScriptFunction">
               <Id>{ScriptCallId}</Id>
               <Name>Upper lot</Name>
-              <Script>Result = UCase(Lot)</Script>
+              <Script>Result = Len(Lot) - 1</Script>
               <InputDataSourceReferences><Item Type="SolutionDataSourceReference"><Id>{LotId}</Id></Item></InputDataSourceReferences>
             </Item>
             <Item Type="AscFactFunction">
@@ -462,7 +462,54 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
-    public void ScriptWithACall_IsNotConverted()
+    public void ScriptCallingTextFunctions_BecomesAFormula()
+    {
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Variables>
+                <Item Type="Variable">
+                  <Id>c1c1c1c1-2222-3333-4444-555555555555</Id>
+                  <Name>Ship Date</Name>
+                  <DefaultValue Type="StringContents"><StringValue>jan31</StringValue></DefaultValue>
+                </Item>
+                <Item Type="Variable">
+                  <Id>c2c2c2c2-2222-3333-4444-555555555555</Id>
+                  <Name>CRC16</Name>
+                  <DefaultValue Type="StringContents"><StringValue>A1B2</StringValue></DefaultValue>
+                </Item>
+              </Variables>
+              <Functions>
+                <Item Type="ExecuteScriptFunction">
+                  <Id>c3c3c3c3-2222-3333-4444-555555555555</Id>
+                  <Name>Dated</Name>
+                  <Script>Result = &quot;D:&quot; &amp; UCase([Ship Date]) &amp; Right(crc16, 2)</Script>
+                  <InputDataSourceReferences>
+                    <Item Type="SolutionDataSourceReference"><Id>c1c1c1c1-2222-3333-4444-555555555555</Id></Item>
+                    <Item Type="SolutionDataSourceReference"><Id>c2c2c2c2-2222-3333-4444-555555555555</Id></Item>
+                  </InputDataSourceReferences>
+                </Item>
+              </Functions>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format("""
+            <Item Type="BarcodeDocumentItem">
+              <Name>Dated</Name>
+              <Geometry Type="PositionGeometry"><X>10000</X><Y>38000</Y></Geometry>
+              <BarcodeData Type="Code128BarcodeData"><BaseBarWidth>300</BaseBarWidth><ModuleHeight>10000</ModuleHeight></BarcodeData>
+              <FixedContents>D:JAN31B2</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>c3c3c3c3-2222-3333-4444-555555555555</Id></DataSourceReference>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var code = Assert.Single(template.Objects);
+        Assert.Equal("CONCAT(\"D:\", UPPER(FIELD(\"?Ship Date\")), RIGHT(FIELD(\"?CRC16\"), \"2\"))", code.BindingExpression);
+        var row = new Dictionary<string, string> { ["?Ship Date"] = "jan31", ["?CRC16"] = "A1B2" };
+        Assert.Equal("D:JAN31B2", ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(code.BindingExpression, row).Value);
+    }
+
+    [Fact]
+    public void ScriptWithArithmetic_IsNotConverted()
     {
         var template = Import($"""
             <Item Type="BarcodeDocumentItem">
@@ -617,7 +664,7 @@ public sealed class NiceLabel10ImportMappingTests
         // Three variables, the date-add, both GS1 functions, three data
         // identifier functions, the format-06 envelope, the subset and the
         // concatenating script, a database field and the variable mirroring
-        // it; the other-format envelope and the script that calls UCase are
+        // it; the other-format envelope and the script doing arithmetic are
         // not registered.
         Assert.Equal(15, document.VariablesById.Count);
         Assert.False(document.VariablesById.ContainsKey(EnvelopeOtherFormatId));

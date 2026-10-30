@@ -188,6 +188,34 @@ public sealed class FormulaTextFunctionTests
     }
 
     [Theory]
+    [InlineData("UPPER(\"lô a-12\")", "LÔ A-12")]
+    [InlineData("LOWER(\"PART-ABC\")", "part-abc")]
+    [InlineData("TRIM(\"  L01  \")", "L01")]
+    [InlineData("LEFT(\"240131\", \"4\")", "2401")]
+    [InlineData("RIGHT(\"240131\", \"2\")", "31")]
+    [InlineData("RIGHT(\"AB\", \"5\")", "AB")]
+    [InlineData("LEFT(\"AB\", \"0\")", "")]
+    [InlineData("CONCAT(UPPER(FIELD(\"Lot\")), \"/\", RIGHT(FIELD(\"Year\"), \"2\"))", "L-7/26")]
+    public void TextFunctions_ChangeAndCutText(string formula, string expected)
+    {
+        var result = new FormulaEngine().Evaluate(formula, new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["Lot"] = "l-7", ["Year"] = "2026" });
+        Assert.Empty(result.Errors);
+        Assert.Equal(expected, result.Value);
+    }
+
+    [Theory]
+    [InlineData("UPPER(\"a\", \"b\")")]
+    [InlineData("LEFT(\"ABC\")")]
+    [InlineData("RIGHT(\"ABC\", \"-1\")")]
+    [InlineData("LEFT(\"ABC\", \"x\")")]
+    public void TextFunctions_RejectBadArguments(string formula)
+    {
+        var result = Run(formula);
+        Assert.NotEmpty(result.Errors);
+        Assert.Equal(string.Empty, result.Value);
+    }
+
+    [Theory]
     [InlineData("MID(\"ABC\", \"0\", \"2\")")]
     [InlineData("MID(\"ABC\", \"x\", \"2\")")]
     [InlineData("MID(\"ABC\", \"1\")")]

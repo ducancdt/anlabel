@@ -30,6 +30,11 @@ public sealed class FormulaEvaluator
             "CONCAT" => EvaluateConcat(call, context),
             "MID" => EvaluateMid(call, context),
             "GS1CHECKDIGIT" => EvaluateGs1CheckDigit(call, context),
+            "UPPER" => EvaluateText(call, context, text => text.ToUpperInvariant()),
+            "LOWER" => EvaluateText(call, context, text => text.ToLowerInvariant()),
+            "TRIM" => EvaluateText(call, context, text => text.Trim()),
+            "LEFT" => EvaluateEnd(call, context, fromLeft: true),
+            "RIGHT" => EvaluateEnd(call, context, fromLeft: false),
             _ => AddError(context, $"Unknown function '{call.Name}'.")
         };
     }
@@ -63,6 +68,36 @@ public sealed class FormulaEvaluator
         }
 
         return text.Substring(start - 1, Math.Min(length, text.Length - start + 1));
+    }
+
+    /// <summary>UPPER(text), LOWER(text), TRIM(text): the text in capitals, in small letters, without outer spaces.</summary>
+    private static string EvaluateText(FormulaFunctionCallNode call, EvaluationContext context, Func<string, string> change)
+    {
+        if (call.Arguments.Count != 1)
+        {
+            return AddError(context, $"{call.Name.ToUpperInvariant()} expects exactly one argument.");
+        }
+
+        return change(EvaluateNode(call.Arguments[0], context));
+    }
+
+    /// <summary>LEFT(text, count) and RIGHT(text, count): at most count characters from that end of the text.</summary>
+    private static string EvaluateEnd(FormulaFunctionCallNode call, EvaluationContext context, bool fromLeft)
+    {
+        var name = fromLeft ? "LEFT" : "RIGHT";
+        if (call.Arguments.Count != 2)
+        {
+            return AddError(context, $"{name} expects two arguments: text, count.");
+        }
+
+        var text = EvaluateNode(call.Arguments[0], context);
+        if (!int.TryParse(EvaluateNode(call.Arguments[1], context).Trim(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var count) || count < 0)
+        {
+            return AddError(context, $"{name} count must be a whole number of 0 or more.");
+        }
+
+        count = Math.Min(count, text.Length);
+        return fromLeft ? text[..count] : text[^count..];
     }
 
     /// <summary>

@@ -698,7 +698,11 @@ public sealed class MainViewModel : ObservableObject
         new("Sản xuất QR/Mã vạch", "CONCAT(FIELD(\"part\"), FIELD(\"partname\"), FIELD(\"lot\"))", "Các trường bắt buộc: part + partname + lot. Ví dụ đầu ra: P001Product AL01."),
         new("Sản xuất QR/Mã vạch - có nhãn", "CONCAT(\"Mã: \", FIELD(\"part\"), \" | Tên: \", FIELD(\"partname\"), \" | Lô: \", FIELD(\"lot\"))", "Đầu ra dễ đọc kèm nhãn và dấu phân cách."),
         new("FIELD", "FIELD(\"Name\")", "Lấy giá trị từ một cột Excel."),
-        new("CONCAT", "CONCAT(\"Tên: \", FIELD(\"Name\"), \", Mã: \", FIELD(\"Code\"))", "Ghép văn bản cố định và các trường.")
+        new("CONCAT", "CONCAT(\"Tên: \", FIELD(\"Name\"), \", Mã: \", FIELD(\"Code\"))", "Ghép văn bản cố định và các trường."),
+        new("UPPER", "UPPER(FIELD(\"Name\"))", "Chữ in hoa. LOWER(…) đổi thành chữ thường, TRIM(…) bỏ khoảng trắng hai đầu."),
+        new("LEFT / RIGHT", "LEFT(FIELD(\"Code\"), \"4\")", "Lấy số ký tự đầu (LEFT) hoặc cuối (RIGHT) của văn bản."),
+        new("MID", "MID(FIELD(\"Code\"), \"3\", \"5\")", "Lấy 5 ký tự bắt đầu từ ký tự thứ 3."),
+        new("GS1CHECKDIGIT", "GS1CHECKDIGIT(FIELD(\"GTIN\"))", "Thêm số kiểm tra GS1 vào dãy chữ số (GTIN, SSCC).")
     ];
 
     public string FormulaPreviewValue => EvaluateSelectedFormula().Value;

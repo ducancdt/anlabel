@@ -20,6 +20,11 @@
   tiếng Việt. Lệnh in lưu câu trả lời gốc, quy tắc áp khi in nên in lại vẫn đúng.
   Nhập .nlbl giữ các quy tắc này (PickListContents, Prefix/Suffix, Padding,
   FixedLength, AllowedCharactersForCustomFormat).
+- Hàm công thức đổi và cắt chữ: UPPER(x), LOWER(x), TRIM(x), LEFT(x, n),
+  RIGHT(x, n) (cùng MID có sẵn); có trong Trình tạo công thức và gợi ý của Quản
+  lý dữ liệu, lỗi đối số báo bằng tiếng Việt. Nhập .nlbl dịch script NiceLabel
+  gọi UCase, LCase, Trim, Left, Right, Mid trong phép nối thành công thức cùng
+  nghĩa: 62/68 script trong bộ mẫu (trước là 52), 6.351 đối tượng chuyển được.
 
 ## v0.345 — Tờ nhiều tem xem trước cả tờ, ảnh và Data Matrix theo NiceLabel 10, nhập .nlbl in đúng như thiết kế
 

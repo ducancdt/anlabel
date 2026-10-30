@@ -183,7 +183,7 @@
                             </Border>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Cách viết"/>
                             <TextBlock TextWrapping="Wrap" Foreground="#262626" Margin="0,0,0,4"
-                                       Text="FIELD(&quot;Tên trường&quot;) lấy một trường; CONCAT(a, b, …) nối chữ; MID(chữ, &quot;vị trí&quot;, &quot;độ dài&quot;) cắt chữ; GS1CHECKDIGIT(số) tính số kiểm tra GS1. Chữ cố định đặt trong ngoặc kép."/>
+                                       Text="FIELD(&quot;Tên trường&quot;) lấy một trường; CONCAT(a, b, …) nối các phần; UPPER(x), LOWER(x), TRIM(x) đổi chữ; LEFT(x, n), RIGHT(x, n), MID(x, đầu, n) cắt chuỗi; GS1CHECKDIGIT(x) thêm số kiểm tra GS1."/>
                             <TextBlock TextWrapping="Wrap" FontFamily="Consolas" Foreground="#1F4F91"
                                        Text="CONCAT(FIELD(&quot;Mã&quot;), &quot;-&quot;, FIELD(&quot;Lô&quot;))"/>
                             <TextBlock x:Name="FunctionFieldsText" TextWrapping="Wrap" Foreground="#5B6B80" Margin="0,8,0,0"/>

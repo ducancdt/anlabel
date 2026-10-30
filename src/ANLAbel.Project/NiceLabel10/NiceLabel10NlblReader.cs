@@ -357,21 +357,23 @@ public static class NiceLabel10NlblReader
     private const char EndOfTransmission = '\u0004';
 
     /// <summary>
-    /// An <c>ExecuteScriptFunction</c> whose VBScript is a single
-    /// concatenation, <c>Result = "UN" &amp; SupplierID &amp; [Package Number]</c>
-    /// (52 of the 68 scripts in the vendor samples, the license plates and
-    /// data-identifier fields of GTL, VDA and automotive labels): string
-    /// literals and the function's own inputs by name (VBScript names ignore
-    /// case), joined by <c>&amp;</c>. It becomes the same <c>[id]</c> template a
-    /// <c>ConcatenateFunction</c> gives. Any other script (calls such as UCase
-    /// or Left, arithmetic, several statements, names that are not its
+    /// An <c>ExecuteScriptFunction</c> whose VBScript is one expression,
+    /// <c>Result = "UN" &amp; SupplierID &amp; [Package Number]</c> (52 of the 68
+    /// scripts in the vendor samples, the license plates and data-identifier
+    /// fields of GTL, VDA and automotive labels): string literals and the
+    /// function's own inputs by name (VBScript names ignore case), joined by
+    /// <c>&amp;</c>, also inside UCase, LCase, Trim, Left(x, n), Right(x, n) and
+    /// Mid(x, start, n). Plain text becomes the same <c>[id]</c> template a
+    /// <c>ConcatenateFunction</c> gives; a call becomes a function marker the
+    /// importer turns into the formula of the same name. Any other script
+    /// (arithmetic, other calls, several statements, names that are not its
     /// inputs) is not translated, so objects using it stay unconverted.
     /// </summary>
     private static string? ReadScriptConcatenation(XElement function, IReadOnlyDictionary<string, string> namesById)
     {
         var script = ChildText(function, "Script")?.Trim();
-        var match = script is null ? null : ScriptConcatenation.Match(script);
-        if (match is not { Success: true })
+        var statement = script is null ? null : ScriptStatement.Match(script);
+        if (statement is not { Success: true })
         {
             return null;
         }
@@ -386,40 +388,191 @@ public static class NiceLabel10NlblReader
             }
         }
 
-        var template = new System.Text.StringBuilder();
-        foreach (Capture term in match.Groups["term"].Captures)
+        var parser = new ScriptExpressionParser(statement.Groups["expression"].Value, inputs);
+        return parser.Parse();
+    }
+
+    private static readonly Regex ScriptStatement = new(
+        @"^Result\s*=\s*(?<expression>[^\r\n]+)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Reads the one VBScript expression of a translatable script into the
+    /// importer's template form; null for anything outside that subset.
+    /// </summary>
+    private sealed class ScriptExpressionParser(string text, IReadOnlyDictionary<string, string> inputs)
+    {
+        private static readonly Dictionary<string, (string Formula, int Numbers)> Calls = new(StringComparer.OrdinalIgnoreCase)
         {
-            var text = term.Value;
-            if (text[0] == '"')
+            ["UCase"] = ("UPPER", 0),
+            ["LCase"] = ("LOWER", 0),
+            ["Trim"] = ("TRIM", 0),
+            ["Left"] = ("LEFT", 1),
+            ["Right"] = ("RIGHT", 1),
+            ["Mid"] = ("MID", 2)
+        };
+
+        private int _position;
+
+        public string? Parse()
+        {
+            var expression = Expression();
+            SkipSpaces();
+            return expression is not null && _position == text.Length ? expression : null;
+        }
+
+        private string? Expression()
+        {
+            var builder = new System.Text.StringBuilder();
+            do
             {
-                // A bracket in a literal would read as a reference in the template.
-                var literal = text[1..^1].Replace("\"\"", "\"", StringComparison.Ordinal);
-                if (literal.IndexOfAny(new[] { '[', ']' }) >= 0)
+                if (Term() is not { } term)
                 {
                     return null;
                 }
 
-                template.Append(literal);
-                continue;
+                builder.Append(term);
+                SkipSpaces();
             }
+            while (Take('&'));
 
-            var inputNameUsed = text[0] == '[' ? text[1..^1].Trim() : text;
-            if (!inputs.TryGetValue(inputNameUsed, out var referenceId))
+            return builder.ToString();
+        }
+
+        private string? Term()
+        {
+            SkipSpaces();
+            if (_position >= text.Length)
             {
                 return null;
             }
 
-            template.Append('[').Append(referenceId).Append(']');
+            var ch = text[_position];
+            if (ch == '"')
+            {
+                return Literal();
+            }
+
+            if (ch == '[')
+            {
+                var close = text.IndexOf(']', _position + 1);
+                if (close < 0)
+                {
+                    return null;
+                }
+
+                var bracketed = text[(_position + 1)..close].Trim();
+                _position = close + 1;
+                return Reference(bracketed);
+            }
+
+            if (!char.IsAsciiLetter(ch) && ch != '_')
+            {
+                return null;
+            }
+
+            var start = _position;
+            while (_position < text.Length && (char.IsAsciiLetterOrDigit(text[_position]) || text[_position] == '_'))
+            {
+                _position++;
+            }
+
+            var name = text[start.._position];
+            SkipSpaces();
+            if (!Take('('))
+            {
+                return Reference(name);
+            }
+
+            if (!Calls.TryGetValue(name, out var call) || Expression() is not { } inner)
+            {
+                return null;
+            }
+
+            var numbers = new List<string>();
+            for (var index = 0; index < call.Numbers; index++)
+            {
+                SkipSpaces();
+                if (!Take(',') || Number() is not { } number)
+                {
+                    return null;
+                }
+
+                numbers.Add(number);
+            }
+
+            SkipSpaces();
+            if (!Take(')'))
+            {
+                return null;
+            }
+
+            var head = string.Join(':', new[] { call.Formula }.Concat(numbers));
+            return NiceLabel10FunctionMarkers.Start + head + NiceLabel10FunctionMarkers.Body + inner + NiceLabel10FunctionMarkers.End;
         }
 
-        return template.ToString();
+        private string? Literal()
+        {
+            var builder = new System.Text.StringBuilder();
+            _position++;
+            while (_position < text.Length)
+            {
+                var ch = text[_position++];
+                if (ch != '"')
+                {
+                    builder.Append(ch);
+                    continue;
+                }
+
+                if (_position < text.Length && text[_position] == '"')
+                {
+                    builder.Append('"');
+                    _position++;
+                    continue;
+                }
+
+                // A bracket or brace in a literal would read as a reference in the template.
+                var literal = builder.ToString();
+                return literal.IndexOfAny(new[] { '[', ']', '{', '}' }) >= 0 ? null : literal;
+            }
+
+            return null;
+        }
+
+        private string? Number()
+        {
+            SkipSpaces();
+            var start = _position;
+            while (_position < text.Length && char.IsAsciiDigit(text[_position]))
+            {
+                _position++;
+            }
+
+            return _position > start ? text[start.._position] : null;
+        }
+
+        private string? Reference(string name)
+            => inputs.TryGetValue(name, out var id) ? "[" + id + "]" : null;
+
+        private bool Take(char expected)
+        {
+            if (_position < text.Length && text[_position] == expected)
+            {
+                _position++;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void SkipSpaces()
+        {
+            while (_position < text.Length && text[_position] is ' ' or '\t')
+            {
+                _position++;
+            }
+        }
     }
-
-    private const string ScriptTerm = @"(?<term>""(?:[^""\r\n]|"""")*""|\[[^\]\r\n]+\]|[A-Za-z_][A-Za-z0-9_]*)";
-
-    private static readonly Regex ScriptConcatenation = new(
-        @"^Result\s*=\s*" + ScriptTerm + @"(?:\s*&\s*" + ScriptTerm + @")*$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>
     /// An <c>AscFactFunction</c> composes ANSI MH10.8.2 data-identifier

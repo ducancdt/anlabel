@@ -296,6 +296,14 @@ an acceptance check.
   Left/Right, check-digit helpers), HIBC or date arithmetic on prompted
   dates, 13 graphics, 4 rich-text templates, 15 report items. The 12 local
   customer labels convert 334/334.
+- 2026-10-30, after the formula text functions (UPPER, LOWER, TRIM, LEFT,
+  RIGHT, with MID) and scripts calling UCase, LCase, Trim, Left, Right and
+  Mid inside the concatenation: 62 of the 68 sample scripts translate;
+  6,351 converted (98.2%). The 6 left are ISBT 128 check helpers
+  (`ISO7064Mod37_2`, `ISBTNumericPair`) and `Right(x, Len(x)-1)`
+  arithmetic; unconverted = 33 barcodes and 51 texts (HIBC, date
+  arithmetic on prompted dates, variables computed from them), 13 graphics,
+  4 rich-text templates, 15 report items.
 - Print-and-scan sweep (2026-10-30, scratch tool, not committed): every
   sample label imported, printed by `LabelVisualRenderer` at 300 dpi with the
   designer's design-time row (prompt defaults, today's date), and every
