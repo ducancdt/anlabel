@@ -1,5 +1,14 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.359
+
+- Dữ liệu: ô “Trường Excel” của Thuộc tính (trang Nguồn) nay hiện đúng cột mà đối tượng đang chọn
+  in, và chỉ đổi cột khi chọn ngay trong ô đó. Trước đây ô này đi theo lựa chọn chung của danh sách
+  trường: đang chọn một mã vạch có liên kết mà nạp lại dữ liệu (lúc lựa chọn khác cột đầu), thêm hay
+  xóa trường, hoặc chọn một trường trong cửa sổ Nhập Excel, thì mã vạch bị gắn sang cột đó và đổi
+  tên, rồi in sai cột mà kiểm tra trước khi in không báo; ô cũng hiện một cột không phải cột đối
+  tượng đang in.
+
 ## v0.359 — Tờ nhiều tem giữ đủ mép phải và mép dưới của từng tem
 
 _Gồm các commit 31/10/2026 (17:38–18:48)._

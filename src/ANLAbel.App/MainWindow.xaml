@@ -2728,7 +2728,6 @@
                                             <TextBlock Text="Trường Excel" Style="{StaticResource PropLabel}"/>
                                             <ComboBox x:Name="ExcelFieldComboBox"
                                                       ItemsSource="{Binding LabelDatabaseFields}"
-                                                      SelectedItem="{Binding SelectedLabelDatabaseField, Mode=TwoWay}"
                                                       DisplayMemberPath="DisplayName"
                                                       SelectionChanged="ExcelFieldComboBox_SelectionChanged"
                                                       Margin="0,2,0,0"/>

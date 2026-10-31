@@ -45,6 +45,8 @@ public partial class MainWindow : Window
         PreviewMouseUp += (_, _) => Dispatcher.BeginInvoke(_viewModel.RefreshSelectionScope, System.Windows.Threading.DispatcherPriority.Input);
         PreviewKeyUp += (_, _) => Dispatcher.BeginInvoke(_viewModel.RefreshSelectionScope, System.Windows.Threading.DispatcherPriority.Input);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        // A data load or a field added or removed changes the field list: show the selected object's column again.
+        _viewModel.LabelDatabaseFields.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(UpdateExcelFieldSelection, System.Windows.Threading.DispatcherPriority.Background);
         BuildDesignerContextMenu();
         // Back from Excel: say whether the linked file is still open there.
         Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
@@ -507,7 +509,10 @@ public partial class MainWindow : Window
 
     private void ExcelFieldComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_syncingExcelField || _syncingContentSource || ContentSourceComboBox is null)
+        // Only a column picked in this list binds the selected object. The list no longer
+        // follows the shared field selection: a data load (or the import window's list)
+        // moved it to the first column and the selected object was bound there with it.
+        if (_syncingExcelField || _syncingContentSource || ContentSourceComboBox is null || ExcelFieldComboBox.SelectedItem is not DatabaseField)
         {
             return;
         }
@@ -522,7 +527,7 @@ public partial class MainWindow : Window
 
     private void EnsureSelectedExcelField()
     {
-        if (_viewModel.SelectedLabelDatabaseField is not null)
+        if (ExcelFieldComboBox.SelectedItem is DatabaseField)
         {
             return;
         }
@@ -536,7 +541,41 @@ public partial class MainWindow : Window
         _syncingExcelField = true;
         try
         {
-            _viewModel.SelectedLabelDatabaseField = firstField;
+            ExcelFieldComboBox.SelectedItem = firstField;
+        }
+        finally
+        {
+            _syncingExcelField = false;
+        }
+    }
+
+    /// <summary>
+    /// The Properties field list shows the column the selected object prints (a binding
+    /// of one field such as {MaHang}); a binding of several fields, or none, shows no column.
+    /// </summary>
+    private void UpdateExcelFieldSelection()
+    {
+        if (ExcelFieldComboBox is null)
+        {
+            return;
+        }
+
+        var binding = _viewModel.SelectedObject?.BindingExpression?.Trim() ?? string.Empty;
+        var name = binding.Length > 2 && binding[0] == '{' && binding[^1] == '}' && binding.IndexOfAny(['{', '}'], 1) == binding.Length - 1
+            ? binding[1..^1]
+            : null;
+        var field = name is null
+            ? null
+            : _viewModel.LabelDatabaseFields.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (ReferenceEquals(ExcelFieldComboBox.SelectedItem, field))
+        {
+            return;
+        }
+
+        _syncingExcelField = true;
+        try
+        {
+            ExcelFieldComboBox.SelectedItem = field;
         }
         finally
         {
@@ -546,7 +585,7 @@ public partial class MainWindow : Window
 
     private void BindSelectedObjectToCurrentExcelField()
     {
-        var fieldName = _viewModel.SelectedLabelDatabaseField?.Name ?? _viewModel.SelectedExcelField;
+        var fieldName = (ExcelFieldComboBox.SelectedItem as DatabaseField)?.Name ?? _viewModel.SelectedExcelField;
         if (!string.IsNullOrWhiteSpace(fieldName) && _viewModel.BindSelectedAsExcelFieldCommand.CanExecute(fieldName))
         {
             _viewModel.BindSelectedAsExcelFieldCommand.Execute(fieldName);
@@ -555,6 +594,7 @@ public partial class MainWindow : Window
 
     private void UpdateContentSourceSelection()
     {
+        UpdateExcelFieldSelection();
         if (ContentSourceComboBox is null)
         {
             return;

@@ -531,6 +531,124 @@ internal static class DataHeaderRegression
         }
     }
 
+    /// <summary>
+    /// A barcode bound to {MaHang} was selected while the linked workbook loaded again
+    /// (Nạp lại dữ liệu, the workbook saved in Excel, a field added in the import
+    /// window). Each load picks the first column in the Properties field list, and the
+    /// list took that for the operator's choice: the barcode was bound to the first
+    /// column and renamed, and printed it with no warning. Only a choice made in that
+    /// list binds the selected object now.
+    /// </summary>
+    public static Task ReloadingDataKeepsTheSelectedObjectsColumn()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(
+                    new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
+                ReloadKeepsTheColumn();
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            throw failure;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static void ReloadKeepsTheColumn()
+    {
+        void Wait(Task task)
+        {
+            var frame = new System.Windows.Threading.DispatcherFrame();
+            task.ContinueWith(_ => frame.Continue = false, TaskScheduler.Default);
+            System.Windows.Threading.Dispatcher.PushFrame(frame);
+            task.GetAwaiter().GetResult();
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-keep-column-gate-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "data.xlsx");
+            WriteSheet(path, ["MaKien", "MaHang", "SoLuong"], ["K-1", "TERM-1", "10"]);
+            var window = new ANLAbel.App.MainWindow();
+            var vm = (MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new System.Windows.Size(1440, 900));
+                window.Arrange(new System.Windows.Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            vm.IsPropertiesPinned = true;
+            vm.IsPropertiesVisible = true;
+            Settle();
+            Wait(vm.ImportExcelAsync(path, "Data", 1));
+            var barcode = new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128,
+                Name = "Mã vạch mã hàng",
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                BindingExpression = "{MaHang}",
+                XMm = 3,
+                YMm = 3,
+                WidthMm = 40,
+                HeightMm = 10
+            };
+            vm.Template.Objects.Add(barcode);
+            vm.SelectedObject = barcode;
+            Settle();
+            var list = (System.Windows.Controls.ComboBox)window.FindName("ExcelFieldComboBox");
+            Require((list.SelectedItem as DatabaseField)?.Name == "MaHang",
+                "The Properties field list shows the column the barcode prints: " + (list.SelectedItem as DatabaseField)?.Name);
+
+            Wait(vm.RefreshExcelDataAsync());
+            Settle();
+            Require(barcode.BindingExpression == "{MaHang}" && barcode.Name == "Mã vạch mã hàng",
+                $"Reloading the data with the barcode selected must keep its column and name, it is now '{barcode.Name}' {barcode.BindingExpression}.");
+            Require((list.SelectedItem as DatabaseField)?.Name == "MaHang",
+                "After the reload the field list still shows the barcode's column: " + (list.SelectedItem as DatabaseField)?.Name);
+
+            // A field picked in another list (the import window's) is no choice for the selected object either.
+            vm.SelectedLabelDatabaseField = vm.LabelDatabaseFields.First(field => field.Name == "SoLuong");
+            Settle();
+            Require(barcode.BindingExpression == "{MaHang}",
+                "Selecting a field in the import window's list must not bind the selected barcode: " + barcode.BindingExpression);
+
+            // The operator's own choice in the Properties field list still binds the object.
+            list.SelectedItem = vm.LabelDatabaseFields.First(field => field.Name == "MaKien");
+            Settle();
+            Require(barcode.BindingExpression == "{MaKien}",
+                "Picking MaKien in the Properties field list binds the barcode to it: " + barcode.BindingExpression);
+            // Not closed: closing an edited label asks whether to save it.
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
     private static void AddText(LabelTemplate template, string id, string name, string binding)
     {
         template.Objects.Add(new LabelObject
