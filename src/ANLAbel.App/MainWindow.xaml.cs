@@ -45,8 +45,7 @@ public partial class MainWindow : Window
         PreviewMouseUp += (_, _) => Dispatcher.BeginInvoke(_viewModel.RefreshSelectionScope, System.Windows.Threading.DispatcherPriority.Input);
         PreviewKeyUp += (_, _) => Dispatcher.BeginInvoke(_viewModel.RefreshSelectionScope, System.Windows.Threading.DispatcherPriority.Input);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        // A data load or a field added or removed changes the field list: show the selected object's column again.
-        _viewModel.LabelDatabaseFields.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(UpdateExcelFieldSelection, System.Windows.Threading.DispatcherPriority.Background);
+        WatchLabelFields();
         BuildDesignerContextMenu();
         // Back from Excel: say whether the linked file is still open there.
         Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
@@ -319,6 +318,9 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.Template))
         {
             BindObjectBrowser();
+            // Another label brings its own field list: show the selected object's column in it.
+            WatchLabelFields();
+            Dispatcher.BeginInvoke(UpdateExcelFieldSelection, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         if (e.PropertyName == nameof(MainViewModel.SelectedObject))
@@ -512,7 +514,10 @@ public partial class MainWindow : Window
         // Only a column picked in this list binds the selected object. The list no longer
         // follows the shared field selection: a data load (or the import window's list)
         // moved it to the first column and the selected object was bound there with it.
-        if (_syncingExcelField || _syncingContentSource || ContentSourceComboBox is null || ExcelFieldComboBox.SelectedItem is not DatabaseField)
+        // The column the object already prints changes nothing (no new name, no edit).
+        if (_syncingExcelField || _syncingContentSource || ContentSourceComboBox is null
+            || ExcelFieldComboBox.SelectedItem is not DatabaseField picked
+            || string.Equals(SingleBoundField(_viewModel.SelectedObject), picked.Name, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -560,13 +565,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        var binding = _viewModel.SelectedObject?.BindingExpression?.Trim() ?? string.Empty;
-        var name = binding.Length > 2 && binding[0] == '{' && binding[^1] == '}' && binding.IndexOfAny(['{', '}'], 1) == binding.Length - 1
-            ? binding[1..^1]
-            : null;
+        var name = SingleBoundField(_viewModel.SelectedObject);
+        // Only a field the list already holds: one it does not hold yet (the next label's
+        // list while this one is still shown) would wait in the list and be selected by the
+        // list itself when it arrives, which reads as a pick and binds the object to it.
         var field = name is null
             ? null
-            : _viewModel.LabelDatabaseFields.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
+            : ExcelFieldComboBox.Items.OfType<DatabaseField>().FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
         if (ReferenceEquals(ExcelFieldComboBox.SelectedItem, field))
         {
             return;
@@ -582,6 +587,36 @@ public partial class MainWindow : Window
             _syncingExcelField = false;
         }
     }
+
+    /// <summary>The column of a binding of one field ({MaHang}); none for text, formulas or several fields.</summary>
+    private static string? SingleBoundField(LabelObject? item)
+    {
+        var binding = item?.BindingExpression?.Trim() ?? string.Empty;
+        return binding.Length > 2 && binding[0] == '{' && binding[^1] == '}' && binding.IndexOfAny(['{', '}'], 1) == binding.Length - 1
+            ? binding[1..^1].Trim()
+            : null;
+    }
+
+    private System.Collections.Specialized.INotifyCollectionChanged? _watchedLabelFields;
+
+    /// <summary>
+    /// The field list belongs to the open label (its DatabaseConfig), so it is watched again
+    /// when another label opens: a data load or a field added or removed changes it, and the
+    /// Properties field list then shows the selected object's column again.
+    /// </summary>
+    private void WatchLabelFields()
+    {
+        if (_watchedLabelFields is not null)
+        {
+            _watchedLabelFields.CollectionChanged -= LabelFields_CollectionChanged;
+        }
+
+        _watchedLabelFields = _viewModel.LabelDatabaseFields;
+        _watchedLabelFields.CollectionChanged += LabelFields_CollectionChanged;
+    }
+
+    private void LabelFields_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        => Dispatcher.BeginInvoke(UpdateExcelFieldSelection, System.Windows.Threading.DispatcherPriority.Background);
 
     private void BindSelectedObjectToCurrentExcelField()
     {

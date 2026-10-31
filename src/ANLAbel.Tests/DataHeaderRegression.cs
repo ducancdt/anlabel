@@ -632,6 +632,26 @@ internal static class DataHeaderRegression
             Settle();
             Require(barcode.BindingExpression == "{MaKien}",
                 "Picking MaKien in the Properties field list binds the barcode to it: " + barcode.BindingExpression);
+
+            // Opening a linked label selects its top object, and the link restored after that
+            // picked the first column: the top object was bound there on every open.
+            var label = Path.Combine(directory, "tem.anlabel");
+            var author = new MainViewModel();
+            Wait(author.ImportExcelAsync(path, "Data", 1));
+            author.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Số lượng", BindingExpression = "{SoLuong}", XMm = 3, YMm = 20, WidthMm = 30, HeightMm = 6, ZIndex = 9 });
+            Wait(author.SaveAsync(label));
+            var opener = new ANLAbel.App.MainWindow();
+            var opened = (MainViewModel)opener.DataContext;
+            opener.Measure(new System.Windows.Size(1440, 900));
+            opener.Arrange(new System.Windows.Rect(0, 0, 1440, 900));
+            opener.UpdateLayout();
+            Wait(opened.OpenAsync(label));
+            opener.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var top = opened.Template.Objects.Single(item => item.ZIndex == 9);
+            Require(ReferenceEquals(opened.SelectedObject, top), "Opening selects the top object, as before.");
+            Require(top.BindingExpression == "{SoLuong}" && top.Name == "Số lượng" && !opened.HasUnsavedChanges(),
+                $"Opening the label must keep its top object's column and name and leave it unchanged: '{top.Name}' {top.BindingExpression}, unsaved {opened.HasUnsavedChanges()}.");
             // Not closed: closing an edited label asks whether to save it.
         }
         finally

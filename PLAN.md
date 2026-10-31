@@ -7,7 +7,8 @@
   trường: đang chọn một mã vạch có liên kết mà nạp lại dữ liệu (lúc lựa chọn khác cột đầu), thêm hay
   xóa trường, hoặc chọn một trường trong cửa sổ Nhập Excel, thì mã vạch bị gắn sang cột đó và đổi
   tên, rồi in sai cột mà kiểm tra trước khi in không báo; ô cũng hiện một cột không phải cột đối
-  tượng đang in.
+  tượng đang in. Mở một tem có liên kết (đối tượng trên cùng được chọn sẵn) cũng đổi tên đối tượng đó
+  thành “Trường: <cột>” và đánh dấu tem là chưa lưu; nay mở tem không đổi gì.
 
 ## v0.359 — Tờ nhiều tem giữ đủ mép phải và mép dưới của từng tem
 
