@@ -251,7 +251,9 @@ public partial class PrintPreviewWindow : Window
                     ? "Nội dung cần chú ý. Sửa các vấn đề bên dưới hoặc bỏ chọn các dòng bị ảnh hưởng."
                     : _preflightResult.Issues.Count > 0
                         ? "Chỉ là cảnh báo rủi ro quét mã — vẫn cho phép in. Hãy mở rộng mã vạch hoặc tăng DPI nếu đầu đọc khó quét."
-                        : "Nội dung các nhãn đã chọn đã vượt qua kiểm tra.";
+                        : MergedCellsText.Length > 0
+                            ? "Nội dung các nhãn đã chọn đã vượt qua kiểm tra. Xem lưu ý về ô gộp trong Excel ở trên."
+                            : "Nội dung các nhãn đã chọn đã vượt qua kiểm tra.";
     public string PreflightIssuesSummary => $"{_contentIssues.Count} vấn đề nội dung riêng biệt. Các bản sao lặp lại đã được gộp nhóm.";
     public string PrinterStatusText => _isPreviewBusy
         ? "Đang kiểm tra xem trước..."
@@ -2059,6 +2061,9 @@ public partial class PrintPreviewWindow : Window
                 : $"{hidden.Count} dòng đang ẩn trong Excel (bộ lọc) chưa được chọn in: dòng {string.Join(", ", hidden.Take(10).Select(index => index + 1))}{(hidden.Count > 10 ? "…" : string.Empty)}. Đánh dấu lại nếu cần in.";
         }
     }
+
+    /// <summary>Merged Excel cells over the columns the label reads: their rows after the first print a blank there.</summary>
+    public string MergedCellsText => ANLAbel.App.Services.MergedCellsText.Describe(_excelDataView?.Table, _template);
 
     /// <summary>Reminder while the linked data file is open in Excel: edits not saved there do not print.</summary>
     public string DataOpenInExcelText { get; private set; } = string.Empty;

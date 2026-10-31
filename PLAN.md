@@ -19,6 +19,11 @@
   lại, giữ các dòng đã chọn), như mẫu in của NiceLabel đặt câu hỏi cạnh tem xem
   trước. Trước đây muốn sửa phải đóng xem trước rồi in lại. In lại một lệnh cũ
   vẫn giữ giá trị của lệnh gốc.
+- Nhập Excel: ô gộp (ví dụ một số lô gộp qua ba dòng) chỉ lưu giá trị ở ô đầu, nên
+  các dòng sau đọc là trống và tem in thiếu giá trị mà không ai biết. Lúc nhập, thanh
+  trạng thái nêu vùng gộp và các dòng; Xem trước khi in nhắc lại khi tem dùng cột đó
+  (“Ô gộp B2:B4 (“Lot”) trong Excel chỉ có giá trị ở ô đầu: tem của dòng 2, 3 sẽ để
+  trống “Lot”…”). Chỉ nhắc: không tự điền giá trị xuống các dòng gộp.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 

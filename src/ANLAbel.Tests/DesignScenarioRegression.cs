@@ -1870,6 +1870,84 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A lot merged over three rows in Excel shows on each of them, but the
+    /// file keeps it in the first cell only: the other rows read as empty and
+    /// their labels printed without a lot, without a word. The import status
+    /// names the merged range and rows, and Print Preview repeats it when the
+    /// label reads that column.
+    /// </summary>
+    public static Task MergedExcelCellsAreNamed()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-merged-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            RunOnSta(() =>
+            {
+                var path = Path.Combine(directory.FullName, "lots.xlsx");
+                using (var workbook = new ClosedXML.Excel.XLWorkbook())
+                {
+                    var sheet = workbook.AddWorksheet("Lots");
+                    sheet.Cell(1, 1).Value = "Ma";
+                    sheet.Cell(1, 2).Value = "Lot";
+                    for (var index = 0; index < 4; index++)
+                    {
+                        sheet.Cell(index + 2, 1).Value = "SP-" + (index + 1);
+                    }
+
+                    sheet.Cell(2, 2).Value = "L2610";
+                    sheet.Range(2, 2, 4, 2).Merge();
+                    sheet.Cell(5, 2).Value = "L2611";
+                    workbook.SaveAs(path);
+                }
+
+                var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+                viewModel.ImportExcelAsync(path, "Lots").GetAwaiter().GetResult();
+                const string note = "Ô gộp B2:B4 (“Lot”) trong Excel chỉ có giá trị ở ô đầu: tem của dòng 2, 3 sẽ để trống “Lot”.";
+                Require(viewModel.StatusText.Contains(note, StringComparison.Ordinal), "The import names the merged lot: " + viewModel.StatusText);
+
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+                Require(ANLAbel.App.Services.MergedCellsText.Describe(viewModel.ExcelDataView!.Table, viewModel.Template).Length == 0,
+                    "A label that does not read the column is not told.");
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô", BindingExpression = "{Lot}", XMm = 3, YMm = 10, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+                Require(viewModel.TryBuildPrintPreviewRows(out var rows, out var rowError) && rows.Count == 4, "All four rows are read: " + rowError);
+                var window = new ANLAbel.App.PrintPreviewWindow(
+                    viewModel.Template,
+                    rows[0],
+                    viewModel.ExcelDataView,
+                    new PrintService(),
+                    new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(directory.FullName, "log.csv")),
+                    string.Empty,
+                    preparedRows: rows,
+                    excelSourceIdentity: viewModel.ImportedExcelDataSourceIdentity);
+                var deadline = DateTime.UtcNow.AddSeconds(30);
+                do
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                    Thread.Sleep(20);
+                }
+                while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline);
+
+                Require(window.MergedCellsText.StartsWith(note, StringComparison.Ordinal), "Print Preview names it: " + window.MergedCellsText);
+                Require(window.PreflightStatusText.EndsWith("Xem lưu ý về ô gộp trong Excel ở trên.", StringComparison.Ordinal),
+                    "The content check points to the note: " + window.PreflightStatusText);
+                window.Close();
+            });
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Rows the operator filtered away in Excel (AutoFilter: today's orders
     /// only) used to print with the rest: five labels for three orders. They
     /// are still read, but Print Preview starts them unselected and names them,

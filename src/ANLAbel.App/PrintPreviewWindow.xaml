@@ -281,6 +281,18 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
+                    <TextBlock Text="{Binding MergedCellsText}" TextWrapping="Wrap" Foreground="#92400E" Margin="0,0,0,10"
+                               AutomationProperties.AutomationId="PrintPreview.MergedCells">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Text="{Binding DataOpenInExcelText}" TextWrapping="Wrap" Foreground="#92400E" Margin="0,0,0,10"
                                AutomationProperties.AutomationId="PrintPreview.DataOpenInExcel">
                         <TextBlock.Style>

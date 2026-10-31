@@ -23,6 +23,16 @@ public sealed record ExcelConnectionCheck(int ColumnCount, int RowCount, Excepti
 }
 
 /// <summary>
+/// A merged range over data cells. Excel shows its value in every cell it
+/// covers but keeps it in the first cell only, so the others read as empty:
+/// a lot merged over three rows prints on the first of them only.
+/// </summary>
+/// <param name="Reference">The range as Excel names it, e.g. <c>B4:B6</c>.</param>
+/// <param name="Fields">The fields whose cells it covers.</param>
+/// <param name="EmptyRowIndexes">Data rows (0-based, in source order) with a cell of the range that reads as empty.</param>
+public sealed record ExcelMergedCells(string Reference, IReadOnlyList<string> Fields, IReadOnlyList<int> EmptyRowIndexes);
+
+/// <summary>
 /// Reads .xlsx/.xlsm workbooks with ExcelDataReader (bug fix 2026-07-03: switched from
 /// ClosedXML). ClosedXML builds a full in-memory DOM of the whole workbook — every sheet,
 /// every cell's style/formatting — regardless of how little of it a caller actually reads,
@@ -346,10 +356,13 @@ public sealed class ExcelDataService
         string[]? reusable = null;
         var rowNumber = 0;
         var hiddenRows = new List<int>();
+        // The data row each sheet row became (-1 for none), to place merged ranges.
+        var dataRowOfSheetRow = new List<int>();
         while (reader.Read())
         {
             cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
+            dataRowOfSheetRow.Add(-1);
             // A row hidden in Excel (an AutoFilter, or Hide) has no height.
             var hidden = reader.RowHeight <= 0;
             var cells = ReadRowCells(reader, failClosedOnCellError: true, sheetName, rowNumber, filePath, rowNumber == headerRowIndex ? null : reusable);
@@ -411,12 +424,19 @@ public sealed class ExcelDataService
                 hiddenRows.Add(table.Rows.Count);
             }
 
+            dataRowOfSheetRow[^1] = table.Rows.Count;
             table.Rows.Add(dataRow);
         }
 
         if (hiddenRows.Count > 0)
         {
             table.ExtendedProperties[HiddenRowsProperty] = hiddenRows.ToArray();
+        }
+
+        // Merged ranges are known once the whole sheet has been read.
+        if (MergedDataCells(reader.MergeCells, columns, dataRowOfSheetRow) is { Length: > 0 } merged)
+        {
+            table.ExtendedProperties[MergedCellsProperty] = merged;
         }
 
         if (rowNumber == 0)
@@ -463,6 +483,53 @@ public sealed class ExcelDataService
     /// </summary>
     public static IReadOnlyList<int> HiddenRowIndexes(DataTable? table)
         => table?.ExtendedProperties[HiddenRowsProperty] as int[] ?? Array.Empty<int>();
+
+    private const string MergedCellsProperty = "ANLAbel.MergedCells";
+
+    /// <summary>
+    /// Merged ranges over the data cells when the sheet was read. Their cells
+    /// after the first read as empty although Excel shows the value in them.
+    /// </summary>
+    public static IReadOnlyList<ExcelMergedCells> MergedCells(DataTable? table)
+        => table?.ExtendedProperties[MergedCellsProperty] as ExcelMergedCells[] ?? Array.Empty<ExcelMergedCells>();
+
+    private static ExcelMergedCells[] MergedDataCells(CellRange[]? ranges, DataColumn?[] columns, List<int> dataRowOfSheetRow)
+    {
+        var merged = new List<ExcelMergedCells>();
+        foreach (var range in (ranges ?? Array.Empty<CellRange>()).OrderBy(range => range.FromColumn).ThenBy(range => range.FromRow))
+        {
+            var fields = new List<string>();
+            // On its first row only the first cell holds the value.
+            var firstRowEmpty = false;
+            for (var column = Math.Max(0, range.FromColumn); column <= range.ToColumn && column < columns.Length; column++)
+            {
+                if (columns[column] is { } field)
+                {
+                    fields.Add(field.ColumnName);
+                    firstRowEmpty |= column > range.FromColumn;
+                }
+            }
+
+            var rows = new List<int>();
+            for (var row = Math.Max(0, range.FromRow); row <= range.ToRow && row < dataRowOfSheetRow.Count; row++)
+            {
+                if (dataRowOfSheetRow[row] >= 0 && (row > range.FromRow || firstRowEmpty))
+                {
+                    rows.Add(dataRowOfSheetRow[row]);
+                }
+            }
+
+            if (fields.Count > 0 && rows.Count > 0)
+            {
+                merged.Add(new ExcelMergedCells(
+                    $"{DataColumnOrigin.ToColumnLetter(range.FromColumn + 1)}{range.FromRow + 1}:{DataColumnOrigin.ToColumnLetter(range.ToColumn + 1)}{range.ToRow + 1}",
+                    fields,
+                    rows));
+            }
+        }
+
+        return merged.ToArray();
+    }
 
     private static bool IsOpenXmlWorkbook(string filePath)
     {

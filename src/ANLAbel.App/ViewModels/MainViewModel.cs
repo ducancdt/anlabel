@@ -2349,6 +2349,13 @@ public sealed class MainViewModel : ObservableObject
                 (false, true) => " — " + headerNote.Text,
                 _ => string.Empty
             };
+        // Merged cells read as empty after their first cell: named here for every
+        // column, and in Print Preview for the columns the label reads.
+        if (ANLAbel.App.Services.MergedCellsText.Describe(table, template: null) is { Length: > 0 } mergedNote)
+        {
+            issueSuffix += " — " + mergedNote;
+        }
+
         _lastImportIssueSuffix = issueSuffix;
         StatusText = $"Đã nhập {table.Rows.Count} dòng từ {Path.GetFileName(filePath)} / {sheetName}{issueSuffix}";
         LogDataOperation(operation, filePath, sheetName, table.Rows.Count, table.Columns.Count, success: true, errorMessage: string.Empty);
