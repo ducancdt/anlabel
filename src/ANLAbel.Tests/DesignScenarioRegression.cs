@@ -3366,6 +3366,91 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A locked object showed nothing on the label, and a drag on it did nothing without a
+    /// word. As NiceLabel 10 marks locked objects, a padlock now sits at the top-right of
+    /// each one (View: Đối tượng khóa), and pressing the selected locked object says why
+    /// it stays and how to unlock it.
+    /// </summary>
+    public static Task LockedObjectsShowALockAndSayWhyTheyStay()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { WidthMm = 60, HeightMm = 30 };
+            template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Hộp", XMm = 10, YMm = 10, WidthMm = 20, HeightMm = 8, IsLocked = true });
+            var canvas = new ANLAbel.App.Controls.LabelDesignerCanvas { Template = template, Zoom = 1 };
+            var size = new Size(MmConverter.MmToDip(60), MmConverter.MmToDip(30));
+            canvas.Measure(size);
+            canvas.Arrange(new Rect(size));
+            canvas.UpdateLayout();
+            int MarkerPixels()
+            {
+                var bitmap = new RenderTargetBitmap((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height), 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(canvas);
+                var stride = bitmap.PixelWidth * 4;
+                var pixels = new byte[stride * bitmap.PixelHeight];
+                bitmap.CopyPixels(pixels, stride, 0);
+                var left = (int)MmConverter.MmToDip(30) + 1;
+                var top = (int)MmConverter.MmToDip(10) - 11;
+                var count = 0;
+                for (var y = top; y < top + 12; y++)
+                {
+                    for (var x = left; x < left + 11; x++)
+                    {
+                        var index = y * stride + x * 4;
+                        // The marker colour, rgb(124, 58, 237): much more blue than green.
+                        if (pixels[index] > 150 && pixels[index + 1] < 120 && pixels[index + 3] > 0)
+                        {
+                            count++;
+                        }
+                    }
+                }
+
+                return count;
+            }
+
+            var shown = MarkerPixels();
+            canvas.ShowLockedMarkers = false;
+            canvas.UpdateLayout();
+            var hidden = MarkerPixels();
+            Require(shown > 10 && hidden == 0, $"A locked object carries a padlock that the View switch hides: {shown} marker pixels shown, {hidden} hidden.");
+
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var designer = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var box = new LabelObject { Type = ObjectType.Rectangle, Name = "Hộp", XMm = 10, YMm = 10, WidthMm = 20, HeightMm = 8, IsLocked = true };
+            viewModel.Template.Objects.Add(box);
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Khác", XMm = 40, YMm = 10, WidthMm = 10, HeightMm = 8 });
+            Pump();
+            viewModel.SelectedObject = viewModel.Template.Objects.Single(item => item.Name == "Khác");
+            Pump();
+            var element = ((System.Collections.IDictionary)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_objectElements", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(designer)!)[box] as UIElement;
+            void Press()
+            {
+                element!.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+                {
+                    RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent
+                });
+                Pump();
+            }
+
+            viewModel.StatusText = "Sẵn sàng";
+            Press();
+            Require(ReferenceEquals(viewModel.SelectedObject, box) && viewModel.StatusText == "Sẵn sàng", "The first press selects the locked object without a message: " + viewModel.StatusText);
+            Press();
+            Require(viewModel.StatusText == "“Hộp” đã khóa vị trí: bỏ Khóa vị trí (chuột phải) để di chuyển." && box.XMm == 10,
+                "Pressing the selected locked object says why it stays: " + viewModel.StatusText);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

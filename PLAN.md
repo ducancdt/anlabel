@@ -31,6 +31,9 @@
   thiết kế của NiceLabel 10, để chọn được đối tượng nhỏ nằm dưới đối tượng khác; Ctrl với dấu
   cộng, dấu trừ phóng to, thu nhỏ và Ctrl+0 về 100 %. Ribbon, thanh trạng thái và trang Phím tắt
   ghi các phím này.
+- Thiết kế: đối tượng đã khóa vị trí có dấu ổ khóa ở góc trên bên phải (Xem › Hiện dấu đối tượng ›
+  Đối tượng khóa), như dấu “Locked object” của NiceLabel 10; bấm giữ đối tượng khóa đang chọn
+  để kéo thì thanh trạng thái nói nó đã khóa và cách mở khóa, thay vì không có phản hồi.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

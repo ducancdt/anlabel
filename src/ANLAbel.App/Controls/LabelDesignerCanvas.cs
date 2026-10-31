@@ -98,6 +98,10 @@ public sealed class LabelDesignerCanvas : Canvas
         DependencyProperty.Register(nameof(ShowDataSourceMarkers), typeof(bool), typeof(LabelDesignerCanvas),
             new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+    public static readonly DependencyProperty ShowLockedMarkersProperty =
+        DependencyProperty.Register(nameof(ShowLockedMarkers), typeof(bool), typeof(LabelDesignerCanvas),
+            new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
     public static readonly RoutedCommand DeleteSelectionCommand = new(nameof(DeleteSelectionCommand), typeof(LabelDesignerCanvas));
 
     private readonly Dictionary<LabelObject, FrameworkElement> _objectElements = new();
@@ -347,6 +351,13 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         get => (bool)GetValue(ShowDataSourceMarkersProperty);
         set => SetValue(ShowDataSourceMarkersProperty, value);
+    }
+
+    /// <summary>Marks objects locked in place with a padlock at their top-right corner (NiceLabel 10 Locked Object marker).</summary>
+    public bool ShowLockedMarkers
+    {
+        get => (bool)GetValue(ShowLockedMarkersProperty);
+        set => SetValue(ShowLockedMarkersProperty, value);
     }
 
     /// <summary>
@@ -1155,7 +1166,7 @@ public sealed class LabelDesignerCanvas : Canvas
     /// </summary>
     private void DrawObjectMarkers(DrawingContext dc)
     {
-        if (Template is null || (!ShowObjectNames && !ShowDataSourceMarkers))
+        if (Template is null || (!ShowObjectNames && !ShowDataSourceMarkers && !ShowLockedMarkers))
         {
             return;
         }
@@ -1179,6 +1190,22 @@ public sealed class LabelDesignerCanvas : Canvas
 
                 diamond.Freeze();
                 dc.DrawGeometry(Brushes.White, markerPen, diamond);
+            }
+
+            if (ShowLockedMarkers && item.IsLocked)
+            {
+                var x = MmToDip(item.XMm + Math.Max(0, item.WidthMm)) + 2;
+                var y = top - 10;
+                var shackle = new StreamGeometry();
+                using (var context = shackle.Open())
+                {
+                    context.BeginFigure(new Point(x + 1.5, y + 4.5), false, false);
+                    context.ArcTo(new Point(x + 6.5, y + 4.5), new Size(2.5, 2.5), 0, false, SweepDirection.Clockwise, true, false);
+                }
+
+                shackle.Freeze();
+                dc.DrawGeometry(null, markerPen, shackle);
+                dc.DrawRectangle(markerBrush, null, new Rect(x, y + 4.5, 8, 5.5));
             }
 
             if (ShowObjectNames && ReferenceEquals(item, SelectedObject) && !string.IsNullOrWhiteSpace(item.Name))
@@ -1363,6 +1390,7 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             e.Handled = true;
+            var pressedOnKey = ReferenceEquals(SelectedObject, item);
             var modifiers = Keyboard.Modifiers;
             var isToggle = (modifiers & ModifierKeys.Control) == ModifierKeys.Control;
             var isAdditive = (modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != ModifierKeys.None;
@@ -1414,6 +1442,12 @@ public sealed class LabelDesignerCanvas : Canvas
 
             if (item.IsLocked)
             {
+                if (pressedOnKey)
+                {
+                    // A press on the selected locked object is a drag that cannot move it: say why.
+                    InteractionStatusText = $"“{item.Name}” đã khóa vị trí: bỏ Khóa vị trí (chuột phải) để di chuyển.";
+                }
+
                 return;
             }
 

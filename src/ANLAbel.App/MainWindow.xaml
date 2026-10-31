@@ -876,6 +876,8 @@
                                               ToolTip="Hiện tên đối tượng đang chọn phía trên nó" AutomationProperties.Name="Show object names"/>
                                     <CheckBox Content="Nguồn dữ liệu" IsChecked="{Binding ElementName=DesignerCanvas, Path=ShowDataSourceMarkers, Mode=TwoWay}"
                                               ToolTip="Đánh dấu các đối tượng lấy dữ liệu từ trường hoặc biến" AutomationProperties.Name="Show data source markers"/>
+                                    <CheckBox Content="Đối tượng khóa" IsChecked="{Binding ElementName=DesignerCanvas, Path=ShowLockedMarkers, Mode=TwoWay}"
+                                              ToolTip="Hiện dấu khóa trên các đối tượng đã khóa vị trí" AutomationProperties.Name="Show locked markers"/>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Hiện dấu đối tượng"/>
                             </controls:RibbonGroupPanel>
