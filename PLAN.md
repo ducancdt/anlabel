@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.354
+## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
+
+_Gồm các commit 31/10/2026 (16:44–16:55)._
 
 - Phiên bản mẫu tem: danh sách phiên bản bỏ cột “Mã băm” (thông tin kỹ thuật cho hỗ trợ);
   mã băm của bản hiện tại và bản sao lưu vẫn có ở phần chi tiết bên dưới.
