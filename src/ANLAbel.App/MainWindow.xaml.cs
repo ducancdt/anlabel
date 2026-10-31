@@ -499,6 +499,36 @@ public partial class MainWindow : Window
 
     private void AddFunctionFromData_Click(object sender, RoutedEventArgs e) => ShowDataManager("NewFunction");
 
+    /// <summary>
+    /// NiceLabel 10 toolbox drop-down: the sources of the Data panel, by group; a pick places the
+    /// tile's object already connected to it. Names show as written (an underscore is no access key).
+    /// </summary>
+    private void ToolboxSourceMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string kindName } button || !Enum.TryParse<ObjectType>(kindName, out var kind))
+        {
+            return;
+        }
+
+        var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
+        foreach (var group in _viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == DataSourceChoiceKind.Source).GroupBy(choice => choice.Group))
+        {
+            var header = new MenuItem { Header = new TextBlock { Text = group.Key } };
+            foreach (var choice in group)
+            {
+                var item = new MenuItem { Header = new TextBlock { Text = choice.Label }, ToolTip = choice.Binding };
+                item.Click += (_, _) => _viewModel.AddConnectedObject(kind, choice.Binding);
+                header.Items.Add(item);
+            }
+
+            menu.Items.Add(header);
+        }
+
+        button.ContextMenu = menu;
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
     private static bool MatchesObjectSearch(LabelObject item, string? search)
         => string.IsNullOrWhiteSpace(search)
             || item.Name.Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase)

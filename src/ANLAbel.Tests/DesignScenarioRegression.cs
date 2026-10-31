@@ -572,6 +572,63 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's toolbox has a drop-down on Text, Text Box and Barcode that places the object
+    /// already connected to a data source. In ANLAbel a barcode was placed with sample data and
+    /// connected afterwards in Properties. Their ▾ now lists the Data panel's sources by group and
+    /// places the tile's object (its own defaults) connected to the pick, in one undo step.
+    /// </summary>
+    public static Task ToolboxPlacesObjectsConnectedToASource()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            foreach (var header in new[] { "MaHang", "PART_NO" })
+            {
+                viewModel.ExcelHeaders.Add(header);
+            }
+
+            Button Arrow(string kind) => FindLogicalChildren<Button>(window).First(button => AutomationProperties.GetName(button) == $"Insert {kind} connected to a data source");
+            MenuItem Pick(Button arrow, string group, string label)
+            {
+                arrow.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, arrow));
+                var heading = arrow.ContextMenu!.Items.OfType<MenuItem>().Single(item => ((TextBlock)item.Header).Text == group);
+                return heading.Items.OfType<MenuItem>().Single(item => ((TextBlock)item.Header).Text == label);
+            }
+
+            var before = viewModel.Template.Objects.Count;
+            var column = Pick(Arrow("BarcodeCode128"), "Trường dữ liệu", "MaHang");
+            column.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, column));
+            var barcode = viewModel.Template.Objects.Last();
+            Require(viewModel.Template.Objects.Count == before + 1 && barcode.Type == ObjectType.BarcodeCode128 && barcode.BindingExpression == "{MaHang}"
+                    && ReferenceEquals(viewModel.SelectedObject, barcode),
+                $"Mã vạch ▾ › Trường dữ liệu › MaHang places a barcode reading MaHang: {barcode.Type} {barcode.BindingExpression}");
+            viewModel.UndoCommand.Execute(null);
+            Require(viewModel.Template.Objects.Count == before, "One undo takes the placed barcode back: " + viewModel.Template.Objects.Count);
+
+            // The column name with an underscore shows as written (no access key).
+            Require(Pick(Arrow("BarcodeCode128"), "Trường dữ liệu", "PART_NO") is not null, "A column name with an underscore shows as written.");
+
+            // A text box placed connected keeps the tile's own frame (the protected defaults).
+            viewModel.AddTextBoxCommand.Execute(null);
+            var plain = viewModel.Template.Objects.Last();
+            var prompt = Pick(Arrow("TextBox"), "Biến nhập khi in", "Lô");
+            prompt.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, prompt));
+            var connected = viewModel.Template.Objects.Last();
+            Require(connected.Type == ObjectType.TextBox && connected.BindingExpression == "{?Lô}"
+                    && Math.Abs(connected.WidthMm - plain.WidthMm) < 0.001 && Math.Abs(connected.HeightMm - plain.HeightMm) < 0.001,
+                $"Ô chữ ▾ › Lô places the default text box reading the prompt: {connected.BindingExpression} {connected.WidthMm}x{connected.HeightMm} vs {plain.WidthMm}x{plain.HeightMm}");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
     private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
         where T : DependencyObject

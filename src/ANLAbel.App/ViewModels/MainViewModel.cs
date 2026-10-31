@@ -4769,6 +4769,48 @@ public sealed class MainViewModel : ObservableObject
         RaiseFormulaPreviewChanged();
     }
 
+    /// <summary>
+    /// NiceLabel 10's toolbox drop-down: a Text, Text Box or Barcode placed already connected to
+    /// the source picked in it (a prompt, a column, a function, a value given at print time), with
+    /// the tile's own defaults and in one undo step.
+    /// </summary>
+    public void AddConnectedObject(ObjectType kind, string binding)
+    {
+        if (IsEditingLocked || string.IsNullOrWhiteSpace(binding) || kind is not (ObjectType.Text or ObjectType.TextBox or ObjectType.BarcodeCode128))
+        {
+            return;
+        }
+
+        BeginTemplateEditGesture($"Thêm đối tượng gắn {binding}");
+        try
+        {
+            switch (kind)
+            {
+                case ObjectType.Text:
+                    AddText();
+                    break;
+                case ObjectType.TextBox:
+                    AddTextBox();
+                    break;
+                default:
+                    AddBarcode();
+                    break;
+            }
+
+            if (SelectedObject is { } added)
+            {
+                added.BindingExpression = binding;
+                StatusText = $"Đã thêm {added.Name} gắn {binding}.";
+            }
+        }
+        finally
+        {
+            CommitTemplateEditGesture();
+        }
+
+        RaiseFormulaPreviewChanged();
+    }
+
     /// <summary>The token of a binding that reads one source ({MaHang}, {?Lô}, {#SERIAL}); none for text or formulas.</summary>
     private static string? SingleSourceToken(string binding)
         => binding.Length > 2 && binding[0] == '{' && binding[^1] == '}' && binding.IndexOfAny(['{', '}'], 1) == binding.Length - 1

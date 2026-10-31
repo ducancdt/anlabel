@@ -1525,10 +1525,22 @@
 
                     <StackPanel Grid.Row="1" Margin="8,8,8,8" IsEnabled="{Binding IsEditingAllowed}">
                         <UniformGrid Columns="3" Rows="3">
-                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Text32}" Content="Chữ" Command="{Binding AddTextCommand}" AutomationProperties.Name="Insert Text" ToolTip="Chữ (một dòng, nội dung tự sở hữu)"/>
-                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.TextBox32}" Content="Ô chữ" Command="{Binding AddTextBoxCommand}" AutomationProperties.Name="Insert Text Box"/>
+                            <!-- NiceLabel 10 toolbox drop-down: place it already connected to a data source -->
+                            <Grid>
+                                <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Text32}" Content="Chữ" Command="{Binding AddTextCommand}" AutomationProperties.Name="Insert Text" ToolTip="Chữ (một dòng, nội dung tự sở hữu)"/>
+                                <Button Content="▾" Tag="Text" Click="ToolboxSourceMenu_Click" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" Width="16" Height="16" Padding="0" FontSize="9" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Thêm chữ gắn sẵn một biến, cột, hàm hoặc giá trị khi in" AutomationProperties.Name="Insert Text connected to a data source"/>
+                            </Grid>
+                            <!-- NiceLabel 10 toolbox drop-down: place it already connected to a data source -->
+                            <Grid>
+                                <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.TextBox32}" Content="Ô chữ" Command="{Binding AddTextBoxCommand}" AutomationProperties.Name="Insert Text Box"/>
+                                <Button Content="▾" Tag="TextBox" Click="ToolboxSourceMenu_Click" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" Width="16" Height="16" Padding="0" FontSize="9" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Thêm ô chữ gắn sẵn một biến, cột, hàm hoặc giá trị khi in" AutomationProperties.Name="Insert TextBox connected to a data source"/>
+                            </Grid>
                             <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.RichText32}" Content="Chữ RTF" Command="{Binding AddRichTextBoxCommand}" AutomationProperties.Name="Insert Rich Text" ToolTip="Chữ định dạng (RTF): nhiều kiểu chữ trong một khung"/>
-                            <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Barcode32}" Content="Mã vạch" Command="{Binding AddBarcodeCommand}" AutomationProperties.Name="Insert Barcode"/>
+                            <!-- NiceLabel 10 toolbox drop-down: place it already connected to a data source -->
+                            <Grid>
+                                <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Barcode32}" Content="Mã vạch" Command="{Binding AddBarcodeCommand}" AutomationProperties.Name="Insert Barcode"/>
+                                <Button Content="▾" Tag="BarcodeCode128" Click="ToolboxSourceMenu_Click" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" Width="16" Height="16" Padding="0" FontSize="9" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Thêm mã vạch gắn sẵn một biến, cột, hàm hoặc giá trị khi in" AutomationProperties.Name="Insert BarcodeCode128 connected to a data source"/>
+                            </Grid>
                             <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Picture32}" Content="Hình ảnh" Command="{Binding AddImageCommand}" AutomationProperties.Name="Insert Picture"/>
                             <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Rectangle32}" Content="Chữ nhật" Command="{Binding AddRectangleCommand}" AutomationProperties.Name="Insert Rectangle" ToolTip="Hình chữ nhật"/>
                             <Button Style="{StaticResource ToolboxTile}" controls:Ribbon.Icon="{StaticResource Icon.Line32}" Content="Đường kẻ" Command="{Binding AddLineCommand}" AutomationProperties.Name="Insert Line"/>

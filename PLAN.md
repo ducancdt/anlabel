@@ -2,6 +2,10 @@
 
 ## Sau v0.360
 
+- Hộp công cụ như NiceLabel 10: ô Chữ, Ô chữ và Mã vạch có nút ▾ liệt kê các nguồn của bảng Dữ liệu
+  theo nhóm (biến nhập khi in, cột dữ liệu, hàm, giá trị khi in); chọn một nguồn là đặt đối tượng đã
+  gắn sẵn nguồn đó (giữ mặc định của ô, một bước hoàn tác), thay vì đặt mã vạch với dữ liệu mẫu rồi
+  mới gắn ở Thuộc tính.
 - Thuộc tính của hình (đường kẻ, chữ nhật, bầu dục, đảo màu) không còn thẻ Nguồn, như NiceLabel 10:
   chọn hình là mở thẳng thẻ Kiểu (trước đây thẻ Nguồn chỉ ghi “không có nguồn”). Chữ định dạng (RTF)
   chỉ còn ô soạn trên thẻ Nguồn: bỏ ô “Nguồn dữ liệu” và trang Mặt nạ, vì chữ RTF in nội dung của
