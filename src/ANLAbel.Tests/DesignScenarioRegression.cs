@@ -2436,6 +2436,82 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With captions of 10 and 12 pt selected, the ribbon's size box showed the
+    /// key caption's 10 pt as if it were the size of all three. As NiceLabel 10
+    /// does, a box now shows a value only when every selected text shares it,
+    /// and a size chosen there goes to all of them.
+    /// </summary>
+    public static Task RibbonFontShowsOnlyACommonValue()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            foreach (var (name, size) in new[] { ("Vendor", 10.0), ("PO", 12.0), ("QTY", 10.0) })
+            {
+                viewModel.Template.Objects.Add(new LabelObject
+                {
+                    Type = ObjectType.Text, Name = name, Text = name, XMm = 3, YMm = 3 + viewModel.Template.Objects.Count * 10, WidthMm = 20, HeightMm = 6,
+                    Style = { FontFamily = "Arial", FontSizePt = size, BorderThicknessMm = 0 }
+                });
+            }
+
+            Pump();
+            viewModel.SelectedObject = viewModel.Template.Objects[0];
+            Pump();
+            foreach (var item in viewModel.Template.Objects)
+            {
+                selection.Add(item);
+            }
+
+            viewModel.RefreshSelectionScope();
+            ComboBox? Find(DependencyObject parent, string automationName)
+            {
+                foreach (var child in LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>())
+                {
+                    if (child is ComboBox combo && AutomationProperties.GetName(combo) == automationName)
+                    {
+                        return combo;
+                    }
+
+                    if (Find(child, automationName) is { } found)
+                    {
+                        return found;
+                    }
+                }
+
+                return null;
+            }
+
+            var sizeBox = Find(window, "Ribbon font size");
+            Require(viewModel.RibbonFontSize is null && viewModel.RibbonFontFamily == "Arial" && sizeBox is { SelectedItem: null },
+                $"Mixed sizes leave the size box blank, the shared family shows: {viewModel.RibbonFontSize} / {viewModel.RibbonFontFamily} / {sizeBox?.SelectedItem}");
+
+            viewModel.RibbonFontSize = 14;
+            Pump();
+            Require(viewModel.Template.Objects.All(item => item.Style.FontSizePt == 14) && viewModel.RibbonFontSize == 14,
+                "A size chosen in the ribbon goes to every selected text: " + string.Join(", ", viewModel.Template.Objects.Select(item => item.Style.FontSizePt)));
+
+            // The key's own size, chosen for a mixed selection, also goes to every text.
+            viewModel.Template.Objects[1].Style.FontSizePt = 10;
+            Require(viewModel.RibbonFontSize is null, "Mixed again: " + viewModel.RibbonFontSize);
+            viewModel.RibbonFontSize = viewModel.Template.Objects[0].Style.FontSizePt;
+            Require(viewModel.Template.Objects.All(item => item.Style.FontSizePt == 14),
+                "The key's size goes to the others: " + string.Join(", ", viewModel.Template.Objects.Select(item => item.Style.FontSizePt)));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// The ribbon's name box took any name, also one another object already had,
     /// so two objects could share "PO" again. As in NiceLabel 10, a taken name
     /// (case ignored) or an empty one is refused, the name stays and the status

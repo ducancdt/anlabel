@@ -8,6 +8,9 @@
 - Thiết kế: ô Tên đối tượng trên ribbon không nhận tên đã có ở đối tượng khác (không phân
   biệt hoa thường) hay tên trống; tên cũ được giữ và thanh trạng thái nói lý do, như NiceLabel
   10 (“Another element with the same name already exists. The original name will be restored.”).
+- Thiết kế: khi chọn nhiều chữ khác phông hoặc khác cỡ, ô Phông chữ và ô Cỡ chữ trên ribbon
+  để trống thay vì hiện cỡ của một chữ như thể của cả nhóm; chọn một cỡ ở đó áp cho mọi chữ
+  đang chọn, như các trang thuộc tính của NiceLabel 10.
 
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 

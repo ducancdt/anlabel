@@ -432,6 +432,85 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The ribbon's font of the selected texts, blank when they differ: NiceLabel
+    /// 10's property pages show a value only when every selected item shares it.
+    /// A choice goes to the key text and from there to every selected text.
+    /// </summary>
+    public string? RibbonFontFamily
+    {
+        get => CommonTextStyle(style => style.FontFamily);
+        set
+        {
+            // A combo box clears its selection with null; that is not a choice.
+            if (value is null || SelectedObject is not { } item)
+            {
+                return;
+            }
+
+            if (item.Style.FontFamily != value)
+            {
+                item.Style.FontFamily = value;
+            }
+            else
+            {
+                // The key has it already: the other selected texts take it.
+                ShareTextStyle(item, nameof(ObjectStyle.FontFamily));
+            }
+        }
+    }
+
+    /// <summary>The ribbon's font size of the selected texts, blank when they differ.</summary>
+    public double? RibbonFontSize
+    {
+        get => CommonTextStyle(style => (double?)style.FontSizePt);
+        set
+        {
+            if (value is not { } size || SelectedObject is not { } item)
+            {
+                return;
+            }
+
+            if (item.Style.FontSizePt != size)
+            {
+                item.Style.FontSizePt = size;
+            }
+            else
+            {
+                ShareTextStyle(item, nameof(ObjectStyle.FontSizePt));
+            }
+        }
+    }
+
+    private T? CommonTextStyle<T>(Func<ObjectStyle, T> read)
+    {
+        if (SelectedObject is not { } key)
+        {
+            return default;
+        }
+
+        var value = read(key.Style);
+        if (key.Type is not (ObjectType.Text or ObjectType.TextBox) || SelectionProvider is null)
+        {
+            return value;
+        }
+
+        return SelectionProvider()
+            .Where(item => !ReferenceEquals(item, key) && item.Type is ObjectType.Text or ObjectType.TextBox)
+            .All(item => Equals(read(item.Style), value))
+            ? value
+            : default;
+    }
+
+    // The selection the ribbon's font boxes were last shown for.
+    private HashSet<LabelObject> _ribbonFontSelection = new(ReferenceEqualityComparer.Instance);
+
+    private void RaiseRibbonFont()
+    {
+        OnPropertyChanged(nameof(RibbonFontFamily));
+        OnPropertyChanged(nameof(RibbonFontSize));
+    }
+
     /// <summary>Why the last name typed in the ribbon was not taken; empty once one is.</summary>
     public string ObjectNameMessage
     {
@@ -988,6 +1067,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void RaiseRibbonSelectionChanged()
     {
+        RaiseRibbonFont();
         OnPropertyChanged(nameof(HasSelectedObject));
         OnPropertyChanged(nameof(IsTextObjectSelected));
         OnPropertyChanged(nameof(IsRichTextObjectSelected));
@@ -4744,6 +4824,14 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Counts the canvas selection again; the window calls it after each click and key.</summary>
     public void RefreshSelectionScope()
     {
+        // The font boxes follow the selection, refreshed when it changed, not on every key.
+        var current = SelectionProvider?.Invoke() ?? Array.Empty<LabelObject>();
+        if (current.Count != _ribbonFontSelection.Count || !current.All(_ribbonFontSelection.Contains))
+        {
+            _ribbonFontSelection = current.ToHashSet<LabelObject>(ReferenceEqualityComparer.Instance);
+            RaiseRibbonFont();
+        }
+
         var text = SelectionProvider?.Invoke() is { Count: > 1 } selection ? $" · {selection.Count} đối tượng đang chọn" : string.Empty;
         if (text != SelectionScopeText)
         {
@@ -4885,6 +4973,11 @@ public sealed class MainViewModel : ObservableObject
 
     private void ObjectStyleOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(ObjectStyle.FontFamily) or nameof(ObjectStyle.FontSizePt))
+        {
+            RaiseRibbonFont();
+        }
+
         RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.StyleAction(e.PropertyName), Template.Objects.FirstOrDefault(item => ReferenceEquals(item.Style, sender))));
         if (SelectedObject is not null && ReferenceEquals(SelectedObject.Style, sender))
         {

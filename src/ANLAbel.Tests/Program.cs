@@ -110,6 +110,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("undo and redo land on every step", DesignScenarioRegression.UndoAndRedoLandOnEveryStep),
     ("barcode thousands separators are flagged", DesignScenarioRegression.BarcodeThousandsSeparatorsAreFlagged),
     ("taken or empty names are refused", DesignScenarioRegression.TakenOrEmptyNamesAreRefused),
+    ("ribbon font shows only a common value", DesignScenarioRegression.RibbonFontShowsOnlyACommonValue),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
