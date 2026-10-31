@@ -22,6 +22,10 @@
   tem đích và thanh trạng thái báo khi hai định nghĩa khác nhau; hàm trùng tên một cột của tệp
   dữ liệu không được thêm (đối tượng đọc cột đó). Một lần Ctrl+Z bỏ cả đối tượng lẫn định nghĩa
   đã thêm.
+- Quản lý dữ liệu: xóa một hàm hay biến nhập khi in đang được đối tượng hoặc hàm khác dùng nay
+  hỏi trước, nêu tên các đối tượng, hàm đang dùng và hậu quả (thiếu trường; câu hỏi khi in mất
+  quy tắc nhập), mặc định Giữ lại; NiceLabel 10 không cho xóa mục đang được dùng. Mục không ai
+  dùng vẫn xóa ngay như cũ.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

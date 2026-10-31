@@ -253,6 +253,15 @@ public static partial class JobVariableContract
     /// The names an expression reads: <c>{Name}</c> placeholders, or the
     /// FIELD names of a formula (which may name prompts and date fields too).
     /// </summary>
+    /// <summary>
+    /// The names an expression reads, as <see cref="FindTokens"/> reads them: fields,
+    /// functions, prompts (<c>?Name</c>) and print-time values, trimmed, each once.
+    /// </summary>
+    public static IReadOnlyList<string> NamesRead(string? expression)
+        => string.IsNullOrWhiteSpace(expression)
+            ? Array.Empty<string>()
+            : ExpressionTokens(expression).Where(name => name.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
     internal static IEnumerable<string> ExpressionTokens(string expression)
     {
         if (Expressions.Formulas.FormulaBindingEvaluator.LooksLikeFormula(expression))

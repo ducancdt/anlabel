@@ -3219,6 +3219,68 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Deleting a function or a print-time question in Quản lý dữ liệu was silent, even when
+    /// objects used it: a barcode then read a missing field and a question lost its rules.
+    /// NiceLabel 10 refuses such a deletion; the Data Manager now names the objects and
+    /// functions that use the item and what deleting breaks, and keeps it by default.
+    /// </summary>
+    public static Task DeletingAUsedDefinitionAsksFirst()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var template = viewModel.Template;
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(FIELD(\"PO\"), FIELD(\"?Lô\"))"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tổng hợp", "CONCAT(FIELD(\"Mã QR\"), \"#\")"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Rời", "CONCAT(\"Mã QR\", FIELD(\"X\"))"));
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô", MaxLength = 8 });
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Ca" });
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Thừa" });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "QR", BindingExpression = "{Mã QR}" });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô in", BindingExpression = "Lô: {?Lô}" });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Chỉ ca", BindingExpression = "Ca", VisibilityCondition = "{?Ca}" });
+            var window = new ANLAbel.App.DataManagerWindow(viewModel);
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var functions = ((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", flags)!.GetValue(window)!).Cast<object>().ToArray();
+            var prompts = ((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_prompts", flags)!.GetValue(window)!).Cast<PromptVariableDefinition>().ToArray();
+            ANLAbel.App.Services.DefinitionUsers.Users UsersOf(object item)
+                => (ANLAbel.App.Services.DefinitionUsers.Users)typeof(ANLAbel.App.DataManagerWindow).GetMethod("UsersOf", flags)!.Invoke(window, new[] { item })!;
+            string Name(object draft) => (string)draft.GetType().GetProperty("Name")!.GetValue(draft)!;
+            object Function(string name) => functions.Single(item => Name(item) == name);
+            string Show(ANLAbel.App.Services.DefinitionUsers.Users users) => string.Join(",", users.Objects) + " / " + string.Join(",", users.Functions);
+
+            var qr = UsersOf(Function("Mã QR"));
+            Require(Show(qr) == "QR / Tổng hợp", "Mã QR is used by the QR text and the Tổng hợp function: " + Show(qr));
+            Require(Show(UsersOf(Function("Rời"))) == " / ", "Nothing reads Rời; a quoted “Mã QR” in its formula is no use of Mã QR.");
+            Require(Show(UsersOf(prompts.Single(prompt => prompt.Name == "Lô"))) == "Lô in / Mã QR", "Lô is asked by the Lô in text and read by Mã QR.");
+            Require(Show(UsersOf(prompts.Single(prompt => prompt.Name == "Ca"))) == "Chỉ ca / ", "A visibility condition is a use of Ca.");
+            Require(!UsersOf(prompts.Single(prompt => prompt.Name == "Thừa")).Any, "Nothing uses Thừa: it is deleted without a question.");
+
+            // Renamed in the draft, the objects still read the old name until Đồng ý: still a use.
+            var draft = Function("Mã QR");
+            draft.GetType().GetProperty("Name")!.SetValue(draft, "QR mới");
+            Require(Show(UsersOf(draft)) == "QR / Tổng hợp", "Renamed in the draft, Mã QR is still in use: " + Show(UsersOf(draft)));
+
+            var lines = ANLAbel.App.Services.DefinitionUsers.FunctionLines("Mã QR", qr);
+            Require(lines[0] == "Hàm “Mã QR” đang được dùng ở đối tượng “QR”; hàm “Tổng hợp”.", "The question names the users: " + lines[0]);
+            var promptLines = ANLAbel.App.Services.DefinitionUsers.PromptLines("Lô", UsersOf(prompts.Single(prompt => prompt.Name == "Lô")));
+            Require(promptLines[1].Contains("mất quy tắc nhập", StringComparison.Ordinal), "The question says the prompt would lose its rules: " + promptLines[1]);
+
+            // A function read by a loose name, as FIELD finds it, is in use too.
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã rời", BindingExpression = "{Mã_QR}" });
+            Require(UsersOf(draft).Objects.Contains("Mã rời"), "A loose name reaches the function as FIELD does: " + Show(UsersOf(draft)));
+
+            // A column of that name saved with the label is what the object reads, file read or not.
+            template.DatabaseConfig.LabelFields.Add(new DatabaseField { Name = "Mã_QR" });
+            Require(!UsersOf(draft).Objects.Contains("Mã rời"), "A saved column is no use of the function: " + Show(UsersOf(draft)));
+            template.DatabaseConfig.LabelFields.Clear();
+            // Not closed: closing an edited Data Manager asks whether to keep the changes.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

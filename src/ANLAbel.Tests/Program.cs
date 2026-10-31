@@ -121,6 +121,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("designer keys format and order the selection", DesignScenarioRegression.DesignerKeysFormatAndOrder),
     ("arrange moves every selected object", DesignScenarioRegression.ArrangeMovesEverySelectedObject),
     ("a paste into another label keeps place, names and definitions", DesignScenarioRegression.PasteIntoAnotherLabelKeepsPlaceNamesAndDefinitions),
+    ("deleting a used prompt or function asks first", DesignScenarioRegression.DeletingAUsedDefinitionAsksFirst),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

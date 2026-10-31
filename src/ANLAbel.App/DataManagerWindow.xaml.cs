@@ -588,6 +588,11 @@ public partial class DataManagerWindow : Window
 
     private void Delete_Click(object sender, RoutedEventArgs e)
     {
+        if (SelectedNode is { Kind: NodeKind.Prompt or NodeKind.Function, Item: { } item } && KeepUsedDefinition(item))
+        {
+            return;
+        }
+
         switch (SelectedNode)
         {
             case { Kind: NodeKind.Prompt, Item: PromptVariableDefinition prompt }:
@@ -607,6 +612,47 @@ public partial class DataManagerWindow : Window
                 RebuildTree(_counter);
                 break;
         }
+    }
+
+    /// <summary>
+    /// The objects and other functions that use a prompt or function, under its name now
+    /// and under the name the label's objects still use until Đồng ý renames them.
+    /// </summary>
+    private DefinitionUsers.Users UsersOf(object item) => item switch
+    {
+        PromptVariableDefinition prompt => DefinitionUsers.Of(
+            _originalNames.TryGetValue(prompt, out var original) ? ["?" + prompt.Name, "?" + original] : ["?" + prompt.Name],
+            _viewModel.Template.Objects,
+            _functions.Select(function => (function.Name, function.Formula)),
+            _viewModel.KnownColumnNames),
+        FunctionDraft function => DefinitionUsers.Of(
+            [function.Name, function.Source?.Name ?? string.Empty],
+            _viewModel.Template.Objects,
+            _functions.Where(other => !ReferenceEquals(other, function)).Select(other => (other.Name, other.Formula)),
+            _viewModel.KnownColumnNames),
+        _ => DefinitionUsers.Users.None
+    };
+
+    /// <summary>True when the operator keeps a prompt or function that objects or functions use.</summary>
+    private bool KeepUsedDefinition(object item)
+    {
+        var users = UsersOf(item);
+        if (!users.Any)
+        {
+            return false;
+        }
+
+        var (heading, lines) = item is PromptVariableDefinition prompt
+            ? ("Xóa biến đang được dùng?", DefinitionUsers.PromptLines(prompt.Name, users))
+            : ("Xóa hàm đang được dùng?", DefinitionUsers.FunctionLines(((FunctionDraft)item).Name, users));
+        return OperatorDialog.Ask(
+            this,
+            heading,
+            lines,
+            null,
+            OperatorDialogTone.Warning,
+            new OperatorDialogChoice("keep", "Giữ lại", IsDefault: true, IsCancel: true),
+            new OperatorDialogChoice("delete", "Vẫn xóa")) != "delete";
     }
 
     private void CounterReset_Click(object sender, RoutedEventArgs e)
