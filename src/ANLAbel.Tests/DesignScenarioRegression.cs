@@ -1079,6 +1079,152 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The Data panel's "Chưa liên kết dữ liệu" hint sat in a horizontal StackPanel, which gives
+    /// its text unlimited width: it never wrapped and was cut at the panel's edge ("… để xem trước
+    /// c"). Every wrapping text of the Data tab now stays inside the panel.
+    /// </summary>
+    public static Task DataPanelTextsWrapInsideThePanel()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var explorer = (TabControl)window.FindName("WorkspaceTabs");
+            explorer.SelectedIndex = 0;
+            // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var scroller = (ScrollViewer)((TabItem)explorer.Items[0]).Content;
+            bool Shown(UIElement element)
+            {
+                for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, scroller); node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement item && item.Visibility != Visibility.Visible)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            var texts = FindVisualChildren<TextBlock>(scroller).Where(text => text.TextWrapping == TextWrapping.Wrap && text.Text.Length > 0 && Shown(text)).ToArray();
+            Require(texts.Any(text => text.Text.StartsWith("Nhập Excel hoặc CSV", StringComparison.Ordinal)), "The unlinked hint is shown with no data linked.");
+            var cut = texts.Where(text => text.TransformToAncestor(scroller).TransformBounds(new Rect(text.RenderSize)).Right > scroller.ViewportWidth + 1)
+                .Select(text => text.Text).ToArray();
+            Require(cut.Length == 0, "Wrapping texts stay inside the Data panel: " + string.Join(" | ", cut));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A wrapping text in a horizontal StackPanel never wraps and is cut at the panel's edge (the
+    /// Data panel's hint was). Every object type's Properties pages keep their wrapping texts
+    /// inside the panel.
+    /// </summary>
+    public static Task PropertiesTextsWrapInsideThePanel()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            var subTabs = (TabControl)window.FindName("SourceSubTabs");
+            var barcodePages = (TabControl)window.FindName("BarcodeSubTabs");
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            DependencyObject panelNode = tabs;
+            while (panelNode is not ScrollViewer and not null)
+            {
+                panelNode = VisualTreeHelper.GetParent(panelNode) ?? LogicalTreeHelper.GetParent(panelNode);
+            }
+
+            var panel = (FrameworkElement)(panelNode ?? tabs.Parent);
+            bool Shown(UIElement element)
+            {
+                for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, panel); node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement item && item.Visibility != Visibility.Visible)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            var cut = new List<string>();
+            var checkedTexts = new HashSet<string>();
+            var types = new[]
+            {
+                ObjectType.Text, ObjectType.TextBox, ObjectType.RichTextBox, ObjectType.BarcodeCode128, ObjectType.QRCode,
+                ObjectType.DataMatrix, ObjectType.Image, ObjectType.Rectangle, ObjectType.Ellipse, ObjectType.Line, ObjectType.Inverse
+            };
+            foreach (var type in types)
+            {
+                var item = new LabelObject { Type = type, Name = type.ToString(), Text = "123456", BindingExpression = "{MaHang}", XMm = 2, YMm = 2, WidthMm = 30, HeightMm = 12 };
+                viewModel.Template.Objects.Add(item);
+                viewModel.SelectedObject = item;
+                Settle();
+                for (var tab = 0; tab < tabs.Items.Count; tab++)
+                {
+                    if (((TabItem)tabs.Items[tab]).Visibility != Visibility.Visible)
+                    {
+                        continue;
+                    }
+
+                    tabs.SelectedIndex = tab;
+                    for (var page = 0; page < 4; page++)
+                    {
+                        subTabs.SelectedIndex = Math.Min(page, 1);
+                        barcodePages.SelectedIndex = page;
+                        Settle();
+                        var scroll = panel is ScrollViewer view ? view.ViewportWidth : panel.ActualWidth;
+                        foreach (var text in FindVisualChildren<TextBlock>(panel).Where(text => text.TextWrapping == TextWrapping.Wrap && text.Text.Length > 0 && Shown(text)))
+                        {
+                            checkedTexts.Add(text.Text);
+                            if (text.TransformToAncestor(panel).TransformBounds(new Rect(text.RenderSize)).Right > scroll + 1)
+                            {
+                                cut.Add($"{type} {tab}.{page}: {text.Text}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            var width = panel is ScrollViewer scroller ? scroller.ViewportWidth : panel.ActualWidth;
+            Require(width is > 150 and < 700, $"The Properties panel is laid out: {panel.GetType().Name} {AutomationProperties.GetAutomationId(panel)} {width:0}");
+            Require(checkedTexts.Count > 20, "The scan reads the pages' wrapping texts: " + checkedTexts.Count);
+            Require(cut.Count == 0, "Wrapping texts stay inside the Properties panel: " + string.Join(" | ", cut.Distinct().Take(12)));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

@@ -2,6 +2,10 @@
 
 ## Sau v0.361
 
+- Bảng Dữ liệu: dòng gợi ý “Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng.”
+  bị cắt ở mép bảng (“… để xem trước c”) vì nằm trong một StackPanel ngang; nay xuống dòng đủ. Hai
+  cổng mới giữ mọi dòng chữ xuống dòng nằm gọn trong bảng Dữ liệu và trong mọi trang Thuộc tính
+  của mọi loại đối tượng.
 - Menu chuột phải trên tem có thêm “Dấu đối tượng” (Tên đối tượng, Nguồn dữ liệu, Đối tượng khóa) sau
   “Căn và lưới”, như menu trang của NiceLabel 10; trước đây chỉ bật/tắt được ở thẻ ribbon Xem. Menu trên
   đối tượng không có mục này.

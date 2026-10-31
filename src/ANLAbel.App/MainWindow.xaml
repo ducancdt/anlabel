@@ -1764,13 +1764,14 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                <Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top"/>
+                                            <!-- A DockPanel, not a horizontal StackPanel: the hint gets the panel's width and wraps -->
+                                            <DockPanel Margin="0,0,0,8">
+                                                <Image DockPanel.Dock="Left" Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top"/>
                                                 <StackPanel>
                                                     <TextBlock Text="Chưa liên kết dữ liệu" FontWeight="SemiBold"/>
                                                     <TextBlock Text="Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                                 </StackPanel>
-                                            </StackPanel>
+                                            </DockPanel>
                                             <Button Click="ImportExcel_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="{StaticResource AppBlueBrush}" Foreground="#FFFFFF" BorderBrush="{StaticResource AppBlueBrush}">
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                                     <Image Source="{StaticResource Icon.Excel16}" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"/>
