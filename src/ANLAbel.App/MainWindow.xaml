@@ -2126,9 +2126,10 @@
                                         <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                             <Setter Property="Text">
                                                 <Setter.Value>
-                                                    <MultiBinding StringFormat="{}Thuộc tính - {0} [{1}]">
+                                                    <MultiBinding StringFormat="{}Thuộc tính - {0} [{1}]{2}">
                                                         <Binding Path="SelectedObject.Name"/>
                                                         <Binding Path="SelectedObjectTypeText"/>
+                                                        <Binding Path="SelectionScopeText"/>
                                                     </MultiBinding>
                                                 </Setter.Value>
                                             </Setter>

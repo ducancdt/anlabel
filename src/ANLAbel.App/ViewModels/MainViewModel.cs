@@ -4627,6 +4627,23 @@ public sealed class MainViewModel : ObservableObject
     public Func<IReadOnlyCollection<LabelObject>>? SelectionProvider { get; set; }
 
     /// <summary>
+    /// " · 3 đối tượng đang chọn" while several objects are selected on the
+    /// canvas, so the Properties title says an edit may reach all of them.
+    /// </summary>
+    public string SelectionScopeText { get; private set; } = string.Empty;
+
+    /// <summary>Counts the canvas selection again; the window calls it after each click and key.</summary>
+    public void RefreshSelectionScope()
+    {
+        var text = SelectionProvider?.Invoke() is { Count: > 1 } selection ? $" · {selection.Count} đối tượng đang chọn" : string.Empty;
+        if (text != SelectionScopeText)
+        {
+            SelectionScopeText = text;
+            OnPropertyChanged(nameof(SelectionScopeText));
+        }
+    }
+
+    /// <summary>
     /// Asks the operator for {?Name} values before a quick print; returns null
     /// when the operator cancels. Set by the main window.
     /// </summary>

@@ -12,6 +12,9 @@
   mang khoảng trắng căn cột vào dữ liệu: 1200 đọc là “1,200” thay vì “  1,200 ”; trước đây
   khoảng trắng đó đi vào cả mã vạch và mã 2D (ví dụ “Q  1,200 ”). Dấu phân cách nghìn vẫn
   theo định dạng ô Excel.
+- Thuộc tính: khi chọn nhiều đối tượng, tiêu đề bảng ghi rõ “Thuộc tính - Vendor [Chữ] ·
+  3 đối tượng đang chọn”, vì đổi phông nay áp dụng cho mọi chữ đang chọn; trước đây tiêu
+  đề chỉ nêu một đối tượng.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

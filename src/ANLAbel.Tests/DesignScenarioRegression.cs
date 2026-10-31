@@ -2253,6 +2253,88 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With three captions selected the Properties title still named one,
+    /// "Thuộc tính - Vendor [Chữ]", while a font change reaches all three. The
+    /// title now counts the selection after the click that made it.
+    /// </summary>
+    public static Task PropertiesTitleCountsTheSelection()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump()
+            {
+                for (var i = 0; i < 3; i++)
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                }
+            }
+
+            foreach (var name in new[] { "Vendor", "PO", "QTY" })
+            {
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = name, Text = name, XMm = 3, YMm = 3 + viewModel.Template.Objects.Count * 10, WidthMm = 20, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            }
+
+            Pump();
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            // The panel may float in a popup, outside the window's visual tree: search its logical tree.
+            TextBlock? Find(DependencyObject parent)
+            {
+                foreach (var child in LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>())
+                {
+                    if (child is TextBlock block && AutomationProperties.GetAutomationId(block) == "Shell.Properties.Title")
+                    {
+                        return block;
+                    }
+
+                    if (Find(child) is { } found)
+                    {
+                        return found;
+                    }
+                }
+
+                return null;
+            }
+
+            void ClickEnds()
+            {
+                window.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+                {
+                    RoutedEvent = System.Windows.Input.Mouse.PreviewMouseUpEvent
+                });
+                Pump();
+            }
+
+            viewModel.SelectedObject = viewModel.Template.Objects[0];
+            Pump();
+            foreach (var item in viewModel.Template.Objects)
+            {
+                selection.Add(item);
+            }
+
+            ClickEnds();
+            var panel = (DependencyObject)window.FindName("PropertiesPanel");
+            var title = Find(panel)?.Text;
+            Require(title == "Thuộc tính - Vendor [Chữ] · 3 đối tượng đang chọn", "The title counts the selection: " + title);
+
+            selection.Clear();
+            selection.Add(viewModel.Template.Objects[0]);
+            ClickEnds();
+            title = Find(panel)?.Text;
+            Require(title == "Thuộc tính - Vendor [Chữ]", "One object again: " + title);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// The version list showed each file's hash in a column of its own. A hash
     /// is for support (AGENTS.md keeps technical hashes in details and logs):
     /// the list keeps what the operator chooses a version by, and the details

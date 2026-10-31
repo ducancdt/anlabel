@@ -100,6 +100,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("a font change reaches every selected text", DesignScenarioRegression.FontChangeReachesEverySelectedText),
     ("a visibility condition on a missing column stops the print", DesignScenarioRegression.ConditionOnAMissingColumnStopsThePrint),
     ("the version list keeps hashes in the details", DesignScenarioRegression.VersionListKeepsHashesInTheDetails),
+    ("the properties title counts the selection", DesignScenarioRegression.PropertiesTitleCountsTheSelection),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),
