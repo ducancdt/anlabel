@@ -37,6 +37,9 @@
 - Quản lý dữ liệu: hàm đang chọn nay ghi nơi dùng nó như biến nhập khi in (“Dùng ở đối tượng “QR”;
   hàm “Tổng hợp”.”), kể cả khi đổi tên (các đối tượng chuyển sang tên mới khi bấm Đồng ý, cả đối
   tượng gọi hàm bằng tên gần đúng như {Mã_QR}, như khi in); biến nhập khi in ghi thêm các hàm đọc nó.
+- Hướng dẫn, Phím tắt: các phím chia theo việc (Chọn và di chuyển, Bộ nhớ tạm và nhóm, Chữ và
+  lớp, Vẽ, Xem), thêm Ctrl+Shift+C/V chép và dán định dạng, L, R, C vẽ đường kẻ, hình chữ nhật,
+  hình elip; mọi phím Ctrl của cửa sổ chính đều có dòng trong trang này.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

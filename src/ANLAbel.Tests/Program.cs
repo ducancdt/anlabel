@@ -125,6 +125,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("tab walks the objects and ctrl zooms", DesignScenarioRegression.TabWalksTheObjectsAndCtrlZooms),
     ("locked objects show a lock and say why they stay", DesignScenarioRegression.LockedObjectsShowALockAndSayWhyTheyStay),
     ("the data manager shows where a function is used", DesignScenarioRegression.DataManagerShowsWhereAFunctionIsUsed),
+    ("help lists every designer key", DesignScenarioRegression.HelpListsEveryDesignerKey),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

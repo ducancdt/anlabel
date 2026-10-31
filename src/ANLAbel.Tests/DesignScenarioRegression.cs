@@ -3550,6 +3550,49 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The Help window's Phím tắt page listed a few file keys and then one long run of
+    /// designer keys in no order, without the Format Painter or drawing keys. It now groups
+    /// the keys by task, and every Ctrl+letter key the main window binds has a row there.
+    /// </summary>
+    public static Task HelpListsEveryDesignerKey()
+    {
+        RunOnSta(() =>
+        {
+            var help = new ANLAbel.App.HelpWindow();
+            var sections = (System.Collections.IDictionary)typeof(ANLAbel.App.HelpWindow)
+                .GetField("_sections", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(help)!;
+            var page = (Panel)sections["shortcuts"]!;
+            var combos = page.Children.OfType<StackPanel>()
+                .Select(row => string.Join("+", row.Children.OfType<Border>().Select(cap => ((TextBlock)cap.Child).Text)))
+                .Where(combo => combo.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+            var headings = page.Children.OfType<TextBlock>().Select(text => text.Text).ToHashSet(StringComparer.Ordinal);
+            Require(new[] { "Toàn cục", "Chọn và di chuyển", "Bộ nhớ tạm và nhóm", "Chữ và lớp", "Vẽ", "Xem" }.All(headings.Contains),
+                "The keys are grouped by task: " + string.Join(" | ", headings));
+
+            var window = new ANLAbel.App.MainWindow();
+            string Combo(System.Windows.Input.KeyBinding binding)
+                => (binding.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control) ? "Ctrl+" : string.Empty)
+                   + (binding.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift) ? "Shift+" : string.Empty)
+                   + (binding.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Alt) ? "Alt+" : string.Empty)
+                   + binding.Key;
+            var bound = window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                .Where(binding => binding.Key is >= System.Windows.Input.Key.A and <= System.Windows.Input.Key.Z
+                                  && binding.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
+                .Select(Combo)
+                .ToArray();
+            var missing = bound.Where(combo => !combos.Contains(combo)).ToArray();
+            Require(bound.Length >= 12 && missing.Length == 0,
+                $"Every Ctrl+letter key of the main window ({bound.Length}) has a help row; missing: " + string.Join(", ", missing));
+            Require(new[] { "Tab", "PgUp", "PgDn", "F4", "Ctrl+0", "L", "R", "C", "Delete" }.All(combos.Contains),
+                "The keys without Ctrl have rows too: " + string.Join(", ", combos));
+            // Not closed: the main window is never shown.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to
