@@ -1996,6 +1996,46 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Importing a CSV or a one-sheet workbook asked to pick its only sheet
+    /// before the header row: a click with nothing to decide. The sheet list
+    /// now opens only when the file has several sheets.
+    /// </summary>
+    public static async Task ImportSkipsTheSheetChoiceWhenThereIsOne()
+    {
+        var directory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "anlabel-one-sheet-" + Guid.NewGuid().ToString("N")));
+        try
+        {
+            var csv = Path.Combine(directory.FullName, "rows.csv");
+            await File.WriteAllTextAsync(csv, "Ma\nSP-1\n");
+            var many = Path.Combine(directory.FullName, "many.xlsx");
+            using (var workbook = new ClosedXML.Excel.XLWorkbook())
+            {
+                workbook.AddWorksheet("Don hang").Cell(1, 1).Value = "Ma";
+                workbook.AddWorksheet("Ghi chu").Cell(1, 1).Value = "x";
+                workbook.SaveAs(many);
+            }
+
+            var service = new ANLAbel.Data.Excel.ExcelDataService();
+            var onlySheet = typeof(ANLAbel.App.ExcelImportWindow).GetMethod("OnlySheet", BindingFlags.Static | BindingFlags.NonPublic)!;
+            string? Only(IReadOnlyList<ANLAbel.Data.Excel.ExcelSheetPreview> previews) => (string?)onlySheet.Invoke(null, new object[] { previews });
+            var csvSheets = await service.GetSheetsWithPreviewAsync(csv);
+            var bookSheets = await service.GetSheetsWithPreviewAsync(many);
+            Require(Only(csvSheets) == ANLAbel.Data.Excel.ExcelDataService.CsvSheetName, "A CSV has one sheet and is read without asking: " + Only(csvSheets));
+            Require(Only(bookSheets) is null && bookSheets.Count == 2, "A workbook with two sheets still asks which: " + string.Join(", ", bookSheets.Select(sheet => sheet.SheetName)));
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still

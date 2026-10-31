@@ -6,6 +6,8 @@
   xuất từ ERP/Excel, ví dụ “SP-0001 ”) được nhắc trong danh sách vấn đề, gộp thành
   một dòng nêu các dòng dữ liệu; máy quét đọc cả khoảng trắng nên tra cứu ở nơi
   nhận dễ lỗi. Chỉ nhắc, không chặn: tem in đúng như dữ liệu.
+- Nhập Excel/CSV: tệp CSV hoặc sổ Excel chỉ có một trang tính không còn hỏi chọn
+  trang tính (chỉ có một lựa chọn); vẫn hỏi khi tệp có nhiều trang.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 

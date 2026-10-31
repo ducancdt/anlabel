@@ -92,6 +92,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("an open workbook reminds the operator to save it first", DesignScenarioRegression.OpenWorkbookRemindsToSaveFirst),
     ("rows filtered away in Excel are not printed by default", DesignScenarioRegression.FilteredExcelRowsAreNotPrintedByDefault),
     ("barcode data with edge spaces is flagged, not blocked", DesignScenarioRegression.BarcodeEdgeSpacesAreFlaggedNotBlocked),
+    ("excel import skips the sheet choice when there is one", DesignScenarioRegression.ImportSkipsTheSheetChoiceWhenThereIsOne),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

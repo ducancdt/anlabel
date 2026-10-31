@@ -39,6 +39,10 @@ public partial class ExcelImportWindow : Window
         }
     }
 
+    /// <summary>The sheet to read when the file has exactly one; null when the operator must choose.</summary>
+    private static string? OnlySheet(IReadOnlyList<ExcelSheetPreview> previews)
+        => previews.Count == 1 && !string.IsNullOrWhiteSpace(previews[0].SheetName) ? previews[0].SheetName : null;
+
     private async void Browse_Click(object sender, RoutedEventArgs e)
     {
         await BrowseAsync(sender as UIElement, AllDataFilesFilter, closeIfCancelled: false);
@@ -100,16 +104,23 @@ public partial class ExcelImportWindow : Window
 
             Mouse.OverrideCursor = null;
             CancelButton.Visibility = Visibility.Collapsed;
-            var sheetDialog = new ExcelSheetWindow(sheetPreviews.Select(s => s.SheetName)) { Owner = this };
-            if (sheetDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(sheetDialog.SelectedSheetName))
+            // A CSV or a one-sheet workbook leaves nothing to choose.
+            var sheetName = OnlySheet(sheetPreviews);
+            if (sheetName is null)
             {
-                return;
+                var sheetDialog = new ExcelSheetWindow(sheetPreviews.Select(s => s.SheetName)) { Owner = this };
+                if (sheetDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(sheetDialog.SelectedSheetName))
+                {
+                    return;
+                }
+
+                sheetName = sheetDialog.SelectedSheetName;
             }
 
             // Let the user point at the real header row instead of always assuming row 1
             // (database-plan.md Giai đoạn 3 item 8) — already-read preview rows, no extra I/O.
             var headerRow = 1;
-            var previewRows = sheetPreviews.FirstOrDefault(s => s.SheetName == sheetDialog.SelectedSheetName)?.Rows ?? Array.Empty<ExcelPreviewRow>();
+            var previewRows = sheetPreviews.FirstOrDefault(s => s.SheetName == sheetName)?.Rows ?? Array.Empty<ExcelPreviewRow>();
             if (previewRows.Count > 1)
             {
                 var headerRowDialog = new ExcelHeaderRowWindow(previewRows, previewRows[0].RowNumber) { Owner = this };
@@ -124,7 +135,7 @@ public partial class ExcelImportWindow : Window
             Mouse.OverrideCursor = Cursors.Wait;
             CancelButton.Visibility = Visibility.Visible;
             // The header row is stored in the label only after the import succeeds (H16).
-            await _viewModel.ImportExcelAsync(dialog.FileName, sheetDialog.SelectedSheetName, headerRow, token);
+            await _viewModel.ImportExcelAsync(dialog.FileName, sheetName, headerRow, token);
         }
         catch (OperationCanceledException)
         {
