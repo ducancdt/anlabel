@@ -18,6 +18,62 @@ internal static class AcceptanceRegression
 {
     private const string OperatorQueue = "Xprinter XP-DT426B";
 
+    /// <summary>
+    /// Data preservation for imports: every NiceLabel label kept beside the
+    /// repository (customer data, never committed) opens, saves as .anlabel and
+    /// opens again as the same label, every stored property. A clone without
+    /// such labels skips the check.
+    /// </summary>
+    public static async Task NiceLabelLabelsSurviveSaveAndReopen()
+    {
+        var root = FindRepositoryRoot();
+        var separator = Path.DirectorySeparatorChar;
+        var labels = Directory.EnumerateFiles(root, "*.nlbl", SearchOption.AllDirectories)
+            .Where(path => !new[] { $"{separator}.git{separator}", $"{separator}bin{separator}", $"{separator}obj{separator}" }
+                .Any(part => path.Contains(part, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        if (labels.Length == 0)
+        {
+            Console.WriteLine("INFO tem NiceLabel: không có tệp .nlbl nào cạnh kho mã trên máy này; bỏ qua kiểm tra lưu và mở lại.");
+            return;
+        }
+
+        var work = Path.Combine(Path.GetTempPath(), "anlabel-nlbl-roundtrip-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(work);
+        try
+        {
+            static string Snapshot(MainViewModel vm) =>
+                (string)typeof(MainViewModel).GetMethod("CaptureTemplateSnapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(vm, null)!;
+            var index = 0;
+            foreach (var label in labels)
+            {
+                index++;
+                var imported = new MainViewModel();
+                await imported.OpenAsync(label);
+                var before = Snapshot(imported);
+                var saved = Path.Combine(work, $"label-{index}.anlabel");
+                await imported.SaveAsync(saved);
+                var reopened = new MainViewModel();
+                await reopened.OpenAsync(saved);
+                Require(Snapshot(reopened) == before,
+                    $"{Path.GetFileName(label)}: the imported label must open again from its .anlabel exactly as it was imported.");
+            }
+
+            Console.WriteLine($"INFO tem NiceLabel: {labels.Length} tem giữ nguyên mọi thuộc tính qua lưu .anlabel và mở lại.");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(work, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
     public static async Task RealTemplatesOpenSaveRenderAndPassPreflight()
     {
         var root = FindRepositoryRoot();
