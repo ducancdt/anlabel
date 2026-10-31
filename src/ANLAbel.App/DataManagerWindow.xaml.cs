@@ -393,8 +393,61 @@ public partial class DataManagerWindow : Window
             definitions);
         var result = DataTransformPipeline.Evaluate(DataRecord.Create(source), definitions);
         FunctionResultText.Text = result.IsValid
-            ? (result.Record.Values.TryGetValue(draft.Name, out var output) ? output ?? string.Empty : string.Empty) is { Length: > 0 } text ? text : "(rỗng)"
+            ? (result.Record.Values.TryGetValue(draft.Name, out var output) ? output ?? string.Empty : string.Empty) is { Length: > 0 } text ? Visible(text) : "(rỗng)"
             : "Lỗi: " + string.Join(" ", result.Errors.Select(FormulaErrorText.Translate));
+    }
+
+    /// <summary>The result as it can be read: control characters show by name.</summary>
+    private static string Visible(string text) => text
+        .Replace("\u001E", "‹RS›", StringComparison.Ordinal)
+        .Replace("\u001D", "‹GS›", StringComparison.Ordinal)
+        .Replace("\u0004", "‹EOT›", StringComparison.Ordinal)
+        .Replace("\r", "‹CR›", StringComparison.Ordinal)
+        .Replace("\n", "‹LF›", StringComparison.Ordinal);
+
+    private void ControlCharacters_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            menu.PlacementTarget = button;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
+    private void InsertControlCharacter_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { Tag: string escape })
+        {
+            InsertControlCharacter(escape);
+        }
+    }
+
+    /// <summary>
+    /// Writes a control character's escape at the caret of the formula: inside
+    /// quotes as it is, elsewhere as a quoted piece ("\u001D") to join with CONCAT.
+    /// </summary>
+    private void InsertControlCharacter(string escape)
+    {
+        var text = FunctionFormulaBox.Text ?? string.Empty;
+        var caret = Math.Clamp(FunctionFormulaBox.CaretIndex, 0, text.Length);
+        var insideQuotes = false;
+        for (var index = 0; index < caret; index++)
+        {
+            if (text[index] == '\\' && insideQuotes)
+            {
+                index++;
+            }
+            else if (text[index] == '"')
+            {
+                insideQuotes = !insideQuotes;
+            }
+        }
+
+        var piece = insideQuotes ? escape : "\"" + escape + "\"";
+        FunctionFormulaBox.Text = text.Insert(caret, piece);
+        FunctionFormulaBox.CaretIndex = caret + piece.Length;
+        FunctionFormulaBox.Focus();
     }
 
     /// <summary>

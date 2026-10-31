@@ -21,6 +21,10 @@
 - Thiết kế: chọn nhiều mã vạch tuyến tính rồi đổi độ rộng vạch (X) hoặc chữ dưới mã (vị
   trí, phông, cỡ, đậm) thì mọi mã đang chọn cùng đổi, một lần Ctrl+Z hoàn tác, như trang
   thuộc tính mã vạch của NiceLabel 10; mã 2D trong vùng chọn giữ thiết lập riêng.
+- Quản lý dữ liệu, Hàm: nút “Ký tự điều khiển ▾” chèn RS, GS, EOT hay xuống dòng vào công
+  thức (chuỗi trong công thức nay đọc được \u001E, \u001D, \u0004…), để làm mã 2D theo
+  ISO/IEC 15434 ([)> RS 06 GS … RS EOT) mà bàn phím không gõ được, như “Insert special
+  character” của NiceLabel; kết quả xem trước ghi các ký tự đó bằng tên (‹RS›, ‹GS›).
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

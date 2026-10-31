@@ -260,8 +260,23 @@
                                        Text="Một trường tính từ dữ liệu khác, trước khi xem trước và in. Đối tượng dùng nó như một trường: {Tên}."/>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Tên trường kết quả"/>
                             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tên hàm" AutomationProperties.AutomationId="DataManager.Function.Name"/>
-                            <TextBlock Style="{StaticResource EditorLabel}" Text="Công thức"/>
-                            <TextBox Text="{Binding Formula, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MinHeight="56" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                            <DockPanel>
+                                <!-- NiceLabel's "Insert special character": an ISO/IEC 15434 envelope needs RS, GS and EOT -->
+                                <Button DockPanel.Dock="Right" Content="Ký tự điều khiển ▾" Padding="6,1" Margin="0,8,0,2" Click="ControlCharacters_Click"
+                                        ToolTip="Chèn RS, GS, EOT hay xuống dòng vào công thức, cho mã 2D theo ISO/IEC 15434 ([)&gt; RS 06 GS … RS EOT)."
+                                        AutomationProperties.AutomationId="DataManager.Function.ControlCharacters">
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="RS — ngăn cách bản ghi" InputGestureText="\u001E" Tag="\u001E" Click="InsertControlCharacter_Click"/>
+                                            <MenuItem Header="GS — ngăn cách nhóm" InputGestureText="\u001D" Tag="\u001D" Click="InsertControlCharacter_Click"/>
+                                            <MenuItem Header="EOT — kết thúc" InputGestureText="\u0004" Tag="\u0004" Click="InsertControlCharacter_Click"/>
+                                            <MenuItem Header="Xuống dòng" InputGestureText="\n" Tag="\n" Click="InsertControlCharacter_Click"/>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Công thức"/>
+                            </DockPanel>
+                            <TextBox x:Name="FunctionFormulaBox" Text="{Binding Formula, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" MinHeight="56" TextWrapping="Wrap" VerticalContentAlignment="Top"
                                      AutomationProperties.Name="Công thức" AutomationProperties.AutomationId="DataManager.Function.Formula"/>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Kết quả với dòng dữ liệu hiện tại"/>
                             <Border Style="{StaticResource EditorNote}" Margin="0,2,0,0">
@@ -269,7 +284,7 @@
                             </Border>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Cách viết"/>
                             <TextBlock TextWrapping="Wrap" Foreground="#262626" Margin="0,0,0,4"
-                                       Text="FIELD(&quot;Tên trường&quot;) lấy một trường; CONCAT(a, b, …) nối các phần; UPPER(x), LOWER(x), TRIM(x) đổi chữ; LEFT(x, n), RIGHT(x, n), MID(x, đầu, n) cắt chuỗi; GS1CHECKDIGIT(x) thêm số kiểm tra GS1; EQUALS(a, b), NOT(x), AND(…) cho điều kiện hiển thị; DATEADD(ngày, số, đơn vị, định dạng) và DATEFORMAT(ngày, định dạng) tính và ghi ngày."/>
+                                       Text="FIELD(&quot;Tên trường&quot;) lấy một trường; CONCAT(a, b, …) nối các phần; UPPER(x), LOWER(x), TRIM(x) đổi chữ; LEFT(x, n), RIGHT(x, n), MID(x, đầu, n) cắt chuỗi; GS1CHECKDIGIT(x) thêm số kiểm tra GS1; EQUALS(a, b), NOT(x), AND(…) cho điều kiện hiển thị; DATEADD(ngày, số, đơn vị, định dạng) và DATEFORMAT(ngày, định dạng) tính và ghi ngày. Trong chuỗi, \u001E, \u001D, \u0004 là ký tự RS, GS, EOT (nút Ký tự điều khiển)."/>
                             <TextBlock TextWrapping="Wrap" FontFamily="Consolas" Foreground="#1F4F91"
                                        Text="CONCAT(FIELD(&quot;Mã&quot;), &quot;-&quot;, FIELD(&quot;Lô&quot;))"/>
                             <TextBlock x:Name="FunctionFieldsText" TextWrapping="Wrap" Foreground="#5B6B80" Margin="0,8,0,0"/>

@@ -7,8 +7,9 @@ public sealed class FormulaParser
     /// <summary>
     /// Decodes the body of a string literal (the text between the quotes) with
     /// the escape rules of <see cref="Parse"/>: a backslash before a quote, a
-    /// backslash, n, r or t is an escape; any other backslash is kept. Unlike
-    /// Regex.Unescape this never throws.
+    /// backslash, n, r or t is an escape, and so is \u with four hex digits
+    /// (\u001D for GS); any other backslash is kept. Unlike Regex.Unescape this
+    /// never throws.
     /// </summary>
     public static string UnescapeStringLiteral(string? body)
     {
@@ -23,10 +24,37 @@ public sealed class FormulaParser
                 continue;
             }
 
+            if (TryReadUnicodeEscape(text, index + 1, out var unicode))
+            {
+                builder.Append(unicode);
+                index += 5;
+                continue;
+            }
+
             AppendEscaped(builder, text[++index]);
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// A \uXXXX escape whose 'u' is at <paramref name="index"/>: the character of
+    /// the four hex digits. An ISO/IEC 15434 envelope needs RS (\u001E), GS
+    /// (\u001D) and EOT (\u0004), which no key types. Anything else is not this
+    /// escape and keeps its backslash ("C:\users").
+    /// </summary>
+    private static bool TryReadUnicodeEscape(string text, int index, out char value)
+    {
+        value = default;
+        if (index + 4 >= text.Length
+            || text[index] != 'u'
+            || !ushort.TryParse(text.AsSpan(index + 1, 4), System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out var code))
+        {
+            return false;
+        }
+
+        value = (char)code;
+        return true;
     }
 
     // The escapes of a string literal, shared by Parse and UnescapeStringLiteral
@@ -188,6 +216,13 @@ public sealed class FormulaParser
                 {
                     _errors.Add("Unterminated escape sequence in string literal.");
                     return null;
+                }
+
+                if (TryReadUnicodeEscape(_text, _position, out var unicode))
+                {
+                    builder.Append(unicode);
+                    _position += 5;
+                    continue;
                 }
 
                 AppendEscaped(builder, Advance());

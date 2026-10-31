@@ -2253,6 +2253,46 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// An ISO/IEC 15434 envelope needs RS, GS and EOT, which no key types;
+    /// NiceLabel offers "Insert special character". The function editor now
+    /// inserts them from a menu (inside quotes as an escape, elsewhere as a
+    /// quoted piece) and shows them by name in its result.
+    /// </summary>
+    public static Task FunctionEditorInsertsControlCharacters()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Env", "CONCAT(\"[)>06\")"));
+            var window = new ANLAbel.App.DataManagerWindow(viewModel, "Functions");
+            var functions = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new[] { functions[0] });
+            window.Measure(new Size(980, 820));
+            window.Arrange(new Rect(0, 0, 980, 820));
+            window.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var box = (TextBox)window.FindName("FunctionFormulaBox");
+            Require(box.Text == "CONCAT(\"[)>06\")", "The editor shows the function: " + box.Text);
+            var insert = typeof(ANLAbel.App.DataManagerWindow).GetMethod("InsertControlCharacter", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+            box.CaretIndex = box.Text.IndexOf("06", StringComparison.Ordinal);
+            insert.Invoke(window, new object[] { @"\u001E" });
+            Require(box.Text == "CONCAT(\"[)>\\u001E06\")", "Inside quotes the escape goes in as it is: " + box.Text);
+
+            box.CaretIndex = box.Text.Length - 1;
+            insert.Invoke(window, new object[] { @"\u0004" });
+            Require(box.Text == "CONCAT(\"[)>\\u001E06\"\"\\u0004\")", "Outside quotes it goes in as a quoted piece: " + box.Text);
+
+            box.Text = "CONCAT(\"[)>\\u001E06\\u001D\", \"P1\\u001E\\u0004\")";
+            var result = ((TextBlock)window.FindName("FunctionResultText")).Text;
+            Require(result == "[)>‹RS›06‹GS›P1‹RS›‹EOT›", "The result shows the control characters by name: " + result);
+            // Not closed: closing with edits may ask whether to keep them.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A vendor label carries up to eight Code 128 symbols, and their X
     /// dimension and readable text were set one by one. As NiceLabel 10's
     /// barcode pages do, a setting of the key barcode now goes to every linear
