@@ -73,6 +73,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("shapes and rich text keep only their pages", DesignScenarioRegression.ShapesAndRichTextKeepOnlyTheirPages),
     ("toolbox places objects connected to a source", DesignScenarioRegression.ToolboxPlacesObjectsConnectedToASource),
     ("the object list names what each object prints", DesignScenarioRegression.ObjectListNamesWhatEachObjectPrints),
+    ("the source page edits a combined data source", DesignScenarioRegression.SourcePageEditsACombinedDataSource),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

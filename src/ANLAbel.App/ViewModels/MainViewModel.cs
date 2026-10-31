@@ -4770,6 +4770,50 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// NiceLabel 10's combined data source: fixed text with sources written in braces, as
+    /// <c>LOT {?Lô}-{MaHang}</c>, or a formula. Content without a source is fixed text; one source
+    /// alone connects the object to it, as the list does. One undo step and the object's name
+    /// kept; empty content, or an object no longer on the label, changes nothing.
+    /// </summary>
+    public void ComposeObject(LabelObject item, string? content)
+    {
+        if (IsEditingLocked || !Template.Objects.Contains(item) || string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+
+        var reads = BindingExpressionEvaluator.GetFields(content).Count > 0 || FormulaBindingEvaluator.LooksLikeFormula(content);
+        var binding = item.BindingExpression ?? string.Empty;
+        if (reads ? string.Equals(binding, content, StringComparison.Ordinal)
+                  : binding.Length == 0 && string.Equals(item.Text, content, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        BeginTemplateEditGesture($"Đổi nội dung “{item.Name}”");
+        try
+        {
+            if (reads)
+            {
+                item.BindingExpression = content;
+                StatusText = $"{item.Name} in {content}.";
+            }
+            else
+            {
+                item.Text = content;
+                item.BindingExpression = string.Empty;
+                StatusText = $"{item.Name} in chữ cố định.";
+            }
+        }
+        finally
+        {
+            CommitTemplateEditGesture();
+        }
+
+        RaiseFormulaPreviewChanged();
+    }
+
+    /// <summary>
     /// NiceLabel 10's toolbox drop-down: a Text, Text Box or Barcode placed already connected to
     /// the source picked in it (a prompt, a column, a function, a value given at print time), with
     /// the tile's own defaults and in one undo step.

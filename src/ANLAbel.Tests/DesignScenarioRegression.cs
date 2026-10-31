@@ -698,6 +698,106 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's Source page shows a combined data source in its content box, fixed text with
+    /// sources inserted in it, and "Insert data source" puts one at the caret. ANLAbel's "Ghép chữ /
+    /// công thức…" showed only an empty formula builder, so what a composed object printed could
+    /// not be seen or changed there. The box shows it and applies an edit on Enter or when it loses
+    /// focus (one undo step); Chèn nguồn ▾ inserts a source at the caret; content without a source
+    /// is fixed text.
+    /// </summary>
+    public static Task SourcePageEditsACombinedDataSource()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            viewModel.ExcelHeaders.Add("MaHang");
+            var lot = new LabelObject { Type = ObjectType.Text, Name = "Lô in", Text = "A", BindingExpression = "LOT {?Lô}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 };
+            viewModel.Template.Objects.Add(lot);
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            tabs.SelectedIndex = 0;
+            viewModel.SelectedObject = lot;
+            Settle();
+            var list = (ComboBox)window.FindName("DataSourceComboBox");
+            var box = (TextBox)window.FindName("CompositionTextBox");
+            bool Shown(FrameworkElement element)
+            {
+                for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, tabs.Parent); node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement item && item.Visibility != Visibility.Visible)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            ANLAbel.App.ViewModels.DataSourceChoiceKind? Kind() => (list.SelectedItem as ANLAbel.App.ViewModels.DataSourceChoice)?.Kind;
+            LabelObject Lot() => viewModel.Template.Objects.Single(item => item.Id == lot.Id);
+            void LeaveBox() => box.RaiseEvent(new System.Windows.Input.KeyboardFocusChangedEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, 0, box, null) { RoutedEvent = System.Windows.Input.Keyboard.LostKeyboardFocusEvent });
+            Require(Kind() == ANLAbel.App.ViewModels.DataSourceChoiceKind.Compose && box.Text == "LOT {?Lô}" && Shown(box),
+                $"A composed object shows what it prints in Nội dung ghép: {Kind()} “{box.Text}” shown {Shown(box)}");
+
+            // Enter applies the edit, as one undo step.
+            // The window is not shown, so it has no input source: a key press needs one of its own.
+            var source = new KeyInputSource();
+            box.Text = "LOT {?Lô}-{MaHang}";
+            box.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, source, 0, System.Windows.Input.Key.Enter) { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
+            Require(Lot().BindingExpression == "LOT {?Lô}-{MaHang}", "Enter applies the composition: " + Lot().BindingExpression);
+            viewModel.UndoCommand.Execute(null);
+            Require(Lot().BindingExpression == "LOT {?Lô}", "One undo takes the edit back: " + Lot().BindingExpression);
+
+            // Chèn nguồn ▾ › Trường dữ liệu › MaHang goes in at the caret.
+            viewModel.SelectedObject = Lot();
+            Settle();
+            box.Select("LOT ".Length, 0);
+            var insert = FindLogicalChildren<Button>(window).First(button => AutomationProperties.GetName(button) == "Insert data source");
+            insert.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, insert));
+            var column = insert.ContextMenu!.Items.OfType<MenuItem>().Single(item => ((TextBlock)item.Header).Text == "Trường dữ liệu")
+                .Items.OfType<MenuItem>().Single(item => ((TextBlock)item.Header).Text == "MaHang");
+            column.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, column));
+            Require(Lot().BindingExpression == "LOT {MaHang}{?Lô}" && box.Text == "LOT {MaHang}{?Lô}",
+                $"The source goes in at the caret: {Lot().BindingExpression} / {box.Text}");
+
+            // Leaving the box applies it; content without a source is fixed text.
+            box.Text = "CỐ ĐỊNH";
+            LeaveBox();
+            Settle();
+            Require(Lot() is { BindingExpression: "", Text: "CỐ ĐỊNH" } && Kind() == ANLAbel.App.ViewModels.DataSourceChoiceKind.Fixed,
+                $"Content without a source prints as fixed text: “{Lot().BindingExpression}” “{Lot().Text}” {Kind()}");
+
+            // Leaving the box without an edit changes nothing.
+            LeaveBox();
+            Require(Lot() is { BindingExpression: "", Text: "CỐ ĐỊNH" }, "Leaving the box unedited changes nothing.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>A key press on an unshown window: WPF wants a presentation source for it.</summary>
+    private sealed class KeyInputSource : PresentationSource
+    {
+        public override Visual? RootVisual { get => null; set { } }
+
+        public override bool IsDisposed => false;
+
+        protected override CompositionTarget? GetCompositionTargetCore() => null;
+    }
+
     /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
     private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
         where T : DependencyObject

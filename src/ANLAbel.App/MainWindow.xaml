@@ -2708,7 +2708,20 @@
                                         </StackPanel>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Compose}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                            <Expander Header="Trình tạo công thức" IsExpanded="True" Margin="0,2,0,0">
+                                            <!-- NiceLabel 10 combined data source: fixed text with sources in braces, a source
+                                                 inserted at the caret; Enter or leaving the box applies it (one undo step). -->
+                                            <TextBlock Text="Nội dung ghép" Style="{StaticResource PropLabel}"/>
+                                            <TextBox x:Name="CompositionTextBox" MinHeight="30" MaxHeight="120" Margin="0,2,0,0" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                     KeyDown="CompositionTextBox_KeyDown" LostKeyboardFocus="CompositionTextBox_LostKeyboardFocus"
+                                                     ToolTip="Chữ cố định xen nguồn trong ngoặc nhọn, ví dụ LOT {?Lô}-{MaHang}. Enter hoặc rời ô để áp dụng, Esc để bỏ."
+                                                     AutomationProperties.Name="Combined content"/>
+                                            <DockPanel Margin="0,4,0,6">
+                                                <Button DockPanel.Dock="Left" Content="Chèn nguồn ▾" Click="CompositionInsert_Click" Padding="7,2"
+                                                        ToolTip="Chèn một biến nhập khi in, cột dữ liệu, hàm hoặc giá trị khi in vào chỗ con trỏ"
+                                                        AutomationProperties.Name="Insert data source"/>
+                                                <TextBlock Text="Enter để áp dụng" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                            </DockPanel>
+                                            <Expander Header="Trình tạo công thức" IsExpanded="False" Margin="0,2,0,0">
                                                 <StackPanel Margin="0,6,0,0">
                                                     <!-- Fields section -->
                                                     <TextBlock Text="Thêm trường Excel" Style="{StaticResource PropLabel}"/>

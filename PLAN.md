@@ -2,6 +2,12 @@
 
 ## Sau v0.360
 
+- Nguồn ghép như “Combined data source” của NiceLabel 10: với “Ghép chữ / công thức…”, thẻ Nguồn có ô
+  “Nội dung ghép” hiện đúng nội dung đối tượng đang in (vd. LOT {?Lô}-{MaHang}); sửa rồi Enter hoặc rời
+  ô để áp dụng (một bước hoàn tác, chỉ cho đối tượng ô đang hiện), nút “Chèn nguồn ▾” chèn biến, cột,
+  hàm hoặc giá trị khi in vào chỗ con trỏ, nội dung không còn nguồn nào thành chữ cố định. Trước đây
+  nội dung ghép không hiện ở đâu trên thẻ Nguồn (chỉ có trình tạo công thức trống); trình tạo vẫn còn,
+  thu gọn bên dưới.
 - Bảng bên trái còn hai thẻ Dữ liệu · Đối tượng: bỏ thẻ “Lớp” vì ANLAbel không có lớp (thẻ đó chỉ
   liệt kê lại các đối tượng). Mỗi hàng của danh sách Đối tượng ghi đối tượng in từ nguồn nào, đúng
   tên như ô “Nguồn dữ liệu” (“Biến nhập khi in: Lô”, “Trường dữ liệu: MaHang”, “Khi in: Ngày in”,

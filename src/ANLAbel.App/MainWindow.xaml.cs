@@ -605,6 +605,97 @@ public partial class MainWindow : Window
         {
             _syncingDataSource = false;
         }
+
+        ShowComposition(force: false);
+    }
+
+    private LabelObject? _compositionTarget;
+    private string _compositionShown = string.Empty;
+
+    /// <summary>
+    /// The combined content box shows what the object prints: its composition, or the fixed text
+    /// or single source a composition starts from. Text being typed in it is left alone, and it
+    /// stays the text of the object it was showing.
+    /// </summary>
+    private void ShowComposition(bool force)
+    {
+        if (CompositionTextBox is null || (!force && CompositionTextBox.IsKeyboardFocusWithin))
+        {
+            return;
+        }
+
+        var item = _viewModel.SelectedObject;
+        _compositionTarget = item;
+        _compositionShown = item is null ? string.Empty
+            : !string.IsNullOrWhiteSpace(item.BindingExpression) ? item.BindingExpression : item.Text ?? string.Empty;
+        CompositionTextBox.Text = _compositionShown;
+    }
+
+    /// <summary>Applies what was typed, and only to the object the box was showing.</summary>
+    private void ApplyComposition(string text)
+    {
+        if (_compositionTarget is { } target && !string.Equals(text, _compositionShown, StringComparison.Ordinal))
+        {
+            _viewModel.ComposeObject(target, text);
+        }
+
+        ShowComposition(force: true);
+    }
+
+    private void CompositionTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyComposition(CompositionTextBox.Text);
+            CompositionTextBox.CaretIndex = CompositionTextBox.Text.Length;
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            ShowComposition(force: true);
+            e.Handled = true;
+        }
+    }
+
+    private void CompositionTextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) => ApplyComposition(CompositionTextBox.Text);
+
+    /// <summary>
+    /// NiceLabel 10's "Insert data source": the Data panel's sources by group; a pick goes in at
+    /// the caret (or over the selected text) and applies. Names show as written.
+    /// </summary>
+    private void CompositionInsert_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button)
+        {
+            return;
+        }
+
+        var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
+        foreach (var group in _viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == DataSourceChoiceKind.Source).GroupBy(choice => choice.Group))
+        {
+            var header = new MenuItem { Header = new TextBlock { Text = group.Key } };
+            foreach (var choice in group)
+            {
+                var item = new MenuItem { Header = new TextBlock { Text = choice.Label }, ToolTip = choice.Binding };
+                item.Click += (_, _) => InsertIntoComposition(choice.Binding);
+                header.Items.Add(item);
+            }
+
+            menu.Items.Add(header);
+        }
+
+        button.ContextMenu = menu;
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private void InsertIntoComposition(string token)
+    {
+        var box = CompositionTextBox;
+        var start = Math.Clamp(box.SelectionStart, 0, box.Text.Length);
+        var length = Math.Clamp(box.SelectionLength, 0, box.Text.Length - start);
+        ApplyComposition(box.Text.Remove(start, length).Insert(start, token));
+        box.CaretIndex = Math.Min(start + token.Length, box.Text.Length);
     }
 
     private void DataSourceComboBox_DropDownOpened(object? sender, EventArgs e) => UpdateDataSourceSelection();
