@@ -5516,6 +5516,13 @@ public sealed class MainViewModel : ObservableObject
             return string.Empty;
         }
 
+        // A bound barcode with no row to read has no data yet; its placeholder
+        // ("{Mã Viettel}") is not what prints, so it is not checked as data.
+        if (AwaitsRowData(item))
+        {
+            return string.Empty;
+        }
+
         var data = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
         var type = item.Type switch
         {
@@ -5524,11 +5531,16 @@ public sealed class MainViewModel : ObservableObject
             _ => ANLAbel.App.Controls.BarcodeTypeMapper.ToRendererType(item.BarcodeSymbology)
         };
 
-        var renderError = ValidateBarcodeCanRender(item, data, type);
-        return renderError is null
+        var (renderError, isLayout) = ValidateBarcodeCanRender(item, data, type);
+        // A readable line wider than the frame is not bad data: the barcode
+        // settings show it (BarcodeApplicationValidationMessage), where it is fixed.
+        return renderError is null || isLayout
             ? string.Empty
             : $"Dữ liệu không hợp lệ cho mã {type}. {BarcodeProblemText(renderError)}";
     }
+
+    /// <summary>True for an object whose binding has no row to read yet (no Excel row, no preview).</summary>
+    private bool AwaitsRowData(LabelObject item) => !string.IsNullOrWhiteSpace(item.BindingExpression) && PreviewRow is null;
 
     private string ValidateSelectedBarcodeApplication()
     {
@@ -5549,6 +5561,12 @@ public sealed class MainViewModel : ObservableObject
             item.QrQuietZoneModules,
             item.ShowBarcodeText,
             item.BarcodeTextFontSizePt);
+        // Without a row the data and its readable line are unknown: only the settings are checked.
+        if (AwaitsRowData(item))
+        {
+            return string.Join(Environment.NewLine, geometryErrors.Select(ANLAbel.App.Services.PreflightIssueText.Sentence));
+        }
+
         var authoredData = string.IsNullOrWhiteSpace(item.BindingExpression) ? item.Text : ResolveExpression(item.BindingExpression, PreviewRow);
         var checkDigitErrors = BarcodeCheckDigitContract.Validate(item, symbology, authoredData);
         var data = BarcodeCheckDigitContract.ToEncodedPayload(item, authoredData);
@@ -5621,11 +5639,11 @@ public sealed class MainViewModel : ObservableObject
 
     private const string UnreadableBarcodeData = "Check empty text, unsupported characters, or required length.";
 
-    private string? ValidateBarcodeCanRender(LabelObject item, string data, BarcodeType type)
+    private (string? Problem, bool IsLayout) ValidateBarcodeCanRender(LabelObject item, string data, BarcodeType type)
     {
         if (!_barcodeValidator.ValidateData(data, type))
         {
-            return UnreadableBarcodeData;
+            return (UnreadableBarcodeData, false);
         }
 
         var hriLayout = BarcodeHriTextLayout.Measure(
@@ -5637,29 +5655,27 @@ public sealed class MainViewModel : ObservableObject
             item.BarcodeTextFontSizePt,
             item.BarcodeHriFontFamily,
             item.BarcodeHriBold);
-        if (!hriLayout.IsValid)
-        {
-            return hriLayout.ErrorMessage;
-        }
-
         try
         {
-            var symbolHeightMm = hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
+            // The symbol is checked even when its readable line does not fit, so a
+            // data problem is not hidden behind the layout one.
+            var symbolHeightMm = hriLayout.IsValid && hriLayout.IsEnabled ? hriLayout.SymbolHeightMm : item.HeightMm;
             _barcodeValidator.RenderBarcode(data, type, item.WidthMm, symbolHeightMm, item.QrDpi, CreateBarcodeRenderOptions(item));
-            return null;
         }
         catch (ArgumentException ex)
         {
-            return ex.Message;
+            return (ex.Message, false);
         }
         catch (InvalidOperationException ex)
         {
-            return ex.Message;
+            return (ex.Message, false);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return ex.Message;
+            return (ex.Message, false);
         }
+
+        return hriLayout.IsValid ? (null, false) : (hriLayout.ErrorMessage, true);
     }
 
     private static BarcodeRenderOptions CreateBarcodeRenderOptions(LabelObject item)

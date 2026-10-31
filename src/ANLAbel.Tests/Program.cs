@@ -115,6 +115,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("formula columns wait for the file", DesignScenarioRegression.FormulaColumnsWaitForTheFile),
     ("skipped rows read as ranges", DesignScenarioRegression.SkippedRowsReadAsRanges),
     ("NiceLabel labels survive save and reopen", AcceptanceRegression.NiceLabelLabelsSurviveSaveAndReopen),
+    ("placeholder barcodes are not checked as data", DesignScenarioRegression.PlaceholderBarcodesAreNotCheckedAsData),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

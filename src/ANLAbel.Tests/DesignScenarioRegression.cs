@@ -2757,6 +2757,43 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With no file linked, the Properties panel checked a bound barcode's
+    /// placeholder as its data: "{Mã Viettel}" was "a character that cannot be
+    /// encoded: ã", and a long placeholder "a readable line wider than the
+    /// frame", under "Dữ liệu không hợp lệ". A barcode without a row to read is
+    /// not checked as data, a readable line too wide is told with the barcode
+    /// settings only, and real data is checked as before.
+    /// </summary>
+    public static Task PlaceholderBarcodesAreNotCheckedAsData()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Viettel", BindingExpression = "{Mã Viettel}", XMm = 3, YMm = 3, WidthMm = 40, HeightMm = 12 });
+            viewModel.SelectedObject = viewModel.Template.Objects[0];
+            Require(viewModel.BarcodeValidationMessage.Length == 0 && viewModel.BarcodeApplicationValidationMessage.Length == 0,
+                $"A placeholder is not data: {viewModel.BarcodeValidationMessage} / {viewModel.BarcodeApplicationValidationMessage}");
+
+            var previewRow = typeof(ANLAbel.App.ViewModels.MainViewModel).GetProperty("PreviewRow")!;
+            previewRow.SetValue(viewModel, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Mã Viettel"] = "Mã 01" });
+            Require(viewModel.BarcodeApplicationValidationMessage.Contains("không mã hóa được", StringComparison.Ordinal),
+                "Real data is still checked: " + viewModel.BarcodeApplicationValidationMessage);
+
+            viewModel.Template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Hẹp", Text = "SEMCP-MC-00018-LF-2026-WEEK-14",
+                XMm = 3, YMm = 20, WidthMm = 12, HeightMm = 12, BarcodeHriPlacement = BarcodeHriPlacement.Below, BarcodeTextFontSizePt = 14
+            });
+            viewModel.SelectedObject = viewModel.Template.Objects[1];
+            Require(!viewModel.BarcodeValidationMessage.StartsWith("Dữ liệu không hợp lệ", StringComparison.Ordinal)
+                    && viewModel.BarcodeApplicationValidationMessage.Contains("Dòng chữ dưới mã", StringComparison.Ordinal),
+                $"A readable line too wide is a setting, not bad data: {viewModel.BarcodeValidationMessage} / {viewModel.BarcodeApplicationValidationMessage}");
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A customer sheet with one record and a weight formula filled down 198
     /// rows: printing skips the 198 blocked rows after asking, and the question
     /// listed all 198 row numbers. Runs of rows now read as ranges.

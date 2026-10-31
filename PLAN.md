@@ -24,6 +24,10 @@
 - Xem trước khi in: khi in bỏ qua các dòng bị chặn, câu hỏi ghi các dòng thành khoảng (“dòng
   3–200”) thay vì liệt kê từng số; một sổ Excel của khách có 1 bản ghi và công thức kéo sẵn
   tới dòng 200 từng làm câu hỏi dài 198 số.
+- Thuộc tính mã vạch: khi chưa có dòng dữ liệu, mã vạch có liên kết không còn bị kiểm tra
+  bằng chữ giữ chỗ (“{Mã Viettel}” từng bị báo “ký tự không mã hóa được: ã”, chữ giữ chỗ dài
+  từng bị báo “Dòng chữ dưới mã rộng…”); dòng chữ dưới mã quá rộng chỉ báo ở phần thiết lập mã,
+  không còn mở đầu bằng “Dữ liệu không hợp lệ”. Dữ liệu thật vẫn được kiểm tra như cũ.
 
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 
