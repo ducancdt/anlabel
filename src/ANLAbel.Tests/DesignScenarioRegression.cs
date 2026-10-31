@@ -2246,6 +2246,75 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Ten captions selected together and set to 9 pt changed only the one the
+    /// selection started from: the ribbon and Properties edit the key object.
+    /// As in NiceLabel 10, the font now goes to every selected text in one undo
+    /// step, Grow Font steps each from its own size, a text box keeps its frame
+    /// and a barcode in the selection keeps its own font.
+    /// </summary>
+    public static Task FontChangeReachesEverySelectedText()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            void Select(params string[] names)
+            {
+                viewModel.SelectedObject = Named(names[0]);
+                Pump();
+                foreach (var name in names)
+                {
+                    selection.Add(Named(name));
+                }
+            }
+
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Vendor", Text = "Vendor", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6, Style = { FontSizePt = 12, BorderThicknessMm = 0 } });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.TextBox, Name = "QTY", Text = "QTY", XMm = 3, YMm = 12, WidthMm = 20, HeightMm = 6, Style = { FontSizePt = 10, BorderThicknessMm = 0 } });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Code", Text = "SP-1", XMm = 30, YMm = 3, WidthMm = 40, HeightMm = 12 });
+            Pump();
+            typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            var barcodeFont = Named("Code").Style.FontSizePt;
+
+            Select("Vendor", "QTY", "Code");
+            Named("Vendor").Style.FontSizePt = 9;
+            Named("Vendor").Style.Bold = true;
+            Pump();
+            Require(Named("QTY").Style.FontSizePt == 9 && Named("QTY").Style.Bold,
+                $"The text box follows the key text: {Named("QTY").Style.FontSizePt} pt, bold {Named("QTY").Style.Bold}.");
+            Require(Named("QTY").WidthMm == 20 && Named("QTY").HeightMm == 6, "The text box keeps its frame.");
+            Require(Named("Code").Style.FontSizePt == barcodeFont && !Named("Code").Style.Bold, "The barcode keeps its own font.");
+
+            viewModel.UndoCommand.Execute(null);
+            Pump();
+            Require(Named("Vendor").Style.FontSizePt == 12 && Named("QTY").Style.FontSizePt == 10 && !Named("QTY").Style.Bold,
+                $"One undo puts both texts back: {Named("Vendor").Style.FontSizePt} and {Named("QTY").Style.FontSizePt} pt.");
+
+            Select("Vendor", "QTY");
+            typeof(ANLAbel.App.MainWindow).GetMethod("StepFontSize", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { 1.0 });
+            Require(Named("Vendor").Style.FontSizePt == 13 && Named("QTY").Style.FontSizePt == 11,
+                $"Grow Font steps each text from its own size: {Named("Vendor").Style.FontSizePt} and {Named("QTY").Style.FontSizePt} pt.");
+
+            // Khóa vị trí in the right-click menu locks every selected object too.
+            typeof(ANLAbel.App.MainWindow).GetMethod("UpdateDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+            var lockItem = canvas.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string)item.Header == "Khóa vị trí");
+            lockItem.IsChecked = true;
+            lockItem.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(Named("Vendor").IsLocked && Named("QTY").IsLocked, "Khóa vị trí locks every selected object.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Print Preview lists the answers given at print time ("Số lô: L1"), so a
     /// lot that only a QR code carries can be checked, and they can be entered
     /// again without leaving the preview: the labels are prepared again with

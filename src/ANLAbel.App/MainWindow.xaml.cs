@@ -39,6 +39,7 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureCompleted += (_, _) => _viewModel.CommitTemplateEditGesture();
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
         DesignerCanvas.DataSourceDropped += (_, e) => _viewModel.DropDataSource(e.Binding, e.XMm, e.YMm, e.Target, e.NewObject);
+        _viewModel.SelectionProvider = () => DesignerCanvas.SelectedObjects;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         BuildDesignerContextMenu();
         // Back from Excel: say whether the linked file is still open there.
@@ -641,9 +642,10 @@ public partial class MainWindow : Window
         _contextLockItem = new MenuItem { Header = "Khóa vị trí", IsCheckable = true };
         _contextLockItem.Click += (_, e) =>
         {
-            if (_viewModel.SelectedObject is { } selected)
+            // The whole selection, as NiceLabel's property pages set every selected object.
+            foreach (var item in DesignerCanvas.SelectedObjects.DefaultIfEmpty(_viewModel.SelectedObject).OfType<LabelObject>())
             {
-                selected.IsLocked = _contextLockItem.IsChecked;
+                item.IsLocked = _contextLockItem.IsChecked;
             }
 
             e.Handled = true;
@@ -1021,14 +1023,8 @@ public partial class MainWindow : Window
 
     private void FontShrink_Click(object sender, RoutedEventArgs e) => StepFontSize(-1);
 
-    /// <summary>NiceLabel 10 Grow/Shrink Font: one point per click.</summary>
-    private void StepFontSize(double stepPt)
-    {
-        if (_viewModel.SelectedObject is { } item && item.Type is ObjectType.Text or ObjectType.TextBox)
-        {
-            item.Style.FontSizePt = Math.Clamp(Math.Round(item.Style.FontSizePt + stepPt), 1, 400);
-        }
-    }
+    /// <summary>NiceLabel 10 Grow/Shrink Font: one point per click, for every selected text.</summary>
+    private void StepFontSize(double stepPt) => _viewModel.StepSelectedFontSize(stepPt);
 
     private void DoNotAlign_Click(object sender, RoutedEventArgs e)
     {

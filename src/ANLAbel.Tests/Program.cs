@@ -97,6 +97,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preview shows and edits the answers", DesignScenarioRegression.PreviewShowsAndEditsTheAnswers),
     ("merged Excel cells are named before printing", DesignScenarioRegression.MergedExcelCellsAreNamed),
     ("warnings only status gives no barcode advice", DesignScenarioRegression.WarningsOnlyStatusGivesNoBarcodeAdvice),
+    ("a font change reaches every selected text", DesignScenarioRegression.FontChangeReachesEverySelectedText),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

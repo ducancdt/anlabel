@@ -80,6 +80,8 @@ public sealed class MainViewModel : ObservableObject
     private string _lastImportIssueSuffix = string.Empty;
     private const string EmptyPlaceholderError = "Dấu ngoặc {} chưa có tên cột. Nhập tên cột vào giữa hai dấu ngoặc hoặc xóa chúng.";
     private bool _selectedObjectRefreshDeferred;
+    // Set while a font change of the key text is copied to the other selected texts.
+    private bool _sharingTextStyle;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
     // IsDirty compares the current snapshot with it, so undoing back to the
@@ -4619,6 +4621,12 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Every object selected on the canvas, the key object among them. Set by
+    /// the main window; without it a style change edits the key object only.
+    /// </summary>
+    public Func<IReadOnlyCollection<LabelObject>>? SelectionProvider { get; set; }
+
+    /// <summary>
     /// Asks the operator for {?Name} values before a quick print; returns null
     /// when the operator cancels. Set by the main window.
     /// </summary>
@@ -4756,6 +4764,90 @@ public sealed class MainViewModel : ObservableObject
         {
             RaiseSelectedObjectChanged();
             OnPropertyChanged(nameof(TextBoxValidationMessage));
+            ShareTextStyle(SelectedObject, e.PropertyName);
+        }
+    }
+
+    /// <summary>
+    /// The font of the key text goes to every text selected with it, as in
+    /// NiceLabel 10, whose font commands apply to the whole selection: family,
+    /// size, bold, italic, underline, strikethrough, colour and alignment.
+    /// Each text keeps its own frame rules, and the change is one undo step.
+    /// </summary>
+    private void ShareTextStyle(LabelObject key, string? property)
+    {
+        if (_sharingTextStyle
+            || key.Type is not (ObjectType.Text or ObjectType.TextBox)
+            || SelectionProvider is null
+            || property is not (nameof(ObjectStyle.FontFamily) or nameof(ObjectStyle.FontSizePt) or nameof(ObjectStyle.Bold)
+                or nameof(ObjectStyle.Italic) or nameof(ObjectStyle.Underline) or nameof(ObjectStyle.Strikethrough)
+                or nameof(ObjectStyle.StrokeColor) or nameof(ObjectStyle.Alignment)))
+        {
+            return;
+        }
+
+        var others = SelectionProvider()
+            .Where(item => !ReferenceEquals(item, key) && item.Type is ObjectType.Text or ObjectType.TextBox)
+            .ToArray();
+        _sharingTextStyle = true;
+        try
+        {
+            foreach (var style in others.Select(item => item.Style))
+            {
+                switch (property)
+                {
+                    case nameof(ObjectStyle.FontFamily):
+                        style.FontFamily = key.Style.FontFamily;
+                        break;
+                    case nameof(ObjectStyle.FontSizePt):
+                        style.FontSizePt = key.Style.FontSizePt;
+                        break;
+                    case nameof(ObjectStyle.Bold):
+                        style.Bold = key.Style.Bold;
+                        break;
+                    case nameof(ObjectStyle.Italic):
+                        style.Italic = key.Style.Italic;
+                        break;
+                    case nameof(ObjectStyle.Underline):
+                        style.Underline = key.Style.Underline;
+                        break;
+                    case nameof(ObjectStyle.Strikethrough):
+                        style.Strikethrough = key.Style.Strikethrough;
+                        break;
+                    case nameof(ObjectStyle.StrokeColor):
+                        style.StrokeColor = key.Style.StrokeColor;
+                        break;
+                    case nameof(ObjectStyle.Alignment):
+                        style.Alignment = key.Style.Alignment;
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            _sharingTextStyle = false;
+        }
+    }
+
+    /// <summary>Grow or Shrink Font: every selected text by one step from its own size.</summary>
+    public void StepSelectedFontSize(double stepPt)
+    {
+        var selection = SelectionProvider?.Invoke() ?? Array.Empty<LabelObject>();
+        var texts = (SelectedObject is { } key ? selection.Append(key) : selection)
+            .Distinct()
+            .Where(item => item.Type is ObjectType.Text or ObjectType.TextBox)
+            .ToArray();
+        _sharingTextStyle = true;
+        try
+        {
+            foreach (var item in texts)
+            {
+                item.Style.FontSizePt = Math.Clamp(Math.Round(item.Style.FontSizePt + stepPt), 1, 400);
+            }
+        }
+        finally
+        {
+            _sharingTextStyle = false;
         }
     }
 

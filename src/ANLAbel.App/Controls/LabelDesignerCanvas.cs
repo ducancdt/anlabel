@@ -353,6 +353,9 @@ public sealed class LabelDesignerCanvas : Canvas
     /// </summary>
     public int SelectedObjectCount => _selectedObjects.Count;
 
+    /// <summary>Every selected object, the key object among them.</summary>
+    public IReadOnlyCollection<LabelObject> SelectedObjects => _selectedObjects.ToArray();
+
     /// <summary>
     /// Makes one member of the current multi-selection the key object without
     /// collapsing the selection.  This is intentionally separate from

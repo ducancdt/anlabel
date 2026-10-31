@@ -27,6 +27,10 @@
 - Xem trước khi in: khi chỉ có cảnh báo, dòng trạng thái không còn khuyên “mở rộng
   mã vạch hoặc tăng DPI” cho mọi cảnh báo (cả nét kẻ mảnh hay khoảng trắng cuối dữ
   liệu); nay chỉ nói vẫn được in, mỗi cảnh báo bên dưới có lời khuyên riêng.
+- Thiết kế: chọn nhiều chữ rồi đổi phông, cỡ, đậm, nghiêng, gạch chân, gạch ngang,
+  màu hoặc căn lề thì mọi chữ và ô chữ đang chọn cùng đổi (một lần Ctrl+Z hoàn tác),
+  như NiceLabel 10; trước đây chỉ đối tượng mốc đổi. Tăng/giảm cỡ chữ tăng từng chữ
+  từ cỡ của nó. Mã vạch trong vùng chọn giữ phông riêng; ô chữ giữ khung.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 
