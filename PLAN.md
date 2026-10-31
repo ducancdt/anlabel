@@ -26,6 +26,11 @@
   hỏi trước, nêu tên các đối tượng, hàm đang dùng và hậu quả (thiếu trường; câu hỏi khi in mất
   quy tắc nhập), mặc định Giữ lại; NiceLabel 10 không cho xóa mục đang được dùng. Mục không ai
   dùng vẫn xóa ngay như cũ.
+- Thiết kế: Tab và Shift+Tab chọn đối tượng kế tiếp hay trước đó theo thứ tự lớp (bỏ qua đối
+  tượng đang ẩn, quay vòng; một nhóm là một bước và được chọn cả nhóm như khi bấm chuột), như mặt
+  thiết kế của NiceLabel 10, để chọn được đối tượng nhỏ nằm dưới đối tượng khác; Ctrl với dấu
+  cộng, dấu trừ phóng to, thu nhỏ và Ctrl+0 về 100 %. Ribbon, thanh trạng thái và trang Phím tắt
+  ghi các phím này.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

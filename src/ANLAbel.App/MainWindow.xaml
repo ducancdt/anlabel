@@ -847,14 +847,14 @@
                                             ToolTip="Thu phóng vừa các đối tượng trên tem" AutomationProperties.Name="Zoom to objects" AutomationProperties.AutomationId="Shell.Ribbon.ZoomToObjects"/>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
                                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.ZoomIn16}" Content="Phóng to" Command="{Binding ZoomInCommand}"
-                                                ToolTip="Phóng to (Ctrl + lăn chuột)" AutomationProperties.Name="Ribbon zoom in" AutomationProperties.AutomationId="Shell.Ribbon.ZoomIn"/>
+                                                ToolTip="Phóng to (Ctrl + lăn chuột, Ctrl+dấu cộng)" AutomationProperties.Name="Ribbon zoom in" AutomationProperties.AutomationId="Shell.Ribbon.ZoomIn"/>
                                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.ZoomOut16}" Content="Thu nhỏ" Command="{Binding ZoomOutCommand}"
-                                                ToolTip="Thu nhỏ (Ctrl + lăn chuột)" AutomationProperties.Name="Ribbon zoom out" AutomationProperties.AutomationId="Shell.Ribbon.ZoomOut"/>
+                                                ToolTip="Thu nhỏ (Ctrl + lăn chuột, Ctrl+dấu trừ)" AutomationProperties.Name="Ribbon zoom out" AutomationProperties.AutomationId="Shell.Ribbon.ZoomOut"/>
                                         <StackPanel Orientation="Horizontal" Height="22">
                                             <Image Source="{StaticResource Icon.Zoom16}" Width="16" Height="16" Margin="4,0,5,0"/>
                                             <ComboBox x:Name="ZoomPercentBox" Width="72" IsEditable="True" Text="{Binding ZoomPercent, Mode=OneWay, StringFormat={}{0}%}"
                                                       SelectionChanged="ZoomPercentBox_SelectionChanged" KeyDown="ZoomPercentBox_KeyDown" LostKeyboardFocus="ZoomPercentBox_LostKeyboardFocus"
-                                                      ToolTip="Tỉ lệ thu phóng (25–400 %)" AutomationProperties.Name="Zoom percent" AutomationProperties.AutomationId="Shell.Ribbon.Zoom100">
+                                                      ToolTip="Tỉ lệ thu phóng (25–400 %; Ctrl+0: 100 %)" AutomationProperties.Name="Zoom percent" AutomationProperties.AutomationId="Shell.Ribbon.Zoom100">
                                                 <ComboBoxItem Content="25%"/>
                                                 <ComboBoxItem Content="50%"/>
                                                 <ComboBoxItem Content="75%"/>
@@ -1459,12 +1459,12 @@
                             ToolTip="Thu phóng vừa tem" AutomationProperties.Name="Status zoom to document" AutomationProperties.AutomationId="Shell.Status.ZoomToDocument"/>
                     <Button Style="{StaticResource StatusIconButton}" controls:Ribbon.Icon="{StaticResource Icon.ZoomToObjects16}" Click="ZoomToObjects_Click" Margin="0,0,6,0"
                             ToolTip="Thu phóng vừa các đối tượng" AutomationProperties.Name="Status zoom to objects" AutomationProperties.AutomationId="Shell.Status.ZoomToObjects"/>
-                    <Button Style="{StaticResource StatusIconButton}" Command="{Binding ZoomOutCommand}" ToolTip="Thu nhỏ" AutomationProperties.Name="Status zoom out">
+                    <Button Style="{StaticResource StatusIconButton}" Command="{Binding ZoomOutCommand}" ToolTip="Thu nhỏ (Ctrl+dấu trừ)" AutomationProperties.Name="Status zoom out">
                         <TextBlock Text="−" FontSize="14" Margin="0,-2,0,0"/>
                     </Button>
                     <Slider Width="120" Minimum="0.25" Maximum="4" SmallChange="0.1" LargeChange="0.25" Value="{Binding Zoom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="2,0" VerticalAlignment="Center"
                             AutomationProperties.Name="Zoom" AutomationProperties.AutomationId="Shell.Status.ZoomSlider"/>
-                    <Button Style="{StaticResource StatusIconButton}" Command="{Binding ZoomInCommand}" ToolTip="Phóng to" AutomationProperties.Name="Status zoom in">
+                    <Button Style="{StaticResource StatusIconButton}" Command="{Binding ZoomInCommand}" ToolTip="Phóng to (Ctrl+dấu cộng)" AutomationProperties.Name="Status zoom in">
                         <TextBlock Text="+" FontSize="14" Margin="0,-2,0,0"/>
                     </Button>
                     <TextBlock Text="{Binding ZoomPercent, StringFormat={}{0}%}" Foreground="{StaticResource RibbonTextBrush}" VerticalAlignment="Center" Margin="6,0,0,0" MinWidth="38" TextAlignment="Right"/>

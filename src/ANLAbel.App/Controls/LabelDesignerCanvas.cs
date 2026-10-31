@@ -3222,6 +3222,24 @@ public sealed class LabelDesignerCanvas : Canvas
         return true;
     }
 
+    /// <summary>Selects an object, and the rest of its group, as a click on it does.</summary>
+    public void SelectAsClicked(LabelObject item)
+    {
+        _selectedObjects.Clear();
+        _selectedObjects.Add(item);
+        if (!string.IsNullOrEmpty(item.GroupId) && Template is { } template)
+        {
+            foreach (var peer in template.Objects.Where(peer => peer.GroupId == item.GroupId))
+            {
+                _selectedObjects.Add(peer);
+            }
+        }
+
+        SelectedObject = item;
+        RefreshSelectionAdorner();
+        InvalidateVisual();
+    }
+
     /// <summary>Whether a copy or cut left objects to paste (the right-click menu's Dán).</summary>
     public bool HasCopiedObjects => _clipboardObjects.Count > 0;
 

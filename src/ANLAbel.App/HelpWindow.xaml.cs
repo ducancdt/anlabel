@@ -825,6 +825,11 @@ public partial class HelpWindow : Window
         sh.Children.Add(ShortcutRow("Delete", vi ? "Xóa đối tượng đang chọn" : "Delete selected object"));
         sh.Children.Add(H2(vi ? "Bảng thiết kế" : "Canvas"));
         sh.Children.Add(ShortcutRow(vi ? "Ctrl + lăn chuột" : "Ctrl+Wheel", vi ? "Phóng to / thu nhỏ" : "Zoom in/out"));
+        sh.Children.Add(ShortcutRow(vi ? "Ctrl+Dấu cộng" : "Ctrl+Plus", vi ? "Phóng to" : "Zoom in"));
+        sh.Children.Add(ShortcutRow(vi ? "Ctrl+Dấu trừ" : "Ctrl+Minus", vi ? "Thu nhỏ" : "Zoom out"));
+        sh.Children.Add(ShortcutRow("Ctrl+0", vi ? "Thu phóng 100 %" : "Zoom to 100%"));
+        sh.Children.Add(ShortcutRow("Tab", vi ? "Chọn đối tượng kế tiếp (Shift+Tab: đối tượng trước)" : "Select the next object (Shift+Tab: the previous one)"));
+        sh.Children.Add(ShortcutRow("F4", vi ? "Ghim hoặc bỏ ghim bảng Thuộc tính (bỏ ghim: bảng nổi cạnh đối tượng, mở bằng nhấp đúp)" : "Pin or unpin the Properties panel (unpinned, it floats beside the object and opens on double-click)"));
         sh.Children.Add(ShortcutRow("Ctrl+A", vi ? "Chọn mọi đối tượng" : "Select every object"));
         sh.Children.Add(ShortcutRow("Ctrl+C", vi ? "Sao chép đối tượng đang chọn" : "Copy the selected objects"));
         sh.Children.Add(ShortcutRow("Ctrl+X", vi ? "Cắt đối tượng đang chọn" : "Cut the selected objects"));

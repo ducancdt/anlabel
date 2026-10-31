@@ -111,11 +111,33 @@ public partial class MainWindow : Window
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(() => ToggleTextStyle(style => style.Underline = !style.Underline)),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.U, System.Windows.Input.ModifierKeys.Control)));
-        // PgUp/PgDn order the selected object only on the label itself, so lists, boxes
-        // and the designer's scroll bars keep their paging.
+        // Ctrl with plus or minus zooms and Ctrl+0 shows 100 %, as in NiceLabel 10 and Windows programs.
+        foreach (var (key, zoom) in new (System.Windows.Input.Key, Func<double, double>)[]
+                 {
+                     (System.Windows.Input.Key.OemPlus, current => Math.Min(4, current + 0.1)),
+                     (System.Windows.Input.Key.Add, current => Math.Min(4, current + 0.1)),
+                     (System.Windows.Input.Key.OemMinus, current => Math.Max(0.25, current - 0.1)),
+                     (System.Windows.Input.Key.Subtract, current => Math.Max(0.25, current - 0.1)),
+                     (System.Windows.Input.Key.D0, _ => 1),
+                     (System.Windows.Input.Key.NumPad0, _ => 1)
+                 })
+        {
+            InputBindings.Add(new System.Windows.Input.KeyBinding(
+                new ViewModels.RelayCommand(() =>
+                {
+                    if (DesignerKeysApply())
+                    {
+                        _viewModel.Zoom = zoom(_viewModel.Zoom);
+                    }
+                }),
+                new System.Windows.Input.KeyGesture(key, System.Windows.Input.ModifierKeys.Control)));
+        }
+        // PgUp/PgDn order the selected object and Tab walks the objects only on the label
+        // itself, so lists, boxes and the designer's scroll bars keep their keys.
         DesignerCanvas.PreviewKeyDown += (_, e) =>
         {
-            if (!IsTextInputTarget(e.OriginalSource) && ArrangeByKey(e.Key, Keyboard.Modifiers))
+            if (!IsTextInputTarget(e.OriginalSource)
+                && (ArrangeByKey(e.Key, Keyboard.Modifiers) || SelectNextByKey(e.Key, Keyboard.Modifiers)))
             {
                 e.Handled = true;
             }
@@ -909,6 +931,58 @@ public partial class MainWindow : Window
         DesignerCanvas.CommitNudgeGesture();
         command.Execute(null);
         return true;
+    }
+
+    /// <summary>
+    /// Tab and Shift+Tab select the next or the previous object in the label's paint order,
+    /// round to the start, as on NiceLabel 10's design surface; a group is one stop, selected
+    /// whole as a click selects it. False when there is none.
+    /// </summary>
+    private bool SelectNextByKey(Key key, ModifierKeys modifiers)
+    {
+        if (key != Key.Tab || modifiers is not (ModifierKeys.None or ModifierKeys.Shift) || DesignerCanvas.DrawingTool is not null)
+        {
+            return false;
+        }
+
+        var order = _viewModel.Template.Objects
+            .Select((item, index) => (item, index))
+            .Where(entry => entry.item.IsVisible)
+            .OrderBy(entry => entry.item.ZIndex)
+            .ThenBy(entry => entry.index)
+            .Select(entry => entry.item)
+            .ToList();
+        if (order.Count == 0)
+        {
+            return false;
+        }
+
+        var backwards = modifiers == ModifierKeys.Shift;
+        var current = _viewModel.SelectedObject is { } selected ? order.IndexOf(selected) : -1;
+        var group = current < 0 ? string.Empty : order[current].GroupId;
+        for (var step = 1; step <= order.Count; step++)
+        {
+            var next = current < 0
+                ? (backwards ? order.Count - step : step - 1)
+                : ((current + (backwards ? -step : step)) % order.Count + order.Count) % order.Count;
+            if (group.Length > 0 && order[next].GroupId == group)
+            {
+                continue;
+            }
+
+            // A group is one stop, at its first member in paint order.
+            if (order[next].GroupId.Length > 0 && !ReferenceEquals(order.First(item => item.GroupId == order[next].GroupId), order[next]))
+            {
+                continue;
+            }
+
+            // An arrow-key move still open is finished first, as a click does.
+            DesignerCanvas.CommitNudgeGesture();
+            DesignerCanvas.SelectAsClicked(order[next]);
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>Ctrl+F, NiceLabel's object browser search: the Đối tượng tab's search box.</summary>

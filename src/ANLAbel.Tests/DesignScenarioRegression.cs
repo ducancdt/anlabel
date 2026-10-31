@@ -3281,6 +3281,91 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A small object under a larger one could only be reached by clicking around it, and
+    /// zoom needed the mouse wheel. As on NiceLabel 10's design surface, Tab and Shift+Tab
+    /// now select the next or previous object in paint order, round to the start, and Ctrl
+    /// with plus, minus or 0 zooms in, out and to 100 %.
+    /// </summary>
+    public static Task TabWalksTheObjectsAndCtrlZooms()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            foreach (var (name, z, visible) in new[] { ("Nền", 0, true), ("Mã", 2, true), ("Ẩn", 3, false), ("Logo", 1, true) })
+            {
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = name, ZIndex = z, IsVisible = visible, XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 10 });
+            }
+
+            Pump();
+            viewModel.SelectedObject = null;
+            Pump();
+            string Tab()
+            {
+                var press = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new TestPresentationSource(), 0, System.Windows.Input.Key.Tab)
+                {
+                    RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent
+                };
+                canvas.RaiseEvent(press);
+                Pump();
+                Require(press.Handled, "Tab on the label is taken by the label.");
+                return viewModel.SelectedObject?.Name ?? "(none)";
+            }
+
+            var walk = string.Join(" ", Tab(), Tab(), Tab(), Tab());
+            Require(walk == "Nền Logo Mã Nền", "Tab walks the shown objects in paint order and starts again: " + walk);
+            bool Back() => (bool)typeof(ANLAbel.App.MainWindow).GetMethod("SelectNextByKey", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(window, new object[] { System.Windows.Input.Key.Tab, System.Windows.Input.ModifierKeys.Shift })!;
+            Require(Back() && viewModel.SelectedObject?.Name == "Mã", "Shift+Tab goes back round to the top object: " + viewModel.SelectedObject?.Name);
+
+            // From a multiple selection, Tab goes on alone from the key object.
+            window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                .Single(binding => binding.Key == System.Windows.Input.Key.A && binding.Modifiers == System.Windows.Input.ModifierKeys.Control)
+                .Command.Execute(null);
+            Pump();
+            Require(canvas.SelectedObjectCount == 3, "Ctrl+A selects the three shown objects: " + canvas.SelectedObjectCount);
+            var after = Tab();
+            Require(canvas.SelectedObjectCount == 1, $"Tab leaves one object selected ({after}): {canvas.SelectedObjectCount}.");
+
+            // A group is one stop, at its first member in paint order, selected whole as a click
+            // selects it, even when another object sits between its members.
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Viền", ZIndex = 4, XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 10 });
+            Named("Logo").GroupId = "nhóm";
+            Named("Viền").GroupId = "nhóm";
+            Pump();
+            canvas.SelectAsClicked(Named("Nền"));
+            Pump();
+            var grouped = Tab();
+            Require(grouped == "Logo" && canvas.SelectedObjectCount == 2, $"Tab selects the group whole: {grouped}, {canvas.SelectedObjectCount} selected.");
+            var rest = string.Join(" ", Tab(), Tab());
+            Require(rest == "Mã Nền", "Tab passes the group's later member: " + rest);
+
+            double Zoom(System.Windows.Input.Key key)
+            {
+                window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                    .Single(binding => binding.Key == key && binding.Modifiers == System.Windows.Input.ModifierKeys.Control)
+                    .Command.Execute(null);
+                return Math.Round(viewModel.Zoom, 2);
+            }
+
+            viewModel.Zoom = 1;
+            Require(Zoom(System.Windows.Input.Key.OemPlus) == 1.1 && Zoom(System.Windows.Input.Key.Add) == 1.2, "Ctrl and plus zoom in: " + viewModel.Zoom);
+            Require(Zoom(System.Windows.Input.Key.OemMinus) == 1.1 && Zoom(System.Windows.Input.Key.Subtract) == 1.0, "Ctrl and minus zoom out: " + viewModel.Zoom);
+            viewModel.Zoom = 2.5;
+            Require(Zoom(System.Windows.Input.Key.D0) == 1 && Zoom(System.Windows.Input.Key.NumPad0) == 1, "Ctrl+0 shows 100 %: " + viewModel.Zoom);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to
