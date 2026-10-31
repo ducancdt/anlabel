@@ -494,6 +494,44 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// The Quản lý dữ liệu page a double-click in the Data panel opens (NiceLabel 10
+    /// DefineDataSourcesCommand): the prompt or function itself, the data source page for a
+    /// column, the counter for the serial number, the print date page for the date.
+    /// </summary>
+    public static string? DataManagerPageFor(object? item) => item switch
+    {
+        PromptVariableDefinition prompt => DataManagerWindow.PromptPage + prompt.Name,
+        ANLAbel.Core.Data.DataTransformDefinition function => DataManagerWindow.FunctionPage + function.Name,
+        string => "Database",
+        DataTreeField field when field.Binding.Contains(SerialCounterContract.Token, StringComparison.OrdinalIgnoreCase) => "Counter",
+        DataTreeField => "Date",
+        _ => null
+    };
+
+    /// <summary>The Data panel entry an element belongs to; none for the group rows.</summary>
+    public static object? DataTreeItemFor(DependencyObject? element)
+    {
+        while (element is not null and not TreeViewItem)
+        {
+            element = element is Visual ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element);
+        }
+
+        // The group rows (Biến nhập khi in, Trường dữ liệu…) keep folding on a double-click.
+        return element is TreeViewItem container && ItemsControl.ItemsControlFromItemContainer(container) is { } owner and not TreeView
+            ? owner.ItemContainerGenerator.ItemFromContainer(container)
+            : null;
+    }
+
+    private void DataTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataManagerPageFor(DataTreeItemFor(e.OriginalSource as DependencyObject)) is { } page)
+        {
+            e.Handled = true;
+            ShowDataManager(page);
+        }
+    }
+
     // NiceLabel 10 "Add new variable": Quản lý dữ liệu opens on the new item.
     private void AddPromptFromData_Click(object sender, RoutedEventArgs e) => ShowDataManager("NewPrompt");
 

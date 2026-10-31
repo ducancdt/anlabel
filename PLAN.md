@@ -2,6 +2,9 @@
 
 ## Sau v0.360
 
+- Bảng Dữ liệu như Data explorer của NiceLabel 10: nhấp đúp một biến nhập khi in hoặc một hàm là mở
+  Quản lý dữ liệu ngay trên mục đó; một cột mở trang nguồn dữ liệu, “Số sê-ri” mở bộ đếm, “Ngày in”
+  mở trang ngày giờ in; hàng nhóm vẫn chỉ gập/mở. Trước đây nhấp đúp không làm gì.
 - Nguồn ghép như “Combined data source” của NiceLabel 10: với “Ghép chữ / công thức…”, thẻ Nguồn có ô
   “Nội dung ghép” hiện đúng nội dung đối tượng đang in (vd. LOT {?Lô}-{MaHang}); sửa rồi Enter hoặc rời
   ô để áp dụng (một bước hoàn tác, chỉ cho đối tượng ô đang hiện), nút “Chèn nguồn ▾” chèn biến, cột,

@@ -90,6 +90,12 @@ public partial class DataManagerWindow : Window
     // into the objects that use it.
     private readonly Dictionary<PromptVariableDefinition, string> _originalNames = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>Opens on the prompt named after it: "Prompt:Lô".</summary>
+    public const string PromptPage = "Prompt:";
+
+    /// <summary>Opens on the function named after it: "Function:MaVach".</summary>
+    public const string FunctionPage = "Function:";
+
     public DataManagerWindow(MainViewModel viewModel, string? start = null)
     {
         InitializeComponent();
@@ -115,7 +121,13 @@ public partial class DataManagerWindow : Window
         {
             "Counter" => _counter,
             "Database" => NodeKind.Database,
+            "Date" => NodeKind.DateTimeVariable,
             "Functions" or "NewFunction" => NodeKind.FunctionCategory,
+            // A double-click in the Data panel (NiceLabel 10 DefineDataSourcesCommand) opens on that item.
+            _ when start?.StartsWith(PromptPage, StringComparison.Ordinal) == true
+                => (object?)_prompts.FirstOrDefault(prompt => string.Equals(prompt.Name, start[PromptPage.Length..], StringComparison.OrdinalIgnoreCase)) ?? NodeKind.PromptCategory,
+            _ when start?.StartsWith(FunctionPage, StringComparison.Ordinal) == true
+                => (object?)_functions.FirstOrDefault(function => string.Equals(function.Name, start[FunctionPage.Length..], StringComparison.OrdinalIgnoreCase)) ?? NodeKind.FunctionCategory,
             _ => NodeKind.PromptCategory
         });
 

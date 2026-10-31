@@ -788,6 +788,88 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10 opens the Dynamic Data Manager on an item double-clicked in the Data explorer
+    /// (DefineDataSourcesCommand). ANLAbel's Data panel did nothing on a double-click. A prompt or
+    /// a function now opens Quản lý dữ liệu on itself, a column on the data source page, the serial
+    /// number on the counter and the print date on its page; the group rows keep folding.
+    /// </summary>
+    public static Task DataPanelDoubleClickOpensTheItem()
+    {
+        RunOnSta(() =>
+        {
+            var xaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));
+            Require(xaml.Contains("MouseDoubleClick=\"DataTree_MouseDoubleClick\"", StringComparison.Ordinal), "The Data panel tree handles a double-click.");
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var prompt = new PromptVariableDefinition { Name = "Lô" };
+            viewModel.Template.PromptVariables.Add(prompt);
+            var function = new ANLAbel.Core.Data.DataTransformDefinition("MaVach", "\"A\"");
+            viewModel.Template.DataTransforms.Add(function);
+            viewModel.ExcelHeaders.Add("MaHang");
+
+            // The rows of the Data panel lead to their entries; a group row leads nowhere.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            object? EntryAt(string group, object item)
+            {
+                var row = (TreeViewItem)window.FindName(group);
+                row.UpdateLayout();
+                var container = row.ItemContainerGenerator.ContainerFromItem(item) as TreeViewItem;
+                Require(container is not null, $"{group} has a row for {item}.");
+                var text = FindVisualChildren<TextBlock>(container!).First();
+                return ANLAbel.App.MainWindow.DataTreeItemFor(text);
+            }
+
+            Require(ReferenceEquals(EntryAt("DataTreePrompts", prompt), prompt) && ReferenceEquals(EntryAt("DataTreeFunctions", function), function)
+                    && Equals(EntryAt("DataTreeFields", "MaHang"), "MaHang"),
+                "A double-clicked row leads to its prompt, function or column.");
+            var groupHeader = FindVisualChildren<TextBlock>((TreeViewItem)window.FindName("DataTreePrompts")).First();
+            Require(ANLAbel.App.MainWindow.DataTreeItemFor(groupHeader) is null, "A group row is left to fold.");
+
+            var pages = new object?[] { prompt, function, "MaHang", new ANLAbel.App.ViewModels.DataTreeField("Số sê-ri", "{#SERIAL}"), new ANLAbel.App.ViewModels.DataTreeField("Ngày in", "{#NOW:dd/MM/yyyy}"), null }
+                .Select(ANLAbel.App.MainWindow.DataManagerPageFor).ToArray();
+            Require(pages.SequenceEqual(new[] { "Prompt:Lô", "Function:MaVach", "Database", "Counter", "Date", null }),
+                "Each entry opens its page: " + string.Join(", ", pages));
+
+            // Quản lý dữ liệu opens on the prompt or function itself.
+            string? Opened(string page)
+            {
+                var manager = new ANLAbel.App.DataManagerWindow(viewModel, page);
+                var tree = (TreeView)manager.FindName("DataTree");
+                var tag = (tree.SelectedItem as TreeViewItem)?.Tag;
+                var item = tag?.GetType().GetProperty("Item")?.GetValue(tag);
+                return item?.GetType().GetProperty("Name")?.GetValue(item) as string ?? tag?.GetType().GetProperty("Kind")?.GetValue(tag)?.ToString();
+            }
+
+            var opened = new[] { "Prompt:Lô", "Function:MaVach", "Date" }.Select(Opened).ToArray();
+            Require(opened.SequenceEqual(new[] { "Lô", "MaVach", "DateTimeVariable" }), "Quản lý dữ liệu opens on the item: " + string.Join(", ", opened));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "ANLAbel.slnx")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("Could not locate the repository root.");
+    }
+
     /// <summary>A key press on an unshown window: WPF wants a presentation source for it.</summary>
     private sealed class KeyInputSource : PresentationSource
     {

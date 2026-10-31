@@ -74,6 +74,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("toolbox places objects connected to a source", DesignScenarioRegression.ToolboxPlacesObjectsConnectedToASource),
     ("the object list names what each object prints", DesignScenarioRegression.ObjectListNamesWhatEachObjectPrints),
     ("the source page edits a combined data source", DesignScenarioRegression.SourcePageEditsACombinedDataSource),
+    ("a double-click in the data panel opens the item", DesignScenarioRegression.DataPanelDoubleClickOpensTheItem),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
