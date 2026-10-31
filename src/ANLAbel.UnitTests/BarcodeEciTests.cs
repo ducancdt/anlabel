@@ -41,6 +41,19 @@ public sealed class BarcodeEciTests
         Assert.Equal("0109501101020917" + "10LOT1" + "\u001D" + "17261231", result.Text.TrimStart('\u001D'));
     }
 
+    [Theory]
+    [InlineData(BarcodeType.DataMatrix, "]d1")]
+    [InlineData(BarcodeType.QRCode, "]Q1")]
+    public void Iso15434Envelope_KeepsItsControlCharacters(BarcodeType type, string symbology)
+    {
+        // [)> RS 06 GS ... RS EOT, as a function builds it from the control characters menu.
+        const string envelope = "[)>\u001E06\u001DP4500123456\u001DQ1200\u001D1TLOT42\u001E\u0004";
+        var result = Decode(type, envelope, new BarcodeRenderOptions());
+
+        Assert.Equal(envelope, result.Text);
+        Assert.Equal(symbology, result.ResultMetadata[ResultMetadataType.SYMBOLOGY_IDENTIFIER]);
+    }
+
     private static Result Decode(BarcodeType type, string data, BarcodeRenderOptions options)
     {
         var image = new ZxingBarcodeRenderer().RenderBarcode(data, type, 30, 30, 300, options);
