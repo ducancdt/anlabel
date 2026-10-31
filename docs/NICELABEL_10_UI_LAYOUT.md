@@ -740,9 +740,15 @@ an object placed from the toolbox was hidden while the old row stayed highlighte
 and a click on it did nothing. v0.364 keeps the selected object in the list; on
 the installed v0.364 all 17 live checks pass.
 
-Not checked live: the Data panel double-click and the label's right-click menu
-(the design surface has no automation peer, so a key cannot reach it without the
-mouse); the gates cover both.
+v0.365 gives the keyboard both mouse-only actions: Enter on a Data panel entry
+opens it in Quản lý dữ liệu as a double-click does, and the menu key or
+Shift+F10 on the design surface opens the selection's menu (the label's with
+nothing selected), as NiceLabel applies its context commands to the selection.
+On the installed v0.365 all 21 live checks pass, these two included: Enter on
+"? Lô" opens Quản lý dữ liệu on Lô; the menu key gives the object's eleven
+commands with an object selected and the label's menu with Dấu đối tượng (three
+toggles) with nothing selected. The mouse gestures themselves (a double-click, a
+right-click on the label) are covered by the gates only.
 
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
