@@ -59,6 +59,9 @@ public partial class MainWindow : Window
             }),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F4)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(OpenPropertiesByKey),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F2)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(() => _formatPainterSource = _viewModel.SelectedObject),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.C, System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
@@ -984,6 +987,37 @@ public partial class MainWindow : Window
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// F2 opens the selected object's properties, as a double-click does and as NiceLabel 10's
+    /// design surface opens the property editor; for a text the cursor goes to its content,
+    /// the words selected to type over.
+    /// </summary>
+    private void OpenPropertiesByKey()
+    {
+        if (!DesignerKeysApply() || _viewModel.SelectedObject is not { } item)
+        {
+            return;
+        }
+
+        DesignerCanvas.CommitNudgeGesture();
+        _viewModel.IsPropertiesVisible = true;
+        if (!_viewModel.IsPropertiesPinned)
+        {
+            OpenFloatingProperties();
+        }
+
+        if (item.Type is ObjectType.Text or ObjectType.TextBox)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (ObjectTextBox.IsVisible && ObjectTextBox.Focus())
+                {
+                    ObjectTextBox.SelectAll();
+                }
+            }, System.Windows.Threading.DispatcherPriority.Input);
+        }
     }
 
     /// <summary>Ctrl+F, NiceLabel's object browser search: the Đối tượng tab's search box.</summary>

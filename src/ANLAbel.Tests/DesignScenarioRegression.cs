@@ -2817,6 +2817,47 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// NiceLabel 10 opens the selected item's property editor with F2; ANLAbel opened Properties
+    /// only on a double-click, so an operator who stepped to an object with Tab could not reach
+    /// its settings from the keyboard. F2 now opens them; with nothing selected it does nothing.
+    /// </summary>
+    public static Task F2OpensTheSelectedObjectsProperties()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            void F2() => window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                .Single(binding => binding.Key == System.Windows.Input.Key.F2 && binding.Modifiers == System.Windows.Input.ModifierKeys.None)
+                .Command.Execute(null);
+
+            // Pinned, so the test opens no floating window on the desk; the floating panel is the
+            // double-click's own path.
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = false;
+            Pump();
+            F2();
+            Pump();
+            Require(!viewModel.IsPropertiesVisible, "With nothing selected F2 does nothing.");
+
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Ghi chú", Text = "Mẫu", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 5 });
+            Pump();
+            viewModel.SelectedObject = viewModel.Template.Objects[0];
+            Pump();
+            F2();
+            Pump();
+            Require(viewModel.IsPropertiesVisible, "F2 shows the hidden Properties panel for the selected object.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A vendor label carries up to eight Code 128 symbols, and their X
     /// dimension and readable text were set one by one. As NiceLabel 10's
     /// barcode pages do, a setting of the key barcode now goes to every linear
@@ -3719,7 +3760,7 @@ internal static class DesignScenarioRegression
             var missing = bound.Where(combo => !combos.Contains(combo)).ToArray();
             Require(bound.Length >= 12 && missing.Length == 0,
                 $"Every Ctrl+letter key of the main window ({bound.Length}) has a help row; missing: " + string.Join(", ", missing));
-            Require(new[] { "Tab", "PgUp", "PgDn", "F4", "Ctrl+0", "L", "R", "C", "Delete" }.All(combos.Contains),
+            Require(new[] { "Tab", "PgUp", "PgDn", "F2", "F4", "Ctrl+0", "L", "R", "C", "Delete" }.All(combos.Contains),
                 "The keys without Ctrl have rows too: " + string.Join(", ", combos));
             // Not closed: the main window is never shown.
         });

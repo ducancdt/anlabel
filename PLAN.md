@@ -22,6 +22,9 @@
   “sẽ in trống” (dòng đó bị giữ lại, không in) và nêu việc cần làm: thêm cột vào tệp dữ liệu hoặc đổi
   nguồn dữ liệu của đối tượng; lỗi công thức lấy dữ liệu nêu luôn lỗi của công thức (“Không tìm thấy
   trường “PO”.”).
+- Thiết kế: phím F2 mở bảng Thuộc tính của đối tượng đang chọn, như nhấp đúp (NiceLabel 10 mở
+  trình sửa thuộc tính bằng F2); với chữ, con trỏ vào ô nội dung, chữ được chọn sẵn để gõ đè. Hướng
+  dẫn, Phím tắt có dòng F2.
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

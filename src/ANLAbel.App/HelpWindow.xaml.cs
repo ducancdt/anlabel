@@ -827,6 +827,7 @@ public partial class HelpWindow : Window
         sh.Children.Add(ShortcutRow("Tab", vi ? "Chọn đối tượng kế tiếp (Shift+Tab: đối tượng trước; một nhóm là một bước)" : "Select the next object (Shift+Tab: the previous one; a group is one step)"));
         sh.Children.Add(ShortcutRow(vi ? "Mũi tên" : "Arrows", vi ? "Dịch 0,1 mm; Shift: 1 mm; Alt: 0,01 mm" : "Move 0.1 mm; Shift: 1 mm; Alt: 0.01 mm"));
         sh.Children.Add(ShortcutRow("Ctrl+F", vi ? "Tìm đối tượng theo tên hoặc nội dung" : "Find an object by name or content"));
+        sh.Children.Add(ShortcutRow("F2", vi ? "Mở Thuộc tính của đối tượng đang chọn; với chữ, con trỏ vào ô nội dung" : "Open the selected object's properties; for a text, the cursor goes to its content"));
         sh.Children.Add(ShortcutRow("Delete", vi ? "Xóa đối tượng đang chọn" : "Delete selected object"));
         sh.Children.Add(H2(vi ? "Bộ nhớ tạm và nhóm" : "Clipboard and groups"));
         sh.Children.Add(ShortcutRow("Ctrl+C", vi ? "Sao chép đối tượng đang chọn" : "Copy the selected objects"));
