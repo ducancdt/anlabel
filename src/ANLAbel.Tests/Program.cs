@@ -85,6 +85,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("screen readers read source names", DesignScenarioRegression.ScreenReadersReadSourceNames),
     ("print-time values preview as the label shows", DesignScenarioRegression.PrintTimeValuesPreviewAsTheLabelShows),
     ("the condition inserts a source", DesignScenarioRegression.ConditionInsertsASource),
+    ("a filtered object list follows the selection", DesignScenarioRegression.FilteredObjectListFollowsTheSelection),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

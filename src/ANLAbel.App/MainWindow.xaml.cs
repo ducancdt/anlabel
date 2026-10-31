@@ -314,6 +314,8 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(MainViewModel.SelectedObject))
         {
             UpdateDataSourceSelection();
+            // Not inside the list's own selection change: after it settles.
+            Dispatcher.BeginInvoke(FollowSelectionInObjectBrowser, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         // A shape has no Nguồn tab and a rich text box no Mặt nạ page: leave a hidden page.
@@ -454,10 +456,30 @@ public partial class MainWindow : Window
     /// </summary>
     private void BindObjectBrowser()
     {
+        // The selected object always stays in the list, so its highlighted row is the selection.
         ObjectBrowserList.ItemsSource = new System.Windows.Data.ListCollectionView(_viewModel.Template.Objects)
         {
-            Filter = item => item is LabelObject labelObject && MatchesObjectSearch(labelObject, ObjectBrowserSearch.Text)
+            Filter = item => item is LabelObject labelObject
+                && (ReferenceEquals(labelObject, _viewModel.SelectedObject) || MatchesObjectSearch(labelObject, ObjectBrowserSearch.Text))
         };
+    }
+
+    /// <summary>
+    /// A selection the search hid (an object placed from the toolbox while the list is filtered):
+    /// the list shows it and moves its highlight to it, else the old row stayed highlighted and a
+    /// click on it did nothing.
+    /// </summary>
+    private void FollowSelectionInObjectBrowser()
+    {
+        if (_viewModel.SelectedObject is not { } selected
+            || ObjectBrowserList.ItemsSource is not System.ComponentModel.ICollectionView view
+            || view.Contains(selected))
+        {
+            return;
+        }
+
+        view.Refresh();
+        System.Windows.Data.BindingOperations.GetBindingExpression(ObjectBrowserList, System.Windows.Controls.Primitives.Selector.SelectedItemProperty)?.UpdateTarget();
     }
 
     /// <summary>

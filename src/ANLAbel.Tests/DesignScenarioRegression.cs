@@ -1436,6 +1436,57 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// With the Đối tượng list filtered by its search, an object placed from the toolbox was hidden
+    /// by the filter while the old row stayed highlighted, and a click on that row did nothing: the
+    /// list took it as selected already (found by the live UI Automation check of v0.363). The
+    /// selected object now stays in the list and the highlight follows it; the old row picks again.
+    /// </summary>
+    public static Task FilteredObjectListFollowsTheSelection()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var frame = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 1, WidthMm = 20, HeightMm = 10 };
+            viewModel.Template.Objects.Add(frame);
+            ((TabControl)window.FindName("WorkspaceTabs")).SelectedIndex = 1;
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            Settle();
+            var list = (ListBox)window.FindName("ObjectBrowserList");
+            var search = (TextBox)window.FindName("ObjectBrowserSearch");
+            search.Text = "Khung";
+            Settle();
+            list.SelectedItem = viewModel.Template.Objects.Single(item => item.Id == frame.Id);
+            Settle();
+            Require(ReferenceEquals(viewModel.SelectedObject, list.SelectedItem), "The filtered list picks the frame.");
+
+            viewModel.AddBarcodeCommand.Execute(null);
+            Settle();
+            var barcode = viewModel.SelectedObject!;
+            Require(barcode.Type == ObjectType.BarcodeCode128 && list.Items.Contains(barcode) && ReferenceEquals(list.SelectedItem, barcode),
+                $"The placed barcode shows in the filtered list, highlighted: {list.Items.Count} rows, highlight {(list.SelectedItem as LabelObject)?.Name}");
+            list.SelectedItem = viewModel.Template.Objects.Single(item => item.Id == frame.Id);
+            Settle();
+            Require(viewModel.SelectedObject?.Id == frame.Id, "A pick of the frame's row selects it again: " + viewModel.SelectedObject?.Name);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
