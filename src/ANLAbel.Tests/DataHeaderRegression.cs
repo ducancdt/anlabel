@@ -534,10 +534,10 @@ internal static class DataHeaderRegression
     /// <summary>
     /// A barcode bound to {MaHang} was selected while the linked workbook loaded again
     /// (Nạp lại dữ liệu, the workbook saved in Excel, a field added in the import
-    /// window). Each load picks the first column in the Properties field list, and the
+    /// window). Each load picked the first column in the Properties field list, and the
     /// list took that for the operator's choice: the barcode was bound to the first
-    /// column and renamed, and printed it with no warning. Only a choice made in that
-    /// list binds the selected object now.
+    /// column and renamed, and printed it with no warning. The Source page's one source
+    /// list now shows what the object prints and only a pick in it connects the object.
     /// </summary>
     public static Task ReloadingDataKeepsTheSelectedObjectsColumn()
     {
@@ -610,16 +610,16 @@ internal static class DataHeaderRegression
             vm.Template.Objects.Add(barcode);
             vm.SelectedObject = barcode;
             Settle();
-            var list = (System.Windows.Controls.ComboBox)window.FindName("ExcelFieldComboBox");
-            Require((list.SelectedItem as DatabaseField)?.Name == "MaHang",
-                "The Properties field list shows the column the barcode prints: " + (list.SelectedItem as DatabaseField)?.Name);
+            var list = (System.Windows.Controls.ComboBox)window.FindName("DataSourceComboBox");
+            Require((list.SelectedItem as DataSourceChoice)?.Binding == "{MaHang}",
+                "The source list shows the column the barcode prints: " + (list.SelectedItem as DataSourceChoice)?.Label);
 
             Wait(vm.RefreshExcelDataAsync());
             Settle();
             Require(barcode.BindingExpression == "{MaHang}" && barcode.Name == "Mã vạch mã hàng",
                 $"Reloading the data with the barcode selected must keep its column and name, it is now '{barcode.Name}' {barcode.BindingExpression}.");
-            Require((list.SelectedItem as DatabaseField)?.Name == "MaHang",
-                "After the reload the field list still shows the barcode's column: " + (list.SelectedItem as DatabaseField)?.Name);
+            Require((list.SelectedItem as DataSourceChoice)?.Binding == "{MaHang}",
+                "After the reload the source list still shows the barcode's column: " + (list.SelectedItem as DataSourceChoice)?.Label);
 
             // A field picked in another list (the import window's) is no choice for the selected object either.
             vm.SelectedLabelDatabaseField = vm.LabelDatabaseFields.First(field => field.Name == "SoLuong");
@@ -627,11 +627,11 @@ internal static class DataHeaderRegression
             Require(barcode.BindingExpression == "{MaHang}",
                 "Selecting a field in the import window's list must not bind the selected barcode: " + barcode.BindingExpression);
 
-            // The operator's own choice in the Properties field list still binds the object.
-            list.SelectedItem = vm.LabelDatabaseFields.First(field => field.Name == "MaKien");
+            // The operator's own pick in the source list connects the object, and keeps its name.
+            list.SelectedItem = list.Items.OfType<DataSourceChoice>().First(choice => choice.Binding == "{MaKien}");
             Settle();
-            Require(barcode.BindingExpression == "{MaKien}",
-                "Picking MaKien in the Properties field list binds the barcode to it: " + barcode.BindingExpression);
+            Require(barcode.BindingExpression == "{MaKien}" && barcode.Name == "Mã vạch mã hàng",
+                $"Picking MaKien in the source list binds the barcode to it and keeps its name: '{barcode.Name}' {barcode.BindingExpression}");
 
             // Opening a linked label selects its top object, and the link restored after that
             // picked the first column: the top object was bound there on every open.
@@ -652,6 +652,147 @@ internal static class DataHeaderRegression
             Require(ReferenceEquals(opened.SelectedObject, top), "Opening selects the top object, as before.");
             Require(top.BindingExpression == "{SoLuong}" && top.Name == "Số lượng" && !opened.HasUnsavedChanges(),
                 $"Opening the label must keep its top object's column and name and leave it unchanged: '{top.Name}' {top.BindingExpression}, unsaved {opened.HasUnsavedChanges()}.");
+            // Not closed: closing an edited label asks whether to save it.
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
+    /// <summary>
+    /// NiceLabel 10's Source page connects an object with one list ("Connected data source":
+    /// fixed data, variables, functions, internal values, database fields). ANLAbel's took two
+    /// steps (Nguồn, then Trường Excel) and showed an object reading a prompt, a function or the
+    /// print date as "Trường Excel" with an empty field list. The one list now shows what each
+    /// object prints and connects it with one pick, in one undo step, keeping its name.
+    /// </summary>
+    public static Task SourceListConnectsEveryKindOfSource()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(
+                    new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
+                SourceListKinds();
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            throw failure;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static void SourceListKinds()
+    {
+        void Wait(Task task)
+        {
+            var frame = new System.Windows.Threading.DispatcherFrame();
+            task.ContinueWith(_ => frame.Continue = false, TaskScheduler.Default);
+            System.Windows.Threading.Dispatcher.PushFrame(frame);
+            task.GetAwaiter().GetResult();
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-source-list-gate-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "data.xlsx");
+            WriteSheet(path, ["MaKien", "MaHang", "SoLuong"], ["K-1", "TERM-1", "10"]);
+            var window = new ANLAbel.App.MainWindow();
+            var vm = (MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new System.Windows.Size(1440, 900));
+                window.Arrange(new System.Windows.Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            vm.IsPropertiesPinned = true;
+            vm.IsPropertiesVisible = true;
+            Settle();
+            Wait(vm.ImportExcelAsync(path, "Data", 1));
+            vm.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            vm.Template.DataTransforms.Add(new DataTransformDefinition("MaDongGoi", "CONCAT(FIELD(\"MaHang\"), \"/\", FIELD(\"SoLuong\"))"));
+            LabelObject Add(string name, string text, string binding)
+            {
+                var item = new LabelObject { Type = ObjectType.Text, Name = name, Text = text, BindingExpression = binding, XMm = 3, YMm = 3 + vm.Template.Objects.Count * 6, WidthMm = 40, HeightMm = 5 };
+                vm.Template.Objects.Add(item);
+                return item;
+            }
+
+            var prompt = Add("Lô hàng", "", "{?Lô}");
+            var function = Add("Mã đóng gói", "", "{MaDongGoi}");
+            var date = Add("Ngày", "", "{#NOW:dd/MM/yyyy}");
+            var fixedText = Add("Ghi chú", "Hàng mới", "");
+            var composed = Add("Dòng lô", "", "Lô {?Lô} / {MaHang}");
+            var missing = Add("Cột cũ", "", "{Thiếu}");
+            var list = (System.Windows.Controls.ComboBox)window.FindName("DataSourceComboBox");
+            DataSourceChoice Shown(LabelObject item)
+            {
+                vm.SelectedObject = item;
+                Settle();
+                return (DataSourceChoice)list.SelectedItem;
+            }
+
+            Require(Shown(prompt) is { Group: "Biến nhập khi in", Binding: "{?Lô}" }, "A prompt shows as its variable: " + Shown(prompt));
+            Require(Shown(function) is { Group: "Hàm", Binding: "{MaDongGoi}" }, "A function shows as itself, not as an empty Excel field: " + Shown(function));
+            Require(Shown(date) is { Group: "Khi in", Label: "Ngày in" }, "The print date shows as a value given at print time: " + Shown(date));
+            Require(Shown(fixedText).Kind == DataSourceChoiceKind.Fixed, "Text of its own shows as fixed text: " + Shown(fixedText));
+            Require(Shown(composed).Kind == DataSourceChoiceKind.Compose, "Text and several sources show as a composition: " + Shown(composed));
+            var lacking = Shown(missing);
+            Require(lacking.Group == "Trường dữ liệu" && lacking.Label.Contains("không có trong dữ liệu", StringComparison.Ordinal),
+                "A column the file lacks still shows, and says so: " + lacking);
+
+            // One pick connects the fixed text to the function, keeps its name, and undoes in one step.
+            Shown(fixedText);
+            list.SelectedItem = list.Items.OfType<DataSourceChoice>().Single(choice => choice.Binding == "{MaDongGoi}");
+            Settle();
+            Require(fixedText.BindingExpression == "{MaDongGoi}" && fixedText.Name == "Ghi chú",
+                $"Picking the function connects the object and keeps its name: '{fixedText.Name}' {fixedText.BindingExpression}");
+            Require((list.SelectedItem as DataSourceChoice)?.Binding == "{MaDongGoi}", "The list then shows the function.");
+            vm.UndoCommand.Execute(null);
+            Settle();
+            // Undo restores the label: its objects are the restored ones.
+            LabelObject Current(LabelObject item) => vm.Template.Objects.Single(candidate => candidate.Id == item.Id);
+            fixedText = Current(fixedText);
+            function = Current(function);
+            Require(fixedText.BindingExpression == string.Empty && fixedText.Text == "Hàng mới", "One undo takes the pick back: " + fixedText.BindingExpression);
+
+            // Fixed text keeps showing what the object showed.
+            Shown(function);
+            list.SelectedItem = list.Items.OfType<DataSourceChoice>().Single(choice => choice.Kind == DataSourceChoiceKind.Fixed);
+            Settle();
+            Require(function.BindingExpression == string.Empty && function.Text == "TERM-1/10" && function.Name == "Mã đóng gói",
+                $"Fixed text keeps the value the object printed: '{function.Text}' {function.BindingExpression}");
+
+            // A composition is built in its editor: picking it changes nothing yet.
+            var column = Add("Mã hàng", "", "{MaHang}");
+            Shown(column);
+            list.SelectedItem = list.Items.OfType<DataSourceChoice>().Single(choice => choice.Kind == DataSourceChoiceKind.Compose);
+            Settle();
+            Require(column.BindingExpression == "{MaHang}", "Picking the composition leaves the source until it is applied: " + column.BindingExpression);
             // Not closed: closing an edited label asks whether to save it.
         }
         finally

@@ -459,7 +459,7 @@ public partial class HelpWindow : Window
         var arrowSp = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 16, 0), HorizontalAlignment = HorizontalAlignment.Center };
         arrowSp.Children.Add(new TextBlock { Text = vi ? "Liên kết" : "Bind", FontSize = 10, Foreground = Hex("#5B6B80"), HorizontalAlignment = HorizontalAlignment.Center });
         arrowSp.Children.Add(new TextBlock { Text = "➜", FontSize = 30, Foreground = Hex("#1464D2"), HorizontalAlignment = HorizontalAlignment.Center });
-        arrowSp.Children.Add(new TextBlock { Text = vi ? "Nguồn = Trường Excel" : "Source = Excel Field", FontSize = 9, Foreground = Hex("#94A3B8") });
+        arrowSp.Children.Add(new TextBlock { Text = vi ? "Nguồn dữ liệu = một cột" : "Data source = a column", FontSize = 9, Foreground = Hex("#94A3B8") });
         row.Children.Add(arrowSp);
 
         var labelBox = new Border
@@ -645,7 +645,7 @@ public partial class HelpWindow : Window
         qs.Children.Add(StepCard(3, vi ? "Vẽ nhãn" : "Design the label",
             vi ? "Trong Hộp công cụ (bên trái), nhấn một công cụ (Ô chữ, Mã vạch…). Con trỏ thành dấu cộng — nhấn-giữ-kéo trên bảng thiết kế để đặt. Chọn đối tượng để chỉnh ở bảng Thuộc tính bên phải." : "In the Toolbox (left), click a tool (Text Box, Barcode…). The cursor becomes a crosshair — click-drag on the canvas to place it. Select it to edit in the Properties panel on the right."));
         qs.Children.Add(StepCard(4, vi ? "Nhập dữ liệu Excel & liên kết" : "Import Excel & bind",
-            vi ? "Nhấn Nhập Excel, chọn tệp .xlsx và sheet (dòng đầu là tên cột). Chọn một đối tượng, trong thẻ Nội dung đổi Nguồn thành “Trường Excel”, rồi chọn cột." : "Click Import Excel, pick a .xlsx file and sheet (first row = column names). Select an object, set Content → Source to \"Excel Field\", then choose the column."));
+            vi ? "Nhấn Nhập Excel, chọn tệp .xlsx và sheet (dòng đầu là tên cột). Chọn một đối tượng, rồi trong Thuộc tính › Nguồn chọn cột ở ô “Nguồn dữ liệu”." : "Click Import Excel, pick a .xlsx file and sheet (first row = column names). Select an object, then in Properties › Source pick the column in \"Connected data source\"."));
         qs.Children.Add(StepCard(5, vi ? "Xem trước & In" : "Preview & print",
             vi ? "Nhấn Xem trước (Ctrl+P) để xem tem với dữ liệu thật. Đánh dấu các dòng cần in, chỉnh số bản ở cột Bản, rồi nhấn In. Đừng quên Lưu (Ctrl+S) để dùng lại." : "Click Preview (Ctrl+P) to see real data. Choose \"Current row\" or \"All rows\", set the Copies column, then Print. Save (Ctrl+S) to reuse later."));
         qs.Children.Add(InfoBox(vi ? "Bạn chưa cần hiểu hết. Mỗi mục trong menu bên trái sẽ giải thích kỹ kèm hình minh họa." : "You don't need to understand everything yet. Each left-menu topic explains the details with pictures.", "#ECFDF5", "#6EE7B7", "Ok16"));
@@ -718,7 +718,7 @@ public partial class HelpWindow : Window
         pp.Children.Add(InfoBox(vi ? "Chưa chọn gì? Bảng sẽ ghi “Chưa chọn đối tượng”. Hãy nhấp vào một đối tượng trên bảng thiết kế trước." : "Nothing selected? The panel says \"No object selected\". Click an object on the canvas first.", "#FEF9C3", "#FDE047", "About16"));
         pp.Children.Add(H2(vi ? "Nội dung — chữ & nguồn" : "Content — text & source"));
         pp.Children.Add(P(vi ? "• Nguồn = Chữ: bạn tự gõ nội dung cố định." : "• Source = Text: you type fixed content yourself."));
-        pp.Children.Add(P(vi ? "• Nguồn = Trường Excel: nội dung lấy tự động từ cột Excel đã chọn. Nguồn = Ràng buộc / Công thức: ghép nhiều cột hoặc dùng công thức." : "• Source = Excel Field: content is pulled from the chosen Excel column."));
+        pp.Children.Add(P(vi ? "• Nguồn dữ liệu: chữ cố định, một biến nhập khi in, một cột dữ liệu, một hàm hoặc một giá trị khi in (số sê-ri, ngày in). “Ghép chữ / công thức…” ghép nhiều nguồn với chữ hoặc dùng công thức." : "• Connected data source: fixed text, a prompt, a data column, a function or a print-time value (serial, print date). \"Compose text / formula…\" joins several sources with text or uses a formula."));
         pp.Children.Add(H2(vi ? "Các thẻ Nguồn · Kiểu · Vị trí · Chung" : "Source · Style · Position · General tabs"));
         pp.Children.Add(P(vi ? "• Nguồn — nội dung và nguồn dữ liệu; thẻ con Mặt nạ định dạng nội dung, ví dụ (***) ***-****." : "• Source — content and data source; the Mask sub-page formats the content, e.g. (***) ***-****."));
         pp.Children.Add(P(vi ? "• Kiểu — phông, cỡ, căn lề, màu, các tùy chọn mã vạch hoặc hình." : "• Style — font, size, alignment, colour, barcode or shape options."));
@@ -760,8 +760,8 @@ public partial class HelpWindow : Window
         bd.Children.Add(H2(vi ? "Các bước liên kết" : "How to bind"));
         bd.Children.Add(StepCard(1, vi ? "Nhập Excel" : "Import Excel", vi ? "Mở thẻ Dữ liệu, nhấn Excel/CSV, chọn tệp và sheet." : "Click Import Excel on the ribbon, choose the file and sheet."));
         bd.Children.Add(StepCard(2, vi ? "Chọn đối tượng" : "Select the object", vi ? "Nhấp vào Chữ, Ô chữ hoặc Mã vạch trên bảng thiết kế." : "Click the Text Box or Barcode on the canvas."));
-        bd.Children.Add(StepCard(3, vi ? "Đổi Nguồn" : "Change Source", vi ? "Trong thẻ Nội dung, đặt Nguồn = “Trường Excel”." : "In Content, set Source = \"Excel Field\"."));
-        bd.Children.Add(StepCard(4, vi ? "Chọn cột" : "Pick the column", vi ? "Chọn cột trong danh sách “Trường Excel”. Xong! Xem trước để kiểm tra." : "Choose the Excel column from the \"Excel field\" list. Done! Preview to verify."));
+        bd.Children.Add(StepCard(3, vi ? "Chọn nguồn" : "Pick the source", vi ? "Trong Thuộc tính › Nguồn, mở ô “Nguồn dữ liệu” và chọn cột trong nhóm Trường dữ liệu. Xong! Xem trước để kiểm tra." : "In Properties › Source, open \"Connected data source\" and pick the column under Data fields. Done! Preview to verify."));
+        bd.Children.Add(StepCard(4, vi ? "Hoặc kéo thả" : "Or drag it", vi ? "Kéo một cột, biến hoặc hàm từ bảng Dữ liệu thả lên đối tượng để gắn nó." : "Drag a column, variable or function from the Data panel onto the object to connect it."));
         bd.Children.Add(InfoBox(vi ? "Nếu một đối tượng báo đỏ trong danh sách Lớp hoặc bảng Thuộc tính, nghĩa là cột bị thiếu hoặc đổi tên — hãy liên kết lại." : "If a field shows a red background in the Objects tree or Properties, the column is missing or renamed — rebind it.", "#FEF2F2", "#FCA5A5", "Warning16"));
         d["binding"] = bd;
 
@@ -864,7 +864,7 @@ public partial class HelpWindow : Window
             vi ? "Bạn chưa chọn đối tượng nào. Nhấp vào một đối tượng trên bảng thiết kế. Nếu lỡ ẩn bảng, mở thẻ Xem và nhấn Bảng · hiện lại." : "Nothing is selected. Click an object on the canvas. If the panel is hidden, click Panels restore on the ribbon."));
         fq.Children.Add(FaqItem(
             vi ? "Liên kết Excel hiện nền đỏ?" : "An Excel binding shows red?",
-            vi ? "Cột nguồn bị thiếu hoặc đã đổi tên trong tệp Excel. Chọn lại cột trong thẻ Nội dung → Trường Excel, hoặc nhấn Cập nhật Excel." : "The source column is missing or was renamed in the Excel file. Re-pick it in Content → Excel field, or click Update Excel."));
+            vi ? "Cột nguồn bị thiếu hoặc đã đổi tên trong tệp Excel. Chọn lại cột ở ô “Nguồn dữ liệu” (Thuộc tính › Nguồn), hoặc nhấn Cập nhật Excel." : "The source column is missing or was renamed in the Excel file. Re-pick it in \"Connected data source\" (Properties › Source), or click Update Excel."));
         fq.Children.Add(FaqItem(
             vi ? "Mã vạch báo lỗi đỏ?" : "The barcode shows a red error?",
             vi ? "Dữ liệu không hợp lệ với chuẩn đã chọn (ví dụ EAN-13 cần đúng 13 chữ số), hoặc phiên bản QR cố định quá nhỏ so với dữ liệu. Đổi chuẩn hoặc tăng phiên bản." : "The data is invalid for the chosen symbology (e.g. EAN-13 needs exactly 13 digits), or the QR Fixed Version is too small. Change the symbology or raise the Version."));

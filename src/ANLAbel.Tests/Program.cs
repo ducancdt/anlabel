@@ -136,6 +136,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("print preview names the missing columns once", DesignScenarioRegression.PrintPreviewNamesTheMissingColumnsOnce),
     ("overlapping opens keep the last label", DataHeaderRegression.OverlappingOpensKeepTheLastLabel),
     ("reloading the data keeps the selected object's column", DataHeaderRegression.ReloadingDataKeepsTheSelectedObjectsColumn),
+    ("the source list connects every kind of source", DataHeaderRegression.SourceListConnectsEveryKindOfSource),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

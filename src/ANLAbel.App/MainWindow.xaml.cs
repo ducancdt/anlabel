@@ -22,8 +22,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel = new();
     private PrintHistoryWindow? _printHistoryWindow;
-    private bool _syncingContentSource;
-    private bool _syncingExcelField;
+    private bool _syncingDataSource;
     private bool _syncingRulerOffsets;
 
     public MainWindow()
@@ -240,7 +239,7 @@ public partial class MainWindow : Window
         ApplyAutomaticDisplayLayout();
         SyncRulerOffsets();
 
-        UpdateContentSourceSelection();
+        UpdateDataSourceSelection();
         await _viewModel.RefreshPrinterQueueStatusAsync();
         await _viewModel.RefreshPrintRecoveryAsync();
         await CompleteStartupAsync();
@@ -310,9 +309,14 @@ public partial class MainWindow : Window
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MainViewModel.SelectedObject) or nameof(MainViewModel.SelectedBindingKindText))
+        if (e.PropertyName == nameof(MainViewModel.SelectedObject))
         {
-            UpdateContentSourceSelection();
+            UpdateDataSourceSelection();
+        }
+        else if (e.PropertyName == nameof(MainViewModel.SelectedBindingKindText))
+        {
+            // Not inside the list's own selection change when a pick in it changed the source.
+            Dispatcher.BeginInvoke(UpdateDataSourceSelection, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         if (e.PropertyName == nameof(MainViewModel.Template))
@@ -320,7 +324,7 @@ public partial class MainWindow : Window
             BindObjectBrowser();
             // Another label brings its own field list: show the selected object's column in it.
             WatchLabelFields();
-            Dispatcher.BeginInvoke(UpdateExcelFieldSelection, System.Windows.Threading.DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(UpdateDataSourceSelection, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         if (e.PropertyName == nameof(MainViewModel.SelectedObject))
@@ -482,127 +486,56 @@ public partial class MainWindow : Window
             || FindAncestor<ComboBox>(source) is not null;
     }
 
-    private void ContentSourceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_syncingContentSource)
-        {
-            return;
-        }
-
-        if (sender is not ComboBox comboBox || comboBox.SelectedItem is not ComboBoxItem item || item.Tag is not string source)
-        {
-            return;
-        }
-
-        if (source == "Excel")
-        {
-            EnsureSelectedExcelField();
-            BindSelectedObjectToCurrentExcelField();
-        }
-        else if (source == "Static")
-        {
-            _viewModel.ClearSelectedBindingCommand.Execute(null);
-        }
-        else if (source == "Binding")
-        {
-            // Show formula builder panel; formula is applied when user clicks Apply
-        }
-    }
-
-    private void ExcelFieldComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        // Only a column picked in this list binds the selected object. The list no longer
-        // follows the shared field selection: a data load (or the import window's list)
-        // moved it to the first column and the selected object was bound there with it.
-        // The column the object already prints changes nothing (no new name, no edit).
-        if (_syncingExcelField || _syncingContentSource || ContentSourceComboBox is null
-            || ExcelFieldComboBox.SelectedItem is not DatabaseField picked
-            || string.Equals(SingleBoundField(_viewModel.SelectedObject), picked.Name, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        if (ContentSourceComboBox.SelectedItem is not ComboBoxItem { Tag: string source } || source != "Excel")
-        {
-            return;
-        }
-
-        BindSelectedObjectToCurrentExcelField();
-    }
-
-    private void EnsureSelectedExcelField()
-    {
-        if (ExcelFieldComboBox.SelectedItem is DatabaseField)
-        {
-            return;
-        }
-
-        var firstField = _viewModel.LabelDatabaseFields.FirstOrDefault();
-        if (firstField is null)
-        {
-            return;
-        }
-
-        _syncingExcelField = true;
-        try
-        {
-            ExcelFieldComboBox.SelectedItem = firstField;
-        }
-        finally
-        {
-            _syncingExcelField = false;
-        }
-    }
-
     /// <summary>
-    /// The Properties field list shows the column the selected object prints (a binding
-    /// of one field such as {MaHang}); a binding of several fields, or none, shows no column.
+    /// The Source page's "Nguồn dữ liệu" list (NiceLabel 10 Connected data source) shows what
+    /// the selected object prints. It is rebuilt from the Data panel's groups when the selection,
+    /// the object's source, the label or its columns change, and when it opens. A rebuild only
+    /// shows: the old Trường Excel list took a data load's move for a pick and bound the object.
     /// </summary>
-    private void UpdateExcelFieldSelection()
+    private void UpdateDataSourceSelection()
     {
-        if (ExcelFieldComboBox is null)
+        if (DataSourceComboBox is null)
         {
             return;
         }
 
-        var name = SingleBoundField(_viewModel.SelectedObject);
-        // Only a field the list already holds: one it does not hold yet (the next label's
-        // list while this one is still shown) would wait in the list and be selected by the
-        // list itself when it arrives, which reads as a pick and binds the object to it.
-        var field = name is null
-            ? null
-            : ExcelFieldComboBox.Items.OfType<DatabaseField>().FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
-        if (ReferenceEquals(ExcelFieldComboBox.SelectedItem, field))
-        {
-            return;
-        }
-
-        _syncingExcelField = true;
+        var choices = _viewModel.DataSourceChoicesFor(_viewModel.SelectedObject);
+        var current = MainViewModel.CurrentDataSourceChoice(_viewModel.SelectedObject, choices);
+        var view = new System.Windows.Data.ListCollectionView(choices.ToList());
+        view.GroupDescriptions.Add(new System.Windows.Data.PropertyGroupDescription(nameof(DataSourceChoice.Group)));
+        _syncingDataSource = true;
         try
         {
-            ExcelFieldComboBox.SelectedItem = field;
+            DataSourceComboBox.ItemsSource = view;
+            DataSourceComboBox.SelectedItem = current;
         }
         finally
         {
-            _syncingExcelField = false;
+            _syncingDataSource = false;
         }
     }
 
-    /// <summary>The column of a binding of one field ({MaHang}); none for text, formulas or several fields.</summary>
-    private static string? SingleBoundField(LabelObject? item)
+    private void DataSourceComboBox_DropDownOpened(object? sender, EventArgs e) => UpdateDataSourceSelection();
+
+    private void DataSourceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var binding = item?.BindingExpression?.Trim() ?? string.Empty;
-        return binding.Length > 2 && binding[0] == '{' && binding[^1] == '}' && binding.IndexOfAny(['{', '}'], 1) == binding.Length - 1
-            ? binding[1..^1].Trim()
-            : null;
+        // Only a pick in the list connects the object, as a drop from the Data panel does. A
+        // composition is built below and applied with its own button; the source the object
+        // already reads changes nothing.
+        if (_syncingDataSource || DataSourceComboBox.SelectedItem is not DataSourceChoice choice)
+        {
+            return;
+        }
+
+        _viewModel.ConnectSelectedObject(choice);
     }
 
     private System.Collections.Specialized.INotifyCollectionChanged? _watchedLabelFields;
 
     /// <summary>
     /// The field list belongs to the open label (its DatabaseConfig), so it is watched again
-    /// when another label opens: a data load or a field added or removed changes it, and the
-    /// Properties field list then shows the selected object's column again.
+    /// when another label opens: a data load or a field added or removed changes the columns
+    /// the source list offers.
     /// </summary>
     private void WatchLabelFields()
     {
@@ -616,47 +549,7 @@ public partial class MainWindow : Window
     }
 
     private void LabelFields_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        => Dispatcher.BeginInvoke(UpdateExcelFieldSelection, System.Windows.Threading.DispatcherPriority.Background);
-
-    private void BindSelectedObjectToCurrentExcelField()
-    {
-        var fieldName = (ExcelFieldComboBox.SelectedItem as DatabaseField)?.Name ?? _viewModel.SelectedExcelField;
-        if (!string.IsNullOrWhiteSpace(fieldName) && _viewModel.BindSelectedAsExcelFieldCommand.CanExecute(fieldName))
-        {
-            _viewModel.BindSelectedAsExcelFieldCommand.Execute(fieldName);
-        }
-    }
-
-    private void UpdateContentSourceSelection()
-    {
-        UpdateExcelFieldSelection();
-        if (ContentSourceComboBox is null)
-        {
-            return;
-        }
-
-        _syncingContentSource = true;
-        try
-        {
-            var targetTag = _viewModel.IsSelectedBindingFormula ? "Binding"
-                          : _viewModel.HasSelectedBinding ? "Excel"
-                          : "Static";
-            foreach (var comboItem in ContentSourceComboBox.Items.OfType<ComboBoxItem>())
-            {
-                if (string.Equals(comboItem.Tag?.ToString(), targetTag, StringComparison.Ordinal))
-                {
-                    ContentSourceComboBox.SelectedItem = comboItem;
-                    return;
-                }
-            }
-
-            ContentSourceComboBox.SelectedIndex = 0;
-        }
-        finally
-        {
-            _syncingContentSource = false;
-        }
-    }
+        => Dispatcher.BeginInvoke(UpdateDataSourceSelection, System.Windows.Threading.DispatcherPriority.Background);
 
     private void PositionSizeTextBox_KeyDown(object sender, KeyEventArgs e)
     {

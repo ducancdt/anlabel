@@ -4660,6 +4660,111 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The Source page's "Nguồn dữ liệu" list (NiceLabel 10 "Connected data source"): fixed
+    /// text, then what the Data panel offers in its groups (prompts, columns, functions, values
+    /// given at print time), then a composition of several. A source the object reads that none
+    /// of these holds (a column the file lacks) is listed too, so the list shows what it prints.
+    /// </summary>
+    public IReadOnlyList<DataSourceChoice> DataSourceChoicesFor(LabelObject? item)
+    {
+        var functions = Template.DataTransforms
+            .Select(transform => (transform.Name ?? string.Empty).Trim())
+            .Where(name => name.Length > 0)
+            .ToArray();
+        var choices = new List<DataSourceChoice> { DataSourceChoice.Fixed };
+        choices.AddRange(Template.PromptVariables
+            .Where(prompt => !string.IsNullOrWhiteSpace(prompt.Name))
+            .Select(prompt => new DataSourceChoice("Biến nhập khi in", prompt.Name.Trim(), "{?" + prompt.Name.Trim() + "}", DataSourceChoiceKind.Source)));
+        choices.AddRange(KnownColumnNames
+            .Where(column => !functions.Contains(column, StringComparer.OrdinalIgnoreCase))
+            .Select(column => new DataSourceChoice("Trường dữ liệu", column, "{" + column + "}", DataSourceChoiceKind.Source)));
+        choices.AddRange(functions.Select(name => new DataSourceChoice("Hàm", name, "{" + name + "}", DataSourceChoiceKind.Source)));
+        choices.AddRange(PrintTimeDataFields.Select(field => new DataSourceChoice("Khi in", field.Label, field.Binding, DataSourceChoiceKind.Source)));
+        var binding = item?.BindingExpression?.Trim() ?? string.Empty;
+        if (SingleSourceToken(binding) is { } token
+            && !choices.Any(choice => choice.Kind == DataSourceChoiceKind.Source && string.Equals(choice.Binding, binding, StringComparison.OrdinalIgnoreCase)))
+        {
+            choices.Add(JobVariableContract.IsPromptToken(token)
+                ? new DataSourceChoice("Biến nhập khi in", token[1..].Trim() + " (chưa định nghĩa)", binding, DataSourceChoiceKind.Source)
+                : JobVariableContract.IsSerialToken(token)
+                    ? new DataSourceChoice("Khi in", "Số sê-ri (bộ đếm đang tắt)", binding, DataSourceChoiceKind.Source)
+                    : JobVariableContract.IsDateToken(token)
+                        ? new DataSourceChoice("Khi in", "Ngày in" + (token.Contains(':') ? " (" + token[(token.IndexOf(':') + 1)..] + ")" : string.Empty), binding, DataSourceChoiceKind.Source)
+                        : new DataSourceChoice("Trường dữ liệu", token + " (không có trong dữ liệu)", binding, DataSourceChoiceKind.Source));
+        }
+
+        choices.Add(DataSourceChoice.Compose);
+        return choices;
+    }
+
+    /// <summary>The entry of <paramref name="choices"/> the object prints: fixed text, one source, or a composition.</summary>
+    public static DataSourceChoice CurrentDataSourceChoice(LabelObject? item, IReadOnlyList<DataSourceChoice> choices)
+    {
+        var binding = item?.BindingExpression?.Trim() ?? string.Empty;
+        if (binding.Length == 0)
+        {
+            return choices.FirstOrDefault(choice => choice.Kind == DataSourceChoiceKind.Fixed) ?? DataSourceChoice.Fixed;
+        }
+
+        return choices.FirstOrDefault(choice => choice.Kind == DataSourceChoiceKind.Source && string.Equals(choice.Binding, binding, StringComparison.OrdinalIgnoreCase))
+            ?? choices.FirstOrDefault(choice => choice.Kind == DataSourceChoiceKind.Compose)
+            ?? DataSourceChoice.Compose;
+    }
+
+    /// <summary>
+    /// Connects the selected object to a source picked on the Source page, as a drop from the
+    /// Data panel does: one undo step and the object's own name kept. Fixed text keeps showing
+    /// what the object showed. A composition is built and applied in its own editor.
+    /// </summary>
+    public void ConnectSelectedObject(DataSourceChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        if (IsEditingLocked || SelectedObject is not { } item || choice.Kind == DataSourceChoiceKind.Compose)
+        {
+            return;
+        }
+
+        var binding = choice.Kind == DataSourceChoiceKind.Fixed ? string.Empty : choice.Binding;
+        if (string.Equals(item.BindingExpression?.Trim() ?? string.Empty, binding, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var shown = SelectedBindingPreviewValue;
+        BeginTemplateEditGesture($"Đổi nguồn “{item.Name}”");
+        try
+        {
+            if (binding.Length == 0)
+            {
+                if (string.IsNullOrWhiteSpace(item.Text))
+                {
+                    item.Text = string.IsNullOrWhiteSpace(shown) ? "Chữ" : shown;
+                }
+
+                item.BindingExpression = string.Empty;
+                StatusText = $"{item.Name} in chữ cố định.";
+            }
+            else
+            {
+                item.BindingExpression = binding;
+                StatusText = $"Đã gắn {binding} cho {item.Name}.";
+            }
+        }
+        finally
+        {
+            CommitTemplateEditGesture();
+        }
+
+        RaiseFormulaPreviewChanged();
+    }
+
+    /// <summary>The token of a binding that reads one source ({MaHang}, {?Lô}, {#SERIAL}); none for text or formulas.</summary>
+    private static string? SingleSourceToken(string binding)
+        => binding.Length > 2 && binding[0] == '{' && binding[^1] == '}' && binding.IndexOfAny(['{', '}'], 1) == binding.Length - 1
+            ? binding[1..^1].Trim()
+            : null;
+
     private void AddObject(LabelObject labelObject)
     {
         labelObject.ZIndex = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;

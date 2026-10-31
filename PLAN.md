@@ -2,6 +2,14 @@
 
 ## Sau v0.359
 
+- Thuộc tính › Nguồn: một ô “Nguồn dữ liệu” như “Connected data source” của NiceLabel 10 thay
+  cho hai bước “Nguồn” rồi “Trường Excel”: chữ cố định, biến nhập khi in, cột dữ liệu, hàm, giá trị
+  khi in (số sê-ri, ngày in) và “Ghép chữ / công thức…”, theo nhóm như bảng Dữ liệu. Ô luôn hiện
+  nguồn đối tượng đang in (trước đây đối tượng đọc hàm, biến nhập khi in hay ngày in hiện là “Trường
+  Excel” với danh sách trống; cột mà tệp không có vẫn hiện, kèm ghi chú). Chọn một mục gắn đối tượng
+  như khi kéo từ bảng Dữ liệu: một bước hoàn tác, giữ tên đối tượng; chọn chữ cố định thì giữ giá
+  trị đang hiện. Thẻ kiểm tra liên kết Excel xuống cuối trang để nguồn đứng đầu; Trợ giúp ghi theo ô
+  mới.
 - Dữ liệu: ô “Trường Excel” của Thuộc tính (trang Nguồn) nay hiện đúng cột mà đối tượng đang chọn
   in, và chỉ đổi cột khi chọn ngay trong ô đó. Trước đây ô này đi theo lựa chọn chung của danh sách
   trường: đang chọn một mã vạch có liên kết mà nạp lại dữ liệu (lúc lựa chọn khác cột đầu), thêm hay

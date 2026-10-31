@@ -158,7 +158,7 @@ internal static class OperatorLanguageRegression
             Require(!help.Contains(stale, StringComparison.Ordinal), $"The guide must name the current Vietnamese controls, not '{stale}'.");
         }
 
-        Require(help.Contains("Nguồn = “Trường Excel”", StringComparison.Ordinal) && help.Contains("Tìm phần Căn chỉnh khổ in", StringComparison.Ordinal),
+        Require(help.Contains("mở ô “Nguồn dữ liệu”", StringComparison.Ordinal) && help.Contains("Tìm phần Căn chỉnh khổ in", StringComparison.Ordinal),
             "The guide must describe binding and calibration with the current controls.");
 
         var setup = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "PrinterSetupWindow.xaml.cs"));

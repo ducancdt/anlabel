@@ -2655,85 +2655,22 @@
                                 <Border Style="{StaticResource PropCard}" Visibility="{Binding SelectedIndex, ElementName=SourceSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
                                     <StackPanel>
                                         <TextBlock Text="Nội dung" Style="{StaticResource PropTitle}"/>
-                                        <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,0,0,7">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#F1F5F9"/>
-                                                    <Setter Property="BorderBrush" Value="#CBD5E1"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}">
-                                                            <Setter Property="Background" Value="#EAF4FF"/><Setter Property="BorderBrush" Value="#8CC5FF"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}">
-                                                            <Setter Property="Background" Value="#ECFDF3"/><Setter Property="BorderBrush" Value="#86D8A2"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}">
-                                                            <Setter Property="Background" Value="#FFF7E6"/><Setter Property="BorderBrush" Value="#F3C56B"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}">
-                                                            <Setter Property="Background" Value="#FFF1F0"/><Setter Property="BorderBrush" Value="#F3A7A1"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <StackPanel>
-                                                <Grid Margin="0,0,0,6">
-                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                    <Border Width="24" Height="24" CornerRadius="5" Background="#FFFFFF" VerticalAlignment="Top">
-                                                        <Image Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                            <Image.Style>
-                                                                <Style TargetType="Image"><Setter Property="Source" Value="{StaticResource Icon.Link16}"/><Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Source" Value="{StaticResource Icon.Refresh16}"/></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Source" Value="{StaticResource Icon.Ok16}"/></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Source" Value="{StaticResource Icon.Warning16}"/></DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Source" Value="{StaticResource Icon.Error16}"/></DataTrigger>
-                                                                </Style.Triggers></Style>
-                                                            </Image.Style>
-                                                        </Image>
-                                                    </Border>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding ExcelLinkVerificationTitle}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap">
-                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#5B6B80"/><Style.Triggers>
-                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
-                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
-                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>
-                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Foreground" Value="#B42318"/></DataTrigger>
-                                                            </Style.Triggers></Style></TextBlock.Style>
-                                                        </TextBlock>
-                                                        <TextBlock Text="{Binding ExcelLinkVerificationDetail}" Foreground="#4B5C72" FontSize="10" TextWrapping="Wrap" Margin="0,1,0,0"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                                <Button Content="{Binding ExcelLinkVerificationActionText}" Click="ImportExcel_Click">
-                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ExcelVerificationButton}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                                                </Button>
-                                                <Button Content="{Binding ExcelLinkVerificationActionText}" Command="{Binding VerifyExcelLinkCommand}">
-                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ExcelVerificationButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
-                                                </Button>
-                                                <TextBlock Text="{Binding ExcelLinkVerificationTrustText}" Foreground="#66758A" FontSize="9.5" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <TextBlock Text="Nguồn" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
-                                        <ComboBox x:Name="ContentSourceComboBox" SelectionChanged="ContentSourceComboBox_SelectionChanged" SelectedIndex="0" Margin="0,0,0,2">
-                                            <ComboBoxItem Content="Chữ" Tag="Static"/>
-                                            <ComboBoxItem Content="Trường Excel" Tag="Excel"/>
-                                            <ComboBoxItem Content="Ràng buộc / Công thức" Tag="Binding"/>
+                                        <!-- NiceLabel 10 "Connected data source": fixed text, a prompt, a column, a function,
+                                             a value given at print time, or a composition; built from the Data panel's groups. -->
+                                        <TextBlock Text="Nguồn dữ liệu" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <ComboBox x:Name="DataSourceComboBox" DisplayMemberPath="Label" Margin="0,0,0,2"
+                                                  SelectionChanged="DataSourceComboBox_SelectionChanged" DropDownOpened="DataSourceComboBox_DropDownOpened"
+                                                  ToolTip="Đối tượng in gì: chữ cố định, một biến, một cột dữ liệu, một hàm, một giá trị khi in, hoặc ghép nhiều nguồn."
+                                                  AutomationProperties.Name="Connected data source">
+                                            <ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle>
                                         </ComboBox>
                                         <StackPanel>
-                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Excel"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Source}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Compose}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                             <TextBlock Text="Chữ" Style="{StaticResource PropLabel}"/>
                                             <TextBox x:Name="ObjectTextBox" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" MaxHeight="120" Margin="0,2,0,0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" PreviewTextInput="ObjectTextBox_PreviewTextInput" ToolTip="Enter xuống dòng mới."/>
                                         </StackPanel>
                                         <StackPanel>
-                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Excel"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                            <TextBlock Text="Trường Excel" Style="{StaticResource PropLabel}"/>
-                                            <ComboBox x:Name="ExcelFieldComboBox"
-                                                      ItemsSource="{Binding LabelDatabaseFields}"
-                                                      DisplayMemberPath="DisplayName"
-                                                      SelectionChanged="ExcelFieldComboBox_SelectionChanged"
-                                                      Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                        <StackPanel>
-                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Tag, ElementName=ContentSourceComboBox}" Value="Binding"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Compose}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                             <Expander Header="Trình tạo công thức" IsExpanded="True" Margin="0,2,0,0">
                                                 <StackPanel Margin="0,6,0,0">
                                                     <!-- Fields section -->
@@ -2820,6 +2757,63 @@
                                             <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Trường đã dùng: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
                                         </StackPanel>
+                                        <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,10,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#F1F5F9"/>
+                                                    <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}">
+                                                            <Setter Property="Background" Value="#EAF4FF"/><Setter Property="BorderBrush" Value="#8CC5FF"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}">
+                                                            <Setter Property="Background" Value="#ECFDF3"/><Setter Property="BorderBrush" Value="#86D8A2"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}">
+                                                            <Setter Property="Background" Value="#FFF7E6"/><Setter Property="BorderBrush" Value="#F3C56B"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}">
+                                                            <Setter Property="Background" Value="#FFF1F0"/><Setter Property="BorderBrush" Value="#F3A7A1"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,6">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                    <Border Width="24" Height="24" CornerRadius="5" Background="#FFFFFF" VerticalAlignment="Top">
+                                                        <Image Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Image.Style>
+                                                                <Style TargetType="Image"><Setter Property="Source" Value="{StaticResource Icon.Link16}"/><Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Source" Value="{StaticResource Icon.Refresh16}"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Source" Value="{StaticResource Icon.Ok16}"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Source" Value="{StaticResource Icon.Warning16}"/></DataTrigger>
+                                                                    <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Source" Value="{StaticResource Icon.Error16}"/></DataTrigger>
+                                                                </Style.Triggers></Style>
+                                                            </Image.Style>
+                                                        </Image>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding ExcelLinkVerificationTitle}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap">
+                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#5B6B80"/><Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Checking}"><Setter Property="Foreground" Value="#1267C4"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Verified}"><Setter Property="Foreground" Value="#15803D"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Stale}"><Setter Property="Foreground" Value="#A15C00"/></DataTrigger>
+                                                                <DataTrigger Binding="{Binding ExcelLinkVerificationState}" Value="{x:Static viewModels:ExcelLinkVerificationState.Failed}"><Setter Property="Foreground" Value="#B42318"/></DataTrigger>
+                                                            </Style.Triggers></Style></TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding ExcelLinkVerificationDetail}" Foreground="#4B5C72" FontSize="10" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Button Content="{Binding ExcelLinkVerificationActionText}" Click="ImportExcel_Click">
+                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ExcelVerificationButton}"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                                </Button>
+                                                <Button Content="{Binding ExcelLinkVerificationActionText}" Command="{Binding VerifyExcelLinkCommand}">
+                                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ExcelVerificationButton}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                                </Button>
+                                                <TextBlock Text="{Binding ExcelLinkVerificationTrustText}" Foreground="#66758A" FontSize="9.5" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
 
