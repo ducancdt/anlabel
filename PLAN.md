@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.362
+## v0.363 — Tên cho trình đọc màn hình, xem trước giá trị khi in, chèn nguồn vào điều kiện
+
+_Gồm các commit 31/10/2026 (23:00–23:18)._
 
 - Thuộc tính › Chung: dưới ô “Điều kiện hiển thị” có nút “Chèn nguồn ▾” chèn biến, cột, hàm hoặc giá trị
   khi in vào chỗ con trỏ rồi áp dụng (một bước hoàn tác), như trình soạn điều kiện của NiceLabel 10;
