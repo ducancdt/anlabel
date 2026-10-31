@@ -4,6 +4,10 @@
 
 - Phiên bản mẫu tem: danh sách phiên bản bỏ cột “Mã băm” (thông tin kỹ thuật cho hỗ trợ);
   mã băm của bản hiện tại và bản sao lưu vẫn có ở phần chi tiết bên dưới.
+- Nhập tem NiceLabel: cột ngày của cơ sở dữ liệu giữ định dạng in đã đặt trong NiceLabel
+  (ví dụ dd/MM/yyyy HH:mm:ss) thay vì dạng yyyy-MM-dd của ô ngày Excel; trước đây mã 2D
+  ghép ngày sản xuất (kiểu AIAG “15D…”) và mã vạch in ngày đổi nội dung so với tem in
+  bằng NiceLabel, hệ thống nhận có thể không đọc được.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

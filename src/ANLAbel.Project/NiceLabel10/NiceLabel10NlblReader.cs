@@ -99,7 +99,8 @@ public static partial class NiceLabel10NlblReader
                         id, name, null, string.Empty, 0, false, false, true, null, 0, null,
                         DataFieldName: ChildText(item, "FieldName")?.Trim() is { Length: > 0 } field ? field : name)
                     {
-                        SampleValue = ChildText(item.Element("SampleValue"), "StringValue")
+                        SampleValue = ChildText(item.Element("SampleValue"), "StringValue"),
+                        DataFieldDateFormat = DateFieldFormat(item)
                     };
                     continue;
                 case "ConcatenateFunction":
@@ -1265,6 +1266,21 @@ public static partial class NiceLabel10NlblReader
 
     [GeneratedRegex(@"<(?<name>[A-Za-z_][\w.\-]*)(?<attributes>(?:\s[^<>/]*)?)>(?<space>[ \t]+)</\k<name>>", RegexOptions.CultureInvariant)]
     private static partial Regex SpaceOnlyValue();
+
+    /// <summary>
+    /// A date column's output format (<c>FormattingContents/OutputFormat</c> of a
+    /// System.DateTime field): NiceLabel reads the column as dates and prints
+    /// them in it. Null for other columns.
+    /// </summary>
+    private static string? DateFieldFormat(XElement item)
+    {
+        if (ChildText(item, "FieldType")?.Trim().StartsWith("System.DateTime", StringComparison.Ordinal) != true)
+        {
+            return null;
+        }
+
+        return ChildText(item.Element("FormattingContents"), "OutputFormat")?.Trim() is { Length: > 0 } format ? format : null;
+    }
 
     private static string? ChildText(XElement? parent, string name) =>
         parent?.Element(name)?.Value;

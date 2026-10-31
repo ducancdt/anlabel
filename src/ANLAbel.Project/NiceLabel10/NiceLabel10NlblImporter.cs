@@ -1492,7 +1492,16 @@ public static partial class NiceLabel10NlblImporter
             if (variable.DataFieldName is { } field)
             {
                 // A database column binds to the linked data row by name.
-                return field.IndexOfAny(new[] { '{', '}' }) >= 0 ? null : "{" + field + "}";
+                if (field.IndexOfAny(new[] { '{', '}' }) >= 0)
+                {
+                    return null;
+                }
+
+                // A date column prints in the format NiceLabel printed it in; an
+                // Excel date cell reads as yyyy-MM-dd, which ANLAbel would print.
+                return variable.DataFieldDateFormat is { } dateFormat
+                    ? NiceLabel10FunctionMarkers.Raw("DATEFORMAT(FIELD(" + NiceLabel10FunctionMarkers.Quote(field) + "), " + NiceLabel10FunctionMarkers.Quote(dateFormatOverride ?? dateFormat) + ")")
+                    : "{" + field + "}";
             }
 
             if (variable.SystemDateFormat is { } storedFormat)

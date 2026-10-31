@@ -298,6 +298,13 @@ public sealed record NiceLabel10Variable(
     /// </summary>
     public string? SampleValue { get; init; }
 
+    /// <summary>
+    /// For a date database field (<c>FieldType</c> System.DateTime): the output
+    /// format NiceLabel prints its dates in (<c>FormattingContents/OutputFormat</c>,
+    /// e.g. dd/MM/yyyy HH:mm:ss); null for every other data source.
+    /// </summary>
+    public string? DataFieldDateFormat { get; init; }
+
     /// <summary>The counter rules of a counting variable; null for any other variable.</summary>
     public NiceLabel10Counter? Counter { get; init; }
 

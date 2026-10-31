@@ -1445,6 +1445,75 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void DateDatabaseField_PrintsInItsNiceLabelOutputFormat()
+    {
+        // NiceLabel reads an Excel date column as dates and prints them in the
+        // field's output format; ANLAbel reads the cell as yyyy-MM-dd. A 2D code
+        // built from the field must keep NiceLabel's text.
+        const string solution = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <EuroPlus.NiceLabel Type="Solution">
+              <Databases>
+                <Item Type="OleDb">
+                  <DataSetCollection>
+                    <Item Type="OleDBDatabaseDataSet">
+                      <FieldCollection>
+                        <Item Type="DBField">
+                          <Id>d1d1d1d1-2222-3333-4444-555555555555</Id>
+                          <Name>Sheet1$.Production_Date</Name>
+                          <FieldType>System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</FieldType>
+                          <SampleValue Type="DateTimeContents"><DateTimeValue>46127</DateTimeValue><OutputFormat>dd/MM/yyyy HH:mm:ss</OutputFormat><UserValue>15/04/2026</UserValue></SampleValue>
+                          <FieldName>Production_Date</FieldName>
+                          <FormattingContents Type="DateTimeContents"><OutputFormat>dd/MM/yyyy HH:mm:ss</OutputFormat></FormattingContents>
+                        </Item>
+                        <Item Type="DBField">
+                          <Id>d2d2d2d2-2222-3333-4444-555555555555</Id>
+                          <Name>Sheet1$.Quantity</Name>
+                          <FieldType>System.Double, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</FieldType>
+                          <FieldName>Quantity</FieldName>
+                          <FormattingContents Type="FloatContents"><OutputFormat>n</OutputFormat></FormattingContents>
+                        </Item>
+                      </FieldCollection>
+                    </Item>
+                  </DataSetCollection>
+                </Item>
+              </Databases>
+            </EuroPlus.NiceLabel>
+            """;
+        var template = NiceLabel10NlblImporter.CreateTemplate(Parse(Format("""
+            <Item Type="TextDocumentItem">
+              <Name>Date</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>Text</FixedContents>
+              <DataSourceReference Type="SolutionDataSourceReference"><Id>d1d1d1d1-2222-3333-4444-555555555555</Id></DataSourceReference>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Composed</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>9000</Y></Geometry>
+              <FontDescriptor Type="FontDescriptor"><Name>Arial</Name><Height>10</Height></FontDescriptor>
+              <FixedContents>15D</FixedContents>
+              <Contents Type="ExtendedDataValue">
+                <FixedValue Type="StringContents"><StringValue>Q[d2d2d2d2-2222-3333-4444-555555555555]@15D[d1d1d1d1-2222-3333-4444-555555555555]</StringValue></FixedValue>
+                <DataSourceReferences>
+                  <Item Type="SolutionDataSourceReference"><Id>d2d2d2d2-2222-3333-4444-555555555555</Id></Item>
+                  <Item Type="SolutionDataSourceReference"><Id>d1d1d1d1-2222-3333-4444-555555555555</Id></Item>
+                </DataSourceReferences>
+              </Contents>
+            </Item>
+            """), solution), "sample.nlbl");
+
+        var byName = template.Objects.ToDictionary(item => item.Name);
+        string Print(string name, string date) => ANLAbel.Core.Expressions.Formulas.FormulaBindingEvaluator.Evaluate(
+            byName[name].BindingExpression,
+            new Dictionary<string, string> { ["Production_Date"] = date, ["Quantity"] = "1200" }).Value;
+        Assert.Equal("15/04/2026 00:00:00", Print("Date", "2026-04-15"));
+        Assert.Equal("15/04/2026 08:30:00", Print("Date", "2026-04-15 08:30:00"));
+        Assert.Equal(string.Empty, Print("Date", string.Empty));
+        Assert.Equal("Q1200@15D15/04/2026 00:00:00", Print("Composed", "2026-04-15"));
+    }
+
+    [Fact]
     public void InverseText_GetsAnInverseAreaAbove_AndLockedPositionStays()
     {
         var template = Import("""
