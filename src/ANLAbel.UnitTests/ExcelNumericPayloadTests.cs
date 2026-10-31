@@ -16,6 +16,12 @@ public sealed class ExcelNumericPayloadTests
     [InlineData(0.125, "0.00%", "12.50%")]
     [InlineData(12, "0\"%\"", "12%")]
     [InlineData(123, "\"PN-\"000000", "PN-000123")]
+    // Layout codes (_x blank width, *x fill) only line a column up: no spaces in the value.
+    [InlineData(1200, "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)", "1,200")]
+    [InlineData(-1200, "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)", "(1,200)")]
+    [InlineData(1200, "#,##0_);(#,##0)", "1,200")]
+    [InlineData(5, "* 0", "5")]
+    [InlineData(123, "\"PN_\"000", "PN_123")]
     public async Task NumericFormatPreservesAuthoredDisplayPayload(double value, string format, string expected)
     {
         var path = Path.Combine(Path.GetTempPath(), $"anlabel-number-{Guid.NewGuid():N}.xlsx");

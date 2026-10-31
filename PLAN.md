@@ -8,6 +8,10 @@
   (ví dụ dd/MM/yyyy HH:mm:ss) thay vì dạng yyyy-MM-dd của ô ngày Excel; trước đây mã 2D
   ghép ngày sản xuất (kiểu AIAG “15D…”) và mã vạch in ngày đổi nội dung so với tem in
   bằng NiceLabel, hệ thống nhận có thể không đọc được.
+- Đọc Excel: số định dạng kiểu dấu phẩy/kế toán (Comma Style, “_(* #,##0_)”) không còn
+  mang khoảng trắng căn cột vào dữ liệu: 1200 đọc là “1,200” thay vì “  1,200 ”; trước đây
+  khoảng trắng đó đi vào cả mã vạch và mã 2D (ví dụ “Q  1,200 ”). Dấu phân cách nghìn vẫn
+  theo định dạng ô Excel.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

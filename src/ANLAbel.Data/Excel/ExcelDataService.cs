@@ -1245,6 +1245,41 @@ public sealed class ExcelDataService
         };
     }
 
+    /// <summary>
+    /// The number format without its layout codes: <c>_x</c> leaves the width of
+    /// x blank and <c>*x</c> repeats x to fill the cell, so that a column lines up
+    /// on screen (Excel's comma and accounting styles, <c>_(* #,##0_)</c>). They
+    /// are not part of the value: printed, they put spaces around a quantity, in
+    /// its barcode too. Quoted text and escaped characters are kept.
+    /// </summary>
+    private static string WithoutLayoutPadding(string formatCode)
+    {
+        var builder = new StringBuilder(formatCode.Length);
+        var quoted = false;
+        for (var index = 0; index < formatCode.Length; index++)
+        {
+            var character = formatCode[index];
+            if (character == '"')
+            {
+                quoted = !quoted;
+            }
+            else if (!quoted && character == '\\' && index + 1 < formatCode.Length)
+            {
+                builder.Append(character).Append(formatCode[++index]);
+                continue;
+            }
+            else if (!quoted && character is '_' or '*' && index + 1 < formatCode.Length)
+            {
+                index++;
+                continue;
+            }
+
+            builder.Append(character);
+        }
+
+        return builder.ToString();
+    }
+
     private static string FormatNumber(
         double value,
         IExcelDataReader reader,
@@ -1267,7 +1302,7 @@ public sealed class ExcelDataService
         if (!string.IsNullOrEmpty(formatCode)
             && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase))
         {
-            var numberFormat = new ExcelNumberFormat.NumberFormat(formatCode);
+            var numberFormat = new ExcelNumberFormat.NumberFormat(WithoutLayoutPadding(formatCode));
             if (!numberFormat.IsValid)
             {
                 if (failClosedOnCellError)
