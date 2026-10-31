@@ -632,8 +632,11 @@ a file of printer commands. Out of scope: custom PowerForms.
   folder. Eight customer labels carry one picture each; those checked are a
   RoHS mark, which imports as a picture. Not built: a built-in symbol set.
 - Undo and redo (`Gui.Core/undoredodropdown`): drop-down lists of the named
-  actions to undo several at once. ANLAbel's undo keeps whole snapshots
-  without names (Ctrl+Z, Ctrl+Y and the quick access buttons). Not built.
+  actions to undo several at once. ANLAbel (v0.355) names each step
+  ("Di chuyển “PO”", "Đổi phông chữ 3 đối tượng"); the Undo and Redo buttons
+  name the next step in their tooltips, the status bar names the step just
+  taken, and the quick access arrows list the steps to undo or redo several
+  at once.
 
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
@@ -645,13 +648,13 @@ where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
 | `mainwindow`, ribbon, panels | Ribbon tabs, toolbox, Data/Layers/Objects, Properties | Ribbon, Panels, Shell rebuild |
 | `menuregion` (11): backstage, passwords, font picker, new label tiles, print form | Tệp backstage, Bảo vệ, font lists, New Label Wizard, Print Preview | Backstage, Protection, Prompts…fonts, Print form |
 | `wizards` (13): new label, database | New Label Wizard, Excel import | New Label Setup Wizard, Database wizard |
-| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu, Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel | Quản lý dữ liệu, Data explorer drag and drop |
-| `propertypages` (128) | Properties panel; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
+| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel; a paste brings the definitions its objects read (RE §28) | Quản lý dữ liệu, Data explorer drag and drop |
+| `propertypages` (128) | Properties panel; the font, the linear barcode settings, Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach every selected object, with a blank or mixed value when the selected objects differ (RE §26, §29); X/Y, size, rotation and anchoring stay with the key object; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
 | `editors` (6): combo, date, time, rich text, custom boundaries | Prompt editors (dates RE §15), rich text in Properties; custom boundaries unused (RE §22) | Prompts…fonts |
-| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab; layers not built; banners and solutions out | Object browser and layers |
-| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus; in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
+| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects; right-click menus on objects and on the label; layers not built; banners and solutions out | Object browser and layers |
+| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus, the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; keyboard resize and rotate are not built (protected resize lifecycle); in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
 | `statusbarregion`, `printergapadjustment`, `historydialog`, `searchpanel` | Status bar and chips; gap adjustment not needed; operator dialog; no find and replace | Status bar…smaller dialogs |
-| `variablesvaluepromptcontrol`, special characters, clipart, undo list | Prompt window and Print Preview answers; GS1 separators; pictures; snapshot undo | Prompts…symbols |
+| `variablesvaluepromptcontrol`, special characters, clipart, undo list | Prompt window and Print Preview answers; GS1 separators and the Data Manager's control characters; pictures; named undo steps with Undo ▾ and Redo ▾ lists | Prompts…symbols |
 | `serialportdataeditor` | Values from a serial port (a scale): not built, no customer label reads one | — |
 | `advancedcolorseparation` | Spot colours for colour printers: not built (one-colour thermal and office printers) | — |
 | `actionseditor`, `Gui.Core/view/actioncontentview`, `scriptbuilder` | PowerForms actions and scripts: out of scope; imported functions become formulas (RE §21) | Print form |

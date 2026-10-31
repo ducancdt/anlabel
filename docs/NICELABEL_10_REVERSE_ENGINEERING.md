@@ -939,7 +939,7 @@ with ANLAbel's counterpart:
 | `MissingDBField`, `DBFieldDeleted` | Missing field blocks the row; the import note names the column (DB03) |
 | `DefaultValueChainReference` "Chain reference detected." | Data Manager functions: dependency cycle error |
 | `MaximumValueSmallerThanMinimum`, `InvalidMinimumValue` | Prompt and counter definitions refuse a minimum above the maximum |
-| `VisibilityConditionDataSourceN` "No data source for visibility condition selected." | A condition reading a column the data lacks hid its object on every label without a word; a check that stops the print is in the pending batch (PLAN.md) |
+| `VisibilityConditionDataSourceN` "No data source for visibility condition selected." | A condition reading a column the data lacks hid its object on every label without a word; since v0.354 the print stops and names the missing column |
 | `InvalidImage`, `FileDoesNotExist`, `CannotReadFile` | Missing resources chip and the image preflight |
 | `NoApplicationIdentifiers`, `DataBarGS1128Error` | GS1 `(AI)value` validation against the GS1 registry |
 | `DimensionsDoNotMatchStockWarning` | Stocks are out of scope |
@@ -1003,10 +1003,13 @@ every selected object at once:
   width and height, bar width, module height) record the undo of a resize
   of the selection on the design surface, not property edits.
 
-ANLAbel's Properties panel and ribbon edit the key object; font family,
-size, style, colour and alignment now go to every selected text and text
-box (pending batch). Barcode settings and the other pages still edit the
-key object only.
+ANLAbel's Properties panel and ribbon edit the key object, and these go to
+the whole selection: font family, size, style, colour and alignment to every
+selected text and text box (v0.354); the X dimension and the text under the
+code to every selected linear barcode (v0.355); Không in, Hiển thị, Khóa vị
+trí and Giữ tỉ lệ to every selected object, shown mixed when the objects
+differ (v0.358, §29). X/Y, size, rotation and anchoring stay with the key
+object.
 
 ## §27 Object names, shared values, locks and record selection (2026-10-31)
 
@@ -1050,7 +1053,7 @@ ilspycmd.
   (`TextPropertyXaml.FontSizeUndoDesc` and the like, §26), and the Undo and
   Redo drop-downs (`Gui.Core/undoredodropdown`) list those names.
 
-ANLAbel (pending batch): a new object takes a free name ("Chữ 2"), the
+ANLAbel (v0.355–v0.356): a new object takes a free name ("Chữ 2"), the
 ribbon's name box refuses a taken or empty name and keeps the old one, the
 ribbon's font boxes are blank for a mixed selection, and undo steps have
 names with Undo ▾ and Redo ▾ lists. Delete removes locked objects, as in
@@ -1100,7 +1103,7 @@ DesignerLib BAML.
   Source, Counter, Events, Locked Object and Printer Element, each switched
   on its own.
 
-ANLAbel (pending batch): Ctrl+A, Ctrl+X, Ctrl+G, Ctrl+Shift+G, Ctrl+F (which
+ANLAbel (v0.357): Ctrl+A, Ctrl+X, Ctrl+G, Ctrl+Shift+G, Ctrl+F (which
 also shows a hidden left panel), Ctrl+B, Ctrl+I, Ctrl+U, PgUp and PgDn (Ctrl:
 to the top or the bottom), Tab and Shift+Tab, and Ctrl with plus, minus or 0;
 no key acts while a text box has the keyboard or behind the File backstage,
@@ -1155,7 +1158,7 @@ process initializer).
   editing into `EditMode`, otherwise opens the property editor
   (`OpenDocumentItemPropertyEditorCommand`, `PopupMode = true`); Enter starts
   in-place editing only. ANLAbel opens Properties on a double-click and
-  (pending batch) with F2, a text's content selected to type over; in-place
+  (v0.358) with F2, a text's content selected to type over; in-place
   editing is not built (it would sit in the protected Text layout, owner
   decision).
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
@@ -1164,7 +1167,7 @@ process initializer).
   `KeepAspectRatio` are `bool?`, null when the selected items differ.
   `FormatPositionPropertyPageViewModel` sets `Left`, `Top`, the line end
   point and length, and `AnchoringPoint` the same way.
-- ANLAbel (pending batch): Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach
+- ANLAbel (v0.358): Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach
   every selected object and show a mixed tick when the selected objects
   differ. X and Y, width and height, rotation and the anchoring point stay
   with the key object: the key's X and Y also change while the selection is
