@@ -2305,6 +2305,97 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Undo restores whole snapshots, and the Undo ▾ list several at once. Over a
+    /// varied design session (add, move, font, label size, Data Manager,
+    /// restack, rename, a drag of every object, delete) any mix of one-step and
+    /// multi-step undo and redo lands exactly on the label as it was after that
+    /// step.
+    /// </summary>
+    public static Task UndoAndRedoLandOnEveryStep()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var type = typeof(ANLAbel.App.ViewModels.MainViewModel);
+            string Snapshot() => (string)type.GetMethod("CaptureTemplateSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null)!;
+            void Commit() => type.GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            var before = viewModel.UndoHistory.Count;
+            var states = new List<string> { Snapshot() };
+            void Step(Action edit)
+            {
+                edit();
+                Commit();
+                states.Add(Snapshot());
+            }
+
+            Step(() => viewModel.AddTextCommand.Execute(null));
+            Step(() => viewModel.AddBarcodeCommand.Execute(null));
+            var text = viewModel.Template.Objects[0];
+            Step(() => text.XMm += 5);
+            Step(() => text.Style.FontSizePt = 16);
+            Step(() => viewModel.Template.WidthMm -= 10);
+            Step(() => viewModel.ApplyDataDefinitions(
+                [new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" }],
+                [new ANLAbel.Core.Data.DataTransformDefinition("MaLo", "CONCAT(\"L-\", FIELD(\"?Lot\"))")],
+                new SerialCounterDefinition { Enabled = true, StartValue = 5, Digits = 4 }));
+            Step(() => viewModel.AddTextCommand.Execute(null));
+            Step(() => viewModel.Template.Objects.Move(0, viewModel.Template.Objects.Count - 1));
+            Step(() => text.Name = "Tiêu đề");
+            Step(() =>
+            {
+                viewModel.BeginTemplateEditGesture();
+                foreach (var item in viewModel.Template.Objects)
+                {
+                    item.YMm += 2;
+                }
+
+                viewModel.CommitTemplateEditGesture();
+            });
+            Step(() => viewModel.Template.Objects.RemoveAt(1));
+            var steps = states.Count - 1;
+            Require(viewModel.UndoHistory.Count - before == steps && states.Distinct().Count() == states.Count,
+                $"Each of the {steps} edits is one named step: " + string.Join(" | ", viewModel.UndoHistory));
+
+            var at = steps;
+            void Check(string what)
+            {
+                Require(Snapshot() == states[at], $"{what}: the label must be as it was after step {at}. Undo list: " + string.Join(" | ", viewModel.UndoHistory));
+            }
+
+            viewModel.UndoSteps(steps);
+            at = 0;
+            Check("Undo all at once");
+            viewModel.RedoSteps(3);
+            at = 3;
+            Check("Redo three");
+            viewModel.RedoSteps(steps - 3);
+            at = steps;
+            Check("Redo the rest");
+            viewModel.UndoSteps(5);
+            at = steps - 5;
+            Check("Undo five");
+            viewModel.UndoCommand.Execute(null);
+            at--;
+            Check("Undo one more");
+            viewModel.RedoCommand.Execute(null);
+            at++;
+            Check("Redo one");
+            for (var index = 0; index < at; index++)
+            {
+                viewModel.UndoCommand.Execute(null);
+            }
+
+            at = 0;
+            Check("Undo one by one to the start");
+            viewModel.RedoSteps(steps);
+            at = steps;
+            Check("Redo everything");
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Three texts added in a row were all named "Chữ", so a preflight message
     /// or an undo step about “Chữ” could not say which one. An added object now
     /// takes a free name ("Chữ 2", "Chữ 3"), as NiceLabel 10 numbers a new
