@@ -2312,7 +2312,7 @@ internal static class DesignScenarioRegression
             Find("Sao chép").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
 
             RightClickAt(60, 40);
-            Require(Shown().SequenceEqual(["Thuộc tính tem", "Dán", "Vừa tài liệu", "Vừa đối tượng", "Căn và lưới"]) && Find("Dán").IsEnabled,
+            Require(Shown().SequenceEqual(["Thuộc tính tem", "Dán", "Chọn tất cả", "Vừa tài liệu", "Vừa đối tượng", "Căn và lưới"]) && Find("Dán").IsEnabled,
                 "On the label the menu offers the label's commands, and the copy can be pasted: " + string.Join(" | ", Shown()));
             var gridHeaders = Find("Căn và lưới").Items.OfType<MenuItem>().Select(item => (string)item.Header).ToArray();
             Require(gridHeaders.Contains("Dính theo đối tượng") && gridHeaders.Contains("Đường gióng"), "Snapping and guides stay under Căn và lưới: " + string.Join(" | ", gridHeaders));
@@ -2750,6 +2750,198 @@ internal static class DesignScenarioRegression
             Pump();
             Require(Named("QTY").BarcodeWidthMode == BarcodeWidthMode.SizedFromX && Named("QTY").BarcodeModuleWidthMm == 0.5,
                 $"Sized from X brings the key's X: {Named("QTY").BarcodeWidthMode}, X {Named("QTY").BarcodeModuleWidthMm} mm.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The Cut button has always said "Ctrl+X", and nothing cut; NiceLabel's
+    /// designer keys Ctrl+A, Ctrl+G, Ctrl+Shift+G and Ctrl+F did nothing either.
+    /// They now select every object, cut, group, ungroup and open the object
+    /// search, and the keys that change the label wait while it is protected.
+    /// </summary>
+    public static Task DesignerKeysSelectCutGroupAndFind()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            void Press(System.Windows.Input.Key key, System.Windows.Input.ModifierKeys modifiers)
+            {
+                var binding = window.InputBindings.OfType<System.Windows.Input.KeyBinding>().Single(item => item.Key == key && item.Modifiers == modifiers);
+                binding.Command.Execute(binding.CommandParameter);
+                Pump();
+            }
+
+            foreach (var name in new[] { "PO", "QTY", "Lot" })
+            {
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = name, Text = name, XMm = 3, YMm = 3 + viewModel.Template.Objects.Count * 10, WidthMm = 20, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            }
+
+            Pump();
+            const System.Windows.Input.ModifierKeys control = System.Windows.Input.ModifierKeys.Control;
+            Press(System.Windows.Input.Key.A, control);
+            Require(canvas.SelectedObjectCount == 3, "Ctrl+A selects every object: " + canvas.SelectedObjectCount);
+            Press(System.Windows.Input.Key.G, control);
+            var group = viewModel.Template.Objects[0].GroupId;
+            Require(group.Length > 0 && viewModel.Template.Objects.All(item => item.GroupId == group), "Ctrl+G groups them.");
+            Press(System.Windows.Input.Key.G, control | System.Windows.Input.ModifierKeys.Shift);
+            Require(viewModel.Template.Objects.All(item => item.GroupId.Length == 0), "Ctrl+Shift+G ungroups them.");
+            Press(System.Windows.Input.Key.X, control);
+            Require(viewModel.Template.Objects.Count == 0 && canvas.HasCopiedObjects, $"Ctrl+X cuts them: {viewModel.Template.Objects.Count} left.");
+            viewModel.IsToolboxVisible = false;
+            Press(System.Windows.Input.Key.F, control);
+            var search = (TextBox)window.FindName("ObjectBrowserSearch");
+            DependencyObject? node = search;
+            while (node is not null and not TabItem)
+            {
+                node = LogicalTreeHelper.GetParent(node);
+            }
+
+            Require(node is TabItem { IsSelected: true } && viewModel.IsToolboxVisible, "Ctrl+F shows the left panel and opens the Đối tượng tab with its search box.");
+
+            // Right-click on empty label space offers Chọn tất cả, as NiceLabel's label menu does.
+            void LabelMenu() => typeof(ANLAbel.App.MainWindow).GetMethod("UpdateDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+            MenuItem SelectAllItem() => canvas.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string)item.Header == "Chọn tất cả");
+            LabelMenu();
+            Require(SelectAllItem() is { IsEnabled: false, InputGestureText: "Ctrl+A", Visibility: Visibility.Visible }, "An empty label offers Chọn tất cả (Ctrl+A), not enabled.");
+            Require(canvas.PasteCopiedObjects() && viewModel.Template.Objects.Count == 3, "Pasting the cut objects brings them back.");
+            Pump();
+            ((HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!).Clear();
+            viewModel.SelectedObject = null;
+            Pump();
+            LabelMenu();
+            SelectAllItem().RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Pump();
+            Require(canvas.SelectedObjectCount == 3, "Chọn tất cả selects every object: " + canvas.SelectedObjectCount);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// NiceLabel 10's Ctrl+B, Ctrl+I, Ctrl+U and PgUp/PgDn (Ctrl: to the top or the
+    /// bottom) had no key in ANLAbel. They now format every selected text and order
+    /// the selected object; none of the designer keys acts behind the File backstage
+    /// or changes a protected label.
+    /// </summary>
+    public static Task DesignerKeysFormatAndOrder()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            const System.Windows.Input.ModifierKeys control = System.Windows.Input.ModifierKeys.Control;
+            void Press(System.Windows.Input.Key key, System.Windows.Input.ModifierKeys modifiers)
+            {
+                var binding = window.InputBindings.OfType<System.Windows.Input.KeyBinding>().Single(item => item.Key == key && item.Modifiers == modifiers);
+                binding.Command.Execute(binding.CommandParameter);
+                Pump();
+            }
+
+            foreach (var name in new[] { "PO", "QTY", "Lot" })
+            {
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = name, Text = name, XMm = 3, YMm = 3 + viewModel.Template.Objects.Count * 10, WidthMm = 20, HeightMm = 6, ZIndex = viewModel.Template.Objects.Count, Style = { BorderThicknessMm = 0 } });
+            }
+
+            Pump();
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            Press(System.Windows.Input.Key.A, control);
+            Press(System.Windows.Input.Key.B, control);
+            Require(viewModel.Template.Objects.All(item => item.Style.Bold), "Ctrl+B makes every selected text bold.");
+            Press(System.Windows.Input.Key.I, control);
+            Press(System.Windows.Input.Key.U, control);
+            Require(viewModel.Template.Objects.All(item => item.Style.Italic && item.Style.Underline), "Ctrl+I and Ctrl+U reach every selected text.");
+            Press(System.Windows.Input.Key.B, control);
+            Require(viewModel.Template.Objects.All(item => !item.Style.Bold), "Ctrl+B again takes bold off.");
+
+            // PgUp on the label raises the selected object one layer; the key reaches the canvas as a real key press.
+            // A click on PO alone: the canvas keeps a multi-selection when only its key changes.
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            selection.Clear();
+            viewModel.SelectedObject = Named("PO");
+            Pump();
+            var press = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new TestPresentationSource(), 0, System.Windows.Input.Key.PageUp)
+            {
+                RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent
+            };
+            canvas.RaiseEvent(press);
+            Require(press.Handled && Named("PO").ZIndex == 1 && Named("QTY").ZIndex == 0, $"PgUp raises PO one layer: PO {Named("PO").ZIndex}, QTY {Named("QTY").ZIndex}.");
+            bool Arrange(System.Windows.Input.Key key, System.Windows.Input.ModifierKeys modifiers)
+                => (bool)typeof(ANLAbel.App.MainWindow).GetMethod("ArrangeByKey", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { key, modifiers })!;
+            Require(Arrange(System.Windows.Input.Key.PageUp, control) && Named("PO").ZIndex > viewModel.Template.Objects.Where(item => item.Name != "PO").Max(item => item.ZIndex), "Ctrl+PgUp brings PO to the top.");
+            Require(Arrange(System.Windows.Input.Key.PageDown, control) && Named("PO").ZIndex < viewModel.Template.Objects.Where(item => item.Name != "PO").Min(item => item.ZIndex), "Ctrl+PgDn sends PO to the bottom.");
+            Require(!Arrange(System.Windows.Input.Key.PageDown, System.Windows.Input.ModifierKeys.Shift), "Shift+PgDn is not an arrange key.");
+
+            // An arrow-key move still open is finished before Ctrl+B: Esc then cannot take the bold back with it.
+            selection.Clear();
+            viewModel.SelectedObject = Named("Lot");
+            Pump();
+            var start = Named("Lot").XMm;
+            void CanvasKey(System.Windows.Input.Key key) => canvas.RaiseEvent(
+                new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new TestPresentationSource(), 0, key)
+                {
+                    RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent
+                });
+            CanvasKey(System.Windows.Input.Key.Right);
+            Press(System.Windows.Input.Key.B, control);
+            CanvasKey(System.Windows.Input.Key.Escape);
+            Pump();
+            Require(Named("Lot").Style.Bold && Math.Abs(Named("Lot").XMm - start - 0.1) < 0.001,
+                $"Esc after an arrow move and Ctrl+B keeps both: bold {Named("Lot").Style.Bold}, moved {Named("Lot").XMm - start:0.###} mm.");
+            Press(System.Windows.Input.Key.B, control);
+
+            // Ctrl+A puts an armed Format Painter down rather than painting the object it makes the key.
+            var painter = (System.Windows.Controls.Primitives.ToggleButton)window.FindName("FormatPainterToggle");
+            Named("QTY").Style.FontSizePt = 20;
+            selection.Clear();
+            viewModel.SelectedObject = Named("QTY");
+            Pump();
+            painter.IsChecked = true;
+            Press(System.Windows.Input.Key.A, control);
+            Require(painter.IsChecked == false && viewModel.Template.Objects.Count(item => item.Style.FontSizePt == 20) == 1,
+                "Ctrl+A puts the Format Painter down: " + string.Join(", ", viewModel.Template.Objects.Select(item => $"{item.Name} {item.Style.FontSizePt}")));
+
+            // Behind the File backstage the designer keys leave the label alone.
+            typeof(ANLAbel.App.MainWindow).GetMethod("ShowBackstage", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { "Open" });
+            selection.Clear();
+            viewModel.SelectedObject = Named("QTY");
+            Pump();
+            Require(canvas.SelectedObjectCount == 1, "Only QTY is selected: " + canvas.SelectedObjectCount);
+            Press(System.Windows.Input.Key.A, control);
+            Press(System.Windows.Input.Key.B, control);
+            Require(canvas.SelectedObjectCount == 1 && !Named("QTY").Style.Bold, $"Behind the backstage Ctrl+A and Ctrl+B do nothing: {canvas.SelectedObjectCount} selected.");
+            typeof(ANLAbel.App.MainWindow).GetMethod("HideBackstage", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+
+            // A protected label keeps its objects, groups, style and order.
+            viewModel.Template.ProtectFromEditing = true;
+            Pump();
+            Require(viewModel.IsEditingLocked, "The label is protected.");
+            Press(System.Windows.Input.Key.A, control);
+            Press(System.Windows.Input.Key.G, control);
+            Press(System.Windows.Input.Key.B, control);
+            Press(System.Windows.Input.Key.X, control);
+            var order = viewModel.Template.Objects.Select(item => item.ZIndex).ToArray();
+            Require(!Arrange(System.Windows.Input.Key.PageUp, System.Windows.Input.ModifierKeys.None), "PgUp is not taken on a protected label.");
+            Require(viewModel.Template.Objects.Count == 3
+                    && viewModel.Template.Objects.All(item => item.GroupId.Length == 0 && !item.Style.Bold)
+                    && viewModel.Template.Objects.Select(item => item.ZIndex).SequenceEqual(order),
+                "Ctrl+G, Ctrl+B, Ctrl+X and PgUp leave a protected label unchanged.");
             // Not closed: closing an edited label asks whether to save it.
         });
 

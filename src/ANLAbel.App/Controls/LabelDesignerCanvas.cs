@@ -3192,6 +3192,33 @@ public sealed class LabelDesignerCanvas : Canvas
     /// <summary>Ribbon Clipboard group: paste the copied objects.</summary>
     public bool PasteCopiedObjects() => PasteSelection();
 
+    /// <summary>Ctrl+A, as in NiceLabel 10: every visible object, the topmost as the key object.</summary>
+    public bool SelectAllObjects()
+    {
+        if (Template is null)
+        {
+            return false;
+        }
+
+        _selectedObjects.Clear();
+        foreach (var item in Template.Objects.Where(item => item.IsVisible))
+        {
+            _selectedObjects.Add(item);
+        }
+
+        if (_selectedObjects.Count == 0)
+        {
+            SelectedObject = null;
+            InvalidateVisual();
+            return false;
+        }
+
+        SelectedObject = _selectedObjects.OrderByDescending(item => item.ZIndex).First();
+        RefreshSelectionAdorner();
+        InvalidateVisual();
+        return true;
+    }
+
     /// <summary>Whether a copy or cut left objects to paste (the right-click menu's Dán).</summary>
     public bool HasCopiedObjects => _clipboardObjects.Count > 0;
 

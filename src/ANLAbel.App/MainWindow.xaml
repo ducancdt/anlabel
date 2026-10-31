@@ -435,28 +435,28 @@
             <controls:RibbonGroupPanel>
                 <StackPanel Orientation="Horizontal">
                     <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.BringForward32}" Content="Đưa&#10;lên ▾" Command="{Binding BringForwardCommand}"
-                                                ToolTip="Đưa đối tượng lên một lớp (▾: lên trên cùng)" AutomationProperties.Name="Bring forward">
+                                                ToolTip="Đưa đối tượng lên một lớp, PgUp (▾: lên trên cùng, Ctrl+PgUp)" AutomationProperties.Name="Bring forward">
                         <controls:RibbonSplitButton.DropDown>
                             <ContextMenu>
-                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
-                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
+                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}" InputGestureText="Ctrl+PgUp"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
+                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}" InputGestureText="PgUp"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
                             </ContextMenu>
                         </controls:RibbonSplitButton.DropDown>
                     </controls:RibbonSplitButton>
                     <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.SendBackward32}" Content="Đưa&#10;xuống ▾" Command="{Binding SendBackwardCommand}"
-                                                ToolTip="Đưa đối tượng xuống một lớp (▾: xuống dưới cùng)" AutomationProperties.Name="Send backward">
+                                                ToolTip="Đưa đối tượng xuống một lớp, PgDn (▾: xuống dưới cùng, Ctrl+PgDn)" AutomationProperties.Name="Send backward">
                         <controls:RibbonSplitButton.DropDown>
                             <ContextMenu>
-                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
-                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
+                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}" InputGestureText="PgDn"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
+                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}" InputGestureText="Ctrl+PgDn"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
                             </ContextMenu>
                         </controls:RibbonSplitButton.DropDown>
                     </controls:RibbonSplitButton>
                     <StackPanel Style="{StaticResource RibbonColumn}">
                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Group16}" Content="Nhóm đối tượng" Click="GroupObjects_Click"
-                                ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau" AutomationProperties.Name="Group objects"/>
+                                ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau (Ctrl+G)" AutomationProperties.Name="Group objects"/>
                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Ungroup16}" Content="Bỏ nhóm" Click="UngroupObjects_Click"
-                                ToolTip="Bỏ nhóm các đối tượng đang chọn" AutomationProperties.Name="Ungroup objects"/>
+                                ToolTip="Bỏ nhóm các đối tượng đang chọn (Ctrl+Shift+G)" AutomationProperties.Name="Ungroup objects"/>
                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Align16}" Content="Căn chỉnh ▾"
                                 ToolTip="Căn và phân bố các đối tượng đang chọn" AutomationProperties.Name="Align objects">
                             <controls:Ribbon.DropDown>
@@ -643,13 +643,13 @@
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.ShrinkFont16}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Shrink font"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                    <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" ToolTip="Đậm" AutomationProperties.Name="Ribbon bold">
+                                    <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Bold, Mode=TwoWay}" ToolTip="Đậm (Ctrl+B)" AutomationProperties.Name="Ribbon bold">
                                         <TextBlock Text="B" FontWeight="Bold"/>
                                     </ToggleButton>
-                                    <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" ToolTip="Nghiêng" AutomationProperties.Name="Ribbon italic">
+                                    <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Italic, Mode=TwoWay}" ToolTip="Nghiêng (Ctrl+I)" AutomationProperties.Name="Ribbon italic">
                                         <TextBlock Text="I" FontStyle="Italic" FontFamily="Georgia"/>
                                     </ToggleButton>
-                                    <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" ToolTip="Gạch chân" AutomationProperties.Name="Ribbon underline">
+                                    <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Underline, Mode=TwoWay}" ToolTip="Gạch chân (Ctrl+U)" AutomationProperties.Name="Ribbon underline">
                                         <TextBlock Text="U" TextDecorations="Underline"/>
                                     </ToggleButton>
                                     <ToggleButton Style="{StaticResource RibbonIconButton}" IsChecked="{Binding SelectedObject.Style.Strikethrough, Mode=TwoWay}" ToolTip="Gạch ngang" AutomationProperties.Name="Strikethrough">
@@ -772,8 +772,8 @@
                                             IsEnabled="{Binding HasSelectedObject}" ToolTip="Nhóm hoặc bỏ nhóm các đối tượng đang chọn" AutomationProperties.Name="Group objects" AutomationProperties.AutomationId="Shell.Ribbon.GroupMenu">
                                         <controls:Ribbon.DropDown>
                                             <ContextMenu>
-                                                <MenuItem Header="Nhóm" Click="GroupObjects_Click" ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Group16}"/></MenuItem.Icon></MenuItem>
-                                                <MenuItem Header="Bỏ nhóm" Click="UngroupObjects_Click"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Ungroup16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Nhóm" Click="GroupObjects_Click" InputGestureText="Ctrl+G" ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau (Ctrl+G)"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Group16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Bỏ nhóm" Click="UngroupObjects_Click" InputGestureText="Ctrl+Shift+G"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.Ungroup16}"/></MenuItem.Icon></MenuItem>
                                             </ContextMenu>
                                         </controls:Ribbon.DropDown>
                                     </Button>
@@ -781,10 +781,10 @@
                                             IsEnabled="{Binding HasSelectedObject}" ToolTip="Đưa đối tượng lên trên hoặc xuống dưới các đối tượng khác" AutomationProperties.Name="Arrange" AutomationProperties.AutomationId="Shell.Ribbon.Arrange">
                                         <controls:Ribbon.DropDown>
                                             <ContextMenu>
-                                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
-                                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}" AutomationProperties.AutomationId="Shell.Ribbon.BringForward"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
-                                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}" AutomationProperties.AutomationId="Shell.Ribbon.SendBackward"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
-                                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}" InputGestureText="Ctrl+PgUp"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}" InputGestureText="PgUp" AutomationProperties.AutomationId="Shell.Ribbon.BringForward"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}" InputGestureText="PgDn" AutomationProperties.AutomationId="Shell.Ribbon.SendBackward"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}" InputGestureText="Ctrl+PgDn"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
                                             </ContextMenu>
                                         </controls:Ribbon.DropDown>
                                     </Button>
@@ -1055,28 +1055,28 @@
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.BringForward32}" Content="Đưa&#10;lên ▾" Command="{Binding BringForwardCommand}"
-                                                                ToolTip="Đưa đối tượng lên một lớp (▾: lên trên cùng)" AutomationProperties.Name="Design bring forward">
+                                                                ToolTip="Đưa đối tượng lên một lớp, PgUp (▾: lên trên cùng, Ctrl+PgUp)" AutomationProperties.Name="Design bring forward">
                                         <controls:RibbonSplitButton.DropDown>
                                             <ContextMenu>
-                                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
-                                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Lên trên cùng" Command="{Binding BringToFrontCommand}" InputGestureText="Ctrl+PgUp"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringToFront16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Lên một lớp" Command="{Binding BringForwardCommand}" InputGestureText="PgUp"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.BringForward16}"/></MenuItem.Icon></MenuItem>
                                             </ContextMenu>
                                         </controls:RibbonSplitButton.DropDown>
                                     </controls:RibbonSplitButton>
                                     <controls:RibbonSplitButton controls:Ribbon.Icon="{StaticResource Icon.SendBackward32}" Content="Đưa&#10;xuống ▾" Command="{Binding SendBackwardCommand}"
-                                                                ToolTip="Đưa đối tượng xuống một lớp (▾: xuống dưới cùng)" AutomationProperties.Name="Design send backward">
+                                                                ToolTip="Đưa đối tượng xuống một lớp, PgDn (▾: xuống dưới cùng, Ctrl+PgDn)" AutomationProperties.Name="Design send backward">
                                         <controls:RibbonSplitButton.DropDown>
                                             <ContextMenu>
-                                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
-                                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Xuống một lớp" Command="{Binding SendBackwardCommand}" InputGestureText="PgDn"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendBackward16}"/></MenuItem.Icon></MenuItem>
+                                                <MenuItem Header="Xuống dưới cùng" Command="{Binding SendToBackCommand}" InputGestureText="Ctrl+PgDn"><MenuItem.Icon><Image Style="{StaticResource RibbonMenuIcon}" Source="{StaticResource Icon.SendToBack16}"/></MenuItem.Icon></MenuItem>
                                             </ContextMenu>
                                         </controls:RibbonSplitButton.DropDown>
                                     </controls:RibbonSplitButton>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
                                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Group16}" Content="Nhóm đối tượng" Click="GroupObjects_Click"
-                                                ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau" AutomationProperties.Name="Design group objects" AutomationProperties.AutomationId="Shell.Ribbon.Group"/>
+                                                ToolTip="Nhóm các đối tượng đang chọn: chọn và di chuyển cùng nhau (Ctrl+G)" AutomationProperties.Name="Design group objects" AutomationProperties.AutomationId="Shell.Ribbon.Group"/>
                                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Ungroup16}" Content="Bỏ nhóm" Click="UngroupObjects_Click"
-                                                ToolTip="Bỏ nhóm các đối tượng đang chọn" AutomationProperties.Name="Design ungroup objects" AutomationProperties.AutomationId="Shell.Ribbon.Ungroup"/>
+                                                ToolTip="Bỏ nhóm các đối tượng đang chọn (Ctrl+Shift+G)" AutomationProperties.Name="Design ungroup objects" AutomationProperties.AutomationId="Shell.Ribbon.Ungroup"/>
                                         <Button Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.Align16}" Content="Căn chỉnh ▾"
                                                 ToolTip="Căn và phân bố các đối tượng đang chọn" AutomationProperties.Name="Align menu" AutomationProperties.AutomationId="Shell.Ribbon.AlignMore">
                                             <controls:Ribbon.DropDown>

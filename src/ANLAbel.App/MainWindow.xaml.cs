@@ -84,6 +84,41 @@ public partial class MainWindow : Window
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(() => new HelpWindow { Owner = this }.ShowDialog()),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F1)));
+        // NiceLabel 10's designer keys: select all, cut (the Cut button has always said
+        // Ctrl+X), group and ungroup, find an object. A focused text box keeps its own.
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(SelectAllByKey),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.A, System.Windows.Input.ModifierKeys.Control)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => RunUnlessLocked(() => DesignerCanvas.CutSelectedObjects())),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.X, System.Windows.Input.ModifierKeys.Control)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => RunUnlessLocked(() => DesignerCanvas.GroupSelectedObjects())),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.G, System.Windows.Input.ModifierKeys.Control)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => RunUnlessLocked(() => DesignerCanvas.UngroupSelectedObjects())),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.G, System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(FocusObjectSearch),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F, System.Windows.Input.ModifierKeys.Control)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => ToggleTextStyle(style => style.Bold = !style.Bold)),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.B, System.Windows.Input.ModifierKeys.Control)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => ToggleTextStyle(style => style.Italic = !style.Italic)),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.I, System.Windows.Input.ModifierKeys.Control)));
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() => ToggleTextStyle(style => style.Underline = !style.Underline)),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.U, System.Windows.Input.ModifierKeys.Control)));
+        // PgUp/PgDn order the selected object only on the label itself, so lists, boxes
+        // and the designer's scroll bars keep their paging.
+        DesignerCanvas.PreviewKeyDown += (_, e) =>
+        {
+            if (!IsTextInputTarget(e.OriginalSource) && ArrangeByKey(e.Key, Keyboard.Modifiers))
+            {
+                e.Handled = true;
+            }
+        };
         PreviewKeyDown += MainWindow_PreviewKeyDown;
         PreviewMouseWheel += MainWindow_PreviewMouseWheel;
         DataObject.AddPastingHandler(ObjectTextBox, ObjectTextBox_Pasting);
@@ -597,11 +632,12 @@ public partial class MainWindow : Window
     private MenuItem? _contextGroupItem;
     private MenuItem? _contextUngroupItem;
     private MenuItem? _contextPasteItem;
+    private MenuItem? _contextSelectAllItem;
 
     /// <summary>
     /// NiceLabel 10's right-click menus on the design surface: on an object its
     /// properties, clipboard, lock, group, arrange and align; on the label its
-    /// properties, paste and zoom. The canvas's own snapping, grid and guide
+    /// properties, paste, select all and zoom. The canvas's own snapping, grid and guide
     /// items follow under "Căn và lưới". Each item runs the ribbon's handler.
     /// </summary>
     private void BuildDesignerContextMenu()
@@ -653,13 +689,13 @@ public partial class MainWindow : Window
 
             e.Handled = true;
         };
-        _contextGroupItem = Item("Nhóm đối tượng", string.Empty, GroupObjects_Click);
-        _contextUngroupItem = Item("Bỏ nhóm", string.Empty, UngroupObjects_Click);
+        _contextGroupItem = Item("Nhóm đối tượng", "Ctrl+G", GroupObjects_Click);
+        _contextUngroupItem = Item("Bỏ nhóm", "Ctrl+Shift+G", UngroupObjects_Click);
         var arrange = new MenuItem { Header = "Sắp xếp" };
-        arrange.Items.Add(Item("Đưa lên trên cùng", string.Empty, Run(_viewModel.BringToFrontCommand)));
-        arrange.Items.Add(Item("Đưa lên một lớp", string.Empty, Run(_viewModel.BringForwardCommand)));
-        arrange.Items.Add(Item("Đưa xuống một lớp", string.Empty, Run(_viewModel.SendBackwardCommand)));
-        arrange.Items.Add(Item("Đưa xuống dưới cùng", string.Empty, Run(_viewModel.SendToBackCommand)));
+        arrange.Items.Add(Item("Đưa lên trên cùng", "Ctrl+PgUp", Run(_viewModel.BringToFrontCommand)));
+        arrange.Items.Add(Item("Đưa lên một lớp", "PgUp", Run(_viewModel.BringForwardCommand)));
+        arrange.Items.Add(Item("Đưa xuống một lớp", "PgDn", Run(_viewModel.SendBackwardCommand)));
+        arrange.Items.Add(Item("Đưa xuống dưới cùng", "Ctrl+PgDn", Run(_viewModel.SendToBackCommand)));
         var align = new MenuItem { Header = "Căn chỉnh" };
         foreach (var (header, tag) in new[]
                  {
@@ -675,6 +711,12 @@ public partial class MainWindow : Window
         align.Items.Add(Item("Phân bố đều theo chiều dọc", string.Empty, ArrangeDistribute_Click, "VerticalGaps"));
 
         var labelProperties = Item("Thuộc tính tem", string.Empty, PrinterSetup_Click);
+        _contextSelectAllItem = Item("Chọn tất cả", "Ctrl+A", (_, e) =>
+        {
+            DesignerCanvas.SelectAllObjects();
+            DesignerCanvas.Focus();
+            e.Handled = true;
+        });
         var zoomLabel = Item("Vừa tài liệu", string.Empty, ZoomToDocument_Click);
         var zoomObjects = Item("Vừa đối tượng", string.Empty, ZoomToObjects_Click);
         var grid = new MenuItem { Header = "Căn và lưới" };
@@ -686,13 +728,13 @@ public partial class MainWindow : Window
         var objectHead = new Separator();
         var objectTail = new Separator();
         var labelTail = new Separator();
-        foreach (var item in new Control[] { properties, labelProperties, objectHead, cut, copy, _contextPasteItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid })
+        foreach (var item in new Control[] { properties, labelProperties, objectHead, cut, copy, _contextPasteItem, _contextSelectAllItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid })
         {
             menu.Items.Add(item);
         }
 
         _objectMenuItems.AddRange(new Control[] { properties, cut, copy, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align });
-        _labelMenuItems.AddRange(new Control[] { labelProperties, zoomLabel, zoomObjects });
+        _labelMenuItems.AddRange(new Control[] { labelProperties, _contextSelectAllItem, zoomLabel, zoomObjects });
         DesignerCanvas.PreviewMouseRightButtonDown += (_, e) => SelectForContextMenu(e.GetPosition(DesignerCanvas));
         DesignerCanvas.ContextMenuOpening += (_, _) => UpdateDesignerContextMenu();
     }
@@ -727,6 +769,11 @@ public partial class MainWindow : Window
         if (_contextPasteItem is not null)
         {
             _contextPasteItem.IsEnabled = DesignerCanvas.HasCopiedObjects;
+        }
+
+        if (_contextSelectAllItem is not null)
+        {
+            _contextSelectAllItem.IsEnabled = _viewModel.Template.Objects.Any(item => item.IsVisible);
         }
 
         if (_contextLockItem is not null)
@@ -785,6 +832,110 @@ public partial class MainWindow : Window
         DesignerCanvas.UngroupSelectedObjects();
         DesignerCanvas.Focus();
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Designer keys act on the label, as NiceLabel 10's ribbon keys do: not while a box
+    /// takes the typing (it keeps its own Ctrl+A, Ctrl+X), nor behind the File backstage.
+    /// </summary>
+    private bool DesignerKeysApply()
+        => BackstagePanel.Visibility != Visibility.Visible && !IsTextInputTarget(Keyboard.FocusedElement);
+
+    /// <summary>
+    /// A designer key that changes the label does nothing while the label is protected. An
+    /// arrow-key move still open is finished first, so Esc cannot take this edit back with it.
+    /// </summary>
+    private void RunUnlessLocked(Func<bool> edit)
+    {
+        if (DesignerKeysApply() && !_viewModel.IsEditingLocked)
+        {
+            DesignerCanvas.CommitNudgeGesture();
+            edit();
+            DesignerCanvas.Focus();
+        }
+    }
+
+    /// <summary>
+    /// Ctrl+A: every object, and the label takes the keys so the arrows move them. An armed
+    /// Format Painter is put down first: it would paint only the object Ctrl+A makes the key.
+    /// </summary>
+    private void SelectAllByKey()
+    {
+        if (!DesignerKeysApply())
+        {
+            return;
+        }
+
+        DesignerCanvas.CommitNudgeGesture();
+        FormatPainterToggle.IsChecked = false;
+        if (DesignerCanvas.SelectAllObjects())
+        {
+            DesignerCanvas.Focus();
+        }
+    }
+
+    /// <summary>Ctrl+B, Ctrl+I, Ctrl+U: the ribbon's Đậm, Nghiêng and Gạch chân.</summary>
+    private void ToggleTextStyle(Action<ObjectStyle> toggle)
+    {
+        if (DesignerKeysApply()
+            && !_viewModel.IsEditingLocked
+            && _viewModel.SelectedObject is { Type: ObjectType.Text or ObjectType.TextBox } item)
+        {
+            DesignerCanvas.CommitNudgeGesture();
+            // The key text's change reaches every selected text, as the ribbon toggle's does.
+            toggle(item.Style);
+        }
+    }
+
+    /// <summary>
+    /// PgUp/PgDn move the selected object one layer up or down, Ctrl+PgUp/PgDn to the top
+    /// or the bottom (NiceLabel 10's Arrange keys). False when there is nothing to order.
+    /// </summary>
+    private bool ArrangeByKey(Key key, ModifierKeys modifiers)
+    {
+        if (key is not (Key.PageUp or Key.PageDown)
+            || modifiers is not (ModifierKeys.None or ModifierKeys.Control)
+            || _viewModel.IsEditingLocked
+            || _viewModel.SelectedObject is null)
+        {
+            return false;
+        }
+
+        var toEnd = modifiers == ModifierKeys.Control;
+        var command = key == Key.PageUp
+            ? toEnd ? _viewModel.BringToFrontCommand : _viewModel.BringForwardCommand
+            : toEnd ? _viewModel.SendToBackCommand : _viewModel.SendBackwardCommand;
+        DesignerCanvas.CommitNudgeGesture();
+        command.Execute(null);
+        return true;
+    }
+
+    /// <summary>Ctrl+F, NiceLabel's object browser search: the Đối tượng tab's search box.</summary>
+    private void FocusObjectSearch()
+    {
+        if (BackstagePanel.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
+        // The search sits in the left panel: Ctrl+F shows the panel when it was hidden.
+        _viewModel.IsToolboxVisible = true;
+        DependencyObject? node = ObjectBrowserSearch;
+        while (node is not null and not TabItem)
+        {
+            node = LogicalTreeHelper.GetParent(node);
+        }
+
+        if (node is TabItem tab)
+        {
+            tab.IsSelected = true;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            ObjectBrowserSearch.Focus();
+            ObjectBrowserSearch.SelectAll();
+        }, System.Windows.Threading.DispatcherPriority.Input);
     }
 
     private LabelObject? _richTextEditorObject;

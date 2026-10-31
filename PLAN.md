@@ -1,5 +1,16 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.356
+
+- Thiết kế: phím tắt như NiceLabel 10: Ctrl+A chọn mọi đối tượng, Ctrl+X cắt (nút Cắt vốn ghi
+  Ctrl+X mà phím không làm gì), Ctrl+G và Ctrl+Shift+G nhóm và bỏ nhóm, Ctrl+B, Ctrl+I, Ctrl+U
+  cho chữ đậm, nghiêng, gạch chân của mọi chữ đang chọn, PgUp/PgDn đưa lên, xuống một lớp
+  (thêm Ctrl: lên trên cùng, xuống dưới cùng), Ctrl+F mở ô tìm của thẻ Đối tượng, hiện lại bảng
+  bên trái nếu đang ẩn. Khi đang gõ trong một ô, các phím trừ Ctrl+F để ô đó dùng; không phím nào
+  tác động khi màn hình Tệp đang mở hay đổi một tem đang khóa sửa; ribbon,
+  menu chuột phải và trang Phím tắt của Hướng dẫn ghi các phím này; menu chuột phải trên vùng
+  trống của tem có thêm Chọn tất cả.
+
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 
 _Gồm các commit 31/10/2026 (17:01–17:11)._

@@ -825,6 +825,19 @@ public partial class HelpWindow : Window
         sh.Children.Add(ShortcutRow("Delete", vi ? "Xóa đối tượng đang chọn" : "Delete selected object"));
         sh.Children.Add(H2(vi ? "Bảng thiết kế" : "Canvas"));
         sh.Children.Add(ShortcutRow(vi ? "Ctrl + lăn chuột" : "Ctrl+Wheel", vi ? "Phóng to / thu nhỏ" : "Zoom in/out"));
+        sh.Children.Add(ShortcutRow("Ctrl+A", vi ? "Chọn mọi đối tượng" : "Select every object"));
+        sh.Children.Add(ShortcutRow("Ctrl+C", vi ? "Sao chép đối tượng đang chọn" : "Copy the selected objects"));
+        sh.Children.Add(ShortcutRow("Ctrl+X", vi ? "Cắt đối tượng đang chọn" : "Cut the selected objects"));
+        sh.Children.Add(ShortcutRow("Ctrl+V", vi ? "Dán đối tượng" : "Paste objects"));
+        sh.Children.Add(ShortcutRow("Ctrl+G", vi ? "Nhóm các đối tượng đang chọn" : "Group the selected objects"));
+        sh.Children.Add(ShortcutRow("Ctrl+Shift+G", vi ? "Bỏ nhóm" : "Ungroup"));
+        sh.Children.Add(ShortcutRow("Ctrl+B", vi ? "Chữ đậm, cho mọi chữ đang chọn" : "Bold, for every selected text"));
+        sh.Children.Add(ShortcutRow("Ctrl+I", vi ? "Chữ nghiêng" : "Italic"));
+        sh.Children.Add(ShortcutRow("Ctrl+U", vi ? "Gạch chân" : "Underline"));
+        sh.Children.Add(ShortcutRow("PgUp", vi ? "Đưa lên một lớp (Ctrl+PgUp: lên trên cùng)" : "Bring forward (Ctrl+PgUp: to front)"));
+        sh.Children.Add(ShortcutRow("PgDn", vi ? "Đưa xuống một lớp (Ctrl+PgDn: xuống dưới cùng)" : "Send backward (Ctrl+PgDn: to back)"));
+        sh.Children.Add(ShortcutRow(vi ? "Mũi tên" : "Arrows", vi ? "Dịch 0,1 mm; Shift: 1 mm; Alt: 0,01 mm" : "Move 0.1 mm; Shift: 1 mm; Alt: 0.01 mm"));
+        sh.Children.Add(ShortcutRow("Ctrl+F", vi ? "Tìm đối tượng theo tên hoặc nội dung" : "Find an object by name or content"));
         d["shortcuts"] = sh;
 
         // ---------- FAQ ----------
