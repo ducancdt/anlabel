@@ -3593,6 +3593,90 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A hidden object is not drawn or printed, so the object lists were the only place to
+    /// find it, and they showed it like any other. The Đối tượng and Lớp lists now add
+    /// "· ẩn" (greyed) or "· khóa vị trí" to the object's type.
+    /// </summary>
+    public static Task ObjectListsShowHiddenAndLockedObjects()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Ẩn", Text = "Ẩn", IsVisible = false, XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Khóa", Text = "Khóa", IsLocked = true, XMm = 3, YMm = 12, WidthMm = 20, HeightMm = 6 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Thường", Text = "Thường", XMm = 3, YMm = 21, WidthMm = 20, HeightMm = 6 });
+            var list = (ListBox)window.FindName("ObjectBrowserList");
+            DependencyObject? node = list;
+            while (node is not null and not TabItem)
+            {
+                node = LogicalTreeHelper.GetParent(node);
+            }
+
+            ((TabItem)node!).IsSelected = true;
+            // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            (string Notes, double Opacity) Shown(string name, ItemsControl? owner = null)
+            {
+                owner ??= list;
+                var item = viewModel.Template.Objects.Single(entry => entry.Name == name);
+                var container = owner.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                Require(container is not null, $"The list has a row for {name}: {owner.Items.Count} items, {owner.ItemContainerGenerator.Status}.");
+                container!.ApplyTemplate();
+                container.UpdateLayout();
+                var texts = new List<TextBlock>();
+                void Walk(DependencyObject parent)
+                {
+                    for (var index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); index++)
+                    {
+                        var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, index);
+                        if (child is TextBlock text)
+                        {
+                            texts.Add(text);
+                        }
+
+                        Walk(child);
+                    }
+                }
+
+                Walk(container);
+                var row = texts.First(text => text.Text == name).Parent as FrameworkElement;
+                return (string.Concat(texts.Where(text => text.Visibility == Visibility.Visible && text.Text.StartsWith(" · ", StringComparison.Ordinal)).Select(text => text.Text)),
+                    row?.Opacity ?? 1);
+            }
+
+            var hidden = Shown("Ẩn");
+            var locked = Shown("Khóa");
+            var plain = Shown("Thường");
+            Require(hidden is { Notes: " · ẩn", Opacity: < 1 }, $"A hidden object reads “· ẩn”, greyed: {hidden.Notes} / {hidden.Opacity}.");
+            Require(locked is { Notes: " · khóa vị trí", Opacity: 1 }, $"A locked object reads “· khóa vị trí”: {locked.Notes} / {locked.Opacity}.");
+            Require(plain is { Notes: "", Opacity: 1 }, $"Other objects carry no note: {plain.Notes} / {plain.Opacity}.");
+
+            // The Lớp tab's object tree says the same.
+            var layersTab = ((TabControl)window.FindName("WorkspaceTabs")).Items.OfType<TabItem>()
+                .Single(tab => tab.Header is StackPanel header && header.Children.OfType<TextBlock>().Any(text => text.Text == "Lớp"));
+            layersTab.IsSelected = true;
+            content.UpdateLayout();
+            var tree = FindDescendants<TreeView>((DependencyObject)layersTab.Content).Single(view => view.ItemsSource is not null);
+            tree.UpdateLayout();
+            var inTree = Shown("Ẩn", tree);
+            Require(inTree is { Notes: " · ẩn", Opacity: < 1 } && Shown("Khóa", tree).Notes == " · khóa vị trí",
+                $"The Lớp tree marks them too: {inTree.Notes} / {inTree.Opacity}.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

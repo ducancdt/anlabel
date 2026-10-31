@@ -40,6 +40,9 @@
 - Hướng dẫn, Phím tắt: các phím chia theo việc (Chọn và di chuyển, Bộ nhớ tạm và nhóm, Chữ và
   lớp, Vẽ, Xem), thêm Ctrl+Shift+C/V chép và dán định dạng, L, R, C vẽ đường kẻ, hình chữ nhật,
   hình elip; mọi phím Ctrl của cửa sổ chính đều có dòng trong trang này.
+- Thiết kế: danh sách Đối tượng và cây đối tượng của thẻ Lớp ghi “· ẩn” (chữ mờ) cho đối tượng
+  đang ẩn và “· khóa vị trí” cho đối tượng đã khóa; đối tượng ẩn không vẽ trên tem và không in,
+  nên trước đây chỉ tìm được trong danh sách mà không biết nó đang ẩn.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

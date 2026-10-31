@@ -1985,11 +1985,21 @@
                                                     <TreeView ItemsSource="{Binding Template.Objects}">
                                                         <TreeView.ItemTemplate>
                                                             <HierarchicalDataTemplate>
-                                                                <StackPanel Margin="0,2">
+                                                                <StackPanel x:Name="Row" Margin="0,2">
                                                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                                                    <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                                        <TextBlock x:Name="HiddenNote" Text=" · ẩn" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Visibility="Collapsed"/>
+                                                                        <TextBlock Text=" · khóa vị trí" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Visibility="{Binding IsLocked, Converter={StaticResource BoolToVisibility}}"/>
+                                                                    </StackPanel>
                                                                     <TextBlock Text="{Binding BindingStateDisplayText}" FontSize="10" Foreground="{StaticResource AppBlueDarkBrush}" TextWrapping="Wrap"/>
                                                                 </StackPanel>
+                                                                <HierarchicalDataTemplate.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsVisible}" Value="False">
+                                                                        <Setter TargetName="HiddenNote" Property="Visibility" Value="Visible"/>
+                                                                        <Setter TargetName="Row" Property="Opacity" Value="0.6"/>
+                                                                    </DataTrigger>
+                                                                </HierarchicalDataTemplate.Triggers>
                                                             </HierarchicalDataTemplate>
                                                         </TreeView.ItemTemplate>
                                                     </TreeView>
@@ -2025,10 +2035,20 @@
                                             </ListBox.ItemContainerStyle>
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <StackPanel Margin="0,2">
+                                                    <StackPanel x:Name="Row" Margin="0,2">
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Type, Converter={StaticResource DisplayName}}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}"/>
+                                                            <TextBlock x:Name="HiddenNote" Text=" · ẩn" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Visibility="Collapsed"/>
+                                                            <TextBlock Text=" · khóa vị trí" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Visibility="{Binding IsLocked, Converter={StaticResource BoolToVisibility}}"/>
+                                                        </StackPanel>
                                                     </StackPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsVisible}" Value="False">
+                                                            <Setter TargetName="HiddenNote" Property="Visibility" Value="Visible"/>
+                                                            <Setter TargetName="Row" Property="Opacity" Value="0.6"/>
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                         </ListBox>
