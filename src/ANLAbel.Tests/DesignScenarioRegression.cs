@@ -145,6 +145,95 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// An A5 office sheet of 2 x 4 bag labels with 5 mm margins and 2 mm gaps:
+    /// each label's white ground was painted from its cell's corner, before the
+    /// margins, so every label drawn later blanked the right and bottom edge of
+    /// the label before it. Frames lost their right and bottom lines and the last
+    /// line of text came out cut in half. Each label now keeps its edges, on the
+    /// printed sheet and in Print Preview.
+    /// </summary>
+    public static Task SheetLabelsKeepTheirRightAndBottomEdges()
+    {
+        var sheet = new SheetCase("M", 148, 210, 68, 48, 5, 5.25, 2, 4, 2, 2.5, false, false, false, false, 8);
+        var failures = new List<string>();
+        RunOnSta(() =>
+        {
+            var (template, rows) = CreateSheet(sheet);
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.Rectangle,
+                Name = "Khung",
+                XMm = 0.5,
+                YMm = 0.5,
+                WidthMm = sheet.LabelWidthMm - 1,
+                HeightMm = sheet.LabelHeightMm - 1,
+                Style = { BorderThicknessMm = 0.4, OutlineStyle = OutlineStyle.Solid, FillStyle = FillStyle.None }
+            });
+            var plan = new PrintRenderPlan { Dpi = Dpi, DpiX = Dpi, DpiY = Dpi, LabelWidthMm = sheet.LabelWidthMm, LabelHeightMm = sheet.LabelHeightMm, OffsetXMm = sheet.LeftMm, OffsetYMm = sheet.TopMm, ScaleX = 1, ScaleY = 1 };
+            var paginator = (DocumentPaginator)typeof(PrintService)
+                .GetMethod("CreateRowsPaginator", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(new PrintService(), new object?[] { template, rows, plan, 0 })!;
+            var preview = new PrintService().CreateSheetPreview(template, rows, 0, plan);
+            var visual = new DrawingVisual();
+            using (var context = visual.RenderOpen())
+            {
+                context.DrawDrawing(preview.Drawing);
+            }
+
+            foreach (var (raster, what) in new[] { (Rasterize(paginator.GetPage(0)), "printed sheet"), (Rasterize(visual, sheet.SheetWidthMm, sheet.SheetHeightMm), "Print Preview") })
+            {
+                for (var slot = 0; slot < sheet.Rows; slot++)
+                {
+                    var (column, row) = Cell(slot, sheet);
+                    var x = sheet.LeftMm + column * (sheet.LabelWidthMm + sheet.HorizontalGapMm);
+                    var y = sheet.TopMm + row * (sheet.LabelHeightMm + sheet.VerticalGapMm);
+                    var bottom = InkedShare(raster, x + 2, y + sheet.LabelHeightMm - 0.5, x + sheet.LabelWidthMm - 2, y + sheet.LabelHeightMm - 0.5);
+                    var right = InkedShare(raster, x + sheet.LabelWidthMm - 0.5, y + 2, x + sheet.LabelWidthMm - 0.5, y + sheet.LabelHeightMm - 2);
+                    var decoded = Decode(raster, x, y, sheet.LabelWidthMm, sheet.LabelHeightMm, BarcodeFormat.CODE_128);
+                    if (bottom < 0.98 || right < 0.98 || decoded != $"M-R{slot + 1:000}")
+                    {
+                        failures.Add($"{what}, label column {column + 1} row {row + 1}: frame bottom line {bottom:P0} and right line {right:P0} printed, code read '{decoded}'.");
+                    }
+                }
+            }
+        });
+
+        if (failures.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>The share of points along a line (mm) where the page is inked within a pixel of it.</summary>
+    private static double InkedShare(Raster raster, double x0Mm, double y0Mm, double x1Mm, double y1Mm)
+    {
+        int Px(double mm) => (int)Math.Round(mm / 25.4 * Dpi);
+        var steps = Math.Max(Math.Abs(Px(x1Mm) - Px(x0Mm)), Math.Abs(Px(y1Mm) - Px(y0Mm)));
+        var inked = 0;
+        for (var step = 0; step <= steps; step++)
+        {
+            var x = Px(x0Mm + (x1Mm - x0Mm) * step / steps);
+            var y = Px(y0Mm + (y1Mm - y0Mm) * step / steps);
+            var dark = false;
+            for (var dy = -1; dy <= 1 && !dark; dy++)
+            {
+                for (var dx = -1; dx <= 1 && !dark; dx++)
+                {
+                    var px = Math.Clamp(x + dx, 0, raster.Width - 1);
+                    var py = Math.Clamp(y + dy, 0, raster.Height - 1);
+                    dark = raster.Gray[py * raster.Width + px] < 128;
+                }
+            }
+
+            inked += dark ? 1 : 0;
+        }
+
+        return (double)inked / (steps + 1);
+    }
+
     private static void CheckSheet(SheetCase sheet, List<string> failures)
     {
         var (template, rows) = CreateSheet(sheet);

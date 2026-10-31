@@ -1283,6 +1283,30 @@ public sealed class PrintService
     }
 
     /// <summary>
+    /// The part of its cell a label is drawn in: from the margins, at the print
+    /// scale, turned with the feed direction. The renderer paints the label's
+    /// white ground from the cell's corner, before the margins; on a sheet whose
+    /// margins are wider than its gaps that ground blanked the right and bottom
+    /// edge of the label before it, so each cell keeps to this area.
+    /// </summary>
+    private static Rect LabelArea(PrintRenderPlan plan)
+    {
+        var width = MmConverter.MmToDip(plan.LabelWidthMm) * plan.ScaleX;
+        var height = MmConverter.MmToDip(plan.LabelHeightMm) * plan.ScaleY;
+        var left = MmConverter.MmToDip(plan.OffsetXMm);
+        var top = MmConverter.MmToDip(plan.OffsetYMm);
+        if (plan.FeedDirection is FeedDirection.LeftToRight or FeedDirection.RightToLeft)
+        {
+            // A quarter turn about the label's centre.
+            var turnedWidth = MmConverter.MmToDip(plan.LabelHeightMm) * plan.ScaleX;
+            var turnedHeight = MmConverter.MmToDip(plan.LabelWidthMm) * plan.ScaleY;
+            return new Rect(left + (width - turnedWidth) / 2, top + (height - turnedHeight) / 2, turnedWidth, turnedHeight);
+        }
+
+        return new Rect(left, top, width, height);
+    }
+
+    /// <summary>
     /// One label per page, or — for a sheet (NiceLabel 10 multiple labels per
     /// page, or one label on a larger sheet such as A5) — one physical sheet
     /// per page with each row's label placed in its grid cell from the
@@ -1343,6 +1367,7 @@ public sealed class PrintService
                         profile.StartFromBottom);
                     var label = _renderer.Render(template, rowList[index], labelPlan);
                     label.Transform = new TranslateTransform(MmConverter.MmToDip(cell.XMm), MmConverter.MmToDip(cell.YMm));
+                    label.Clip = new RectangleGeometry(LabelArea(labelPlan));
                     sheet.Children.Add(label);
                 }
 
@@ -1405,7 +1430,11 @@ public sealed class PrintService
                 profile.StartFromBottom);
             if (_renderer.Render(template, rows[index], labelPlan).Drawing is { } drawing)
             {
-                var placed = new DrawingGroup { Transform = new TranslateTransform(MmConverter.MmToDip(cell.XMm), MmConverter.MmToDip(cell.YMm)) };
+                var placed = new DrawingGroup
+                {
+                    Transform = new TranslateTransform(MmConverter.MmToDip(cell.XMm), MmConverter.MmToDip(cell.YMm)),
+                    ClipGeometry = new RectangleGeometry(LabelArea(labelPlan))
+                };
                 placed.Children.Add(drawing);
                 labels.Children.Add(placed);
             }

@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.358
+
+- In: tờ nhiều tem có lề rộng hơn khe giữa các tem (ví dụ tờ A5 8 tem 68 x 48 mm, lề 5 mm, khe
+  2 mm) mất mép phải và mép dưới của tem: nền trắng của mỗi tem được tô từ góc ô, trước lề, nên
+  tem in sau che một dải (lề trừ khe) của tem in trước — khung mất đường dưới, dòng chữ cuối bị
+  cắt nửa, cả trên giấy lẫn trong Xem trước. Nay mỗi ô chỉ giữ phần của tem mình (cả khi tem
+  xoay theo hướng nạp giấy). Tìm ra khi in thử nhãn thùng và nhãn túi trên A5.
+
 ## v0.358 — Mở tem không liên kết không còn giữ dữ liệu tem trước; Không in và Khóa vị trí áp cho cả vùng chọn; Xem trước nêu chung các cột thiếu; khung lỗi tiếng Việt
 
 _Gồm các commit 31/10/2026 (17:25–17:32)._
