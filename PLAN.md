@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.361
+## v0.362 — Trang Kiểu của hình, menu chuột phải và bảng Dữ liệu gọn như NiceLabel 10
+
+_Gồm các commit 31/10/2026 (22:01–22:45)._
 
 - Bảng Dữ liệu: ô “Tìm…” và nút “+ Thêm ▾” cùng mép trên và cùng chiều cao (nút từng cao 45 DIP vì
   ký tự ▾, lệch khỏi ô tìm 32 DIP).
