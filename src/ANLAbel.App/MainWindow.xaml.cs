@@ -46,6 +46,7 @@ public partial class MainWindow : Window
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         WatchLabelFields();
         BuildDesignerContextMenu();
+        BuildObjectBrowserContextMenu();
         // Back from Excel: say whether the linked file is still open there.
         Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
         BindObjectBrowser();
@@ -448,7 +449,7 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// NiceLabel 10 Object Browser: every object of the label, filtered by
-    /// the search box, on its own view so the canvas and Layers stay unfiltered.
+    /// the search box, on its own view so the canvas stays unfiltered.
     /// </summary>
     private void BindObjectBrowser()
     {
@@ -952,6 +953,88 @@ public partial class MainWindow : Window
         _labelMenuItems.AddRange(new Control[] { labelProperties, _contextSelectAllItem, zoomLabel, zoomObjects });
         DesignerCanvas.PreviewMouseRightButtonDown += (_, e) => SelectForContextMenu(e.GetPosition(DesignerCanvas));
         DesignerCanvas.ContextMenuOpening += (_, _) => UpdateDesignerContextMenu();
+    }
+
+    /// <summary>
+    /// NiceLabel 10 Object browser: a right-click on an object selects it and offers its
+    /// commands (SelectOnRightClick, the selector's context menu). A hidden object, which the
+    /// label does not draw, is reached only here: Hiển thị brings it back.
+    /// </summary>
+    private void BuildObjectBrowserContextMenu()
+    {
+        MenuItem Item(string header, string gesture, RoutedEventHandler click)
+        {
+            var item = new MenuItem { Header = header, InputGestureText = gesture };
+            item.Click += click;
+            return item;
+        }
+
+        RoutedEventHandler Run(ICommand command) => (_, e) =>
+        {
+            command.Execute(null);
+            e.Handled = true;
+        };
+
+        // Ticked when every selected object is shown or locked; a click sets them all the other way.
+        var shown = Item("Hiển thị", string.Empty, (_, e) =>
+        {
+            _viewModel.SelectionShown = _viewModel.SelectionShown != true;
+            e.Handled = true;
+        });
+        var locked = Item("Khóa vị trí", string.Empty, (_, e) =>
+        {
+            _viewModel.SelectionLocked = _viewModel.SelectionLocked != true;
+            e.Handled = true;
+        });
+        var arrange = new MenuItem { Header = "Sắp xếp" };
+        arrange.Items.Add(Item("Đưa lên trên cùng", "Ctrl+PgUp", Run(_viewModel.BringToFrontCommand)));
+        arrange.Items.Add(Item("Đưa lên một lớp", "PgUp", Run(_viewModel.BringForwardCommand)));
+        arrange.Items.Add(Item("Đưa xuống một lớp", "PgDn", Run(_viewModel.SendBackwardCommand)));
+        arrange.Items.Add(Item("Đưa xuống dưới cùng", "Ctrl+PgDn", Run(_viewModel.SendToBackCommand)));
+        var menu = new ContextMenu();
+        foreach (var item in new Control[]
+                 {
+                     Item("Thuộc tính", "F2", (_, e) =>
+                     {
+                         _viewModel.IsPropertiesVisible = true;
+                         if (!_viewModel.IsPropertiesPinned)
+                         {
+                             OpenFloatingProperties();
+                         }
+
+                         e.Handled = true;
+                     }),
+                     new Separator(),
+                     Item("Cắt", "Ctrl+X", Cut_Click),
+                     Item("Sao chép", "Ctrl+C", Copy_Click),
+                     Item("Xóa", "Delete", (_, e) =>
+                     {
+                         ANLAbel.App.Controls.LabelDesignerCanvas.DeleteSelectionCommand.Execute(null, DesignerCanvas);
+                         e.Handled = true;
+                     }),
+                     new Separator(),
+                     shown,
+                     locked,
+                     arrange
+                 })
+        {
+            menu.Items.Add(item);
+        }
+
+        menu.Opened += (_, _) =>
+        {
+            shown.IsChecked = _viewModel.SelectionShown == true;
+            locked.IsChecked = _viewModel.SelectionLocked == true;
+        };
+        ObjectBrowserList.ContextMenu = menu;
+        // Only on an object: the list's empty space has no commands.
+        ObjectBrowserList.ContextMenuOpening += (_, e) =>
+        {
+            if (ItemsControl.ContainerFromElement(ObjectBrowserList, e.OriginalSource as DependencyObject) is not ListBoxItem)
+            {
+                e.Handled = true;
+            }
+        };
     }
 
     /// <summary>

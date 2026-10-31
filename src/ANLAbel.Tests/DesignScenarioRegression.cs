@@ -902,6 +902,62 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's Object browser selects an object on a right-click and offers its commands.
+    /// ANLAbel's Đối tượng list had no menu, and a hidden object, which the label does not draw,
+    /// could be shown again only through Properties › Chung. A right-click on a row now offers
+    /// Thuộc tính, Cắt, Sao chép, Xóa, Hiển thị, Khóa vị trí and Sắp xếp for the selection.
+    /// </summary>
+    public static Task ObjectListRightClickOffersTheObjectCommands()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            var hidden = new LabelObject { Type = ObjectType.Text, Name = "Ẩn", Text = "Ẩn", IsVisible = false, XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6 };
+            viewModel.Template.Objects.Add(hidden);
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Thường", Text = "Thường", XMm = 3, YMm = 12, WidthMm = 20, HeightMm = 6 });
+            var list = (ListBox)window.FindName("ObjectBrowserList");
+            ((TabControl)window.FindName("WorkspaceTabs")).SelectedIndex = 1;
+            // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            list.SelectedItem = hidden;
+            Require(ReferenceEquals(viewModel.SelectedObject, hidden), "A pick in the list selects the object, a hidden one too.");
+            var menu = list.ContextMenu;
+            Require(menu is not null, "The object list has a right-click menu.");
+            MenuItem Command(string header) => menu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, header));
+            var headers = menu!.Items.OfType<MenuItem>().Select(item => item.Header as string).ToArray();
+            Require(headers.SequenceEqual(new[] { "Thuộc tính", "Cắt", "Sao chép", "Xóa", "Hiển thị", "Khóa vị trí", "Sắp xếp" }),
+                "The menu offers the object's commands: " + string.Join(", ", headers));
+
+            menu.RaiseEvent(new RoutedEventArgs(ContextMenu.OpenedEvent, menu));
+            Require(!Command("Hiển thị").IsChecked, "A hidden object shows Hiển thị unticked.");
+            Command("Hiển thị").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            var shownAgain = viewModel.Template.Objects.Single(item => item.Id == hidden.Id);
+            Require(shownAgain.IsVisible, "Hiển thị brings a hidden object back.");
+            viewModel.UndoCommand.Execute(null);
+            Require(!viewModel.Template.Objects.Single(item => item.Id == hidden.Id).IsVisible, "One undo hides it again.");
+
+            viewModel.IsPropertiesVisible = false;
+            Command("Thuộc tính").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(viewModel.IsPropertiesVisible, "Thuộc tính opens the Properties panel.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

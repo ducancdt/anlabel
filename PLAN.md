@@ -2,6 +2,10 @@
 
 ## Sau v0.360
 
+- Danh sách Đối tượng như Object browser của NiceLabel 10: chuột phải lên một đối tượng là chọn nó và
+  có menu Thuộc tính, Cắt, Sao chép, Xóa, Hiển thị, Khóa vị trí, Sắp xếp. Đối tượng đang ẩn không vẽ
+  trên tem nên chỉ với tới được ở đây: “Hiển thị” cho nó hiện lại (một bước hoàn tác); trước đây phải
+  vào Thuộc tính › Chung.
 - Thẻ Nguồn chỉ hiện thẻ “Chưa liên kết nguồn Excel / Liên kết Excel…” cho đối tượng đọc tệp dữ liệu
   (một cột, hoặc một hàm có thể đọc cột); chữ cố định, biến nhập khi in, ngày in và số sê-ri không cần
   tệp nên không còn thẻ đó (trước đây hiện cho mọi đối tượng, như thể đều phải có Excel). Nhập dữ liệu
