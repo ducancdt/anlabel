@@ -13664,8 +13664,12 @@ static ResourceDictionary LoadAppTheme()
 
 static Task TestDialogsRenderForUiAudit()
 {
-    // Evidence renders of the main dialogs (TestOutput/ui-audit, not committed).
+    // Evidence renders of the main dialogs (TestOutput/ui-audit, not committed), and no
+    // wrapping text cut at the edge of its window or scroll area (a horizontal StackPanel
+    // gives text unlimited width, so it never wraps).
     Exception? failure = null;
+    var cut = new List<string>();
+    var checkedTexts = 0;
     var thread = new Thread(() =>
     {
         try
@@ -13697,6 +13701,38 @@ static Task TestDialogsRenderForUiAudit()
                 content.UpdateLayout();
                 PumpDispatcher();
                 content.UpdateLayout();
+                // An unshown window is never IsVisible: walk the Visibility up to the content.
+                bool Shown(DependencyObject element)
+                {
+                    for (var node = element; node is not null && !ReferenceEquals(node, content); node = VisualTreeHelper.GetParent(node))
+                    {
+                        if (node is UIElement item && item.Visibility != Visibility.Visible)
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+
+                foreach (var text in FindVisualDescendants<TextBlock>(content).Where(text => text.TextWrapping == TextWrapping.Wrap && text.Text.Length > 0 && Shown(text)))
+                {
+                    DependencyObject? area = VisualTreeHelper.GetParent(text);
+                    // The part of a ScrollViewer that clips its content (inside the ScrollViewer's padding).
+                    while (area is not null and not ScrollContentPresenter && !ReferenceEquals(area, content))
+                    {
+                        area = VisualTreeHelper.GetParent(area);
+                    }
+
+                    checkedTexts++;
+                    var bound = area is ScrollContentPresenter presenter ? presenter.ActualWidth : width;
+                    var within = (Visual?)area ?? content;
+                    if (bound > 0 && text.TransformToAncestor(within).TransformBounds(new Rect(text.RenderSize)).Right > bound + 1)
+                    {
+                        cut.Add($"{name}: {text.Text}");
+                    }
+                }
+
                 var shot = new RenderTargetBitmap((int)width, (int)height, 96, 96, PixelFormats.Pbgra32);
                 var frame = new DrawingVisual();
                 using (var context = frame.RenderOpen())
@@ -13750,6 +13786,8 @@ static Task TestDialogsRenderForUiAudit()
         throw failure;
     }
 
+    AssertEqual(true, checkedTexts > 10, "The dialogs' wrapping texts are checked: " + checkedTexts);
+    AssertEqual(string.Empty, string.Join(" | ", cut), "Wrapping texts stay inside their dialog");
     return Task.CompletedTask;
 }
 
