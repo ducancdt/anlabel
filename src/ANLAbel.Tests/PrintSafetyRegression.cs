@@ -340,7 +340,17 @@ internal static class PrintSafetyRegression
         // Labels 3 and 4 are two copies of data row 2: the operator must see row 2 once.
         var text = ANLAbel.App.Services.PreflightIssueText.Describe(result, label => label is 3 or 4 ? 2 : 0);
         Require(text.StartsWith("Kiểm tra trước khi in phát hiện 2 vấn đề. Chưa có tem nào được gửi.", StringComparison.Ordinal), text);
-        Require(text.Contains("- Dòng 2 · “SKU” (mã QR): dữ liệu thiếu cột Part; đối tượng sẽ in trống", StringComparison.Ordinal), text);
+        // The row is held back, not printed with a blank object; every row lacks the column, so the
+        // issue names what fixes it: the column in the file, or the object's source.
+        Require(text.Contains("- Dòng 2 · “SKU” (mã QR): dữ liệu thiếu cột Part nên đối tượng sẽ trống; thêm cột này vào tệp dữ liệu hoặc đổi nguồn dữ liệu của đối tượng sang một cột có trong tệp", StringComparison.Ordinal), text);
+        Require(!text.Contains("sẽ in trống", StringComparison.Ordinal), "A held-back row is not said to print blank: " + text);
+        var formula = ANLAbel.App.Services.PreflightIssueText.Message("Formula binding error: Field 'PO' was not found.");
+        Require(formula == "công thức lấy dữ liệu bị lỗi: Không tìm thấy trường “PO”.", "A formula issue names the field it lacks: " + formula);
+        // A fault with its own "; " stays whole: the faults are split only before the next one.
+        var date = ANLAbel.App.Services.PreflightIssueText.Message("Formula binding error: Date '31.12.2026' is not understood; give it as yyyy-MM-dd or dd/MM/yyyy, or name its format.");
+        Require(date.StartsWith("công thức lấy dữ liệu bị lỗi: Không đọc được ngày “31.12.2026”", StringComparison.Ordinal), "A date fault reads whole and in Vietnamese: " + date);
+        var quoted = ANLAbel.App.Services.PreflightIssueText.Message("Formula binding error: Field 'Lot; Batch' was not found.");
+        Require(quoted == "công thức lấy dữ liệu bị lỗi: Không tìm thấy trường “Lot; Batch”.", "A quoted name with its own semicolon stays whole: " + quoted);
         Require(text.Contains("- Mẫu (khổ tem): khổ giấy văn phòng (A4, Letter…) không phải khổ tem", StringComparison.Ordinal), text);
         Require(!text.Contains("Logo", StringComparison.Ordinal), "Advisory issues must not be listed as print blockers: " + text);
         Require(ANLAbel.App.Services.PreflightIssueText.Message("A brand-new validator message.") == "A brand-new validator message.",

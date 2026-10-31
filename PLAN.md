@@ -18,6 +18,10 @@
 - Xem trước khi in: chữ trên khung báo lỗi của đối tượng (“Invalid barcode data”, “Text overflow”,
   các câu về dòng chữ dưới mã, “No image”) nay là tiếng Việt (“Dữ liệu mã không hợp lệ”, “Chữ tràn
   khung”…); lớp in giữ tiếng Anh cho nhật ký và kiểm thử, ứng dụng đưa chữ tiếng Việt vào khi khởi động.
+- Xem trước khi in: vấn đề “thiếu cột” và “dấu ngoặc {} chưa có tên cột” không còn nói đối tượng
+  “sẽ in trống” (dòng đó bị giữ lại, không in) và nêu việc cần làm: thêm cột vào tệp dữ liệu hoặc đổi
+  nguồn dữ liệu của đối tượng; lỗi công thức lấy dữ liệu nêu luôn lỗi của công thức (“Không tìm thấy
+  trường “PO”.”).
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

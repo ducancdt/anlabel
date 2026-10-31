@@ -14,12 +14,15 @@ public static class PreflightIssueText
     private static readonly (Regex Pattern, Func<Match, string> Text)[] Rules =
     [
         (Rx(@"^Missing field\(s\) in Excel data: (?<f>.+?)\. This object will print blank"),
-            m => $"dữ liệu thiếu cột {m.Groups["f"].Value}; đối tượng sẽ in trống"),
+            m => $"dữ liệu thiếu cột {m.Groups["f"].Value} nên đối tượng sẽ trống; thêm cột này vào tệp dữ liệu hoặc đổi nguồn dữ liệu của đối tượng sang một cột có trong tệp"),
         (Rx(@"^Visibility condition reads field\(s\) missing from the data: (?<f>.+?)\. The object would be left off every label"),
             m => $"điều kiện hiển thị đọc cột {m.Groups["f"].Value} mà dữ liệu không có nên đối tượng sẽ không in trên tem nào; sửa điều kiện hoặc thêm cột vào tệp dữ liệu rồi bấm Cập nhật Excel"),
+        // The formula's own fault, worded as the designer words it: which field or function failed.
+        (Rx(@"^Formula binding error: (?<e>.+)$"),
+            m => "công thức lấy dữ liệu bị lỗi: " + FormulaDetails(m.Groups["e"].Value)),
         (Rx(@"^Formula binding error"), _ => "công thức lấy dữ liệu bị lỗi"),
         (Rx(@"^Placeholder \{\} has no field name"),
-            _ => "dấu ngoặc {} chưa có tên cột nên đối tượng sẽ in trống; nhập tên cột vào giữa hai dấu ngoặc hoặc xóa chúng"),
+            _ => "dấu ngoặc {} chưa có tên cột nên đối tượng sẽ trống; nhập tên cột vào giữa hai dấu ngoặc hoặc xóa chúng"),
         (Rx(@"^Field '(?<f>.*?)' reads column (?<c>[A-Z]+), whose header cell is empty"),
             m => $"trường “{m.Groups["f"].Value}” lấy từ cột {m.Groups["c"].Value} không có tiêu đề nên chỉ nhận ra được theo vị trí cột; đặt tiêu đề cho cột này trong tệp dữ liệu rồi bấm Cập nhật Excel"),
         (Rx(@"^Field '(?<f>.*?)' matches columns (?<cols>.+?) equally, so only their order decides"),
@@ -204,6 +207,18 @@ public static class PreflightIssueText
         }
 
         return text;
+    }
+
+    /// <summary>
+    /// A formula's faults in Vietnamese: the whole text when it is one known fault (one may hold
+    /// its own "; ", or a quoted value with one), else each fault the validator joined with "; ".
+    /// </summary>
+    private static string FormulaDetails(string faults)
+    {
+        var whole = FormulaErrorText.Translate(faults);
+        return whole != faults
+            ? whole
+            : string.Join(" ", Regex.Split(faults, "; (?=[A-Z])").Select(FormulaErrorText.Translate));
     }
 
     /// <summary>True when <see cref="Message"/> has a Vietnamese rule for the message.</summary>
