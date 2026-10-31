@@ -1007,3 +1007,51 @@ ANLAbel's Properties panel and ribbon edit the key object; font family,
 size, style, colour and alignment now go to every selected text and text
 box (pending batch). Barcode settings and the other pages still edit the
 key object only.
+
+## §27 Object names, shared values, locks and record selection (2026-10-31)
+
+Evidence: Core.dll `3659e860…`, DesignerLib.dll `ac59f773…`, Gui.Core.dll
+`3f07b396…`, Interfaces.dll `589df2b6…` (SHA-256 prefixes), decompiled with
+ilspycmd.
+
+- New items. `AbstractDocumentDesign` (Core) names an item added to the
+  design with `ISolutionService.GetSolutionItemUniqueName`: the proposed name,
+  trimmed, or the first free `Name_1`, `Name_2` … (`Name1` when the feature
+  `DefaultVariableNameCounterSeparatorIsNotUsed` is on).
+  `IsSolutionItemNameUnique` compares with `CurrentCultureIgnoreCase`.
+- Renaming. `OptionsPropertyPageViewModel.Name` (DesignerLib) carries
+  `RequiredUniqueNameValidatorWithDialog` and `RequiredNameValidatorWithDialog`:
+  a name another element has, case ignored, or an empty name sets
+  `IsSetValueAborted` and shows an error dialog, "Invalid name: Another
+  element with the same name already exists. The original name will be
+  restored." or "Property name cannot be empty. The original name will be
+  restored." (`DesignerMessages` resources).
+- A multiple selection's values. `SolutionItemPropertyPageViewModel<TItem>`
+  (Gui.Core) reads a page field through `GetCommonValue` / `UpdateCommonValue`:
+  the first item's value when every selected item has the same one
+  (`object.Equals`), else the field's default, which is null for the nullable
+  fields of the barcode text page (`FontSize`, `IsBold`, `IsItalic`). A field
+  of a mixed selection is therefore blank.
+- Locked items. `DeleteDocumentItemCommand.CanExecute` asks only for a
+  selected item, so a position-locked item is deleted like any other; the
+  move commands of `DesignSurfaceCoreCommand` leave out items with
+  `PositionLocked`.
+- Record selection. A label's use of a data set (`IDataSetUsage`, Interfaces)
+  holds a filter reference, labels per record, how records are retrieved,
+  records to skip, whether the operator selects records and single record.
+  The customer labels store only labels per record (1): no filter and no
+  skipped records, so NiceLabel reads every row of the sheet, including rows
+  that hold only a formula filled down past the records (one customer sheet
+  has 1 record and 198 such rows).
+- Layers and stacking. An item's `ZOrder` includes its layer's base (10000,
+  20000 … in the layered sample pallet and container labels), so sorting by
+  item `ZOrder`, as the importer does, keeps each layer above the one below.
+- Undo. Each property edit names its undo step with a resource string
+  (`TextPropertyXaml.FontSizeUndoDesc` and the like, §26), and the Undo and
+  Redo drop-downs (`Gui.Core/undoredodropdown`) list those names.
+
+ANLAbel (pending batch): a new object takes a free name ("Chữ 2"), the
+ribbon's name box refuses a taken or empty name and keeps the old one, the
+ribbon's font boxes are blank for a mixed selection, and undo steps have
+names with Undo ▾ and Redo ▾ lists. Delete removes locked objects, as in
+NiceLabel.
