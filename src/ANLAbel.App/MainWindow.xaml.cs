@@ -941,16 +941,30 @@ public partial class MainWindow : Window
             grid.Items.Add(item);
         }
 
+        // NiceLabel 10's label menu: Object markers after Alignment and gridlines; the View tab's toggles.
+        var markers = new MenuItem { Header = "Dấu đối tượng" };
+        foreach (var (header, property) in new[]
+                 {
+                     ("Tên đối tượng", ANLAbel.App.Controls.LabelDesignerCanvas.ShowObjectNamesProperty),
+                     ("Nguồn dữ liệu", ANLAbel.App.Controls.LabelDesignerCanvas.ShowDataSourceMarkersProperty),
+                     ("Đối tượng khóa", ANLAbel.App.Controls.LabelDesignerCanvas.ShowLockedMarkersProperty)
+                 })
+        {
+            var marker = new MenuItem { Header = header, IsCheckable = true };
+            marker.SetBinding(MenuItem.IsCheckedProperty, new System.Windows.Data.Binding { Source = DesignerCanvas, Path = new PropertyPath(property), Mode = System.Windows.Data.BindingMode.TwoWay });
+            markers.Items.Add(marker);
+        }
+
         var objectHead = new Separator();
         var objectTail = new Separator();
         var labelTail = new Separator();
-        foreach (var item in new Control[] { properties, labelProperties, objectHead, cut, copy, _contextPasteItem, _contextSelectAllItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid })
+        foreach (var item in new Control[] { properties, labelProperties, objectHead, cut, copy, _contextPasteItem, _contextSelectAllItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid, markers })
         {
             menu.Items.Add(item);
         }
 
         _objectMenuItems.AddRange(new Control[] { properties, cut, copy, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align });
-        _labelMenuItems.AddRange(new Control[] { labelProperties, _contextSelectAllItem, zoomLabel, zoomObjects });
+        _labelMenuItems.AddRange(new Control[] { labelProperties, _contextSelectAllItem, zoomLabel, zoomObjects, markers });
         DesignerCanvas.PreviewMouseRightButtonDown += (_, e) => SelectForContextMenu(e.GetPosition(DesignerCanvas));
         DesignerCanvas.ContextMenuOpening += (_, _) => UpdateDesignerContextMenu();
     }

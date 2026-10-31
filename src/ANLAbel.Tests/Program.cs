@@ -78,6 +78,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the Excel card shows for objects reading data", DesignScenarioRegression.ExcelLinkCardShowsForObjectsReadingData),
     ("a right-click in the object list offers the object's commands", DesignScenarioRegression.ObjectListRightClickOffersTheObjectCommands),
     ("shape style follows NiceLabel's outline and fill", DesignScenarioRegression.ShapeStyleFollowsNiceLabelOutlineAndFill),
+    ("the label menu toggles the object markers", DesignScenarioRegression.LabelMenuTogglesObjectMarkers),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

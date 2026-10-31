@@ -2,6 +2,9 @@
 
 ## Sau v0.361
 
+- Menu chuột phải trên tem có thêm “Dấu đối tượng” (Tên đối tượng, Nguồn dữ liệu, Đối tượng khóa) sau
+  “Căn và lưới”, như menu trang của NiceLabel 10; trước đây chỉ bật/tắt được ở thẻ ribbon Xem. Menu trên
+  đối tượng không có mục này.
 - Thẻ ribbon Hình dạng khớp trang Kiểu: ô “Bo góc (mm)” chỉ hiện với hình chữ nhật, nhóm “Tô nền” không
   hiện với đường kẻ (như NiceLabel 10 ẩn bo góc ngoài hình chữ nhật).
 - Trang Kiểu của hình như trang Style của NiceLabel 10: thẻ “Đường viền” (độ dày, kiểu nét và màu,

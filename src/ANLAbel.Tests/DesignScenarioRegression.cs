@@ -1031,6 +1031,54 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's right-click menu on the label has Object markers after Alignment and
+    /// gridlines. ANLAbel's label menu had none: the markers were on the View tab only. The label's
+    /// menu now has Dấu đối tượng with the View tab's three toggles; an object's menu leaves it out.
+    /// </summary>
+    public static Task LabelMenuTogglesObjectMarkers()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var menu = canvas.ContextMenu!;
+            var markers = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Dấu đối tượng"));
+            MenuItem Marker(string header) => markers.Items.OfType<MenuItem>().Single(item => Equals(item.Header, header));
+            var update = typeof(ANLAbel.App.MainWindow).GetMethod("UpdateDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var target = typeof(ANLAbel.App.MainWindow).GetField("_contextMenuObject", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var shape = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 1, WidthMm = 20, HeightMm = 10 };
+            viewModel.Template.Objects.Add(shape);
+            target.SetValue(window, shape);
+            update.Invoke(window, null);
+            Require(markers.Visibility == Visibility.Collapsed, "An object's menu leaves the markers out.");
+            target.SetValue(window, null);
+            update.Invoke(window, null);
+            Require(markers.Visibility == Visibility.Visible, "The label's menu has Dấu đối tượng.");
+
+            foreach (var (header, read) in new (string, Func<bool>)[]
+                     {
+                         ("Tên đối tượng", () => canvas.ShowObjectNames),
+                         ("Nguồn dữ liệu", () => canvas.ShowDataSourceMarkers),
+                         ("Đối tượng khóa", () => canvas.ShowLockedMarkers)
+                     })
+            {
+                var item = Marker(header);
+                var before = read();
+                Require(item.IsChecked == before, $"{header} is ticked as the View tab: {item.IsChecked} / {before}.");
+                item.IsChecked = !before;
+                Require(read() == !before, $"{header} turns the marker {(before ? "off" : "on")}.");
+            }
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
@@ -3308,7 +3356,7 @@ internal static class DesignScenarioRegression
             Find("Sao chép").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
 
             RightClickAt(60, 40);
-            Require(Shown().SequenceEqual(["Thuộc tính tem", "Dán", "Chọn tất cả", "Vừa tài liệu", "Vừa đối tượng", "Căn và lưới"]) && Find("Dán").IsEnabled,
+            Require(Shown().SequenceEqual(["Thuộc tính tem", "Dán", "Chọn tất cả", "Vừa tài liệu", "Vừa đối tượng", "Căn và lưới", "Dấu đối tượng"]) && Find("Dán").IsEnabled,
                 "On the label the menu offers the label's commands, and the copy can be pasted: " + string.Join(" | ", Shown()));
             var gridHeaders = Find("Căn và lưới").Items.OfType<MenuItem>().Select(item => (string)item.Header).ToArray();
             Require(gridHeaders.Contains("Dính theo đối tượng") && gridHeaders.Contains("Đường gióng"), "Snapping and guides stay under Căn và lưới: " + string.Join(" | ", gridHeaders));
