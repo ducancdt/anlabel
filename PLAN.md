@@ -29,6 +29,9 @@
   “Đổi khổ tem”); nút Hoàn tác và Làm lại ghi bước sẽ làm, thanh trạng thái ghi bước vừa
   làm, và mũi tên ▾ cạnh hai nút mở danh sách để hoàn tác hay làm lại nhiều bước một lần,
   như NiceLabel 10.
+- Thiết kế: đối tượng thêm vào tem nhận một tên chưa dùng (“Chữ”, “Chữ 2”, “Chữ 3”, không
+  phân biệt hoa thường), như NiceLabel 10 đánh số tên mục mới, để thông báo kiểm tra và
+  bước hoàn tác chỉ đúng một đối tượng; tên sẵn có trong tem giữ nguyên.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

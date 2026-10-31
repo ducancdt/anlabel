@@ -2253,6 +2253,35 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Three texts added in a row were all named "Chữ", so a preflight message
+    /// or an undo step about “Chữ” could not say which one. An added object now
+    /// takes a free name ("Chữ 2", "Chữ 3"), as NiceLabel 10 numbers a new
+    /// item; a label opened with two objects of one name keeps both names.
+    /// </summary>
+    public static Task AddedObjectsGetUniqueNames()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var existing = new LabelTemplate { Name = "Tem cũ", WidthMm = 60, HeightMm = 40 };
+            existing.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6 });
+            existing.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "B", XMm = 3, YMm = 12, WidthMm = 20, HeightMm = 6 });
+            typeof(ANLAbel.App.ViewModels.MainViewModel).GetProperty("Template")!.SetValue(viewModel, existing);
+            string Names() => string.Join(" | ", viewModel.Template.Objects.Select(item => item.Name));
+            Require(Names() == "Chữ | Chữ", "The names a label already has stay: " + Names());
+
+            viewModel.AddTextCommand.Execute(null);
+            viewModel.AddTextCommand.Execute(null);
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "PO (bản sao)", Text = "PO", XMm = 3, YMm = 21, WidthMm = 20, HeightMm = 6 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "po (bản sao) ", Text = "PO", XMm = 3, YMm = 30, WidthMm = 20, HeightMm = 6 });
+            Require(Names() == "Chữ | Chữ | Chữ 2 | Chữ 3 | PO (bản sao) | po (bản sao) 2",
+                "Each added object has its own name: " + Names());
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Undo took back a step without saying which. As in NiceLabel 10 each step
     /// now has a name: the Undo button says what it will undo, the status bar
     /// what it undid, and the Undo ▾ list takes back several steps at once.

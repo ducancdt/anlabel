@@ -5036,6 +5036,7 @@ public sealed class MainViewModel : ObservableObject
         {
             foreach (LabelObject item in e.NewItems)
             {
+                GiveUniqueName(item);
                 ObserveObject(item);
             }
         }
@@ -5058,6 +5059,36 @@ public sealed class MainViewModel : ObservableObject
         return action is null || items is null
             ? Array.Empty<ANLAbel.App.Services.HistoryChange>()
             : items.OfType<LabelObject>().Select(item => new ANLAbel.App.Services.HistoryChange(action, item)).ToArray();
+    }
+
+    /// <summary>
+    /// An added object takes a name no other object on the label has ("Chữ",
+    /// "Chữ 2", "Chữ 3"; case ignored), as NiceLabel 10 numbers a new item's
+    /// name, so a preflight message or an undo step points at one object. The
+    /// names a label already has are its data and stay as they are.
+    /// </summary>
+    private void GiveUniqueName(LabelObject item)
+    {
+        var name = item.Name?.Trim() ?? string.Empty;
+        if (_isRestoringHistory || name.Length == 0)
+        {
+            return;
+        }
+
+        bool Taken(string candidate) => Template.Objects.Any(other =>
+            !ReferenceEquals(other, item) && string.Equals(other.Name?.Trim(), candidate, StringComparison.OrdinalIgnoreCase));
+        if (!Taken(name))
+        {
+            return;
+        }
+
+        var number = 2;
+        while (Taken($"{name} {number}"))
+        {
+            number++;
+        }
+
+        item.Name = $"{name} {number}";
     }
 
     private void GuidesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
