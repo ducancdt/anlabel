@@ -638,6 +638,32 @@ a file of printer commands. Out of scope: custom PowerForms.
   taken, and the quick access arrows list the steps to undo or redo several
   at once.
 
+## Properties pages and the Data explorer (v0.360, 2026-10-31)
+
+Evidence: DesignerLib `ContentContainerPropertyPageViewModel` and
+`DesignerDataSourceSelectorProvider` (the Source page), the `[PropertyPage]`
+`OrderWeight`s and `PropertyPagesMessages` names (Source 110, Mask 111, Barcode
+120, Check Digit 121, Human Readable 122, Details 123, Bearer Bar 124, Style
+140, Position 150, General 170), `OptionsPropertyPageViewModel` (name,
+description, visible, visibility condition), `FormatOptionsPropertyPageViewModel`
+(not printable and the print options) and `PositionPropertyPageViewModel`
+(position lock, keep aspect ratio); screenshots `nl10-props.png` and
+`nl10-design.png` (outside the repository).
+
+| NiceLabel 10 | ANLAbel v0.360 |
+| --- | --- |
+| Source › "Connected data source": Fixed data, then variables (Add new variable), functions (Add new function), internal variables, GS1 input, databases (Add new database) in one selector | Nguồn › "Nguồn dữ liệu": Chữ cố định, then Biến nhập khi in, Trường dữ liệu, Hàm and Khi in (số sê-ri, ngày in) in the Data panel's groups, and "Ghép chữ / công thức…" for a composition. It shows what the object prints (a column the file lacks stays listed, marked); a pick connects the object as a drop from the Data panel does (one undo step, the name kept). The Excel link card moved below the source. |
+| Barcode pages: Barcode · Check Digit · Human Readable · Details · Bearer Bar (2D: Barcode · Details) | Kiểu is named "Mã vạch" for a barcode, with Mã vạch · Số kiểm tra · Chữ dưới mã · Chi tiết; the bearer bar sits in Chi tiết so four headers fit the panel. 2D mode and error correction show for 2D codes only, the Code 39 ratio and gap for Code 39, the Code 128 code set for Code 128; a 2D code has no check digit, readable text or bearer bar pages. |
+| General: name, description, visible, visibility condition, not printable and print options | Chung: Tên (with the reason a name is refused), Không in, Hiển thị, Điều kiện hiển thị. The arrange buttons, which NiceLabel keeps on the ribbon, fold into "Nâng cao" below. No description field (ANLAbel objects have none). |
+| Position: X, Y, width, height, rotation, anchoring point, position lock, keep aspect ratio | Vị trí: the same, Khóa vị trí and Giữ tỉ lệ added. |
+| Data explorer: a search box over the tree; Variables › Add new variable | Dữ liệu: a search box ("Tìm…") filtering prompts, columns and functions on their own views; "+ Thêm ▾" › Biến nhập khi in… / Hàm… opens Quản lý dữ liệu on the new item. |
+
+Found while doing this: the old "Trường Excel" list followed the shared field
+selection, so a data load, a field added or removed, or a pick in the import
+window bound the selected object to that column and renamed it; opening a
+linked label did it to its top object (fixed in v0.360, gate "reloading the
+data keeps the selected object's column").
+
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
 Every view group extracted from DesignerLib, Gui.Core and WpfControls, and
@@ -648,8 +674,8 @@ where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
 | `mainwindow`, ribbon, panels | Ribbon tabs, toolbox, Data/Layers/Objects, Properties | Ribbon, Panels, Shell rebuild |
 | `menuregion` (11): backstage, passwords, font picker, new label tiles, print form | Tệp backstage, Bảo vệ, font lists, New Label Wizard, Print Preview | Backstage, Protection, Prompts…fonts, Print form |
 | `wizards` (13): new label, database | New Label Wizard, Excel import | New Label Setup Wizard, Database wizard |
-| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel; a paste brings the definitions its objects read (RE §28) | Quản lý dữ liệu, Data explorer drag and drop |
-| `propertypages` (128) | Properties panel; the font, the linear barcode settings, Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach every selected object, with a blank or mixed value when the selected objects differ (RE §26, §29); X/Y, size, rotation and anchoring stay with the key object; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
+| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel with a search box and "+ Thêm" (v0.360); a paste brings the definitions its objects read (RE §28) | Quản lý dữ liệu, Data explorer drag and drop |
+| `propertypages` (128) | Properties panel on NiceLabel's pages (v0.360: one "Nguồn dữ liệu" list; Mã vạch with Số kiểm tra, Chữ dưới mã, Chi tiết; Chung with name, printing and visibility; Vị trí with the lock); the font, the linear barcode settings, Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach every selected object, with a blank or mixed value when they differ (RE §26, §29); X/Y, size, rotation and anchoring stay with the key object; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
 | `editors` (6): combo, date, time, rich text, custom boundaries | Prompt editors (dates RE §15), rich text in Properties; custom boundaries unused (RE §22) | Prompts…fonts |
 | `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects; right-click menus on objects and on the label; layers not built; banners and solutions out | Object browser and layers |
 | `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus, the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; keyboard resize and rotate are not built (protected resize lifecycle); in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
