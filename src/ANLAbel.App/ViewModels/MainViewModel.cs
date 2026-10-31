@@ -1430,6 +1430,12 @@ public sealed class MainViewModel : ObservableObject
     /// there are Excel links to check; print-time answers, dates and the serial
     /// are not columns.
     /// </summary>
+    /// <summary>
+    /// The selected object reads the data file: a column, or a function or formula that may read
+    /// one. Fixed text and values given at print time (prompts, the date, the serial) need no file.
+    /// </summary>
+    public bool SelectedObjectReadsData => SelectedObject is { } item && ANLAbel.App.Services.DataHeaderCheck.BindingFields(item.BindingExpression).Count > 0;
+
     public bool ReadsExcelFields => Template.Objects.Any(item =>
         item.IsVisible && ANLAbel.App.Services.DataHeaderCheck.BindingFields(item.BindingExpression).Count > 0);
 
@@ -6454,6 +6460,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(BindingIssues));
         OnPropertyChanged(nameof(HasBindingIssues));
         OnPropertyChanged(nameof(ReadsExcelFields));
+        OnPropertyChanged(nameof(SelectedObjectReadsData));
         OnPropertyChanged(nameof(AwaitsExcelData));
         OnPropertyChanged(nameof(BindingIssuesSummary));
         OnPropertyChanged(nameof(FormulaPreviewValue));

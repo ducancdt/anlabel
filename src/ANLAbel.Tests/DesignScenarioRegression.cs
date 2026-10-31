@@ -857,6 +857,51 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The Source page showed "Chưa liên kết nguồn Excel" and a Liên kết Excel… button for every
+    /// object, fixed text and prompts too, as if each needed a file; NiceLabel 10's Source page
+    /// shows no such card. It now shows for an object that reads the data file (a column, or a
+    /// function that may read one) and not for fixed text or values given at print time.
+    /// </summary>
+    public static Task ExcelLinkCardShowsForObjectsReadingData()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MaVach", "FIELD(\"MaHang\")"));
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            tabs.SelectedIndex = 0;
+            var card = FindLogicalChildren<Border>(window).First(border => AutomationProperties.GetAutomationId(border) == "Shell.Properties.ExcelLink");
+            string Shown(string binding)
+            {
+                var item = new LabelObject { Type = ObjectType.Text, Name = "O" + viewModel.Template.Objects.Count, Text = "A", BindingExpression = binding, XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6 };
+                viewModel.Template.Objects.Add(item);
+                viewModel.SelectedObject = item;
+                Settle();
+                return card.Visibility == Visibility.Visible ? "thẻ" : "không";
+            }
+
+            var shown = new[] { "", "{?Lô}", "LOT {?Lô} {#NOW:dd/MM/yyyy}", "{MaHang}", "LOT {MaHang}", "{MaVach}" }.Select(Shown).ToArray();
+            Require(shown.SequenceEqual(new[] { "không", "không", "không", "thẻ", "thẻ", "thẻ" }),
+                "The Excel card shows for objects reading the file only: " + string.Join(", ", shown));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

@@ -2,6 +2,10 @@
 
 ## Sau v0.360
 
+- Thẻ Nguồn chỉ hiện thẻ “Chưa liên kết nguồn Excel / Liên kết Excel…” cho đối tượng đọc tệp dữ liệu
+  (một cột, hoặc một hàm có thể đọc cột); chữ cố định, biến nhập khi in, ngày in và số sê-ri không cần
+  tệp nên không còn thẻ đó (trước đây hiện cho mọi đối tượng, như thể đều phải có Excel). Nhập dữ liệu
+  vẫn ở bảng Dữ liệu và thẻ Dữ liệu trên ribbon.
 - Bảng Dữ liệu như Data explorer của NiceLabel 10: nhấp đúp một biến nhập khi in hoặc một hàm là mở
   Quản lý dữ liệu ngay trên mục đó; một cột mở trang nguồn dữ liệu, “Số sê-ri” mở bộ đếm, “Ngày in”
   mở trang ngày giờ in; hàng nhóm vẫn chỉ gập/mở. Trước đây nhấp đúp không làm gì.

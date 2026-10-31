@@ -2807,7 +2807,9 @@
                                             <TextBlock Text="{Binding FormulaPreviewUsedFields, StringFormat=Trường đã dùng: {0}}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"/>
                                             <TextBlock Text="{Binding FormulaPreviewErrors}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap"/>
                                         </StackPanel>
-                                        <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,10,0,0">
+                                        <!-- Only for an object that reads the data file: fixed text and values given at print time need none -->
+                                        <Border CornerRadius="6" BorderThickness="1" Padding="8" Margin="0,10,0,0" AutomationProperties.AutomationId="Shell.Properties.ExcelLink"
+                                                Visibility="{Binding SelectedObjectReadsData, Converter={StaticResource BoolToVisibility}}">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#F1F5F9"/>
