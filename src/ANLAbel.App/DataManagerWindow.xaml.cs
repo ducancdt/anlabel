@@ -434,17 +434,85 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        var definitions = _functions.Where(function => !string.IsNullOrWhiteSpace(function.Name)).Select(function => function.ToDefinition()).ToArray();
-        var source = WithPrintTimeValues(
-            fields.Select(field => new KeyValuePair<string, string>(
+        var drafts = _functions.Where(function => !string.IsNullOrWhiteSpace(function.Name)).ToArray();
+        var draftNames = drafts.Select(function => function.Name.Trim()).ToArray();
+        // The selected function and the functions it reads, named as FIELD finds them: another
+        // function's fault is not this one's.
+        var chain = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { draft.Name.Trim() };
+        var pending = new Queue<string>(JobVariableContract.NamesRead(draft.Formula));
+        while (pending.TryDequeue(out var name))
+        {
+            if (DataDefinitionImport.FunctionRead(name, draftNames, _viewModel.KnownColumnNames) is { } reached
+                && chain.Add(reached)
+                && drafts.FirstOrDefault(function => string.Equals(function.Name.Trim(), reached, StringComparison.OrdinalIgnoreCase)) is { } read)
+            {
+                foreach (var inner in JobVariableContract.NamesRead(read.Formula))
+                {
+                    pending.Enqueue(inner);
+                }
+            }
+        }
+
+        var definitions = drafts.Where(function => chain.Contains(function.Name.Trim())).Select(function => function.ToDefinition()).ToArray();
+        // With no data file linked at all, the columns the functions read stand as ‹Name›: the result
+        // shows its shape. A linked file that cannot be read is a broken link, so its columns are missing.
+        var awaiting = _viewModel.HasLinkedExcelSource
+            ? Array.Empty<string>()
+            : definitions
+                .SelectMany(definition => JobVariableContract.NamesRead(definition.Formula))
+                .Where(name => DataDefinitionImport.FunctionRead(name, chain) is null
+                               && !JobVariableContract.IsPromptToken(name)
+                               && !JobVariableContract.IsDateToken(name)
+                               && !JobVariableContract.IsSerialToken(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        var known = fields.Select(field => new KeyValuePair<string, string>(
                 field,
-                _viewModel.PreviewRow is { } row && row.TryGetValue(field, out var value) ? value : string.Empty)),
+                _viewModel.PreviewRow is { } row && row.TryGetValue(field, out var value) ? value : string.Empty))
+            .ToArray();
+        var source = WithPrintTimeValues(
+            known.Concat(awaiting.Select(column => new KeyValuePair<string, string>(column, $"‹{column}›"))),
             definitions);
         var result = DataTransformPipeline.Evaluate(DataRecord.Create(source), definitions);
-        FunctionResultText.Text = result.IsValid
-            ? (result.Record.Values.TryGetValue(draft.Name, out var output) ? output ?? string.Empty : string.Empty) is { Length: > 0 } text ? Visible(text) : "(rỗng)"
-            : "Lỗi: " + string.Join(" ", result.Errors.Select(FormulaErrorText.Translate));
+        if (!result.IsValid && awaiting.Length > 0)
+        {
+            // A function that checks its input (a date, digits) cannot take ‹NSX›; without the
+            // stand-ins the columns still to come are the only faults, unless there is another.
+            result = DataTransformPipeline.Evaluate(DataRecord.Create(WithPrintTimeValues(known, definitions)), definitions);
+        }
+
+        if (!result.IsValid)
+        {
+            // A column still to come, or a function reading one that failed ("not found" for it),
+            // is no fault of the function, nor is what it then makes of the empty value (a check
+            // digit of nothing): the first real fault is the one to fix.
+            var waitingFunctions = result.Errors
+                .Select(error => FailedFunctionRead.Match(error))
+                .Where(notFound => notFound.Success
+                                   && (awaiting.Contains(notFound.Groups[2].Value, StringComparer.OrdinalIgnoreCase)
+                                       || DataDefinitionImport.FunctionRead(notFound.Groups[2].Value, chain) is not null))
+                .Select(notFound => notFound.Groups[1].Value)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            bool Expected(string error) => FunctionError.Match(error) is { Success: true } failed && waitingFunctions.Contains(failed.Groups[1].Value);
+            var faults = result.Errors.Where(error => !Expected(error)).ToArray();
+            FunctionResultText.Text = faults.Length == 0 && awaiting.Length > 0
+                ? $"Chưa tính được: hàm cần cột {string.Join(", ", awaiting.Select(column => $"“{column}”"))} của tệp dữ liệu; tem chưa liên kết tệp."
+                : "Lỗi: " + string.Join(" ", (faults.Length > 0 ? faults : result.Errors.ToArray()).Select(FormulaErrorText.Translate));
+            return;
+        }
+
+        var output = result.Record.Values.TryGetValue(draft.Name, out var text) ? text ?? string.Empty : string.Empty;
+        FunctionResultText.Text = (output.Length > 0 ? Visible(output) : "(rỗng)")
+            + (awaiting.Length > 0
+                ? Environment.NewLine + $"({string.Join(", ", awaiting.Select(column => $"‹{column}›"))}: cột của tệp dữ liệu; tem chưa liên kết tệp)"
+                : string.Empty);
     }
+
+    private static readonly System.Text.RegularExpressions.Regex FailedFunctionRead =
+        new(@"^Transform '([^']*)': Field '([^']*)' was not found\.$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    private static readonly System.Text.RegularExpressions.Regex FunctionError =
+        new(@"^Transform '([^']*)': ", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>The result as it can be read: control characters show by name.</summary>
     private static string Visible(string text) => text

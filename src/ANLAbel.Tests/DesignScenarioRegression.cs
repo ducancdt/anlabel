@@ -3677,6 +3677,77 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The Data Manager's result box evaluated every function together: one function waiting
+    /// for a column, with no data file linked yet, turned every function's result into "Lỗi",
+    /// and a function reading a failed one added "field not found" for it. The box now
+    /// evaluates the selected function and the ones it reads, shows a column still to come as
+    /// ‹Name›, and names only the first fault.
+    /// </summary>
+    public static Task FunctionPreviewReadsItsOwnChain()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var template = viewModel.Template;
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(FIELD(\"PO\"), \"|\", FIELD(\"?Lô\"))"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Hằng", "CONCAT(\"A\", \"BC\")"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Hỏng", "FIELD(\"Không có\")"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tổng", "CONCAT(FIELD(\"Hỏng\"), \"#\")"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("HSD", "DATEADD(FIELD(\"NSX\"), \"30\", \"d\")"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("GTIN in", "GS1CHECKDIGIT(FIELD(\"GTIN\"))"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("In QR", "CONCAT(FIELD(\"Mã_QR\"), \"#\")"));
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô", DefaultValue = "L01" });
+            var window = new ANLAbel.App.DataManagerWindow(viewModel);
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var functions = ((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", flags)!.GetValue(window)!).Cast<object>().ToArray();
+            string Result(string name)
+            {
+                var function = functions.Single(item => (string)item.GetType().GetProperty("Name")!.GetValue(item)! == name);
+                typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", flags)!.Invoke(window, new[] { function });
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                return ((TextBlock)window.FindName("FunctionResultText")).Text;
+            }
+
+            // No data file linked: nothing is wrong yet.
+            Require(Result("Hằng") == "ABC", "A function that reads no column shows its result beside others waiting for theirs: " + Result("Hằng"));
+            var waiting = Result("Mã QR");
+            Require(waiting.StartsWith("‹PO›|", StringComparison.Ordinal) && waiting.Contains("(‹PO›: cột của tệp dữ liệu; tem chưa liên kết tệp)", StringComparison.Ordinal),
+                "A column still to come shows as ‹PO›: " + waiting);
+            var expiry = Result("HSD");
+            Require(expiry == "Chưa tính được: hàm cần cột “NSX” của tệp dữ liệu; tem chưa liên kết tệp.",
+                "A function that checks its input waits for the column instead of a false fault: " + expiry);
+            var digits = Result("GTIN in");
+            Require(digits == "Chưa tính được: hàm cần cột “GTIN” của tệp dữ liệu; tem chưa liên kết tệp.",
+                "A check digit of a column still to come waits for it, not a fault of the empty value: " + digits);
+            var loose = Result("In QR");
+            Require(loose.StartsWith("‹PO›|", StringComparison.Ordinal) && loose.Contains("#", StringComparison.Ordinal),
+                "A function read by a loose name is worked out with it: " + loose);
+            // A column of that name saved with the label is read as the column, not the function.
+            template.DatabaseConfig.LabelFields.Add(new DatabaseField { Name = "Mã_QR" });
+            var column = Result("In QR");
+            Require(column.StartsWith("‹Mã_QR›#", StringComparison.Ordinal), "A saved column is read as a column: " + column);
+            template.DatabaseConfig.LabelFields.Clear();
+
+            // A linked file that cannot be read is a broken link: no stand-ins, the column is missing.
+            template.DatabaseConfig.FilePath = "C:/khong-co/nhan.xlsx";
+            template.DatabaseConfig.SheetName = "Sheet1";
+            var unreadable = Result("Mã QR");
+            Require(unreadable.StartsWith("Lỗi:", StringComparison.Ordinal) && unreadable.Contains("“PO”", StringComparison.Ordinal),
+                "A broken link shows the column as missing: " + unreadable);
+
+            // A linked file without the column: a real fault, named once, at its source.
+            viewModel.ExcelHeaders.Add("PO");
+            var broken = Result("Tổng");
+            Require(broken.StartsWith("Lỗi:", StringComparison.Ordinal) && broken.Contains("“Không có”", StringComparison.Ordinal) && !broken.Contains("trường “Hỏng”", StringComparison.Ordinal),
+                "Only the first fault is named, not the function that read it: " + broken);
+            Require(Result("Hằng") == "ABC", "Another function's fault leaves this one's result: " + Result("Hằng"));
+            // Not closed: the Data Manager is never shown.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

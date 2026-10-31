@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.357
+
+- Quản lý dữ liệu, Kết quả của hàm: chỉ tính hàm đang chọn và các hàm nó đọc, nên lỗi ở hàm khác
+  không còn biến mọi kết quả thành “Lỗi”; khi tem chưa liên kết tệp dữ liệu, cột hàm cần hiện là
+  ‹Tên cột› để thấy hình dạng kết quả (ví dụ ‹PO›|L01), hàm kiểm tra dữ liệu (ngày, chữ số) ghi
+  “Chưa tính được: hàm cần cột …”, thay vì “Không tìm thấy trường”; tệp đã liên kết mà không đọc
+  được vẫn báo thiếu cột; hàm đọc một hàm hỏng không báo thêm “không tìm thấy” cho hàm đó.
+
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 
 _Gồm các commit 31/10/2026 (17:14–17:22)._
