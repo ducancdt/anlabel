@@ -104,6 +104,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the binding check says when there is nothing to check", DesignScenarioRegression.BindingCheckSaysWhenThereIsNothingToCheck),
     ("a barcode setting reaches every selected barcode", DesignScenarioRegression.BarcodeSettingReachesEverySelectedBarcode),
     ("the function editor inserts control characters", DesignScenarioRegression.FunctionEditorInsertsControlCharacters),
+    ("undo steps have names", DesignScenarioRegression.UndoStepsHaveNames),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

@@ -83,6 +83,13 @@ public sealed class MainViewModel : ObservableObject
     // Set while an edit of the key object is copied to the rest of the selection.
     private bool _sharingWithSelection;
     private readonly Stack<string> _redoStack = new();
+    // The name of each step, kept in step with the two snapshot stacks (the Undo ▾ and Redo ▾ lists).
+    private readonly Stack<string> _undoNames = new();
+    private readonly Stack<string> _redoNames = new();
+    // The changes of the step being recorded, each once, and the name an explicit gesture gave it.
+    private readonly List<ANLAbel.App.Services.HistoryChange> _stepChanges = new();
+    private readonly HashSet<ANLAbel.App.Services.HistoryChange> _stepChangeSet = new();
+    private string? _stepName;
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
     // IsDirty compares the current snapshot with it, so undoing back to the
     // saved state clears the unsaved marker.
@@ -4392,37 +4399,80 @@ public sealed class MainViewModel : ObservableObject
         SelectedObject.Rotation = degrees;
     }
 
-    private void Undo()
+    private void Undo() => UndoSteps(1);
+
+    private void Redo() => RedoSteps(1);
+
+    /// <summary>Closes the step being recorded, so the Undo ▾ list shows it and its counts match.</summary>
+    public void CloseOpenHistoryStep()
     {
         CommitTemplateEditGesture();
         CommitPendingHistory();
-        if (_undoStack.Count == 0)
+    }
+
+    /// <summary>The names of the steps Undo takes back, newest first (the Undo ▾ list).</summary>
+    public IReadOnlyList<string> UndoHistory => _undoNames.ToArray();
+
+    /// <summary>The names of the steps Redo puts back, next first (the Redo ▾ list).</summary>
+    public IReadOnlyList<string> RedoHistory => _redoNames.ToArray();
+
+    public string UndoToolTip => _undoNames.TryPeek(out var name) ? $"Hoàn tác: {name} (Ctrl+Z)" : "Hoàn tác (Ctrl+Z)";
+
+    public string RedoToolTip => _redoNames.TryPeek(out var name) ? $"Làm lại: {name} (Ctrl+Y)" : "Làm lại (Ctrl+Y)";
+
+    /// <summary>
+    /// Takes back the newest <paramref name="count"/> steps, as a choice in the
+    /// Undo ▾ list does: the label is restored once, to the state before the
+    /// oldest of them, and each step goes to the redo list.
+    /// </summary>
+    public void UndoSteps(int count)
+    {
+        CommitTemplateEditGesture();
+        CommitPendingHistory();
+        count = Math.Min(count, _undoStack.Count);
+        if (count <= 0)
         {
             return;
         }
 
-        var currentSnapshot = CaptureTemplateSnapshot();
-        var previousSnapshot = _undoStack.Pop();
-        _redoStack.Push(currentSnapshot);
-        RestoreTemplateSnapshot(previousSnapshot);
-        StatusText = "Hoàn tác";
+        var state = CaptureTemplateSnapshot();
+        var names = new List<string>();
+        for (var step = 0; step < count; step++)
+        {
+            _redoStack.Push(state);
+            names.Add(_undoNames.Pop());
+            _redoNames.Push(names[^1]);
+            state = _undoStack.Pop();
+        }
+
+        RestoreTemplateSnapshot(state);
+        StatusText = count == 1 ? $"Đã hoàn tác: {names[0]}." : $"Đã hoàn tác {count} bước: {names[0]} … {names[^1]}.";
         RaiseHistoryCanExecuteChanged();
     }
 
-    private void Redo()
+    /// <summary>Puts back the next <paramref name="count"/> undone steps, as a choice in the Redo ▾ list does.</summary>
+    public void RedoSteps(int count)
     {
         CommitTemplateEditGesture();
         CommitPendingHistory();
-        if (_redoStack.Count == 0)
+        count = Math.Min(count, _redoStack.Count);
+        if (count <= 0)
         {
             return;
         }
 
-        var currentSnapshot = CaptureTemplateSnapshot();
-        var nextSnapshot = _redoStack.Pop();
-        _undoStack.Push(currentSnapshot);
-        RestoreTemplateSnapshot(nextSnapshot);
-        StatusText = "Làm lại";
+        var state = CaptureTemplateSnapshot();
+        var names = new List<string>();
+        for (var step = 0; step < count; step++)
+        {
+            _undoStack.Push(state);
+            names.Add(_redoNames.Pop());
+            _undoNames.Push(names[^1]);
+            state = _redoStack.Pop();
+        }
+
+        RestoreTemplateSnapshot(state);
+        StatusText = count == 1 ? $"Đã làm lại: {names[0]}." : $"Đã làm lại {count} bước: {names[0]} … {names[^1]}.";
         RaiseHistoryCanExecuteChanged();
     }
 
@@ -4516,7 +4566,7 @@ public sealed class MainViewModel : ObservableObject
             RaiseEditingLockChanged();
         }
 
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.LabelAction(e.PropertyName), null));
     }
 
     private void PromptVariablesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -4531,13 +4581,14 @@ public sealed class MainViewModel : ObservableObject
             added.PropertyChanged += SerialCounterOnPropertyChanged;
         }
 
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.Prompts, null));
         RaiseSerialCounterPreviewChanged();
     }
 
     private void SerialCounterOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        RecordTemplateChange();
+        // Each print prompt reports here too.
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(sender is PromptVariableDefinition ? ANLAbel.App.Services.HistoryStepText.Prompts : ANLAbel.App.Services.HistoryStepText.Counter, null));
         RaiseSerialCounterPreviewChanged();
     }
 
@@ -4697,7 +4748,7 @@ public sealed class MainViewModel : ObservableObject
         var functions = functionRenames ?? new Dictionary<string, string>();
         string Renamed(string? expression) => DataTransformPipeline.RenameReferences(JobVariableContract.RenamePrompts(expression, renames), functions);
         var moved = 0;
-        BeginTemplateEditGesture();
+        BeginTemplateEditGesture("Sửa biến, hàm và bộ đếm");
         try
         {
             Template.PromptVariables.Clear();
@@ -4782,12 +4833,12 @@ public sealed class MainViewModel : ObservableObject
             _ = RefreshPrinterQueueStatusAsync();
         }
 
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.PrinterAction(e.PropertyName), null));
     }
 
     private void ObjectStyleOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.StyleAction(e.PropertyName), Template.Objects.FirstOrDefault(item => ReferenceEquals(item.Style, sender))));
         if (SelectedObject is not null && ReferenceEquals(SelectedObject.Style, sender))
         {
             RaiseSelectedObjectChanged();
@@ -4990,7 +5041,23 @@ public sealed class MainViewModel : ObservableObject
         }
 
         RefreshObjectTreeBindingStates();
-        RecordTemplateChange();
+        RecordTemplateChange(ObjectChanges(e));
+    }
+
+    /// <summary>The objects added, removed or restacked, for the name of the undo step.</summary>
+    private static ANLAbel.App.Services.HistoryChange[] ObjectChanges(NotifyCollectionChangedEventArgs e)
+    {
+        var action = e.Action switch
+        {
+            NotifyCollectionChangedAction.Add => ANLAbel.App.Services.HistoryStepText.Added,
+            NotifyCollectionChangedAction.Remove => ANLAbel.App.Services.HistoryStepText.Removed,
+            NotifyCollectionChangedAction.Move => ANLAbel.App.Services.HistoryStepText.Reordered,
+            _ => null
+        };
+        var items = e.Action == NotifyCollectionChangedAction.Remove ? e.OldItems : e.NewItems;
+        return action is null || items is null
+            ? Array.Empty<ANLAbel.App.Services.HistoryChange>()
+            : items.OfType<LabelObject>().Select(item => new ANLAbel.App.Services.HistoryChange(action, item)).ToArray();
     }
 
     private void GuidesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -5011,12 +5078,12 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.Guides, null));
     }
 
     private void GuideOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.Guides, null));
     }
 
     private void ObjectOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -5038,7 +5105,7 @@ public sealed class MainViewModel : ObservableObject
             ApplyQrAutoSizeFromModel(changedObject, e.PropertyName);
         }
 
-        RecordTemplateChange();
+        RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.ObjectAction(e.PropertyName), sender as LabelObject));
         if (ReferenceEquals(sender, SelectedObject))
         {
             RaiseSelectedObjectChanged();
@@ -5720,7 +5787,7 @@ public sealed class MainViewModel : ObservableObject
             : issue.StatusText;
     }
 
-    private void RecordTemplateChange()
+    private void RecordTemplateChange(params ANLAbel.App.Services.HistoryChange[] changes)
     {
         if (_isRestoringHistory)
         {
@@ -5734,6 +5801,7 @@ public sealed class MainViewModel : ObservableObject
         // This keeps barcode/image-heavy drags off the JSON/history hot path.
         if (_explicitEditGestureActive)
         {
+            NoteChanges(changes);
             return;
         }
 
@@ -5743,6 +5811,8 @@ public sealed class MainViewModel : ObservableObject
         {
             return;
         }
+
+        NoteChanges(changes);
 
         // Debounce: accumulate rapid changes into one undo step
         if (_debounceActive)
@@ -5771,6 +5841,34 @@ public sealed class MainViewModel : ObservableObject
         _debounceTimer.Start();
     }
 
+    private void NoteChanges(ANLAbel.App.Services.HistoryChange[] changes)
+    {
+        foreach (var change in changes)
+        {
+            if (change.Action is not null && _stepChangeSet.Add(change))
+            {
+                _stepChanges.Add(change);
+            }
+        }
+    }
+
+    /// <summary>Pushes the state before a step with the step's name; a new step ends the redo list.</summary>
+    private void PushUndoStep(string preChangeSnapshot)
+    {
+        _undoStack.Push(preChangeSnapshot);
+        _undoNames.Push(_stepName ?? ANLAbel.App.Services.HistoryStepText.Compose(_stepChanges));
+        TrimUndoStack();
+        _redoStack.Clear();
+        _redoNames.Clear();
+    }
+
+    private void ForgetStep()
+    {
+        _stepChanges.Clear();
+        _stepChangeSet.Clear();
+        _stepName = null;
+    }
+
     private void CommitPendingHistory()
     {
         if (!_debounceActive)
@@ -5792,12 +5890,11 @@ public sealed class MainViewModel : ObservableObject
         // the debounce timer is still pending.
         if (!string.IsNullOrEmpty(preChangeSnapshot) && preChangeSnapshot != finalSnapshot)
         {
-            _undoStack.Push(preChangeSnapshot);
-            TrimUndoStack();
-            _redoStack.Clear();
+            PushUndoStep(preChangeSnapshot);
             _lastTemplateSnapshot = finalSnapshot;
         }
 
+        ForgetStep();
         UpdateDirtyState(finalSnapshot);
         RaiseHistoryCanExecuteChanged();
     }
@@ -5809,14 +5906,17 @@ public sealed class MainViewModel : ObservableObject
         _debounceActive = false;
         _pendingPreChangeSnapshot = string.Empty;
         _pendingSnapshot = string.Empty;
+        ForgetStep();
     }
 
     /// <summary>
     /// Starts an explicit canvas gesture transaction. This is intentionally
     /// public so the retained WPF canvas can bracket move/resize/draw sessions
     /// without reaching into snapshot implementation details.
+    /// <paramref name="stepName"/> names the step in the Undo list where its
+    /// changes alone would not (Data Manager, Format Painter).
     /// </summary>
-    public void BeginTemplateEditGesture()
+    public void BeginTemplateEditGesture(string? stepName = null)
     {
         if (_isRestoringHistory || _explicitEditGestureActive)
         {
@@ -5824,6 +5924,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         CommitPendingHistory();
+        _stepName = stepName;
         _explicitEditGesturePreChangeSnapshot = CaptureTemplateSnapshot();
         _lastTemplateSnapshot = _explicitEditGesturePreChangeSnapshot;
         _explicitEditGestureActive = true;
@@ -5846,12 +5947,11 @@ public sealed class MainViewModel : ObservableObject
         _explicitEditGestureActive = false;
         if (!string.IsNullOrEmpty(preChangeSnapshot) && preChangeSnapshot != finalSnapshot)
         {
-            _undoStack.Push(preChangeSnapshot);
-            TrimUndoStack();
-            _redoStack.Clear();
+            PushUndoStep(preChangeSnapshot);
         }
 
         _lastTemplateSnapshot = finalSnapshot;
+        ForgetStep();
         UpdateDirtyState(finalSnapshot);
         RaiseHistoryCanExecuteChanged();
         FlushDeferredSelectedObjectRefresh();
@@ -5930,6 +6030,8 @@ public sealed class MainViewModel : ObservableObject
         CancelPendingHistory();
         _undoStack.Clear();
         _redoStack.Clear();
+        _undoNames.Clear();
+        _redoNames.Clear();
         _lastTemplateSnapshot = CaptureTemplateSnapshot();
         RaiseHistoryCanExecuteChanged();
     }
@@ -5938,6 +6040,8 @@ public sealed class MainViewModel : ObservableObject
     {
         ((RelayCommand)UndoCommand).RaiseCanExecuteChanged();
         ((RelayCommand)RedoCommand).RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(UndoToolTip));
+        OnPropertyChanged(nameof(RedoToolTip));
     }
 
     private static void RaiseCommandCanExecuteChanged(ICommand command)
@@ -5962,10 +6066,17 @@ public sealed class MainViewModel : ObservableObject
         }
 
         var keep = _undoStack.Take(maxUndoSteps).Reverse().ToArray();
+        var keepNames = _undoNames.Take(maxUndoSteps).Reverse().ToArray();
         _undoStack.Clear();
+        _undoNames.Clear();
         foreach (var snapshot in keep)
         {
             _undoStack.Push(snapshot);
+        }
+
+        foreach (var name in keepNames)
+        {
+            _undoNames.Push(name);
         }
     }
 

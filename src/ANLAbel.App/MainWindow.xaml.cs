@@ -959,9 +959,52 @@ public partial class MainWindow : Window
 
     private void ApplyFormatPainter(LabelObject source, LabelObject target)
     {
-        _viewModel.BeginTemplateEditGesture();
+        _viewModel.BeginTemplateEditGesture($"Chép định dạng sang “{target.Name}”");
         LabelObjectCloner.CopyStyle(source, target);
         _viewModel.CommitTemplateEditGesture();
+    }
+
+    private void HistoryList_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button)
+        {
+            var menu = BuildHistoryMenu(Equals(button.Tag, "Redo"));
+            menu.PlacementTarget = button;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
+    /// <summary>
+    /// NiceLabel 10's Undo ▾ and Redo ▾: the named steps, newest first. A choice
+    /// takes back (or puts back) that step with every step above it.
+    /// </summary>
+    private ContextMenu BuildHistoryMenu(bool redo)
+    {
+        // An edit still being recorded is a step too: the counts below are what UndoSteps takes back.
+        _viewModel.CloseOpenHistoryStep();
+        var menu = new ContextMenu();
+        var steps = redo ? _viewModel.RedoHistory : _viewModel.UndoHistory;
+        for (var index = 0; index < Math.Min(steps.Count, 20); index++)
+        {
+            var count = index + 1;
+            // A TextBlock header: an underscore in an object name is not an access key.
+            var item = new MenuItem { Header = new TextBlock { Text = steps[index] }, InputGestureText = count == 1 ? string.Empty : $"{count} bước" };
+            item.Click += (_, _) =>
+            {
+                if (redo)
+                {
+                    _viewModel.RedoSteps(count);
+                }
+                else
+                {
+                    _viewModel.UndoSteps(count);
+                }
+            };
+            menu.Items.Add(item);
+        }
+
+        return menu;
     }
 
     private void Paste_Click(object sender, RoutedEventArgs e)

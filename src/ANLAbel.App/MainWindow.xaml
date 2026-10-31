@@ -510,12 +510,17 @@
                         <TextBlock Style="{StaticResource ChromeGlyph}" Text="&#xE74E;"/>
                     </Button>
                     <Border Width="1" Height="16" Margin="3,0" Background="#3B4BA0"/>
-                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding UndoCommand}" ToolTip="Hoàn tác (Ctrl+Z)" AutomationProperties.Name="Undo" AutomationProperties.AutomationId="Shell.QuickAccess.Undo">
+                    <Button x:Name="UndoButton" Style="{StaticResource QuickAccessButton}" Command="{Binding UndoCommand}" ToolTip="{Binding UndoToolTip}" AutomationProperties.Name="Undo" AutomationProperties.AutomationId="Shell.QuickAccess.Undo">
                         <TextBlock Style="{StaticResource ChromeGlyph}" Text="&#xE7A7;"/>
                     </Button>
-                    <Button Style="{StaticResource QuickAccessButton}" Command="{Binding RedoCommand}" ToolTip="Làm lại (Ctrl+Y)" AutomationProperties.Name="Redo" AutomationProperties.AutomationId="Shell.QuickAccess.Redo">
+                    <!-- NiceLabel's Undo ▾: the named steps, to take back several at once -->
+                    <Button Style="{StaticResource QuickAccessDropDownButton}" Tag="Undo" Click="HistoryList_Click" IsEnabled="{Binding IsEnabled, ElementName=UndoButton}"
+                            ToolTip="Danh sách thao tác: hoàn tác nhiều bước một lần" AutomationProperties.Name="Undo list" AutomationProperties.AutomationId="Shell.QuickAccess.UndoList"/>
+                    <Button x:Name="RedoButton" Style="{StaticResource QuickAccessButton}" Command="{Binding RedoCommand}" ToolTip="{Binding RedoToolTip}" AutomationProperties.Name="Redo" AutomationProperties.AutomationId="Shell.QuickAccess.Redo">
                         <TextBlock Style="{StaticResource ChromeGlyph}" Text="&#xE7A6;"/>
                     </Button>
+                    <Button Style="{StaticResource QuickAccessDropDownButton}" Tag="Redo" Click="HistoryList_Click" IsEnabled="{Binding IsEnabled, ElementName=RedoButton}"
+                            ToolTip="Danh sách thao tác: làm lại nhiều bước một lần" AutomationProperties.Name="Redo list" AutomationProperties.AutomationId="Shell.QuickAccess.RedoList"/>
                 </StackPanel>
                 <TextBlock x:Name="TitleText" Grid.ColumnSpan="4" Margin="240,0,240,0" HorizontalAlignment="Center" VerticalAlignment="Center"
                            Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="12" TextTrimming="CharacterEllipsis"

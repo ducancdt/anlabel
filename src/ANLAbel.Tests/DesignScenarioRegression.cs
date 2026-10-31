@@ -2253,6 +2253,70 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Undo took back a step without saying which. As in NiceLabel 10 each step
+    /// now has a name: the Undo button says what it will undo, the status bar
+    /// what it undid, and the Undo ▾ list takes back several steps at once.
+    /// </summary>
+    public static Task UndoStepsHaveNames()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Commit() => typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            string Text(MenuItem item) => ((TextBlock)item.Header).Text;
+
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "PO", Text = "PO", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6 });
+            Commit();
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "SO_LUONG", Text = "1200", XMm = 3, YMm = 12, WidthMm = 20, HeightMm = 6 });
+            Commit();
+            viewModel.BeginTemplateEditGesture();
+            Named("PO").XMm = 5;
+            Named("SO_LUONG").XMm = 5;
+            viewModel.CommitTemplateEditGesture();
+            Named("PO").Style.FontSizePt = 14;
+            Commit();
+            var width = viewModel.Template.WidthMm;
+            viewModel.Template.WidthMm = width - 10;
+            Commit();
+
+            string[] expected = ["Đổi khổ tem", "Đổi phông chữ “PO”", "Di chuyển 2 đối tượng", "Thêm “SO_LUONG”", "Thêm “PO”"];
+            Require(viewModel.UndoHistory.Take(5).SequenceEqual(expected), "Each step has a name: " + string.Join(" | ", viewModel.UndoHistory));
+            Require(viewModel.UndoToolTip == "Hoàn tác: Đổi khổ tem (Ctrl+Z)", "The Undo button names its step: " + viewModel.UndoToolTip);
+
+            viewModel.UndoCommand.Execute(null);
+            Require(viewModel.Template.WidthMm == width && viewModel.StatusText == "Đã hoàn tác: Đổi khổ tem.",
+                $"The status bar names what was undone: {viewModel.StatusText} ({viewModel.Template.WidthMm} mm).");
+            Require(viewModel.RedoToolTip == "Làm lại: Đổi khổ tem (Ctrl+Y)", "The Redo button names its step: " + viewModel.RedoToolTip);
+
+            var menu = (ContextMenu)typeof(ANLAbel.App.MainWindow).GetMethod("BuildHistoryMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { false })!;
+            var items = menu.Items.OfType<MenuItem>().ToArray();
+            Require(items.Length >= 3 && Text(items[0]) == "Đổi phông chữ “PO”" && Text(items[2]) == "Thêm “SO_LUONG”" && items[2].InputGestureText == "3 bước",
+                "The Undo list shows the steps, newest first: " + string.Join(" | ", items.Select(Text)));
+            items[2].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(viewModel.Template.Objects.Count(item => item.Name is "PO" or "SO_LUONG") == 1 && Named("PO").XMm == 3 && Named("PO").Style.FontSizePt != 14,
+                "The third entry takes back three steps: " + string.Join(" | ", viewModel.Template.Objects.Select(item => $"{item.Name} {item.XMm}")));
+            Require(viewModel.StatusText == "Đã hoàn tác 3 bước: Đổi phông chữ “PO” … Thêm “SO_LUONG”." && viewModel.UndoHistory[0] == "Thêm “PO”",
+                "The status bar names the steps undone: " + viewModel.StatusText);
+
+            menu = (ContextMenu)typeof(ANLAbel.App.MainWindow).GetMethod("BuildHistoryMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { true })!;
+            menu.Items.OfType<MenuItem>().ElementAt(1).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(Named("SO_LUONG").XMm == 5 && Named("PO").XMm == 5 && viewModel.RedoHistory[0] == "Đổi phông chữ “PO”",
+                "The Redo list puts back two steps: " + string.Join(" | ", viewModel.RedoHistory));
+
+            // An edit still being recorded heads the list.
+            Named("PO").YMm += 1;
+            menu = (ContextMenu)typeof(ANLAbel.App.MainWindow).GetMethod("BuildHistoryMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { false })!;
+            Require(Text(menu.Items.OfType<MenuItem>().First()) == "Di chuyển “PO”",
+                "The edit being recorded heads the list: " + Text(menu.Items.OfType<MenuItem>().First()));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// An ISO/IEC 15434 envelope needs RS, GS and EOT, which no key types;
     /// NiceLabel offers "Insert special character". The function editor now
     /// inserts them from a menu (inside quotes as an escape, elsewhere as a

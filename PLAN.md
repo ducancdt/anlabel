@@ -25,6 +25,10 @@
   thức (chuỗi trong công thức nay đọc được \u001E, \u001D, \u0004…), để làm mã 2D theo
   ISO/IEC 15434 ([)> RS 06 GS … RS EOT) mà bàn phím không gõ được, như “Insert special
   character” của NiceLabel; kết quả xem trước ghi các ký tự đó bằng tên (‹RS›, ‹GS›).
+- Hoàn tác có tên: mỗi bước mang tên (“Di chuyển “PO””, “Đổi phông chữ 3 đối tượng”,
+  “Đổi khổ tem”); nút Hoàn tác và Làm lại ghi bước sẽ làm, thanh trạng thái ghi bước vừa
+  làm, và mũi tên ▾ cạnh hai nút mở danh sách để hoàn tác hay làm lại nhiều bước một lần,
+  như NiceLabel 10.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

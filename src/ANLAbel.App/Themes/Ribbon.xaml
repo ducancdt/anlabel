@@ -144,6 +144,36 @@
         </Setter>
     </Style>
 
+    <!-- The arrow beside Undo and Redo opens the list of named steps. The style draws it as a
+         split button's arrow, not an icon that could stand for two commands. -->
+    <Style x:Key="QuickAccessDropDownButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource RibbonChromeTextBrush}"/>
+        <Setter Property="Width" Value="14"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Margin" Value="-1,0,1,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="Transparent" SnapsToDevicePixels="True">
+                        <Path Data="M0,0 L3.5,3.5 L7,0" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.2"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource RibbonChromeHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource RibbonChromePressedBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.42"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="CaptionButton" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource RibbonChromeTextBrush}"/>
         <Setter Property="Width" Value="46"/>
