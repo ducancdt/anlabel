@@ -2436,6 +2436,43 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The ribbon's name box took any name, also one another object already had,
+    /// so two objects could share "PO" again. As in NiceLabel 10, a taken name
+    /// (case ignored) or an empty one is refused, the name stays and the status
+    /// bar says why; an object's own name in other letters is fine.
+    /// </summary>
+    public static Task TakenOrEmptyNamesAreRefused()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "PO", Text = "PO", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 6 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "QTY", Text = "1200", XMm = 3, YMm = 12, WidthMm = 20, HeightMm = 6 });
+            var quantity = viewModel.Template.Objects[1];
+            viewModel.SelectedObject = quantity;
+
+            viewModel.SelectedObjectName = "po ";
+            Require(quantity.Name == "QTY" && viewModel.SelectedObjectName == "QTY"
+                    && viewModel.ObjectNameMessage == "Không đổi tên: đã có đối tượng “PO” trên tem; giữ tên “QTY”."
+                    && viewModel.StatusText == viewModel.ObjectNameMessage,
+                $"A taken name is refused: {quantity.Name} / {viewModel.ObjectNameMessage} / {viewModel.StatusText}");
+            viewModel.SelectedObjectName = "   ";
+            Require(quantity.Name == "QTY" && viewModel.ObjectNameMessage.StartsWith("Không đổi tên: tên đối tượng không được để trống", StringComparison.Ordinal),
+                $"An empty name is refused: {quantity.Name} / {viewModel.ObjectNameMessage}");
+            viewModel.SelectedObjectName = " Số lượng ";
+            Require(quantity.Name == "Số lượng" && viewModel.ObjectNameMessage.Length == 0, $"A free name is taken, trimmed: '{quantity.Name}' / {viewModel.ObjectNameMessage}");
+            viewModel.SelectedObjectName = "số LƯỢNG";
+            Require(quantity.Name == "số LƯỢNG", "Its own name in other letters is fine: " + quantity.Name);
+            viewModel.SelectedObjectName = "PO";
+            viewModel.SelectedObject = viewModel.Template.Objects[0];
+            Require(viewModel.SelectedObjectName == "PO" && viewModel.ObjectNameMessage.Length == 0,
+                $"Another selection shows its name and no old message: {viewModel.SelectedObjectName} / {viewModel.ObjectNameMessage}");
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Three texts added in a row were all named "Chữ", so a preflight message
     /// or an undo step about “Chữ” could not say which one. An added object now
     /// takes a free name ("Chữ 2", "Chữ 3"), as NiceLabel 10 numbers a new

@@ -396,6 +396,51 @@ public sealed class MainViewModel : ObservableObject
         return new HistorySnapshot(state, operations.Entries, operations.Diagnostics, csv.Entries, csv.Diagnostics);
     }
 
+    /// <summary>
+    /// The ribbon's name box. A name another object already has (case ignored)
+    /// or an empty one is refused and the name stays, as NiceLabel 10's Options
+    /// page refuses it ("Another element with the same name already exists. The
+    /// original name will be restored."), so preflight messages and undo steps
+    /// keep pointing at one object. The status bar says why.
+    /// </summary>
+    public string SelectedObjectName
+    {
+        get => SelectedObject?.Name ?? string.Empty;
+        set
+        {
+            if (SelectedObject is not { } item)
+            {
+                return;
+            }
+
+            var name = value?.Trim() ?? string.Empty;
+            var existing = Template.Objects.FirstOrDefault(other =>
+                !ReferenceEquals(other, item) && string.Equals(other.Name?.Trim(), name, StringComparison.OrdinalIgnoreCase));
+            if (name.Length == 0 || existing is not null)
+            {
+                ObjectNameMessage = existing is null
+                    ? $"Không đổi tên: tên đối tượng không được để trống; giữ tên “{item.Name}”."
+                    : $"Không đổi tên: đã có đối tượng “{existing.Name}” trên tem; giữ tên “{item.Name}”.";
+                StatusText = ObjectNameMessage;
+                // The box shows the name that stays.
+                OnPropertyChanged(nameof(SelectedObjectName));
+                return;
+            }
+
+            ObjectNameMessage = string.Empty;
+            item.Name = name;
+        }
+    }
+
+    /// <summary>Why the last name typed in the ribbon was not taken; empty once one is.</summary>
+    public string ObjectNameMessage
+    {
+        get => _objectNameMessage;
+        private set => SetProperty(ref _objectNameMessage, value);
+    }
+
+    private string _objectNameMessage = string.Empty;
+
     public LabelObject? SelectedObject
     {
         get => _selectedObject;
@@ -403,6 +448,8 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedObject, value))
             {
+                ObjectNameMessage = string.Empty;
+                OnPropertyChanged(nameof(SelectedObjectName));
                 ((RelayCommand)DeleteSelectedCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)BringToFrontCommand).RaiseCanExecuteChanged();
                 ((RelayCommand)SendToBackCommand).RaiseCanExecuteChanged();
@@ -5155,6 +5202,7 @@ public sealed class MainViewModel : ObservableObject
             if (e.PropertyName is nameof(LabelObject.Name) or nameof(LabelObject.WidthMm) or nameof(LabelObject.HeightMm))
             {
                 OnPropertyChanged(nameof(SelectedObjectSummaryText));
+                OnPropertyChanged(nameof(SelectedObjectName));
             }
 
             if (e.PropertyName is nameof(LabelObject.BindingExpression) or nameof(LabelObject.Text))

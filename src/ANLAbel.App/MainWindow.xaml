@@ -991,7 +991,19 @@
                                         <Border Background="#FFFFFF" BorderBrush="{StaticResource RibbonLineBrush}" BorderThickness="1" Padding="12,10" Width="260">
                                             <StackPanel>
                                                 <TextBlock Text="Tên đối tượng" FontWeight="SemiBold" Foreground="{StaticResource RibbonTextBrush}"/>
-                                                <TextBox Margin="0,6,0,0" Text="{Binding SelectedObject.Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Design name"/>
+                                                <TextBox Margin="0,6,0,0" Text="{Binding SelectedObjectName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Design name"/>
+                                                <!-- A taken or empty name is refused; this says why -->
+                                                <TextBlock Text="{Binding ObjectNameMessage}" Foreground="#B91C1C" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ObjectNameMessage}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </StackPanel>
                                         </Border>
                                     </Popup>
