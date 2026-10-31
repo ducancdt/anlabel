@@ -31,6 +31,11 @@
   màu hoặc căn lề thì mọi chữ và ô chữ đang chọn cùng đổi (một lần Ctrl+Z hoàn tác),
   như NiceLabel 10; trước đây chỉ đối tượng mốc đổi. Tăng/giảm cỡ chữ tăng từng chữ
   từ cỡ của nó. Mã vạch trong vùng chọn giữ phông riêng; ô chữ giữ khung.
+- Mã 2D: Data Matrix, QR, PDF417 và Aztec không còn mang tiêu đề ECI 26 (UTF-8) khi
+  dữ liệu chỉ có ký tự ASCII; trước đây mọi Data Matrix và mọi QR ở chế độ byte đều
+  mang nó, và máy quét bật truyền ECI gửi kèm mã đó trước dữ liệu. GS1 DataMatrix nay
+  bắt đầu bằng FNC1 nên máy quét nhận đúng là GS1 (]d2); trước đây thiếu FNC1, máy quét
+  GS1 đọc như chữ thường. Dữ liệu có dấu tiếng Việt vẫn mã hóa UTF-8 kèm ECI.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 

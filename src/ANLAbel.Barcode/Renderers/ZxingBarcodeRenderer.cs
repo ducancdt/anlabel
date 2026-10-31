@@ -227,7 +227,7 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
             {
                 // An explicit ratio makes wide elements ratio × X, not ZXing's 2 × X,
                 // and a wider gap adds (gap - 1) × X between characters.
-                var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options));
+                var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options, data));
                 var elements = ReadCode39Elements(native);
                 var wide = elements.Count(element => element.Wide);
                 return Core.Barcode.Code39RatioContract.LogicalModules(
@@ -330,13 +330,22 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         };
     }
 
-    private static Dictionary<EncodeHintType, object> CreateHints(BarcodeType type, BarcodeRenderOptions options)
+    private static Dictionary<EncodeHintType, object> CreateHints(BarcodeType type, BarcodeRenderOptions options, string data)
     {
         var hints = new Dictionary<EncodeHintType, object>
         {
-            [EncodeHintType.MARGIN] = Math.Max(0, options.QuietZoneModules),
-            [EncodeHintType.CHARACTER_SET] = "UTF-8"
+            [EncodeHintType.MARGIN] = Math.Max(0, options.QuietZoneModules)
         };
+
+        // A 2D symbol is told UTF-8 only for data beyond ASCII. Plain ASCII has
+        // the same bytes either way, but the character set makes ZXing write an
+        // ECI header (ECI 26) first: in every Data Matrix and PDF417 and in a QR
+        // code in byte mode. Some scanners pass it on as "\000026", and a GS1
+        // symbol must begin with FNC1 instead.
+        if (!IsMatrixBarcode(type) || !data.All(char.IsAscii))
+        {
+            hints[EncodeHintType.CHARACTER_SET] = "UTF-8";
+        }
 
         if (type == BarcodeType.QRCode)
         {
@@ -377,6 +386,12 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
         if (options.IsGs1)
         {
             hints[EncodeHintType.GS1_FORMAT] = true;
+            // ZXing's Data Matrix writer applies GS1 (a leading FNC1, GS read as
+            // the FNC1 separator) only in its compact encoder.
+            if (type == BarcodeType.DataMatrix)
+            {
+                hints[EncodeHintType.DATA_MATRIX_COMPACT] = true;
+            }
         }
 
         if (type == BarcodeType.Code128 && options.Code128CodeSet is Core.Enums.Code128CodeSet.A or Core.Enums.Code128CodeSet.B or Core.Enums.Code128CodeSet.C)
@@ -433,23 +448,23 @@ public sealed class ZxingBarcodeRenderer : IBarcodeRenderer, INonSquareBarcodeRe
                 throw new ArgumentException("Manual Code 128 code sets cannot be combined with GS1 encoding.");
             }
 
-            return new Code128ManualWriter().encode(data, BarcodeFormat.CODE_128, widthPixels, heightPixels, CreateHints(type, options));
+            return new Code128ManualWriter().encode(data, BarcodeFormat.CODE_128, widthPixels, heightPixels, CreateHints(type, options, data));
         }
 
         if (type == BarcodeType.Plessey)
         {
             // ZXing.Net draws Plessey in fifths of a module; see PlesseyModuleWriter.
-            return new PlesseyModuleWriter().encode(data, BarcodeFormat.PLESSEY, widthPixels, heightPixels, CreateHints(type, options));
+            return new PlesseyModuleWriter().encode(data, BarcodeFormat.PLESSEY, widthPixels, heightPixels, CreateHints(type, options, data));
         }
 
         if (!TryGetCode39Geometry(type, options, out var ratio, out var gapModules))
         {
-            return new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options));
+            return new MultiFormatWriter().encode(data, ToZxingFormat(type), widthPixels, heightPixels, CreateHints(type, options, data));
         }
 
         // Classify wide/narrow elements from ZXing's native 1/2-unit matrix,
         // never from a frame-scaled matrix where both runs may be many pixels.
-        var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options));
+        var native = new MultiFormatWriter().encode(data, ToZxingFormat(type), 1, 1, CreateHints(type, options, data));
         return RescaleCode39Runs(native, Math.Max(0, options.QuietZoneModules), ratio, gapModules, widthPixels, heightPixels);
     }
 

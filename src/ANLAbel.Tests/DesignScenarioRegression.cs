@@ -1241,7 +1241,8 @@ internal static class DesignScenarioRegression
     /// from the Excel row, expiry (17) from a date prompt and serial (21) from
     /// the serial counter. Every pack decodes to its own element string, the
     /// lot (variable length) is closed by the GS separator before the serial,
-    /// the serials count up and preflight lets the job print.
+    /// the symbol starts with FNC1 (]d2: a GS1 DataMatrix, not plain text), the
+    /// serials count up and preflight lets the job print.
     /// </summary>
     public static Task PharmaPacksCarryGs1DataMatrixSerials()
     {
@@ -1277,10 +1278,16 @@ internal static class DesignScenarioRegression
             {
                 var expected = "01" + packs[index].Gtin + "17270630" + "10" + packs[index].Lot + "\u001D" + "21" + (1001 + index).ToString("00000000", System.Globalization.CultureInfo.InvariantCulture);
                 var raster = Rasterize(new LabelVisualRenderer().Render(template, labels[index], plan), template.WidthMm, template.HeightMm);
-                var decoded = Decode(raster, code.XMm, code.YMm, code.WidthMm, code.HeightMm, BarcodeFormat.DATA_MATRIX);
+                var (decoded, symbology) = DecodeWithSymbology(raster, code.XMm, code.YMm, code.WidthMm, code.HeightMm, BarcodeFormat.DATA_MATRIX);
                 if (decoded != expected)
                 {
                     failures.Add($"Pack {index + 1}: the DataMatrix reads '{decoded.Replace("\u001D", "<GS>", StringComparison.Ordinal)}', expected '{expected.Replace("\u001D", "<GS>", StringComparison.Ordinal)}'.");
+                }
+
+                // A GS1 scanner knows a GS1 DataMatrix by its leading FNC1 (]d2).
+                if (symbology != "]d2")
+                {
+                    failures.Add($"Pack {index + 1}: the symbol reads as {symbology}, not as a GS1 DataMatrix (]d2) that starts with FNC1.");
                 }
             }
 
@@ -2953,6 +2960,10 @@ internal static class DesignScenarioRegression
 
     /// <summary>Decodes one rectangle (mm) of the page plus 1.5 mm around it.</summary>
     private static string Decode(Raster raster, double xMm, double yMm, double widthMm, double heightMm, BarcodeFormat format)
+        => DecodeWithSymbology(raster, xMm, yMm, widthMm, heightMm, format).Text;
+
+    /// <summary>The decoded text and its symbology identifier (]d2 is a GS1 DataMatrix, ]Q3 a GS1 QR code).</summary>
+    private static (string Text, string Symbology) DecodeWithSymbology(Raster raster, double xMm, double yMm, double widthMm, double heightMm, BarcodeFormat format)
     {
         int Px(double mm) => (int)Math.Round(mm / 25.4 * Dpi);
         var x0 = Math.Max(0, Px(xMm - 1.5));
@@ -2961,7 +2972,7 @@ internal static class DesignScenarioRegression
         var y1 = Math.Min(raster.Height, Px(yMm + heightMm + 1.5));
         if (x1 <= x0 || y1 <= y0)
         {
-            return "(outside the page)";
+            return ("(outside the page)", string.Empty);
         }
 
         var w = x1 - x0;
@@ -2979,11 +2990,23 @@ internal static class DesignScenarioRegression
         };
         try
         {
-            return new MultiFormatReader().decode(new BinaryBitmap(new HybridBinarizer(new RGBLuminanceSource(crop, w, h, RGBLuminanceSource.BitmapFormat.Gray8))), hints)?.Text ?? string.Empty;
+            var result = new MultiFormatReader().decode(new BinaryBitmap(new HybridBinarizer(new RGBLuminanceSource(crop, w, h, RGBLuminanceSource.BitmapFormat.Gray8))), hints);
+            var symbology = result?.ResultMetadata is { } metadata && metadata.TryGetValue(ResultMetadataType.SYMBOLOGY_IDENTIFIER, out var identifier)
+                ? identifier?.ToString() ?? string.Empty
+                : string.Empty;
+            var text = result?.Text ?? string.Empty;
+            // ZXing returns the FNC1 that marks a GS1 DataMatrix as a leading GS;
+            // a scanner does not transmit it.
+            if (symbology == "]d2" && text.StartsWith('\u001D'))
+            {
+                text = text[1..];
+            }
+
+            return (text, symbology);
         }
         catch (ReaderException)
         {
-            return string.Empty;
+            return (string.Empty, string.Empty);
         }
     }
 
