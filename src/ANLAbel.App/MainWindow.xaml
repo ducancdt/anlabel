@@ -1605,8 +1605,8 @@
                                     </Grid>
                                     <!-- NiceLabel 10 Data explorer: variables and data fields as a tree -->
                                     <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields"
-                                              PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove" MouseDoubleClick="DataTree_MouseDoubleClick"
-                                              ToolTip="Kéo một biến, trường, hàm hoặc giá trị khi in lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới). Nhấp đúp để mở nó trong Quản lý dữ liệu.">
+                                              PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove" MouseDoubleClick="DataTree_MouseDoubleClick" KeyDown="DataTree_KeyDown"
+                                              ToolTip="Kéo một biến, trường, hàm hoặc giá trị khi in lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới). Nhấp đúp (hoặc Enter) để mở nó trong Quản lý dữ liệu.">
                                         <TreeViewItem x:Name="DataTreePrompts" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreePromptsSource}}">
                                             <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/></Style></TreeViewItem.ItemContainerStyle>
                                             <TreeViewItem.Header>

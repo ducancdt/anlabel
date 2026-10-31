@@ -1487,6 +1487,56 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Two actions were mouse-only. Enter on a Data panel entry now opens it in Quản lý dữ liệu as a
+    /// double-click does. The menu key or Shift+F10 on the design surface opens the selection's menu,
+    /// as NiceLabel applies its context commands to the selected objects, and the label's when nothing
+    /// is selected; before, it kept whatever the last right-click had picked.
+    /// </summary>
+    public static Task KeyboardReachesTheMouseOnlyActions()
+    {
+        RunOnSta(() =>
+        {
+            var xaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));
+            Require(xaml.Contains("KeyDown=\"DataTree_KeyDown\"", StringComparison.Ordinal), "The Data panel takes Enter.");
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            var frame = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 12, WidthMm = 20, HeightMm = 10 };
+            viewModel.Template.Objects.Add(text);
+            viewModel.Template.Objects.Add(frame);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var menu = canvas.ContextMenu!;
+            MenuItem Item(string header) => menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, header));
+            var prepare = typeof(ANLAbel.App.MainWindow).GetMethod("PrepareDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var picked = typeof(ANLAbel.App.MainWindow).GetField("_contextMenuObject", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            string Shown() => Item("Thuộc tính").Visibility == Visibility.Visible ? "đối tượng" : Item("Thuộc tính tem").Visibility == Visibility.Visible ? "tem" : "?";
+
+            // A right-click had picked the frame; the keyboard opens the menu of the selected text.
+            picked.SetValue(window, frame);
+            viewModel.SelectedObject = text;
+            prepare.Invoke(window, new object[] { true });
+            Require(Shown() == "đối tượng" && ReferenceEquals(picked.GetValue(window), text), "The menu key opens the selected text's menu: " + Shown());
+
+            // Nothing selected: the label's menu, whatever was picked before.
+            picked.SetValue(window, frame);
+            viewModel.SelectedObject = null;
+            prepare.Invoke(window, new object[] { true });
+            Require(Shown() == "tem", "With nothing selected the menu key opens the label's menu: " + Shown());
+
+            // A right-click keeps the object under the pointer.
+            picked.SetValue(window, frame);
+            prepare.Invoke(window, new object[] { false });
+            Require(Shown() == "đối tượng" && ReferenceEquals(picked.GetValue(window), frame), "A right-click keeps its object: " + Shown());
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

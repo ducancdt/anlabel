@@ -627,6 +627,16 @@ public partial class MainWindow : Window
         return true;
     }
 
+    /// <summary>Enter on a Data panel entry opens it, as a double-click does: the keyboard has no double-click.</summary>
+    private void DataTree_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && DataManagerPageFor(DataTreeItemFor(e.OriginalSource as DependencyObject)) is { } page)
+        {
+            e.Handled = true;
+            ShowDataManager(page);
+        }
+    }
+
     private void DataTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (DataManagerPageFor(DataTreeItemFor(e.OriginalSource as DependencyObject)) is { } page)
@@ -1087,7 +1097,8 @@ public partial class MainWindow : Window
         _objectMenuItems.AddRange(new Control[] { properties, cut, copy, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align });
         _labelMenuItems.AddRange(new Control[] { labelProperties, _contextSelectAllItem, zoomLabel, zoomObjects, markers });
         DesignerCanvas.PreviewMouseRightButtonDown += (_, e) => SelectForContextMenu(e.GetPosition(DesignerCanvas));
-        DesignerCanvas.ContextMenuOpening += (_, _) => UpdateDesignerContextMenu();
+        // The menu key or Shift+F10 opens it with no pointer (CursorLeft and CursorTop are -1).
+        DesignerCanvas.ContextMenuOpening += (_, e) => PrepareDesignerContextMenu(e.CursorLeft < 0 && e.CursorTop < 0);
     }
 
     /// <summary>
@@ -1184,6 +1195,21 @@ public partial class MainWindow : Window
         {
             DesignerCanvas.SelectedObject = item;
         }
+    }
+
+    /// <summary>
+    /// From the keyboard the menu is the selection's, as NiceLabel applies its context commands to the
+    /// selected objects (the label's when nothing is selected); a right-click has picked the object under
+    /// the pointer already. Before, the keyboard menu kept whatever the last right-click had picked.
+    /// </summary>
+    private void PrepareDesignerContextMenu(bool byKeyboard)
+    {
+        if (byKeyboard)
+        {
+            _contextMenuObject = _viewModel.SelectedObject;
+        }
+
+        UpdateDesignerContextMenu();
     }
 
     private void UpdateDesignerContextMenu()
