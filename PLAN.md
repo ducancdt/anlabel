@@ -7,6 +7,10 @@
   ‹Tên cột› để thấy hình dạng kết quả (ví dụ ‹PO›|L01), hàm kiểm tra dữ liệu (ngày, chữ số) ghi
   “Chưa tính được: hàm cần cột …”, thay vì “Không tìm thấy trường”; tệp đã liên kết mà không đọc
   được vẫn báo thiếu cột; hàm đọc một hàm hỏng không báo thêm “không tìm thấy” cho hàm đó.
+- Thiết kế: khi chọn nhiều đối tượng, “Không in”, “Hiển thị”, “Khóa vị trí” và “Giữ tỉ lệ” (thẻ
+  Thiết kế và Thuộc tính) nay áp cho mọi đối tượng đang chọn, như trang thuộc tính của NiceLabel 10,
+  mỗi lần là một bước hoàn tác; trước đây chỉ đối tượng chính đổi, nên tick “Không in” cho ba đối
+  tượng vẫn in hai. Góc xoay vẫn chỉ cho đối tượng chính (nhóm xoay từng phần sẽ rời ra).
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

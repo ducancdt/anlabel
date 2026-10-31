@@ -128,6 +128,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("help lists every designer key", DesignScenarioRegression.HelpListsEveryDesignerKey),
     ("object lists show hidden and locked objects", DesignScenarioRegression.ObjectListsShowHiddenAndLockedObjects),
     ("the function preview reads its own chain", DesignScenarioRegression.FunctionPreviewReadsItsOwnChain),
+    ("object settings reach every selected object", DesignScenarioRegression.ObjectSettingsReachEverySelectedObject),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

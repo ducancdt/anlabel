@@ -2682,6 +2682,73 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With three objects selected, "Không in", "Hiển thị", "Khóa vị trí" and "Giữ tỉ lệ" changed
+    /// the key object only, while the Properties title counted the whole selection and the
+    /// right-click lock reached every object: a tick on "Không in" meant for three left two in
+    /// print. As NiceLabel 10's property pages set each selected item, these settings now reach
+    /// the whole selection, one undo step each; an object outside the selection keeps its own.
+    /// </summary>
+    public static Task ObjectSettingsReachEverySelectedObject()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            void Commit() => typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            string State(string name) => Named(name) is var item
+                ? $"{name}: in {item.IsPrintable}, hiện {item.IsVisible}, khóa {item.IsLocked}, tỉ lệ {item.KeepAspectRatio}"
+                : string.Empty;
+
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Ghi chú", Text = "Mẫu", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 5 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Mã", Text = "4500123456", XMm = 3, YMm = 12, WidthMm = 40, HeightMm = 8 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 1, WidthMm = 60, HeightMm = 30 });
+            Pump();
+            Commit();
+            var before = State("Mã");
+            var frame = State("Khung");
+            viewModel.SelectedObject = Named("Ghi chú");
+            Pump();
+            selection.Add(Named("Ghi chú"));
+            selection.Add(Named("Mã"));
+
+            // "Không in" on the Design tab, ticked as the operator ticks it.
+            var notPrinted = FindDescendants<CheckBox>(window).Single(box => AutomationProperties.GetName(box) == "Design not printable");
+            notPrinted.IsChecked = true;
+            Pump();
+            Require(!Named("Ghi chú").IsPrintable && !Named("Mã").IsPrintable && Named("Khung").IsPrintable,
+                $"Không in reaches the selection only: {State("Ghi chú")} / {State("Mã")} / {State("Khung")}");
+            Commit();
+
+            Named("Ghi chú").IsLocked = !Named("Ghi chú").IsLocked;
+            Named("Ghi chú").KeepAspectRatio = !Named("Ghi chú").KeepAspectRatio;
+            Named("Ghi chú").IsVisible = false;
+            Pump();
+            Require(Named("Mã").IsLocked == Named("Ghi chú").IsLocked && Named("Mã").KeepAspectRatio == Named("Ghi chú").KeepAspectRatio
+                    && !Named("Mã").IsVisible && State("Khung") == frame,
+                $"Lock, aspect ratio and showing reach the selection: {State("Ghi chú")} / {State("Mã")} / {State("Khung")}");
+
+            viewModel.UndoCommand.Execute(null);
+            Pump();
+            Require(State("Mã") == before.Replace("in True", "in False", StringComparison.Ordinal),
+                "One undo takes the last settings back on both objects: " + State("Mã"));
+            viewModel.UndoCommand.Execute(null);
+            Pump();
+            Require(State("Mã") == before && Named("Ghi chú").IsPrintable, "The next undo prints both again: " + State("Mã"));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A vendor label carries up to eight Code 128 symbols, and their X
     /// dimension and readable text were set one by one. As NiceLabel 10's
     /// barcode pages do, a setting of the key barcode now goes to every linear

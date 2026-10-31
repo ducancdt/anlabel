@@ -5244,6 +5244,52 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Whether the key object prints, shows, keeps its place or keeps its aspect ratio goes to
+    /// every object selected with it, as NiceLabel 10's property pages set each selected item:
+    /// a tick on "Không in" meant for three objects leaves none of them printed. One undo step,
+    /// like the font and barcode settings. The rotation stays with the key object: a group
+    /// would come apart turned member by member.
+    /// </summary>
+    private void ShareObjectSetting(LabelObject key, string? property)
+    {
+        if (_sharingWithSelection
+            || SelectionProvider is null
+            || property is not (nameof(LabelObject.IsPrintable) or nameof(LabelObject.IsVisible)
+                or nameof(LabelObject.IsLocked) or nameof(LabelObject.KeepAspectRatio)))
+        {
+            return;
+        }
+
+        var others = SelectionProvider().Where(item => !ReferenceEquals(item, key)).ToArray();
+        _sharingWithSelection = true;
+        try
+        {
+            foreach (var item in others)
+            {
+                switch (property)
+                {
+                    case nameof(LabelObject.IsPrintable):
+                        item.IsPrintable = key.IsPrintable;
+                        break;
+                    case nameof(LabelObject.IsVisible):
+                        item.IsVisible = key.IsVisible;
+                        break;
+                    case nameof(LabelObject.IsLocked):
+                        item.IsLocked = key.IsLocked;
+                        break;
+                    case nameof(LabelObject.KeepAspectRatio):
+                        item.KeepAspectRatio = key.KeepAspectRatio;
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            _sharingWithSelection = false;
+        }
+    }
+
     private static bool IsLinearBarcode(LabelObject item) => item.Type == ObjectType.BarcodeCode128 && !item.IsSquare2DCodeLike();
 
     /// <summary>Grow or Shrink Font: every selected text by one step from its own size.</summary>
@@ -5413,6 +5459,7 @@ public sealed class MainViewModel : ObservableObject
             if (sender is LabelObject key)
             {
                 ShareBarcodeSetting(key, e.PropertyName);
+                ShareObjectSetting(key, e.PropertyName);
             }
 
             if (e.PropertyName is nameof(LabelObject.ImageDataBase64) or nameof(LabelObject.ImageRasterMode))
