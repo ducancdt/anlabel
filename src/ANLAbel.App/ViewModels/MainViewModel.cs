@@ -3492,7 +3492,7 @@ public sealed class MainViewModel : ObservableObject
 
             if (!string.IsNullOrWhiteSpace(DataTransformError))
             {
-                StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {DataTransformError}";
+                StatusText = $"Đã chặn in: lỗi ở hàm của Quản lý dữ liệu. {DataTransformError}";
                 return;
             }
 
@@ -3618,7 +3618,7 @@ public sealed class MainViewModel : ObservableObject
                 if (!string.IsNullOrWhiteSpace(transformError))
                 {
                     DataTransformError = ANLAbel.App.Services.FormulaErrorText.Translate(transformError);
-                    StatusText = $"Đã chặn in: lỗi chuyển đổi dữ liệu. {DataTransformError}";
+                    StatusText = $"Đã chặn in: lỗi ở hàm của Quản lý dữ liệu. {DataTransformError}";
                     return;
                 }
 

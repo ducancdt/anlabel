@@ -42,11 +42,12 @@ public static class FormulaErrorText
         (Rx("^GS1CHECKDIGIT needs digits only[.]$"), _ => "Hàm GS1CHECKDIGIT chỉ nhận chữ số."),
         (Rx("^FIELD field name is empty[.]$"), _ => "Hàm FIELD chưa có tên trường."),
         (Rx("^Field '(?<n>.*)' was not found[.]$"), m => $"Không tìm thấy trường “{m.Groups["n"].Value}”."),
-        (Rx("^A transform output field name is required[.]$"), _ => "Trường chuyển đổi cần có tên."),
-        (Rx("^Transform output '(?<n>.*)' conflicts with a source field[.]$"), m => $"Trường chuyển đổi “{m.Groups["n"].Value}” trùng tên với một cột dữ liệu."),
-        (Rx("^Transform output '(?<n>.*)' is defined more than once[.]$"), m => $"Trường chuyển đổi “{m.Groups["n"].Value}” được khai báo nhiều lần."),
-        (Rx("^Transform dependency cycle detected: (?<n>.*)[.]$"), m => $"Các trường chuyển đổi phụ thuộc vòng: {m.Groups["n"].Value}."),
-        (Rx("^Transform '(?<n>[^']*)': (?<inner>.*)$"), m => $"Trường chuyển đổi “{m.Groups["n"].Value}”: {Translate(m.Groups["inner"].Value)}"),
+        // Transforms are the Data Manager's functions ("Hàm"); the messages use that name.
+        (Rx("^A transform output field name is required[.]$"), _ => "Một hàm chưa có tên trường kết quả."),
+        (Rx("^Transform output '(?<n>.*)' conflicts with a source field[.]$"), m => $"Hàm “{m.Groups["n"].Value}” trùng tên với một cột dữ liệu; đổi tên hàm."),
+        (Rx("^Transform output '(?<n>.*)' is defined more than once[.]$"), m => $"Có nhiều hàm cùng tên “{m.Groups["n"].Value}”; đổi tên để mỗi hàm một tên."),
+        (Rx("^Transform dependency cycle detected: (?<n>.*)[.]$"), m => $"Các hàm đọc lẫn nhau thành vòng: {m.Groups["n"].Value}; sửa công thức để không hàm nào đọc lại chính nó."),
+        (Rx("^Transform '(?<n>[^']*)': (?<inner>.*)$"), m => $"Công thức của hàm “{m.Groups["n"].Value}”: {Translate(m.Groups["inner"].Value)}"),
     ];
 
     public static string Translate(string? error)

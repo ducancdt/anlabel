@@ -36,6 +36,10 @@
   mang nó, và máy quét bật truyền ECI gửi kèm mã đó trước dữ liệu. GS1 DataMatrix nay
   bắt đầu bằng FNC1 nên máy quét nhận đúng là GS1 (]d2); trước đây thiếu FNC1, máy quét
   GS1 đọc như chữ thường. Dữ liệu có dấu tiếng Việt vẫn mã hóa UTF-8 kèm ECI.
+- Lỗi của hàm (Quản lý dữ liệu) gọi đúng tên “hàm” như cửa sổ dùng, kèm việc cần làm:
+  “Các hàm đọc lẫn nhau thành vòng: A, B; sửa công thức…”, “Công thức của hàm “Lô2”: …”,
+  “Đã chặn in: lỗi ở hàm của Quản lý dữ liệu…”; trước đây gọi là “trường chuyển đổi”,
+  một tên không có ở đâu trong giao diện.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 

@@ -1478,7 +1478,7 @@ public partial class MainWindow : Window
         {
             if (!_viewModel.TryBuildPrintPreviewRows(out var preparedRows, out var transformError))
             {
-                MessageBox.Show(this, $"Xem trước bị chặn: lỗi chuyển đổi dữ liệu. {transformError}", "Xem trước bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, $"Xem trước bị chặn: lỗi ở hàm của Quản lý dữ liệu. {transformError}", "Xem trước bị chặn", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

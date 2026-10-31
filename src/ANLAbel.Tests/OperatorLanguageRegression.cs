@@ -69,8 +69,12 @@ internal static class OperatorLanguageRegression
             "Option lists must show Vietnamese names.");
         Require(FormulaErrorText.Translate("Field 'Qty' was not found.") == "Không tìm thấy trường “Qty”.",
             "Formula errors must be Vietnamese.");
-        Require(FormulaErrorText.Translate("Transform 'Lot2': Unknown function 'FOO'.") == "Trường chuyển đổi “Lot2”: Hàm “FOO” không được hỗ trợ.",
+        Require(FormulaErrorText.Translate("Transform 'Lot2': Unknown function 'FOO'.") == "Công thức của hàm “Lot2”: Hàm “FOO” không được hỗ trợ.",
             "Transform errors must be Vietnamese, including the inner formula error.");
+        // Transforms are the Data Manager's functions: the operator reads "hàm", the name the window uses.
+        Require(FormulaErrorText.Translate("Transform dependency cycle detected: A, B.") == "Các hàm đọc lẫn nhau thành vòng: A, B; sửa công thức để không hàm nào đọc lại chính nó."
+                && FormulaErrorText.Translate("Transform output 'Lot' is defined more than once.") == "Có nhiều hàm cùng tên “Lot”; đổi tên để mỗi hàm một tên.",
+            "Function errors must name functions as the Data Manager does.");
         Require(FormulaErrorText.Translate("Some new engine message.") == "Some new engine message.",
             "An unknown formula message must be shown unchanged, not hidden.");
         Require(PreflightIssueText.Sentence("HRI text is 32 mm wide but the barcode frame is only 20 mm. Increase the frame or reduce the HRI font size.")
