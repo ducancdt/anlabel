@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.363
+## v0.364 — Danh sách Đối tượng đang lọc đi theo lựa chọn
+
+_Gồm các commit 31/10/2026 (23:29–23:29)._
 
 - Danh sách Đối tượng đang lọc bằng ô Tìm: đối tượng vừa đặt từ hộp công cụ bị bộ lọc giấu, hàng cũ vẫn
   sáng và bấm vào nó không chọn được (danh sách coi như đã chọn). Nay đối tượng đang chọn luôn có trong
