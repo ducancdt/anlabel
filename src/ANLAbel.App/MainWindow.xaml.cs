@@ -801,7 +801,8 @@ public partial class MainWindow : Window
 
         if (_contextLockItem is not null)
         {
-            _contextLockItem.IsChecked = _viewModel.SelectedObject?.IsLocked == true;
+            // Ticked when every selected object is locked; a click locks or frees them all.
+            _contextLockItem.IsChecked = _viewModel.SelectionLocked == true;
         }
 
         if (_contextGroupItem is not null)

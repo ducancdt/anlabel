@@ -968,9 +968,9 @@
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <StackPanel Style="{StaticResource RibbonColumn}">
-                                        <CheckBox Content="Không in" IsChecked="{Binding SelectedObject.IsPrintable, Mode=TwoWay, Converter={StaticResource InverseBool}}"
+                                        <CheckBox Content="Không in" IsChecked="{Binding SelectionNotPrinted, Mode=TwoWay}"
                                                   ToolTip="Đối tượng vẫn hiện khi thiết kế nhưng không có trong bản in và xem trước" AutomationProperties.Name="Design not printable" AutomationProperties.AutomationId="Shell.Ribbon.NotPrintable"/>
-                                        <CheckBox Content="Hiển thị" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" AutomationProperties.Name="Design visible"/>
+                                        <CheckBox Content="Hiển thị" IsChecked="{Binding SelectionShown, Mode=TwoWay}" AutomationProperties.Name="Design visible"/>
                                         <ToggleButton x:Name="VisibilityConditionToggle" Style="{StaticResource RibbonSmallButton}" controls:Ribbon.Icon="{StaticResource Icon.VisibilitySettings16}" Content="Điều kiện hiển thị ▾"
                                                       ToolTip="Chỉ in đối tượng ở những dòng thỏa điều kiện" AutomationProperties.Name="Visibility condition" AutomationProperties.AutomationId="Shell.Ribbon.VisibilityCondition"/>
                                         <Popup IsOpen="{Binding IsChecked, ElementName=VisibilityConditionToggle, Mode=TwoWay}" PlacementTarget="{Binding ElementName=VisibilityConditionToggle}"
@@ -1046,9 +1046,9 @@
                                         </Border>
                                     </Popup>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
-                                        <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectedObject.KeepAspectRatio, Mode=TwoWay}"
+                                        <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectionKeepsAspectRatio, Mode=TwoWay}"
                                                   ToolTip="Kéo khung luôn giữ tỉ lệ rộng/cao" AutomationProperties.Name="Keep aspect ratio" AutomationProperties.AutomationId="Shell.Ribbon.KeepAspectRatio"/>
-                                        <CheckBox Content="Khóa vị trí" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" AutomationProperties.Name="Design lock"/>
+                                        <CheckBox Content="Khóa vị trí" IsChecked="{Binding SelectionLocked, Mode=TwoWay}" AutomationProperties.Name="Design lock"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Vị trí"/>
@@ -1299,7 +1299,7 @@
                                         </Border>
                                     </Popup>
                                     <StackPanel Style="{StaticResource RibbonColumn}">
-                                        <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectedObject.KeepAspectRatio, Mode=TwoWay}" ToolTip="Kéo khung luôn giữ tỉ lệ rộng/cao" AutomationProperties.Name="Picture keep aspect ratio"/>
+                                        <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectionKeepsAspectRatio, Mode=TwoWay}" ToolTip="Kéo khung luôn giữ tỉ lệ rộng/cao" AutomationProperties.Name="Picture keep aspect ratio"/>
                                         <CheckBox Content="Lật ngang" IsChecked="{Binding SelectedObject.PictureFlipHorizontal, Mode=TwoWay}" ToolTip="Lật ảnh trái sang phải" AutomationProperties.Name="Flip picture horizontal"/>
                                         <CheckBox Content="Lật dọc" IsChecked="{Binding SelectedObject.PictureFlipVertical, Mode=TwoWay}" ToolTip="Lật ảnh trên xuống dưới" AutomationProperties.Name="Flip picture vertical"/>
                                     </StackPanel>
@@ -2526,8 +2526,8 @@
                                             <Button Grid.Column="2" Content="Đưa ra sau" Command="{Binding SendBackwardCommand}" Padding="6,5" FontSize="11"/>
                                         </Grid>
                                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <CheckBox Content="Hiển thị" IsChecked="{Binding SelectedObject.IsVisible, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
-                                            <CheckBox Content="Khóa" IsChecked="{Binding SelectedObject.IsLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
+                                            <CheckBox Content="Hiển thị" IsChecked="{Binding SelectionShown, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
+                                            <CheckBox Content="Khóa" IsChecked="{Binding SelectionLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </StackPanel>
                                     </Expander>

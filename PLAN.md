@@ -11,6 +11,10 @@
   Thiết kế và Thuộc tính) nay áp cho mọi đối tượng đang chọn, như trang thuộc tính của NiceLabel 10,
   mỗi lần là một bước hoàn tác; trước đây chỉ đối tượng chính đổi, nên tick “Không in” cho ba đối
   tượng vẫn in hai. Góc xoay vẫn chỉ cho đối tượng chính (nhóm xoay từng phần sẽ rời ra).
+- Thiết kế: khi các đối tượng đang chọn khác nhau, ô “Không in”, “Hiển thị”, “Khóa vị trí” và “Giữ
+  tỉ lệ” hiện dấu lưng chừng (như trang thuộc tính của NiceLabel 10 chỉ hiện giá trị khi mọi đối
+  tượng chung giá trị đó), thay vì trạng thái của riêng đối tượng chính; bấm vào thì cả vùng chọn
+  nhận giá trị. Mục “Khóa vị trí” trong menu chuột phải chỉ có dấu khi mọi đối tượng đang chọn đều khóa.
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

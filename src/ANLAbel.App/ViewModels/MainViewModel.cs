@@ -504,6 +504,82 @@ public sealed class MainViewModel : ObservableObject
             : default;
     }
 
+    /// <summary>
+    /// Whether the selected objects are left out of print, shown, kept in place and kept in
+    /// proportion, for the ticks of the Design tab and Properties: null, a mixed tick, when the
+    /// selected objects differ, as NiceLabel 10's property pages show a value only when every
+    /// selected item shares it. A tick goes to the key object and from it to the selection.
+    /// </summary>
+    public bool? SelectionNotPrinted
+    {
+        get => CommonFlag(item => !item.IsPrintable);
+        set => SetSelectionFlag(value, nameof(LabelObject.IsPrintable), item => !item.IsPrintable, (item, flag) => item.IsPrintable = !flag);
+    }
+
+    public bool? SelectionShown
+    {
+        get => CommonFlag(item => item.IsVisible);
+        set => SetSelectionFlag(value, nameof(LabelObject.IsVisible), item => item.IsVisible, (item, flag) => item.IsVisible = flag);
+    }
+
+    public bool? SelectionLocked
+    {
+        get => CommonFlag(item => item.IsLocked);
+        set => SetSelectionFlag(value, nameof(LabelObject.IsLocked), item => item.IsLocked, (item, flag) => item.IsLocked = flag);
+    }
+
+    public bool? SelectionKeepsAspectRatio
+    {
+        get => CommonFlag(item => item.KeepAspectRatio);
+        set => SetSelectionFlag(value, nameof(LabelObject.KeepAspectRatio), item => item.KeepAspectRatio, (item, flag) => item.KeepAspectRatio = flag);
+    }
+
+    private bool? CommonFlag(Func<LabelObject, bool> read)
+    {
+        if (SelectedObject is not { } key)
+        {
+            return null;
+        }
+
+        var value = read(key);
+        return (SelectionProvider?.Invoke() ?? Array.Empty<LabelObject>()).All(item => read(item) == value) ? value : null;
+    }
+
+    private void SetSelectionFlag(bool? value, string property, Func<LabelObject, bool> read, Action<LabelObject, bool> write)
+    {
+        // A tick never sets a mixed value.
+        if (value is not { } flag || SelectedObject is not { } key)
+        {
+            return;
+        }
+
+        // A click on a mixed tick ticks it for the whole selection, as a mixed box does in
+        // NiceLabel 10 and in Windows, and as the right-click lock does; WPF's two-state box
+        // would clear it instead.
+        if (!flag && CommonFlag(read) is null)
+        {
+            flag = true;
+        }
+
+        if (read(key) != flag)
+        {
+            write(key, flag);
+        }
+        else
+        {
+            // The key has it already: the rest of the selection takes it.
+            ShareObjectSetting(key, property);
+        }
+    }
+
+    private void RaiseSelectionFlags()
+    {
+        OnPropertyChanged(nameof(SelectionNotPrinted));
+        OnPropertyChanged(nameof(SelectionShown));
+        OnPropertyChanged(nameof(SelectionLocked));
+        OnPropertyChanged(nameof(SelectionKeepsAspectRatio));
+    }
+
     // The selection the ribbon's font boxes were last shown for.
     private HashSet<LabelObject> _ribbonFontSelection = new(ReferenceEqualityComparer.Instance);
 
@@ -1082,6 +1158,7 @@ public sealed class MainViewModel : ObservableObject
     private void RaiseRibbonSelectionChanged()
     {
         RaiseRibbonFont();
+        RaiseSelectionFlags();
         OnPropertyChanged(nameof(HasSelectedObject));
         OnPropertyChanged(nameof(IsTextObjectSelected));
         OnPropertyChanged(nameof(IsRichTextObjectSelected));
@@ -4952,6 +5029,7 @@ public sealed class MainViewModel : ObservableObject
         {
             _ribbonFontSelection = current.ToHashSet<LabelObject>(ReferenceEqualityComparer.Instance);
             RaiseRibbonFont();
+            RaiseSelectionFlags();
         }
 
         var text = SelectionProvider?.Invoke() is { Count: > 1 } selection ? $" · {selection.Count} đối tượng đang chọn" : string.Empty;
@@ -5453,6 +5531,12 @@ public sealed class MainViewModel : ObservableObject
         }
 
         RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.ObjectAction(e.PropertyName), sender as LabelObject));
+        if (e.PropertyName is nameof(LabelObject.IsPrintable) or nameof(LabelObject.IsVisible)
+            or nameof(LabelObject.IsLocked) or nameof(LabelObject.KeepAspectRatio))
+        {
+            RaiseSelectionFlags();
+        }
+
         if (ReferenceEquals(sender, SelectedObject))
         {
             RaiseSelectedObjectChanged();

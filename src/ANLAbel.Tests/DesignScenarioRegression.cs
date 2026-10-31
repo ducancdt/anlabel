@@ -2749,6 +2749,74 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With objects of differing settings selected, the Design tab's ticks showed the key
+    /// object's: "Không in" stood clear while another selected object was already left out
+    /// of print. As NiceLabel 10's property pages show a value only when every selected item
+    /// shares it, the tick is mixed then, and a click gives the whole selection the setting,
+    /// also when the key object has it already.
+    /// </summary>
+    public static Task MixedSelectionShowsAMixedTick()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            CheckBox Tick(string name) => FindDescendants<CheckBox>(window).Single(box => AutomationProperties.GetName(box) == name);
+            // A click as the operator makes it: the box toggles itself.
+            void Click(CheckBox box) => ((System.Windows.Automation.Provider.IToggleProvider)new System.Windows.Automation.Peers.CheckBoxAutomationPeer(box)).Toggle();
+
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Ghi chú", Text = "Mẫu", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 5 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Mã", Text = "4500123456", XMm = 3, YMm = 12, WidthMm = 40, HeightMm = 8, IsPrintable = false });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 1, WidthMm = 60, HeightMm = 30 });
+            Pump();
+            viewModel.SelectedObject = Named("Ghi chú");
+            Pump();
+            selection.Add(Named("Ghi chú"));
+            selection.Add(Named("Mã"));
+            viewModel.RefreshSelectionScope();
+            Pump();
+            var notPrinted = Tick("Design not printable");
+            Require(notPrinted.IsChecked is null && viewModel.SelectionNotPrinted is null,
+                $"Không in is mixed while one selected object prints: {notPrinted.IsChecked}");
+            Require(Tick("Design lock").IsChecked == false && Tick("Design visible").IsChecked == true,
+                $"Shared settings show as they are: lock {Tick("Design lock").IsChecked}, shown {Tick("Design visible").IsChecked}");
+
+            // A click on the mixed tick ticks it for the whole selection.
+            Click(notPrinted);
+            Pump();
+            Require(!Named("Ghi chú").IsPrintable && !Named("Mã").IsPrintable && Named("Khung").IsPrintable && notPrinted.IsChecked == true,
+                $"The click leaves both out of print, not the frame: {Named("Ghi chú").IsPrintable}/{Named("Mã").IsPrintable}/{Named("Khung").IsPrintable}, tick {notPrinted.IsChecked}");
+
+            // The key left out already: the click still reaches the rest.
+            Named("Mã").IsPrintable = true;
+            Pump();
+            Require(notPrinted.IsChecked is null, "Mixed again: " + notPrinted.IsChecked);
+            Click(notPrinted);
+            Pump();
+            Require(!Named("Mã").IsPrintable && notPrinted.IsChecked == true, "With the key out already, the other follows: " + Named("Mã").IsPrintable);
+
+            Named("Mã").IsLocked = true;
+            Pump();
+            Require(Tick("Design lock").IsChecked is null && viewModel.SelectionLocked is null, "A lock on one of them is mixed: " + Tick("Design lock").IsChecked);
+            Click(Tick("Design lock"));
+            Pump();
+            Require(Named("Ghi chú").IsLocked && Named("Mã").IsLocked && !Named("Khung").IsLocked && Tick("Design lock").IsChecked == true,
+                "A click on the mixed lock locks both, as the right-click lock does: " + Tick("Design lock").IsChecked);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A vendor label carries up to eight Code 128 symbols, and their X
     /// dimension and readable text were set one by one. As NiceLabel 10's
     /// barcode pages do, a setting of the key barcode now goes to every linear
