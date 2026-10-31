@@ -389,6 +389,148 @@ internal static class DataHeaderRegression
     private static PrintPreflightResult Check(MainViewModel vm, IReadOnlyList<IReadOnlyDictionary<string, string>?> rows)
         => DataHeaderCheck.Append(new PrintService().ValidateRows(vm.Template, rows), vm.Template, vm.ExcelDataView?.Table);
 
+    /// <summary>
+    /// Opening a label without a data link kept the rows read for the label opened before: the
+    /// designer filled the new label's fields from them, and "In mọi dòng" printed it once per
+    /// row of that file. A label without a data link now opens without rows, as a new label does.
+    /// </summary>
+    public static async Task OpeningAnUnlinkedLabelDropsTheLastRows()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-unlinked-gate-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var path = Path.Combine(directory, "data.xlsx");
+            WriteSheet(path, ["Part No", "Lot"], ["PN-1", "L-1"], ["PN-2", "L-2"]);
+            var vm = new MainViewModel();
+            AddText(vm.Template, "part", "Mã hàng", "{Part No}");
+            await vm.ImportExcelAsync(path, "Data", 1);
+            Require(vm.ExcelDataView?.Count == 2 && vm.PrintAllRowsCommand.CanExecute(null), "The first label reads its two rows.");
+
+            var unlinked = new LabelTemplate { Name = "Không liên kết", WidthMm = 60, HeightMm = 40 };
+            AddText(unlinked, "part", "Mã hàng", "{Part No}");
+            await vm.LoadTemplateFromLibraryAsync(unlinked);
+            Require(vm.ExcelDataView is null && vm.ExcelHeaders.Count == 0 && vm.PreviewRow is null && !vm.PrintAllRowsCommand.CanExecute(null),
+                $"A label without a data link opens without the last label's rows: {vm.ExcelDataView?.Count} rows, {vm.ExcelHeaders.Count} headers, print all {vm.PrintAllRowsCommand.CanExecute(null)}");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Opening labels overlapped: a label linked to a large workbook was still reading it when
+    /// another, unlinked label was opened, and the read then filled the new label with its rows
+    /// and linked it to the first label's file; a label read more slowly also took the place of
+    /// one opened after it. The label opened last now keeps its own data. Run on a dispatcher,
+    /// as the app runs, so the awaits interleave as they do there.
+    /// </summary>
+    public static Task OverlappingOpensKeepTheLastLabel()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(
+                    new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
+                OverlappingOpens();
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null)
+        {
+            throw failure;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static void OverlappingOpens()
+    {
+        void Wait(Task task)
+        {
+            var frame = new System.Windows.Threading.DispatcherFrame();
+            task.ContinueWith(_ => frame.Continue = false, TaskScheduler.Default);
+            System.Windows.Threading.Dispatcher.PushFrame(frame);
+            task.GetAwaiter().GetResult();
+        }
+
+        void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+        LabelTemplate Unlinked(string name)
+        {
+            var template = new LabelTemplate { Name = name, WidthMm = 60, HeightMm = 40 };
+            AddText(template, "part", "Mã hàng", "{Part No}");
+            return template;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), "anlabel-overlap-gate-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            // A workbook large enough that its read is still running when the next label opens.
+            var big = Path.Combine(directory, "big.xlsx");
+            WriteSheet(big, ["Part No", "Lot"], Enumerable.Range(1, 20000).Select(row => new[] { "PN-" + row, "L-" + row }).ToArray());
+            var linked = new MainViewModel();
+            linked.Template.Name = "Tem A";
+            AddText(linked.Template, "part", "Mã hàng", "{Part No}");
+            Wait(linked.ImportExcelAsync(big, "Data", 1));
+            var labelA = Path.Combine(directory, "a.anlabel");
+            Wait(linked.SaveAsync(labelA));
+
+            // A read still running for label A does not fill label B opened meanwhile.
+            var vm = new MainViewModel();
+            var openA = vm.OpenAsync(labelA);
+            var deadline = DateTime.UtcNow.AddSeconds(60);
+            while (vm.Template.Name != "Tem A" && !openA.IsCompleted && DateTime.UtcNow < deadline)
+            {
+                Pump();
+                Thread.Sleep(1);
+            }
+
+            if (openA.IsCompleted)
+            {
+                Console.WriteLine("INFO the workbook was read before the next label opened; the overlap was not reached.");
+            }
+            else
+            {
+                var b = Unlinked("Tem B");
+                Wait(vm.LoadTemplateFromLibraryAsync(b));
+                Wait(openA);
+                Require(ReferenceEquals(vm.Template, b) && vm.ExcelDataView is null && string.IsNullOrEmpty(b.DatabaseConfig.FilePath)
+                        && !vm.PrintAllRowsCommand.CanExecute(null),
+                    $"Label B keeps no rows and no link of label A: {vm.Template.Name}, rows {vm.ExcelDataView?.Count}, link '{b.DatabaseConfig.FilePath}'");
+            }
+
+            // A label read more slowly does not take the place of one opened after it.
+            var later = new MainViewModel();
+            var slowOpen = later.OpenAsync(labelA);
+            if (later.Template.Name == "Tem A")
+            {
+                Console.WriteLine("INFO the label file was read at once; the slower open was not reached.");
+            }
+            else
+            {
+                var c = Unlinked("Tem C");
+                Wait(later.LoadTemplateFromLibraryAsync(c));
+                Wait(slowOpen);
+                Require(ReferenceEquals(later.Template, c) && later.ExcelDataView is null,
+                    $"The label opened last stays open: {later.Template.Name}, rows {later.ExcelDataView?.Count}");
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static void AddText(LabelTemplate template, string id, string name, string binding)
     {
         template.Objects.Add(new LabelObject

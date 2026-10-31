@@ -25,6 +25,11 @@
 - Thiết kế: phím F2 mở bảng Thuộc tính của đối tượng đang chọn, như nhấp đúp (NiceLabel 10 mở
   trình sửa thuộc tính bằng F2); với chữ, con trỏ vào ô nội dung, chữ được chọn sẵn để gõ đè. Hướng
   dẫn, Phím tắt có dòng F2.
+- Dữ liệu: mở một tem không liên kết tệp dữ liệu (tệp, bản phục hồi, mẫu thư viện) không còn giữ các
+  dòng đã đọc cho tem mở trước đó; trước đây thiết kế điền trường của tem mới từ các dòng đó và “In
+  mọi dòng” in tem mới một lần cho mỗi dòng của tệp kia. Nay như tạo tem mới: chưa có dòng nào cho tới
+  khi liên kết tệp. Mở tem khác khi tem trước còn đang đọc tệp dữ liệu cũng không còn để dữ liệu và
+  liên kết của tem trước đổ vào tem mới, và tem mở sau cùng là tem được giữ.
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

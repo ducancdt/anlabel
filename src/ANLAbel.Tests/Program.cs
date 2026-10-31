@@ -131,6 +131,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("object settings reach every selected object", DesignScenarioRegression.ObjectSettingsReachEverySelectedObject),
     ("a mixed selection shows a mixed tick", DesignScenarioRegression.MixedSelectionShowsAMixedTick),
     ("F2 opens the selected object's properties", DesignScenarioRegression.F2OpensTheSelectedObjectsProperties),
+    ("opening an unlinked label drops the last label's rows", DataHeaderRegression.OpeningAnUnlinkedLabelDropsTheLastRows),
+    ("overlapping opens keep the last label", DataHeaderRegression.OverlappingOpensKeepTheLastLabel),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

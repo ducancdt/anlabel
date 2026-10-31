@@ -74,6 +74,9 @@ public sealed class MainViewModel : ObservableObject
     internal static TimeSpan PrinterQueueLookupTimeout { get; set; } = TimeSpan.FromSeconds(20);
     private bool _isQuickPrinting;
     private int _importGeneration;
+    // Each label opened or made counts one: an open overtaken by a later one stops, so the label
+    // opened last stays, with its own data.
+    private int _documentGeneration;
     // What the latest import found (the DB03 header note and the count of broken
     // links), kept for the callers that write their own status line right after
     // importing (open, verify, relink, shared source).
@@ -1645,7 +1648,13 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     public async Task OpenRecoveredAsync(string recoveryDocumentPath, string? originalFilePath, string documentName, FileSourceIdentity? originalFileIdentity = null)
     {
+        var document = ++_documentGeneration;
         var recovered = await _projectFileService.LoadAsync(recoveryDocumentPath);
+        if (document != _documentGeneration)
+        {
+            return;
+        }
+
         StopWatchingExcelFile();
         UnobserveTemplate(Template);
         Template = recovered;
@@ -1666,6 +1675,11 @@ public sealed class MainViewModel : ObservableObject
         }
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
+        if (document != _documentGeneration)
+        {
+            return;
+        }
+
         CommitPendingHistory();
         _savedTemplateSnapshot = string.Empty;
         UpdateDirtyState(CaptureTemplateSnapshot());
@@ -2237,6 +2251,10 @@ public sealed class MainViewModel : ObservableObject
     public void NewTemplate(NewTemplateRequest? request)
     {
         request ??= new NewTemplateRequest("Untitled Label", 100, 50, 203);
+        // A label still opening, or a read still running for the label open before, must not
+        // publish into the new one.
+        _documentGeneration++;
+        _importGeneration++;
         StopWatchingExcelFile();
         IsExcelDataStale = false;
         ExcelDataView = null;
@@ -2318,7 +2336,14 @@ public sealed class MainViewModel : ObservableObject
         // second outcome used to replace the open session. The operator opens
         // the backup file explicitly. Explicit revision restore still writes a
         // validated primary first, then calls this method.
+        var document = ++_documentGeneration;
         var loadResult = await _projectFileService.LoadWithRecoveryAsync(filePath);
+        if (document != _documentGeneration)
+        {
+            // Another label was opened while this one was read: that one stays.
+            return loadResult;
+        }
+
         if (loadResult.RecoveredFromBackup)
         {
             var backupPath = string.IsNullOrWhiteSpace(loadResult.BackupPath)
@@ -2352,6 +2377,12 @@ public sealed class MainViewModel : ObservableObject
         var loadedDesign = CaptureDesignSnapshot();
 
         await RestoreLinkedExcelDataAsync();
+        if (document != _documentGeneration)
+        {
+            // Another label was opened while this one's data was read: the rest is not for it.
+            return loadResult;
+        }
+
         if (CaptureDesignSnapshot() == loadedDesign)
         {
             MarkDocumentClean();
@@ -2422,12 +2453,18 @@ public sealed class MainViewModel : ObservableObject
     public async Task LoadTemplateFromLibraryAsync(LabelTemplate template)
     {
         ArgumentNullException.ThrowIfNull(template);
+        var document = ++_documentGeneration;
         UnobserveTemplate(Template);
         Template = template;
         ResetHistory();
         CurrentFilePath = string.Empty;
         SelectedObject = Template.Objects.OrderByDescending(item => item.ZIndex).FirstOrDefault();
         await RestoreLinkedExcelDataAsync();
+        if (document != _documentGeneration)
+        {
+            return;
+        }
+
         MarkDocumentClean();
         StatusText = $"Đã mở mẫu từ thư viện: {template.Name}";
     }
@@ -2605,6 +2642,12 @@ public sealed class MainViewModel : ObservableObject
         IsExcelDataStale = false;
         MarkExcelLinkVerified(table.Rows.Count, table.Columns.Count);
         await RefreshExcelOpenHintAsync().ConfigureAwait(true);
+        if (generation != _importGeneration)
+        {
+            // Another label opened while the hint was checked: no watcher or status for this read.
+            return;
+        }
+
         StartWatchingExcelFile(filePath);
 
         var issueCount = GetBindingIssues().Count;
@@ -2927,6 +2970,27 @@ public sealed class MainViewModel : ObservableObject
             StopWatchingExcelFile();
             IsExcelDataStale = false;
             IsExcelLinkBroken = false;
+            // A read still running for the label open before must not publish into this one.
+            _importGeneration++;
+            // The rows read for the label open before are not this label's: they go, as for a
+            // new label. Kept, the designer filled this label from them and "In mọi dòng"
+            // printed it once per row of that file.
+            ExcelDataView = null;
+            DataConnector = null;
+            PreviewRow = null;
+            SelectedDataItem = null;
+            ExcelHeaders.Clear();
+            ForgetImportedSourceIdentity();
+            _excelDataReadAtLocal = null;
+            ExcelOpenInExcelText = string.Empty;
+            SelectedAvailableDatabaseField = null;
+            SelectedLabelDatabaseField = null;
+            SelectedExcelField = null;
+            OnPropertyChanged(nameof(CurrentExcelRowText));
+            OnPropertyChanged(nameof(KeyFieldOptions));
+            OnPropertyChanged(nameof(SelectedKeyFieldName));
+            OnPropertyChanged(nameof(SelectedCopiesFieldName));
+            RaiseDatabaseFieldStateChanged();
             ExcelLinkVerificationState = ExcelLinkVerificationState.NotLinked;
             StatusText = $"Đã mở: {Path.GetFileName(CurrentFilePath)}";
             return;
@@ -2952,6 +3016,7 @@ public sealed class MainViewModel : ObservableObject
         var resolvedPath = ResolveExcelPath();
         if (resolvedPath is null)
         {
+            _importGeneration++;
             StopWatchingExcelFile();
             IsExcelDataStale = false;
             ExcelDataView = null;
@@ -3111,6 +3176,8 @@ public sealed class MainViewModel : ObservableObject
         var previousFilePath = Template.DatabaseConfig.FilePath;
         var previousSheetName = Template.DatabaseConfig.SheetName;
 
+        // A read still running must not link the file again.
+        _importGeneration++;
         StopWatchingExcelFile();
         ExcelDataView = null;
         DataConnector = null;
