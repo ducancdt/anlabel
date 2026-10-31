@@ -115,9 +115,19 @@ public partial class DataManagerWindow : Window
         {
             "Counter" => _counter,
             "Database" => NodeKind.Database,
-            "Functions" => NodeKind.FunctionCategory,
+            "Functions" or "NewFunction" => NodeKind.FunctionCategory,
             _ => NodeKind.PromptCategory
         });
+
+        // The Data panel's Add menu (NiceLabel 10 "Add new variable") opens on a new item.
+        if (start == "NewPrompt")
+        {
+            AddVariable();
+        }
+        else if (start == "NewFunction")
+        {
+            AddFunction();
+        }
     }
 
     /// <summary>True after Đồng ý applied the draft to the label.</summary>

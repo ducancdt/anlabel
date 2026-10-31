@@ -444,6 +444,47 @@ public partial class MainWindow : Window
         };
     }
 
+    /// <summary>
+    /// NiceLabel 10 Data explorer: the label's prompts, the data's columns and the functions,
+    /// filtered by the search box. Each list is a CollectionViewSource of its own, so the other
+    /// lists of the same items stay whole.
+    /// </summary>
+    private void DataTreeSource_Filter(object sender, System.Windows.Data.FilterEventArgs e)
+    {
+        var search = DataTreeSearch?.Text;
+        var name = e.Item switch
+        {
+            PromptVariableDefinition prompt => prompt.Name,
+            ANLAbel.Core.Data.DataTransformDefinition transform => transform.Name,
+            string column => column,
+            _ => null
+        };
+        e.Accepted = string.IsNullOrWhiteSpace(search) || (name ?? string.Empty).Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    private void DataTreeSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        foreach (var key in new[] { "DataTreePromptsSource", "DataTreeFieldsSource", "DataTreeFunctionsSource" })
+        {
+            ((System.Windows.Data.CollectionViewSource)Resources[key]).View?.Refresh();
+        }
+    }
+
+    private void DataTreeAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            menu.PlacementTarget = button;
+            menu.Placement = PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
+    // NiceLabel 10 "Add new variable": Quản lý dữ liệu opens on the new item.
+    private void AddPromptFromData_Click(object sender, RoutedEventArgs e) => ShowDataManager("NewPrompt");
+
+    private void AddFunctionFromData_Click(object sender, RoutedEventArgs e) => ShowDataManager("NewFunction");
+
     private static bool MatchesObjectSearch(LabelObject item, string? search)
         => string.IsNullOrWhiteSpace(search)
             || item.Name.Contains(search.Trim(), StringComparison.CurrentCultureIgnoreCase)

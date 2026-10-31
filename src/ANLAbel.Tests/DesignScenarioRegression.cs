@@ -386,6 +386,60 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's Data explorer has a search box over its tree and "Add new variable". A
+    /// label with forty columns left ANLAbel's Data panel to scrolling, and a new prompt or
+    /// function took the ribbon. The panel now filters its prompts, columns and functions by
+    /// name, on its own views, and its Add menu opens Quản lý dữ liệu on a new item.
+    /// </summary>
+    public static Task DataPanelSearchesAndAddsLikeNiceLabel()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Ca" });
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MaDongGoi", "FIELD(\"MaKien\")"));
+            foreach (var header in new[] { "MaKien", "LotNo", "SoLuong" })
+            {
+                viewModel.ExcelHeaders.Add(header);
+            }
+
+            window.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var search = (TextBox)window.FindName("DataTreeSearch");
+            int Count(string node) => ((TreeViewItem)window.FindName(node)).Items.Count;
+            Require(Count("DataTreePrompts") == 2 && Count("DataTreeFields") == 3 && Count("DataTreeFunctions") == 1,
+                $"The tree lists everything with no search: {Count("DataTreePrompts")} {Count("DataTreeFields")} {Count("DataTreeFunctions")}");
+            search.Text = "lô";
+            Require(Count("DataTreePrompts") == 1 && Count("DataTreeFields") == 0 && Count("DataTreeFunctions") == 0,
+                $"Searching 'lô' keeps the prompt Lô only: {Count("DataTreePrompts")} {Count("DataTreeFields")} {Count("DataTreeFunctions")}");
+            search.Text = "ma";
+            Require(Count("DataTreePrompts") == 0 && Count("DataTreeFields") == 1 && Count("DataTreeFunctions") == 1,
+                $"Searching 'ma' keeps MaKien and MaDongGoi: {Count("DataTreePrompts")} {Count("DataTreeFields")} {Count("DataTreeFunctions")}");
+            Require(System.Windows.Data.CollectionViewSource.GetDefaultView(viewModel.Template.PromptVariables).Filter is null
+                    && System.Windows.Data.CollectionViewSource.GetDefaultView(viewModel.ExcelHeaders).Filter is null,
+                "The search filters the tree's own views, not the lists other panels show.");
+            search.Text = string.Empty;
+            Require(Count("DataTreePrompts") == 2 && Count("DataTreeFields") == 3, "Clearing the search shows everything again.");
+
+            // Add › Biến nhập khi in… opens Quản lý dữ liệu on a new prompt (not saved until Đồng ý).
+            var manager = new ANLAbel.App.DataManagerWindow(viewModel, "NewPrompt");
+            var drafts = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_prompts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
+            Require(drafts.Count == 3 && viewModel.Template.PromptVariables.Count == 2, "The manager opens with a new prompt beside the two, the label unchanged until Đồng ý: " + drafts.Count);
+            var functions = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(new ANLAbel.App.DataManagerWindow(viewModel, "NewFunction"))!;
+            Require(functions.Count == 2, "Add › Hàm… opens the manager on a new function: " + functions.Count);
+            // Not closed: closing with a new item asks whether to keep it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
     private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
         where T : DependencyObject

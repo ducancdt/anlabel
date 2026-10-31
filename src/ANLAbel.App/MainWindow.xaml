@@ -30,6 +30,10 @@
         <converters:ObjectTypeIconConverter x:Key="ObjectTypeIcon"/>
         <DataTemplate x:Key="DisplayNameItem"><TextBlock Text="{Binding Converter={StaticResource DisplayName}}"/></DataTemplate>
         <controls:BoolToGridLengthConverter x:Key="BoolToGridLength"/>
+        <!-- The Data panel's lists, filtered by its search box on their own views (NiceLabel 10 Data explorer) -->
+        <CollectionViewSource x:Key="DataTreePromptsSource" Source="{Binding Template.PromptVariables}" Filter="DataTreeSource_Filter"/>
+        <CollectionViewSource x:Key="DataTreeFieldsSource" Source="{Binding ExcelHeaders}" Filter="DataTreeSource_Filter"/>
+        <CollectionViewSource x:Key="DataTreeFunctionsSource" Source="{Binding Template.DataTransforms}" Filter="DataTreeSource_Filter"/>
         <CollectionViewSource x:Key="GroupedBarcodeSymbologies" Source="{Binding BarcodeSymbologyOptions}">
             <CollectionViewSource.GroupDescriptions>
                 <PropertyGroupDescription PropertyName="GroupName"/>
@@ -1570,11 +1574,27 @@
                                     </TabItem.Header>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel Margin="4,8">
+                                    <!-- NiceLabel 10 Data explorer: a search box over the tree, and Add new variable (here a prompt or a function) -->
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBox x:Name="DataTreeSearch" TextChanged="DataTreeSearch_TextChanged" ToolTip="Tìm biến nhập khi in, cột dữ liệu hoặc hàm theo tên" AutomationProperties.Name="Data search"/>
+                                        <TextBlock Text="Tìm…" Margin="7,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppMutedBrush}" IsHitTestVisible="False">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=DataTreeSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <Button Grid.Column="2" Content="+ Thêm ▾" Click="DataTreeAdd_Click" Padding="8,2" ToolTip="Thêm biến nhập khi in hoặc hàm" AutomationProperties.Name="Add data source">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Biến nhập khi in…" Click="AddPromptFromData_Click" AutomationProperties.Name="Add prompt"/>
+                                                    <MenuItem Header="Hàm…" Click="AddFunctionFromData_Click" AutomationProperties.Name="Add function"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
+                                    </Grid>
                                     <!-- NiceLabel 10 Data explorer: variables and data fields as a tree -->
                                     <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields"
                                               PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove"
                                               ToolTip="Kéo một biến, trường, hàm hoặc giá trị khi in lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới).">
-                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.PromptVariables}">
+                                        <TreeViewItem x:Name="DataTreePrompts" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreePromptsSource}}">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70F;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Biến nhập khi in" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -1582,7 +1602,7 @@
                                                 <DataTemplate><TextBlock Text="{Binding Name, StringFormat={}? {0}}"/></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
-                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding ExcelHeaders}">
+                                        <TreeViewItem x:Name="DataTreeFields" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreeFieldsSource}}">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE80A;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Trường dữ liệu" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -1590,7 +1610,7 @@
                                                 <DataTemplate><TextBlock Text="{Binding StringFormat={}{{{0}}}}"/></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
-                                        <TreeViewItem IsExpanded="True" ItemsSource="{Binding Template.DataTransforms}">
+                                        <TreeViewItem x:Name="DataTreeFunctions" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreeFunctionsSource}}">
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8EF;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Hàm" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -2021,8 +2041,13 @@
                                         </StackPanel>
                                     </TabItem.Header>
                                     <DockPanel Margin="4,8">
-                                        <TextBox x:Name="ObjectBrowserSearch" DockPanel.Dock="Top" Margin="0,0,0,6" TextChanged="ObjectBrowserSearch_TextChanged"
-                                                 ToolTip="Tìm đối tượng theo tên hoặc nội dung" AutomationProperties.Name="Object search"/>
+                                        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                                            <TextBox x:Name="ObjectBrowserSearch" TextChanged="ObjectBrowserSearch_TextChanged"
+                                                     ToolTip="Tìm đối tượng theo tên hoặc nội dung" AutomationProperties.Name="Object search"/>
+                                            <TextBlock Text="Tìm…" Margin="7,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppMutedBrush}" IsHitTestVisible="False">
+                                                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=ObjectBrowserSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
                                         <ListBox x:Name="ObjectBrowserList" SelectedItem="{Binding SelectedObject, Mode=TwoWay}" BorderThickness="0"
                                                  AutomationProperties.Name="Object browser">
                                             <!-- Screen readers read the object name and type, not the model class name -->

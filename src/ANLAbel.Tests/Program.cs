@@ -68,6 +68,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("labels on a sheet keep their right and bottom edges", DesignScenarioRegression.SheetLabelsKeepTheirRightAndBottomEdges),
     ("barcode properties follow NiceLabel's pages", DesignScenarioRegression.BarcodePropertiesFollowNiceLabelPages),
     ("general and position pages follow NiceLabel", DesignScenarioRegression.GeneralAndPositionPagesFollowNiceLabel),
+    ("the data panel searches and adds like NiceLabel's data explorer", DesignScenarioRegression.DataPanelSearchesAndAddsLikeNiceLabel),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

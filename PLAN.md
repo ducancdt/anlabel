@@ -2,6 +2,10 @@
 
 ## Sau v0.359
 
+- Bảng Dữ liệu như Data explorer của NiceLabel 10: ô tìm (lọc biến nhập khi in, cột dữ liệu và hàm
+  theo tên, trên danh sách riêng nên các bảng khác không bị lọc) và nút “+ Thêm ▾” (Biến nhập khi
+  in…, Hàm…) mở Quản lý dữ liệu ngay ở mục mới, như “Add new variable”. Ô tìm của bảng Đối tượng
+  cũng có chữ gợi ý “Tìm…”.
 - Thuộc tính › Chung và Vị trí như các trang General và Position của NiceLabel 10: Chung nay có Tên
   (kèm lý do khi tên bị từ chối), Không in, Hiển thị và Điều kiện hiển thị (trước đây chỉ có trên
   thẻ Thiết kế của thanh lệnh); Vị trí có thêm Khóa vị trí và Giữ tỉ lệ. Các nút căn, phân bố và thứ
