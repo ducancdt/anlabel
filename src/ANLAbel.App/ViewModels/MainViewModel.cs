@@ -1169,7 +1169,17 @@ public sealed class MainViewModel : ObservableObject
     public bool HasBindingIssues => BindingIssues.Count > 0;
     public string BindingIssuesSummary => HasBindingIssues
         ? $"{BindingIssues.Count} đối tượng bị hỏng hoặc chưa hoàn thiện liên kết Excel."
-        : "Tất cả liên kết Excel đều khớp với sổ làm việc hiện tại.";
+        : ReadsExcelFields
+            ? "Tất cả liên kết Excel đều khớp với sổ làm việc hiện tại."
+            : "Chưa đối tượng nào lấy dữ liệu từ Excel; chưa có liên kết để kiểm tra.";
+
+    /// <summary>
+    /// True when an object reads a column (directly or through a function), so
+    /// there are Excel links to check; print-time answers, dates and the serial
+    /// are not columns.
+    /// </summary>
+    public bool ReadsExcelFields => Template.Objects.Any(item =>
+        item.IsVisible && ANLAbel.App.Services.DataHeaderCheck.BindingFields(item.BindingExpression).Count > 0);
     public IReadOnlyList<string> FormulaSeparators { get; } = [" - ", " | ", " / ", "_", " ", ": "];
 
     public ObjectType? DrawingTool
@@ -3425,6 +3435,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(LabelDatabaseFields));
         OnPropertyChanged(nameof(BindingIssues));
         OnPropertyChanged(nameof(HasBindingIssues));
+        OnPropertyChanged(nameof(ReadsExcelFields));
         OnPropertyChanged(nameof(BindingIssuesSummary));
         ((RelayCommand)AddDatabaseFieldCommand).RaiseCanExecuteChanged();
         ((RelayCommand)AddAllDatabaseFieldsCommand).RaiseCanExecuteChanged();
@@ -5569,6 +5580,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedBindingErrorsText));
         OnPropertyChanged(nameof(BindingIssues));
         OnPropertyChanged(nameof(HasBindingIssues));
+        OnPropertyChanged(nameof(ReadsExcelFields));
         OnPropertyChanged(nameof(BindingIssuesSummary));
         OnPropertyChanged(nameof(FormulaPreviewValue));
         OnPropertyChanged(nameof(FormulaPreviewErrors));

@@ -1885,6 +1885,11 @@
                                                 <Setter Property="Background" Value="#F0FDF4"/>
                                                 <Setter Property="BorderBrush" Value="#86EFAC"/>
                                                 <Style.Triggers>
+                                                    <!-- Nothing read from Excel yet: neutral, not a green pass -->
+                                                    <DataTrigger Binding="{Binding ReadsExcelFields}" Value="False">
+                                                        <Setter Property="Background" Value="#F8FAFC"/>
+                                                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding HasBindingIssues}" Value="True">
                                                         <Setter Property="Background" Value="#FEF2F2"/>
                                                         <Setter Property="BorderBrush" Value="#FCA5A5"/>

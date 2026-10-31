@@ -15,6 +15,9 @@
 - Thuộc tính: khi chọn nhiều đối tượng, tiêu đề bảng ghi rõ “Thuộc tính - Vendor [Chữ] ·
   3 đối tượng đang chọn”, vì đổi phông nay áp dụng cho mọi chữ đang chọn; trước đây tiêu
   đề chỉ nêu một đối tượng.
+- Bảng Dữ liệu, “Kiểm tra ràng buộc”: tem chưa có đối tượng nào lấy dữ liệu Excel nay ghi
+  “Chưa đối tượng nào lấy dữ liệu từ Excel; chưa có liên kết để kiểm tra.” trên nền trung
+  tính, thay cho dòng xanh “Tất cả liên kết Excel đều khớp…” khi chẳng có gì để kiểm tra.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

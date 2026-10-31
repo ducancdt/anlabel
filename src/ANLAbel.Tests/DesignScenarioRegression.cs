@@ -2253,6 +2253,27 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// "Kiểm tra ràng buộc" said in green that every Excel link matched the
+    /// workbook on a label that read nothing from Excel. It now says there is
+    /// nothing to check yet, and a field without linked data is still an issue.
+    /// </summary>
+    public static Task BindingCheckSaysWhenThereIsNothingToCheck()
+    {
+        var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+        viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" });
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Tiêu đề", Text = "PHIẾU HÀNG", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô", BindingExpression = "{?Lot}", XMm = 3, YMm = 12, WidthMm = 30, HeightMm = 6 });
+        Require(!viewModel.HasBindingIssues && !viewModel.ReadsExcelFields
+                && viewModel.BindingIssuesSummary == "Chưa đối tượng nào lấy dữ liệu từ Excel; chưa có liên kết để kiểm tra.",
+            "Fixed text and a print-time answer leave nothing to check: " + viewModel.BindingIssuesSummary);
+
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 21, WidthMm = 30, HeightMm = 6 });
+        Require(viewModel.ReadsExcelFields && viewModel.HasBindingIssues,
+            "A field without linked data is an issue: " + viewModel.BindingIssuesSummary);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// With three captions selected the Properties title still named one,
     /// "Thuộc tính - Vendor [Chữ]", while a font change reaches all three. The
     /// title now counts the selection after the click that made it.
