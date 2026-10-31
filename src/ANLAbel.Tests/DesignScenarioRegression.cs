@@ -2949,6 +2949,91 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With a white box and a logo selected, "Xuống dưới cùng" moved only the key
+    /// object and the other stayed over the texts. As NiceLabel 10 does, the
+    /// arrange commands now move every selected object, keep their order among
+    /// themselves and change no other object's layer, in one undo step; equal
+    /// layer values no longer hide a move.
+    /// </summary>
+    public static Task ArrangeMovesEverySelectedObject()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            void Commit() => typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            void Select(params string[] names)
+            {
+                selection.Clear();
+                viewModel.SelectedObject = Named(names[0]);
+                Pump();
+                foreach (var name in names)
+                {
+                    selection.Add(Named(name));
+                }
+            }
+
+            string Order() => string.Join(" ", viewModel.Template.Objects
+                .Select((item, index) => (item, index))
+                .OrderBy(entry => entry.item.ZIndex)
+                .ThenBy(entry => entry.index)
+                .Select(entry => entry.item.Name));
+            string Layers(params string[] names) => string.Join(",", names.Select(name => Named(name).ZIndex));
+
+            foreach (var name in new[] { "A", "S1", "B", "S2", "C" })
+            {
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = name, XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 10, ZIndex = viewModel.Template.Objects.Count });
+            }
+
+            Pump();
+            Commit();
+            foreach (var (command, expected) in new[]
+            {
+                (viewModel.SendToBackCommand, "S1 S2 A B C"),
+                (viewModel.BringToFrontCommand, "A B C S1 S2"),
+                (viewModel.BringForwardCommand, "A B S1 C S2"),
+                (viewModel.SendBackwardCommand, "S1 A S2 B C"),
+            })
+            {
+                Select("S1", "S2");
+                command.Execute(null);
+                Pump();
+                Require(Order() == expected, $"Both selected objects move, in their order: {Order()} (expected {expected}).");
+                if (expected is "S1 S2 A B C" or "A B C S1 S2")
+                {
+                    Require(Layers("A", "B", "C") == "0,2,4", "To the top or the bottom changes only the moved objects: " + Layers("A", "B", "C"));
+                }
+
+                Commit();
+                viewModel.UndoCommand.Execute(null);
+                Pump();
+                Require(Order() == "A S1 B S2 C", "One undo puts the order back: " + Order());
+            }
+
+            // Equal layer values: S2 is painted over B by the collection order, and B steps above it.
+            Named("B").ZIndex = Named("S2").ZIndex;
+            Pump();
+            Commit();
+            Require(Order() == "A S1 B S2 C", "B and S2 share a layer value: " + Order());
+            Select("B");
+            viewModel.BringForwardCommand.Execute(null);
+            Pump();
+            Require(Order() == "A S1 S2 B C", "Bring forward shows over an equal layer value: " + Order());
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

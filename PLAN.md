@@ -10,6 +10,11 @@
   tác động khi màn hình Tệp đang mở hay đổi một tem đang khóa sửa; ribbon,
   menu chuột phải và trang Phím tắt của Hướng dẫn ghi các phím này; menu chuột phải trên vùng
   trống của tem có thêm Chọn tất cả.
+- Thiết kế: Đưa lên một lớp, Đưa xuống một lớp, Lên trên cùng, Xuống dưới cùng (ribbon, menu
+  chuột phải, PgUp/PgDn) nay áp cho mọi đối tượng đang chọn và giữ thứ tự giữa chúng, như
+  NiceLabel 10; trước đây chỉ đối tượng mốc đổi lớp. Lên trên cùng, xuống dưới cùng chỉ đổi
+  lớp của đối tượng được chuyển; hai đối tượng cùng giá trị lớp không còn làm lệnh như không
+  có tác dụng.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

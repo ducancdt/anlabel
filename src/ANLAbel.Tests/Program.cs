@@ -119,6 +119,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("rows without label data start unselected", DesignScenarioRegression.RowsWithoutLabelDataStartUnselected),
     ("designer keys select, cut, group and find", DesignScenarioRegression.DesignerKeysSelectCutGroupAndFind),
     ("designer keys format and order the selection", DesignScenarioRegression.DesignerKeysFormatAndOrder),
+    ("arrange moves every selected object", DesignScenarioRegression.ArrangeMovesEverySelectedObject),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

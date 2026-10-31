@@ -4523,46 +4523,90 @@ public sealed class MainViewModel : ObservableObject
         StatusText = "Đã xóa đối tượng được chọn";
     }
 
+    /// <summary>
+    /// The paint order (ZIndex, then the collection order for equal values) and the
+    /// objects an arrange command moves: every selected object, as NiceLabel 10's
+    /// Arrange commands move the whole selection and keep its order.
+    /// </summary>
+    private (List<LabelObject> Order, HashSet<LabelObject> Moving) ArrangeScope()
+    {
+        var order = Template.Objects
+            .Select((item, index) => (item, index))
+            .OrderBy(entry => entry.item.ZIndex)
+            .ThenBy(entry => entry.index)
+            .Select(entry => entry.item)
+            .ToList();
+        var moving = new HashSet<LabelObject>(SelectionProvider?.Invoke() ?? Array.Empty<LabelObject>(), ReferenceEqualityComparer.Instance);
+        if (SelectedObject is not null)
+        {
+            moving.Add(SelectedObject);
+        }
+
+        moving.IntersectWith(order);
+        return (order, moving);
+    }
+
     private void BringToFront()
     {
-        if (SelectedObject is null || Template.Objects.Count == 0) return;
-        var maxZ = Template.Objects.Max(o => o.ZIndex);
-        if (SelectedObject.ZIndex != maxZ)
-            SelectedObject.ZIndex = maxZ + 1;
+        var (order, moving) = ArrangeScope();
+        if (moving.Count == 0 || order.Skip(order.Count - moving.Count).All(moving.Contains)) return;
+        // Only the moved objects change, each above the top in the order they had.
+        var top = order[^1].ZIndex;
+        foreach (var item in order.Where(moving.Contains))
+        {
+            item.ZIndex = ++top;
+        }
     }
 
     private void SendToBack()
     {
-        if (SelectedObject is null || Template.Objects.Count == 0) return;
-        var minZ = Template.Objects.Min(o => o.ZIndex);
-        if (SelectedObject.ZIndex != minZ)
-            SelectedObject.ZIndex = minZ - 1;
+        var (order, moving) = ArrangeScope();
+        if (moving.Count == 0 || order.Take(moving.Count).All(moving.Contains)) return;
+        var bottom = order[0].ZIndex;
+        foreach (var item in order.Where(moving.Contains).Reverse())
+        {
+            item.ZIndex = --bottom;
+        }
     }
 
-    /// <summary>Swaps ZIndex with the next object above (properties-panel-plan Đợt C).</summary>
-    private void BringForward()
-    {
-        if (SelectedObject is null) return;
-        var current = SelectedObject;
-        var next = Template.Objects
-            .Where(o => o.ZIndex > current.ZIndex)
-            .OrderBy(o => o.ZIndex)
-            .FirstOrDefault();
-        if (next is null) return;
-        (current.ZIndex, next.ZIndex) = (next.ZIndex, current.ZIndex);
-    }
+    /// <summary>Each selected object steps above the next unselected one (properties-panel-plan Đợt C).</summary>
+    private void BringForward() => StepArrangeOrder(toFront: true);
 
-    /// <summary>Swaps ZIndex with the next object below (properties-panel-plan Đợt C).</summary>
-    private void SendBackward()
+    /// <summary>Each selected object steps below the next unselected one (properties-panel-plan Đợt C).</summary>
+    private void SendBackward() => StepArrangeOrder(toFront: false);
+
+    private void StepArrangeOrder(bool toFront)
     {
-        if (SelectedObject is null) return;
-        var current = SelectedObject;
-        var previous = Template.Objects
-            .Where(o => o.ZIndex < current.ZIndex)
-            .OrderByDescending(o => o.ZIndex)
-            .FirstOrDefault();
-        if (previous is null) return;
-        (current.ZIndex, previous.ZIndex) = (previous.ZIndex, current.ZIndex);
+        var (order, moving) = ArrangeScope();
+        if (moving.Count == 0) return;
+        var before = order.ToArray();
+        // From the far end inwards, so selected neighbours move as one block.
+        for (var step = 0; step < order.Count - 1; step++)
+        {
+            var i = toFront ? order.Count - 2 - step : step + 1;
+            var other = toFront ? i + 1 : i - 1;
+            if (moving.Contains(order[i]) && !moving.Contains(order[other]))
+            {
+                (order[i], order[other]) = (order[other], order[i]);
+            }
+        }
+
+        if (order.SequenceEqual(before)) return;
+        // The objects take the layer values in their new order, so only the ones that
+        // moved change; equal values are numbered first, or the move would not show.
+        var values = before.Select(item => item.ZIndex).ToArray();
+        if (values.Distinct().Count() != values.Length)
+        {
+            values = Enumerable.Range(0, values.Length).ToArray();
+        }
+
+        for (var i = 0; i < order.Count; i++)
+        {
+            if (order[i].ZIndex != values[i])
+            {
+                order[i].ZIndex = values[i];
+            }
+        }
     }
 
     /// <summary>Sets rotation from a "0"/"90"/"180"/"270" command parameter (properties-panel-plan Đợt C: 4 quick buttons instead of a ComboBox).</summary>
