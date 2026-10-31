@@ -72,6 +72,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("picture properties follow NiceLabel's pages", DesignScenarioRegression.PicturePropertiesFollowNiceLabelPages),
     ("shapes and rich text keep only their pages", DesignScenarioRegression.ShapesAndRichTextKeepOnlyTheirPages),
     ("toolbox places objects connected to a source", DesignScenarioRegression.ToolboxPlacesObjectsConnectedToASource),
+    ("the object list names what each object prints", DesignScenarioRegression.ObjectListNamesWhatEachObjectPrints),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
@@ -13811,15 +13812,15 @@ static Task TestDataManagerAppliesAsOneUndoStep()
 static Task TestDesignerLayoutFollowsNiceLabel10()
 {
     // docs/NICELABEL_10_UI_LAYOUT.md: File + Home/Data/View/Help tabs, contextual
-    // Design and object tabs only with a selection, Data/Layers/Objects explorer,
+    // Design and object tabs only with a selection, Data/Objects explorer (no layers),
     // Source/Style/Position/General property categories, 3-column toolbox.
     var xaml = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "MainWindow.xaml"));
     AssertEqual(true, xaml.Contains("<UniformGrid Columns=\"3\" Rows=\"3\">", StringComparison.Ordinal),
         "The toolbox uses NiceLabel's three-column tiles");
     var data = xaml.IndexOf("<TextBlock Text=\"Dữ liệu\"/>", StringComparison.Ordinal);
-    var layers = xaml.IndexOf("<TextBlock Text=\"Lớp\"/>", StringComparison.Ordinal);
     var objects = xaml.IndexOf("Shell.Workspace.Objects", StringComparison.Ordinal);
-    AssertEqual(true, data > 0 && layers > data && objects > layers, "Explorer tabs follow NiceLabel: Data, Layers, Objects");
+    AssertEqual(true, data > 0 && objects > data && !xaml.Contains("<TextBlock Text=\"Lớp\"/>", StringComparison.Ordinal),
+        "Explorer tabs follow NiceLabel: Data, then Objects; no Layers tab, ANLAbel has no layers");
     var categories = new[] { "Source properties", "Style properties", "Position properties", "General properties" }
         .Select(name => xaml.IndexOf(name, StringComparison.Ordinal)).ToArray();
     AssertEqual(true, categories.All(index => index > 0) && categories.SequenceEqual(categories.OrderBy(index => index)),

@@ -2,6 +2,11 @@
 
 ## Sau v0.360
 
+- Bảng bên trái còn hai thẻ Dữ liệu · Đối tượng: bỏ thẻ “Lớp” vì ANLAbel không có lớp (thẻ đó chỉ
+  liệt kê lại các đối tượng). Mỗi hàng của danh sách Đối tượng ghi đối tượng in từ nguồn nào, đúng
+  tên như ô “Nguồn dữ liệu” (“Biến nhập khi in: Lô”, “Trường dữ liệu: MaHang”, “Khi in: Ngày in”,
+  “Ghép nhiều nguồn”), chữ đỏ khi không in được (“Cần cột: …”); thẻ Lớp cũ ghi “Đã liên kết Excel”
+  cả cho biến nhập khi in, hàm và số sê-ri.
 - Hộp công cụ như NiceLabel 10: ô Chữ, Ô chữ và Mã vạch có nút ▾ liệt kê các nguồn của bảng Dữ liệu
   theo nhóm (biến nhập khi in, cột dữ liệu, hàm, giá trị khi in); chọn một nguồn là đặt đối tượng đã
   gắn sẵn nguồn đó (giữ mặc định của ô, một bước hoàn tác), thay vì đặt mã vạch với dữ liệu mẫu rồi

@@ -227,7 +227,7 @@ public partial class HelpWindow : Window
         mid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         mid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
 
-        var toolbox = Zone(vi ? "③ Hộp công cụ" : "③ Toolbox", vi ? "Công cụ + Dữ liệu · Lớp · Đối tượng" : "Tools + Data · Layers · Objects", "#F8FAFC", "#334155");
+        var toolbox = Zone(vi ? "③ Hộp công cụ" : "③ Toolbox", vi ? "Công cụ + Dữ liệu · Đối tượng" : "Tools + Data · Objects", "#F8FAFC", "#334155");
         Grid.SetColumn(toolbox, 0); mid.Children.Add(toolbox);
 
         var canvas = Zone(vi ? "④ Bảng thiết kế" : "④ Design Canvas", vi ? "Nơi bạn vẽ nhãn, có thước kẻ mm" : "Where you draw the label, with mm rulers", "#FFFFFF", "#0F172A");
@@ -762,7 +762,7 @@ public partial class HelpWindow : Window
         bd.Children.Add(StepCard(2, vi ? "Chọn đối tượng" : "Select the object", vi ? "Nhấp vào Chữ, Ô chữ hoặc Mã vạch trên bảng thiết kế." : "Click the Text Box or Barcode on the canvas."));
         bd.Children.Add(StepCard(3, vi ? "Chọn nguồn" : "Pick the source", vi ? "Trong Thuộc tính › Nguồn, mở ô “Nguồn dữ liệu” và chọn cột trong nhóm Trường dữ liệu. Xong! Xem trước để kiểm tra." : "In Properties › Source, open \"Connected data source\" and pick the column under Data fields. Done! Preview to verify."));
         bd.Children.Add(StepCard(4, vi ? "Hoặc kéo thả" : "Or drag it", vi ? "Kéo một cột, biến hoặc hàm từ bảng Dữ liệu thả lên đối tượng để gắn nó." : "Drag a column, variable or function from the Data panel onto the object to connect it."));
-        bd.Children.Add(InfoBox(vi ? "Nếu một đối tượng báo đỏ trong danh sách Lớp hoặc bảng Thuộc tính, nghĩa là cột bị thiếu hoặc đổi tên — hãy liên kết lại." : "If a field shows a red background in the Objects tree or Properties, the column is missing or renamed — rebind it.", "#FEF2F2", "#FCA5A5", "Warning16"));
+        bd.Children.Add(InfoBox(vi ? "Nếu một đối tượng báo đỏ trong danh sách Đối tượng hoặc bảng Thuộc tính, nghĩa là cột bị thiếu hoặc đổi tên — hãy liên kết lại." : "If an object shows red in the Objects list or Properties, the column is missing or renamed — rebind it.", "#FEF2F2", "#FCA5A5", "Warning16"));
         d["binding"] = bd;
 
         // ---------- EXCEL ----------

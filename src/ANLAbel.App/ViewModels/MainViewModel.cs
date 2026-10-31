@@ -6422,6 +6422,7 @@ public sealed class MainViewModel : ObservableObject
     {
         var issuesByObjectId = GetBindingIssues()
             .ToDictionary(issue => issue.ObjectId, StringComparer.OrdinalIgnoreCase);
+        var choices = DataSourceChoicesFor(null);
 
         foreach (var item in Template.Objects)
         {
@@ -6439,10 +6440,18 @@ public sealed class MainViewModel : ObservableObject
                 continue;
             }
 
+            // Named as the Nguồn dữ liệu list names it: a prompt, a column, a function or a
+            // print-time value is no Excel column.
             item.HasBindingIssue = false;
-            item.BindingStateDisplayText = FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression)
-                ? "Đã liên kết công thức"
-                : "Đã liên kết Excel";
+            var source = CurrentDataSourceChoice(item, choices);
+            if (source.Kind != DataSourceChoiceKind.Source)
+            {
+                source = CurrentDataSourceChoice(item, DataSourceChoicesFor(item));
+            }
+
+            item.BindingStateDisplayText = source.Kind == DataSourceChoiceKind.Source
+                ? $"{source.Group}: {source.Label}"
+                : FormulaBindingEvaluator.LooksLikeFormula(item.BindingExpression) ? "Công thức" : "Ghép nhiều nguồn";
         }
     }
 

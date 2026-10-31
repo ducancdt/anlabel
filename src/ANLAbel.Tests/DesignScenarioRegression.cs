@@ -629,6 +629,75 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// ANLAbel has no layers, yet a Lớp tab listed the label's objects a second time, and only
+    /// there did a row say what the object printed from, calling a prompt or a composition an
+    /// Excel link. One Đối tượng list remains: a row names its source as the Nguồn dữ liệu list
+    /// does, in red when the object cannot print it, and says nothing for fixed text.
+    /// </summary>
+    public static Task ObjectListNamesWhatEachObjectPrints()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var explorer = (TabControl)window.FindName("WorkspaceTabs");
+            var tabs = explorer.Items.OfType<TabItem>()
+                .Select(tab => tab.Header is StackPanel header ? string.Concat(header.Children.OfType<TextBlock>().Select(text => text.Text)) : string.Empty)
+                .ToArray();
+            Require(tabs.SequenceEqual(new[] { "Dữ liệu", "Đối tượng" }), "The explorer holds Dữ liệu and Đối tượng, no Lớp: " + string.Join(", ", tabs));
+
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            foreach (var (name, binding) in new[] { ("Lô in", "{?Lô}"), ("Mã", "{MaHang}"), ("Ghép", "LOT {?Lô}"), ("Cố định", "") })
+            {
+                viewModel.Template.Objects.Add(new LabelObject
+                {
+                    Type = ObjectType.Text, Name = name, Text = name, BindingExpression = binding,
+                    XMm = 3, YMm = 3 + viewModel.Template.Objects.Count * 7, WidthMm = 20, HeightMm = 6
+                });
+            }
+
+            var list = (ListBox)window.FindName("ObjectBrowserList");
+            explorer.SelectedIndex = 1;
+            // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var danger = ((SolidColorBrush)resources["AppDangerBrush"]).Color;
+            string State(string name)
+            {
+                var item = viewModel.Template.Objects.Single(entry => entry.Name == name);
+                var container = list.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
+                Require(container is not null, $"The list has a row for {name}.");
+                container!.ApplyTemplate();
+                container.UpdateLayout();
+                var text = FindVisualChildren<TextBlock>(container).Single(block => AutomationProperties.GetName(block) == "Data state");
+                for (DependencyObject? node = text; node is not null && !ReferenceEquals(node, container); node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement element && element.Visibility != Visibility.Visible)
+                    {
+                        return string.Empty;
+                    }
+                }
+
+                return text.Text + (((SolidColorBrush)text.Foreground).Color == danger ? " (đỏ)" : string.Empty);
+            }
+
+            var states = new[] { "Lô in", "Mã", "Ghép", "Cố định" }.Select(State).ToArray();
+            Require(states.SequenceEqual(new[] { "Biến nhập khi in: Lô", "Cần cột: MaHang (đỏ)", "Ghép nhiều nguồn", "" }),
+                "Each row names what it prints from, red when it cannot print it: " + string.Join(" | ", states));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
     private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
         where T : DependencyObject
@@ -4341,7 +4410,7 @@ internal static class DesignScenarioRegression
 
     /// <summary>
     /// A hidden object is not drawn or printed, so the object lists were the only place to
-    /// find it, and they showed it like any other. The Đối tượng and Lớp lists now add
+    /// find it, and they showed it like any other. The Đối tượng list now adds
     /// "· ẩn" (greyed) or "· khóa vị trí" to the object's type.
     /// </summary>
     public static Task ObjectListsShowHiddenAndLockedObjects()
@@ -4406,17 +4475,6 @@ internal static class DesignScenarioRegression
             Require(hidden is { Notes: " · ẩn", Opacity: < 1 }, $"A hidden object reads “· ẩn”, greyed: {hidden.Notes} / {hidden.Opacity}.");
             Require(locked is { Notes: " · khóa vị trí", Opacity: 1 }, $"A locked object reads “· khóa vị trí”: {locked.Notes} / {locked.Opacity}.");
             Require(plain is { Notes: "", Opacity: 1 }, $"Other objects carry no note: {plain.Notes} / {plain.Opacity}.");
-
-            // The Lớp tab's object tree says the same.
-            var layersTab = ((TabControl)window.FindName("WorkspaceTabs")).Items.OfType<TabItem>()
-                .Single(tab => tab.Header is StackPanel header && header.Children.OfType<TextBlock>().Any(text => text.Text == "Lớp"));
-            layersTab.IsSelected = true;
-            content.UpdateLayout();
-            var tree = FindDescendants<TreeView>((DependencyObject)layersTab.Content).Single(view => view.ItemsSource is not null);
-            tree.UpdateLayout();
-            var inTree = Shown("Ẩn", tree);
-            Require(inTree is { Notes: " · ẩn", Opacity: < 1 } && Shown("Khóa", tree).Notes == " · khóa vị trí",
-                $"The Lớp tree marks them too: {inTree.Notes} / {inTree.Opacity}.");
             // Not closed: closing an edited label asks whether to save it.
         });
 

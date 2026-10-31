@@ -67,7 +67,7 @@ internal static class DataHeaderRegression
             Require(vm.StatusText == "Đã nhập 1 dòng từ repeated.xlsx / Data — Tiêu đề “Part No” lặp ở cột A, D (ANLAbel tạm gọi là “Part No”, “Part No_2”); "
                     + "cột C không có tiêu đề (ANLAbel tạm gọi là “Column3”); 3 đối tượng dùng các cột này chưa in được cho tới khi mỗi cột có tiêu đề riêng.",
                 "Bound repeated and blank columns must be reported by letter: " + vm.StatusText);
-            // The Properties panel and the layer list agree with the print block,
+            // The Properties panel and the object list agree with the print block,
             // and a data transform output is not reported as a missing column.
             var issues = vm.BindingIssues.ToDictionary(issue => issue.ObjectName);
             Require(issues.Keys.Order().SequenceEqual(new[] { "Mã phụ", "Mã sau", "Mã đầu" }.Order()),
@@ -79,7 +79,7 @@ internal static class DataHeaderRegression
             Require(template.Objects.Single(item => item.Name == "Mã sau").BindingStateDisplayText == "Cột chỉ theo vị trí: Part No_2"
                     && template.Objects.Single(item => item.Name == "Mã phụ").BindingStateDisplayText == "Cột chỉ theo vị trí: Column3"
                     && !template.Objects.Single(item => item.Name == "Số lô").HasBindingIssue,
-                "The layer list must mark the objects that cannot print.");
+                "The object list must mark the objects that cannot print.");
 
             Require(vm.TryBuildPrintPreviewRows(out var ambiguousRows, out _), "Preview rows must build.");
             var ambiguous = Check(vm, ambiguousRows);
@@ -280,7 +280,7 @@ internal static class DataHeaderRegression
                     && BindingExpressionEvaluator.Evaluate("{LotNo}", first) == "LOT-L-1",
                 "A print row must keep the order DB03 checks: " + string.Join(", ", rows.FirstOrDefault()?.Keys ?? Array.Empty<string>()));
 
-            // Only lookalike names: the note, the status and the layer list say it is a tie.
+            // Only lookalike names: the note, the status and the object list say it is a tie.
             WriteSheet(path, ["Part No", "Lot No", "Currency", "Qty", "Part-No", "Count", "Price_USD"], ["PN-1", "L-1", "USD", "5", "PN-OLD", "6", "9.50"]);
             template.DatabaseConfig.CopiesField = string.Empty;
             template.DataTransforms.RemoveAt(1);
@@ -292,7 +292,7 @@ internal static class DataHeaderRegression
             vm.SelectedObject = template.Objects.Single(item => item.Name == "Gần giống");
             Require(vm.SelectedBindingStatusText.StartsWith("Tên trong liên kết khớp ngang nhau với nhiều cột", StringComparison.Ordinal)
                     && vm.SelectedObject.BindingStateDisplayText == "Tên khớp nhiều cột: PartNo",
-                $"The Properties status and the layer list must name the tie: {vm.SelectedBindingStatusText} | {vm.SelectedObject.BindingStateDisplayText}");
+                $"The Properties status and the object list must name the tie: {vm.SelectedBindingStatusText} | {vm.SelectedObject.BindingStateDisplayText}");
 
             // A missing placeholder written with spaces is one missing field, named without them.
             AddText(template, "spaced", "Cách", "{ Gone }");
