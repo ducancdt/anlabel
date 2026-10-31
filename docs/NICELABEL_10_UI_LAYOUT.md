@@ -697,6 +697,28 @@ Data panel's "+ Thêm", now a double-click) still opens and applies changes to
 prompts, functions and the counter; `ApplyDataDefinitions` does not check the
 lock. Operators may need the counter there, so it is reported, not changed.
 
+## Shape style, menus and panel fit (v0.362, 2026-10-31)
+
+Evidence: DesignerLib `StylePropertyPageView` and `StylePropertyPageViewModel`
+(Outline: thickness, line style, line colour, corner radius with
+`CornerRadiusVisible`; Fill: fill style and colour), `documentpagecontextmenu`
+(Document properties, clipboard, Select all, Alignment and gridlines, Object
+markers, Zoom), the Data explorer selector (`VisibleContextMenuCommands`
+All: clipboard, rename, delete), `contentmaskpropertypageview` (mask format and
+mask character, already as ANLAbel's Mặt nạ page).
+
+| NiceLabel 10 | ANLAbel v0.362 |
+| --- | --- |
+| Shape Style page: Outline group, then Fill group (none for a line); corner radius for a rectangle only, on the page and the ribbon | Kiểu: "Đường viền" (Độ dày, Kiểu nét và màu, Bo góc for a rectangle), then "Tô nền" (not for a line), named as the Hình dạng tab's groups; that tab hides Bo góc beyond a rectangle and Tô nền for a line. Before, one "Kiểu hình" card mixed them and offered an ellipse a corner radius. |
+| Label right-click menu: Object markers after Alignment and gridlines | The label's menu has "Dấu đối tượng" (object names, data sources, locked objects), the View tab's toggles; an object's menu leaves it out. |
+| Data explorer right-click commands | "Sửa trong Quản lý dữ liệu…", "Thêm chữ gắn với nguồn này" and "Gắn vào “<selected object>”" (the drag's two results, one undo step each; the last only for an object that shows data). Rename and delete stay in Quản lý dữ liệu, which asks first when a source is in use. A protected label keeps only Sửa. |
+
+Found while doing this: the Data panel's "Chưa liên kết dữ liệu" hint sat in a
+horizontal StackPanel and was cut at the panel's edge; the "+ Thêm ▾" button
+stood 45 DIP tall beside the 32 DIP search box. Both fixed; gates now keep every
+wrapping text inside the Data panel, each object type's Properties pages and
+the twelve main dialogs.
+
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
 Every view group extracted from DesignerLib, Gui.Core and WpfControls, and
@@ -711,7 +733,7 @@ where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
 | `propertypages` (128) | Properties panel on NiceLabel's pages (v0.360: one "Nguồn dữ liệu" list; Mã vạch with Số kiểm tra, Chữ dưới mã, Chi tiết; Chung with name, printing and visibility; Vị trí with the lock); the font, the linear barcode settings, Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach every selected object, with a blank or mixed value when they differ (RE §26, §29); X/Y, size, rotation and anchoring stay with the key object; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
 | `editors` (6): combo, date, time, rich text, custom boundaries | Prompt editors (dates RE §15), rich text in Properties; custom boundaries unused (RE §22) | Prompts…fonts |
 | `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects, naming what each prints and with a right-click menu (v0.361); right-click menus on objects and on the label; layers not built; banners and solutions out | Object browser and layers |
-| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus, the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; keyboard resize and rotate are not built (protected resize lifecycle); in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
+| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus (the label's with Dấu đối tượng, v0.362), the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; keyboard resize and rotate are not built (protected resize lifecycle); in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
 | `statusbarregion`, `printergapadjustment`, `historydialog`, `searchpanel` | Status bar and chips; gap adjustment not needed; operator dialog; no find and replace | Status bar…smaller dialogs |
 | `variablesvaluepromptcontrol`, special characters, clipart, undo list | Prompt window and Print Preview answers; GS1 separators and the Data Manager's control characters; pictures; named undo steps with Undo ▾ and Redo ▾ lists | Prompts…symbols |
 | `serialportdataeditor` | Values from a serial port (a scale): not built, no customer label reads one | — |
