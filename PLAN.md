@@ -40,6 +40,10 @@
   “Các hàm đọc lẫn nhau thành vòng: A, B; sửa công thức…”, “Công thức của hàm “Lô2”: …”,
   “Đã chặn in: lỗi ở hàm của Quản lý dữ liệu…”; trước đây gọi là “trường chuyển đổi”,
   một tên không có ở đâu trong giao diện.
+- In: đối tượng có điều kiện hiển thị đọc một cột không còn trong dữ liệu (cột đổi tên
+  hoặc bị xóa trong Excel) nay chặn in và nêu tên cột; trước đây điều kiện đọc ra trống
+  nên đối tượng (ví dụ chữ “HÀNG DỄ VỠ”) bị bỏ khỏi mọi tem mà không có thông báo.
+  Điều kiện theo giá trị nhập khi in không bị ảnh hưởng.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 

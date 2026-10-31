@@ -65,12 +65,43 @@ public static class DataHeaderCheck
         return issues;
     }
 
-    /// <summary>Puts <see cref="FindPositionalBindings"/> in front of a preflight result.</summary>
+    /// <summary>
+    /// Puts <see cref="FindPositionalBindings"/> and <see cref="FindMissingConditionFields"/>
+    /// in front of a preflight result.
+    /// </summary>
     public static PrintPreflightResult Append(PrintPreflightResult result, LabelTemplate template, DataTable? table)
     {
         ArgumentNullException.ThrowIfNull(result);
-        var positional = FindPositionalBindings(template, table);
-        return positional.Count == 0 ? result : new PrintPreflightResult(positional.Concat(result.Issues).ToArray());
+        var found = FindPositionalBindings(template, table).Concat(FindMissingConditionFields(template, table)).ToArray();
+        return found.Length == 0 ? result : new PrintPreflightResult(found.Concat(result.Issues).ToArray());
+    }
+
+    /// <summary>
+    /// Template-level blocking issues for each visibility condition that reads a
+    /// field the data does not have, e.g. a column renamed or deleted in the file.
+    /// The condition then reads empty, which hides its object on every label; a
+    /// binding at least prints blank, a hidden object leaves no trace, so it blocks.
+    /// </summary>
+    public static IReadOnlyList<PrintPreflightIssue> FindMissingConditionFields(LabelTemplate template, DataTable? table)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        // No data linked yet: nothing to compare a condition with (a label printed without a file).
+        if (table is null)
+        {
+            return Array.Empty<PrintPreflightIssue>();
+        }
+
+        var columnNames = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
+        return template.Objects
+            .Where(item => item.IsVisible && item.IsPrintable && !string.IsNullOrWhiteSpace(item.VisibilityCondition))
+            .Select(item => (Item: item, Missing: MissingFields(item.VisibilityCondition, columnNames, template.DataTransforms)))
+            .Where(use => use.Missing.Count > 0)
+            .Select(use => new PrintPreflightIssue(
+                0,
+                use.Item.Name,
+                use.Item.Type.ToString(),
+                $"Visibility condition reads field(s) missing from the data: {string.Join(", ", use.Missing)}. The object would be left off every label."))
+            .ToArray();
     }
 
     /// <summary>

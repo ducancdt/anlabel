@@ -2253,6 +2253,44 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// "HÀNG DỄ VỠ" printed only when the row's Fragile column said so. Once the
+    /// column was renamed in Excel the condition read empty and the warning was
+    /// left off every carton without a word. A visibility condition that reads a
+    /// column the data does not have now stops the print and names the column;
+    /// a condition on a print-time answer is not a column.
+    /// </summary>
+    public static Task ConditionOnAMissingColumnStopsThePrint()
+    {
+        var template = new LabelTemplate { Name = "Thùng", WidthMm = 100, HeightMm = 60, Dpi = 203 };
+        template.PromptVariables.Add(new PromptVariableDefinition { Name = "Ship", Prompt = "Gửi đi" });
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Dễ vỡ", Text = "HÀNG DỄ VỠ", VisibilityCondition = "{Fragile}", XMm = 5, YMm = 5, WidthMm = 40, HeightMm = 8 });
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Loại A", Text = "LOẠI A", VisibilityCondition = "EQUALS(FIELD(\"Loai\"), \"A\")", XMm = 5, YMm = 15, WidthMm = 40, HeightMm = 8 });
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Gửi", Text = "GỬI ĐI", VisibilityCondition = "{?Ship}", XMm = 5, YMm = 25, WidthMm = 40, HeightMm = 8 });
+        var renamed = new System.Data.DataTable();
+        renamed.Columns.Add("Ma");
+        renamed.Columns.Add("De vo");
+
+        var issues = ANLAbel.App.Services.DataHeaderCheck.FindMissingConditionFields(template, renamed);
+        Require(issues.Select(issue => issue.ObjectName).SequenceEqual(["Dễ vỡ", "Loại A"]) && issues.All(issue => issue.IsBlocking),
+            "Both conditions on missing columns block; the prompt condition does not: " + string.Join(" | ", issues.Select(issue => issue.ObjectName + ": " + issue.Message)));
+        var text = ANLAbel.App.Services.PreflightIssueText.Sentence(issues[0].Message);
+        Require(text.Contains("điều kiện hiển thị", StringComparison.OrdinalIgnoreCase) && text.Contains("Fragile", StringComparison.Ordinal),
+            "The operator reads which column, in Vietnamese: " + text);
+        Require(!ANLAbel.App.Services.DataHeaderCheck.Append(new PrintPreflightResult(Array.Empty<PrintPreflightIssue>()), template, renamed).IsSuccess,
+            "Print Preview and quick print stop.");
+
+        var complete = new System.Data.DataTable();
+        complete.Columns.Add("Ma");
+        complete.Columns.Add("Fragile");
+        complete.Columns.Add("Loai");
+        Require(ANLAbel.App.Services.DataHeaderCheck.FindMissingConditionFields(template, complete).Count == 0,
+            "With the columns back nothing is reported.");
+        Require(ANLAbel.App.Services.DataHeaderCheck.FindMissingConditionFields(template, null).Count == 0,
+            "With no data linked yet nothing is compared: the label prints without a file.");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Ten captions selected together and set to 9 pt changed only the one the
     /// selection started from: the ribbon and Properties edit the key object.
     /// As in NiceLabel 10, the font now goes to every selected text in one undo

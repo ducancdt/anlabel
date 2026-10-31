@@ -15,6 +15,8 @@ public static class PreflightIssueText
     [
         (Rx(@"^Missing field\(s\) in Excel data: (?<f>.+?)\. This object will print blank"),
             m => $"dữ liệu thiếu cột {m.Groups["f"].Value}; đối tượng sẽ in trống"),
+        (Rx(@"^Visibility condition reads field\(s\) missing from the data: (?<f>.+?)\. The object would be left off every label"),
+            m => $"điều kiện hiển thị đọc cột {m.Groups["f"].Value} mà dữ liệu không có nên đối tượng sẽ không in trên tem nào; sửa điều kiện hoặc thêm cột vào tệp dữ liệu rồi bấm Cập nhật Excel"),
         (Rx(@"^Formula binding error"), _ => "công thức lấy dữ liệu bị lỗi"),
         (Rx(@"^Placeholder \{\} has no field name"),
             _ => "dấu ngoặc {} chưa có tên cột nên đối tượng sẽ in trống; nhập tên cột vào giữa hai dấu ngoặc hoặc xóa chúng"),
