@@ -313,6 +313,13 @@ public partial class MainWindow : Window
         {
             UpdateDataSourceSelection();
         }
+
+        // A 2D code has no Số kiểm tra or Chữ dưới mã page: leave a hidden page for the first.
+        if (e.PropertyName is nameof(MainViewModel.IsSelectedLinearCode) && !_viewModel.IsSelectedLinearCode
+            && BarcodeSubTabs.SelectedIndex is 1 or 2)
+        {
+            BarcodeSubTabs.SelectedIndex = 0;
+        }
         else if (e.PropertyName == nameof(MainViewModel.SelectedBindingKindText))
         {
             // Not inside the list's own selection change when a pick in it changed the source.

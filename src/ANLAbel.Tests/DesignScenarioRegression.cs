@@ -234,6 +234,119 @@ internal static class DesignScenarioRegression
         return (double)inked / (steps + 1);
     }
 
+    /// <summary>
+    /// NiceLabel 10 splits a barcode's settings into pages (Barcode, Check digit, Human readable,
+    /// Details, Bearer bar). ANLAbel's Kiểu page listed them all in one column, with the 2D mode
+    /// and error correction for a Code 128 and the Code 39 ratio for any code. The page is now
+    /// "Mã vạch", with Mã vạch · Số kiểm tra · Chữ dưới mã · Chi tiết (the bearer bar in Chi
+    /// tiết), and each shows what the selected symbology uses.
+    /// </summary>
+    public static Task BarcodePropertiesFollowNiceLabelPages()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var linear = new LabelObject { Type = ObjectType.BarcodeCode128, Name = "Mã", BarcodeSymbology = BarcodeSymbology.Code128, Text = "TERM-1", XMm = 3, YMm = 3, WidthMm = 40, HeightMm = 10 };
+            var matrix = new LabelObject { Type = ObjectType.DataMatrix, Name = "DM", BarcodeSymbology = BarcodeSymbology.DataMatrix, Text = "P1", XMm = 50, YMm = 3, WidthMm = 12, HeightMm = 12 };
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 3, YMm = 20, WidthMm = 20, HeightMm = 5 };
+            viewModel.Template.Objects.Add(linear);
+            viewModel.Template.Objects.Add(matrix);
+            viewModel.Template.Objects.Add(text);
+            var pages = (TabControl)window.FindName("BarcodeSubTabs");
+            var card = (FrameworkElement)pages.Parent;
+            string[] Pages() => pages.Items.OfType<TabItem>().Where(item => item.Visibility == Visibility.Visible).Select(item => (string)item.Header).ToArray();
+            TextBlock Label(string caption) => FindVisualChildren<TextBlock>(card).First(block => block.Text == caption);
+            bool Shown(string caption)
+            {
+                // The window is not shown, so IsVisible is false throughout: walk the visibility up to the card.
+                for (DependencyObject? node = Label(caption); node is not null && !ReferenceEquals(node, card); node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement element && element.Visibility != Visibility.Visible)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            string StylePageHeader()
+            {
+                var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+                var style = tabs.Items.OfType<TabItem>().Single(item => System.Windows.Automation.AutomationProperties.GetName(item) == "Style properties");
+                return FindVisualChildren<TextBlock>((DependencyObject)style.Header).Select(block => block.Text).First(value => !string.IsNullOrEmpty(value));
+            }
+
+            viewModel.SelectedObject = linear;
+            Settle();
+            Require(Pages().SequenceEqual(new[] { "Mã vạch", "Số kiểm tra", "Chữ dưới mã", "Chi tiết" }), "A linear code has NiceLabel's pages: " + string.Join(", ", Pages()));
+            Require(StylePageHeader() == "Mã vạch", "A barcode's style page is named Mã vạch: " + StylePageHeader());
+            pages.SelectedIndex = 0;
+            Settle();
+            Require(Shown("Chuẩn") && Shown("Cỡ X (mm)") && !Shown("Chế độ 2D") && !Shown("Mức ECC"), "The Mã vạch page of a Code 128 has no 2D settings.");
+            pages.SelectedIndex = 1;
+            Settle();
+            Require(Shown("Thuật toán riêng: modulo") && !Shown("Chuẩn"), "Số kiểm tra holds the check digit settings, alone.");
+            pages.SelectedIndex = 2;
+            Settle();
+            Require(Shown("Vị trí HRI") && Shown("Phông HRI") && !Shown("Thuật toán riêng: modulo"), "Chữ dưới mã holds the readable text settings.");
+            pages.SelectedIndex = 3;
+            Settle();
+            Require(Shown("Vùng yên (mô-đun)") && Shown("Bộ mã Code 128") && !Shown("Tỉ lệ Code 39") && Shown("Độ dày vạch bao (mm)"),
+                "Chi tiết holds the quiet zone, the Code 128 code set and the bearer bar, not the Code 39 ratio.");
+            linear.BarcodeSymbology = BarcodeSymbology.Code39;
+            Settle();
+            Require(Shown("Tỉ lệ Code 39") && Shown("Khe giữa ký tự Code 39 (X)") && !Shown("Bộ mã Code 128"), "A Code 39 shows its ratio and gap, not the Code 128 code set.");
+
+            // A 2D code: no check digit, readable text or bearer bar; a hidden page is left.
+            pages.SelectedIndex = 2;
+            viewModel.SelectedObject = matrix;
+            Settle();
+            Require(Pages().SequenceEqual(new[] { "Mã vạch", "Chi tiết" }), "A 2D code has the Mã vạch and Chi tiết pages: " + string.Join(", ", Pages()));
+            Require(pages.SelectedIndex == 0, "Selecting a 2D code on a hidden page shows the first page: " + pages.SelectedIndex);
+            Require(Shown("Chế độ 2D") && Shown("Mức ECC"), "The Mã vạch page of a 2D code shows its 2D settings.");
+            pages.SelectedIndex = 3;
+            Settle();
+            Require(!Shown("Độ dày vạch bao (mm)") && Shown("Vùng yên (mô-đun)"), "A 2D code's Chi tiết has its quiet zone and no bearer bar.");
+
+            viewModel.SelectedObject = text;
+            Settle();
+            Require(StylePageHeader() == "Kiểu", "A text's style page stays Kiểu: " + StylePageHeader());
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent)
+        where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in FindVisualChildren<T>(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
     private static void CheckSheet(SheetCase sheet, List<string> failures)
     {
         var (template, rows) = CreateSheet(sheet);

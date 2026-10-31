@@ -633,6 +633,8 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
                 OnPropertyChanged(nameof(BarcodePhysicalQuietZoneText));
                 OnPropertyChanged(nameof(SelectedObjectSizeFromX));
+                OnPropertyChanged(nameof(IsSelected2DCode));
+                OnPropertyChanged(nameof(IsSelectedLinearCode));
                 TryApplySizedFromXWidth(SelectedObject);
             }
         }
@@ -1384,6 +1386,14 @@ public sealed class MainViewModel : ObservableObject
         return rowView.Row[fieldName]?.ToString() ?? string.Empty;
     }
     public bool HasSelectedBinding => SelectedObject is not null && !string.IsNullOrWhiteSpace(SelectedObject.BindingExpression);
+    /// <summary>A 2D code is selected (QR, Data Matrix, Aztec, PDF417): the Barcode page shows its 2D settings.</summary>
+    public bool IsSelected2DCode => SelectedObject?.IsSquare2DCodeLike() == true;
+
+    /// <summary>
+    /// A linear code is selected: NiceLabel 10's Check digit, Human readable and Bearer bar
+    /// pages apply to it, not to a 2D code.
+    /// </summary>
+    public bool IsSelectedLinearCode => SelectedObject is { Type: ObjectType.BarcodeCode128 } item && !item.IsSquare2DCodeLike();
     public bool IsSelectedBindingFormula => SelectedObject is not null && FormulaBindingEvaluator.LooksLikeFormula(SelectedObject.BindingExpression);
     public string SelectedBindingKindText => EvaluateSelectedBinding().KindText;
     public string SelectedBindingPreviewValue => EvaluateSelectedBinding().PreviewValue;
@@ -5792,6 +5802,8 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(BarcodeEffectiveModuleReadoutText));
                 OnPropertyChanged(nameof(BarcodePhysicalQuietZoneText));
                 OnPropertyChanged(nameof(SelectedObjectSizeFromX));
+                OnPropertyChanged(nameof(IsSelected2DCode));
+                OnPropertyChanged(nameof(IsSelectedLinearCode));
             }
         }
 

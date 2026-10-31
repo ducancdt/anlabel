@@ -419,6 +419,11 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- The barcode pages: four headers on one row of the Properties panel. -->
+        <Style x:Key="PanelTabItemCompact" TargetType="TabItem" BasedOn="{StaticResource PanelTabItem}">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="5,3"/>
+        </Style>
         <!-- Backstage "Tệp gần đây" row: file name over its folder (NiceLabel 10 Recent Files) -->
         <DataTemplate x:Key="BackstageRecentItem">
             <Button Style="{StaticResource BackstageListButton}" Click="BackstageRecent_Click" ToolTip="{Binding Path}" AutomationProperties.Name="{Binding Name}">
@@ -2329,7 +2334,14 @@
                                     <TabItem AutomationProperties.Name="Style properties">
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="Kiểu"/>
+                                                <!-- A barcode's page is "Mã vạch", as NiceLabel 10 names it (Source · Barcode · Position · General). -->
+                                                <TextBlock>
+                                                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="Kiểu"/><Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.BarcodeCode128}"><Setter Property="Text" Value="Mã vạch"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.QRCode}"><Setter Property="Text" Value="Mã vạch"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.DataMatrix}"><Setter Property="Text" Value="Mã vạch"/></DataTrigger>
+                                                    </Style.Triggers></Style></TextBlock.Style>
+                                                </TextBlock>
                                             </StackPanel>
                                         </TabItem.Header>
                                     </TabItem>
@@ -3292,227 +3304,242 @@
                                     <Border.Style><Style TargetType="Border" BasedOn="{StaticResource PropCard}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.BarcodeCode128}"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.QRCode}"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.DataMatrix}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                     <StackPanel>
                                         <TextBlock Text="Mã vạch" Style="{StaticResource PropTitle}"/>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                            <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Chuẩn" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3"><ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle></ComboBox></StackPanel>
-                                            <StackPanel Grid.Row="1" Grid.ColumnSpan="3"><TextBlock Text="Chế độ 2D" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
-                                            <StackPanel Grid.Row="2" Grid.ColumnSpan="3"><TextBlock Text="Mức ECC" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
-                                        </Grid>
-                                        <StackPanel Margin="0,4,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.BarcodeSymbology}" Value="{x:Static enums:BarcodeSymbology.Pdf417}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Mức sửa lỗi PDF417" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding Pdf417ErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.Pdf417ErrorCorrectionLevel, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3" ToolTip="Tự động = phần mềm chọn mức theo lượng dữ liệu. Mức cố định 0-8: mức càng cao càng chịu được tem rách/xước nhưng mã càng lớn."/><CheckBox Content="PDF417 rút gọn (bỏ cột chỉ thị phải)" IsChecked="{Binding SelectedObject.Pdf417Truncated, Mode=TwoWay}" ToolTip="Mã ngắn hơn nhưng kém chịu hư hỏng hơn và một số đầu đọc cũ không đọc được. Chỉ bật khi đầu đọc của bạn đã kiểm chứng đọc được mã rút gọn."/></StackPanel>
-                                        <StackPanel Margin="0,4,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.BarcodeSymbology}" Value="{x:Static enums:BarcodeSymbology.DataMatrix}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Khổ Data Matrix" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding DataMatrixSymbolSizeOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.DataMatrixSymbolSize, Mode=TwoWay}" Margin="0,1,0,3" AutomationProperties.Name="Khổ Data Matrix" ToolTip="Tự động: khổ vuông nhỏ nhất chứa được dữ liệu. Khổ cố định (vuông hoặc chữ nhật cho tem hẹp): dữ liệu dài hơn khổ thì báo lỗi, không tự nới."/></StackPanel>
-                                        <TextBlock Text="Hồ sơ ứng dụng" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
-                                        <ComboBox ItemsSource="{Binding BarcodeApplicationProfiles}" ItemTemplate="{StaticResource DisplayNameItem}"
-                                                  SelectedItem="{Binding SelectedObject.BarcodeApplicationProfile, Mode=TwoWay}"
-                                                  ToolTip="Chung giữ quy tắc soạn cũ; Công nghiệp và GS1 bật kiểm tra trước kiểu chặn-khi-lỗi cho sản xuất."
-                                                  Margin="0,1,0,2"/>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Vùng yên (mô-đun)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding QrQuietZoneModuleOptions}"
-                                                          SelectedItem="{Binding SelectedObject.QrQuietZoneModules, Mode=TwoWay}"
-                                                          Margin="0,1,0,0"/>
+                                        <!-- NiceLabel 10 barcode pages: Barcode · Check digit · Human readable · Details (with the bearer bar); a 2D code has no
+                                             check digit, readable text or bearer bar of its own, so those stay hidden for it. -->
+                                        <TabControl x:Name="BarcodeSubTabs" ItemContainerStyle="{StaticResource PanelTabItemCompact}" SelectedIndex="0" Height="28" Margin="0,0,0,6" Padding="0" BorderThickness="0" Background="Transparent" AutomationProperties.Name="Barcode pages">
+                                            <TabItem Header="Mã vạch" AutomationProperties.Name="Barcode page"/>
+                                            <TabItem Header="Số kiểm tra" AutomationProperties.Name="Check digit page" Visibility="{Binding IsSelectedLinearCode, Converter={StaticResource BoolToVisibility}}"/>
+                                            <TabItem Header="Chữ dưới mã" AutomationProperties.Name="Human readable page" Visibility="{Binding IsSelectedLinearCode, Converter={StaticResource BoolToVisibility}}"/>
+                                            <TabItem Header="Chi tiết" AutomationProperties.Name="Details page"/>
+                                        </TabControl>
+                                        <StackPanel Visibility="{Binding SelectedIndex, ElementName=BarcodeSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel Grid.ColumnSpan="3"><TextBlock Text="Chuẩn" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding Source={StaticResource GroupedBarcodeSymbologies}}" SelectedValue="{Binding SelectedObject.BarcodeSymbology, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3"><ComboBox.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><Border Background="#EAF3FF" Padding="6,3" Margin="0,4,0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/></Border></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ComboBox.GroupStyle></ComboBox></StackPanel>
+                                            </Grid>
+                                            <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsSelected2DCode}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                                <StackPanel><TextBlock Text="Chế độ 2D" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrSizingModeOptions}" SelectedValue="{Binding SelectedObject.QrSizingMode, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
+                                                <StackPanel><TextBlock Text="Mức ECC" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.QrErrorCorrection, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0"/></StackPanel>
                                             </StackPanel>
-                                            <StackPanel Grid.Column="2">
+                                            <StackPanel Margin="0,4,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.BarcodeSymbology}" Value="{x:Static enums:BarcodeSymbology.Pdf417}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Mức sửa lỗi PDF417" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding Pdf417ErrorCorrectionOptions}" SelectedValue="{Binding SelectedObject.Pdf417ErrorCorrectionLevel, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3" ToolTip="Tự động = phần mềm chọn mức theo lượng dữ liệu. Mức cố định 0-8: mức càng cao càng chịu được tem rách/xước nhưng mã càng lớn."/><CheckBox Content="PDF417 rút gọn (bỏ cột chỉ thị phải)" IsChecked="{Binding SelectedObject.Pdf417Truncated, Mode=TwoWay}" ToolTip="Mã ngắn hơn nhưng kém chịu hư hỏng hơn và một số đầu đọc cũ không đọc được. Chỉ bật khi đầu đọc của bạn đã kiểm chứng đọc được mã rút gọn."/></StackPanel>
+                                            <StackPanel Margin="0,4,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.BarcodeSymbology}" Value="{x:Static enums:BarcodeSymbology.DataMatrix}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Khổ Data Matrix" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding DataMatrixSymbolSizeOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.DataMatrixSymbolSize, Mode=TwoWay}" Margin="0,1,0,3" AutomationProperties.Name="Khổ Data Matrix" ToolTip="Tự động: khổ vuông nhỏ nhất chứa được dữ liệu. Khổ cố định (vuông hoặc chữ nhật cho tem hẹp): dữ liệu dài hơn khổ thì báo lỗi, không tự nới."/></StackPanel>
+                                            <TextBlock Text="Hồ sơ ứng dụng" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
+                                            <ComboBox ItemsSource="{Binding BarcodeApplicationProfiles}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                      SelectedItem="{Binding SelectedObject.BarcodeApplicationProfile, Mode=TwoWay}"
+                                                      ToolTip="Chung giữ quy tắc soạn cũ; Công nghiệp và GS1 bật kiểm tra trước kiểu chặn-khi-lỗi cho sản xuất."
+                                                      Margin="0,1,0,2"/>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="Cỡ X (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
+                                                           ToolTip="Mô-đun 1D (cỡ X) theo mi-li-mét. 0 = cũ (ước lượng từ khung). In lượng tử hóa về số chấm nguyên của máy in tại DPI kế hoạch."/>
+                                                <TextBox Grid.Column="2"
+                                                         Text="{Binding SelectedObject.BarcodeModuleWidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                         Width="58" HorizontalAlignment="Left"
+                                                         ToolTip="Cỡ X công nghiệp. Nhiệt điển hình: 0.25–0.40 mm. 0 giữ cách lấy cỡ từ khung cũ. Chiều cao vạch dùng chiều cao đối tượng trừ dải HRI."/>
+                                            </Grid>
+                                            <CheckBox Content="Lấy rộng theo X × mô-đun"
+                                                      IsChecked="{Binding SelectedObjectSizeFromX, Mode=TwoWay}"
+                                                      Margin="0,4,0,0" FontSize="11"
+                                                      ToolTip="Khi chọn và cỡ X &gt; 0, chiều rộng đối tượng = X hiệu dụng đã lượng tử × số mô-đun luận lý thuần tại DPI in. Bỏ chọn = chiều rộng theo khung cũ."/>
+                                            <TextBlock Text="{Binding BarcodeEffectiveModuleReadoutText}"
+                                                       Foreground="{StaticResource AppMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0"
+                                                       ToolTip="Mô-đun hiệu dụng tại DPI kế hoạch in (cùng đường lượng tử với kiểm tra trước). mil = mm/25.4×1000."/>
+                                            <TextBlock Text="{Binding BarcodeApplicationValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                            <!-- Linked text & DPI: compact single row -->
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="2" Text="DPI" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,3,0" FontSize="11"/>
+                                                <TextBox Grid.Column="3" Text="{Binding SelectedObject.QrDpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" MinHeight="22" FontSize="11"/>
+                                            </Grid>
+                                            <!-- Fixed Size: inline, only when not AutoSize -->
+                                            <Border Margin="0,3,0,0" Padding="0" BorderThickness="0">
+                                                <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.QrSizingMode}" Value="{x:Static barcode:QrSizingMode.AutoSizeByData}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                                                <StackPanel>
+                                                    <TextBlock Text="Cỡ cố định" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,2"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <StackPanel><TextBlock Text="Phiên bản ký hiệu" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrVersionOptions}" SelectedValue="{Binding SelectedObject.QrFixedVersion, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0" MaxDropDownHeight="320"/></StackPanel>
+                                                        <StackPanel Grid.Column="2"><TextBlock Text="Cỡ mô-đun (px)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrModuleSizePxOptions}" SelectedItem="{Binding SelectedObject.QrModuleSizePx, Mode=TwoWay}" Margin="0,1,0,0"/></StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                            <TextBlock Text="{Binding BarcodeModuleSizeWarningText}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Visibility="{Binding SelectedIndex, ElementName=BarcodeSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=1}">
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Số kiểm tra" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                              SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
+                                                              ToolTip="Code 39 / ITF (Code 128 khi dùng thuật toán riêng). Không = không yêu cầu. Tự động = chấp nhận có hoặc không số kiểm tra cuối, HRI luôn hiện đủ. Xác minh = kiểm tra trước chặn nếu thiếu hoặc sai số kiểm tra. Tự sinh = dữ liệu là phần thân, phần mềm tự tính và nối số kiểm tra."
+                                                              Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Số kiểm tra HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <CheckBox Content="Hiện trong HRI"
+                                                              IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"
+                                                              ToolTip="Khi bỏ chọn (chỉ với Xác minh hoặc Tự sinh), số kiểm tra cuối chỉ bị ẩn trong phần chữ người đọc được. Ký hiệu mã hóa luôn dùng trọn dữ liệu."
+                                                              Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Thuật toán riêng: modulo" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding SelectedObject.CheckDigitModulus, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="0 = dùng số kiểm tra chuẩn của loại mã. 2 - 99 = thuật toán riêng cho dữ liệu chỉ gồm chữ số (ví dụ 10 cho mod 10, 11 cho mod 11)."
+                                                             Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Trọng số" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding SelectedObject.CheckDigitWeights, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Danh sách trọng số cách nhau bởi dấu phẩy, lặp vòng (ví dụ 3,1 hoặc 2,1 hoặc 7,6,5,4,3,2)."
+                                                             Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                            <WrapPanel Margin="0,2,0,0">
+                                                <CheckBox Content="Trọng số từ phải" Margin="0,2,10,0"
+                                                          IsChecked="{Binding SelectedObject.CheckDigitWeightsFromRight, Mode=TwoWay}"
+                                                          ToolTip="Trọng số đầu tiên áp cho chữ số ngoài cùng bên phải (kiểu GS1). Bỏ chọn để bắt đầu từ bên trái."/>
+                                                <CheckBox Content="Cộng chữ số của tích" Margin="0,2,10,0"
+                                                          IsChecked="{Binding SelectedObject.CheckDigitSumDigitsOfProducts, Mode=TwoWay}"
+                                                          ToolTip="Cộng từng chữ số của mỗi tích (kiểu Luhn) thay vì cộng cả tích."/>
+                                                <CheckBox Content="Lấy phần bù" Margin="0,2,10,0"
+                                                          IsChecked="{Binding SelectedObject.CheckDigitComplement, Mode=TwoWay}"
+                                                          ToolTip="Số kiểm tra = modulo trừ số dư (số dư 0 giữ 0). Bỏ chọn để dùng chính số dư."/>
+                                                <CheckBox Content="Giữ đủ chữ số" Margin="0,2,10,0"
+                                                          IsChecked="{Binding SelectedObject.CheckDigitKeepAllDigits, Mode=TwoWay}"
+                                                          ToolTip="Khi số kiểm tra từ 10 trở lên, ghi đủ (ví dụ 10) thay vì chỉ chữ số cuối."/>
+                                                <CheckBox Content="Số dư 0 → modulo" Margin="0,2,10,0"
+                                                          IsChecked="{Binding SelectedObject.CheckDigitZeroRemainderAsModulus, Mode=TwoWay}"
+                                                          ToolTip="Khi lấy phần bù, số dư 0 cho giá trị bằng modulo (ví dụ 11) thay vì 0. Dùng cho UPU S10 cùng ánh xạ 11=5."/>
+                                            </WrapPanel>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Ánh xạ kết quả" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding SelectedObject.CheckDigitValueMap, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Giá trị số kiểm tra in thành ký tự khác, ví dụ 10=X hoặc 10=0;11=5. Để trống = không ánh xạ."
+                                                             Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Nạp mẫu có sẵn" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <ComboBox ItemsSource="{Binding CheckDigitPresetOptions}" SelectedItem="{Binding SelectedCheckDigitPreset, Mode=TwoWay}"
+                                                              ToolTip="Điền sẵn modulo, trọng số và các tùy chọn theo một chuẩn đã công bố. Chọn xong vẫn có thể sửa từng ô."
+                                                              Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel Visibility="{Binding SelectedIndex, ElementName=BarcodeSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=2}">
+                                            <StackPanel>
                                                 <TextBlock Text="Vị trí HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <ComboBox ItemsSource="{Binding BarcodeHriPlacementOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                           SelectedItem="{Binding SelectedObject.BarcodeHriPlacement, Mode=TwoWay}"
                                                           ToolTip="Không = trọn khung cho vạch. Dưới = dải cũ dưới ký hiệu. Trên = dải trên ký hiệu. Chỉ mã vạch tuyến tính; QR/Data Matrix giữ trọn khung ký hiệu."
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Cỡ HRI (pt)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
-                                            <TextBox Grid.Column="2" Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" Width="58" HorizontalAlignment="Left"/>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="Cỡ HRI (pt)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Column="2" Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" Width="58" HorizontalAlignment="Left"/>
+                                            </Grid>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Phông HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay}" Margin="0,1,0,0"
+                                                              AutomationProperties.Name="Phông chữ dưới mã" ToolTip="Phông của chữ dưới mã. Tem nhập từ NiceLabel dùng Arial đậm như NiceLabel in."/>
+                                                </StackPanel>
+                                                <CheckBox Grid.Column="2" Content="Đậm" VerticalAlignment="Bottom" Margin="0,0,0,3" IsChecked="{Binding SelectedObject.BarcodeHriBold, Mode=TwoWay}" AutomationProperties.Name="Chữ dưới mã in đậm"/>
+                                            </Grid>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Mặt nạ HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding SelectedObject.BarcodeHriMask, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Định dạng chữ dưới mã. Mỗi ký tự đại diện được thay bằng một ký tự dữ liệu, ký tự khác chỉ để trình bày. Ví dụ (***) ***-***. Số ký tự đại diện phải bằng số ký tự dữ liệu. Để trống = không dùng."/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Ký tự đại diện" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding SelectedObject.BarcodeHriMaskCharacter, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Width="40" MaxLength="1" HorizontalAlignment="Left"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel Visibility="{Binding SelectedIndex, ElementName=BarcodeSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=3}">
                                             <StackPanel>
-                                                <TextBlock Text="Phông HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay}" Margin="0,1,0,0"
-                                                          AutomationProperties.Name="Phông chữ dưới mã" ToolTip="Phông của chữ dưới mã. Tem nhập từ NiceLabel dùng Arial đậm như NiceLabel in."/>
-                                            </StackPanel>
-                                            <CheckBox Grid.Column="2" Content="Đậm" VerticalAlignment="Bottom" Margin="0,0,0,3" IsChecked="{Binding SelectedObject.BarcodeHriBold, Mode=TwoWay}" AutomationProperties.Name="Chữ dưới mã in đậm"/>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Mặt nạ HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.BarcodeHriMask, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                         ToolTip="Định dạng chữ dưới mã. Mỗi ký tự đại diện được thay bằng một ký tự dữ liệu, ký tự khác chỉ để trình bày. Ví dụ (***) ***-***. Số ký tự đại diện phải bằng số ký tự dữ liệu. Để trống = không dùng."/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Ký tự đại diện" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.BarcodeHriMaskCharacter, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Width="40" MaxLength="1" HorizontalAlignment="Left"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Số kiểm tra" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
-                                                          SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
-                                                          ToolTip="Code 39 / ITF (Code 128 khi dùng thuật toán riêng). Không = không yêu cầu. Tự động = chấp nhận có hoặc không số kiểm tra cuối, HRI luôn hiện đủ. Xác minh = kiểm tra trước chặn nếu thiếu hoặc sai số kiểm tra. Tự sinh = dữ liệu là phần thân, phần mềm tự tính và nối số kiểm tra."
+                                                <TextBlock Text="Vùng yên (mô-đun)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                <ComboBox ItemsSource="{Binding QrQuietZoneModuleOptions}"
+                                                          SelectedItem="{Binding SelectedObject.QrQuietZoneModules, Mode=TwoWay}"
                                                           Margin="0,1,0,0"/>
                                             </StackPanel>
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Số kiểm tra HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <CheckBox Content="Hiện trong HRI"
-                                                          IsChecked="{Binding SelectedObject.BarcodeHriShowCheckDigit, Mode=TwoWay}"
-                                                          ToolTip="Khi bỏ chọn (chỉ với Xác minh hoặc Tự sinh), số kiểm tra cuối chỉ bị ẩn trong phần chữ người đọc được. Ký hiệu mã hóa luôn dùng trọn dữ liệu."
-                                                          Margin="0,3,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Thuật toán riêng: modulo" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.CheckDigitModulus, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                         ToolTip="0 = dùng số kiểm tra chuẩn của loại mã. 2 - 99 = thuật toán riêng cho dữ liệu chỉ gồm chữ số (ví dụ 10 cho mod 10, 11 cho mod 11)."
-                                                         Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Trọng số" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.CheckDigitWeights, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                         ToolTip="Danh sách trọng số cách nhau bởi dấu phẩy, lặp vòng (ví dụ 3,1 hoặc 2,1 hoặc 7,6,5,4,3,2)."
-                                                         Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <WrapPanel Margin="0,2,0,0">
-                                            <CheckBox Content="Trọng số từ phải" Margin="0,2,10,0"
-                                                      IsChecked="{Binding SelectedObject.CheckDigitWeightsFromRight, Mode=TwoWay}"
-                                                      ToolTip="Trọng số đầu tiên áp cho chữ số ngoài cùng bên phải (kiểu GS1). Bỏ chọn để bắt đầu từ bên trái."/>
-                                            <CheckBox Content="Cộng chữ số của tích" Margin="0,2,10,0"
-                                                      IsChecked="{Binding SelectedObject.CheckDigitSumDigitsOfProducts, Mode=TwoWay}"
-                                                      ToolTip="Cộng từng chữ số của mỗi tích (kiểu Luhn) thay vì cộng cả tích."/>
-                                            <CheckBox Content="Lấy phần bù" Margin="0,2,10,0"
-                                                      IsChecked="{Binding SelectedObject.CheckDigitComplement, Mode=TwoWay}"
-                                                      ToolTip="Số kiểm tra = modulo trừ số dư (số dư 0 giữ 0). Bỏ chọn để dùng chính số dư."/>
-                                            <CheckBox Content="Giữ đủ chữ số" Margin="0,2,10,0"
-                                                      IsChecked="{Binding SelectedObject.CheckDigitKeepAllDigits, Mode=TwoWay}"
-                                                      ToolTip="Khi số kiểm tra từ 10 trở lên, ghi đủ (ví dụ 10) thay vì chỉ chữ số cuối."/>
-                                            <CheckBox Content="Số dư 0 → modulo" Margin="0,2,10,0"
-                                                      IsChecked="{Binding SelectedObject.CheckDigitZeroRemainderAsModulus, Mode=TwoWay}"
-                                                      ToolTip="Khi lấy phần bù, số dư 0 cho giá trị bằng modulo (ví dụ 11) thay vì 0. Dùng cho UPU S10 cùng ánh xạ 11=5."/>
-                                        </WrapPanel>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Ánh xạ kết quả" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.CheckDigitValueMap, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                         ToolTip="Giá trị số kiểm tra in thành ký tự khác, ví dụ 10=X hoặc 10=0;11=5. Để trống = không ánh xạ."
-                                                         Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Nạp mẫu có sẵn" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding CheckDigitPresetOptions}" SelectedItem="{Binding SelectedCheckDigitPreset, Mode=TwoWay}"
-                                                          ToolTip="Điền sẵn modulo, trọng số và các tùy chọn theo một chuẩn đã công bố. Chọn xong vẫn có thể sửa từng ô."
-                                                          Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Tỉ lệ Code 39" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding Code39WideNarrowRatioOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
-                                                          SelectedItem="{Binding SelectedObject.Code39WideNarrowRatio, Mode=TwoWay}"
-                                                          ToolTip="Tỉ lệ rộng:hẹp của Code 39. Mặc định giữ mẫu bộ máy cũ. Cho phép 2.0:1 khi X hiệu dụng &gt;= 0.508 mm (USS-39 / ISO 16388)."
-                                                          Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="2">
+                                            <StackPanel Margin="0,3,0,0">
                                                 <TextBlock Text="Vùng yên (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
                                                 <TextBlock Text="{Binding BarcodePhysicalQuietZoneText}"
                                                            Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,3,0,0"
                                                            ToolTip="Vùng yên vật lý mỗi bên theo DPI in: mô-đun × X hiệu dụng mm. Code 39 cần tối thiểu max(10X, 2.54 mm)."/>
                                             </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Khe giữa ký tự Code 39 (X)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.Code39IntercharacterGapModules, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                         ToolTip="Khoảng trắng giữa hai ký tự Code 39, tính bằng số lần vạch hẹp (1 - 5, chuẩn là 1)."
+                                            <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.BarcodeSymbology}" Value="{x:Static enums:BarcodeSymbology.Code128}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                                <StackPanel Margin="0,3,0,0">
+                                                    <TextBlock Text="Bộ mã Code 128" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <ComboBox ItemsSource="{Binding Code128CodeSetOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                              SelectedItem="{Binding SelectedObject.Code128CodeSet, Mode=TwoWay}"
+                                                              ToolTip="Tự động = bộ mã hóa tự chọn ngắn nhất. Bộ A/B/C = ép cả mã dùng một bộ. Thủ công = dữ liệu tự chuyển bộ bằng &lt;MODEA&gt;, &lt;MODEB&gt;, &lt;MODEC&gt; (không in ra chữ dưới mã)."
+                                                              Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.BarcodeSymbology}" Value="{x:Static enums:BarcodeSymbology.Code39}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                                <StackPanel Margin="0,3,0,0">
+                                                    <TextBlock Text="Tỉ lệ Code 39" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <ComboBox ItemsSource="{Binding Code39WideNarrowRatioOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                              SelectedItem="{Binding SelectedObject.Code39WideNarrowRatio, Mode=TwoWay}"
+                                                              ToolTip="Tỉ lệ rộng:hẹp của Code 39. Mặc định giữ mẫu bộ máy cũ. Cho phép 2.0:1 khi X hiệu dụng &gt;= 0.508 mm (USS-39 / ISO 16388)."
+                                                              Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                                <StackPanel Margin="0,3,0,0">
+                                                    <TextBlock Text="Khe giữa ký tự Code 39 (X)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                    <TextBox Text="{Binding SelectedObject.Code39IntercharacterGapModules, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Khoảng trắng giữa hai ký tự Code 39, tính bằng số lần vạch hẹp (1 - 5, chuẩn là 1)."
+                                                             Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <Grid Margin="0,3,0,0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="Bù loang vạch (chấm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
+                                                           ToolTip="Số chấm máy in cắt bớt khỏi mỗi vạch đen của mã vạch 1D để bù mực loang khi in nhiệt. 0 = không bù. Phải nhỏ hơn số chấm của vạch hẹp; kiểm tra bằng máy quét trên tem in thật."/>
+                                                <TextBox Grid.Column="2"
+                                                         Text="{Binding SelectedObject.BarcodeBarWidthReductionDots, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         ToolTip="Số chấm cắt bớt mỗi vạch đen (0 - 10)."
                                                          Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Bộ mã Code 128" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding Code128CodeSetOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
-                                                          SelectedItem="{Binding SelectedObject.Code128CodeSet, Mode=TwoWay}"
-                                                          ToolTip="Tự động = bộ mã hóa tự chọn ngắn nhất. Bộ A/B/C = ép cả mã dùng một bộ. Thủ công = dữ liệu tự chuyển bộ bằng &lt;MODEA&gt;, &lt;MODEB&gt;, &lt;MODEC&gt; (không in ra chữ dưới mã)."
-                                                          Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="Vạch bao" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <ComboBox ItemsSource="{Binding BearerBarStyleOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
-                                                          SelectedItem="{Binding SelectedObject.BearerBarStyle, Mode=TwoWay}"
-                                                          ToolTip="Vạch bao (bảo vệ) cho mã vạch tuyến tính đóng gói (ví dụ ITF-14). Trên &amp; dưới hoặc khung bao trọn."
-                                                          Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Độ dày vạch bao (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                <TextBox Text="{Binding SelectedObject.BearerBarThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
-                                                         ToolTip="Độ dày của vạch bao / bảo vệ theo mi-li-mét (mặc định 1.0 mm)."
-                                                         Margin="0,1,0,0"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Độ dày vạch bao (× vạch hẹp)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
-                                            <TextBox Grid.Column="2"
-                                                     Text="{Binding SelectedObject.BearerBarThicknessModules, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                     ToolTip="Độ dày vạch bao bằng số lần vạch hẹp hiệu dụng (1 - 10), tự theo cỡ X và DPI. 0 = dùng độ dày mm ở trên."
-                                                     Margin="0,1,0,0"/>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Bù loang vạch (chấm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
-                                                       ToolTip="Số chấm máy in cắt bớt khỏi mỗi vạch đen của mã vạch 1D để bù mực loang khi in nhiệt. 0 = không bù. Phải nhỏ hơn số chấm của vạch hẹp; kiểm tra bằng máy quét trên tem in thật."/>
-                                            <TextBox Grid.Column="2"
-                                                     Text="{Binding SelectedObject.BarcodeBarWidthReductionDots, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                     ToolTip="Số chấm cắt bớt mỗi vạch đen (0 - 10)."
-                                                     Margin="0,1,0,0"/>
-                                        </Grid>
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                            <TextBlock Text="Cỡ X (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"
-                                                       ToolTip="Mô-đun 1D (cỡ X) theo mi-li-mét. 0 = cũ (ước lượng từ khung). In lượng tử hóa về số chấm nguyên của máy in tại DPI kế hoạch."/>
-                                            <TextBox Grid.Column="2"
-                                                     Text="{Binding SelectedObject.BarcodeModuleWidthMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
-                                                     Width="58" HorizontalAlignment="Left"
-                                                     ToolTip="Cỡ X công nghiệp. Nhiệt điển hình: 0.25–0.40 mm. 0 giữ cách lấy cỡ từ khung cũ. Chiều cao vạch dùng chiều cao đối tượng trừ dải HRI."/>
-                                        </Grid>
-                                        <CheckBox Content="Lấy rộng theo X × mô-đun"
-                                                  IsChecked="{Binding SelectedObjectSizeFromX, Mode=TwoWay}"
-                                                  Margin="0,4,0,0" FontSize="11"
-                                                  ToolTip="Khi chọn và cỡ X &gt; 0, chiều rộng đối tượng = X hiệu dụng đã lượng tử × số mô-đun luận lý thuần tại DPI in. Bỏ chọn = chiều rộng theo khung cũ."/>
-                                        <TextBlock Text="{Binding BarcodeEffectiveModuleReadoutText}"
-                                                   Foreground="{StaticResource AppMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0"
-                                                   ToolTip="Mô-đun hiệu dụng tại DPI kế hoạch in (cùng đường lượng tử với kiểm tra trước). mil = mm/25.4×1000."/>
-                                        <TextBlock Text="{Binding BarcodeApplicationValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                                        <!-- Linked text & DPI: compact single row -->
-                                        <Grid Margin="0,3,0,0">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="2" Text="DPI" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center" Margin="0,0,3,0" FontSize="11"/>
-                                            <TextBox Grid.Column="3" Text="{Binding SelectedObject.QrDpi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="40" MinHeight="22" FontSize="11"/>
-                                        </Grid>
-                                        <!-- Fixed Size: inline, only when not AutoSize -->
-                                        <Border Margin="0,3,0,0" Padding="0" BorderThickness="0">
-                                            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.QrSizingMode}" Value="{x:Static barcode:QrSizingMode.AutoSizeByData}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedObject}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
-                                            <StackPanel>
-                                                <TextBlock Text="Cỡ cố định" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,2"/>
-                                                <Grid>
+                                            </Grid>
+                                            <StackPanel Margin="0,6,0,0" Visibility="{Binding IsSelectedLinearCode, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="Vạch bao" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" Margin="0,0,0,1"/>
+                                                <Grid Margin="0,3,0,0">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                    <StackPanel><TextBlock Text="Phiên bản ký hiệu" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrVersionOptions}" SelectedValue="{Binding SelectedObject.QrFixedVersion, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,0" MaxDropDownHeight="320"/></StackPanel>
-                                                    <StackPanel Grid.Column="2"><TextBlock Text="Cỡ mô-đun (px)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><ComboBox ItemsSource="{Binding QrModuleSizePxOptions}" SelectedItem="{Binding SelectedObject.QrModuleSizePx, Mode=TwoWay}" Margin="0,1,0,0"/></StackPanel>
+                                                    <StackPanel>
+                                                        <TextBlock Text="Vạch bao" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                        <ComboBox ItemsSource="{Binding BearerBarStyleOptions}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                                  SelectedItem="{Binding SelectedObject.BearerBarStyle, Mode=TwoWay}"
+                                                                  ToolTip="Vạch bao (bảo vệ) cho mã vạch tuyến tính đóng gói (ví dụ ITF-14). Trên &amp; dưới hoặc khung bao trọn."
+                                                                  Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Độ dày vạch bao (mm)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
+                                                        <TextBox Text="{Binding SelectedObject.BearerBarThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                                 ToolTip="Độ dày của vạch bao / bảo vệ theo mi-li-mét (mặc định 1.0 mm)."
+                                                                 Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid Margin="0,3,0,0">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Độ dày vạch bao (× vạch hẹp)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                                                    <TextBox Grid.Column="2"
+                                                             Text="{Binding SelectedObject.BearerBarThicknessModules, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                             ToolTip="Độ dày vạch bao bằng số lần vạch hẹp hiệu dụng (1 - 10), tự theo cỡ X và DPI. 0 = dùng độ dày mm ở trên."
+                                                             Margin="0,1,0,0"/>
                                                 </Grid>
                                             </StackPanel>
-                                        </Border>
-                                        <TextBlock Text="{Binding BarcodeModuleSizeWarningText}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 

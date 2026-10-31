@@ -2,6 +2,11 @@
 
 ## Sau v0.359
 
+- Thuộc tính của mã vạch: trang “Kiểu” nay tên “Mã vạch” và chia trang như NiceLabel 10: Mã vạch
+  (loại mã, hồ sơ ứng dụng, cỡ X, DPI; chế độ 2D và mức sửa lỗi chỉ với mã 2D) · Số kiểm tra · Chữ
+  dưới mã · Chi tiết (vùng yên, bộ mã Code 128 với Code 128, tỉ lệ và khe Code 39 với Code 39, bù
+  loang vạch, vạch bao). Trước đây mọi thiết lập nằm trong một cột dài, kể cả chế độ 2D cho Code 128
+  và tỉ lệ Code 39 cho mọi mã; mã 2D không có Số kiểm tra, Chữ dưới mã và vạch bao.
 - Thuộc tính › Nguồn: một ô “Nguồn dữ liệu” như “Connected data source” của NiceLabel 10 thay
   cho hai bước “Nguồn” rồi “Trường Excel”: chữ cố định, biến nhập khi in, cột dữ liệu, hàm, giá trị
   khi in (số sê-ri, ngày in) và “Ghép chữ / công thức…”, theo nhóm như bảng Dữ liệu. Ô luôn hiện
