@@ -1116,3 +1116,56 @@ padlock marks locked objects. Not built: the keyboard resize and rotate keys
 (the Text and Text Box resize lifecycle is a protected contract), the form
 keys (forms are out of scope), Ctrl+Alt+T and Ctrl+F4 (one label is open at a
 time), and the Counter, Events and Printer Element markers (no such objects).
+
+## §29 Ribbon map, test print and property pages on a selection (2026-10-31)
+
+Evidence: DesignerLib `mainwindow.xaml` and `statusbarview.xaml` (BAML),
+`DocumentPageView`, `TestPrintCommand`, `PositionPropertyPageViewModel` and
+`FormatPositionPropertyPageViewModel` (ilspycmd), Core `a.c.a.ae` (the print
+process initializer).
+
+- Ribbon. Home: Clipboard; Font; Action (print, store, test print, customize
+  and express print, printing shortcut, run form, export); Management (data
+  sources, document properties); Align; Objects (group, order, delete);
+  Object Settings (print object, cut object); Color Processing; Partner and
+  activation. Data: Database (Excel, Access, SQL Server, text, ODBC, other,
+  edit, delete); Data Source Management (define, import, prompt order); RFID.
+  View: Zoom; Object Markers; Alignment and Gridlines; Format Rotation.
+  Solution, Control Center (check in and out) and Help. Contextual pages:
+  Design (visibility, printing optimization, name; position, anchoring
+  point, relative position; arrange), Barcode, Text (format with text
+  scaling; character and paragraph, effects, automatic sizing, custom
+  boundaries), Picture (resize), Shape (outline, fill) and the form pages.
+  The status bar holds a document lock item, RFID, Windows mode, printers
+  (hidden) and the zoom slider.
+- ANLAbel covers the label-design groups. Out of scope or not built: forms,
+  RFID, Control Center, color processing, partner and activation, store and
+  recall, export, printing optimization (ANLAbel prints through the Windows
+  driver), the cut object flag, relative position (§23), and the database
+  wizard's Create Objects page (`CreateObjects`, `CreateTableObject`,
+  `DoNotCreateObjects`: one label object per database field). ANLAbel's
+  fields are dragged from the Data panel one at a time.
+- Test print (Ctrl+Alt+T, "Prints label with initial values").
+  `TestPrintCommand` prints one label (`PrintQuantity.FixedValue = 1`) from a
+  fresh runtime instance of the format; the `TestPrint` flag is read only by
+  `RecallPrinting`. ANLAbel's "In thử" prints the calibration label. A test
+  print of the design is not built: a serial printed on a test label without
+  committing the counter would repeat a production number (owner decision).
+- F2 and Enter. `DocumentPageView`: F2 puts an item that supports in-place
+  editing into `EditMode`, otherwise opens the property editor
+  (`OpenDocumentItemPropertyEditorCommand`, `PopupMode = true`); Enter starts
+  in-place editing only. ANLAbel opens Properties on a double-click; in-place
+  editing is not built (it would sit in the protected Text layout).
+- Property pages on a selection. `PositionPropertyPageViewModel` sets
+  `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
+  and `Rotation` on every selected item; `PositionLocked` and
+  `KeepAspectRatio` are `bool?`, null when the selected items differ.
+  `FormatPositionPropertyPageViewModel` sets `Left`, `Top`, the line end
+  point and length, and `AnchoringPoint` the same way.
+- ANLAbel (pending batch): Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach
+  every selected object and show a mixed tick when the selected objects
+  differ. X and Y, width and height, rotation and the anchoring point stay
+  with the key object: the key's X and Y also change while the selection is
+  dragged, width and height of Text and Text Box are a protected contract, a
+  rotation applied member by member would take an ANLAbel group apart, and the
+  anchoring point feeds the protected AutoFit Text layout.
