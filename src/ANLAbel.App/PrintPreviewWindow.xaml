@@ -261,6 +261,14 @@
 
                     <TextBlock Text="Chế độ in" FontWeight="SemiBold"/>
                     <TextBlock Text="Dùng ô chọn trong bảng Dữ liệu Excel để chọn dòng cần in." TextWrapping="Wrap" Foreground="#526070" Margin="0,4,0,10"/>
+                    <StackPanel Margin="0,0,0,10" Visibility="{Binding HasPromptValues, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="{Binding JobValuesSummaryText}" TextWrapping="Wrap" Foreground="#334155"
+                                   AutomationProperties.AutomationId="PrintPreview.JobValues"/>
+                        <Button Content="Sửa giá trị nhập..." HorizontalAlignment="Left" Padding="8,4" Margin="0,6,0,0" Click="EditPromptValues_Click"
+                                Visibility="{Binding CanEditPromptValues, Converter={StaticResource BoolToVisibility}}"
+                                ToolTip="Nhập lại các giá trị hỏi khi in; tem xem trước được làm lại với giá trị mới."
+                                AutomationProperties.AutomationId="PrintPreview.EditJobValues"/>
+                    </StackPanel>
                     <TextBlock Text="{Binding HiddenRowsText}" TextWrapping="Wrap" Foreground="#92400E" Margin="0,0,0,10"
                                AutomationProperties.AutomationId="PrintPreview.HiddenRows">
                         <TextBlock.Style>

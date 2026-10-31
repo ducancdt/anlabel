@@ -2114,6 +2114,65 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Print Preview lists the answers given at print time ("Số lô: L1"), so a
+    /// lot that only a QR code carries can be checked, and they can be entered
+    /// again without leaving the preview: the labels are prepared again with
+    /// the new answers. A reprint keeps the original job's answers.
+    /// </summary>
+    public static Task PreviewShowsAndEditsTheAnswers()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Lô", WidthMm = 60, HeightMm = 30, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lot", Prompt = "Số lô" });
+            template.Objects.Add(new LabelObject { Type = ObjectType.QRCode, Name = "QR", BindingExpression = "{?Lot}", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 20 });
+            var window = new ANLAbel.App.PrintPreviewWindow(
+                template,
+                null,
+                null,
+                new PrintService(),
+                new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(Path.GetTempPath(), $"anlabel-answers-{Guid.NewGuid():N}.csv")),
+                string.Empty,
+                promptValues: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Lot"] = "L1" });
+            void Settle()
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(30);
+                do
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                    Thread.Sleep(20);
+                }
+                while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline);
+            }
+
+            Settle();
+            Require(window.CanEditPromptValues && window.JobValuesSummaryText == "Giá trị nhập khi in — Số lô: L1",
+                "The preview lists the answer: " + window.JobValuesSummaryText);
+
+            typeof(ANLAbel.App.PrintPreviewWindow).GetMethod("ApplyPromptValues", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(window, new object[] { new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Lot"] = "L2" } });
+            Settle();
+            Require(window.JobValuesSummaryText == "Giá trị nhập khi in — Số lô: L2" && window.PromptValues["Lot"] == "L2" && window.Pages.Count == 1,
+                "New answers prepare the labels again: " + window.JobValuesSummaryText);
+            window.Close();
+
+            var reprint = new ANLAbel.App.PrintPreviewWindow(
+                template,
+                null,
+                null,
+                new PrintService(),
+                new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(Path.GetTempPath(), $"anlabel-answers-{Guid.NewGuid():N}.csv")),
+                string.Empty,
+                approvedReprintJobId: "job-1");
+            Require(!reprint.CanEditPromptValues && reprint.HasPromptValues, "A reprint keeps the original job's answers.");
+            reprint.Close();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still

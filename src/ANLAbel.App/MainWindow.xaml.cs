@@ -1503,6 +1503,11 @@ public partial class MainWindow : Window
 
             var dialog = new PrintPreviewWindow(_viewModel.Template, _viewModel.PreviewRow, _viewModel.ExcelDataView, _viewModel.PrintService, _viewModel.PrintLogService, _viewModel.CurrentFilePath, approvedReprintJobId, approvedReprintManifest, preparedRows, _viewModel.ImportedExcelDataSourceIdentity, promptValues) { Owner = this };
             dialog.ShowDialog();
+            if (promptValues is not null)
+            {
+                // Answers changed in the preview are offered again next time.
+                _viewModel.LastPromptValues = dialog.PromptValues;
+            }
         }
         catch (Exception ex)
         {

@@ -1997,6 +1997,57 @@ public partial class PrintPreviewWindow : Window
     }
 
 
+    /// <summary>The answers this job prints with (edited here or entered before the preview).</summary>
+    public IReadOnlyDictionary<string, string> PromptValues => _promptValues;
+
+    /// <summary>A new job's answers can be entered again here; a reprint keeps the original job's.</summary>
+    public bool CanEditPromptValues => _approvedReprintJobId is null && JobVariableContract.RequiredPrompts(_template).Count > 0;
+
+    public bool HasPromptValues => JobVariableContract.RequiredPrompts(_template).Count > 0;
+
+    /// <summary>
+    /// What the operator answered, as it prints, so a value that only a
+    /// barcode carries can be checked before printing (NiceLabel's print form
+    /// shows the answers beside the preview).
+    /// </summary>
+    public string JobValuesSummaryText
+    {
+        get
+        {
+            var prompts = JobVariableContract.RequiredPrompts(_template);
+            if (prompts.Count == 0 || _currentJobValues is null)
+            {
+                return string.Empty;
+            }
+
+            var answers = prompts.Select(prompt =>
+                $"{(string.IsNullOrWhiteSpace(prompt.Prompt) ? prompt.Name : prompt.Prompt.Trim())}: {(_currentJobValues.TryGetValue("?" + prompt.Name, out var value) && value.Length > 0 ? value : "(trống)")}");
+            return "Giá trị nhập khi in — " + string.Join(" · ", answers);
+        }
+    }
+
+    private void EditPromptValues_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CanEditPromptValues)
+        {
+            return;
+        }
+
+        if (PromptValuesWindow.Ask(this, JobVariableContract.RequiredPrompts(_template), _promptValues) is { } values)
+        {
+            ApplyPromptValues(values);
+        }
+
+        e.Handled = true;
+    }
+
+    /// <summary>New answers for this job: the labels are prepared again with them, keeping the row selection.</summary>
+    private void ApplyPromptValues(IReadOnlyDictionary<string, string> values)
+    {
+        _promptValues = values;
+        RefreshPreviewPagesOnly();
+    }
+
     /// <summary>Rows hidden in Excel (an AutoFilter) that start unselected, by source row number.</summary>
     public string HiddenRowsText
     {

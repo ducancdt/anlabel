@@ -13,6 +13,12 @@
   phân bố đều); chuột phải chọn luôn đối tượng dưới con trỏ. Trên vùng trống của tem
   có Thuộc tính tem, Dán, Vừa tài liệu, Vừa đối tượng. Dính, lưới và đường gióng nằm
   trong “Căn và lưới”. Trước đây chuột phải chỉ có dính, lưới và đường gióng.
+- Xem trước khi in liệt kê giá trị đã nhập khi in (“Giá trị nhập khi in — Số lô:
+  L2610 · Ngày sản xuất: 31/10/2026”) để soát cả giá trị chỉ nằm trong mã vạch/QR,
+  và có nút “Sửa giá trị nhập…” nhập lại ngay trong cửa sổ xem trước (tem được làm
+  lại, giữ các dòng đã chọn), như mẫu in của NiceLabel đặt câu hỏi cạnh tem xem
+  trước. Trước đây muốn sửa phải đóng xem trước rồi in lại. In lại một lệnh cũ
+  vẫn giữ giá trị của lệnh gốc.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 
