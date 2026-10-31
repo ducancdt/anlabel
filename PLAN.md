@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.361
+
+- Trang Kiểu của hình như trang Style của NiceLabel 10: thẻ “Đường viền” (độ dày, kiểu nét và màu,
+  “Bo góc (mm)” chỉ với hình chữ nhật) rồi thẻ “Tô nền” (không có với đường kẻ), cùng tên với các
+  nút trên thẻ ribbon Hình dạng. Trước đây một thẻ “Kiểu hình” trộn tô, bo góc, viền, độ dày và cho cả
+  hình bầu dục ô Bo góc vô nghĩa.
+
 ## v0.361 — Hộp công cụ, bảng Dữ liệu và Đối tượng, thẻ Nguồn như NiceLabel 10
 
 _Gồm các commit 31/10/2026 (20:35–21:50)._

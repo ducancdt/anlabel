@@ -3288,7 +3288,8 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border>
+                                <!-- NiceLabel 10 shape Style page: Đường viền (thickness, line style and colour, corner radius for a rectangle), then Tô nền (not for a line) -->
+                                <Border AutomationProperties.AutomationId="Shell.Properties.ShapeOutline">
                                     <Border.Style>
                                         <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -3306,37 +3307,47 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Kiểu hình" Style="{StaticResource PropTitle}"/>
-                                        <StackPanel>
-                                            <StackPanel.Style>
-                                                <Style TargetType="StackPanel">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Line}">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </StackPanel.Style>
-                                            <TextBlock Text="Tô nền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
-                                            <Grid Margin="0,0,0,4">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
-                                                <ComboBox AutomationProperties.Name="Kiểu tô nền" ItemsSource="{Binding FillStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
-                                                <TextBox Grid.Column="2" AutomationProperties.Name="Màu tô nền" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
-                                                <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.FillColor}"/>
-                                            </Grid>
-                                            <TextBlock Text="Bo góc" Style="{StaticResource PropLabel}"/>
-                                            <TextBox Text="{Binding SelectedObject.Style.CornerRadiusMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown" Margin="0,2,0,4"/>
-                                        </StackPanel>
-                                        <TextBlock Text="Viền" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <TextBlock Text="Đường viền" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Độ dày (mm)" Style="{StaticResource PropLabel}"/>
+                                        <TextBox Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown" Margin="0,2,0,4"/>
+                                        <TextBlock Text="Kiểu nét và màu" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <Grid Margin="0,0,0,4">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                                             <ComboBox AutomationProperties.Name="Kiểu viền" ItemsSource="{Binding OutlineStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.OutlineStyle, Mode=TwoWay}" Width="80"/>
                                             <TextBox Grid.Column="2" AutomationProperties.Name="Màu viền" Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
                                             <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
                                         </Grid>
-                                        <TextBlock Text="Độ dày (mm)" Style="{StaticResource PropLabel}"/>
-                                        <TextBox Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                        <StackPanel>
+                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Rectangle}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                            <TextBlock Text="Bo góc (mm)" Style="{StaticResource PropLabel}"/>
+                                            <TextBox Text="{Binding SelectedObject.Style.CornerRadiusMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" KeyDown="PositionSizeTextBox_KeyDown" Margin="0,2,0,4"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border AutomationProperties.AutomationId="Shell.Properties.ShapeFill">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Rectangle}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Ellipse}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Tô nền" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Kiểu tô và màu" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="6"/><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+                                            <ComboBox AutomationProperties.Name="Kiểu tô nền" ItemsSource="{Binding FillStyles}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.Style.FillStyle, Mode=TwoWay}" Width="80" Margin="0,0,0,0"/>
+                                            <TextBox Grid.Column="2" AutomationProperties.Name="Màu tô nền" Text="{Binding SelectedObject.Style.FillColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                            <Border Grid.Column="4" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.FillColor}"/>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
 
