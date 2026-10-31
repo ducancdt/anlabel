@@ -1292,6 +1292,70 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// A screen reader reads what the operator sees. A live UI Automation check of v0.362 heard the
+    /// Nguồn dữ liệu list's entries as "DataSourceChoice { Group = …, Label = Lô, … }"; the Data
+    /// panel's rows were class names or records and the code-built menus (toolbox ▾, Chèn nguồn ▾,
+    /// Undo/Redo lists) had TextBlock headers with no name. Each now carries its visible text.
+    /// </summary>
+    public static Task ScreenReadersReadSourceNames()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var prompt = new PromptVariableDefinition { Name = "Lô" };
+            viewModel.Template.PromptVariables.Add(prompt);
+            var function = new ANLAbel.Core.Data.DataTransformDefinition("MaVach", "\"A\"");
+            viewModel.Template.DataTransforms.Add(function);
+            viewModel.ExcelHeaders.Add("MaHang");
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            viewModel.Template.Objects.Add(text);
+            viewModel.SelectedObject = text;
+            ((TabControl)window.FindName("WorkspaceTabs")).SelectedIndex = 0;
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+
+            // The Nguồn dữ liệu list's entries: an item with no container yet is named by its ToString().
+            var listNames = viewModel.DataSourceChoicesFor(text).Select(choice => choice.ToString()).ToArray();
+            Require(listNames.Contains("Lô (Biến nhập khi in)") && listNames.Contains("MaHang (Trường dữ liệu)") && listNames.Contains("Chữ cố định"),
+                "The source list reads its entries: " + string.Join(" | ", listNames));
+            Require(listNames.All(name => !name.StartsWith("DataSourceChoice", StringComparison.Ordinal)), "No entry reads as a record: " + string.Join(" | ", listNames));
+
+            // The Data panel's rows.
+            string RowName(string group, object item)
+            {
+                var row = (TreeViewItem)window.FindName(group);
+                row.UpdateLayout();
+                var container = (TreeViewItem)row.ItemContainerGenerator.ContainerFromItem(item);
+                return System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(container).GetName();
+            }
+
+            var printTime = viewModel.PrintTimeDataFields.First();
+            var rows = new[] { RowName("DataTreePrompts", prompt), RowName("DataTreeFields", "MaHang"), RowName("DataTreeFunctions", function) };
+            Require(rows.SequenceEqual(new[] { "Lô", "MaHang", "MaVach" }) && printTime.ToString() == printTime.Label,
+                "The Data panel reads its rows: " + string.Join(" | ", rows) + " / " + printTime);
+
+            // The toolbox ▾ menu.
+            var arrow = FindLogicalChildren<Button>(content).First(button => AutomationProperties.GetName(button) == "Insert BarcodeCode128 connected to a data source");
+            arrow.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, arrow));
+            var menuNames = arrow.ContextMenu!.Items.OfType<MenuItem>().SelectMany(group => new[] { group }.Concat(group.Items.OfType<MenuItem>()))
+                .Select(item => System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(item).GetName()).ToArray();
+            Require(menuNames.Contains("Biến nhập khi in") && menuNames.Contains("Lô") && menuNames.All(name => name.Length > 0),
+                "The toolbox menu reads its entries: " + string.Join(" | ", menuNames));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

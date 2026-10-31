@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.362
+
+- Trình đọc màn hình đọc đúng chữ người dùng thấy: các mục của ô “Nguồn dữ liệu” trước đây có tên
+  tự động hóa “DataSourceChoice { Group = …, Label = Lô, … }”, các hàng của bảng Dữ liệu là tên lớp
+  hoặc bản ghi, các menu dựng trong mã (▾ hộp công cụ, Chèn nguồn ▾, danh sách Hoàn tác/Làm lại)
+  không có tên. Nay là “Lô (Biến nhập khi in)”, “Lô”, “Biến nhập khi in”… Tìm thấy khi kiểm thử
+  trực tiếp bản cài v0.362 bằng UI Automation.
+
 ## v0.362 — Trang Kiểu của hình, menu chuột phải và bảng Dữ liệu gọn như NiceLabel 10
 
 _Gồm các commit 31/10/2026 (22:01–22:45)._

@@ -634,9 +634,11 @@ public partial class MainWindow : Window
         foreach (var group in _viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == DataSourceChoiceKind.Source).GroupBy(choice => choice.Group))
         {
             var header = new MenuItem { Header = new TextBlock { Text = group.Key } };
+            System.Windows.Automation.AutomationProperties.SetName(header, group.Key);
             foreach (var choice in group)
             {
                 var item = new MenuItem { Header = new TextBlock { Text = choice.Label }, ToolTip = choice.Binding };
+                System.Windows.Automation.AutomationProperties.SetName(item, choice.Label);
                 item.Click += (_, _) => _viewModel.AddConnectedObject(kind, choice.Binding);
                 header.Items.Add(item);
             }
@@ -794,9 +796,11 @@ public partial class MainWindow : Window
         foreach (var group in _viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == DataSourceChoiceKind.Source).GroupBy(choice => choice.Group))
         {
             var header = new MenuItem { Header = new TextBlock { Text = group.Key } };
+            System.Windows.Automation.AutomationProperties.SetName(header, group.Key);
             foreach (var choice in group)
             {
                 var item = new MenuItem { Header = new TextBlock { Text = choice.Label }, ToolTip = choice.Binding };
+                System.Windows.Automation.AutomationProperties.SetName(item, choice.Label);
                 item.Click += (_, _) => InsertIntoComposition(choice.Binding);
                 header.Items.Add(item);
             }
@@ -1618,6 +1622,7 @@ public partial class MainWindow : Window
             var count = index + 1;
             // A TextBlock header: an underscore in an object name is not an access key.
             var item = new MenuItem { Header = new TextBlock { Text = steps[index] }, InputGestureText = count == 1 ? string.Empty : $"{count} bước" };
+            System.Windows.Automation.AutomationProperties.SetName(item, steps[index]);
             item.Click += (_, _) =>
             {
                 if (redo)

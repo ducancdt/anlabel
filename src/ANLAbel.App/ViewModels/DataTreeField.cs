@@ -5,4 +5,8 @@ namespace ANLAbel.App.ViewModels;
 /// sheet fields and functions: a field given at print time (the serial, the
 /// print date), with the binding a dropped object gets.
 /// </summary>
-public sealed record DataTreeField(string Label, string Binding);
+public sealed record DataTreeField(string Label, string Binding)
+{
+    /// <summary>What a screen reader says for the row: its label, not the record.</summary>
+    public override string ToString() => Label;
+}

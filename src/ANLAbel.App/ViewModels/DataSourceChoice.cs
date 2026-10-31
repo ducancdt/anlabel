@@ -22,4 +22,7 @@ public sealed record DataSourceChoice(string Group, string Label, string Binding
     public static DataSourceChoice Fixed { get; } = new("Cố định", "Chữ cố định", string.Empty, DataSourceChoiceKind.Fixed);
 
     public static DataSourceChoice Compose { get; } = new("Ghép nhiều nguồn", "Ghép chữ / công thức…", string.Empty, DataSourceChoiceKind.Compose);
+
+    /// <summary>What a screen reader says for the entry: the source and its group, not the record.</summary>
+    public override string ToString() => Kind == DataSourceChoiceKind.Source ? $"{Label} ({Group})" : Label;
 }

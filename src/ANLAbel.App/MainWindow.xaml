@@ -1608,6 +1608,7 @@
                                               PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove" MouseDoubleClick="DataTree_MouseDoubleClick"
                                               ToolTip="Kéo một biến, trường, hàm hoặc giá trị khi in lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới). Nhấp đúp để mở nó trong Quản lý dữ liệu.">
                                         <TreeViewItem x:Name="DataTreePrompts" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreePromptsSource}}">
+                                            <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/></Style></TreeViewItem.ItemContainerStyle>
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70F;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Biến nhập khi in" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -1616,6 +1617,7 @@
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem x:Name="DataTreeFields" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreeFieldsSource}}">
+                                            <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding}"/></Style></TreeViewItem.ItemContainerStyle>
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE80A;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Trường dữ liệu" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -1624,6 +1626,7 @@
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem x:Name="DataTreeFunctions" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreeFunctionsSource}}">
+                                            <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/></Style></TreeViewItem.ItemContainerStyle>
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8EF;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Hàm" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
@@ -1632,6 +1635,7 @@
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding PrintTimeDataFields}">
+                                            <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding Label}"/></Style></TreeViewItem.ItemContainerStyle>
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE749;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Khi in" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
