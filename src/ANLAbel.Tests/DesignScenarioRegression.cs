@@ -2253,6 +2253,27 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The version list showed each file's hash in a column of its own. A hash
+    /// is for support (AGENTS.md keeps technical hashes in details and logs):
+    /// the list keeps what the operator chooses a version by, and the details
+    /// below it keep the current and backup hashes.
+    /// </summary>
+    public static Task VersionListKeepsHashesInTheDetails()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.TemplateRevisionWindow(new ANLAbel.App.ViewModels.MainViewModel());
+            var grid = (DataGrid)window.FindName("RevisionGrid");
+            var headers = grid.Columns.Select(column => column.Header?.ToString() ?? string.Empty).ToArray();
+            Require(!headers.Contains("Mã băm") && headers.Contains("Phiên bản") && headers.Contains("Ghi lần cuối") && headers.Contains("Chẩn đoán"),
+                "The version list has no hash column: " + string.Join(" | ", headers));
+            window.Close();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// "HÀNG DỄ VỠ" printed only when the row's Fragile column said so. Once the
     /// column was renamed in Excel the condition read empty and the warning was
     /// left off every carton without a word. A visibility condition that reads a

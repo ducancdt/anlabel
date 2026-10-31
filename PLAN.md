@@ -1,5 +1,10 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.354
+
+- Phiên bản mẫu tem: danh sách phiên bản bỏ cột “Mã băm” (thông tin kỹ thuật cho hỗ trợ);
+  mã băm của bản hiện tại và bản sao lưu vẫn có ở phần chi tiết bên dưới.
+
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 
 _Gồm các commit 31/10/2026 (04:20–16:42)._

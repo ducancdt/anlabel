@@ -48,7 +48,7 @@
                 <DataGridTextColumn Header="Tên mẫu tem" Binding="{Binding TemplateName}" ElementStyle="{StaticResource TrimmedCell}" Width="*" MinWidth="150"/>
                 <DataGridTextColumn Header="Ghi lần cuối" Binding="{Binding LastWriteText}" Width="150"/>
                 <DataGridTextColumn Header="Kích cỡ" Binding="{Binding SizeText}" Width="78"/>
-                <DataGridTextColumn Header="Mã băm" Binding="{Binding DocumentHashText}" Width="110"/>
+                <!-- Hashes are for support: the details below show the current and backup ones (AGENTS.md). -->
                 <DataGridTextColumn Header="Đường dẫn" Binding="{Binding Path}" ElementStyle="{StaticResource TrimmedCell}" Width="*" MinWidth="120"/>
                 <DataGridTextColumn Header="Chẩn đoán" Binding="{Binding Diagnostic, Converter={StaticResource RevisionText}, ConverterParameter=Diagnostic}" ElementStyle="{StaticResource TrimmedCell}" Width="*" MinWidth="140"/>
             </DataGrid.Columns>
