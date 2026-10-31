@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.357
+## v0.358 — Mở tem không liên kết không còn giữ dữ liệu tem trước; Không in và Khóa vị trí áp cho cả vùng chọn; Xem trước nêu chung các cột thiếu; khung lỗi tiếng Việt
+
+_Gồm các commit 31/10/2026 (17:25–17:32)._
 
 - Quản lý dữ liệu, Kết quả của hàm: chỉ tính hàm đang chọn và các hàm nó đọc, nên lỗi ở hàm khác
   không còn biến mọi kết quả thành “Lỗi”; khi tem chưa liên kết tệp dữ liệu, cột hàm cần hiện là
