@@ -8,6 +8,11 @@
   nhận dễ lỗi. Chỉ nhắc, không chặn: tem in đúng như dữ liệu.
 - Nhập Excel/CSV: tệp CSV hoặc sổ Excel chỉ có một trang tính không còn hỏi chọn
   trang tính (chỉ có một lựa chọn); vẫn hỏi khi tệp có nhiều trang.
+- Thiết kế, chuột phải như NiceLabel 10: trên đối tượng có Thuộc tính, Cắt, Sao
+  chép, Dán, Xóa, Khóa vị trí, Nhóm/Bỏ nhóm, Sắp xếp (4 lớp) và Căn chỉnh (6 kiểu,
+  phân bố đều); chuột phải chọn luôn đối tượng dưới con trỏ. Trên vùng trống của tem
+  có Thuộc tính tem, Dán, Vừa tài liệu, Vừa đối tượng. Dính, lưới và đường gióng nằm
+  trong “Căn và lưới”. Trước đây chuột phải chỉ có dính, lưới và đường gióng.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 

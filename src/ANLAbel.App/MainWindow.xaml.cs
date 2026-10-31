@@ -40,6 +40,7 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
         DesignerCanvas.DataSourceDropped += (_, e) => _viewModel.DropDataSource(e.Binding, e.XMm, e.YMm, e.Target, e.NewObject);
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        BuildDesignerContextMenu();
         // Back from Excel: say whether the linked file is still open there.
         Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
         BindObjectBrowser();
@@ -581,6 +582,190 @@ public partial class MainWindow : Window
 
         item.Style.TextPaddingMm = paddingMm;
         e.Handled = true;
+    }
+
+    // ==================== Right-click menus (NiceLabel 10) ====================
+
+    private LabelObject? _contextMenuObject;
+    private readonly List<Control> _objectMenuItems = new();
+    private readonly List<Control> _labelMenuItems = new();
+    private MenuItem? _contextLockItem;
+    private MenuItem? _contextGroupItem;
+    private MenuItem? _contextUngroupItem;
+    private MenuItem? _contextPasteItem;
+
+    /// <summary>
+    /// NiceLabel 10's right-click menus on the design surface: on an object its
+    /// properties, clipboard, lock, group, arrange and align; on the label its
+    /// properties, paste and zoom. The canvas's own snapping, grid and guide
+    /// items follow under "Căn và lưới". Each item runs the ribbon's handler.
+    /// </summary>
+    private void BuildDesignerContextMenu()
+    {
+        if (DesignerCanvas.ContextMenu is not { } menu)
+        {
+            return;
+        }
+
+        var canvasItems = menu.Items.Cast<object>().ToList();
+        menu.Items.Clear();
+        MenuItem Item(string header, string gesture, RoutedEventHandler click, string? tag = null)
+        {
+            var item = new MenuItem { Header = header, InputGestureText = gesture, Tag = tag };
+            item.Click += click;
+            return item;
+        }
+
+        RoutedEventHandler Run(ICommand command) => (_, e) =>
+        {
+            command.Execute(null);
+            DesignerCanvas.Focus();
+            e.Handled = true;
+        };
+
+        var properties = Item("Thuộc tính", string.Empty, (_, e) =>
+        {
+            OpenFloatingProperties();
+            e.Handled = true;
+        });
+        var cut = Item("Cắt", "Ctrl+X", Cut_Click);
+        var copy = Item("Sao chép", "Ctrl+C", Copy_Click);
+        // The whole selection, as the Delete key (the view model's command removes the key object only).
+        var delete = Item("Xóa", "Delete", (_, e) =>
+        {
+            ANLAbel.App.Controls.LabelDesignerCanvas.DeleteSelectionCommand.Execute(null, DesignerCanvas);
+            DesignerCanvas.Focus();
+            e.Handled = true;
+        });
+        _contextPasteItem = Item("Dán", "Ctrl+V", Paste_Click);
+        _contextLockItem = new MenuItem { Header = "Khóa vị trí", IsCheckable = true };
+        _contextLockItem.Click += (_, e) =>
+        {
+            if (_viewModel.SelectedObject is { } selected)
+            {
+                selected.IsLocked = _contextLockItem.IsChecked;
+            }
+
+            e.Handled = true;
+        };
+        _contextGroupItem = Item("Nhóm đối tượng", string.Empty, GroupObjects_Click);
+        _contextUngroupItem = Item("Bỏ nhóm", string.Empty, UngroupObjects_Click);
+        var arrange = new MenuItem { Header = "Sắp xếp" };
+        arrange.Items.Add(Item("Đưa lên trên cùng", string.Empty, Run(_viewModel.BringToFrontCommand)));
+        arrange.Items.Add(Item("Đưa lên một lớp", string.Empty, Run(_viewModel.BringForwardCommand)));
+        arrange.Items.Add(Item("Đưa xuống một lớp", string.Empty, Run(_viewModel.SendBackwardCommand)));
+        arrange.Items.Add(Item("Đưa xuống dưới cùng", string.Empty, Run(_viewModel.SendToBackCommand)));
+        var align = new MenuItem { Header = "Căn chỉnh" };
+        foreach (var (header, tag) in new[]
+                 {
+                     ("Căn trái", "Left"), ("Căn giữa theo chiều ngang", "HorizontalCenter"), ("Căn phải", "Right"),
+                     ("Căn trên", "Top"), ("Căn giữa theo chiều dọc", "VerticalCenter"), ("Căn dưới", "Bottom")
+                 })
+        {
+            align.Items.Add(Item(header, string.Empty, ArrangeAlign_Click, tag));
+        }
+
+        align.Items.Add(new Separator());
+        align.Items.Add(Item("Phân bố đều theo chiều ngang", string.Empty, ArrangeDistribute_Click, "HorizontalGaps"));
+        align.Items.Add(Item("Phân bố đều theo chiều dọc", string.Empty, ArrangeDistribute_Click, "VerticalGaps"));
+
+        var labelProperties = Item("Thuộc tính tem", string.Empty, PrinterSetup_Click);
+        var zoomLabel = Item("Vừa tài liệu", string.Empty, ZoomToDocument_Click);
+        var zoomObjects = Item("Vừa đối tượng", string.Empty, ZoomToObjects_Click);
+        var grid = new MenuItem { Header = "Căn và lưới" };
+        foreach (var item in canvasItems)
+        {
+            grid.Items.Add(item);
+        }
+
+        var objectHead = new Separator();
+        var objectTail = new Separator();
+        var labelTail = new Separator();
+        foreach (var item in new Control[] { properties, labelProperties, objectHead, cut, copy, _contextPasteItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid })
+        {
+            menu.Items.Add(item);
+        }
+
+        _objectMenuItems.AddRange(new Control[] { properties, cut, copy, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align });
+        _labelMenuItems.AddRange(new Control[] { labelProperties, zoomLabel, zoomObjects });
+        DesignerCanvas.PreviewMouseRightButtonDown += (_, e) => SelectForContextMenu(e.GetPosition(DesignerCanvas));
+        DesignerCanvas.ContextMenuOpening += (_, _) => UpdateDesignerContextMenu();
+    }
+
+    /// <summary>
+    /// A right-click selects the object under the pointer, as NiceLabel does;
+    /// one already in a multi-selection keeps the group. Empty label space
+    /// leaves the selection and offers the label's menu.
+    /// </summary>
+    private void SelectForContextMenu(Point point)
+    {
+        _contextMenuObject = DesignerCanvas.DrawingTool is null ? ObjectAt(point) : null;
+        if (_contextMenuObject is { } item && !DesignerCanvas.SetKeyObject(item))
+        {
+            DesignerCanvas.SelectedObject = item;
+        }
+    }
+
+    private void UpdateDesignerContextMenu()
+    {
+        var onObject = _contextMenuObject is not null;
+        foreach (var item in _objectMenuItems)
+        {
+            item.Visibility = onObject ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        foreach (var item in _labelMenuItems)
+        {
+            item.Visibility = onObject ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        if (_contextPasteItem is not null)
+        {
+            _contextPasteItem.IsEnabled = DesignerCanvas.HasCopiedObjects;
+        }
+
+        if (_contextLockItem is not null)
+        {
+            _contextLockItem.IsChecked = _viewModel.SelectedObject?.IsLocked == true;
+        }
+
+        if (_contextGroupItem is not null)
+        {
+            _contextGroupItem.IsEnabled = DesignerCanvas.SelectedObjectCount > 1;
+        }
+
+        if (_contextUngroupItem is not null)
+        {
+            _contextUngroupItem.IsEnabled = !string.IsNullOrEmpty(_viewModel.SelectedObject?.GroupId);
+        }
+    }
+
+    /// <summary>The topmost visible object under a canvas point, locked ones and lines included.</summary>
+    private LabelObject? ObjectAt(Point point)
+    {
+        if (_viewModel.Template is not { } template || DesignerCanvas.Zoom <= 0)
+        {
+            return null;
+        }
+
+        var xMm = ANLAbel.Core.Geometry.MmConverter.DipToMm(point.X / DesignerCanvas.Zoom);
+        var yMm = ANLAbel.Core.Geometry.MmConverter.DipToMm(point.Y / DesignerCanvas.Zoom);
+        // A hairline still offers a 1.5 mm target.
+        const double minimumTargetMm = 1.5;
+        // With equal ZIndex the later object is drawn on top, as the canvas adds them.
+        return template.Objects
+            .Select((item, index) => (Item: item, Index: index))
+            .Where(entry => entry.Item.IsVisible)
+            .OrderByDescending(entry => entry.Item.ZIndex)
+            .ThenByDescending(entry => entry.Index)
+            .Select(entry => entry.Item)
+            .FirstOrDefault(item =>
+            {
+                var bounds = ANLAbel.Core.Geometry.TransformedBoundsContract.GetBounds(item);
+                var padX = Math.Max(0, (minimumTargetMm - (bounds.Right - bounds.Left)) / 2);
+                var padY = Math.Max(0, (minimumTargetMm - (bounds.Bottom - bounds.Top)) / 2);
+                return xMm >= bounds.Left - padX && xMm <= bounds.Right + padX && yMm >= bounds.Top - padY && yMm <= bounds.Bottom + padY;
+            });
     }
 
     private void GroupObjects_Click(object sender, RoutedEventArgs e)

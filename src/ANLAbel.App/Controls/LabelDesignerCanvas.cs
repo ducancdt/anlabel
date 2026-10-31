@@ -3189,6 +3189,9 @@ public sealed class LabelDesignerCanvas : Canvas
     /// <summary>Ribbon Clipboard group: paste the copied objects.</summary>
     public bool PasteCopiedObjects() => PasteSelection();
 
+    /// <summary>Whether a copy or cut left objects to paste (the right-click menu's Dán).</summary>
+    public bool HasCopiedObjects => _clipboardObjects.Count > 0;
+
     private bool DeleteSelection()
     {
         if (Template is null || _selectedObjects.Count == 0)

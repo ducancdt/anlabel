@@ -2036,6 +2036,84 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Right-click on the design surface, as in NiceLabel 10: on an object the
+    /// menu offers its properties, clipboard, lock, group, arrange and align
+    /// (the click selects the object first); on empty label space the label's
+    /// properties, paste and zoom; snapping, grid and guides sit under "Căn và
+    /// lưới". Before, every right-click offered only snapping and guides.
+    /// </summary>
+    public static Task RightClickMenusOfferObjectAndLabelCommands()
+    {
+        RunOnSta(() =>
+        {
+            // The window's own view model, as in the app (its code-behind uses it).
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Tên", Text = "Bu lông", XMm = 5, YMm = 5, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", Text = "SP-0001", XMm = 5, YMm = 20, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var type = typeof(ANLAbel.App.MainWindow);
+            void RightClickAt(double xMm, double yMm)
+            {
+                var point = new Point(ANLAbel.Core.Geometry.MmConverter.MmToDip(xMm) * canvas.Zoom, ANLAbel.Core.Geometry.MmConverter.MmToDip(yMm) * canvas.Zoom);
+                type.GetMethod("SelectForContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, new object[] { point });
+                type.GetMethod("UpdateDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
+            }
+
+            string[] Shown() => canvas.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Visibility == Visibility.Visible).Select(item => (string)item.Header).ToArray();
+            MenuItem Find(string header) => canvas.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string)item.Header == header);
+
+            RightClickAt(10, 22);
+            Require(viewModel.SelectedObject?.Name == "Mã", "A right-click selects the object under the pointer: " + viewModel.SelectedObject?.Name);
+            Require(Shown().SequenceEqual(["Thuộc tính", "Cắt", "Sao chép", "Dán", "Xóa", "Khóa vị trí", "Nhóm đối tượng", "Bỏ nhóm", "Sắp xếp", "Căn chỉnh", "Căn và lưới"]),
+                "On an object the menu offers its commands: " + string.Join(" | ", Shown()));
+            Require(!Find("Dán").IsEnabled && !Find("Nhóm đối tượng").IsEnabled, "Nothing to paste and one object to group: both disabled.");
+
+            var lockItem = Find("Khóa vị trí");
+            lockItem.IsChecked = true;
+            lockItem.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(viewModel.Template.Objects.Single(item => item.Name == "Mã").IsLocked, "Khóa vị trí locks the object.");
+            Find("Sao chép").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+
+            RightClickAt(60, 40);
+            Require(Shown().SequenceEqual(["Thuộc tính tem", "Dán", "Vừa tài liệu", "Vừa đối tượng", "Căn và lưới"]) && Find("Dán").IsEnabled,
+                "On the label the menu offers the label's commands, and the copy can be pasted: " + string.Join(" | ", Shown()));
+            var gridHeaders = Find("Căn và lưới").Items.OfType<MenuItem>().Select(item => (string)item.Header).ToArray();
+            Require(gridHeaders.Contains("Dính theo đối tượng") && gridHeaders.Contains("Đường gióng"), "Snapping and guides stay under Căn và lưới: " + string.Join(" | ", gridHeaders));
+
+            RightClickAt(10, 7);
+            Require(viewModel.SelectedObject?.Name == "Tên" && Find("Khóa vị trí").IsChecked == false, "Each object shows its own lock state.");
+
+            // With equal ZIndex the object drawn on top is the one picked.
+            var cover = new LabelObject { Type = ObjectType.Text, Name = "Phủ", Text = "Trên cùng", XMm = 5, YMm = 5, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } };
+            cover.ZIndex = viewModel.Template.Objects.Single(item => item.Name == "Tên").ZIndex;
+            viewModel.Template.Objects.Add(cover);
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            RightClickAt(10, 7);
+            Require(viewModel.SelectedObject?.Name == "Phủ", "The object drawn on top is the one picked: " + viewModel.SelectedObject?.Name);
+
+            // Xóa removes the whole selection, as the Delete key does.
+            var picked = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            foreach (var item in viewModel.Template.Objects)
+            {
+                picked.Add(item);
+            }
+
+            Find("Xóa").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(viewModel.Template.Objects.Count == 0, $"Xóa removes every selected object: {viewModel.Template.Objects.Count} left.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still
