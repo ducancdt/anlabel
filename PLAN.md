@@ -16,6 +16,11 @@
   nào); Kiểm tra ràng buộc nay để màu trung tính, nêu các cột tệp Excel cần có và mỗi đối
   tượng ghi “Cần cột: …”. Tệp đã liên kết mà chưa đọc được ghi “Chưa đọc được tệp Excel đã
   liên kết”; lỗi thật, hoặc tệp đã liên kết mà thiếu cột, vẫn báo như cũ.
+- Dữ liệu: công thức đọc cột chưa có (chưa liên kết tệp) không còn báo thêm “Không tìm thấy
+  trường …” cho chính cột đã nêu là thiếu, nên tem NiceLabel có công thức cũng chờ tệp như
+  trường thường; lỗi công thức thật vẫn báo. Mã Data Matrix quá nhỏ cho dữ liệu báo bằng tiếng
+  Việt (“Dữ liệu cần 79 từ mã, quá sức chứa của khổ Data Matrix đã chọn…”), thay câu tiếng Anh
+  của thư viện mã vạch.
 
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 

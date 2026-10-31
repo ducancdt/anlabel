@@ -5715,8 +5715,11 @@ public sealed class MainViewModel : ObservableObject
                 .Where(field => !IsPrintTimeField(field) && !FieldNameResolver.TryResolveFieldName(field, knownFields, out _))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+            // A missing column is reported once, as missing: the evaluation's
+            // "Field 'X' was not found." for it says the same thing again.
             var errors = analysis.Errors
                 .Concat(previewEvaluation.Errors)
+                .Where(error => !missingFields.Any(field => string.Equals(error, $"Field '{field}' was not found.", StringComparison.OrdinalIgnoreCase)))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 

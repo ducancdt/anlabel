@@ -2757,6 +2757,33 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A formula over columns not linked yet also said "Field 'PO' was not
+    /// found." for each column it already named as missing, so an imported
+    /// label's check stayed red. The repeat is dropped and the formula waits for
+    /// the file like a plain field; a real formula fault still shows. A Data
+    /// Matrix too small for its data no longer shows ZXing's English words.
+    /// </summary>
+    public static Task FormulaColumnsWaitForTheFile()
+    {
+        var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "CONCAT(FIELD(\"PO\"), \"/\", FIELD(\"Lot\"))", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+        var issue = viewModel.BindingIssues.Single();
+        Require(viewModel.AwaitsExcelData && issue.Errors.Count == 0 && issue.MissingFieldsSummary == "Cần cột: PO, Lot"
+                && issue.StatusText == "Chưa liên kết tệp Excel; đối tượng cần 2 cột.",
+            $"The formula waits for the file: {viewModel.BindingIssuesSummary} / {issue.StatusText} / {issue.MissingFieldsSummary} / {string.Join(" ", issue.Errors)}");
+
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Sai", BindingExpression = "CONCAT(FIELD(\"PO\"), MID(\"x\"))", XMm = 3, YMm = 12, WidthMm = 30, HeightMm = 6 });
+        var fault = viewModel.BindingIssues.Single(item => item.ObjectName == "Sai");
+        Require(!viewModel.AwaitsExcelData && fault.Errors.Any(error => error.Contains("MID", StringComparison.Ordinal)),
+            "A formula fault still shows: " + string.Join(" ", fault.Errors));
+
+        var capacity = ANLAbel.App.Services.PreflightIssueText.Sentence("Can't find a symbol arrangement that matches the message. Data codewords: 79");
+        Require(capacity == "Dữ liệu cần 79 từ mã, quá sức chứa của khổ Data Matrix đã chọn; chọn khổ lớn hơn hoặc Tự động, hoặc rút ngắn dữ liệu.",
+            "The Data Matrix capacity message is in Vietnamese: " + capacity);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A NiceLabel label just imported, with no file linked yet, opened with a
     /// red "12 đối tượng bị hỏng…" and each object "thiếu trường trong bảng tính
     /// hiện tại", when there was no sheet at all. With no column known and no
