@@ -2534,8 +2534,11 @@
                                             <CheckBox Content="Hiển thị" IsChecked="{Binding SelectionShown, Mode=TwoWay}" AutomationProperties.Name="Visible"/>
                                         </WrapPanel>
                                         <TextBlock Text="Điều kiện hiển thị" Style="{StaticResource PropLabel}" Margin="0,8,0,1"/>
-                                        <TextBox Text="{Binding SelectedObject.VisibilityCondition, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"
+                                        <TextBox x:Name="VisibilityConditionBox" Text="{Binding SelectedObject.VisibilityCondition, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"
                                                  AutomationProperties.Name="Visibility condition in Properties"/>
+                                        <!-- NiceLabel 10 condition editor: insert a data source at the caret -->
+                                        <Button Content="Chèn nguồn ▾" Click="ConditionInsert_Click" HorizontalAlignment="Left" Margin="0,4,0,0" Padding="7,2"
+                                                ToolTip="Chèn một biến nhập khi in, cột dữ liệu, hàm hoặc giá trị khi in vào chỗ con trỏ" AutomationProperties.Name="Insert data source into the condition"/>
                                         <TextBlock Text="Trường hoặc công thức, ví dụ {Lô} hoặc EQUALS(FIELD(&quot;Loại&quot;), &quot;QR&quot;). Đối tượng chỉ in ở dòng có giá trị khác rỗng, 0, false, không. Để trống: luôn in."
                                                    TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,3,0,0"/>
                                     </StackPanel>

@@ -630,6 +630,17 @@ public partial class MainWindow : Window
             return;
         }
 
+        OpenSourceMenu(button, binding => _viewModel.AddConnectedObject(kind, binding));
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// NiceLabel 10's "Insert data source": the Data panel's sources by group under the button; a
+    /// pick hands its binding over. Names show as written (an underscore is no access key) and are
+    /// what a screen reader says.
+    /// </summary>
+    private void OpenSourceMenu(Button button, Action<string> pick)
+    {
         var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
         foreach (var group in _viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == DataSourceChoiceKind.Source).GroupBy(choice => choice.Group))
         {
@@ -639,7 +650,7 @@ public partial class MainWindow : Window
             {
                 var item = new MenuItem { Header = new TextBlock { Text = choice.Label }, ToolTip = choice.Binding };
                 System.Windows.Automation.AutomationProperties.SetName(item, choice.Label);
-                item.Click += (_, _) => _viewModel.AddConnectedObject(kind, choice.Binding);
+                item.Click += (_, _) => pick(choice.Binding);
                 header.Items.Add(item);
             }
 
@@ -648,7 +659,6 @@ public partial class MainWindow : Window
 
         button.ContextMenu = menu;
         menu.IsOpen = true;
-        e.Handled = true;
     }
 
     private static bool MatchesObjectSearch(LabelObject item, string? search)
@@ -787,30 +797,34 @@ public partial class MainWindow : Window
     /// </summary>
     private void CompositionInsert_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button button)
+        if (sender is Button button)
         {
-            return;
+            OpenSourceMenu(button, InsertIntoComposition);
+            e.Handled = true;
         }
+    }
 
-        var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
-        foreach (var group in _viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == DataSourceChoiceKind.Source).GroupBy(choice => choice.Group))
+    /// <summary>
+    /// NiceLabel 10's condition editor inserts data sources: Chèn nguồn ▾ under Điều kiện hiển thị
+    /// puts one at the caret (or over the selected text) and applies the condition.
+    /// </summary>
+    private void ConditionInsert_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button)
         {
-            var header = new MenuItem { Header = new TextBlock { Text = group.Key } };
-            System.Windows.Automation.AutomationProperties.SetName(header, group.Key);
-            foreach (var choice in group)
-            {
-                var item = new MenuItem { Header = new TextBlock { Text = choice.Label }, ToolTip = choice.Binding };
-                System.Windows.Automation.AutomationProperties.SetName(item, choice.Label);
-                item.Click += (_, _) => InsertIntoComposition(choice.Binding);
-                header.Items.Add(item);
-            }
-
-            menu.Items.Add(header);
+            OpenSourceMenu(button, InsertIntoCondition);
+            e.Handled = true;
         }
+    }
 
-        button.ContextMenu = menu;
-        menu.IsOpen = true;
-        e.Handled = true;
+    private void InsertIntoCondition(string token)
+    {
+        var box = VisibilityConditionBox;
+        var start = Math.Clamp(box.SelectionStart, 0, box.Text.Length);
+        var length = Math.Clamp(box.SelectionLength, 0, box.Text.Length - start);
+        box.Text = box.Text.Remove(start, length).Insert(start, token);
+        box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        box.CaretIndex = Math.Min(start + token.Length, box.Text.Length);
     }
 
     private void InsertIntoComposition(string token)

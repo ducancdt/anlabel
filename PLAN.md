@@ -2,6 +2,10 @@
 
 ## Sau v0.362
 
+- Thuộc tính › Chung: dưới ô “Điều kiện hiển thị” có nút “Chèn nguồn ▾” chèn biến, cột, hàm hoặc giá trị
+  khi in vào chỗ con trỏ rồi áp dụng (một bước hoàn tác), như trình soạn điều kiện của NiceLabel 10;
+  trước đây phải tự gõ tên nguồn trong ngoặc nhọn. Menu nguồn dùng chung cho ▾ hộp công cụ, Nội dung
+  ghép và điều kiện.
 - Thuộc tính › Ràng buộc của đối tượng chỉ đọc giá trị lúc in (biến nhập khi in, ngày in, số sê-ri):
   “Xem trước” hiện giá trị mẫu như trên tem (vd. LOT ‹Lô›-A) và dòng trạng thái nói giá trị được nhập
   hoặc lấy khi in; trước đây ô trống và khuyên “chọn một dòng Excel”. Đối tượng đọc cột vẫn chờ dòng dữ liệu.

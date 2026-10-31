@@ -1383,6 +1383,59 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's condition editor inserts data sources; ANLAbel's Điều kiện hiển thị box had to
+    /// be typed, braces and exact names included. Chèn nguồn ▾ under it inserts a source at the caret
+    /// and applies the condition, one undo step.
+    /// </summary>
+    public static Task ConditionInsertsASource()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            viewModel.ExcelHeaders.Add("MaHang");
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            viewModel.Template.Objects.Add(text);
+            viewModel.SelectedObject = text;
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            ((TabControl)window.FindName("PropertiesModeTabs")).SelectedIndex = 3;
+            // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var box = (TextBox)window.FindName("VisibilityConditionBox");
+            box.Text = "NOT()";
+            box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+            // The typed condition is its own history step before the insert.
+            typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            box.Select("NOT(".Length, 0);
+            var insert = FindLogicalChildren<Button>(content).First(button => AutomationProperties.GetName(button) == "Insert data source into the condition");
+            insert.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, insert));
+            var column = insert.ContextMenu!.Items.OfType<MenuItem>().Single(item => ((TextBlock)item.Header).Text == "Trường dữ liệu")
+                .Items.OfType<MenuItem>().Single(item => ((TextBlock)item.Header).Text == "MaHang");
+            column.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, column));
+            Require(viewModel.Template.Objects.Single(item => item.Id == text.Id).VisibilityCondition == "NOT({MaHang})",
+                "Chèn nguồn puts the column at the caret: " + viewModel.Template.Objects.Single(item => item.Id == text.Id).VisibilityCondition);
+            viewModel.UndoCommand.Execute(null);
+            Require(viewModel.Template.Objects.Single(item => item.Id == text.Id).VisibilityCondition == "NOT()",
+                "One undo takes the insert back: " + viewModel.Template.Objects.Single(item => item.Id == text.Id).VisibilityCondition);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
