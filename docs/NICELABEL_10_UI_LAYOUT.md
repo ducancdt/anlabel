@@ -85,7 +85,7 @@ left column rows: toolbox (min 100) / splitter / tab strip + explorer
 | Dynamic Data Manager / Document Properties | `Nguồn dữ liệu` / `Cài đặt tem & máy in` |
 | Sample Files | `Mẫu tem` (template library) in Help |
 | Toolbox tiles | three-column tiles: Chữ, Ô chữ, Mã vạch, Hình ảnh, Hình chữ nhật, Đường kẻ, Hình bầu dục |
-| Data · Layers · Objects | `Dữ liệu` · `Lớp` · `Đối tượng` tabs under the toolbox |
+| Data · Layers · Objects | `Dữ liệu` · `Đối tượng` tabs under the toolbox (no `Lớp` since v0.361: ANLAbel has no layers) |
 | Properties header, pin/close, category tabs | `Thuộc tính - <tên> [<loại>]`, ẩn/hiện, category tabs |
 | Status printer + zoom | printer button + zoom to document + slider + % |
 
@@ -664,6 +664,39 @@ window bound the selected object to that column and renamed it; opening a
 linked label did it to its top object (fixed in v0.360, gate "reloading the
 data keeps the selected object's column").
 
+## Toolbox, explorers and the Source page (v0.361, 2026-10-31)
+
+Evidence: DesignerLib `FormatPageViewModel.InitializeToolboxItemsSource` and
+`DocumentPageViewModel.HasDropDown` (a tile has a drop-down when its object has
+content), `ToolboxItem` (the drop-down is the data source selector);
+`ContentContainerPropertyPageView` and Gui.Core `ExtendedDataValueEditorView`
+(the content box with a menu button: Insert data source, Insert special
+character); `MainViewModel.DataSourceSelectorViewModel_BrowserSelectionChanged`
+(a double-click runs `DefineDataSourcesCommand`); `ObjectBrowserViewModel`
+(`SelectOnDoubleClick` false, `SelectOnRightClick` true, the selector's context
+menu); the `[PropertyPage]` list (pictures: Source and Graphic Resizing; no
+Source page for shapes); screenshots `nl10-design.png`, `nl10-props.png`.
+
+| NiceLabel 10 | ANLAbel v0.361 |
+| --- | --- |
+| Toolbox: Text, Text Box, Barcode and Picture tiles have a drop-down listing data sources; a pick places the object connected | Chữ, Ô chữ and Mã vạch have ▾ listing the Data panel's sources by group; a pick places the tile's object, with its own defaults, connected, in one undo step. Hình ảnh has none: an ANLAbel picture is embedded in the label and reads no source. |
+| Picture: Source (the picture) and Graphic Resizing pages | Nguồn holds the picture and its raster mode; the style tab is "Đổi cỡ" with the sizing, flips and original size. |
+| Shapes have no Source page; a Rich Text Box's Source page is its editor | A shape has no Nguồn tab and opens on Kiểu; a rich text box keeps only its editor (no data source list, no Mặt nạ), since it prints its own formatted text. |
+| Source page content box: fixed text, a combined data source with sources inserted in it, "Insert data source" at the caret | With "Ghép chữ / công thức…", the "Nội dung ghép" box shows what the object prints (LOT {?Lô}-{MaHang}); Enter or leaving it applies an edit, one undo step and only to the object it showed; "Chèn nguồn ▾" inserts a source at the caret; content without a source becomes fixed text. The formula builder stays, folded. Special characters stay in Quản lý dữ liệu. |
+| No database link card on the Source page | The Excel link card shows only for an object that reads the data file (a column, or a function that may read one). |
+| Data explorer: a double-click opens the Dynamic Data Manager on the item | A prompt or function opens Quản lý dữ liệu on itself, a column the data source page, Số sê-ri the counter, Ngày in its page; group rows keep folding. |
+| Data · Layers · Objects explorers; the Object browser selects on a right-click and offers commands, nothing on a double-click | Dữ liệu · Đối tượng: no Lớp tab, since ANLAbel has no layers and the tab only listed the objects again. Each Đối tượng row names what the object prints, as the Nguồn dữ liệu list does ("Biến nhập khi in: Lô", "Trường dữ liệu: MaHang", "Khi in: Ngày in", "Ghép nhiều nguồn"), red when it cannot print it; a right-click offers Thuộc tính, Cắt, Sao chép, Xóa, Hiển thị, Khóa vị trí and Sắp xếp, so a hidden object, which the label does not draw, is shown again from the list. |
+
+Found while doing this: a composed object's content showed nowhere on the
+Source page (only an empty formula builder); the Lớp list called a prompt, a
+function or a print-time value an Excel link; the Excel link card showed for
+fixed text and prompts as if every object needed a file.
+
+Left for the owner: on a protected label, Quản lý dữ liệu (the ribbon, the
+Data panel's "+ Thêm", now a double-click) still opens and applies changes to
+prompts, functions and the counter; `ApplyDataDefinitions` does not check the
+lock. Operators may need the counter there, so it is reported, not changed.
+
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
 Every view group extracted from DesignerLib, Gui.Core and WpfControls, and
@@ -671,13 +704,13 @@ where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
 
 | View group (count) | ANLAbel counterpart or decision | Compared in |
 | --- | --- | --- |
-| `mainwindow`, ribbon, panels | Ribbon tabs, toolbox, Data/Layers/Objects, Properties | Ribbon, Panels, Shell rebuild |
+| `mainwindow`, ribbon, panels | Ribbon tabs, toolbox with NiceLabel's drop-downs, Data and Objects explorers (no layers), Properties | Ribbon, Panels, Shell rebuild |
 | `menuregion` (11): backstage, passwords, font picker, new label tiles, print form | Tệp backstage, Bảo vệ, font lists, New Label Wizard, Print Preview | Backstage, Protection, Prompts…fonts, Print form |
 | `wizards` (13): new label, database | New Label Wizard, Excel import | New Label Setup Wizard, Database wizard |
-| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel with a search box and "+ Thêm" (v0.360); a paste brings the definitions its objects read (RE §28) | Quản lý dữ liệu, Data explorer drag and drop |
+| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel with a search box and "+ Thêm" (v0.360), a double-click opening an item in Quản lý dữ liệu (v0.361); a paste brings the definitions its objects read (RE §28) | Quản lý dữ liệu, Data explorer drag and drop |
 | `propertypages` (128) | Properties panel on NiceLabel's pages (v0.360: one "Nguồn dữ liệu" list; Mã vạch with Số kiểm tra, Chữ dưới mã, Chi tiết; Chung with name, printing and visibility; Vị trí with the lock); the font, the linear barcode settings, Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach every selected object, with a blank or mixed value when they differ (RE §26, §29); X/Y, size, rotation and anchoring stay with the key object; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
 | `editors` (6): combo, date, time, rich text, custom boundaries | Prompt editors (dates RE §15), rich text in Properties; custom boundaries unused (RE §22) | Prompts…fonts |
-| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects; right-click menus on objects and on the label; layers not built; banners and solutions out | Object browser and layers |
+| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects, naming what each prints and with a right-click menu (v0.361); right-click menus on objects and on the label; layers not built; banners and solutions out | Object browser and layers |
 | `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), toolbox tiles, right-click menus, the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; keyboard resize and rotate are not built (protected resize lifecycle); in-place text editing is an owner decision; the properties button above a selection is not built; surface tips are a placeholder | Window, Status bar…function editors |
 | `statusbarregion`, `printergapadjustment`, `historydialog`, `searchpanel` | Status bar and chips; gap adjustment not needed; operator dialog; no find and replace | Status bar…smaller dialogs |
 | `variablesvaluepromptcontrol`, special characters, clipart, undo list | Prompt window and Print Preview answers; GS1 separators and the Data Manager's control characters; pictures; named undo steps with Undo ▾ and Redo ▾ lists | Prompts…symbols |
