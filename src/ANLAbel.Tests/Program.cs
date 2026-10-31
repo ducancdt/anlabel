@@ -148,6 +148,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("quick print refuses placeholders and runs one job at a time", PrintSafetyRegression.QuickPrintRefusesPlaceholdersAndRunsOneJobAtATime),
     ("printer list wait is bounded and reuses a stuck enumeration", PrintSafetyRegression.PrinterListWaitIsBoundedAndReusesAStuckEnumeration),
     ("printer, print, template and data failures read in Vietnamese", OperatorLanguageRegression.FailuresAndStatusesAreExplainedInVietnamese),
+    ("preview error frames read in Vietnamese", OperatorLanguageRegression.PreviewFrameCaptionsAreVietnamese),
     ("print stops are explained in plain Vietnamese", PrintSafetyRegression.PrintStopsAreExplainedInPlainVietnamese),
     ("preflight issues name the data row in Vietnamese", PrintSafetyRegression.PreflightIssuesNameTheDataRowInVietnamese),
     ("print history regression suite", PrintHistoryRegression.Run),

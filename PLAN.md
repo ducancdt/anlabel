@@ -15,6 +15,9 @@
   tỉ lệ” hiện dấu lưng chừng (như trang thuộc tính của NiceLabel 10 chỉ hiện giá trị khi mọi đối
   tượng chung giá trị đó), thay vì trạng thái của riêng đối tượng chính; bấm vào thì cả vùng chọn
   nhận giá trị. Mục “Khóa vị trí” trong menu chuột phải chỉ có dấu khi mọi đối tượng đang chọn đều khóa.
+- Xem trước khi in: chữ trên khung báo lỗi của đối tượng (“Invalid barcode data”, “Text overflow”,
+  các câu về dòng chữ dưới mã, “No image”) nay là tiếng Việt (“Dữ liệu mã không hợp lệ”, “Chữ tràn
+  khung”…); lớp in giữ tiếng Anh cho nhật ký và kiểm thử, ứng dụng đưa chữ tiếng Việt vào khi khởi động.
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

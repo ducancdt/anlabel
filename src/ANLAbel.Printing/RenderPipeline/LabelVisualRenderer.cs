@@ -38,6 +38,12 @@ public sealed class LabelVisualRenderer
         _barcodeRenderer = barcodeRenderer;
     }
 
+    /// <summary>
+    /// The words on an error frame, which marks an object preflight reports. The printing
+    /// layer keeps English for logs and tests; the app hands in the operator's wording at start.
+    /// </summary>
+    public static Func<string, string> ErrorCaption { get; set; } = message => message;
+
     public DrawingVisual Render(LabelTemplate template, IReadOnlyDictionary<string, string>? row, PrintRenderPlan plan)
     {
         var visual = new DrawingVisual();
@@ -774,7 +780,7 @@ public sealed class LabelVisualRenderer
         };
         dc.DrawRectangle(null, pen, rect);
         DrawErrorBadge(dc, rect);
-        DrawText(dc, message, rect.Left + 2, rect.Top + 2, 7, Brushes.Red);
+        DrawText(dc, ErrorCaption(message), rect.Left + 2, rect.Top + 2, 7, Brushes.Red);
     }
 
     private static void DrawErrorBadge(DrawingContext dc, Rect rect)

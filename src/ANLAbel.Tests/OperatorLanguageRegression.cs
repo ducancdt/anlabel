@@ -284,6 +284,91 @@ internal static class OperatorLanguageRegression
         }
     }
 
+    /// <summary>
+    /// Print Preview drew "Invalid barcode data", "Text overflow" and the HRI layout sentences
+    /// in English on the label image, beside a Vietnamese issue list. The renderer keeps English
+    /// for logs and tests and hands each caption to the app: every caption it draws, and every
+    /// HRI layout fault, has Vietnamese words, and the app sets the hook at start.
+    /// </summary>
+    public static Task PreviewFrameCaptionsAreVietnamese()
+    {
+        var root = FindRepositoryRoot();
+        bool Vietnamese(string caption) => caption.Any(character => character > 127);
+        var renderer = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.Printing", "RenderPipeline", "LabelVisualRenderer.cs"));
+        var literals = System.Text.RegularExpressions.Regex.Matches(renderer, @"DrawErrorFrame[(][^;]*?""([^""]+)""[)]")
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        Require(literals.Length >= 5, "The renderer's error frames are found: " + string.Join(", ", literals));
+        foreach (var literal in literals)
+        {
+            Require(Vietnamese(PreviewFrameText.Caption(literal)), $"The frame caption “{literal}” reads in Vietnamese: {PreviewFrameText.Caption(literal)}");
+        }
+
+        var placements = new[]
+        {
+            ANLAbel.Core.Barcode.BarcodeHriLayoutContract.Create(true, (ANLAbel.Core.Enums.BarcodeHriPlacement)99, 40, 10, 20, 2, 8),
+            ANLAbel.Core.Barcode.BarcodeHriLayoutContract.Create(true, ANLAbel.Core.Enums.BarcodeHriPlacement.Below, 0, 10, 20, 2, 8),
+            ANLAbel.Core.Barcode.BarcodeHriLayoutContract.Create(true, ANLAbel.Core.Enums.BarcodeHriPlacement.Below, 40, 10, 0, 2, 8),
+            ANLAbel.Core.Barcode.BarcodeHriLayoutContract.Create(true, ANLAbel.Core.Enums.BarcodeHriPlacement.Below, 40, 10, 20, 2, 0),
+            ANLAbel.Core.Barcode.BarcodeHriLayoutContract.Create(true, ANLAbel.Core.Enums.BarcodeHriPlacement.Below, 20, 10, 50, 2, 8),
+            ANLAbel.Core.Barcode.BarcodeHriLayoutContract.Create(true, ANLAbel.Core.Enums.BarcodeHriPlacement.Below, 40, 0.6, 20, 2, 8),
+        };
+        foreach (var layout in placements)
+        {
+            Require(!layout.IsValid && layout.ErrorMessage is { } fault && Vietnamese(PreviewFrameText.Caption(fault)),
+                $"An HRI layout fault reads in Vietnamese: {layout.ErrorMessage} -> {(layout.ErrorMessage is null ? "" : PreviewFrameText.Caption(layout.ErrorMessage))}");
+        }
+
+        var app = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "App.xaml.cs"));
+        Require(app.Contains("LabelVisualRenderer.ErrorCaption = ANLAbel.App.Services.PreviewFrameText.Caption;", StringComparison.Ordinal),
+            "The app hands its wording to the renderer at start.");
+
+        // The renderer draws through the hook: a barcode without data names its fault in the app's words.
+        var drawn = new List<string>();
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            var previous = ANLAbel.Printing.RenderPipeline.LabelVisualRenderer.ErrorCaption;
+            try
+            {
+                ANLAbel.Printing.RenderPipeline.LabelVisualRenderer.ErrorCaption = message =>
+                {
+                    drawn.Add(message);
+                    return PreviewFrameText.Caption(message);
+                };
+                var template = new ANLAbel.Core.Models.LabelTemplate { Name = "Khung lỗi", WidthMm = 50, HeightMm = 30 };
+                template.Objects.Add(new ANLAbel.Core.Models.LabelObject
+                {
+                    Type = ANLAbel.Core.Enums.ObjectType.BarcodeCode128,
+                    BarcodeSymbology = ANLAbel.Core.Enums.BarcodeSymbology.Code128,
+                    Name = "Mã",
+                    Text = string.Empty,
+                    XMm = 3,
+                    YMm = 3,
+                    WidthMm = 40,
+                    HeightMm = 10,
+                });
+                var plan = new PrintService().CreateDesignPlan(template);
+                new ANLAbel.Printing.RenderPipeline.LabelVisualRenderer().Render(template, null, plan);
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+            finally
+            {
+                ANLAbel.Printing.RenderPipeline.LabelVisualRenderer.ErrorCaption = previous;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        Require(failure is null && drawn.Contains("Invalid barcode data"),
+            $"A barcode without data is drawn through the caption hook: {string.Join(", ", drawn)} {failure?.Message}");
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

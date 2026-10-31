@@ -32,6 +32,8 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         AsyncRelayCommand.DefaultErrorHandler = ReportFailedOperation;
+        // The renderer's error frames in the operator's words.
+        ANLAbel.Printing.RenderPipeline.LabelVisualRenderer.ErrorCaption = ANLAbel.App.Services.PreviewFrameText.Caption;
 
         // Plan 13 F06: the installer associates .anlabel files with ANLAbel.
         var window = new MainWindow { StartupFilePath = ANLAbel.App.MainWindow.FindDocumentArgument(e.Args) };
