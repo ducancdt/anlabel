@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.355
+## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
+
+_Gồm các commit 31/10/2026 (17:01–17:11)._
 
 - Kiểm tra trước khi in: dữ liệu mã vạch tuyến tính trông như số có dấu phân cách hàng
   nghìn (“1,200”, thường do định dạng số kiểu phẩy của ô Excel) được nhắc, không chặn; máy
