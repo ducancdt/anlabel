@@ -719,6 +719,24 @@ stood 45 DIP tall beside the 32 DIP search box. Both fixed; gates now keep every
 wrapping text inside the Data panel, each object type's Properties pages and
 the twelve main dialogs.
 
+## Live check on the installed app (v0.363, 2026-10-31)
+
+v0.362 was checked on the installed app with UI Automation and keys only (no
+mouse; the run stops on any input that is not its own), on a scratch data folder:
+the left panel, the object list's menu (Shift+F10) and Hiển thị, Nội dung ghép
+with Enter, Mã vạch ▾ › Lô, the shape Style pages and the Data panel's menu all
+behaved as the gates say. It found three things, fixed in v0.363:
+
+| Found | v0.363 |
+| --- | --- |
+| The Nguồn dữ liệu list's entries were read as "DataSourceChoice { Group = …, Label = Lô, … }"; the Data panel's rows were class names or records; the code-built menus (toolbox ▾, Chèn nguồn ▾, Undo and Redo lists) had no names | Each carries its visible text, a source with its group ("Lô (Biến nhập khi in)") |
+| An object reading only print-time values showed an empty Xem trước and "chọn một dòng Excel" in Ràng buộc, while the label showed "LOT ‹Lô›-A" | It previews with the label's design values and says the value is given at print time |
+| Điều kiện hiển thị had to be typed, braces and names included (NiceLabel 10's condition editor inserts data sources) | "Chèn nguồn ▾" under it inserts a source at the caret and applies it |
+
+Not checked live: the Data panel double-click and the label's right-click menu
+(the design surface has no automation peer, so a key cannot reach it without the
+mouse); the gates cover both.
+
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
 Every view group extracted from DesignerLib, Gui.Core and WpfControls, and
