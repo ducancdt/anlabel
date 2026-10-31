@@ -1121,6 +1121,14 @@ internal static class DesignScenarioRegression
             var cut = texts.Where(text => text.TransformToAncestor(scroller).TransformBounds(new Rect(text.RenderSize)).Right > scroller.ViewportWidth + 1)
                 .Select(text => text.Text).ToArray();
             Require(cut.Length == 0, "Wrapping texts stay inside the Data panel: " + string.Join(" | ", cut));
+
+            // The search box and its "+ Thêm ▾" button line up (the ▾ glyph once made the button 45 DIP tall).
+            var search = (TextBox)window.FindName("DataTreeSearch");
+            var add = FindVisualChildren<Button>(scroller).First(button => AutomationProperties.GetName(button) == "Add data source");
+            var searchTop = search.TranslatePoint(new Point(0, 0), scroller).Y;
+            var addTop = add.TranslatePoint(new Point(0, 0), scroller).Y;
+            Require(Math.Abs(search.ActualHeight - add.ActualHeight) < 1 && Math.Abs(searchTop - addTop) < 1,
+                $"The search box and the Add button line up: {search.ActualHeight:0.#}@{searchTop:0.#} / {add.ActualHeight:0.#}@{addTop:0.#}");
             // Not closed: closing an edited label asks whether to save it.
         });
 

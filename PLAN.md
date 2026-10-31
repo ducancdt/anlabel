@@ -2,6 +2,8 @@
 
 ## Sau v0.361
 
+- Bảng Dữ liệu: ô “Tìm…” và nút “+ Thêm ▾” cùng mép trên và cùng chiều cao (nút từng cao 45 DIP vì
+  ký tự ▾, lệch khỏi ô tìm 32 DIP).
 - Bảng Dữ liệu có menu chuột phải như Data explorer của NiceLabel 10: “Sửa trong Quản lý dữ liệu…”,
   “Thêm chữ gắn với nguồn này” và “Gắn vào “<đối tượng đang chọn>”” (hai kết quả của kéo thả, mỗi lệnh
   một bước hoàn tác; lệnh gắn chỉ bật với đối tượng hiện dữ liệu). Tem được bảo vệ chỉ còn “Sửa…”;

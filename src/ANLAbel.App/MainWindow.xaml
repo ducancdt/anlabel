@@ -1590,11 +1590,11 @@
                                     <!-- NiceLabel 10 Data explorer: a search box over the tree, and Add new variable (here a prompt or a function) -->
                                     <Grid Margin="0,0,0,6">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                        <TextBox x:Name="DataTreeSearch" TextChanged="DataTreeSearch_TextChanged" ToolTip="Tìm biến nhập khi in, cột dữ liệu hoặc hàm theo tên" AutomationProperties.Name="Data search"/>
+                                        <TextBox x:Name="DataTreeSearch" Margin="0" TextChanged="DataTreeSearch_TextChanged" ToolTip="Tìm biến nhập khi in, cột dữ liệu hoặc hàm theo tên" AutomationProperties.Name="Data search"/>
                                         <TextBlock Text="Tìm…" Margin="7,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppMutedBrush}" IsHitTestVisible="False">
                                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=DataTreeSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                         </TextBlock>
-                                        <Button Grid.Column="2" Content="+ Thêm ▾" Click="DataTreeAdd_Click" Padding="8,2" ToolTip="Thêm biến nhập khi in hoặc hàm" AutomationProperties.Name="Add data source">
+                                        <Button Grid.Column="2" Content="+ Thêm ▾" Click="DataTreeAdd_Click" Padding="8,0" Height="{Binding ActualHeight, ElementName=DataTreeSearch}" VerticalAlignment="Top" ToolTip="Thêm biến nhập khi in hoặc hàm" AutomationProperties.Name="Add data source">
                                             <Button.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Header="Biến nhập khi in…" Click="AddPromptFromData_Click" AutomationProperties.Name="Add prompt"/>
