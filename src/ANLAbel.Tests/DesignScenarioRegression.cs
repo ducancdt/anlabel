@@ -1225,6 +1225,65 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's Data explorer has a right-click menu; ANLAbel's Data panel had none, and
+    /// connecting a source meant dragging it. A right-click on an entry now offers Sửa trong Quản lý
+    /// dữ liệu…, Thêm chữ gắn với nguồn này and Gắn vào “<selected object>” (the drag's two results,
+    /// one undo step each), the last only for an object that shows data; a protected label keeps
+    /// only Sửa; group rows have no menu.
+    /// </summary>
+    public static Task DataPanelRightClickConnectsWithoutDragging()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var prompt = new PromptVariableDefinition { Name = "Lô" };
+            viewModel.Template.PromptVariables.Add(prompt);
+            viewModel.ExcelHeaders.Add("MaHang");
+            var barcode = new LabelObject { Type = ObjectType.BarcodeCode128, Name = "Mã vạch", Text = "1", XMm = 2, YMm = 2, WidthMm = 30, HeightMm = 10 };
+            var frame = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 1, WidthMm = 40, HeightMm = 20 };
+            viewModel.Template.Objects.Add(barcode);
+            viewModel.Template.Objects.Add(frame);
+            var groupRow = (TreeViewItem)window.FindName("DataTreePrompts");
+            var tree = (TreeView)LogicalTreeHelper.GetParent(groupRow);
+            var menu = tree.ContextMenu!;
+            MenuItem[] Items() => menu.Items.OfType<MenuItem>().ToArray();
+            var prepare = typeof(ANLAbel.App.MainWindow).GetMethod("PrepareDataTreeMenu", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            bool Prepare(object? entry) => (bool)prepare.Invoke(window, new[] { entry })!;
+            Require(Items().Select(item => item.Header as string).Take(2).SequenceEqual(new[] { "Sửa trong Quản lý dữ liệu…", "Thêm chữ gắn với nguồn này" }),
+                "The Data panel menu opens an entry or adds a Text connected to it: " + string.Join(", ", Items().Select(item => item.Header)));
+            Require(!Prepare(groupRow), "A group row has no menu.");
+
+            // Thêm chữ gắn với nguồn này: a Text reading the prompt, one undo step.
+            var before = viewModel.Template.Objects.Count;
+            Require(Prepare(prompt) && Items()[1].IsEnabled, "Thêm chữ is offered on a prompt.");
+            Items()[1].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            var added = viewModel.Template.Objects.Last();
+            Require(viewModel.Template.Objects.Count == before + 1 && added.Type == ObjectType.Text && added.BindingExpression == "{?Lô}",
+                $"Thêm chữ adds a Text reading the prompt: {added.Type} {added.BindingExpression}");
+            viewModel.UndoCommand.Execute(null);
+            Require(viewModel.Template.Objects.Count == before, "One undo takes the Text back.");
+
+            // Gắn vào “Mã vạch”: the selected barcode reads the column; not offered for a frame.
+            viewModel.SelectedObject = viewModel.Template.Objects.Single(item => item.Id == barcode.Id);
+            Require(Prepare("MaHang") && Items()[2].IsEnabled && Equals(Items()[2].Header, "Gắn vào “Mã vạch”"),
+                "Gắn vào names the selected barcode: " + Items()[2].Header);
+            Items()[2].RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(viewModel.Template.Objects.Single(item => item.Id == barcode.Id).BindingExpression == "{MaHang}", "Gắn vào connects the barcode to the column.");
+            viewModel.SelectedObject = viewModel.Template.Objects.Single(item => item.Id == frame.Id);
+            Require(Prepare("MaHang") && !Items()[2].IsEnabled, "A frame shows no data: Gắn vào is off.");
+
+            // A protected label keeps only Sửa.
+            viewModel.Template.ProtectFromEditing = true;
+            Require(Prepare(prompt) && Items()[0].IsEnabled && !Items()[1].IsEnabled && !Items()[2].IsEnabled,
+                "A protected label offers Sửa only.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

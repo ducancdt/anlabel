@@ -2,6 +2,10 @@
 
 ## Sau v0.361
 
+- Bảng Dữ liệu có menu chuột phải như Data explorer của NiceLabel 10: “Sửa trong Quản lý dữ liệu…”,
+  “Thêm chữ gắn với nguồn này” và “Gắn vào “<đối tượng đang chọn>”” (hai kết quả của kéo thả, mỗi lệnh
+  một bước hoàn tác; lệnh gắn chỉ bật với đối tượng hiện dữ liệu). Tem được bảo vệ chỉ còn “Sửa…”;
+  hàng nhóm không có menu. Trước đây muốn gắn nguồn phải kéo thả.
 - Bảng Dữ liệu: dòng gợi ý “Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng.”
   bị cắt ở mép bảng (“… để xem trước c”) vì nằm trong một StackPanel ngang; nay xuống dòng đủ. Hai
   cổng mới giữ mọi dòng chữ xuống dòng nằm gọn trong bảng Dữ liệu và trong mọi trang Thuộc tính

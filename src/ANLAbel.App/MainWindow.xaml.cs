@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         WatchLabelFields();
         BuildDesignerContextMenu();
         BuildObjectBrowserContextMenu();
+        BuildDataTreeContextMenu();
         // Back from Excel: say whether the linked file is still open there.
         Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
         BindObjectBrowser();
@@ -522,6 +523,86 @@ public partial class MainWindow : Window
         return element is TreeViewItem container && ItemsControl.ItemsControlFromItemContainer(container) is { } owner and not TreeView
             ? owner.ItemContainerGenerator.ItemFromContainer(container)
             : null;
+    }
+
+    private object? _dataTreeMenuEntry;
+    private MenuItem? _dataTreeAddItem;
+    private MenuItem? _dataTreeConnectItem;
+
+    /// <summary>
+    /// NiceLabel 10's Data explorer menu: on an entry, open it in Quản lý dữ liệu, or do what a
+    /// drag does (a new Text connected to it, or the selected object connected), one undo step
+    /// each. Group rows and empty space have no menu.
+    /// </summary>
+    private void BuildDataTreeContextMenu()
+    {
+        if (LogicalTreeHelper.GetParent(DataTreePrompts) is not TreeView tree)
+        {
+            return;
+        }
+
+        var edit = new MenuItem { Header = "Sửa trong Quản lý dữ liệu…" };
+        edit.Click += (_, e) =>
+        {
+            if (DataManagerPageFor(_dataTreeMenuEntry) is { } page)
+            {
+                ShowDataManager(page);
+            }
+
+            e.Handled = true;
+        };
+        _dataTreeAddItem = new MenuItem { Header = "Thêm chữ gắn với nguồn này" };
+        _dataTreeAddItem.Click += (_, e) =>
+        {
+            if (DataTreeBinding(_dataTreeMenuEntry) is { } binding)
+            {
+                _viewModel.DropDataSource(binding, 5, 5, null, newObject: true);
+            }
+
+            e.Handled = true;
+        };
+        _dataTreeConnectItem = new MenuItem();
+        _dataTreeConnectItem.Click += (_, e) =>
+        {
+            if (DataTreeBinding(_dataTreeMenuEntry) is { } binding)
+            {
+                _viewModel.DropDataSource(binding, 0, 0, _viewModel.SelectedObject, newObject: false);
+            }
+
+            e.Handled = true;
+        };
+        var menu = new ContextMenu();
+        foreach (var item in new Control[] { edit, new Separator(), _dataTreeAddItem, _dataTreeConnectItem })
+        {
+            menu.Items.Add(item);
+        }
+
+        tree.ContextMenu = menu;
+        tree.ContextMenuOpening += (_, e) =>
+        {
+            if (!PrepareDataTreeMenu(DataTreeItemFor(e.OriginalSource as DependencyObject)))
+            {
+                e.Handled = true;
+            }
+        };
+    }
+
+    /// <summary>Readies the Data panel menu for an entry; false when there is none (a group row).</summary>
+    private bool PrepareDataTreeMenu(object? entry)
+    {
+        if (DataTreeBinding(entry) is null || _dataTreeAddItem is null || _dataTreeConnectItem is null)
+        {
+            return false;
+        }
+
+        _dataTreeMenuEntry = entry;
+        var editable = !_viewModel.IsEditingLocked;
+        var target = _viewModel.SelectedObject;
+        var takesData = target?.Type is ObjectType.Text or ObjectType.TextBox or ObjectType.BarcodeCode128 or ObjectType.QRCode or ObjectType.DataMatrix;
+        _dataTreeAddItem.IsEnabled = editable;
+        _dataTreeConnectItem.Header = takesData ? $"Gắn vào “{target!.Name}”" : "Gắn vào đối tượng đang chọn";
+        _dataTreeConnectItem.IsEnabled = editable && takesData;
+        return true;
     }
 
     private void DataTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
