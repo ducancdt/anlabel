@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.364
+## v0.365 — Bàn phím mở mục bảng Dữ liệu và menu của vùng chọn
+
+_Gồm các commit 31/10/2026 (23:37–23:45)._
 
 - Bàn phím làm được hai việc trước chỉ có chuột: Enter trên một mục của bảng Dữ liệu mở nó trong Quản lý
   dữ liệu như nhấp đúp; phím menu hoặc Shift+F10 trên bảng thiết kế mở menu của đối tượng đang chọn (của
