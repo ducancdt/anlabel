@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.353
+## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
+
+_Gồm các commit 31/10/2026 (04:20–16:42)._
 
 - Kiểm tra trước khi in: dữ liệu mã vạch có khoảng trắng ở đầu hoặc cuối (thường do
   xuất từ ERP/Excel, ví dụ “SP-0001 ”) được nhắc trong danh sách vấn đề, gộp thành
