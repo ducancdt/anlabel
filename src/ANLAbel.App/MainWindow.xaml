@@ -1355,7 +1355,7 @@
                                             <TextBlock Text="Độ dày (mm)" Width="78" VerticalAlignment="Center" Foreground="{StaticResource RibbonCaptionBrush}"/>
                                             <TextBox Width="64" Text="{Binding SelectedObject.Style.BorderThicknessMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Shape tab outline"/>
                                         </StackPanel>
-                                        <StackPanel Orientation="Horizontal">
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding SelectedShapeHasCorners, Converter={StaticResource BoolToVisibility}}">
                                             <TextBlock Text="Bo góc (mm)" Width="78" VerticalAlignment="Center" Foreground="{StaticResource RibbonCaptionBrush}"/>
                                             <TextBox Width="64" Text="{Binding SelectedObject.Style.CornerRadiusMm, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}" AutomationProperties.Name="Shape tab corner radius"/>
                                         </StackPanel>
@@ -1363,8 +1363,9 @@
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Đường viền"/>
                             </controls:RibbonGroupPanel>
-                            <Border Style="{StaticResource RibbonGroupSeparator}"/>
-                            <controls:RibbonGroupPanel>
+                            <!-- A line has no fill: no Tô nền group for it -->
+                            <Border Style="{StaticResource RibbonGroupSeparator}" Visibility="{Binding SelectedShapeHasFill, Converter={StaticResource BoolToVisibility}}"/>
+                            <controls:RibbonGroupPanel Visibility="{Binding SelectedShapeHasFill, Converter={StaticResource BoolToVisibility}}">
                                 <StackPanel Orientation="Horizontal">
                                     <ToggleButton x:Name="FillStyleToggle" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.FillStyle32}" Content="Kiểu tô&#10;▾"
                                                   ToolTip="Không tô, tô kín hoặc gạch chéo" AutomationProperties.Name="Fill style" AutomationProperties.AutomationId="Shell.Ribbon.FillStyle"/>

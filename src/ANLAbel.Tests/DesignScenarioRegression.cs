@@ -962,7 +962,8 @@ internal static class DesignScenarioRegression
     /// NiceLabel 10's shape Style page has an Outline group (thickness, line style and colour, a
     /// corner radius for a rectangle) and then a Fill group, none for a line. ANLAbel's one "Kiểu
     /// hình" card mixed them (fill, corner, outline, thickness) and offered an ellipse a corner
-    /// radius. The page now has Đường viền, then Tô nền, named as the ribbon's Hình dạng tab.
+    /// radius. The page now has Đường viền, then Tô nền, named as the ribbon's Hình dạng tab,
+    /// and that tab likewise shows Bo góc for a rectangle only and Tô nền for no line.
     /// </summary>
     public static Task ShapeStyleFollowsNiceLabelOutlineAndFill()
     {
@@ -998,18 +999,30 @@ internal static class DesignScenarioRegression
                 return true;
             }
 
+            var ribbonCorner = (FrameworkElement)FindLogicalChildren<TextBox>(window).First(box => AutomationProperties.GetName(box) == "Shape tab corner radius").Parent;
+            DependencyObject ribbonNode = FindLogicalChildren<System.Windows.Controls.Primitives.ToggleButton>(window).First(toggle => AutomationProperties.GetAutomationId(toggle) == "Shell.Ribbon.FillStyle");
+            while (ribbonNode is not ANLAbel.App.Controls.RibbonGroupPanel)
+            {
+                ribbonNode = LogicalTreeHelper.GetParent(ribbonNode)!;
+            }
+
+            var ribbonFill = (FrameworkElement)ribbonNode;
             string Page(ObjectType type)
             {
                 var shape = new LabelObject { Type = type, Name = type.ToString(), XMm = 3, YMm = 3, WidthMm = 20, HeightMm = type == ObjectType.Line ? 0.5 : 10 };
                 viewModel.Template.Objects.Add(shape);
                 viewModel.SelectedObject = shape;
                 Settle();
-                return string.Join(" ", new (FrameworkElement Element, string Name)[] { (outline, "viền"), (corner, "góc"), (fill, "tô") }.Where(part => Shown(part.Element)).Select(part => part.Name));
+                var page = string.Join(" ", new (FrameworkElement Element, string Name)[] { (outline, "viền"), (corner, "góc"), (fill, "tô") }.Where(part => Shown(part.Element)).Select(part => part.Name));
+                // The ribbon's Hình dạng tab (collapsed unless chosen): the row and the group themselves.
+                var ribbon = string.Join(" ", new (FrameworkElement Element, string Name)[] { (ribbonCorner, "góc"), (ribbonFill, "tô") }
+                    .Where(part => part.Element.Visibility == Visibility.Visible).Select(part => part.Name));
+                return page + " / " + ribbon;
             }
 
             var pages = new[] { ObjectType.Rectangle, ObjectType.Ellipse, ObjectType.Line }.Select(Page).ToArray();
-            Require(pages.SequenceEqual(new[] { "viền góc tô", "viền tô", "viền" }),
-                "A rectangle has Đường viền with Bo góc and Tô nền, an ellipse no corner, a line no fill: " + string.Join(" | ", pages));
+            Require(pages.SequenceEqual(new[] { "viền góc tô / góc tô", "viền tô / tô", "viền / " }),
+                "A rectangle has Đường viền with Bo góc and Tô nền, an ellipse no corner, a line no fill, on the page and the ribbon: " + string.Join(" | ", pages));
             var panel = (Panel)outline.Parent;
             Require(panel.Children.IndexOf(outline) < panel.Children.IndexOf(fill), "Đường viền comes before Tô nền, as NiceLabel's Outline and Fill.");
             // Not closed: closing an edited label asks whether to save it.

@@ -2,6 +2,8 @@
 
 ## Sau v0.361
 
+- Thẻ ribbon Hình dạng khớp trang Kiểu: ô “Bo góc (mm)” chỉ hiện với hình chữ nhật, nhóm “Tô nền” không
+  hiện với đường kẻ (như NiceLabel 10 ẩn bo góc ngoài hình chữ nhật).
 - Trang Kiểu của hình như trang Style của NiceLabel 10: thẻ “Đường viền” (độ dày, kiểu nét và màu,
   “Bo góc (mm)” chỉ với hình chữ nhật) rồi thẻ “Tô nền” (không có với đường kẻ), cùng tên với các
   nút trên thẻ ribbon Hình dạng. Trước đây một thẻ “Kiểu hình” trộn tô, bo góc, viền, độ dày và cho cả

@@ -1135,6 +1135,12 @@ public sealed class MainViewModel : ObservableObject
     public bool IsImageObjectSelected => SelectedObject?.Type is ObjectType.Image;
     public bool IsShapeObjectSelected => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse or ObjectType.Line or ObjectType.Inverse;
 
+    /// <summary>A corner radius is a rectangle's only (NiceLabel 10 CornerRadiusVisible).</summary>
+    public bool SelectedShapeHasCorners => SelectedObject?.Type is ObjectType.Rectangle;
+
+    /// <summary>A rectangle or an ellipse is filled; a line is not.</summary>
+    public bool SelectedShapeHasFill => SelectedObject?.Type is ObjectType.Rectangle or ObjectType.Ellipse;
+
     /// <summary>
     /// NiceLabel 10 picture Source and "Original size": the picture is embedded in
     /// the label; its pixels, resolution and the size they give it.
@@ -1170,6 +1176,8 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsBarcodeObjectSelected));
         OnPropertyChanged(nameof(IsImageObjectSelected));
         OnPropertyChanged(nameof(IsShapeObjectSelected));
+        OnPropertyChanged(nameof(SelectedShapeHasCorners));
+        OnPropertyChanged(nameof(SelectedShapeHasFill));
         OnPropertyChanged(nameof(IsTextObjectEditable));
         OnPropertyChanged(nameof(SelectedPictureSourceText));
         var contextualOpen = SelectedRibbonTab switch
