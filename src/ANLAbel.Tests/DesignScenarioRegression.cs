@@ -2095,6 +2095,46 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A quantity from an Excel cell in comma style reads "1,200", and the comma
+    /// went into the Code 128 as well, where NiceLabel printed 1200; a receiving
+    /// system takes "1,200" as text. Preflight names such rows in Vietnamese,
+    /// without blocking. A QR code, plain digits and "12,5" are not flagged.
+    /// </summary>
+    public static Task BarcodeThousandsSeparatorsAreFlagged()
+    {
+        var template = new LabelTemplate { Name = "Thùng", WidthMm = 80, HeightMm = 40, Dpi = 203 };
+        template.PrinterProfile.Dpi = 203;
+        template.Objects.Add(new LabelObject
+        {
+            Type = ObjectType.BarcodeCode128,
+            BarcodeSymbology = BarcodeSymbology.Code128,
+            Name = "QTY",
+            BindingExpression = "{SL}",
+            XMm = 3,
+            YMm = 3,
+            WidthMm = 50,
+            HeightMm = 12
+        });
+        template.Objects.Add(new LabelObject { Type = ObjectType.QRCode, Name = "QR", BindingExpression = "{SL}", XMm = 58, YMm = 3, WidthMm = 18, HeightMm = 18 });
+        IReadOnlyDictionary<string, string>?[] rows =
+        [
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["SL"] = "1,200" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["SL"] = "1200" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["SL"] = "12,5" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["SL"] = "1,234,567.25" }
+        ];
+        var issues = new PrintPreflightValidator(new ZxingBarcodeRenderer()).Validate(template, rows, 203).Issues
+            .Where(issue => issue.Message.StartsWith("Barcode data looks like a number with thousands separators", StringComparison.Ordinal))
+            .ToArray();
+        Require(issues.Select(issue => issue.RowNumber).SequenceEqual([1, 4]) && issues.All(issue => !issue.IsBlocking && issue.ObjectName == "QTY"),
+            "Rows 1 and 4 of the Code 128 are flagged, without blocking: " + string.Join(", ", issues.Select(issue => $"{issue.RowNumber}:{issue.ObjectName}:{issue.IsBlocking}")));
+        var text = ANLAbel.App.Services.PreflightIssueText.Line([1, 4], issues[0].ObjectName, issues[0].ObjectType, issues[0].Message);
+        Require(text.Contains("dấu phân cách hàng nghìn", StringComparison.Ordinal),
+            "The operator reads it in Vietnamese: " + text);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Barcode data from an export often ends in a space ("SP-0001 "), which
     /// the symbol carries and the scanner reads, so the receiving system's
     /// lookup fails. Preflight flags such rows as one advisory group, in

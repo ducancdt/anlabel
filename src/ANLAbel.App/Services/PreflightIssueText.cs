@@ -47,6 +47,8 @@ public static class PreflightIssueText
         (Rx(@"^Image raster mode '"), _ => "chế độ in ảnh này không được hỗ trợ; chọn chế độ khác cho ảnh"),
         (Rx(@"^Barcode data starts or ends with a space"),
             _ => "dữ liệu mã vạch có khoảng trắng ở đầu hoặc cuối, máy quét sẽ đọc cả khoảng trắng đó; xóa khoảng trắng trong ô dữ liệu nếu không cố ý"),
+        (Rx(@"^Barcode data looks like a number with thousands separators"),
+            _ => "dữ liệu mã vạch là số có dấu phân cách hàng nghìn (thường do định dạng số của ô Excel), máy quét sẽ đọc cả dấu đó; chọn định dạng số không phân cách trong tệp dữ liệu nếu không cố ý"),
         (Rx(@"^Image source density is only (?<p>[\d.,]+)"),
             m => $"ảnh chỉ khoảng {m.Groups["p"].Value} PPI, thấp hơn độ phân giải máy in; dùng ảnh nét hơn"),
         (Rx(@"^(?<s>Code128|Code39|Code93) data contains an unsupported character: U\+(?<u>[0-9A-F]{4}) (?:'(?<c>.*?)'|\((?<n>[^)]*)\)) at position (?<p>\d+);"),

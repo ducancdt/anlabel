@@ -625,6 +625,21 @@ public sealed class PrintPreflightValidator
                 IsBlocking: false));
         }
 
+        // "1,200": a quantity from an Excel cell in comma style (#,##0). The
+        // comma is encoded too, so the receiving system reads "1,200" where
+        // NiceLabel printed 1200. Printed as the data says; the operator is told.
+        if (item.Type == ObjectType.BarcodeCode128
+            && !item.IsSquare2DCodeLike()
+            && System.Text.RegularExpressions.Regex.IsMatch(data, "^[+-]?[0-9]{1,3}(?:,[0-9]{3})+(?:\\.[0-9]+)?$"))
+        {
+            issues.Add(new PrintPreflightIssue(
+                rowIndex + 1,
+                item.Name,
+                item.Type.ToString(),
+                "Barcode data looks like a number with thousands separators, usually the number format of an Excel cell; scanners read the separators too. Use a format without separators in the data source if they are not intended.",
+                IsBlocking: false));
+        }
+
         if (item.BarcodeHriPlacement != BarcodeHriPlacement.None
             && BarcodeHriMaskContract.IsUsed(item.BarcodeHriMask))
         {

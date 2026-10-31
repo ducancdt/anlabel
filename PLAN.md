@@ -1,5 +1,11 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.355
+
+- Kiểm tra trước khi in: dữ liệu mã vạch tuyến tính trông như số có dấu phân cách hàng
+  nghìn (“1,200”, thường do định dạng số kiểu phẩy của ô Excel) được nhắc, không chặn; máy
+  quét đọc cả dấu phẩy, nơi NiceLabel in 1200. Mã 2D, số không dấu và “12,5” không bị nhắc.
+
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 
 _Gồm các commit 31/10/2026 (16:44–16:55)._
