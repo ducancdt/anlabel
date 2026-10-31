@@ -2074,6 +2074,60 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// With warnings only, Print Preview said "only scan-risk warnings: widen
+    /// the barcode or raise the DPI" whatever the warning was, also for a thin
+    /// line or a space at the end of the data. It now only says that printing
+    /// is allowed; each warning below carries its own advice.
+    /// </summary>
+    public static Task WarningsOnlyStatusGivesNoBarcodeAdvice()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Hàng", WidthMm = 100, HeightMm = 60, Dpi = 203 };
+            template.PrinterProfile.Dpi = 203;
+            template.Objects.Add(new LabelObject
+            {
+                Type = ObjectType.BarcodeCode128,
+                BarcodeSymbology = BarcodeSymbology.Code128,
+                Name = "Mã hàng",
+                BindingExpression = "{Ma}",
+                XMm = 5,
+                YMm = 5,
+                WidthMm = 80,
+                HeightMm = 25,
+                BarcodeModuleWidthMm = 0.375,
+                BarcodeWidthMode = BarcodeWidthMode.SizedFromX,
+                QrQuietZoneModules = 10,
+                BarcodeHriPlacement = BarcodeHriPlacement.Below
+            });
+            var table = new System.Data.DataTable();
+            table.Columns.Add("Ma");
+            table.Rows.Add("SP-0001 ");
+            var window = new ANLAbel.App.PrintPreviewWindow(
+                template,
+                null,
+                table.DefaultView,
+                new PrintService(),
+                new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(Path.GetTempPath(), $"anlabel-warnings-{Guid.NewGuid():N}.csv")),
+                string.Empty);
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            do
+            {
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                Thread.Sleep(20);
+            }
+            while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline);
+
+            Require(window.HasPreflightIssues && !window.HasBlockingPreflightIssues
+                    && window.PreflightStatusText == "Chỉ có cảnh báo, vẫn được in. Xem từng cảnh báo bên dưới.",
+                $"Warnings only, without barcode advice ({window.HasPreflightIssues}/{window.HasBlockingPreflightIssues}): {window.PreflightStatusText}");
+            window.Close();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Importing a CSV or a one-sheet workbook asked to pick its only sheet
     /// before the header row: a click with nothing to decide. The sheet list
     /// now opens only when the file has several sheets.

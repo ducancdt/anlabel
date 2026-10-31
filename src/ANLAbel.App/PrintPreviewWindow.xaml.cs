@@ -250,7 +250,7 @@ public partial class PrintPreviewWindow : Window
                 : !_preflightResult.IsSuccess
                     ? "Nội dung cần chú ý. Sửa các vấn đề bên dưới hoặc bỏ chọn các dòng bị ảnh hưởng."
                     : _preflightResult.Issues.Count > 0
-                        ? "Chỉ là cảnh báo rủi ro quét mã — vẫn cho phép in. Hãy mở rộng mã vạch hoặc tăng DPI nếu đầu đọc khó quét."
+                        ? "Chỉ có cảnh báo, vẫn được in. Xem từng cảnh báo bên dưới."
                         : MergedCellsText.Length > 0
                             ? "Nội dung các nhãn đã chọn đã vượt qua kiểm tra. Xem lưu ý về ô gộp trong Excel ở trên."
                             : "Nội dung các nhãn đã chọn đã vượt qua kiểm tra.";

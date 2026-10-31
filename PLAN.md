@@ -24,6 +24,9 @@
   trạng thái nêu vùng gộp và các dòng; Xem trước khi in nhắc lại khi tem dùng cột đó
   (“Ô gộp B2:B4 (“Lot”) trong Excel chỉ có giá trị ở ô đầu: tem của dòng 2, 3 sẽ để
   trống “Lot”…”). Chỉ nhắc: không tự điền giá trị xuống các dòng gộp.
+- Xem trước khi in: khi chỉ có cảnh báo, dòng trạng thái không còn khuyên “mở rộng
+  mã vạch hoặc tăng DPI” cho mọi cảnh báo (cả nét kẻ mảnh hay khoảng trắng cuối dữ
+  liệu); nay chỉ nói vẫn được in, mỗi cảnh báo bên dưới có lời khuyên riêng.
 
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 
