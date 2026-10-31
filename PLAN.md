@@ -30,6 +30,9 @@
   mọi dòng” in tem mới một lần cho mỗi dòng của tệp kia. Nay như tạo tem mới: chưa có dòng nào cho tới
   khi liên kết tệp. Mở tem khác khi tem trước còn đang đọc tệp dữ liệu cũng không còn để dữ liệu và
   liên kết của tem trước đổ vào tem mới, và tem mở sau cùng là tem được giữ.
+- Xem trước khi in: khi tệp dữ liệu thiếu nhiều cột tem dùng (chọn sai trang tính, dòng tiêu đề hay
+  tệp), một dòng nêu chung các cột thiếu (“Tệp dữ liệu thiếu 3 trong 3 cột tem dùng (…)”) và, khi thiếu
+  phần lớn, nhắc kiểm tra trang tính và dòng tiêu đề, thay vì chỉ một dòng “thiếu cột” cho mỗi đối tượng.
 
 ## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
 

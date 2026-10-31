@@ -6,6 +6,7 @@ namespace ANLAbel.App;
 public partial class PrintPreviewWindow
 {
     private IReadOnlyList<PreviewContentIssue> _contentIssues = Array.Empty<PreviewContentIssue>();
+    private string _missingColumnsNote = string.Empty;
 
     // Validate each source record once, while retaining the first label ordinal
     // for navigation and the print handler's source-row mapping.
@@ -82,6 +83,21 @@ public partial class PrintPreviewWindow
                 ANLAbel.App.Services.PreflightIssueText.Line(affectedRows, group.Key.ObjectName, group.Key.ObjectType, group.Key.Message)));
         }
         _contentIssues = groups;
+        // A wrong sheet, header row or file shows as one missing column per object: one line names
+        // them all. The label's columns are those its printed objects and its functions read
+        // (every function runs for each row); a function's own name is no column.
+        var functions = _template.DataTransforms.Select(transform => (transform.Name ?? string.Empty).Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var labelColumns = _template.Objects.Where(item => item.IsVisible && item.IsPrintable)
+            .SelectMany(item => ANLAbel.App.Services.DataHeaderCheck.BindingFields(item.BindingExpression)
+                .Concat(ANLAbel.App.Services.DataHeaderCheck.BindingFields(item.VisibilityCondition)))
+            .Concat(_template.DataTransforms.SelectMany(transform => ANLAbel.App.Services.DataHeaderCheck.BindingFields(transform.Formula)))
+            .Select(field => field.Trim())
+            .Where(field => field.Length > 0 && !functions.Contains(field))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        _missingColumnsNote = _previewRows.FirstOrDefault(row => row is not null) is { } dataRow
+            ? ANLAbel.App.Services.PreflightIssueText.MissingColumnsNote(labelColumns, dataRow.Keys)
+            : string.Empty;
     }
 
     public sealed record PreviewContentIssue(int LabelNumber, string Summary)

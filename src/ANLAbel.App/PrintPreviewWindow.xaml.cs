@@ -254,7 +254,8 @@ public partial class PrintPreviewWindow : Window
                         : MergedCellsText.Length > 0
                             ? "Nội dung các nhãn đã chọn đã vượt qua kiểm tra. Xem lưu ý về ô gộp trong Excel ở trên."
                             : "Nội dung các nhãn đã chọn đã vượt qua kiểm tra.";
-    public string PreflightIssuesSummary => $"{_contentIssues.Count} vấn đề nội dung riêng biệt. Các bản sao lặp lại đã được gộp nhóm.";
+    public string PreflightIssuesSummary => (_missingColumnsNote.Length > 0 ? _missingColumnsNote + " " : string.Empty)
+        + $"{_contentIssues.Count} vấn đề nội dung riêng biệt. Các bản sao lặp lại đã được gộp nhóm.";
     public string PrinterStatusText => _isPreviewBusy
         ? "Đang kiểm tra xem trước..."
         : _previewPlanIssue?.Message

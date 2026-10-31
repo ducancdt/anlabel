@@ -221,6 +221,30 @@ public static class PreflightIssueText
             : string.Join(" ", Regex.Split(faults, "; (?=[A-Z])").Select(FormulaErrorText.Translate));
     }
 
+    /// <summary>
+    /// One line for the columns the data file lacks, when several are missing: a wrong sheet,
+    /// header row or file otherwise shows as one missing column per object. When most of the
+    /// label's columns are missing it points at the sheet and header row chosen. A column is
+    /// found as printing finds it (FieldNameResolver).
+    /// </summary>
+    public static string MissingColumnsNote(IReadOnlyCollection<string> labelColumns, IEnumerable<string> fileColumns)
+    {
+        var available = fileColumns.ToArray();
+        var missing = labelColumns
+            .Where(column => !ANLAbel.Core.Expressions.FieldNameResolver.TryResolveFieldName(column, available, out _))
+            .ToArray();
+        if (missing.Length < 2)
+        {
+            return string.Empty;
+        }
+
+        var named = string.Join(", ", missing.Take(4)) + (missing.Length > 4 ? ", …" : string.Empty);
+        var counted = $"{missing.Length} trong {labelColumns.Count} cột tem dùng";
+        return missing.Length * 2 >= labelColumns.Count
+            ? $"Tệp dữ liệu thiếu {counted} ({named}): có thể đã chọn sai trang tính hoặc dòng tiêu đề khi liên kết tệp."
+            : $"Tệp dữ liệu thiếu {counted} ({named}).";
+    }
+
     /// <summary>True when <see cref="Message"/> has a Vietnamese rule for the message.</summary>
     public static bool IsKnown(string? message)
     {

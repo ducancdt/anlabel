@@ -275,6 +275,57 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A workbook read with the wrong sheet or header row showed one "missing column" line per
+    /// object, fourteen on a box label, and nothing said they share one cause. Print Preview now
+    /// names the missing columns in one line and, when most of the label's columns are missing,
+    /// points at the sheet and header row chosen; one missing column keeps the list alone.
+    /// </summary>
+    public static Task PrintPreviewNamesTheMissingColumnsOnce()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Thùng", WidthMm = 60, HeightMm = 40 };
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Part}", XMm = 3, YMm = 3, WidthMm = 40, HeightMm = 6 });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô", BindingExpression = "{Lot}", XMm = 3, YMm = 11, WidthMm = 40, HeightMm = 6 });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "SL", BindingExpression = "{Qty}", XMm = 3, YMm = 19, WidthMm = 40, HeightMm = 6 });
+            // Columns read inside a formula count too.
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Quy cách", BindingExpression = "CONCAT(FIELD(\"Size\"), FIELD(\"Color\"))", XMm = 3, YMm = 27, WidthMm = 40, HeightMm = 6 });
+            var vm = new ANLAbel.App.ViewModels.MainViewModel();
+            string Summary(params string[] columns)
+            {
+                IReadOnlyDictionary<string, string>?[] rows = [columns.ToDictionary(column => column, column => "1", StringComparer.OrdinalIgnoreCase)];
+                var window = new ANLAbel.App.PrintPreviewWindow(template, rows[0], null, vm.PrintService, vm.PrintLogService, string.Empty, preparedRows: rows);
+                try
+                {
+                    var deadline = DateTime.UtcNow.AddMinutes(2);
+                    while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline)
+                    {
+                        System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                        Thread.Sleep(5);
+                    }
+
+                    return window.PreflightIssuesSummary;
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+
+            var wrongSheet = Summary("Batch", "Note");
+            Require(wrongSheet.StartsWith("Tệp dữ liệu thiếu 5 trong 5 cột tem dùng (", StringComparison.Ordinal)
+                    && new[] { "Part", "Lot", "Qty", "Size" }.All(column => wrongSheet.Contains(column, StringComparison.Ordinal))
+                    && wrongSheet.Contains("có thể đã chọn sai trang tính hoặc dòng tiêu đề", StringComparison.Ordinal),
+                "Five columns missing, two of them read in a formula, read as one cause: " + wrongSheet);
+            var one = Summary("Part", "Lot", "Size", "Color");
+            Require(!one.Contains("Tệp dữ liệu thiếu", StringComparison.Ordinal) && one.StartsWith("1 vấn đề", StringComparison.Ordinal),
+                "One missing column keeps the list alone: " + one);
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// "In" and "Đóng" sat at the end of the scrolling settings panel, so with
     /// the print answers, a merged-cell note and a list of warnings the operator
     /// scrolled to reach Print. They now stay in a footer under the panel.
