@@ -43,6 +43,8 @@ public static class PreflightIssueText
         (Rx(@"^Image data is not a valid embedded bitmap"), _ => "dữ liệu ảnh bị hỏng; chèn lại ảnh"),
         (Rx(@"^Image could not be decoded for printing"), _ => "không đọc được ảnh để in; chèn lại ảnh"),
         (Rx(@"^Image raster mode '"), _ => "chế độ in ảnh này không được hỗ trợ; chọn chế độ khác cho ảnh"),
+        (Rx(@"^Barcode data starts or ends with a space"),
+            _ => "dữ liệu mã vạch có khoảng trắng ở đầu hoặc cuối, máy quét sẽ đọc cả khoảng trắng đó; xóa khoảng trắng trong ô dữ liệu nếu không cố ý"),
         (Rx(@"^Image source density is only (?<p>[\d.,]+)"),
             m => $"ảnh chỉ khoảng {m.Groups["p"].Value} PPI, thấp hơn độ phân giải máy in; dùng ảnh nét hơn"),
         (Rx(@"^(?<s>Code128|Code39|Code93) data contains an unsupported character: U\+(?<u>[0-9A-F]{4}) (?:'(?<c>.*?)'|\((?<n>[^)]*)\)) at position (?<p>\d+);"),

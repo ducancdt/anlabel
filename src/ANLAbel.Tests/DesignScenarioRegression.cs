@@ -1958,6 +1958,44 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Barcode data from an export often ends in a space ("SP-0001 "), which
+    /// the symbol carries and the scanner reads, so the receiving system's
+    /// lookup fails. Preflight flags such rows as one advisory group, in
+    /// Vietnamese, without blocking: the label prints what the data says.
+    /// </summary>
+    public static Task BarcodeEdgeSpacesAreFlaggedNotBlocked()
+    {
+        var template = new LabelTemplate { Name = "Hàng", WidthMm = 60, HeightMm = 30, Dpi = 203 };
+        template.PrinterProfile.Dpi = 203;
+        template.Objects.Add(new LabelObject
+        {
+            Type = ObjectType.BarcodeCode128,
+            BarcodeSymbology = BarcodeSymbology.Code128,
+            Name = "Mã hàng",
+            BindingExpression = "{Ma}",
+            XMm = 3,
+            YMm = 3,
+            WidthMm = 50,
+            HeightMm = 12
+        });
+        IReadOnlyDictionary<string, string>?[] rows =
+        [
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-0001 " },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = " SP-0002" },
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = "SP-0003" }
+        ];
+        var issues = new PrintPreflightValidator(new ZxingBarcodeRenderer()).Validate(template, rows, 203).Issues
+            .Where(issue => issue.Message.StartsWith("Barcode data starts or ends with a space", StringComparison.Ordinal))
+            .ToArray();
+        Require(issues.Select(issue => issue.RowNumber).SequenceEqual([1, 2]) && issues.All(issue => !issue.IsBlocking),
+            "Rows 1 and 2 are flagged, without blocking: " + string.Join(", ", issues.Select(issue => $"{issue.RowNumber}:{issue.IsBlocking}")));
+        var text = ANLAbel.App.Services.PreflightIssueText.Line([1, 2], issues[0].ObjectName, issues[0].ObjectType, issues[0].Message);
+        Require(text.Contains("khoảng trắng ở đầu hoặc cuối", StringComparison.Ordinal) && text.Contains("1", StringComparison.Ordinal),
+            "The operator reads one grouped line in Vietnamese: " + text);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Renaming a function in the Data Manager keeps the objects and the
     /// functions that read it: a text {MaLo} and a function Tag reading
     /// FIELD("MaLo") follow the new name MaHang, so the printed row still

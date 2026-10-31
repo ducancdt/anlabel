@@ -612,6 +612,19 @@ public sealed class PrintPreflightValidator
             return;
         }
 
+        // A space at either end usually comes from an export (ERP, Excel) and is
+        // encoded like any other character, so a scanner reads "SP-0001 ".
+        // Printed as the data says; the operator is told (not blocked).
+        if (data.Trim().Length > 0 && data.Trim().Length != data.Length)
+        {
+            issues.Add(new PrintPreflightIssue(
+                rowIndex + 1,
+                item.Name,
+                item.Type.ToString(),
+                "Barcode data starts or ends with a space, which scanners read as part of the code. Remove the space in the data source if it is not intended.",
+                IsBlocking: false));
+        }
+
         if (item.BarcodeHriPlacement != BarcodeHriPlacement.None
             && BarcodeHriMaskContract.IsUsed(item.BarcodeHriMask))
         {

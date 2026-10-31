@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.353
+
+- Kiểm tra trước khi in: dữ liệu mã vạch có khoảng trắng ở đầu hoặc cuối (thường do
+  xuất từ ERP/Excel, ví dụ “SP-0001 ”) được nhắc trong danh sách vấn đề, gộp thành
+  một dòng nêu các dòng dữ liệu; máy quét đọc cả khoảng trắng nên tra cứu ở nơi
+  nhận dễ lỗi. Chỉ nhắc, không chặn: tem in đúng như dữ liệu.
+
 ## v0.353 — Dòng ẩn trong Excel không in mặc định; nhắc lưu Excel trước khi in; hàm đọc được số sê-ri; bảng Dữ liệu có hàm và giá trị khi in
 
 _Gồm các commit 31/10/2026 (03:43–04:10)._
