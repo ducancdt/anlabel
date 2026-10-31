@@ -1055,3 +1055,64 @@ ribbon's name box refuses a taken or empty name and keeps the old one, the
 ribbon's font boxes are blank for a mixed selection, and undo steps have
 names with Undo ▾ and Redo ▾ lists. Delete removes locked objects, as in
 NiceLabel.
+
+## §28 Designer keys, arrange, paste and deleting an item in use (2026-10-31)
+
+Evidence: DesignerLib.dll `ac59f773…` and Core.dll `3659e860…` (SHA-256
+prefixes), decompiled with ilspycmd; window and page views read from the
+DesignerLib BAML.
+
+- Keys. `mainwindow.xaml` binds Ctrl+A (select all), Ctrl+F (object browser
+  search), Ctrl+Z / Ctrl+Y and Ctrl+Shift+Z / Ctrl+Shift+Y (undo, redo),
+  Ctrl+S, Ctrl+O, Ctrl+P and Shift+Alt+S (print backstage), Ctrl+Shift+C /
+  Ctrl+Shift+V (format painter), Ctrl+L and Ctrl+Shift+N (new label),
+  Ctrl+Shift+O (open solution), Ctrl+D (default form), Ctrl+R, Ctrl+F9 and
+  Ctrl+Shift+R (run form), Ctrl+Alt+T (test print) and Ctrl+F4 (close page);
+  `documentpageview.xaml` binds Ctrl+G (group) and Ctrl+Shift+G (ungroup).
+  Ribbon items carry their own gestures: Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+B,
+  Ctrl+I, Ctrl+U, PgUp (bring forward), Ctrl+PgUp (to front), PgDn (send
+  backward) and Ctrl+PgDn (to back), each disabled while the backstage is open
+  (`IsEnabled` bound to the inverse of `backstageViewControl.IsOpen`).
+  `DocumentPageView` handles more keys itself: Tab and Shift+Tab select the
+  next or previous item (`MoveSelectionToNextDocumentItemCommand`), arrows
+  move the selection, arrows with a modifier resize it
+  (`ResizeSelectedItemsCommand`), a key turns the selected item 90° about its
+  centre (`RotateSelectedItemsCommand`), Ctrl with + or − zooms, numpad 0
+  restores the designer zoom, and F2 or Enter start editing the selected item.
+- Arrange. `ChangeZOrderCommand` takes `GetSelectedDocumentItems` ordered by
+  `ZOrder`: every selected item moves, among the items with the same parent.
+  To front and to back move them to the end (`MoveToEnd`) in the order they
+  had; forward and backward step each item past the next item, taking the
+  selection from the far end.
+- Paste. `PasteSolutionItemCommand.ResetOffsetAndSetItemToOriginalPosition`
+  keeps a pasted item's stored position unless its original, or an earlier
+  paste of it (`OriginalId`), is in the document; only then is it offset
+  (`GetOffset`, `baseOffset` = 50). Names go through
+  `GetSolutionItemUniqueName` (§27). `AddElements` adds the data sources the
+  items use to the target solution, and `PasteDocumentItemsUndoData` keeps
+  them (`NewDataSources`) so one undo removes them with the items.
+- Deleting an item in use. `DeleteSolutionItemCommand` asks
+  `ActiveSolution.FindRelatedItems`; an item with related items is kept, with
+  "Cannot delete the item because it is used by other items."
+  (`ValidationErrorCode.DeleteRelatedSolutionItems`); the designer API raises
+  `DesignerApiErrorCode.SolutionItemInUse`.
+- Object markers (`MenuViewXaml`, View › Object Markers Visibility): Data
+  Source, Counter, Events, Locked Object and Printer Element, each switched
+  on its own.
+
+ANLAbel (pending batch): Ctrl+A, Ctrl+X, Ctrl+G, Ctrl+Shift+G, Ctrl+F (which
+also shows a hidden left panel), Ctrl+B, Ctrl+I, Ctrl+U, PgUp and PgDn (Ctrl:
+to the top or the bottom), Tab and Shift+Tab, and Ctrl with plus, minus or 0;
+no key acts while a text box has the keyboard or behind the File backstage,
+and none edits a protected label. The arrange commands move the whole
+selection in its order. A paste into another label, or after a cut, keeps
+place and names and brings the functions and prompt variables the objects
+read; a name the target already has keeps the target's definition, and the
+status line says when the two differ. The Data Manager asks before deleting a
+prompt or function in use, naming the objects and functions that use it, and
+keeps it by default: refusing outright, as NiceLabel does, would make the
+operator close the draft-based Data Manager to rebind the objects first. A
+padlock marks locked objects. Not built: the keyboard resize and rotate keys
+(the Text and Text Box resize lifecycle is a protected contract), the form
+keys (forms are out of scope), Ctrl+Alt+T and Ctrl+F4 (one label is open at a
+time), and the Counter, Events and Printer Element markers (no such objects).
