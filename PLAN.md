@@ -32,6 +32,9 @@
 - Thiết kế: đối tượng thêm vào tem nhận một tên chưa dùng (“Chữ”, “Chữ 2”, “Chữ 3”, không
   phân biệt hoa thường), như NiceLabel 10 đánh số tên mục mới, để thông báo kiểm tra và
   bước hoàn tác chỉ đúng một đối tượng; tên sẵn có trong tem giữ nguyên.
+- Xem trước khi in: nút “In” và “Đóng” luôn nằm ở chân khung Cài đặt in; trước đây chúng
+  ở cuối phần cuộn, nên khi có câu trả lời nhập khi in, lưu ý ô gộp và danh sách cảnh báo
+  người in phải cuộn xuống mới bấm được In.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

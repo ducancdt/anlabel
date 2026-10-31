@@ -274,6 +274,58 @@ internal static class DesignScenarioRegression
         return (sheet.FromRight ? sheet.Across - 1 - column : column, sheet.FromBottom ? sheet.Down - 1 - row : row);
     }
 
+    /// <summary>
+    /// "In" and "Đóng" sat at the end of the scrolling settings panel, so with
+    /// the print answers, a merged-cell note and a list of warnings the operator
+    /// scrolled to reach Print. They now stay in a footer under the panel.
+    /// </summary>
+    public static Task PrintPreviewKeepsPrintInView()
+    {
+        RunOnSta(() =>
+        {
+            var (template, rows) = CreateSheet(new SheetCase("P", 210, 297, 70, 37, 0, 0.5, 3, 8, 0, 0, false, false, false, false, 26));
+            var vm = new ANLAbel.App.ViewModels.MainViewModel();
+            var window = new ANLAbel.App.PrintPreviewWindow(template, rows[0], null, vm.PrintService, vm.PrintLogService, string.Empty, preparedRows: rows);
+            try
+            {
+                // The window is not shown, so the search follows the logical tree.
+                Button? Find(DependencyObject parent)
+                {
+                    foreach (var child in LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>())
+                    {
+                        if (child is Button button && AutomationProperties.GetAutomationId(button) == "PrintPreview.Print")
+                        {
+                            return button;
+                        }
+
+                        if (Find(child) is { } found)
+                        {
+                            return found;
+                        }
+                    }
+
+                    return null;
+                }
+
+                var print = Find(window);
+                Require(print is not null, "Print Preview has its Print button.");
+                var path = new List<string>();
+                for (var node = LogicalTreeHelper.GetParent(print!); node is not null; node = LogicalTreeHelper.GetParent(node))
+                {
+                    path.Add(node.GetType().Name);
+                }
+
+                Require(!path.Contains(nameof(ScrollViewer)), "Print stays in view, outside the scrolling settings: " + string.Join(" < ", path));
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
     public static Task PrintPreviewShowsSheetsAndSkipsUsedCells()
     {
         RunOnSta(() =>

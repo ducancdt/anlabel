@@ -212,6 +212,14 @@
                 <Border DockPanel.Dock="Top" Background="#1464D2" Padding="16,10">
                     <TextBlock Text="Cài đặt in" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
                 </Border>
+                <!-- Print stays in view; the settings above scroll when answers, notes and warnings fill them -->
+                <Border DockPanel.Dock="Bottom" Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="0,1,0,0" Padding="14,10">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Đóng" AutomationProperties.AutomationId="PrintPreview.Close" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Close_Click"/>
+                        <Button Content="In" AutomationProperties.AutomationId="PrintPreview.Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanRequestPrint}"
+                                FontWeight="SemiBold" Foreground="#0B3F86" BorderBrush="#1464D2" BorderThickness="2"/>
+                    </StackPanel>
+                </Border>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="14">
                     <TextBlock Text="Máy in" FontWeight="SemiBold"/>
@@ -358,7 +366,7 @@
                                     </Style>
                                 </Expander.Style>
                                 <StackPanel Margin="0,8,0,0">
-                                    <TextBlock Text="{Binding PreflightIssuesSummary}" Foreground="#475569" FontSize="11" Margin="0,0,0,6"/>
+                                    <TextBlock Text="{Binding PreflightIssuesSummary}" Foreground="#475569" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"/>
                                     <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
                                     <ItemsControl ItemsSource="{Binding PreflightIssues}">
                                         <ItemsControl.ItemTemplate>
@@ -415,12 +423,6 @@
 
 
                     <TextBlock Text="Mỗi dòng Excel thành một tem. Chỉnh số bản bằng nút ▲▼." TextWrapping="Wrap" Foreground="#526070" Margin="0,14,0,0"/>
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
-                        <Button Content="Đóng" AutomationProperties.AutomationId="PrintPreview.Close" Width="86" Margin="0,0,8,0" Padding="8,5" Click="Close_Click"/>
-                        <Button Content="In" AutomationProperties.AutomationId="PrintPreview.Print" Width="96" Padding="8,5" Click="Print_Click" IsEnabled="{Binding CanRequestPrint}"
-                                FontWeight="SemiBold" Foreground="#0B3F86" BorderBrush="#1464D2" BorderThickness="2"/>
-                    </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
             </DockPanel>
