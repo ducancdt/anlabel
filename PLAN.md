@@ -18,6 +18,9 @@
 - Bảng Dữ liệu, “Kiểm tra ràng buộc”: tem chưa có đối tượng nào lấy dữ liệu Excel nay ghi
   “Chưa đối tượng nào lấy dữ liệu từ Excel; chưa có liên kết để kiểm tra.” trên nền trung
   tính, thay cho dòng xanh “Tất cả liên kết Excel đều khớp…” khi chẳng có gì để kiểm tra.
+- Thiết kế: chọn nhiều mã vạch tuyến tính rồi đổi độ rộng vạch (X) hoặc chữ dưới mã (vị
+  trí, phông, cỡ, đậm) thì mọi mã đang chọn cùng đổi, một lần Ctrl+Z hoàn tác, như trang
+  thuộc tính mã vạch của NiceLabel 10; mã 2D trong vùng chọn giữ thiết lập riêng.
 
 ## v0.354 — Menu chuột phải trên đối tượng và tem; đổi phông cho mọi chữ đang chọn; mã 2D không còn đầu ECI, GS1 Data Matrix có FNC1; nhắc khoảng trắng đầu cuối và ô gộp trong dữ liệu
 

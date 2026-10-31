@@ -102,6 +102,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the version list keeps hashes in the details", DesignScenarioRegression.VersionListKeepsHashesInTheDetails),
     ("the properties title counts the selection", DesignScenarioRegression.PropertiesTitleCountsTheSelection),
     ("the binding check says when there is nothing to check", DesignScenarioRegression.BindingCheckSaysWhenThereIsNothingToCheck),
+    ("a barcode setting reaches every selected barcode", DesignScenarioRegression.BarcodeSettingReachesEverySelectedBarcode),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

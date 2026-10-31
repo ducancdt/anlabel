@@ -2253,6 +2253,81 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A vendor label carries up to eight Code 128 symbols, and their X
+    /// dimension and readable text were set one by one. As NiceLabel 10's
+    /// barcode pages do, a setting of the key barcode now goes to every linear
+    /// barcode selected with it, in one undo step; a QR code keeps its own.
+    /// </summary>
+    public static Task BarcodeSettingReachesEverySelectedBarcode()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "PO", Text = "4500123456", XMm = 3, YMm = 3, WidthMm = 50, HeightMm = 8, BarcodeModuleWidthMm = 0.25, BarcodeWidthMode = BarcodeWidthMode.SizedFromX });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "QTY", Text = "1200", XMm = 3, YMm = 15, WidthMm = 30, HeightMm = 8, BarcodeModuleWidthMm = 0.25, BarcodeWidthMode = BarcodeWidthMode.SizedFromX });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.QRCode, Name = "QR", Text = "PO4500123456", XMm = 60, YMm = 3, WidthMm = 20, HeightMm = 20 });
+            Pump();
+            typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            var quantityPlacement = Named("QTY").BarcodeHriPlacement;
+            var qrPlacement = Named("QR").BarcodeHriPlacement;
+            var qrModule = Named("QR").BarcodeModuleWidthMm;
+
+            viewModel.SelectedObject = Named("PO");
+            Pump();
+            foreach (var name in new[] { "PO", "QTY", "QR" })
+            {
+                selection.Add(Named(name));
+            }
+
+            Named("PO").BarcodeModuleWidthMm = 0.375;
+            Named("PO").BarcodeHriPlacement = quantityPlacement == BarcodeHriPlacement.None ? BarcodeHriPlacement.Below : BarcodeHriPlacement.None;
+            Pump();
+            Require(Named("QTY").BarcodeModuleWidthMm == Named("PO").BarcodeModuleWidthMm && Named("PO").BarcodeModuleWidthMm > 0.25 && Named("QTY").BarcodeHriPlacement == Named("PO").BarcodeHriPlacement,
+                $"The other barcode follows: X {Named("QTY").BarcodeModuleWidthMm} mm, text {Named("QTY").BarcodeHriPlacement}.");
+            Require(Named("QR").BarcodeHriPlacement == qrPlacement && Named("QR").BarcodeModuleWidthMm == qrModule,
+                "The QR code keeps its own settings.");
+
+            viewModel.UndoCommand.Execute(null);
+            Pump();
+            Require(Named("QTY").BarcodeModuleWidthMm == 0.25 && Named("QTY").BarcodeHriPlacement == quantityPlacement,
+                $"One undo puts both barcodes back: X {Named("QTY").BarcodeModuleWidthMm} mm.");
+
+            // The other barcode's frame follows its new X, and Sized from X brings an X along.
+            selection.Clear();
+            viewModel.SelectedObject = Named("PO");
+            Pump();
+            selection.Add(Named("PO"));
+            selection.Add(Named("QTY"));
+            Named("PO").BarcodeModuleWidthMm = 0.5;
+            Pump();
+            var followed = Named("QTY").WidthMm;
+            typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("TryApplySizedFromXWidth", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, new object[] { Named("QTY") });
+            Require(Named("QTY").BarcodeModuleWidthMm == 0.5 && Named("QTY").WidthMm == followed,
+                $"The other barcode's frame follows its X: {followed} mm, recomputed {Named("QTY").WidthMm} mm.");
+            Named("QTY").BarcodeWidthMode = BarcodeWidthMode.FrameOwned;
+            Named("QTY").BarcodeModuleWidthMm = 0;
+            Named("PO").BarcodeWidthMode = BarcodeWidthMode.FrameOwned;
+            Named("PO").BarcodeWidthMode = BarcodeWidthMode.SizedFromX;
+            Pump();
+            Require(Named("QTY").BarcodeWidthMode == BarcodeWidthMode.SizedFromX && Named("QTY").BarcodeModuleWidthMm == 0.5,
+                $"Sized from X brings the key's X: {Named("QTY").BarcodeWidthMode}, X {Named("QTY").BarcodeModuleWidthMm} mm.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// "Kiểm tra ràng buộc" said in green that every Excel link matched the
     /// workbook on a label that read nothing from Excel. It now says there is
     /// nothing to check yet, and a field without linked data is still an issue.

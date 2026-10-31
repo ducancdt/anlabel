@@ -80,8 +80,8 @@ public sealed class MainViewModel : ObservableObject
     private string _lastImportIssueSuffix = string.Empty;
     private const string EmptyPlaceholderError = "Dấu ngoặc {} chưa có tên cột. Nhập tên cột vào giữa hai dấu ngoặc hoặc xóa chúng.";
     private bool _selectedObjectRefreshDeferred;
-    // Set while a font change of the key text is copied to the other selected texts.
-    private bool _sharingTextStyle;
+    // Set while an edit of the key object is copied to the rest of the selection.
+    private bool _sharingWithSelection;
     private readonly Stack<string> _redoStack = new();
     // Plan 13 F01: the history snapshot of the document as last saved/opened.
     // IsDirty compares the current snapshot with it, so undoing back to the
@@ -4804,7 +4804,7 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     private void ShareTextStyle(LabelObject key, string? property)
     {
-        if (_sharingTextStyle
+        if (_sharingWithSelection
             || key.Type is not (ObjectType.Text or ObjectType.TextBox)
             || SelectionProvider is null
             || property is not (nameof(ObjectStyle.FontFamily) or nameof(ObjectStyle.FontSizePt) or nameof(ObjectStyle.Bold)
@@ -4817,7 +4817,7 @@ public sealed class MainViewModel : ObservableObject
         var others = SelectionProvider()
             .Where(item => !ReferenceEquals(item, key) && item.Type is ObjectType.Text or ObjectType.TextBox)
             .ToArray();
-        _sharingTextStyle = true;
+        _sharingWithSelection = true;
         try
         {
             foreach (var style in others.Select(item => item.Style))
@@ -4853,9 +4853,77 @@ public sealed class MainViewModel : ObservableObject
         }
         finally
         {
-            _sharingTextStyle = false;
+            _sharingWithSelection = false;
         }
     }
+
+    /// <summary>
+    /// A setting of the key barcode goes to every linear barcode selected with
+    /// it, as NiceLabel 10's barcode pages edit the whole selection: the X
+    /// dimension with its width mode, and the human readable text (placement,
+    /// font, size, bold). 2D codes keep their own; the change is one undo step.
+    /// </summary>
+    private void ShareBarcodeSetting(LabelObject key, string? property)
+    {
+        if (_sharingWithSelection
+            || !IsLinearBarcode(key)
+            || SelectionProvider is null
+            || property is not (nameof(LabelObject.BarcodeModuleWidthMm) or nameof(LabelObject.BarcodeWidthMode)
+                or nameof(LabelObject.BarcodeHriPlacement) or nameof(LabelObject.BarcodeTextFontSizePt)
+                or nameof(LabelObject.BarcodeHriFontFamily) or nameof(LabelObject.BarcodeHriBold)))
+        {
+            return;
+        }
+
+        var others = SelectionProvider().Where(item => !ReferenceEquals(item, key) && IsLinearBarcode(item)).ToArray();
+        _sharingWithSelection = true;
+        try
+        {
+            foreach (var item in others)
+            {
+                switch (property)
+                {
+                    case nameof(LabelObject.BarcodeModuleWidthMm):
+                        item.BarcodeWidthMode = key.BarcodeWidthMode;
+                        item.BarcodeModuleWidthMm = key.BarcodeModuleWidthMm;
+                        break;
+                    case nameof(LabelObject.BarcodeWidthMode):
+                        item.BarcodeWidthMode = key.BarcodeWidthMode;
+                        // Sized from X needs an X: the key's, as the key itself gets one.
+                        if (item.BarcodeWidthMode == BarcodeWidthMode.SizedFromX && item.BarcodeModuleWidthMm <= 0)
+                        {
+                            item.BarcodeModuleWidthMm = key.BarcodeModuleWidthMm > 0 ? key.BarcodeModuleWidthMm : LinearBarcodeModuleContract.RecommendedDefaultXDimensionMm;
+                        }
+
+                        break;
+                    case nameof(LabelObject.BarcodeHriPlacement):
+                        item.BarcodeHriPlacement = key.BarcodeHriPlacement;
+                        break;
+                    case nameof(LabelObject.BarcodeTextFontSizePt):
+                        item.BarcodeTextFontSizePt = key.BarcodeTextFontSizePt;
+                        break;
+                    case nameof(LabelObject.BarcodeHriFontFamily):
+                        item.BarcodeHriFontFamily = key.BarcodeHriFontFamily;
+                        break;
+                    case nameof(LabelObject.BarcodeHriBold):
+                        item.BarcodeHriBold = key.BarcodeHriBold;
+                        break;
+                }
+
+                if (property is nameof(LabelObject.BarcodeModuleWidthMm) or nameof(LabelObject.BarcodeWidthMode))
+                {
+                    // Its frame follows its own X, as the key's does.
+                    TryApplySizedFromXWidth(item);
+                }
+            }
+        }
+        finally
+        {
+            _sharingWithSelection = false;
+        }
+    }
+
+    private static bool IsLinearBarcode(LabelObject item) => item.Type == ObjectType.BarcodeCode128 && !item.IsSquare2DCodeLike();
 
     /// <summary>Grow or Shrink Font: every selected text by one step from its own size.</summary>
     public void StepSelectedFontSize(double stepPt)
@@ -4865,7 +4933,7 @@ public sealed class MainViewModel : ObservableObject
             .Distinct()
             .Where(item => item.Type is ObjectType.Text or ObjectType.TextBox)
             .ToArray();
-        _sharingTextStyle = true;
+        _sharingWithSelection = true;
         try
         {
             foreach (var item in texts)
@@ -4875,7 +4943,7 @@ public sealed class MainViewModel : ObservableObject
         }
         finally
         {
-            _sharingTextStyle = false;
+            _sharingWithSelection = false;
         }
     }
 
@@ -4974,6 +5042,11 @@ public sealed class MainViewModel : ObservableObject
         if (ReferenceEquals(sender, SelectedObject))
         {
             RaiseSelectedObjectChanged();
+            if (sender is LabelObject key)
+            {
+                ShareBarcodeSetting(key, e.PropertyName);
+            }
+
             if (e.PropertyName is nameof(LabelObject.ImageDataBase64) or nameof(LabelObject.ImageRasterMode))
             {
                 OnPropertyChanged(nameof(SelectedPictureSourceText));
