@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.364
+
+- Bàn phím làm được hai việc trước chỉ có chuột: Enter trên một mục của bảng Dữ liệu mở nó trong Quản lý
+  dữ liệu như nhấp đúp; phím menu hoặc Shift+F10 trên bảng thiết kế mở menu của đối tượng đang chọn (của
+  tem khi không chọn gì), như NiceLabel áp lệnh ngữ cảnh cho vùng chọn; trước đây menu bàn phím lấy đối
+  tượng của lần chuột phải gần nhất.
+
 ## v0.364 — Danh sách Đối tượng đang lọc đi theo lựa chọn
 
 _Gồm các commit 31/10/2026 (23:29–23:29)._
