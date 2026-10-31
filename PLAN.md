@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.358
+## v0.359 — Tờ nhiều tem giữ đủ mép phải và mép dưới của từng tem
+
+_Gồm các commit 31/10/2026 (17:38–18:48)._
 
 - In: tờ nhiều tem có lề rộng hơn khe giữa các tem (ví dụ tờ A5 8 tem 68 x 48 mm, lề 5 mm, khe
   2 mm) mất mép phải và mép dưới của tem: nền trắng của mỗi tem được tô từ góc ô, trước lề, nên
