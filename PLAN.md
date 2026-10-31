@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.360
+## v0.361 — Hộp công cụ, bảng Dữ liệu và Đối tượng, thẻ Nguồn như NiceLabel 10
+
+_Gồm các commit 31/10/2026 (20:35–21:50)._
 
 - Danh sách Đối tượng như Object browser của NiceLabel 10: chuột phải lên một đối tượng là chọn nó và
   có menu Thuộc tính, Cắt, Sao chép, Xóa, Hiển thị, Khóa vị trí, Sắp xếp. Đối tượng đang ẩn không vẽ
