@@ -1296,16 +1296,30 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedBindingUsedFieldsText => string.Join(", ", EvaluateSelectedBinding().UsedFields);
     public string SelectedBindingMissingFieldsText => string.Join(", ", EvaluateSelectedBinding().MissingFields);
     public string SelectedBindingUsedFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingUsedFieldsText) ? string.Empty : $"Trường liên kết: {SelectedBindingUsedFieldsText}";
-    public string SelectedBindingMissingFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingMissingFieldsText) ? string.Empty : $"Trường còn thiếu: {SelectedBindingMissingFieldsText}";
+    public string SelectedBindingMissingFieldsSummary => string.IsNullOrWhiteSpace(SelectedBindingMissingFieldsText)
+        ? string.Empty
+        : AvailableDatabaseFields.Count == 0 && !HasLinkedExcelSource
+            ? $"Cần cột: {SelectedBindingMissingFieldsText}"
+            : $"Trường còn thiếu: {SelectedBindingMissingFieldsText}";
     public string SelectedBindingStatusText => EvaluateSelectedBinding().StatusText;
     public string SelectedBindingErrorsText => ANLAbel.App.Services.FormulaErrorText.Join(EvaluateSelectedBinding().Errors);
     public IReadOnlyList<BindingIssueSummary> BindingIssues => GetBindingIssues();
     public bool HasBindingIssues => BindingIssues.Count > 0;
-    public string BindingIssuesSummary => HasBindingIssues
-        ? $"{BindingIssues.Count} đối tượng bị hỏng hoặc chưa hoàn thiện liên kết Excel."
-        : ReadsExcelFields
-            ? "Tất cả liên kết Excel đều khớp với sổ làm việc hiện tại."
-            : "Chưa đối tượng nào lấy dữ liệu từ Excel; chưa có liên kết để kiểm tra.";
+    public string BindingIssuesSummary
+    {
+        get
+        {
+            // One evaluation of every binding serves the whole summary.
+            var issues = BindingIssues;
+            return IsAwaitingData(issues)
+                ? AwaitingDataSummary(issues)
+                : issues.Count > 0
+                    ? $"{issues.Count} đối tượng bị hỏng hoặc chưa hoàn thiện liên kết Excel."
+                    : ReadsExcelFields
+                        ? "Tất cả liên kết Excel đều khớp với sổ làm việc hiện tại."
+                        : "Chưa đối tượng nào lấy dữ liệu từ Excel; chưa có liên kết để kiểm tra.";
+        }
+    }
 
     /// <summary>
     /// True when an object reads a column (directly or through a function), so
@@ -1314,6 +1328,26 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     public bool ReadsExcelFields => Template.Objects.Any(item =>
         item.IsVisible && ANLAbel.App.Services.DataHeaderCheck.BindingFields(item.BindingExpression).Count > 0);
+
+    /// <summary>
+    /// True when objects read columns but no file is linked yet (no column is
+    /// known) and nothing else is wrong: a NiceLabel label just imported. Nothing
+    /// is broken; the check names the columns the file must have.
+    /// </summary>
+    public bool AwaitsExcelData => IsAwaitingData(BindingIssues);
+
+    private bool IsAwaitingData(IReadOnlyList<BindingIssueSummary> issues) =>
+        AvailableDatabaseFields.Count == 0 && !HasLinkedExcelSource && issues.Count > 0 && issues.All(issue => issue.Errors.Count == 0);
+
+    private static string AwaitingDataSummary(IReadOnlyList<BindingIssueSummary> issues)
+    {
+        var columns = issues.SelectMany(issue => issue.MissingFields)
+            .Select(field => field.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var named = string.Join(", ", columns.Take(6)) + (columns.Length > 6 ? ", …" : string.Empty);
+        return $"Chưa liên kết tệp Excel: {issues.Count} đối tượng đọc {columns.Length} cột ({named}). Liên kết tệp có các cột này để kiểm tra.";
+    }
     public IReadOnlyList<string> FormulaSeparators { get; } = [" - ", " | ", " / ", "_", " ", ": "];
 
     public ObjectType? DrawingTool
@@ -3570,6 +3604,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(BindingIssues));
         OnPropertyChanged(nameof(HasBindingIssues));
         OnPropertyChanged(nameof(ReadsExcelFields));
+        OnPropertyChanged(nameof(AwaitsExcelData));
         OnPropertyChanged(nameof(BindingIssuesSummary));
         ((RelayCommand)AddDatabaseFieldCommand).RaiseCanExecuteChanged();
         ((RelayCommand)AddAllDatabaseFieldsCommand).RaiseCanExecuteChanged();
@@ -5772,7 +5807,8 @@ public sealed class MainViewModel : ObservableObject
                 result.Binding.StatusText,
                 result.Binding.MissingFields,
                 result.Binding.Errors,
-                result.Binding.PositionalReads))
+                result.Binding.PositionalReads,
+                AwaitingData: AvailableDatabaseFields.Count == 0 && !HasLinkedExcelSource))
             .ToArray();
     }
 
@@ -5858,8 +5894,18 @@ public sealed class MainViewModel : ObservableObject
         return row;
     }
 
-    private static string BuildBindingStatusText(IReadOnlyList<string> missingFields, IReadOnlyList<string> errors, bool hasPreviewRow)
+    private string BuildBindingStatusText(IReadOnlyList<string> missingFields, IReadOnlyList<string> errors, bool hasPreviewRow)
     {
+        // No column is known. With no file linked nothing is broken, a file is still to come;
+        // a linked file not read (moved, open elsewhere, still loading) is named as such, not
+        // as a sheet without the column.
+        if (missingFields.Count > 0 && errors.Count == 0 && AvailableDatabaseFields.Count == 0)
+        {
+            return HasLinkedExcelSource
+                ? $"Chưa đọc được tệp Excel đã liên kết; đối tượng cần {missingFields.Count} cột."
+                : $"Chưa liên kết tệp Excel; đối tượng cần {missingFields.Count} cột.";
+        }
+
         if (missingFields.Count > 0)
         {
             return missingFields.Count == 1
@@ -5893,6 +5939,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(BindingIssues));
         OnPropertyChanged(nameof(HasBindingIssues));
         OnPropertyChanged(nameof(ReadsExcelFields));
+        OnPropertyChanged(nameof(AwaitsExcelData));
         OnPropertyChanged(nameof(BindingIssuesSummary));
         OnPropertyChanged(nameof(FormulaPreviewValue));
         OnPropertyChanged(nameof(FormulaPreviewErrors));
@@ -5945,6 +5992,13 @@ public sealed class MainViewModel : ObservableObject
                 (_, true) => $"{positional.Count} tên khớp nhiều cột",
                 _ => $"{positional.Count} cột chỉ theo vị trí"
             };
+        }
+
+        if (issue.MissingFields.Count > 0 && issue.AwaitingData && issue.Errors.Count == 0)
+        {
+            return issue.MissingFields.Count == 1
+                ? $"Cần cột: {issue.MissingFields[0]}"
+                : $"Cần {issue.MissingFields.Count} cột";
         }
 
         if (issue.MissingFields.Count > 0)
@@ -7028,9 +7082,13 @@ public sealed record BindingIssueSummary(
     string StatusText,
     IReadOnlyList<string> MissingFields,
     IReadOnlyList<string> Errors,
-    IReadOnlyList<ANLAbel.App.Services.DataColumnRead>? PositionalReads = null)
+    IReadOnlyList<ANLAbel.App.Services.DataColumnRead>? PositionalReads = null,
+    bool AwaitingData = false)
 {
     public string Title => $"{ObjectName} ({ANLAbel.App.Services.PreflightIssueText.ObjectType(ObjectType)})";
-    public string MissingFieldsSummary => MissingFields.Count == 0 ? string.Empty : $"Thiếu: {string.Join(", ", MissingFields)}";
+    // With no file linked yet the columns are needed, not missing from a sheet.
+    public string MissingFieldsSummary => MissingFields.Count == 0
+        ? string.Empty
+        : $"{(AwaitingData && Errors.Count == 0 ? "Cần cột" : "Thiếu")}: {string.Join(", ", MissingFields)}";
     public string ErrorsSummary => Errors.Count == 0 ? string.Empty : ANLAbel.App.Services.FormulaErrorText.Join(Errors);
 }

@@ -11,6 +11,11 @@
 - Thiết kế: khi chọn nhiều chữ khác phông hoặc khác cỡ, ô Phông chữ và ô Cỡ chữ trên ribbon
   để trống thay vì hiện cỡ của một chữ như thể của cả nhóm; chọn một cỡ ở đó áp cho mọi chữ
   đang chọn, như các trang thuộc tính của NiceLabel 10.
+- Dữ liệu: tem NiceLabel vừa nhập, chưa liên kết tệp Excel, không còn mở ra với khung đỏ
+  “12 đối tượng bị hỏng…” và “thiếu trường trong bảng tính hiện tại” (khi chưa có bảng tính
+  nào); Kiểm tra ràng buộc nay để màu trung tính, nêu các cột tệp Excel cần có và mỗi đối
+  tượng ghi “Cần cột: …”. Tệp đã liên kết mà chưa đọc được ghi “Chưa đọc được tệp Excel đã
+  liên kết”; lỗi thật, hoặc tệp đã liên kết mà thiếu cột, vẫn báo như cũ.
 
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 

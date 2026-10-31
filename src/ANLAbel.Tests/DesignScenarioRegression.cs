@@ -2757,6 +2757,56 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A NiceLabel label just imported, with no file linked yet, opened with a
+    /// red "12 đối tượng bị hỏng…" and each object "thiếu trường trong bảng tính
+    /// hiện tại", when there was no sheet at all. With no column known and no
+    /// other fault, the check now waits for the file and names the columns it
+    /// must have; a real fault, or a linked file without the column, still reads
+    /// as before.
+    /// </summary>
+    public static Task BindingCheckWaitsForTheFile()
+    {
+        var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Số PO", BindingExpression = "{PO}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "QTY", BindingExpression = "{QTY}", XMm = 3, YMm = 12, WidthMm = 40, HeightMm = 10 });
+        var issue = viewModel.BindingIssues.Single(item => item.ObjectName == "QTY");
+        Require(viewModel.HasBindingIssues && viewModel.AwaitsExcelData
+                && viewModel.BindingIssuesSummary == "Chưa liên kết tệp Excel: 2 đối tượng đọc 2 cột (PO, QTY). Liên kết tệp có các cột này để kiểm tra."
+                && issue.StatusText == "Chưa liên kết tệp Excel; đối tượng cần 1 cột." && issue.MissingFieldsSummary == "Cần cột: QTY",
+            $"With no file linked the check names the columns: {viewModel.BindingIssuesSummary} / {issue.StatusText} / {issue.MissingFieldsSummary}");
+
+        viewModel.SelectedObject = viewModel.Template.Objects[1];
+        Require(viewModel.SelectedBindingMissingFieldsSummary == "Cần cột: QTY", "The Properties panel waits too: " + viewModel.SelectedBindingMissingFieldsSummary);
+
+        // A linked file that cannot be read is a broken link, not a label waiting for its first file.
+        viewModel.Template.DatabaseConfig.FilePath = "C:/khong-co/nhan.xlsx";
+        viewModel.Template.DatabaseConfig.SheetName = "Sheet1";
+        viewModel.Template.Objects[0].XMm = 3.5;
+        Require(!viewModel.AwaitsExcelData && !viewModel.BindingIssuesSummary.StartsWith("Chưa liên kết tệp Excel", StringComparison.Ordinal),
+            "A broken link does not read as no link: " + viewModel.BindingIssuesSummary);
+        issue = viewModel.BindingIssues.Single(item => item.ObjectName == "QTY");
+        Require(issue.StatusText == "Chưa đọc được tệp Excel đã liên kết; đối tượng cần 1 cột." && issue.MissingFieldsSummary == "Thiếu: QTY"
+                && viewModel.SelectedBindingMissingFieldsSummary == "Trường còn thiếu: QTY",
+            $"A broken link names the file not read: {issue.StatusText} / {issue.MissingFieldsSummary} / {viewModel.SelectedBindingMissingFieldsSummary}");
+        viewModel.Template.DatabaseConfig.FilePath = string.Empty;
+        viewModel.Template.DatabaseConfig.SheetName = string.Empty;
+        viewModel.Template.Objects[0].XMm = 3;
+
+        viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Trống", BindingExpression = "Size: { }", XMm = 3, YMm = 24, WidthMm = 30, HeightMm = 6 });
+        Require(!viewModel.AwaitsExcelData && viewModel.BindingIssuesSummary.Contains("bị hỏng", StringComparison.Ordinal),
+            "A real fault still reads as one: " + viewModel.BindingIssuesSummary);
+        viewModel.Template.Objects.RemoveAt(2);
+
+        viewModel.AvailableDatabaseFields.Add(new DatabaseField { Name = "PO" });
+        viewModel.Template.Objects[0].XMm = 4;
+        issue = viewModel.BindingIssues.Single(item => item.ObjectName == "QTY");
+        Require(!viewModel.AwaitsExcelData && issue.StatusText == "Liên kết bị thiếu 1 trường trong bảng tính hiện tại." && issue.MissingFieldsSummary == "Thiếu: QTY",
+            $"A linked file without the column is a missing column: {viewModel.BindingIssuesSummary} / {issue.StatusText} / {issue.MissingFieldsSummary}");
+        Require(viewModel.SelectedBindingMissingFieldsSummary == "Trường còn thiếu: QTY", "With a file linked the Properties panel names a missing column: " + viewModel.SelectedBindingMissingFieldsSummary);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// "Kiểm tra ràng buộc" said in green that every Excel link matched the
     /// workbook on a label that read nothing from Excel. It now says there is
     /// nothing to check yet, and a field without linked data is still an issue.

@@ -111,6 +111,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("barcode thousands separators are flagged", DesignScenarioRegression.BarcodeThousandsSeparatorsAreFlagged),
     ("taken or empty names are refused", DesignScenarioRegression.TakenOrEmptyNamesAreRefused),
     ("ribbon font shows only a common value", DesignScenarioRegression.RibbonFontShowsOnlyACommonValue),
+    ("the binding check waits for the file", DesignScenarioRegression.BindingCheckWaitsForTheFile),
     ("an expiry comes from the Excel production date", DesignScenarioRegression.ExpiryComesFromTheExcelProductionDate),
     ("print preview shows sheets whole and skips used cells", DesignScenarioRegression.PrintPreviewShowsSheetsAndSkipsUsedCells),
     ("a linear symbol past the label edge blocks its row", BarcodeParityRegression.LinearSymbolPastTheLabelEdgeBlocksItsRow),

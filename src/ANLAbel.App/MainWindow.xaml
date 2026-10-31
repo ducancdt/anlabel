@@ -1911,6 +1911,11 @@
                                                         <Setter Property="Background" Value="#FEF2F2"/>
                                                         <Setter Property="BorderBrush" Value="#FCA5A5"/>
                                                     </DataTrigger>
+                                                    <!-- No file linked yet: the columns are to come, nothing is broken -->
+                                                    <DataTrigger Binding="{Binding AwaitsExcelData}" Value="True">
+                                                        <Setter Property="Background" Value="#F8FAFC"/>
+                                                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
@@ -1928,7 +1933,18 @@
                                                             <StackPanel>
                                                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                                                                 <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                                                <TextBlock Text="{Binding MissingFieldsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                                                <TextBlock Text="{Binding MissingFieldsSummary}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="{StaticResource AppDangerBrush}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding AwaitingData}" Value="True">
+                                                                                    <Setter Property="Foreground" Value="{StaticResource AppMutedBrush}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
                                                                 <TextBlock Text="{Binding ErrorsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
                                                             </StackPanel>
                                                         </Button>
