@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.359
+## v0.360 — Thuộc tính sắp như NiceLabel 10 (một ô Nguồn dữ liệu; các trang Mã vạch, Chung, Vị trí); bảng Dữ liệu có ô tìm; mở tem hay nạp lại dữ liệu không còn đổi nguồn của đối tượng
+
+_Gồm các commit 31/10/2026 (19:20–20:26)._
 
 - Bảng Dữ liệu như Data explorer của NiceLabel 10: ô tìm (lọc biến nhập khi in, cột dữ liệu và hàm
   theo tên, trên danh sách riêng nên các bảng khác không bị lọc) và nút “+ Thêm ▾” (Biến nhập khi
