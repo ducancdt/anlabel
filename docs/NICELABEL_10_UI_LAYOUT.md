@@ -733,6 +733,13 @@ behaved as the gates say. It found three things, fixed in v0.363:
 | An object reading only print-time values showed an empty Xem trước and "chọn một dòng Excel" in Ràng buộc, while the label showed "LOT ‹Lô›-A" | It previews with the label's design values and says the value is given at print time |
 | Điều kiện hiển thị had to be typed, braces and names included (NiceLabel 10's condition editor inserts data sources) | "Chèn nguồn ▾" under it inserts a source at the caret and applies it |
 
+Run again on v0.363 with more checks (the Excel card for a column object, a rich
+text box keeping only its editor, a rectangle with no Nguồn tab, Xem trước, the
+condition's Chèn nguồn ▾), it found one more: with the Đối tượng list filtered,
+an object placed from the toolbox was hidden while the old row stayed highlighted
+and a click on it did nothing. v0.364 keeps the selected object in the list; on
+the installed v0.364 all 17 live checks pass.
+
 Not checked live: the Data panel double-click and the label's right-click menu
 (the design surface has no automation peer, so a key cannot reach it without the
 mouse); the gates cover both.
