@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using ANLAbel.Core.Expressions.Formulas;
+using ANLAbel.Core.Printing;
 
 namespace ANLAbel.Core.Data;
 
@@ -58,6 +59,41 @@ public static partial class DataTransformPipeline
             ? match.Groups["open"].Value + renamed + match.Groups["close"].Value
             : match.Value;
         return FieldCallPattern().Replace(PlaceholderPattern().Replace(expression, Rename), Rename);
+    }
+
+    /// <summary>
+    /// <paramref name="renames"/> with every name in <paramref name="expressions"/> that
+    /// reaches a renamed function as printing finds it, loosely (FIELD("Mã_QR") reads “Mã QR”,
+    /// see <see cref="DataDefinitionImport.FunctionRead"/>): such a reference moves with the
+    /// function, or it would read nothing once the function has its new name. A name that
+    /// reaches one of <paramref name="columnNames"/> or another function stays.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> RenamesReaching(
+        IReadOnlyDictionary<string, string> renames,
+        IEnumerable<string?> expressions,
+        IEnumerable<string> functionNames,
+        IEnumerable<string>? columnNames = null)
+    {
+        ArgumentNullException.ThrowIfNull(renames);
+        ArgumentNullException.ThrowIfNull(expressions);
+        ArgumentNullException.ThrowIfNull(functionNames);
+        var widened = new Dictionary<string, string>(renames, StringComparer.OrdinalIgnoreCase);
+        var functions = functionNames.ToArray();
+        var columns = (columnNames ?? Array.Empty<string>()).ToArray();
+        foreach (var name in expressions.SelectMany(expression => JobVariableContract.NamesRead(expression)))
+        {
+            if (!widened.ContainsKey(name)
+                && !JobVariableContract.IsPromptToken(name)
+                && !JobVariableContract.IsDateToken(name)
+                && !JobVariableContract.IsSerialToken(name)
+                && DataDefinitionImport.FunctionRead(name, functions, columns) is { } function
+                && renames.TryGetValue(function, out var renamed))
+            {
+                widened[name] = renamed;
+            }
+        }
+
+        return widened;
     }
 
     [GeneratedRegex(@"(?<open>\{\s*)(?<name>[^{}?#\s][^{}]*?)(?<close>\s*\})")]

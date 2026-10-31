@@ -233,6 +233,7 @@ public partial class DataManagerWindow : Window
                 FunctionEditor.DataContext = node.Item;
                 FunctionEditor.Visibility = Visibility.Visible;
                 UpdateFunctionResult();
+                UpdateFunctionUsage();
                 break;
             case NodeKind.Counter:
                 CounterEditor.DataContext = _counter;
@@ -343,10 +344,8 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        string[] Users(string name) => _viewModel.Template.Objects
-            .Where(item => Mentions(item.BindingExpression, name) || Mentions(item.VisibilityCondition, name))
-            .Select(item => item.Name)
-            .ToArray();
+        // The objects read the name the label has until Đồng ý; functions are drafts here.
+        string[] Users(string name) => DefinitionUsers.Of(["?" + name], _viewModel.Template.Objects, []).Objects.ToArray();
         if (_originalNames.TryGetValue(prompt, out var original)
             && !string.Equals(original, prompt.Name.Trim(), StringComparison.Ordinal)
             && Users(original) is { Length: > 0 } moving)
@@ -355,16 +354,66 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        var users = Users(prompt.Name);
-        PromptUsageText.Text = users.Length == 0
-            ? $"Chưa đối tượng nào dùng {{?{prompt.Name}}}. Gõ {{?{prompt.Name}}} vào nguồn dữ liệu của một đối tượng để dùng biến này."
-            : $"Dùng ở {users.Length} đối tượng: {string.Join(", ", users)}.";
+        var users = UsersOf(prompt);
+        PromptUsageText.Text = users.Any
+            ? $"Dùng ở {DefinitionUsers.Places(users)}."
+            : $"Chưa đối tượng nào dùng {{?{prompt.Name}}}. Gõ {{?{prompt.Name}}} vào nguồn dữ liệu của một đối tượng để dùng biến này.";
     }
 
-    private static bool Mentions(string? expression, string name) =>
-        !string.IsNullOrEmpty(expression)
-        && (expression.Contains("{?" + name + "}", StringComparison.OrdinalIgnoreCase)
-            || expression.Contains("\"?" + name + "\"", StringComparison.OrdinalIgnoreCase));
+    /// <summary>Where the selected function is used, as the prompt editor says it of a prompt.</summary>
+    private void UpdateFunctionUsage()
+    {
+        if (FunctionEditor.DataContext is not FunctionDraft function)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(function.Name))
+        {
+            FunctionUsageText.Text = "Đặt tên cho hàm; đối tượng dùng nó qua {Tên}.";
+            return;
+        }
+
+        // Renamed here, the objects still read the old name until Đồng ý moves them, the
+        // way it will: with those that reach the function by a loose name.
+        if (function.Source?.Name?.Trim() is { Length: > 0 } original
+            && !string.Equals(original, function.Name, StringComparison.Ordinal))
+        {
+            var renames = RenamesReaching(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [original] = function.Name });
+            var moving = _viewModel.Template.Objects
+                .Where(item => DataTransformPipeline.RenameReferences(item.BindingExpression, renames) != (item.BindingExpression ?? string.Empty)
+                               || DataTransformPipeline.RenameReferences(item.VisibilityCondition, renames) != (item.VisibilityCondition ?? string.Empty))
+                .Select(item => item.Name)
+                .ToArray();
+            if (moving.Length > 0)
+            {
+                FunctionUsageText.Text = $"Đổi tên từ {{{original}}}: khi bấm Đồng ý, {moving.Length} đối tượng ({string.Join(", ", moving)}) chuyển sang {{{function.Name}}}.";
+                return;
+            }
+        }
+
+        var users = UsersOf(function);
+        FunctionUsageText.Text = users.Any
+            ? $"Dùng ở {DefinitionUsers.Places(users)}."
+            : $"Chưa đối tượng nào dùng {{{function.Name}}}. Gõ {{{function.Name}}} vào nguồn dữ liệu của một đối tượng để dùng hàm này.";
+    }
+
+    /// <summary>
+    /// Function renames as Đồng ý applies them: a name that reaches a renamed function as
+    /// printing finds it, loosely (FIELD("Mã_QR") reads “Mã QR”), moves too. Names resolve
+    /// among the label's columns and every function name known here, so a name that is a
+    /// column's or another function's stays.
+    /// </summary>
+    private IReadOnlyDictionary<string, string> RenamesReaching(IReadOnlyDictionary<string, string> renames) =>
+        DataTransformPipeline.RenamesReaching(
+            renames,
+            _viewModel.Template.Objects
+                .SelectMany(item => new[] { item.BindingExpression, item.VisibilityCondition })
+                .Concat(_functions.Select(function => function.Formula)),
+            _viewModel.Template.DataTransforms.Select(transform => transform.Name)
+                .Concat(_functions.Select(function => function.Source?.Name ?? string.Empty))
+                .Concat(_functions.Select(function => function.Name)),
+            _viewModel.KnownColumnNames);
 
     private void UpdateFunctionResult()
     {
@@ -521,6 +570,7 @@ public partial class DataManagerWindow : Window
                 break;
             case FunctionDraft:
                 UpdateFunctionResult();
+                UpdateFunctionUsage();
                 break;
             case SerialCounterDefinition:
                 UpdateCounterStatus();
@@ -784,7 +834,8 @@ public partial class DataManagerWindow : Window
         CheckNames(_prompts.Select(prompt => prompt.Name), "Biến nhập khi in", problems);
         problems.AddRange(_prompts.SelectMany(JobVariableContract.ValidateDefinition).Select(problem => JobVariableText.Message(problem)));
         CheckNames(_functions.Select(function => function.Name), "Hàm", problems);
-        var fields = _viewModel.ExcelHeaders.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Every known column, saved ones too: a function named like one stops every function once the file is read.
+        var fields = _viewModel.KnownColumnNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var clash in _functions.Where(function => fields.Contains(function.Name)))
         {
             problems.Add($"Hàm “{clash.Name}” trùng tên một trường của cơ sở dữ liệu; đặt tên khác.");
@@ -826,6 +877,8 @@ public partial class DataManagerWindow : Window
             }
         }
 
+        // A name that reaches a renamed function as printing finds it, loosely, moves too.
+        var functionMoves = RenamesReaching(functionRenames);
         var warnings = new List<string>();
         var definitions = _functions.Select(function => function.ToDefinition()).ToArray();
         if (definitions.Length > 0)
@@ -835,11 +888,11 @@ public partial class DataManagerWindow : Window
             var renamed = definitions
                 .Select(definition => definition with
                 {
-                    Formula = DataTransformPipeline.RenameReferences(JobVariableContract.RenamePrompts(definition.Formula, renames), functionRenames)
+                    Formula = DataTransformPipeline.RenameReferences(JobVariableContract.RenamePrompts(definition.Formula, renames), functionMoves)
                 })
                 .ToArray();
             var check = DataTransformPipeline.Evaluate(
-                DataRecord.Create(WithPrintTimeValues(_viewModel.ExcelHeaders.Select(field => new KeyValuePair<string, string>(field, string.Empty)), renamed)),
+                DataRecord.Create(WithPrintTimeValues(_viewModel.KnownColumnNames.Select(field => new KeyValuePair<string, string>(field, string.Empty)), renamed)),
                 renamed);
             warnings.AddRange(check.Errors.Select(FormulaErrorText.Translate));
         }
@@ -861,7 +914,7 @@ public partial class DataManagerWindow : Window
             return;
         }
 
-        _viewModel.ApplyDataDefinitions(_prompts.ToArray(), definitions, _counter, renames, functionRenames);
+        _viewModel.ApplyDataDefinitions(_prompts.ToArray(), definitions, _counter, renames, functionMoves);
         Accepted = true;
         _closingAccepted = true;
         Close();

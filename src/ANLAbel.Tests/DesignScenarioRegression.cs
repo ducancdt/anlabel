@@ -3451,6 +3451,105 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Quản lý dữ liệu said which objects ask a prompt but nothing of a function, so renaming
+    /// or rewriting a function gave no hint of the objects reading it. A function now shows
+    /// where it is used, renames included, and a prompt also names the functions that read it.
+    /// </summary>
+    public static Task DataManagerShowsWhereAFunctionIsUsed()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            var template = viewModel.Template;
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(FIELD(\"PO\"), FIELD(\"?Lô\"))"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tổng hợp", "CONCAT(FIELD(\"Mã QR\"), \"#\")"));
+            template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Rời", "FIELD(\"X\")"));
+            template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "QR", BindingExpression = "{Mã QR}" });
+            template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô in", BindingExpression = "Lô: {?Lô}" });
+            var window = new ANLAbel.App.DataManagerWindow(viewModel);
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var functions = ((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", flags)!.GetValue(window)!).Cast<object>().ToArray();
+            object Function(string name) => functions.Single(item => (string)item.GetType().GetProperty("Name")!.GetValue(item)! == name);
+            string Show(object item)
+            {
+                typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", flags)!.Invoke(window, new[] { item });
+                Pump();
+                return ((TextBlock)window.FindName(item is PromptVariableDefinition ? "PromptUsageText" : "FunctionUsageText")).Text;
+            }
+
+            var qr = Show(Function("Mã QR"));
+            Require(qr == "Dùng ở đối tượng “QR”; hàm “Tổng hợp”.", "A function says where it is used: " + qr);
+            var loose = Show(Function("Rời"));
+            Require(loose.StartsWith("Chưa đối tượng nào dùng {Rời}.", StringComparison.Ordinal), "An unused function says so: " + loose);
+            var lot = Show(((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_prompts", flags)!.GetValue(window)!).Cast<PromptVariableDefinition>().Single());
+            Require(lot == "Dùng ở đối tượng “Lô in”; hàm “Mã QR”.", "A prompt also names the functions that read it: " + lot);
+
+            var draft = Function("Mã QR");
+            Show(draft);
+            draft.GetType().GetProperty("Name")!.SetValue(draft, "QR mới");
+            Pump();
+            var renamed = ((TextBlock)window.FindName("FunctionUsageText")).Text;
+            Require(renamed == "Đổi tên từ {Mã QR}: khi bấm Đồng ý, 1 đối tượng (QR) chuyển sang {QR mới}.", "A renamed function says which objects move: " + renamed);
+
+            // A name that reaches the function loosely moves with it, as Đồng ý then does; a name
+            // that is another function's stays.
+            var clean = new ANLAbel.App.ViewModels.MainViewModel();
+            clean.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            clean.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(\"Q\", FIELD(\"?Lô\"))"));
+            clean.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MãQR", "FIELD(\"?Lô\")"));
+            clean.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "QR", BindingExpression = "{Mã QR}" });
+            clean.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã rời", BindingExpression = "{Mã_QR}" });
+            clean.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Khác", BindingExpression = "{MãQR}" });
+            var manager = new ANLAbel.App.DataManagerWindow(clean);
+            var managed = ((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", flags)!.GetValue(manager)!).Cast<object>().ToArray();
+            var qrDraft = managed.Single(item => (string)item.GetType().GetProperty("Name")!.GetValue(item)! == "Mã QR");
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("RebuildTree", flags)!.Invoke(manager, new[] { qrDraft });
+            Pump();
+            qrDraft.GetType().GetProperty("Name")!.SetValue(qrDraft, "QR mới");
+            Pump();
+            var told = ((TextBlock)manager.FindName("FunctionUsageText")).Text;
+            Require(told == "Đổi tên từ {Mã QR}: khi bấm Đồng ý, 2 đối tượng (QR, Mã rời) chuyển sang {QR mới}.", "A loose name moves too, another function's stays: " + told);
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("Ok_Click", flags)!.Invoke(manager, new object?[] { null, new RoutedEventArgs() });
+            var bindings = string.Join(" ", clean.Template.Objects.Select(item => item.BindingExpression));
+            Require(bindings == "{QR mới} {QR mới} {MãQR}", "Đồng ý moves what the note named, nothing else: " + bindings);
+
+            // A name that is a column saved with the label stays, also while its file is not read.
+            var saved = new ANLAbel.App.ViewModels.MainViewModel();
+            saved.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            saved.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(\"Q\", FIELD(\"?Lô\"))"));
+            saved.Template.DatabaseConfig.LabelFields.Add(new DatabaseField { Name = "Mã_QR" });
+            saved.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "QR", BindingExpression = "{Mã QR}" });
+            saved.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Cột", BindingExpression = "{Mã_QR}" });
+            var savedManager = new ANLAbel.App.DataManagerWindow(saved);
+            var savedDraft = ((System.Collections.IEnumerable)typeof(ANLAbel.App.DataManagerWindow).GetField("_functions", flags)!.GetValue(savedManager)!).Cast<object>()
+                .Single(item => (string)item.GetType().GetProperty("Name")!.GetValue(item)! == "Mã QR");
+            savedDraft.GetType().GetProperty("Name")!.SetValue(savedDraft, "QR mới");
+            Pump();
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("Ok_Click", flags)!.Invoke(savedManager, new object?[] { null, new RoutedEventArgs() });
+            var kept = string.Join(" ", saved.Template.Objects.Select(item => item.BindingExpression));
+            Require(kept == "{QR mới} {Mã_QR}", "A column saved with the label keeps its readers: " + kept);
+
+            // Đồng ý checks a function's name, and the functions, against every known column, saved
+            // ones too (source check: a refused name opens a dialog).
+            var okRoot = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(okRoot, "ANLAbel.slnx")))
+            {
+                okRoot = Path.GetDirectoryName(okRoot.TrimEnd(Path.DirectorySeparatorChar))!;
+            }
+
+            var okSource = File.ReadAllText(Path.Combine(okRoot, "src", "ANLAbel.App", "DataManagerWindow.xaml.cs"));
+            Require(okSource.Contains("var fields = _viewModel.KnownColumnNames.ToHashSet(StringComparer.OrdinalIgnoreCase);", StringComparison.Ordinal)
+                    && okSource.Contains("DataRecord.Create(WithPrintTimeValues(_viewModel.KnownColumnNames.Select(", StringComparison.Ordinal),
+                "Đồng ý checks names against every known column.");
+            // Not closed: closing an edited Data Manager asks whether to keep the changes.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

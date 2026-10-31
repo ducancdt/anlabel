@@ -34,6 +34,9 @@
 - Thiết kế: đối tượng đã khóa vị trí có dấu ổ khóa ở góc trên bên phải (Xem › Hiện dấu đối tượng ›
   Đối tượng khóa), như dấu “Locked object” của NiceLabel 10; bấm giữ đối tượng khóa đang chọn
   để kéo thì thanh trạng thái nói nó đã khóa và cách mở khóa, thay vì không có phản hồi.
+- Quản lý dữ liệu: hàm đang chọn nay ghi nơi dùng nó như biến nhập khi in (“Dùng ở đối tượng “QR”;
+  hàm “Tổng hợp”.”), kể cả khi đổi tên (các đối tượng chuyển sang tên mới khi bấm Đồng ý, cả đối
+  tượng gọi hàm bằng tên gần đúng như {Mã_QR}, như khi in); biến nhập khi in ghi thêm các hàm đọc nó.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

@@ -117,6 +117,19 @@ public sealed class JobVariableTests : IDisposable
         Assert.Equal(expected, ANLAbel.Core.Data.DataTransformPipeline.RenameReferences(expression, renames));
     }
 
+    [Fact]
+    public void RenamesReaching_MovesALooseReferenceWithTheFunction()
+    {
+        var renames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Mã QR"] = "QR mới" };
+        string?[] expressions = ["{Mã QR}", "{Mã_QR}", "{MãQR}", "{QR}", "CONCAT(FIELD(\"Mã_QR\"), FIELD(\"?Mã_QR\"))", null];
+        var moves = ANLAbel.Core.Data.DataTransformPipeline.RenamesReaching(renames, expressions, ["Mã QR", "MãQR"], ["QR"]);
+
+        // FIELD finds “Mã QR” by “Mã_QR”; “MãQR” is another function, “QR” a column, ?Mã_QR a prompt.
+        Assert.Equal(
+            ["{QR mới}", "{QR mới}", "{MãQR}", "{QR}", "CONCAT(FIELD(\"QR mới\"), FIELD(\"?Mã_QR\"))", string.Empty],
+            expressions.Select(expression => ANLAbel.Core.Data.DataTransformPipeline.RenameReferences(expression, moves)));
+    }
+
     [Theory]
     [InlineData("{?Lot}", "{?SoLo}")]
     [InlineData("Lô: { ?lot } / {?Qty}", "Lô: { ?SoLo } / {?Qty}")]

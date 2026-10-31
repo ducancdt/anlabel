@@ -58,17 +58,18 @@ public static class DefinitionUsers
 
     public static IReadOnlyList<string> FunctionLines(string name, Users users) =>
     [
-        $"Hàm “{name}” đang được dùng ở {Where(users)}.",
+        $"Hàm “{name}” đang được dùng ở {Places(users)}.",
         "Xóa thì các chỗ đó mất dữ liệu của hàm: kiểm tra liên kết báo thiếu trường cho tới khi đổi sang dữ liệu khác."
     ];
 
     public static IReadOnlyList<string> PromptLines(string name, Users users) =>
     [
-        $"Biến nhập khi in “{name}” đang được dùng ở {Where(users)}.",
+        $"Biến nhập khi in “{name}” đang được dùng ở {Places(users)}.",
         $"Xóa thì khi in vẫn hỏi “{name}” như một ô chữ bắt buộc, nhưng mất quy tắc nhập của nó (độ dài, định dạng, danh sách chọn, giá trị mặc định)."
     ];
 
-    private static string Where(Users users)
+    /// <summary>Where an item is used: "đối tượng “A”, “B”; hàm “F”".</summary>
+    public static string Places(Users users)
     {
         var parts = new List<string>();
         if (users.Objects.Count > 0)

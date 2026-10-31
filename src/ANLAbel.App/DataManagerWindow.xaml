@@ -282,6 +282,9 @@
                             <Border Style="{StaticResource EditorNote}" Margin="0,2,0,0">
                                 <TextBlock x:Name="FunctionResultText" TextWrapping="Wrap" FontFamily="Consolas" Foreground="#262626"/>
                             </Border>
+                            <Border Style="{StaticResource EditorNote}" Margin="0,6,0,0">
+                                <TextBlock x:Name="FunctionUsageText" TextWrapping="Wrap" Foreground="#262626" AutomationProperties.AutomationId="DataManager.Function.Usage"/>
+                            </Border>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Cách viết"/>
                             <TextBlock TextWrapping="Wrap" Foreground="#262626" Margin="0,0,0,4"
                                        Text="FIELD(&quot;Tên trường&quot;) lấy một trường; CONCAT(a, b, …) nối các phần; UPPER(x), LOWER(x), TRIM(x) đổi chữ; LEFT(x, n), RIGHT(x, n), MID(x, đầu, n) cắt chuỗi; GS1CHECKDIGIT(x) thêm số kiểm tra GS1; EQUALS(a, b), NOT(x), AND(…) cho điều kiện hiển thị; DATEADD(ngày, số, đơn vị, định dạng) và DATEFORMAT(ngày, định dạng) tính và ghi ngày. Trong chuỗi, \u001E, \u001D, \u0004 là ký tự RS, GS, EOT (nút Ký tự điều khiển)."/>
