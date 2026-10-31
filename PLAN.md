@@ -21,6 +21,9 @@
   trường thường; lỗi công thức thật vẫn báo. Mã Data Matrix quá nhỏ cho dữ liệu báo bằng tiếng
   Việt (“Dữ liệu cần 79 từ mã, quá sức chứa của khổ Data Matrix đã chọn…”), thay câu tiếng Anh
   của thư viện mã vạch.
+- Xem trước khi in: khi in bỏ qua các dòng bị chặn, câu hỏi ghi các dòng thành khoảng (“dòng
+  3–200”) thay vì liệt kê từng số; một sổ Excel của khách có 1 bản ghi và công thức kéo sẵn
+  tới dòng 200 từng làm câu hỏi dài 198 số.
 
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 

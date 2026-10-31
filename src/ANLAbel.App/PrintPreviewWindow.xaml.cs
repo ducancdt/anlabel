@@ -598,7 +598,7 @@ public partial class PrintPreviewWindow : Window
                 var remainingCount = totalSelectedRows - badSourceRows.Length;
                 var skipLines = new List<string>
                 {
-                    $"{badSourceRows.Length} dòng có lỗi và sẽ được bỏ qua: dòng {string.Join(", ", badSourceRows)}."
+                    $"{badSourceRows.Length} dòng có lỗi và sẽ được bỏ qua: dòng {ANLAbel.App.Services.PreflightIssueText.RowRanges(badSourceRows)}."
                 };
                 skipLines.AddRange(ANLAbel.App.Services.PreflightIssueText.Lines(preflight, SourceRowOf(selected)));
                 skipLines.Add($"Tiếp tục in {remainingCount} dòng còn lại?");

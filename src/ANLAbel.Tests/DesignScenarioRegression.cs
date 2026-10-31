@@ -2757,6 +2757,20 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// A customer sheet with one record and a weight formula filled down 198
+    /// rows: printing skips the 198 blocked rows after asking, and the question
+    /// listed all 198 row numbers. Runs of rows now read as ranges.
+    /// </summary>
+    public static Task SkippedRowsReadAsRanges()
+    {
+        var all = ANLAbel.App.Services.PreflightIssueText.RowRanges(Enumerable.Range(3, 198));
+        var mixed = ANLAbel.App.Services.PreflightIssueText.RowRanges([9, 2, 4, 5, 6, 5]);
+        Require(all == "3–200" && mixed == "2, 4–6, 9" && ANLAbel.App.Services.PreflightIssueText.RowRanges([]) == string.Empty,
+            $"Rows read as ranges: {all} / {mixed}");
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// A formula over columns not linked yet also said "Field 'PO' was not
     /// found." for each column it already named as missing, so an imported
     /// label's check stayed red. The repeat is dropped and the formula waits for

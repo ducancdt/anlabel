@@ -234,6 +234,30 @@ public static class PreflightIssueText
         _ => objectType ?? string.Empty,
     };
 
+    /// <summary>
+    /// Rows as runs: 3, 4, 5 … 200 reads "3–200", and 2, 4, 5, 6, 9 reads
+    /// "2, 4–6, 9", so 198 skipped rows of a sheet whose formulas run past its
+    /// records fit on one line.
+    /// </summary>
+    public static string RowRanges(IEnumerable<int> rows)
+    {
+        var sorted = rows.Distinct().Order().ToArray();
+        var runs = new List<string>();
+        for (var start = 0; start < sorted.Length;)
+        {
+            var end = start;
+            while (end + 1 < sorted.Length && sorted[end + 1] == sorted[end] + 1)
+            {
+                end++;
+            }
+
+            runs.Add(end == start ? $"{sorted[start]}" : $"{sorted[start]}–{sorted[end]}");
+            start = end + 1;
+        }
+
+        return string.Join(", ", runs);
+    }
+
     /// <summary>"Mẫu" for template issues, otherwise the affected data rows.</summary>
     public static string Location(IReadOnlyList<int> rows)
     {
