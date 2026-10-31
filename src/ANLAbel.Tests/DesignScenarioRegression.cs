@@ -1356,6 +1356,33 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// An object reading only values given at print time (a prompt, the print date) showed an empty
+    /// Xem trước and "Hãy nhập hoặc chọn một dòng Excel để xem trước kết quả" in Properties › Ràng buộc,
+    /// while the label showed "LOT ‹Lô›-A" (seen on the installed v0.362). It now previews with the
+    /// label's design values and says the value is given at print time; a column still waits for a row.
+    /// </summary>
+    public static Task PrintTimeValuesPreviewAsTheLabelShows()
+    {
+        RunOnSta(() =>
+        {
+            var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            var composed = new LabelObject { Type = ObjectType.Text, Name = "Lô in", Text = "A", BindingExpression = "LOT {?Lô}-A", XMm = 2, YMm = 2, WidthMm = 30, HeightMm = 6 };
+            var column = new LabelObject { Type = ObjectType.Text, Name = "Mã", Text = "A", BindingExpression = "{MaHang}", XMm = 2, YMm = 10, WidthMm = 30, HeightMm = 6 };
+            viewModel.Template.Objects.Add(composed);
+            viewModel.Template.Objects.Add(column);
+            viewModel.SelectedObject = composed;
+            Require(viewModel.SelectedBindingPreviewValue == "LOT ‹Lô›-A" && viewModel.SelectedBindingStatusText.Contains("khi in", StringComparison.Ordinal)
+                    && !viewModel.SelectedBindingStatusText.Contains("dòng Excel", StringComparison.Ordinal),
+                $"A prompt previews as the label shows it: {viewModel.SelectedBindingPreviewValue} | {viewModel.SelectedBindingStatusText}");
+            viewModel.SelectedObject = column;
+            Require(viewModel.SelectedBindingPreviewValue.Length == 0, "A column still waits for a data row: " + viewModel.SelectedBindingPreviewValue);
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

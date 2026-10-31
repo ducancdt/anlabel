@@ -2,6 +2,9 @@
 
 ## Sau v0.362
 
+- Thuộc tính › Ràng buộc của đối tượng chỉ đọc giá trị lúc in (biến nhập khi in, ngày in, số sê-ri):
+  “Xem trước” hiện giá trị mẫu như trên tem (vd. LOT ‹Lô›-A) và dòng trạng thái nói giá trị được nhập
+  hoặc lấy khi in; trước đây ô trống và khuyên “chọn một dòng Excel”. Đối tượng đọc cột vẫn chờ dòng dữ liệu.
 - Trình đọc màn hình đọc đúng chữ người dùng thấy: các mục của ô “Nguồn dữ liệu” trước đây có tên
   tự động hóa “DataSourceChoice { Group = …, Label = Lô, … }”, các hàng của bảng Dữ liệu là tên lớp
   hoặc bản ghi, các menu dựng trong mã (▾ hộp công cụ, Chèn nguồn ▾, danh sách Hoàn tác/Làm lại)

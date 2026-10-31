@@ -6272,13 +6272,17 @@ public sealed class MainViewModel : ObservableObject
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         var allJobVariables = usedFields.Count > 0 && usedFields.All(IsJobVariableField);
+        // Values given at print time preview with the design values the label shows (the
+        // prompt's last answer or default, else ‹Name›); a column needs a data row first.
+        var printTimeOnly = usedFields.Count > 0 && usedFields.All(field => !string.IsNullOrWhiteSpace(field) && IsPrintTimeField(field));
+        var previewRow = PreviewRow ?? (printTimeOnly ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) : null);
         return WithPositionalColumns(new BindingPreviewResult(
             allJobVariables ? "Biến nhập khi in" : "Trường giữ chỗ",
-            PreviewRow is null ? string.Empty : BindingExpressionEvaluator.Evaluate(expression, PreviewRow),
+            previewRow is null ? string.Empty : BindingExpressionEvaluator.Evaluate(expression, WithPrintTimeDesignValues(previewRow)),
             usedFields,
             missingPlaceholderFields,
             placeholderErrors,
-            BuildBindingStatusText(missingPlaceholderFields, placeholderErrors, PreviewRow is not null)), expression);
+            BuildBindingStatusText(missingPlaceholderFields, placeholderErrors, PreviewRow is not null, printTimeOnly)), expression);
     }
 
     /// <summary>
@@ -6423,7 +6427,7 @@ public sealed class MainViewModel : ObservableObject
         return row;
     }
 
-    private string BuildBindingStatusText(IReadOnlyList<string> missingFields, IReadOnlyList<string> errors, bool hasPreviewRow)
+    private string BuildBindingStatusText(IReadOnlyList<string> missingFields, IReadOnlyList<string> errors, bool hasPreviewRow, bool printTimeOnly = false)
     {
         // No column is known. With no file linked nothing is broken, a file is still to come;
         // a linked file not read (moved, open elsewhere, still loading) is named as such, not
@@ -6445,6 +6449,11 @@ public sealed class MainViewModel : ObservableObject
         if (errors.Count > 0)
         {
             return "Liên kết có lỗi xác thực.";
+        }
+
+        if (printTimeOnly)
+        {
+            return "Liên kết hợp lệ. Giá trị được nhập hoặc lấy khi in; xem trước dùng giá trị mẫu như trên tem.";
         }
 
         return hasPreviewRow

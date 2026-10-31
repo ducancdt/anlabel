@@ -83,6 +83,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("properties texts wrap inside the panel", DesignScenarioRegression.PropertiesTextsWrapInsideThePanel),
     ("a right-click in the data panel connects without dragging", DesignScenarioRegression.DataPanelRightClickConnectsWithoutDragging),
     ("screen readers read source names", DesignScenarioRegression.ScreenReadersReadSourceNames),
+    ("print-time values preview as the label shows", DesignScenarioRegression.PrintTimeValuesPreviewAsTheLabelShows),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
