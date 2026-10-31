@@ -70,6 +70,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("general and position pages follow NiceLabel", DesignScenarioRegression.GeneralAndPositionPagesFollowNiceLabel),
     ("the data panel searches and adds like NiceLabel's data explorer", DesignScenarioRegression.DataPanelSearchesAndAddsLikeNiceLabel),
     ("picture properties follow NiceLabel's pages", DesignScenarioRegression.PicturePropertiesFollowNiceLabelPages),
+    ("shapes and rich text keep only their pages", DesignScenarioRegression.ShapesAndRichTextKeepOnlyTheirPages),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
@@ -13972,8 +13973,9 @@ static Task TestDesignerLayoutFollowsNiceLabel10()
             AssertEqual(true, shellXaml.Contains("<MultiBinding StringFormat=\"{}{0} ({1})\">", StringComparison.Ordinal) && shellXaml.Contains("AutomationProperties.Name=\"Insert Rectangle\"", StringComparison.Ordinal),
                 "Object browser items and toolbox buttons must carry names for screen readers");
 
-            // No blank Properties pages: shapes explain they have no source, Rich text and Inverse explain their style.
-            foreach (var noteId in new[] { "Shell.Properties.ShapeSourceNote", "Shell.Properties.PictureSource", "Shell.Properties.RichTextStyleNote", "Shell.Properties.InverseStyleNote" })
+            // No blank Properties pages: a shape has no Nguồn tab at all (NiceLabel 10; the gate "shapes and rich
+            // text keep only their pages" checks it), pictures show their source, Rich text and Inverse explain their style.
+            foreach (var noteId in new[] { "Shell.Properties.PictureSource", "Shell.Properties.RichTextStyleNote", "Shell.Properties.InverseStyleNote" })
             {
                 AssertEqual(true, shellXaml.Contains($"AutomationProperties.AutomationId=\"{noteId}\"", StringComparison.Ordinal), $"{noteId} must exist");
             }

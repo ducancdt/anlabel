@@ -2350,6 +2350,8 @@
                                             Background="Transparent"
                                             AutomationProperties.Name="Properties sections">
                                     <TabItem AutomationProperties.Name="Source properties">
+                                        <!-- NiceLabel 10 shows no Source page for a shape (line, rectangle, ellipse, inverse) -->
+                                        <TabItem.Style><Style TargetType="TabItem" BasedOn="{StaticResource PanelTabItem}"><Style.Triggers><DataTrigger Binding="{Binding IsShapeObjectSelected}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TabItem.Style>
                                         <TabItem.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="Nguồn"/>
@@ -2597,27 +2599,6 @@
                                 </StackPanel>
 
                                 <!-- Shapes have no content or data source (NiceLabel 10 shows no Source page for them) -->
-                                <Border AutomationProperties.AutomationId="Shell.Properties.ShapeSourceNote">
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding SelectedIndex, ElementName=PropertiesModeTabs}" Value="0"/>
-                                                        <Condition Binding="{Binding IsShapeObjectSelected}" Value="True"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </MultiDataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock Text="Nguồn" Style="{StaticResource PropTitle}"/>
-                                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}"
-                                                   Text="Hình dạng không có nội dung hay nguồn dữ liệu. Đổi viền và nền ở thẻ Kiểu, kích thước ở thẻ Vị trí."/>
-                                    </StackPanel>
-                                </Border>
                                 <!-- NiceLabel 10 picture Source: the picture is embedded; its pixels, resolution and original size -->
                                 <Border AutomationProperties.AutomationId="Shell.Properties.PictureSource">
                                     <Border.Style>
@@ -2667,7 +2648,9 @@
                                 <TabControl x:Name="SourceSubTabs" ItemContainerStyle="{StaticResource PanelTabItem}" SelectedIndex="0" Height="28" Margin="0,0,0,4" Padding="0" BorderThickness="0" Background="Transparent"
                                             AutomationProperties.Name="Source sub pages" AutomationProperties.AutomationId="Shell.Properties.SourceSubTabs">
                                     <TabItem Header="Nguồn" AutomationProperties.Name="Source page"/>
-                                    <TabItem Header="Mặt nạ" AutomationProperties.Name="Mask page"/>
+                                    <TabItem Header="Mặt nạ" AutomationProperties.Name="Mask page">
+                                        <TabItem.Style><Style TargetType="TabItem" BasedOn="{StaticResource PanelTabItem}"><Style.Triggers><DataTrigger Binding="{Binding IsRichTextObjectSelected}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TabItem.Style>
+                                    </TabItem>
                                 </TabControl>
                                 <Border Style="{StaticResource PropCard}" AutomationProperties.AutomationId="Shell.Properties.Mask">
                                     <Border.Visibility>
@@ -2719,7 +2702,9 @@
                                         <TextBlock Text="Bôi đen chữ rồi bấm B, I, U hoặc đổi cỡ, ở đây hay ở nhóm Phông chữ trên thanh lệnh. Không bôi đen thì thanh lệnh áp cho toàn bộ nội dung." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource PropCard}" Visibility="{Binding SelectedIndex, ElementName=SourceSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=0}">
+                                <Border>
+                                    <!-- A rich text box prints its own formatted text: no data source list (NiceLabel 10 Rich Text Box Source is its editor) -->
+                                    <Border.Style><Style TargetType="Border" BasedOn="{StaticResource PropCard}"><Setter Property="Visibility" Value="{Binding SelectedIndex, ElementName=SourceSubTabs, Converter={StaticResource IndexToVisibility}, ConverterParameter=0}"/><Style.Triggers><DataTrigger Binding="{Binding IsRichTextObjectSelected}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
                                     <StackPanel>
                                         <TextBlock Text="Nội dung" Style="{StaticResource PropTitle}"/>
                                         <!-- NiceLabel 10 "Connected data source": fixed text, a prompt, a column, a function,

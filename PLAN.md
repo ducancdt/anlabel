@@ -2,6 +2,10 @@
 
 ## Sau v0.360
 
+- Thuộc tính của hình (đường kẻ, chữ nhật, bầu dục, đảo màu) không còn thẻ Nguồn, như NiceLabel 10:
+  chọn hình là mở thẳng thẻ Kiểu (trước đây thẻ Nguồn chỉ ghi “không có nguồn”). Chữ định dạng (RTF)
+  chỉ còn ô soạn trên thẻ Nguồn: bỏ ô “Nguồn dữ liệu” và trang Mặt nạ, vì chữ RTF in nội dung của
+  chính nó (chọn một cột ở đó trước đây không có tác dụng khi in).
 - Thuộc tính của hình ảnh như các trang Source và Graphic Resizing của NiceLabel 10: thẻ Nguồn có ảnh
   và chính sách ảnh điểm (cách ảnh thành điểm in); trang kiểu của ảnh nay tên “Đổi cỡ” với cỡ ảnh, lật
   và Về cỡ gốc. Trước đây nút “Chọn hình ảnh…” có ở cả hai thẻ và chính sách ảnh điểm nằm lẫn với cỡ

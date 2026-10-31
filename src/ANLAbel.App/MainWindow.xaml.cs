@@ -314,6 +314,20 @@ public partial class MainWindow : Window
             UpdateDataSourceSelection();
         }
 
+        // A shape has no Nguồn tab and a rich text box no Mặt nạ page: leave a hidden page.
+        if (e.PropertyName == nameof(MainViewModel.SelectedObject))
+        {
+            if (_viewModel.IsShapeObjectSelected && PropertiesModeTabs.SelectedIndex == 0)
+            {
+                PropertiesModeTabs.SelectedIndex = 1;
+            }
+
+            if (_viewModel.IsRichTextObjectSelected && SourceSubTabs.SelectedIndex == 1)
+            {
+                SourceSubTabs.SelectedIndex = 0;
+            }
+        }
+
         // A 2D code has no Số kiểm tra or Chữ dưới mã page: leave a hidden page for the first.
         if (e.PropertyName is nameof(MainViewModel.IsSelectedLinearCode) && !_viewModel.IsSelectedLinearCode
             && BarcodeSubTabs.SelectedIndex is 1 or 2)

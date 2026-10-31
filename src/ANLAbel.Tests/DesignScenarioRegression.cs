@@ -504,6 +504,74 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10 shows no Source page for a shape, and a rich text box's Source page is its
+    /// editor. ANLAbel showed a shape a Nguồn tab saying it had no source, and a rich text box a
+    /// data source list and a mask page it never prints. A shape now opens on Kiểu with no Nguồn
+    /// tab, and a rich text box keeps only its editor; a text keeps its source list and mask.
+    /// </summary>
+    public static Task ShapesAndRichTextKeepOnlyTheirPages()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var box = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 1, YMm = 1, WidthMm = 30, HeightMm = 20 };
+            var rich = new LabelObject { Type = ObjectType.RichTextBox, Name = "Ghi chú", XMm = 3, YMm = 25, WidthMm = 30, HeightMm = 8 };
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Mã", Text = "A", XMm = 3, YMm = 40, WidthMm = 20, HeightMm = 5 };
+            viewModel.Template.Objects.Add(box);
+            viewModel.Template.Objects.Add(rich);
+            viewModel.Template.Objects.Add(text);
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            var subTabs = (TabControl)window.FindName("SourceSubTabs");
+            TabItem Tab(TabControl control, string name) => control.Items.OfType<TabItem>().Single(item => AutomationProperties.GetName(item) == name);
+            var sourceList = (FrameworkElement)window.FindName("DataSourceComboBox");
+            bool Shown(FrameworkElement element)
+            {
+                for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, tabs.Parent); node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement item && item.Visibility != Visibility.Visible)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            tabs.SelectedIndex = 0;
+            viewModel.SelectedObject = box;
+            Settle();
+            Require(Tab(tabs, "Source properties").Visibility == Visibility.Collapsed && tabs.SelectedIndex == 1,
+                $"A shape has no Nguồn tab and opens on Kiểu: tab {tabs.SelectedIndex}");
+
+            tabs.SelectedIndex = 0;
+            subTabs.SelectedIndex = 1;
+            viewModel.SelectedObject = rich;
+            Settle();
+            Require(Tab(tabs, "Source properties").Visibility == Visibility.Visible && Tab(subTabs, "Mask page").Visibility == Visibility.Collapsed
+                    && subTabs.SelectedIndex == 0 && !Shown(sourceList),
+                $"A rich text box keeps Nguồn with its editor only: sub page {subTabs.SelectedIndex}, source list shown {Shown(sourceList)}");
+
+            viewModel.SelectedObject = text;
+            Settle();
+            Require(Tab(subTabs, "Mask page").Visibility == Visibility.Visible && Shown(sourceList), "A text keeps its source list and its mask page.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
     private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
         where T : DependencyObject
