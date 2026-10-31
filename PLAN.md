@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.356
+## v0.357 — Phím tắt thiết kế như NiceLabel 10; dán sang tem khác mang theo hàm và biến; hỏi trước khi xóa hàm hay biến đang dùng; dấu khóa trên đối tượng
+
+_Gồm các commit 31/10/2026 (17:14–17:22)._
 
 - Thiết kế: phím tắt như NiceLabel 10: Ctrl+A chọn mọi đối tượng, Ctrl+X cắt (nút Cắt vốn ghi
   Ctrl+X mà phím không làm gì), Ctrl+G và Ctrl+Shift+G nhóm và bỏ nhóm, Ctrl+B, Ctrl+I, Ctrl+U
