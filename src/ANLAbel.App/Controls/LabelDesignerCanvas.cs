@@ -105,6 +105,10 @@ public sealed class LabelDesignerCanvas : Canvas
     private readonly HashSet<LabelObject> _matrixAutoSizingObjects = new();
     private readonly HashSet<LabelObject> _textAutoSizingObjects = new();
     private readonly List<LabelObject> _clipboardObjects = new();
+    private ANLAbel.Core.Data.DataDefinitionImport.Carried _clipboardDefinitions = ANLAbel.Core.Data.DataDefinitionImport.Carried.None;
+
+    /// <summary>The label's data columns: a pasted function named like one stays behind.</summary>
+    public Func<IEnumerable<string>>? DataColumnNames { get; set; }
     private readonly Dictionary<LabelObject, bool> _gestureObjectErrorStates = new();
     private readonly Dictionary<LabelObject, (double X, double Y, double EndX, double EndY)> _groupDragStarts = new();
     private readonly Dictionary<LabelObject, GroupResizeObjectSnapshot> _groupResizeStarts = new();
@@ -147,7 +151,6 @@ public sealed class LabelDesignerCanvas : Canvas
     private Point _drawingStartMm;
     private Point _lastDrawingEndMm;
     private string _dimensionBuffer = string.Empty;
-    private int _pasteCount;
 
     // Alignment guide system. Interaction tolerance is expressed in screen DIP so
     // snapping feels consistent at 25% and 400% zoom alike; document geometry stays mm.
@@ -3254,7 +3257,11 @@ public sealed class LabelDesignerCanvas : Canvas
 
         _clipboardObjects.Clear();
         _clipboardObjects.AddRange(items.Select(LabelObjectCloner.Clone));
-        _pasteCount = 0;
+        // The functions and prompts they read go with them to another label; a name that
+        // reaches a column of this label reads the column.
+        _clipboardDefinitions = Template is null
+            ? ANLAbel.Core.Data.DataDefinitionImport.Carried.None
+            : ANLAbel.Core.Data.DataDefinitionImport.ReadBy(Template, items, DataColumnNames?.Invoke());
         return true;
     }
 
@@ -3265,12 +3272,37 @@ public sealed class LabelDesignerCanvas : Canvas
             return false;
         }
 
-        _pasteCount++;
-        var offset = Math.Min(20, 3 * _pasteCount);
+        // Into another label, or after a cut, the objects keep their place and names, as
+        // NiceLabel 10 pastes; where an original or a copy already sits they step 3 mm
+        // further, to the first place where none of them lands on an object of its kind.
         var pasted = _clipboardObjects.Select(LabelObjectCloner.Clone).ToArray();
         var bounds = GetObjectsBoundsMm(pasted);
-        var deltaX = Math.Max(-bounds.Left, Math.Min(Template.WidthMm - bounds.Right, offset));
-        var deltaY = Math.Max(-bounds.Top, Math.Min(Template.HeightMm - bounds.Bottom, offset));
+        (double X, double Y) Delta(int step)
+        {
+            // At their own place the objects keep the layout as copied, also one that reaches
+            // past the label edge; a copy stepped aside is kept on the label.
+            if (step == 0)
+            {
+                return (0, 0);
+            }
+
+            var offset = Math.Min(20, 3 * step);
+            return (Math.Max(-bounds.Left, Math.Min(Template.WidthMm - bounds.Right, offset)),
+                Math.Max(-bounds.Top, Math.Min(Template.HeightMm - bounds.Bottom, offset)));
+        }
+
+        bool Taken((double X, double Y) delta) => pasted.Any(copy => Template.Objects.Any(item =>
+            item.Type == copy.Type
+            && Math.Abs(item.XMm - (copy.XMm + delta.X)) < 0.05
+            && Math.Abs(item.YMm - (copy.YMm + delta.Y)) < 0.05));
+        var steps = 0;
+        while (steps < 7 && Taken(Delta(steps)))
+        {
+            steps++;
+        }
+
+        var besideOriginals = steps > 0;
+        var (deltaX, deltaY) = Delta(steps);
         var nextZ = Template.Objects.Count == 0 ? 1 : Template.Objects.Max(item => item.ZIndex) + 1;
 
         _selectedObjects.Clear();
@@ -3290,16 +3322,25 @@ public sealed class LabelDesignerCanvas : Canvas
             }
 
             item.Id = Guid.NewGuid().ToString("N");
-            item.Name = CreateCopyName(item.Name);
+            if (besideOriginals)
+            {
+                item.Name = CreateCopyName(item.Name);
+            }
+
             item.ZIndex = nextZ++;
             MoveObject(item, deltaX, deltaY);
             Template.Objects.Add(item);
             _selectedObjects.Add(item);
         }
 
+        var brought = ANLAbel.Core.Data.DataDefinitionImport.BringAlong(Template, _clipboardDefinitions, DataColumnNames?.Invoke());
         NotifyEditGestureCompleted();
         SelectedObject = pasted.LastOrDefault();
         RefreshSelectionAdorner();
+        if (ANLAbel.App.Services.PastedDefinitionsText.Describe(brought) is { Length: > 0 } note)
+        {
+            InteractionStatusText = note;
+        }
 
         InvalidateVisual();
         return true;

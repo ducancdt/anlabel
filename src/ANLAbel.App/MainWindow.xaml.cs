@@ -40,6 +40,7 @@ public partial class MainWindow : Window
         DesignerCanvas.EditGestureCanceled += (_, _) => _viewModel.CancelTemplateEditGesture();
         DesignerCanvas.DataSourceDropped += (_, e) => _viewModel.DropDataSource(e.Binding, e.XMm, e.YMm, e.Target, e.NewObject);
         _viewModel.SelectionProvider = () => DesignerCanvas.SelectedObjects;
+        DesignerCanvas.DataColumnNames = () => _viewModel.KnownColumnNames;
         // The selection changes on a click or a key; the Properties title counts it after each.
         PreviewMouseUp += (_, _) => Dispatcher.BeginInvoke(_viewModel.RefreshSelectionScope, System.Windows.Threading.DispatcherPriority.Input);
         PreviewKeyUp += (_, _) => Dispatcher.BeginInvoke(_viewModel.RefreshSelectionScope, System.Windows.Threading.DispatcherPriority.Input);

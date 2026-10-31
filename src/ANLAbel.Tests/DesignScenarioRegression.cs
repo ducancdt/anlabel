@@ -3034,6 +3034,191 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Every paste stepped 3 mm aside and renamed its objects "(bản sao)", even into
+    /// another label or after a cut, and a barcode built from a function or a print-time
+    /// answer arrived without them. As NiceLabel 10 pastes, objects now keep their place
+    /// and names unless their originals or an earlier copy are on the label, and bring
+    /// the functions and prompt variables they read; a name the label already has keeps
+    /// the label's definition and the status line says so. One undo removes it all.
+    /// </summary>
+    public static Task PasteIntoAnotherLabelKeepsPlaceNamesAndDefinitions()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            window.Measure(new Size(1440, 900));
+            window.Arrange(new Rect(0, 0, 1440, 900));
+            window.UpdateLayout();
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            void Commit() => typeof(ANLAbel.App.ViewModels.MainViewModel).GetMethod("CommitPendingHistory", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewModel, null);
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var selection = (HashSet<LabelObject>)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_selectedObjects", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            LabelObject Named(string name) => viewModel.Template.Objects.Single(item => item.Name == name);
+            void Select(params string[] names)
+            {
+                selection.Clear();
+                viewModel.SelectedObject = Named(names[0]);
+                Pump();
+                foreach (var name in names)
+                {
+                    selection.Add(Named(name));
+                }
+            }
+
+            string Places() => string.Join(" ", viewModel.Template.Objects.OrderBy(item => item.Name, StringComparer.Ordinal).Select(item => $"{item.Name}@{item.XMm:0.#},{item.YMm:0.#}"));
+
+            var source = viewModel.Template;
+            source.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(FIELD(\"PO\"), \"|\", FIELD(\"?Lô\"), \"|\", FIELD(\"Tổng\"))"));
+            source.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tổng", "FIELD(\"QTY\")"));
+            source.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Thừa", "FIELD(\"X\")"));
+            source.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã hàng", "CONCAT(FIELD(\"PO\"), \"-\", FIELD(\"QTY\"))"));
+            source.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô", Prompt = "Số lô", MaxLength = 8 });
+            source.PromptVariables.Add(new PromptVariableDefinition { Name = "Ca", Prompt = "Ca làm" });
+            source.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "QR", BindingExpression = "{Mã QR}", XMm = 5, YMm = 5, WidthMm = 20, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            source.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "PO", BindingExpression = "{Mã hàng}", XMm = 30, YMm = 5, WidthMm = 20, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+            Pump();
+            Commit();
+
+            // A cut and a paste put the object back where it was, under its own name.
+            Select("PO");
+            Require(canvas.CutSelectedObjects() && viewModel.Template.Objects.Count == 1, "PO is cut.");
+            Require(canvas.PasteCopiedObjects() && Places() == "PO@30,5 QR@5,5", "Cut and paste keeps PO's place and name: " + Places());
+            Commit();
+
+            // Beside the originals a paste still steps aside as a copy.
+            Select("QR", "PO");
+            Require(canvas.CopySelectedObjects() && canvas.PasteCopiedObjects(), "QR and PO are copied and pasted.");
+            Require(Places() == "PO@30,5 PO (bản sao)@33,8 QR@5,5 QR (bản sao)@8,8", "Beside the originals the copies step aside: " + Places());
+            Require(source.DataTransforms.Count == 4 && source.PromptVariables.Count == 2, "The same label gets no second definition.");
+
+            // Copied again from the originals, the next paste steps past the first copies.
+            Select("QR", "PO");
+            Require(canvas.CopySelectedObjects() && canvas.PasteCopiedObjects(), "The originals are copied and pasted again.");
+            Require(Places() == "PO@30,5 PO (bản sao)@33,8 PO (bản sao) 2@36,11 QR@5,5 QR (bản sao)@8,8 QR (bản sao) 2@11,11",
+                "Copied again, the paste does not land on the first copies: " + Places());
+            Commit();
+
+            // Another label: the objects keep their place and names and bring what they read.
+            viewModel.NewTemplate(new ANLAbel.App.ViewModels.NewTemplateRequest("Tem B", 80, 50, 203));
+            var target = viewModel.Template;
+            target.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Tổng", "CONCAT(FIELD(\"QTY\"), \" cái\")"));
+            var table = new System.Data.DataTable();
+            table.Columns.Add("PO");
+            table.Columns.Add("QTY");
+            table.Rows.Add("P1", "5");
+            viewModel.SelectedDataItem = table.DefaultView[0];
+            Pump();
+            Commit();
+            Require(canvas.PasteCopiedObjects() && Places() == "PO@30,5 QR@5,5", "Into another label the objects keep their place and names: " + Places());
+            Require(viewModel.PreviewRow is { } shown && shown.TryGetValue("Mã hàng", out var code) && code == "P1-5",
+                "A function the paste brings shows its value on the data row at once: " + string.Join(", ", viewModel.PreviewRow?.Select(pair => $"{pair.Key}={pair.Value}") ?? []));
+            Require(string.Join(", ", target.DataTransforms.Select(transform => transform.Name)) == "Tổng, Mã QR, Mã hàng"
+                    && target.DataTransforms[0].Formula == "CONCAT(FIELD(\"QTY\"), \" cái\")",
+                "The function comes along; the label keeps its own Tổng: " + string.Join(", ", target.DataTransforms.Select(transform => $"{transform.Name}={transform.Formula}")));
+            Require(target.PromptVariables.Count == 1 && target.PromptVariables[0] is { Name: "Lô", MaxLength: 8, Prompt: "Số lô" },
+                "The prompt comes with its rules; Ca, which nothing pasted reads, stays behind.");
+            Require(viewModel.StatusText.Contains("“Mã QR”", StringComparison.Ordinal) && viewModel.StatusText.Contains("“Lô”", StringComparison.Ordinal)
+                    && viewModel.StatusText.Contains("đã có hàm “Tổng”", StringComparison.Ordinal),
+                "The status line names what came and the function the label kept: " + viewModel.StatusText);
+            Commit();
+
+            viewModel.UndoCommand.Execute(null);
+            Pump();
+            Require(viewModel.Template.Objects.Count == 0 && viewModel.Template.DataTransforms.Count == 1 && viewModel.Template.PromptVariables.Count == 0,
+                $"One undo takes the objects and the definitions back out: {viewModel.Template.Objects.Count} objects, {viewModel.Template.DataTransforms.Count} functions, {viewModel.Template.PromptVariables.Count} prompts.");
+
+            // Pasted twice, the second copy steps aside from the first.
+            Require(canvas.PasteCopiedObjects() && canvas.PasteCopiedObjects(), "Two pastes.");
+            Require(Places() == "PO@30,5 PO (bản sao)@33,8 QR@5,5 QR (bản sao)@8,8", "The second paste steps aside from the first: " + Places());
+
+            // With the first copies deleted, a paste takes their free place, and the next one
+            // steps past every copy still on the label.
+            foreach (var first in viewModel.Template.Objects.Where(item => item.Name is "PO" or "QR").ToArray())
+            {
+                viewModel.Template.Objects.Remove(first);
+            }
+
+            Pump();
+            Require(canvas.PasteCopiedObjects() && Places() == "PO@30,5 PO (bản sao)@33,8 QR@5,5 QR (bản sao)@8,8",
+                "A paste takes the free place of the deleted copies: " + Places());
+            Require(canvas.PasteCopiedObjects() && Places() == "PO@30,5 PO (bản sao)@33,8 PO (bản sao) 2@36,11 QR@5,5 QR (bản sao)@8,8 QR (bản sao) 2@11,11",
+                "A paste never lands on a copy still on the label: " + Places());
+
+            // A function named like a column of the label's data stays behind: a function of that
+            // name would stop all the label's functions. The pasted object reads the column.
+            viewModel.NewTemplate(new ANLAbel.App.ViewModels.NewTemplateRequest("Tem C", 80, 50, 203));
+            viewModel.ExcelHeaders.Add("Mã hàng");
+            Pump();
+            Require(canvas.PasteCopiedObjects(), "The objects paste into a third label.");
+            Require(string.Join(", ", viewModel.Template.DataTransforms.Select(transform => transform.Name)) == "Mã QR, Tổng",
+                "Mã hàng stays behind for the column of that name: " + string.Join(", ", viewModel.Template.DataTransforms.Select(transform => transform.Name)));
+            Require(viewModel.StatusText.Contains("đọc cột “Mã hàng”", StringComparison.Ordinal), "The status line says the label reads the column: " + viewModel.StatusText);
+
+            // An object reaching past the label edge keeps its place in a paste at its own place:
+            // the layout is copied as it is.
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "Lề", XMm = -1, YMm = 2, WidthMm = 10, HeightMm = 5 });
+            Pump();
+            Select("Lề");
+            Require(canvas.CopySelectedObjects(), "Lề is copied.");
+            viewModel.NewTemplate(new ANLAbel.App.ViewModels.NewTemplateRequest("Tem D", 80, 50, 203));
+            Pump();
+            Require(canvas.PasteCopiedObjects() && viewModel.Template.Objects.Single() is { XMm: -1.0, YMm: 2.0 },
+                "A paste at its own place keeps an object past the edge where it was: " + Places());
+
+            // The Data Manager replacing every function computes the shown row once, not once per function.
+            viewModel.SelectedDataItem = table.DefaultView[0];
+            Pump();
+            var rowChanges = 0;
+            void CountRow(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName == nameof(ANLAbel.App.ViewModels.MainViewModel.PreviewRow))
+                {
+                    rowChanges++;
+                }
+            }
+
+            viewModel.PropertyChanged += CountRow;
+            viewModel.ApplyDataDefinitions(viewModel.Template.PromptVariables.ToArray(), viewModel.Template.DataTransforms.ToArray(), viewModel.Template.SerialCounter.Clone());
+            viewModel.PropertyChanged -= CountRow;
+            Require(rowChanges <= 1, "Applying the Data Manager computes the shown row once: " + rowChanges);
+
+            // Several objects step together: a place is free only when none of them lands on an
+            // object of its kind, also when one original has moved away or one copy is gone.
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "A", ZIndex = 1, XMm = 10, YMm = 10, WidthMm = 5, HeightMm = 5 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Rectangle, Name = "B", ZIndex = 2, XMm = 30, YMm = 10, WidthMm = 5, HeightMm = 5 });
+            Pump();
+            Select("A", "B");
+            Require(canvas.CopySelectedObjects(), "A and B are copied.");
+            Named("A").XMm = 50;
+            Pump();
+            Require(canvas.PasteCopiedObjects() && Places() == "A@50,10 A (bản sao)@13,13 B@30,10 B (bản sao)@33,13 Lề@-1,2",
+                "With A moved away the paste still steps past B: " + Places());
+            viewModel.Template.Objects.Remove(Named("A (bản sao)"));
+            Pump();
+            Require(canvas.PasteCopiedObjects() && Places() == "A@50,10 A (bản sao)@16,16 B@30,10 B (bản sao)@33,13 B (bản sao) 2@36,16 Lề@-1,2",
+                "A copy gone from under one object does not free the place for all: " + Places());
+
+            // An object reading a column of its label carries no function of a like name.
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("Mã QR", "CONCAT(\"Q\", \"R\")"));
+            // A column saved with the label counts while its file is not read.
+            viewModel.LabelDatabaseFields.Add(new DatabaseField { Name = "Mã_QR" });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Cột", BindingExpression = "{Mã_QR}", XMm = 5, YMm = 30, WidthMm = 20, HeightMm = 6 });
+            Pump();
+            Select("Cột");
+            Require(canvas.CopySelectedObjects(), "Cột is copied.");
+            var carried = (ANLAbel.Core.Data.DataDefinitionImport.Carried)typeof(ANLAbel.App.Controls.LabelDesignerCanvas)
+                .GetField("_clipboardDefinitions", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            Require(carried.Transforms.Count == 0,
+                "Cột reads the column “Mã_QR”, not the function “Mã QR”: " + string.Join(", ", carried.Transforms.Select(transform => transform.Name)));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Customer sheets fill a formula or a constant down past their records (1
     /// record and 198 rows holding only a weight; 1 record and 8 rows holding
     /// only the maker), and every row started selected, so each job asked to

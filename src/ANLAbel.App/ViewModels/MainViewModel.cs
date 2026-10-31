@@ -82,6 +82,8 @@ public sealed class MainViewModel : ObservableObject
     private bool _selectedObjectRefreshDeferred;
     // Set while an edit of the key object is copied to the rest of the selection.
     private bool _sharingWithSelection;
+    // The Data Manager is replacing every function: the shown row is computed once, after.
+    private bool _replacingDataTransforms;
     private readonly Stack<string> _redoStack = new();
     // The name of each step, kept in step with the two snapshot stacks (the Undo ▾ and Redo ▾ lists).
     private readonly Stack<string> _undoNames = new();
@@ -720,6 +722,18 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> ExcelHeaders { get; } = new();
     public ObservableCollection<DatabaseField> AvailableDatabaseFields => Template.DatabaseConfig.AvailableFields;
     public ObservableCollection<DatabaseField> LabelDatabaseFields => Template.DatabaseConfig.LabelFields;
+
+    /// <summary>
+    /// The label's data columns as far as they are known: the linked file's headers, and while
+    /// the file is not read (moved, open elsewhere, still loading) the columns read before or
+    /// saved with the label. A name resolves against them as printing will once the file is read.
+    /// </summary>
+    public IReadOnlyList<string> KnownColumnNames => ExcelHeaders
+        .Concat(AvailableDatabaseFields.Select(field => field.Name))
+        .Concat(LabelDatabaseFields.Select(field => field.Name))
+        .Where(name => !string.IsNullOrWhiteSpace(name))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
     public ObservableCollection<FormulaBuilderPart> FormulaBuilderParts { get; } = new();
     public IReadOnlyList<BarcodeSymbology> BarcodeSymbologies { get; } = Enum.GetValues<BarcodeSymbology>();
     public IReadOnlyList<BarcodeSymbologyOption> BarcodeSymbologyOptions { get; } =
@@ -4703,6 +4717,7 @@ public sealed class MainViewModel : ObservableObject
         template.PrinterProfile.PropertyChanged += PrinterProfileOnPropertyChanged;
         template.SerialCounter.PropertyChanged += SerialCounterOnPropertyChanged;
         template.PromptVariables.CollectionChanged += PromptVariablesOnCollectionChanged;
+        template.DataTransforms.CollectionChanged += DataTransformsOnCollectionChanged;
         foreach (var prompt in template.PromptVariables)
         {
             prompt.PropertyChanged += SerialCounterOnPropertyChanged;
@@ -4728,6 +4743,7 @@ public sealed class MainViewModel : ObservableObject
         template.PrinterProfile.PropertyChanged -= PrinterProfileOnPropertyChanged;
         template.SerialCounter.PropertyChanged -= SerialCounterOnPropertyChanged;
         template.PromptVariables.CollectionChanged -= PromptVariablesOnCollectionChanged;
+        template.DataTransforms.CollectionChanged -= DataTransformsOnCollectionChanged;
         foreach (var prompt in template.PromptVariables)
         {
             prompt.PropertyChanged -= SerialCounterOnPropertyChanged;
@@ -4788,6 +4804,18 @@ public sealed class MainViewModel : ObservableObject
         }
 
         RecordTemplateChange(new ANLAbel.App.Services.HistoryChange(ANLAbel.App.Services.HistoryStepText.LabelAction(e.PropertyName), null));
+    }
+
+    // Functions feed the preview row: one a paste brings gives its value on the shown row at once.
+    private void DataTransformsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_replacingDataTransforms)
+        {
+            return;
+        }
+
+        PreviewRow = CreatePreviewRow(SelectedDataItem);
+        RaiseFormulaPreviewChanged();
     }
 
     private void PromptVariablesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -5005,12 +5033,20 @@ public sealed class MainViewModel : ObservableObject
                 }
             }
 
-            Template.DataTransforms.Clear();
-            foreach (var transform in transforms)
+            _replacingDataTransforms = true;
+            try
             {
-                Template.DataTransforms.Add(renames.Count == 0 && functions.Count == 0
-                    ? transform
-                    : transform with { Formula = Renamed(transform.Formula) });
+                Template.DataTransforms.Clear();
+                foreach (var transform in transforms)
+                {
+                    Template.DataTransforms.Add(renames.Count == 0 && functions.Count == 0
+                        ? transform
+                        : transform with { Formula = Renamed(transform.Formula) });
+                }
+            }
+            finally
+            {
+                _replacingDataTransforms = false;
             }
 
             Template.SerialCounter.CopyFrom(serialCounter);

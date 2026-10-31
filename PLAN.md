@@ -15,6 +15,13 @@
   NiceLabel 10; trước đây chỉ đối tượng mốc đổi lớp. Lên trên cùng, xuống dưới cùng chỉ đổi
   lớp của đối tượng được chuyển; hai đối tượng cùng giá trị lớp không còn làm lệnh như không
   có tác dụng.
+- Thiết kế: dán sang tem khác, hay dán lại sau khi cắt, giữ nguyên vị trí và tên đối tượng, như
+  NiceLabel 10; chỉ khi chỗ đó đã có bản gốc hay một bản sao, bản dán mới lệch thêm 3 mm tới chỗ
+  trống đầu tiên và mang tên “(bản sao)”. Đối tượng dán mang theo hàm và biến nhập khi
+  in mà nó đọc (kèm quy tắc nhập) nếu tem đích chưa có; tên tem đích đã có thì giữ định nghĩa của
+  tem đích và thanh trạng thái báo khi hai định nghĩa khác nhau; hàm trùng tên một cột của tệp
+  dữ liệu không được thêm (đối tượng đọc cột đó). Một lần Ctrl+Z bỏ cả đối tượng lẫn định nghĩa
+  đã thêm.
 
 ## v0.356 — Tem NiceLabel chưa liên kết tệp chờ dữ liệu thay vì báo hỏng; dòng không có dữ liệu cho tem không in; nhắc dấu phân cách hàng nghìn trong mã vạch
 

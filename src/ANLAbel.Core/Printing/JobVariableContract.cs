@@ -253,7 +253,7 @@ public static partial class JobVariableContract
     /// The names an expression reads: <c>{Name}</c> placeholders, or the
     /// FIELD names of a formula (which may name prompts and date fields too).
     /// </summary>
-    private static IEnumerable<string> ExpressionTokens(string expression)
+    internal static IEnumerable<string> ExpressionTokens(string expression)
     {
         if (Expressions.Formulas.FormulaBindingEvaluator.LooksLikeFormula(expression))
         {
