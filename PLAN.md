@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.360
+
+- Thuộc tính của hình ảnh như các trang Source và Graphic Resizing của NiceLabel 10: thẻ Nguồn có ảnh
+  và chính sách ảnh điểm (cách ảnh thành điểm in); trang kiểu của ảnh nay tên “Đổi cỡ” với cỡ ảnh, lật
+  và Về cỡ gốc. Trước đây nút “Chọn hình ảnh…” có ở cả hai thẻ và chính sách ảnh điểm nằm lẫn với cỡ
+  ảnh.
+
 ## v0.360 — Thuộc tính sắp như NiceLabel 10 (một ô Nguồn dữ liệu; các trang Mã vạch, Chung, Vị trí); bảng Dữ liệu có ô tìm; mở tem hay nạp lại dữ liệu không còn đổi nguồn của đối tượng
 
 _Gồm các commit 31/10/2026 (19:20–20:26)._

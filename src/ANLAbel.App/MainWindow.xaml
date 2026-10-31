@@ -2365,6 +2365,7 @@
                                                         <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.BarcodeCode128}"><Setter Property="Text" Value="Mã vạch"/></DataTrigger>
                                                         <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.QRCode}"><Setter Property="Text" Value="Mã vạch"/></DataTrigger>
                                                         <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.DataMatrix}"><Setter Property="Text" Value="Mã vạch"/></DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Image}"><Setter Property="Text" Value="Đổi cỡ"/></DataTrigger>
                                                     </Style.Triggers></Style></TextBlock.Style>
                                                 </TextBlock>
                                             </StackPanel>
@@ -2637,8 +2638,13 @@
                                         <TextBlock Text="Nguồn ảnh" Style="{StaticResource PropTitle}"/>
                                         <TextBlock Text="{Binding SelectedPictureSourceText}" TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,0,0,6"/>
                                         <Button Content="Chọn hình ảnh..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch"/>
+                                        <TextBlock Text="Chính sách ảnh điểm" Style="{StaticResource PropLabel}" Margin="0,8,0,1"/>
+                                        <ComboBox ItemsSource="{Binding ImageRasterModes}" ItemTemplate="{StaticResource DisplayNameItem}"
+                                                  SelectedItem="{Binding SelectedObject.ImageRasterMode, Mode=TwoWay}"
+                                                  AutomationProperties.Name="Picture raster mode"
+                                                  ToolTip="Trình điều khiển xử lý: giữ màu và độ trong suốt cho trình điều khiển máy in; các chế độ đơn sắc đổi ảnh thành điểm đen trắng trước khi gửi."/>
                                         <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,6,0,0"
-                                                   Text="Cỡ ảnh, lật ảnh và Về cỡ gốc ở thẻ Kiểu."/>
+                                                   Text="Cỡ ảnh, lật ảnh và Về cỡ gốc ở thẻ Đổi cỡ."/>
                                     </StackPanel>
                                 </Border>
                                 <StackPanel>
@@ -3604,14 +3610,8 @@
                                         </Style>
                                     </Border.Style>
                                     <StackPanel>
-                                        <TextBlock Text="Hình ảnh" Style="{StaticResource PropTitle}"/>
-                                        <Button Content="Chọn hình ảnh..." Command="{Binding ReplaceSelectedImageCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,4"/>
-                                        <TextBlock Text="Chính sách ảnh điểm" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
-                                        <ComboBox ItemsSource="{Binding ImageRasterModes}" ItemTemplate="{StaticResource DisplayNameItem}"
-                                                  SelectedItem="{Binding SelectedObject.ImageRasterMode, Mode=TwoWay}"
-                                                  Margin="0,0,0,3"
-                                                  ToolTip="Trình điều khiển xử lý: giữ màu/độ trong suốt cho trình điều khiển máy in; các chế độ đơn sắc dùng cùng phép biến đổi tất định ở thiết kế, xem trước và in."/>
-                                        <TextBlock Text="Cỡ ảnh" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBlock Text="Đổi cỡ ảnh" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Cỡ ảnh" Style="{StaticResource PropLabel}" Margin="0,0,0,1"/>
                                         <ComboBox ItemsSource="{Binding PictureSizings}" ItemTemplate="{StaticResource DisplayNameItem}"
                                                   SelectedItem="{Binding SelectedObject.PictureSizing, Mode=TwoWay}" Margin="0,0,0,4"
                                                   ToolTip="Co giãn theo tỉ lệ: cả ảnh, canh giữa. Kéo đầy khung: ảnh giãn theo khung. Giữ cỡ gốc: cỡ theo điểm ảnh và độ phân giải, cắt ở khung." AutomationProperties.Name="Cỡ ảnh"/>

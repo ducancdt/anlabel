@@ -440,6 +440,70 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10 shows a picture on Source (the picture) and Graphic Resizing pages. ANLAbel's
+    /// picture had "Chọn hình ảnh..." on both Nguồn and Kiểu, and the raster mode, which decides how
+    /// the picture becomes print dots, among the sizing. Nguồn now holds the picture and its raster
+    /// mode; the style page is "Đổi cỡ" with the sizing, flips and original size.
+    /// </summary>
+    public static Task PicturePropertiesFollowNiceLabelPages()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var picture = new LabelObject { Type = ObjectType.Image, Name = "Logo", XMm = 3, YMm = 3, WidthMm = 12, HeightMm = 9 };
+            viewModel.Template.Objects.Add(picture);
+            viewModel.SelectedObject = picture;
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            var style = tabs.Items.OfType<TabItem>().Single(item => AutomationProperties.GetName(item) == "Style properties");
+            Settle();
+            var header = FindVisualChildren<TextBlock>((DependencyObject)style.Header).Select(block => block.Text).First(value => !string.IsNullOrEmpty(value));
+            Require(header == "Đổi cỡ", "A picture's style page is Đổi cỡ (Graphic Resizing): " + header);
+
+            bool Shown(FrameworkElement element)
+            {
+                for (DependencyObject? node = element; node is not null; node = VisualTreeHelper.GetParent(node))
+                {
+                    if (node is UIElement item && item.Visibility != Visibility.Visible)
+                    {
+                        return false;
+                    }
+
+                    if (ReferenceEquals(node, tabs.Parent))
+                    {
+                        return true;
+                    }
+                }
+
+                return true;
+            }
+
+            var panel = (DependencyObject)tabs.Parent;
+            Button[] PickButtons() => FindVisualChildren<Button>(panel).Where(button => Equals(button.Content, "Chọn hình ảnh...") && Shown(button)).ToArray();
+            ComboBox Raster() => FindLogicalChildren<ComboBox>(window).First(box => AutomationProperties.GetName(box) == "Picture raster mode");
+            tabs.SelectedIndex = 0;
+            Settle();
+            Require(PickButtons().Length == 1 && Shown(Raster()), "Nguồn shows the picture button and its raster mode.");
+            tabs.SelectedIndex = 1;
+            Settle();
+            Require(PickButtons().Length == 0 && !Shown(Raster()), "Đổi cỡ holds the sizing only, not a second picture button or the raster mode.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
     private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
         where T : DependencyObject
