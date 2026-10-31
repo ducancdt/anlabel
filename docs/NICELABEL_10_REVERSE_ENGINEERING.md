@@ -1154,8 +1154,10 @@ process initializer).
 - F2 and Enter. `DocumentPageView`: F2 puts an item that supports in-place
   editing into `EditMode`, otherwise opens the property editor
   (`OpenDocumentItemPropertyEditorCommand`, `PopupMode = true`); Enter starts
-  in-place editing only. ANLAbel opens Properties on a double-click; in-place
-  editing is not built (it would sit in the protected Text layout).
+  in-place editing only. ANLAbel opens Properties on a double-click and
+  (pending batch) with F2, a text's content selected to type over; in-place
+  editing is not built (it would sit in the protected Text layout, owner
+  decision).
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and
