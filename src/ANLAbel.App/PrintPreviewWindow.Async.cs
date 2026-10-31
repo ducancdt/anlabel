@@ -68,6 +68,7 @@ public partial class PrintPreviewWindow
             IReadOnlyList<LabelInstance> instances;
             IReadOnlyDictionary<string, string>?[]? refreshedAllRows = null;
             List<TrackingRowViewModel>? refreshedTrackingRows = null;
+            IReadOnlyList<int>? refreshedRowsWithoutData = null;
             List<string>? refreshedExcelColumns = null;
             if (rebuildTrackingRows)
             {
@@ -76,6 +77,10 @@ public partial class PrintPreviewWindow
                 var nextTrackingRows = new List<TrackingRowViewModel>(allRows.Length);
                 // Rows hidden in Excel (an AutoFilter) start unselected; the note says which.
                 var hidden = ANLAbel.Data.Excel.ExcelDataService.HiddenRowIndexes(_excelDataView?.Table).ToHashSet();
+                // Rows without a record for the label (blank, or a formula filled down
+                // past the records) start unselected too; the note says which.
+                var withoutData = ANLAbel.App.Services.LabelDataRows.WithoutData(_template, allRows).ToHashSet();
+                refreshedRowsWithoutData = withoutData.Select(index => index + 1).Order().ToArray();
                 var pageNumber = 1;
                 var sourceRowNumber = 0;
                 foreach (var row in allRows)
@@ -88,7 +93,7 @@ public partial class PrintPreviewWindow
                         RecordId = CreateSessionRecordId(sourceRowNumber),
                         SourceRowNumber = sourceRowNumber,
                         PageNumber = pageNumber,
-                        IsSelected = !hidden.Contains(sourceRowNumber - 1),
+                        IsSelected = !hidden.Contains(sourceRowNumber - 1) && !withoutData.Contains(sourceRowNumber - 1),
                         Copies = copies,
                         Col1 = GetPreviewCol(row, excelColumns, 0),
                         Col2 = GetPreviewCol(row, excelColumns, 1),
@@ -186,6 +191,7 @@ public partial class PrintPreviewWindow
                 if (refreshedAllRows is not null && refreshedTrackingRows is not null && refreshedExcelColumns is not null)
                 {
                     _allRowsCache = refreshedAllRows;
+                    _rowsWithoutLabelData = refreshedRowsWithoutData ?? Array.Empty<int>();
                     _trackingRows.Clear();
                     _trackingRows.AddRange(refreshedTrackingRows);
                     TrackingList.ItemsSource = _trackingRows;

@@ -3805,6 +3805,21 @@ public sealed class MainViewModel : ObservableObject
                 quantityRows.Add((index + 1, row));
             }
 
+            // Rows where every field the label reads is blank are not printed
+            // either, and the status says which; the filled-down guess is left to
+            // Print Preview, where the operator sees the list.
+            var withoutData = ANLAbel.App.Services.LabelDataRows.WithoutData(Template, quantityRows.Select(entry => entry.Row).ToArray(), filledDown: false).ToHashSet();
+            if (withoutData.Count > 0 && withoutData.Count >= quantityRows.Count)
+            {
+                StatusText = "Không dòng nào có dữ liệu cho tem: các cột tem đọc đều trống. Điền dữ liệu trong tệp, lưu rồi bấm Cập nhật Excel.";
+                return;
+            }
+
+            var emptyNote = withoutData.Count == 0
+                ? string.Empty
+                : $" Không in {withoutData.Count} dòng không có dữ liệu cho tem: dòng {ANLAbel.App.Services.PreflightIssueText.RowRanges(withoutData.Select(index => quantityRows[index].SourceRowNumber))}.";
+            quantityRows = quantityRows.Where((_, index) => !withoutData.Contains(index)).ToList();
+
             DataTransformError = string.Empty;
             if (!QuickPrintQuantity.TryExpand(Template.DatabaseConfig, PrintCopies, quantityRows, out var expandedRows, out var sequence, out var copiesError))
             {
@@ -3824,7 +3839,7 @@ public sealed class MainViewModel : ObservableObject
             var result = tracked.Result;
             if (result.IsAccepted)
             {
-                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked) + zeroCopyNote + hiddenNote;
+                StatusText = AppendQueueStatus(ANLAbel.App.Services.PrintStatusText.Result(result), tracked.SpoolStatus) + EvidenceNote(tracked) + zeroCopyNote + hiddenNote + emptyNote;
                 _ = WritePrintLogAsync(
                     "All rows",
                     tracked.PrintedRows ?? rows,

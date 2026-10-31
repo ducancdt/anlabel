@@ -28,6 +28,12 @@
   bằng chữ giữ chỗ (“{Mã Viettel}” từng bị báo “ký tự không mã hóa được: ã”, chữ giữ chỗ dài
   từng bị báo “Dòng chữ dưới mã rộng…”); dòng chữ dưới mã quá rộng chỉ báo ở phần thiết lập mã,
   không còn mở đầu bằng “Dữ liệu không hợp lệ”. Dữ liệu thật vẫn được kiểm tra như cũ.
+- Xem trước khi in: dòng không có dữ liệu cho tem (để trống mọi cột tem đọc, hoặc một đoạn từ
+  3 dòng ở cuối bảng chỉ lặp một giá trị kéo xuống, ít nhất 2/3 cột để trống) không còn được
+  chọn sẵn, có dòng nhắc nêu các dòng đó; “In mọi dòng” bỏ qua các dòng để trống và nói rõ.
+  Sổ Excel của khách: 1 bản ghi và 198 dòng chỉ có công thức khối lượng nay chỉ chọn 1 tem và
+  qua kiểm tra; dòng trùng nhau làm bản sao, đoạn 2 dòng, bản ghi để trống một cột và bảng
+  thiếu cột của tem giữ nguyên như cũ.
 
 ## v0.355 — Hoàn tác có tên từng bước; cài đặt mã vạch cho mọi mã đang chọn; chèn RS/GS/EOT trong hàm; số Excel không còn khoảng trắng; nút In luôn trong tầm mắt
 

@@ -2062,6 +2062,13 @@ public partial class PrintPreviewWindow : Window
         }
     }
 
+    /// <summary>Data rows (1-based) without a record for the label, which start unselected.</summary>
+    private IReadOnlyList<int> _rowsWithoutLabelData = Array.Empty<int>();
+
+    public string EmptyRowsText => _rowsWithoutLabelData.Count == 0
+        ? string.Empty
+        : $"{_rowsWithoutLabelData.Count} dòng không có dữ liệu cho tem (để trống các cột tem đọc, hoặc ở cuối bảng chỉ lặp một giá trị kéo xuống) chưa được chọn in: dòng {ANLAbel.App.Services.PreflightIssueText.RowRanges(_rowsWithoutLabelData)}. Đánh dấu lại nếu cần in.";
+
     /// <summary>Merged Excel cells over the columns the label reads: their rows after the first print a blank there.</summary>
     public string MergedCellsText => ANLAbel.App.Services.MergedCellsText.Describe(_excelDataView?.Table, _template);
 

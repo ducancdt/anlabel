@@ -2757,6 +2757,129 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// Customer sheets fill a formula or a constant down past their records (1
+    /// record and 198 rows holding only a weight; 1 record and 8 rows holding
+    /// only the maker), and every row started selected, so each job asked to
+    /// skip them or printed near-blank labels. Rows without a record for the
+    /// label now start unselected, Print Preview says which, and "In mọi dòng"
+    /// leaves them out. Identical rows meant as copies, a run of two, and a sheet
+    /// without the label's columns are left alone.
+    /// </summary>
+    public static Task RowsWithoutLabelDataStartUnselected()
+    {
+        var template = new LabelTemplate { Name = "Thùng", WidthMm = 50, HeightMm = 30 };
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô", BindingExpression = "{Lo}", XMm = 3, YMm = 12, WidthMm = 30, HeightMm = 6 });
+        template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Hãng", BindingExpression = "{Hang}", XMm = 3, YMm = 21, WidthMm = 30, HeightMm = 6 });
+        IReadOnlyDictionary<string, string>? Row(string ma, string lo, string hang) =>
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Ma"] = ma, ["Lo"] = lo, ["Hang"] = hang, ["KL"] = "0" };
+        IReadOnlyList<int> Without(params IReadOnlyDictionary<string, string>?[] rows) => ANLAbel.App.Services.LabelDataRows.WithoutData(template, rows);
+        var filledDown = Without(Row("SP-1", "L1", "ACME"), Row("SP-2", "L2", "ACME"), Row("", "", "ACME"), Row("", "", "ACME"), Row("", "", "ACME"), Row("", "", "ACME"));
+        Require(filledDown.SequenceEqual([2, 3, 4, 5]), "A constant filled down past the records: " + string.Join(", ", filledDown));
+        Require(ANLAbel.App.Services.LabelDataRows.WithoutData(template, [Row("SP-1", "L1", "ACME"), Row("", "", "ACME"), Row("", "", "ACME"), Row("", "", "ACME")], filledDown: false).Count == 0,
+            "Quick print leaves out blank rows only, not a guessed run.");
+        Require(Without(Row("SP-1", "L1", "ACME"), Row("", "", ""), Row("SP-2", "L2", "ACME")).SequenceEqual([1]), "A blank row in the middle.");
+        Require(Without(Row("SP-1", "L1", "ACME"), Row("SP-1", "L1", "ACME"), Row("SP-1", "L1", "ACME"), Row("SP-1", "L1", "ACME")).Count == 0, "Identical full rows are copies.");
+        Require(Without(Row("SP-1", "L1", "ACME"), Row("", "", "ACME"), Row("", "", "ACME")).Count == 0, "A run of two is left alone.");
+        Require(Without(Row("", "", "ACME"), Row("", "", "ACME"), Row("", "", "ACME")).Count == 0, "A run with no record above it is left alone.");
+        Require(Without(Row("A", "L1", "ACME"), Row("B", "L2", ""), Row("B", "L2", ""), Row("B", "L2", "")).Count == 0,
+            "Records that leave one field blank are not a filled-down run.");
+        var pair = new LabelTemplate { Name = "Hai cột", WidthMm = 50, HeightMm = 30 };
+        pair.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+        pair.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Hãng", BindingExpression = "{Hang}", XMm = 3, YMm = 12, WidthMm = 30, HeightMm = 6 });
+        Require(ANLAbel.App.Services.LabelDataRows.WithoutData(pair, [Row("A", "", "ACME"), Row("B", "", ""), Row("B", "", ""), Row("B", "", "")]).Count == 0,
+            "Half the fields blank (product B, no maker) is a record, not a filled-down run.");
+        var other = new LabelTemplate { Name = "Khác", WidthMm = 50, HeightMm = 30 };
+        other.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Khác", BindingExpression = "{Khac}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+        Require(ANLAbel.App.Services.LabelDataRows.WithoutData(other, [Row("", "", ""), Row("", "", "")]).Count == 0,
+            "A sheet without the label's columns is not read as empty rows.");
+
+        var directory = Directory.CreateTempSubdirectory("anlabel-empty-rows-");
+        try
+        {
+            RunOnSta(() =>
+            {
+                var path = Path.Combine(directory.FullName, "orders.xlsx");
+                using (var workbook = new ClosedXML.Excel.XLWorkbook())
+                {
+                    var sheet = workbook.AddWorksheet("Orders");
+                    sheet.Cell(1, 1).Value = "Ma";
+                    sheet.Cell(1, 2).Value = "Lo";
+                    sheet.Cell(1, 3).Value = "KL";
+                    for (var index = 0; index < 5; index++)
+                    {
+                        if (index < 2)
+                        {
+                            sheet.Cell(index + 2, 1).Value = "SP-" + (index + 1);
+                            sheet.Cell(index + 2, 2).Value = "L" + (index + 1);
+                        }
+
+                        sheet.Cell(index + 2, 3).Value = 0;
+                    }
+
+                    workbook.SaveAs(path);
+                }
+
+                var viewModel = new ANLAbel.App.ViewModels.MainViewModel();
+                viewModel.ImportExcelAsync(path, "Orders").GetAwaiter().GetResult();
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Lô", BindingExpression = "{Lo}", XMm = 3, YMm = 12, WidthMm = 30, HeightMm = 6, Style = { BorderThicknessMm = 0 } });
+                Require(viewModel.TryBuildPrintPreviewRows(out var rows, out var rowError) && rows.Count == 5, "All five rows are read: " + rowError);
+                var window = new ANLAbel.App.PrintPreviewWindow(
+                    viewModel.Template,
+                    rows[0],
+                    viewModel.ExcelDataView,
+                    new PrintService(),
+                    new ANLAbel.Data.PrintLogs.PrintLogService(Path.Combine(directory.FullName, "log.csv")),
+                    string.Empty,
+                    preparedRows: rows,
+                    excelSourceIdentity: viewModel.ImportedExcelDataSourceIdentity);
+                var deadline = DateTime.UtcNow.AddSeconds(30);
+                do
+                {
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                    Thread.Sleep(20);
+                }
+                while ((window.IsPreviewBusy || window.Pages.Count == 0) && DateTime.UtcNow < deadline);
+
+                var list = (ListBox)window.FindName("TrackingList");
+                var selected = list.Items.Cast<ANLAbel.App.ViewModels.TrackingRowViewModel>().Where(row => row.IsSelected).Select(row => row.Col1 ?? string.Empty).ToArray();
+                Require(selected.SequenceEqual(["SP-1", "SP-2"]) && window.Pages.Count == 2,
+                    $"Only the rows with a record start selected ({string.Join(", ", selected)}; {window.Pages.Count} labels prepared).");
+                Require(window.EmptyRowsText.StartsWith("3 dòng không có dữ liệu cho tem", StringComparison.Ordinal) && window.EmptyRowsText.Contains("dòng 3–5.", StringComparison.Ordinal),
+                    "Print Preview names the rows without a record: " + window.EmptyRowsText);
+                window.Close();
+            });
+
+            // "In mọi dòng" leaves them out too (source check, like the hidden rows).
+            var root = AppContext.BaseDirectory;
+            while (!File.Exists(Path.Combine(root, "ANLAbel.slnx")))
+            {
+                root = Path.GetDirectoryName(root.TrimEnd(Path.DirectorySeparatorChar))!;
+            }
+
+            var source = File.ReadAllText(Path.Combine(root, "src", "ANLAbel.App", "ViewModels", "MainViewModel.cs"));
+            var start = source.IndexOf("private async Task PrintAllRowsAsync()", StringComparison.Ordinal);
+            var body = source.Substring(start, source.IndexOf("private async Task<TrackedPrintResult> DispatchTrackedPrintAsync(", StringComparison.Ordinal) - start);
+            Require(body.Contains("LabelDataRows.WithoutData(Template", StringComparison.Ordinal) && body.Contains("filledDown: false", StringComparison.Ordinal)
+                    && body.Contains("+ emptyNote", StringComparison.Ordinal),
+                "In mọi dòng must leave out the blank rows, and only those, and say which.");
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// With no file linked, the Properties panel checked a bound barcode's
     /// placeholder as its data: "{Mã Viettel}" was "a character that cannot be
     /// encoded: ã", and a long placeholder "a readable line wider than the
