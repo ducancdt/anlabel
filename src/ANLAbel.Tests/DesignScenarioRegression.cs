@@ -329,6 +329,81 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// NiceLabel 10's General page names the object and sets its printing and visibility, and its
+    /// Position page holds the position lock and the aspect ratio. ANLAbel's Chung page held the
+    /// arrange buttons of the ribbon, the name, Không in and the visibility condition were only on
+    /// the ribbon, and Vị trí had no lock. The pages now hold them where NiceLabel does, and each
+    /// control edits the object.
+    /// </summary>
+    public static Task GeneralAndPositionPagesFollowNiceLabel()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            void Settle()
+            {
+                window.Measure(new Size(1440, 900));
+                window.Arrange(new Rect(0, 0, 1440, 900));
+                window.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var note = new LabelObject { Type = ObjectType.Text, Name = "Ghi chú", Text = "Hàng mới", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 5 };
+            viewModel.Template.Objects.Add(note);
+            viewModel.SelectedObject = note;
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            T Control<T>(string name)
+                where T : FrameworkElement
+                => FindLogicalChildren<T>(window).First(item => System.Windows.Automation.AutomationProperties.GetName(item) == name);
+            void Toggle(CheckBox box) => ((System.Windows.Automation.Provider.IToggleProvider)new System.Windows.Automation.Peers.CheckBoxAutomationPeer(box)).Toggle();
+            void Type(TextBox box, string value)
+            {
+                box.Text = value;
+                box.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+            }
+
+            tabs.SelectedIndex = 3;
+            Settle();
+            Type(Control<TextBox>("Object name"), "Ghi chú cuối");
+            Require(note.Name == "Ghi chú cuối", "Chung names the object: " + note.Name);
+            Toggle(Control<CheckBox>("Not printable"));
+            Require(!note.IsPrintable, "Chung sets Không in.");
+            Type(Control<TextBox>("Visibility condition in Properties"), "{Lô}");
+            Require(note.VisibilityCondition == "{Lô}", "Chung sets the visibility condition: " + note.VisibilityCondition);
+
+            tabs.SelectedIndex = 2;
+            Settle();
+            Toggle(Control<CheckBox>("Position locked"));
+            Toggle(Control<CheckBox>("Keep aspect ratio"));
+            Require(note.IsLocked && note.KeepAspectRatio, "Vị trí locks the position and keeps the aspect ratio.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>The window is not shown: its XAML elements are found in the logical tree.</summary>
+    private static IEnumerable<T> FindLogicalChildren<T>(DependencyObject parent)
+        where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>())
+        {
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in FindLogicalChildren<T>(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent)
         where T : DependencyObject
     {

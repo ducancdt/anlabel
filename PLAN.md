@@ -2,6 +2,10 @@
 
 ## Sau v0.359
 
+- Thuộc tính › Chung và Vị trí như các trang General và Position của NiceLabel 10: Chung nay có Tên
+  (kèm lý do khi tên bị từ chối), Không in, Hiển thị và Điều kiện hiển thị (trước đây chỉ có trên
+  thẻ Thiết kế của thanh lệnh); Vị trí có thêm Khóa vị trí và Giữ tỉ lệ. Các nút căn, phân bố và thứ
+  tự lớp (đã có trên thanh lệnh) thu vào mục “Nâng cao” đóng sẵn ở cuối trang Chung.
 - Thuộc tính của mã vạch: trang “Kiểu” nay tên “Mã vạch” và chia trang như NiceLabel 10: Mã vạch
   (loại mã, hồ sơ ứng dụng, cỡ X, DPI; chế độ 2D và mức sửa lỗi chỉ với mã 2D) · Số kiểm tra · Chữ
   dưới mã · Chi tiết (vùng yên, bộ mã Code 128 với Code 128, tỉ lệ và khe Code 39 với Code 39, bù

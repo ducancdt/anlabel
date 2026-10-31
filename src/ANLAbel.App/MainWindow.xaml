@@ -2477,6 +2477,13 @@
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
+                                        <!-- NiceLabel 10 Position page: the position lock and the aspect ratio sit with the position. -->
+                                        <WrapPanel Margin="0,8,0,0">
+                                            <CheckBox Content="Khóa vị trí" IsChecked="{Binding SelectionLocked, Mode=TwoWay}" Margin="0,0,18,0"
+                                                      ToolTip="Không kéo hay đổi cỡ được trên mặt thiết kế; vẫn in như thường" AutomationProperties.Name="Position locked"/>
+                                            <CheckBox Content="Giữ tỉ lệ" IsChecked="{Binding SelectionKeepsAspectRatio, Mode=TwoWay}"
+                                                      ToolTip="Kéo khung luôn giữ tỉ lệ rộng/cao" AutomationProperties.Name="Keep aspect ratio"/>
+                                        </WrapPanel>
                                         </StackPanel>
                                     </Expander>
                                 </Border>
@@ -2493,8 +2500,29 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
+                                <!-- NiceLabel 10 General page: the name, printing and visibility of the object. -->
                                 <Border Style="{StaticResource PropCard}">
-                                    <Expander IsExpanded="True" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}">
+                                    <StackPanel>
+                                        <TextBlock Text="Chung" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Tên" Style="{StaticResource PropLabel}"/>
+                                        <TextBox Text="{Binding SelectedObjectName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown" AutomationProperties.Name="Object name"/>
+                                        <TextBlock Text="{Binding ObjectNameMessage}" Foreground="#B91C1C" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding ObjectNameMessage}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding ObjectNameMessage}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <WrapPanel Margin="0,8,0,0">
+                                            <CheckBox Content="Không in" IsChecked="{Binding SelectionNotPrinted, Mode=TwoWay}" Margin="0,0,18,0"
+                                                      ToolTip="Đối tượng vẫn hiện khi thiết kế nhưng không có trong bản in và xem trước" AutomationProperties.Name="Not printable"/>
+                                            <CheckBox Content="Hiển thị" IsChecked="{Binding SelectionShown, Mode=TwoWay}" AutomationProperties.Name="Visible"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="Điều kiện hiển thị" Style="{StaticResource PropLabel}" Margin="0,8,0,1"/>
+                                        <TextBox Text="{Binding SelectedObject.VisibilityCondition, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"
+                                                 AutomationProperties.Name="Visibility condition in Properties"/>
+                                        <TextBlock Text="Trường hoặc công thức, ví dụ {Lô} hoặc EQUALS(FIELD(&quot;Loại&quot;), &quot;QR&quot;). Đối tượng chỉ in ở dòng có giá trị khác rỗng, 0, false, không. Để trống: luôn in."
+                                                   TextWrapping="Wrap" FontSize="10" Foreground="{StaticResource AppMutedBrush}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource PropCard}">
+                                    <Expander IsExpanded="False" FontSize="11" Foreground="{StaticResource AppBlueDarkBrush}">
                                     <Expander.Header>
                                         <StackPanel>
                                             <TextBlock Text="Nâng cao" FontWeight="SemiBold"/>
@@ -2537,10 +2565,6 @@
                                             <Button Content="Đưa lên trước" Command="{Binding BringForwardCommand}" Padding="6,5" FontSize="11"/>
                                             <Button Grid.Column="2" Content="Đưa ra sau" Command="{Binding SendBackwardCommand}" Padding="6,5" FontSize="11"/>
                                         </Grid>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <CheckBox Content="Hiển thị" IsChecked="{Binding SelectionShown, Mode=TwoWay}" Margin="0,0,18,0" VerticalAlignment="Center"/>
-                                            <CheckBox Content="Khóa" IsChecked="{Binding SelectionLocked, Mode=TwoWay}" VerticalAlignment="Center"/>
-                                        </StackPanel>
                                     </StackPanel>
                                     </Expander>
                                 </Border>
