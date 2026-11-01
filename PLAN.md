@@ -2,6 +2,10 @@
 
 ## Sau v0.369
 
+- Bảng thiết kế không vẽ viền quanh Chữ (chủ dự án duyệt 2026-11-01, vùng Text/TextBox được bảo vệ), như bản in
+  và NiceLabel. Tem nhập từ NiceLabel và lưu trước v0.368 giữ viền mặc định 0,2 mm trong dữ liệu của chữ; bảng
+  thiết kế từng vẽ khung quanh mọi chữ đó dù không in ra. Ô chữ vốn đã không vẽ; hình (chữ nhật, elip, đường)
+  vẫn vẽ viền vì có in. Dữ liệu trong tệp không đổi.
 - Ô màu chữ trên ribbon (Trang chủ, thẻ Chữ) hiện đúng màu của chữ đang chọn: ô màu trong bảng dù viết
   hoa hay thường, ô trống với màu ngoài bảng. Trước đây ô giữ ô màu của chữ chọn trước (cùng lỗi với ô
   phông và ô cỡ); nay dùng chung cơ chế với chúng.

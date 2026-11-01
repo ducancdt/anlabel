@@ -758,6 +758,20 @@ commands with an object selected and the label's menu with Dấu đối tượng
 toggles) with nothing selected. The mouse gestures themselves (a double-click, a
 right-click on the label) are covered by the gates only.
 
+On the installed v0.369 (2026-11-01, the owner kept off the machine for the run)
+all 31 live checks pass: the 21 above, the Text Style groups on Kiểu, the font
+size box following the selection (48, 10, 48 pt; before v0.368 it kept 10), the
+properties button at the selection's corner, and in-place editing: Enter on the
+design surface opens the fixed text with its content intact and the keyboard in
+the box, the label follows the typing, Esc ends the edit keeping the text, F2
+opens it again, Ctrl+Z takes an edit back in one step, and Sửa chữ in the menu
+key's menu opens it. On a protected label Quản lý dữ liệu keeps Biến nhập khi in,
+Hàm, Thứ tự nhắc and Nhập off and Bộ đếm Serial open. The double-click into
+in-place editing is covered by the gate only. The run's input guard had stopped
+earlier runs by itself: a UI Automation action (selecting a tab, setting focus)
+can make the input method or the foreground lock post a key of its own, so the
+guard now counts what follows each action as the script's.
+
 ## Side by side with a NiceLabel sample (2026-11-01)
 
 The same label in both: NiceLabel's sample `AIAG B10 6x4 Mixed Load.nlbl`
@@ -767,7 +781,7 @@ the label rendered through the print path (`LabelVisualRenderer`, design plan).
 
 | Seen | Finding | Done |
 | --- | --- | --- |
-| A thin black frame around every imported text | The importer left the style default (0.2 mm solid outline, meant for shapes) on Text and Text Box; the design surface drew it, NiceLabel has none and the print path never drew it | The importer sets no outline (unit test `Texts_HaveNoOutline`). Files imported and saved before keep the stroke data and still show the frame: the designer's Text outline sits in the protected Text/TextBox area, an owner decision |
+| A thin black frame around every imported text | The importer left the style default (0.2 mm solid outline, meant for shapes) on Text and Text Box; the design surface drew it, NiceLabel has none and the print path never drew it | The importer sets no outline (unit test `Texts_HaveNoOutline`); files imported and saved before keep the stroke data, and the design surface no longer draws a Text outline (owner decision 2026-11-01, gate `the designer draws no text outline`) |
 | An Arial Narrow text (outside the licensed list) showed the previous text's font | The same `SelectedItem` matching in the font boxes and a barcode's human readable font boxes | Every font and size box shares one display (gate `font boxes show the selected text's font`); the ribbon font box takes a typed name, a licensed one only (v0.369); the ribbon's text colour boxes join it, none shown for a colour outside the palette (gate `the text colour box shows the selected colour`) |
 | A 48 pt caption showed an empty size box, or the previous text's size | ANLAbel's list stopped at 32, and the boxes matched list sizes through `SelectedItem`; WPF refuses an item outside the list and keeps the old one | NiceLabel's list (FormatDocument `FontService`: 4–14, 16–28 even, 36, 48, 72) with 32 kept; every size box shows any size as text and the ribbon box takes a typed size like NiceLabel's (gate `font size boxes show any size`) |
 | Rotation handle above the selection, no tint inside it | NiceLabel draws a rotate handle and only a dashed frame | Not changed: selection handles and the selection look are the protected adorner |

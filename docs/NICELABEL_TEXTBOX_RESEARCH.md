@@ -174,6 +174,15 @@ hien Arial. Moi o phong va o co nay dung chung mot cach hien va nhan gia tri (`T
 chon hoac go roi Enter); go ten phong chi nhan phong trong danh muc. Van chi doi cach hien thi. Gate: `font boxes
 show the selected text's font`.
 
+### Bang thiet ke khong ve vien Chu (chu san pham duyet 2026-11-01)
+
+Ban in khong bao gio ve vien cho Chu (`LabelVisualRenderer` chi dung `CreateOutlinePen` cho chu nhat, elip, duong),
+NiceLabel cung khong co. Bang thiet ke thi ve vien Chu theo `Style.OutlineStyle`, ma mac dinh cua kieu la vien
+lien 0,2 mm (danh cho hinh); bo nhap NiceLabel truoc v0.368 de nguyen mac dinh do, nen tem nhap va luu truoc ban
+nay hien khung quanh moi chu. Nay `LabelDesignerCanvas` khong ve vien cho Chu, nhu da lam voi O chu: man hinh khop
+ban in (invariant parity). Du lieu kieu trong tep giu nguyen (invariant 8), khung, co, wrap, clip, padding, tay
+nam khong doi. Gate: `the designer draws no text outline`.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

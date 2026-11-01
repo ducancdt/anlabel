@@ -2127,6 +2127,44 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-01: the design surface draws no outline around a Text, as print never
+    /// does and NiceLabel has none. Labels imported from NiceLabel before v0.368 keep the style
+    /// default's 0.2 mm solid outline on their texts, and the designer framed every one; a Text Box
+    /// already drew none, and a shape's outline still shows as it prints.
+    /// </summary>
+    public static Task DesignerDrawsNoTextOutline()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Viền", WidthMm = 60, HeightMm = 30 };
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ cũ", Text = "FROM:", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            text.Style.OutlineStyle = OutlineStyle.Solid;
+            text.Style.BorderThicknessMm = 0.2;
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô cũ", Text = "Address", XMm = 2, YMm = 10, WidthMm = 20, HeightMm = 6 };
+            box.Style.OutlineStyle = OutlineStyle.Solid;
+            box.Style.BorderThicknessMm = 0.2;
+            var code = new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Mã", Text = "12345", XMm = 30, YMm = 2, WidthMm = 25, HeightMm = 10 };
+            code.Style.OutlineStyle = OutlineStyle.Solid;
+            code.Style.BorderThicknessMm = 0.5;
+            template.Objects.Add(text);
+            template.Objects.Add(box);
+            template.Objects.Add(code);
+            var canvas = new LabelDesignerCanvas { Template = template, Zoom = 1 };
+            canvas.Measure(new Size(400, 200));
+            canvas.Arrange(new Rect(0, 0, 400, 200));
+            canvas.UpdateLayout();
+            var elements = (System.Collections.IDictionary)typeof(LabelDesignerCanvas)
+                .GetField("_objectElements", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            Thickness Outline(LabelObject item) => ((Border)elements[item]!).BorderThickness;
+            Require(Outline(text) == new Thickness(0), "A Text draws no outline on the design surface: " + Outline(text));
+            Require(Outline(box) == new Thickness(0), "A Text Box draws none either: " + Outline(box));
+            Require(Outline(code).Left > 0, "Other objects keep their outline as before: " + Outline(code));
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

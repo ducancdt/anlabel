@@ -1773,10 +1773,11 @@ public sealed class LabelDesignerCanvas : Canvas
             {
                 var objectError = GetObjectError(item);
                 border.BorderBrush = ParseBrush(item.Style.StrokeColor, Brushes.Black);
-                // TextBox: never draw a permanent outline stroke (viền line).
-                // Selection adorners still show when selected. Other objects
-                // honor OutlineStyle as usual.
-                border.BorderThickness = item.Type == ObjectType.TextBox
+                // Text and TextBox: never draw a permanent outline stroke (viền line);
+                // print draws none either. Selection adorners still show when selected.
+                // Other objects honor OutlineStyle as usual. (Owner decision 2026-11-01:
+                // texts imported before v0.368 keep the style default's 0.2 mm outline.)
+                border.BorderThickness = item.Type is ObjectType.TextBox or ObjectType.Text
                     || item.Style.OutlineStyle == OutlineStyle.None
                     ? new Thickness(0)
                     : new Thickness(Math.Max(0, MmToDip(item.Style.BorderThicknessMm)));
