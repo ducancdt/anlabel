@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.368
+## v0.369 — Ô phông chữ hiện đúng phông của đối tượng đang chọn
+
+_Gồm các commit 01/11/2026 (10:23–10:23)._
 
 - Ô phông chữ (ribbon Trang chủ, thẻ Chữ, Thuộc tính › Kiểu) và ô phông chữ dưới mã của mã vạch (menu
   ribbon, Thuộc tính) hiện đúng phông của đối tượng đang chọn, kể cả phông ngoài danh mục có bản quyền
