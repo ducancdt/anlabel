@@ -412,7 +412,8 @@ internal static class DesignScenarioRegression
             window.UpdateLayout();
             System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
             var search = (TextBox)window.FindName("DataTreeSearch");
-            int Count(string node) => ((TreeViewItem)window.FindName(node)).Items.Count;
+            // The entries only: Trường dữ liệu also holds its database row (owner decision 2026-11-01), which a search keeps.
+            int Count(string node) => ((TreeViewItem)window.FindName(node)).Items.Cast<object>().Count(item => item is not TreeViewItem);
             Require(Count("DataTreePrompts") == 2 && Count("DataTreeFields") == 3 && Count("DataTreeFunctions") == 1,
                 $"The tree lists everything with no search: {Count("DataTreePrompts")} {Count("DataTreeFields")} {Count("DataTreeFunctions")}");
             search.Text = "lô";
@@ -1117,7 +1118,9 @@ internal static class DesignScenarioRegression
             }
 
             var texts = FindVisualChildren<TextBlock>(scroller).Where(text => text.TextWrapping == TextWrapping.Wrap && text.Text.Length > 0 && Shown(text)).ToArray();
-            Require(texts.Any(text => text.Text.StartsWith("Nhập Excel hoặc CSV", StringComparison.Ordinal)), "The unlinked hint is shown with no data linked.");
+            // With no data linked the tree offers the database (owner decision 2026-11-01, NiceLabel's "+ Add new database").
+            Require(FindVisualChildren<Button>(scroller).Any(button => AutomationProperties.GetName(button) == "Link Excel or CSV" && Shown(button)),
+                "+ Liên kết Excel / CSV… is shown in the tree with no data linked.");
             var cut = texts.Where(text => text.TransformToAncestor(scroller).TransformBounds(new Rect(text.RenderSize)).Right > scroller.ViewportWidth + 1)
                 .Select(text => text.Text).ToArray();
             Require(cut.Length == 0, "Wrapping texts stay inside the Data panel: " + string.Join(" | ", cut));
@@ -1824,6 +1827,15 @@ internal static class DesignScenarioRegression
             Leave(Editor()!, canvas);
             Require(Editor() is null && Lookup(text).Text == "ABD", "Leaving the box ends the edit and keeps the text: " + Lookup(text).Text);
 
+            // A character typed on the selected text opens it with that character in place of the content.
+            Select(text);
+            var typing = typeof(ANLAbel.App.MainWindow).GetMethod("StartTypingInPlace", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            Require((bool)typing.Invoke(window, new object[] { "Z" })! && Editor() is { Text: "Z", CaretIndex: 1 } && Lookup(text).Text == "Z",
+                $"Typing Z on the text edits it, the content replaced: box '{Editor()?.Text}', label '{Lookup(text).Text}'");
+            Press(Editor()!, System.Windows.Input.Key.Escape);
+            viewModel.UndoCommand.Execute(null);
+            Require(Lookup(text).Text == "ABD", "One undo takes the typed edit back: " + Lookup(text).Text);
+
             // The box follows the zoom.
             Select(text);
             viewModel.Zoom = 1;
@@ -2161,6 +2173,110 @@ internal static class DesignScenarioRegression
             Require(Outline(box) == new Thickness(0), "A Text Box draws none either: " + Outline(box));
             Require(Outline(code).Left > 0, "Other objects keep their outline as before: " + Outline(code));
         });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Owner decision 2026-11-01, "Gọn như NiceLabel": the Data panel is NiceLabel 10's Data explorer tree.
+    /// The database sits under Trường dữ liệu, "+ Liên kết Excel / CSV…" with none linked and the file and
+    /// row once one is; the Excel rows and the binding check fold under the tree; Cài đặt dữ liệu is gone,
+    /// its key and copies columns in Quản lý dữ liệu › Cơ sở dữ liệu, and with it the grid that edited the
+    /// prompts on a protected label.
+    /// </summary>
+    public static Task DataPanelIsNiceLabelsTree()
+    {
+        var directory = Directory.CreateTempSubdirectory("anlabel-data-panel-");
+        try
+        {
+            RunOnSta(() =>
+            {
+                void Wait(Task task)
+                {
+                    var frame = new System.Windows.Threading.DispatcherFrame();
+                    task.ContinueWith(_ => frame.Continue = false, TaskScheduler.Default);
+                    System.Windows.Threading.Dispatcher.PushFrame(frame);
+                    task.GetAwaiter().GetResult();
+                }
+
+                var window = new ANLAbel.App.MainWindow();
+                var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+                var explorer = (TabControl)window.FindName("WorkspaceTabs");
+                explorer.SelectedIndex = 0;
+                var content = (FrameworkElement)window.Content;
+                var resources = window.Resources;
+                window.Content = null;
+                content.Resources.MergedDictionaries.Add(resources);
+                content.DataContext = viewModel;
+                void Settle()
+                {
+                    content.Measure(new Size(1440, 900));
+                    content.Arrange(new Rect(0, 0, 1440, 900));
+                    content.UpdateLayout();
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                }
+
+                Settle();
+                var scroller = (ScrollViewer)((TabItem)explorer.Items[0]).Content;
+                bool Shown(UIElement element)
+                {
+                    for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, scroller); node = VisualTreeHelper.GetParent(node))
+                    {
+                        if (node is UIElement item && item.Visibility != Visibility.Visible)
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+
+                Button Link() => FindVisualChildren<Button>(scroller).Single(button => AutomationProperties.GetName(button) == "Link Excel or CSV");
+                TextBlock Source() => FindVisualChildren<TextBlock>(scroller).Single(text => AutomationProperties.GetAutomationId(text) == "Shell.Data.Source");
+                Require(Shown(Link()) && !Shown(Source()), "With no data linked the tree offers + Liên kết Excel / CSV….");
+                Require(!FindLogicalChildren<TextBlock>(content).Any(text => text.Text.StartsWith("Cài đặt dữ liệu", StringComparison.Ordinal)),
+                    "Cài đặt dữ liệu has left the Data panel.");
+                Require(!FindLogicalChildren<DataGrid>(content).Any(grid => System.Windows.Data.BindingOperations.GetBinding(grid, ItemsControl.ItemsSourceProperty)?.Path.Path == "Template.PromptVariables"),
+                    "No grid in the main window edits the prompts (one did, even on a protected label).");
+
+                var csv = Path.Combine(directory.FullName, "rows.csv");
+                File.WriteAllText(csv, "Ma,SoLuong\nSP-1,2\nSP-2,3\n");
+                // As on the app's UI thread: the import comes back to the dispatcher to fill the bound lists.
+                SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
+                Wait(viewModel.ImportExcelAsync(csv, "CSV"));
+                Settle();
+                Require(!Shown(Link()) && Shown(Source()) && Source().Text.Contains("rows.csv", StringComparison.Ordinal) && Source().Text.Contains(" · ", StringComparison.Ordinal),
+                    "Linked, the tree names the file and the row: " + Source().Text);
+                var rows = FindLogicalChildren<Expander>(content).Single(expander => AutomationProperties.GetAutomationId(expander) == "Shell.Data.ExcelRows");
+                var check = FindLogicalChildren<Expander>(content).Single(expander => AutomationProperties.GetAutomationId(expander) == "Shell.Data.BindingCheck");
+                Require(Shown(rows) && !rows.IsExpanded && !check.IsExpanded, "The Excel rows and the binding check fold under the tree.");
+                Require(viewModel.BindingCheckStatusText == "chưa có gì để kiểm", "The binding check's header says its state: " + viewModel.BindingCheckStatusText);
+                viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Mã", BindingExpression = "{Ma}", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 6 });
+                Settle();
+                Require(viewModel.BindingCheckStatusText == "đạt", "A text reading a column that is there passes: " + viewModel.BindingCheckStatusText);
+
+                // Quản lý dữ liệu › Cơ sở dữ liệu has the key and copies columns, applied at once.
+                var manager = new ANLAbel.App.DataManagerWindow(viewModel, "Database");
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                var key = FindLogicalChildren<ComboBox>(manager).Single(box => AutomationProperties.GetAutomationId(box) == "DataManager.KeyField");
+                var copies = FindLogicalChildren<ComboBox>(manager).Single(box => AutomationProperties.GetAutomationId(box) == "DataManager.CopiesField");
+                Require(key.ItemsSource?.Cast<object>().Contains("Ma") == true && copies.ItemsSource?.Cast<object>().Contains("SoLuong") == true,
+                    $"Quản lý dữ liệu offers the columns for the key and the copies: context {key.DataContext?.GetType().Name ?? "none"}, items [{string.Join(",", key.ItemsSource?.Cast<object>() ?? Array.Empty<object>())}], the main window offers [{string.Join(",", viewModel.KeyFieldOptions)}]");
+                copies.SelectedItem = "SoLuong";
+                Require(viewModel.SelectedCopiesFieldName == "SoLuong", "The copies column is set at once: " + viewModel.SelectedCopiesFieldName);
+                // Not closed: closing an edited label asks whether to save it.
+            });
+        }
+        finally
+        {
+            try
+            {
+                directory.Delete(recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
 
         return Task.CompletedTask;
     }

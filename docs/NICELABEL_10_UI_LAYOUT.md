@@ -785,13 +785,40 @@ the label rendered through the print path (`LabelVisualRenderer`, design plan).
 | An Arial Narrow text (outside the licensed list) showed the previous text's font | The same `SelectedItem` matching in the font boxes and a barcode's human readable font boxes | Every font and size box shares one display (gate `font boxes show the selected text's font`); the ribbon font box takes a typed name, a licensed one only (v0.369); the ribbon's text colour boxes join it, none shown for a colour outside the palette (gate `the text colour box shows the selected colour`) |
 | A 48 pt caption showed an empty size box, or the previous text's size | ANLAbel's list stopped at 32, and the boxes matched list sizes through `SelectedItem`; WPF refuses an item outside the list and keeps the old one | NiceLabel's list (FormatDocument `FontService`: 4–14, 16–28 even, 36, 48, 72) with 32 kept; every size box shows any size as text and the ribbon box takes a typed size like NiceLabel's (gate `font size boxes show any size`) |
 | Rotation handle above the selection, no tint inside it | NiceLabel draws a rotate handle and only a dashed frame | Not changed: selection handles and the selection look are the protected adorner |
-| Data panel: NiceLabel's tree fills the panel | ANLAbel adds the Excel/CSV card, Cài đặt dữ liệu and Kiểm tra ràng buộc under the tree | Not changed: ANLAbel's Excel workflow, a product decision |
+| Data panel: NiceLabel's tree fills the panel | ANLAbel added the Excel/CSV card, Cài đặt dữ liệu and Kiểm tra ràng buộc under the tree | Owner decision "Gọn như NiceLabel": see the next section |
 | Variables listed with type icons | ANLAbel prefixes a prompt with "?" (its `{?Name}` syntax) | Not changed |
 | Source page: a tall multi-line content box | ANLAbel's Chữ box is shorter (it grows to 120) | Not changed (protected Text Properties controls) |
 
 The rulers, the name tag, the command box, contextual tabs, the ribbon groups,
 the toolbox, the explorer tabs and the status bar match. An off-screen render
 leaves the rulers blank; the installed app draws them (live screenshots).
+
+## The Data panel as NiceLabel's tree (owner decision 2026-11-01)
+
+NiceLabel 10's Data explorer is a tree: Variables with "+ Add new variable",
+Functions, Databases with "+ Add new database"; labels per record live in the
+data set's settings (`IDataSetUsage`, RE §27), record selection in the print
+form. ANLAbel had five blocks under its tree: the linked file, "Chưa liên kết
+dữ liệu" with Nhập Excel / CSV, the Excel row grid, Cài đặt dữ liệu (key column,
+copies per row, the serial counter, a prompts grid, the shared sources, the
+functions) and Kiểm tra ràng buộc. The owner chose "Gọn như NiceLabel":
+
+- The database is the first row under Trường dữ liệu: "+ Liên kết Excel / CSV…"
+  with none linked, the file and the selected row once one is, and below it
+  the warnings with their fixes: stale data (Cập nhật Excel), a broken link
+  (Liên kết lại Excel…), the file open in Excel, a function error. The stale and
+  function warnings had been only in a hidden tree. Enter or a double-click on
+  the row opens Quản lý dữ liệu › Cơ sở dữ liệu.
+- The Excel rows and the binding check fold under the tree; the check's header
+  says its state (đạt, N lỗi, chờ tệp Excel, chưa có gì để kiểm).
+- Cài đặt dữ liệu is gone: the key column and the copies per row are on Quản lý
+  dữ liệu › Cơ sở dữ liệu (applied at once, like the rest of that page); the
+  serial counter, the prompts, the shared sources and the functions were copies
+  of Quản lý dữ liệu, the Data ribbon and the tree. Its prompts grid also edited
+  prompts on a protected label, past the v0.366 lock.
+
+Gates: `the Data panel is NiceLabel's tree`, `data panel texts wrap inside the
+panel`.
 
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 

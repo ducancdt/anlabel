@@ -845,7 +845,8 @@ public partial class HelpWindow : Window
         sh.Children.Add(ShortcutRow("PgUp", vi ? "Đưa lên một lớp (Ctrl+PgUp: lên trên cùng)" : "Bring forward (Ctrl+PgUp: to front)"));
         sh.Children.Add(ShortcutRow("PgDn", vi ? "Đưa xuống một lớp (Ctrl+PgDn: xuống dưới cùng)" : "Send backward (Ctrl+PgDn: to back)"));
         sh.Children.Add(H2(vi ? "Vẽ" : "Draw"));
-        sh.Children.Add(ShortcutRow("L", vi ? "Vẽ đường kẻ: kéo trên tem (Esc: thôi vẽ)" : "Draw a line: drag on the label (Esc: stop)"));
+        sh.Children.Add(ShortcutRow(vi ? "Gõ chữ" : "Typing", vi ? "Đang chọn Chữ hoặc Ô chữ có nội dung cố định: sửa ngay trên tem, chữ gõ thay nội dung" : "With a Text or Text Box with fixed content selected: edit it on the label, the typing replaces its content"));
+        sh.Children.Add(ShortcutRow("L", vi ? "Vẽ đường kẻ: kéo trên tem (Esc: thôi vẽ); khi đang chọn chữ thì gõ chữ" : "Draw a line: drag on the label (Esc: stop); with a text selected it types"));
         sh.Children.Add(ShortcutRow("R", vi ? "Vẽ hình chữ nhật" : "Draw a rectangle"));
         sh.Children.Add(ShortcutRow("C", vi ? "Vẽ hình elip" : "Draw an ellipse"));
         sh.Children.Add(H2(vi ? "Xem" : "View"));

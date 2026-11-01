@@ -640,6 +640,9 @@ public partial class DataManagerWindow : Window
 
     private void UpdateDatabaseSummary()
     {
+        // The key and copies columns: the main window's, applied at once like the rest of this page.
+        DatabaseRowSettings.DataContext = _viewModel;
+        DatabaseRowSettings.Visibility = _viewModel.HasExcelData ? Visibility.Visible : Visibility.Collapsed;
         var config = _viewModel.Template.DatabaseConfig;
         if (!_viewModel.HasLinkedExcelSource)
         {

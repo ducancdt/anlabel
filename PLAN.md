@@ -1,5 +1,20 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.370
+
+- Bảng Dữ liệu gọn như NiceLabel 10 (chủ dự án duyệt 2026-11-01): nguồn dữ liệu là dòng đầu dưới “Trường dữ
+  liệu” (“+ Liên kết Excel / CSV…” khi chưa có tệp; tên tệp · dòng đang chọn khi đã liên kết), kèm cảnh báo và
+  nút sửa ngay: dữ liệu cũ (Cập nhật Excel), liên kết hỏng (Liên kết lại Excel…), tệp đang mở trong Excel, hàm
+  lỗi. Hai cảnh báo dữ liệu cũ và hàm lỗi trước đây chỉ nằm trong một cây bị ẩn. Enter hoặc nhấp đúp dòng này
+  mở Quản lý dữ liệu › Cơ sở dữ liệu. “Dòng Excel” và “Kiểm tra ràng buộc” thu gọn dưới cây; tiêu đề ghi trạng
+  thái (đạt, N lỗi, chờ tệp Excel). Bỏ thẻ “Dữ liệu hiện tại”, “Chưa liên kết dữ liệu” và “Cài đặt dữ liệu”:
+  cột theo dõi dòng và số bản mỗi dòng chuyển vào Quản lý dữ liệu › Cơ sở dữ liệu; bộ đếm Serial, biến nhập khi
+  in, nguồn dùng chung và biến đổi vốn đã có ở Quản lý dữ liệu, ribbon Dữ liệu và cây. Lưới biến nhập khi in
+  trong “Cài đặt dữ liệu” còn sửa được cả trên tem bảo vệ, lách qua khóa của v0.366; nay không còn.
+- Gõ để sửa chữ như NiceLabel 10 (chủ dự án duyệt 2026-11-01): đang chọn một Chữ hoặc Ô chữ có nội dung cố
+  định trên bảng thiết kế, gõ một ký tự là mở sửa ngay trên tem, ký tự đó thay nội dung. L, R, C khi đó là gõ
+  chữ; không chọn chữ thì vẫn vẽ đường, chữ nhật, elip như cũ.
+
 ## v0.370 — Bảng thiết kế bỏ viền Chữ, ô màu chữ hiện đúng màu
 
 _Gồm các commit 01/11/2026 (10:35–10:57)._

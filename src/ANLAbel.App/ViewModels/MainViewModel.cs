@@ -1417,6 +1417,20 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedBindingErrorsText => ANLAbel.App.Services.FormulaErrorText.Join(EvaluateSelectedBinding().Errors);
     public IReadOnlyList<BindingIssueSummary> BindingIssues => GetBindingIssues();
     public bool HasBindingIssues => BindingIssues.Count > 0;
+    /// <summary>The binding check in a few words, for its folded header in the Data panel.</summary>
+    public string BindingCheckStatusText
+    {
+        get
+        {
+            var issues = BindingIssues;
+            return IsAwaitingData(issues)
+                ? "chờ tệp Excel"
+                : issues.Count > 0
+                    ? $"{issues.Count} lỗi"
+                    : ReadsExcelFields ? "đạt" : "chưa có gì để kiểm";
+        }
+    }
+
     public string BindingIssuesSummary
     {
         get
@@ -3788,6 +3802,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ReadsExcelFields));
         OnPropertyChanged(nameof(AwaitsExcelData));
         OnPropertyChanged(nameof(BindingIssuesSummary));
+        OnPropertyChanged(nameof(BindingCheckStatusText));
         ((RelayCommand)AddDatabaseFieldCommand).RaiseCanExecuteChanged();
         ((RelayCommand)AddAllDatabaseFieldsCommand).RaiseCanExecuteChanged();
         ((RelayCommand)RemoveDatabaseFieldCommand).RaiseCanExecuteChanged();
@@ -6519,6 +6534,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedObjectReadsData));
         OnPropertyChanged(nameof(AwaitsExcelData));
         OnPropertyChanged(nameof(BindingIssuesSummary));
+        OnPropertyChanged(nameof(BindingCheckStatusText));
         OnPropertyChanged(nameof(FormulaPreviewValue));
         OnPropertyChanged(nameof(FormulaPreviewErrors));
         OnPropertyChanged(nameof(FormulaPreviewUsedFields));

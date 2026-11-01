@@ -358,6 +358,17 @@
                             <TextBlock x:Name="DatabaseSummaryText" Style="{StaticResource EditorHint}"/>
                             <TextBlock Style="{StaticResource EditorLabel}" Text="Trường dùng trên tem"/>
                             <TextBlock x:Name="DatabaseFieldsText" TextWrapping="Wrap" Foreground="#262626"/>
+                            <!-- NiceLabel 10 keeps labels per record in the database settings; they left the Data panel (owner decision 2026-11-01) -->
+                            <StackPanel x:Name="DatabaseRowSettings" Margin="0,10,0,0">
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Cột theo dõi dòng"/>
+                                <TextBlock Style="{StaticResource EditorHint}" Text="Tùy chọn: chọn một cột để giữ nguyên dòng đang chọn sau khi nạp lại, kể cả khi có dòng Excel được thêm hoặc xóa. Bỏ trống để theo dõi theo vị trí dòng."/>
+                                <ComboBox Width="260" HorizontalAlignment="Left" ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedKeyFieldName, Mode=TwoWay}"
+                                          AutomationProperties.AutomationId="DataManager.KeyField" AutomationProperties.Name="Cột theo dõi dòng"/>
+                                <TextBlock Style="{StaticResource EditorLabel}" Text="Số bản mỗi dòng"/>
+                                <TextBlock Style="{StaticResource EditorHint}" Text="Tùy chọn: chọn cột có giá trị quy định số tem in cho mỗi dòng trong Xem trước khi in. Bỏ trống để in 1 bản mỗi dòng (vẫn sửa tay được ở đó)."/>
+                                <ComboBox Width="260" HorizontalAlignment="Left" ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedCopiesFieldName, Mode=TwoWay}"
+                                          AutomationProperties.AutomationId="DataManager.CopiesField" AutomationProperties.Name="Số bản mỗi dòng"/>
+                            </StackPanel>
                             <WrapPanel Margin="0,14,0,0">
                                 <Button Content="Sửa cơ sở dữ liệu…" Padding="10,4" Margin="0,0,8,6" Click="EditDatabase_Click"/>
                                 <Button Content="Nạp lại dữ liệu" Padding="10,4" Margin="0,0,8,6" Click="ReloadDatabase_Click"/>
@@ -365,7 +376,7 @@
                             </WrapPanel>
                             <Border Style="{StaticResource EditorNote}">
                                 <TextBlock TextWrapping="Wrap" Foreground="#262626"
-                                           Text="Thay đổi cơ sở dữ liệu áp dụng ngay cho tem, không chờ Đồng ý (như ở thẻ Dữ liệu)."/>
+                                           Text="Cơ sở dữ liệu, cột theo dõi dòng và số bản mỗi dòng đổi ngay cho tem, không chờ Đồng ý."/>
                             </Border>
                         </StackPanel>
 

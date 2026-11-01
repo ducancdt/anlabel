@@ -58,6 +58,8 @@ public partial class MainWindow : Window
         Activated += async (_, _) => await _viewModel.RefreshExcelOpenHintAsync();
         BindObjectBrowser();
         DesignerCanvas.PreviewMouseLeftButtonDown += DesignerCanvas_PropertiesDoubleClick;
+        // A tree item's header has no width limit: the database row's lines wrap inside the tree.
+        DataTree.SizeChanged += (_, _) => DataTreeDatabase.MaxWidth = Math.Max(80, DataTree.ActualWidth - 64);
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(() =>
             {
@@ -154,6 +156,7 @@ public partial class MainWindow : Window
             }
         };
         PreviewKeyDown += MainWindow_PreviewKeyDown;
+        PreviewTextInput += MainWindow_PreviewTextInput;
         PreviewMouseWheel += MainWindow_PreviewMouseWheel;
         DataObject.AddPastingHandler(ObjectTextBox, ObjectTextBox_Pasting);
     }
@@ -585,6 +588,45 @@ public partial class MainWindow : Window
         return true;
     }
 
+    /// <summary>
+    /// A typed character edits the selected text: the design surface has the keyboard, no drawing tool is on,
+    /// no edit is open, and the selection is one Text or Text Box with fixed content on an editable label.
+    /// </summary>
+    private bool TypingEditsText(object? source)
+        => Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Shift
+            && source is not null && !IsTextInputTarget(source)
+            && DesignerCanvas.IsKeyboardFocusWithin && DesignerCanvas.DrawingTool is null
+            && _inPlaceEditor is null && CanEditInPlace(_viewModel.SelectedObject);
+
+    private void MainWindow_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        if (e.Text is { Length: > 0 } text && !text.Any(char.IsControl) && TypingEditsText(e.OriginalSource))
+        {
+            e.Handled = StartTypingInPlace(text);
+        }
+    }
+
+    /// <summary>
+    /// NiceLabel 10 (TextSelectionItem InitialEditContent, owner decision 2026-11-01): the character typed
+    /// on the selected text opens it on the label with that character in place of the content, the caret
+    /// after it. The content box's input rules apply to it as to any typing.
+    /// </summary>
+    private bool StartTypingInPlace(string text)
+    {
+        if (!BeginInPlaceEdit() || _inPlaceEditor is not { } editor)
+        {
+            return false;
+        }
+
+        if (CanApplyTextBoxInput(editor, text))
+        {
+            editor.SelectedText = text;
+            editor.CaretIndex = editor.Text.Length;
+        }
+
+        return true;
+    }
+
     private LabelObject? InPlaceTarget()
         => _inPlaceTargetId is { } id ? _viewModel.Template.Objects.FirstOrDefault(item => item.Id == id) : null;
 
@@ -829,6 +871,8 @@ public partial class MainWindow : Window
         string => "Database",
         DataTreeField field when field.Binding.Contains(SerialCounterContract.Token, StringComparison.OrdinalIgnoreCase) => "Counter",
         DataTreeField => "Date",
+        // The database row under Trường dữ liệu.
+        TreeViewItem { Tag: "Database" } => "Database",
         _ => null
     };
 
@@ -1005,6 +1049,12 @@ public partial class MainWindow : Window
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (Keyboard.Modifiers != ModifierKeys.None || IsTextInputTarget(e.OriginalSource) || _viewModel.IsEditingLocked)
+        {
+            return;
+        }
+
+        // NiceLabel 10: with a fixed text selected on the design surface a letter types into it, L, R and C too.
+        if (e.Key is Key.L or Key.R or Key.C && TypingEditsText(e.OriginalSource))
         {
             return;
         }

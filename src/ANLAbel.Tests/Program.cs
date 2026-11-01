@@ -95,6 +95,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("font boxes show the selected text's font", DesignScenarioRegression.FontBoxesShowTheSelectedFont),
     ("the text colour box shows the selected colour", DesignScenarioRegression.TextColourBoxShowsTheSelectedColour),
     ("the designer draws no text outline", DesignScenarioRegression.DesignerDrawsNoTextOutline),
+    ("the Data panel is NiceLabel's tree", DesignScenarioRegression.DataPanelIsNiceLabelsTree),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
@@ -5562,10 +5563,12 @@ static Task TestBarcodeAndSerialPropertiesExposeReverseEngineeredOptions()
         "Properties must let the operator set the PDF417 error correction level");
     AssertEqual(true, xaml.Contains("SelectedObject.Pdf417Truncated", StringComparison.Ordinal),
         "Properties must let the operator choose truncated PDF417");
-    AssertEqual(true, xaml.Contains("Template.SerialCounter.Alphabet", StringComparison.Ordinal),
-        "The serial counter panel must let the operator choose the counter alphabet");
-    AssertEqual(true, xaml.Contains("Template.SerialCounter.CustomAlphabet", StringComparison.Ordinal),
-        "The serial counter panel must let the operator define a custom counter alphabet");
+    // The serial counter is edited in Quản lý dữ liệu (the Data panel's copy left with Cài đặt dữ liệu, owner decision 2026-11-01).
+    var manager = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "src", "ANLAbel.App", "DataManagerWindow.xaml"));
+    AssertEqual(true, manager.Contains("SelectedValue=\"{Binding Alphabet}\"", StringComparison.Ordinal),
+        "The serial counter editor must let the operator choose the counter alphabet");
+    AssertEqual(true, manager.Contains("{Binding CustomAlphabet", StringComparison.Ordinal),
+        "The serial counter editor must let the operator define a custom counter alphabet");
 
     var levels = ANLAbel.Core.Barcode.QrOptionLists.Pdf417ErrorCorrections;
     AssertEqual(10, levels.Count, "PDF417 error correction choices must be Auto plus levels 0-8");

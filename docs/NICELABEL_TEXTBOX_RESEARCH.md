@@ -161,6 +161,14 @@ label` (tem doi khi go, Enter khong ket thuc, Esc giu, roi o giu, menu rieng cua
 khung Ô chữ, Tràn = Lỗi, chu doc nguon, menu `Sửa chữ`, nhap dup, F2, nhieu doi tuong, tem bao ve); cac gate nhap
 dup va F2 cu dung ma vach cho duong Thuoc tinh.
 
+### Go de sua chu (chu san pham duyet 2026-11-01)
+
+NiceLabel 10 `TextSelectionItem` co `InitialEditContent`: go mot ky tu khi dang chon chu la vao EditMode, ky tu do
+thay noi dung. ANLAbel: dang chon mot Chữ hoac Ô chữ co noi dung co dinh, ban thiet ke giu ban phim, khong co cong
+cu ve, go mot ky tu (khong kem Ctrl/Alt) mo o sua tai cho voi ky tu do thay noi dung, con tro sau no; luat nhap cua o
+Noi dung van ap dung. L, R, C luc do la go chu; khong chon chu thi van ve. Di qua cung duong sua tai cho (mot buoc
+hoan tac, tem doi khi go), nen hop dong Text/TextBox giu nguyen. Gate: `in-place editing edits a text on the label`.
+
 ### O co chu hien moi co (2026-11-01, khong doi hop dong)
 
 O co chu cua trang Kieu (`FontSizeCombo`) va hai o tren ribbon chi khop co trong danh sach qua `SelectedItem`;

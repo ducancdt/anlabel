@@ -1174,6 +1174,10 @@ process initializer).
   `PushToUndoStack` and returns the focus; `LostKeyboardFocus` ends it the
   same way. Enter is a new line; nothing drops the edit but Undo. ANLAbel
   follows this after v0.366 (which had Enter end the edit and Esc drop it).
+  A character typed with a text selected enters edit mode with it in place of
+  the content (`TextSelectionItem.InitialEditContent`, raised into the box as a
+  `TextComposition`); ANLAbel does the same since the owner decision of
+  2026-11-01, L, R and C typing then rather than drawing.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

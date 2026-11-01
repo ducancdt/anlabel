@@ -1639,7 +1639,7 @@
                                         </Button>
                                     </Grid>
                                     <!-- NiceLabel 10 Data explorer: variables and data fields as a tree -->
-                                    <TreeView Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields"
+                                    <TreeView x:Name="DataTree" Margin="0,0,0,8" MaxHeight="220" BorderThickness="0" AutomationProperties.AutomationId="Shell.Workspace.DataTree" AutomationProperties.Name="Variables and fields"
                                               PreviewMouseLeftButtonDown="DataTree_PreviewMouseLeftButtonDown" PreviewMouseMove="DataTree_PreviewMouseMove" MouseDoubleClick="DataTree_MouseDoubleClick" KeyDown="DataTree_KeyDown"
                                               ToolTip="Kéo một biến, trường, hàm hoặc giá trị khi in lên tem để thêm chữ gắn với nó, hoặc thả lên một đối tượng để gắn đối tượng đó (giữ Ctrl để luôn thêm chữ mới). Nhấp đúp (hoặc Enter) để mở nó trong Quản lý dữ liệu.">
                                         <TreeViewItem x:Name="DataTreePrompts" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreePromptsSource}}">
@@ -1651,7 +1651,47 @@
                                                 <DataTemplate><TextBlock Text="{Binding Name, StringFormat={}? {0}}"/></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
-                                        <TreeViewItem x:Name="DataTreeFields" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreeFieldsSource}}">
+                                        <TreeViewItem x:Name="DataTreeFields" IsExpanded="True">
+                                            <TreeViewItem.ItemsSource>
+                                                <CompositeCollection>
+                                                    <!-- NiceLabel 10 Data explorer: the database first under its fields, "+ Add new database" when there is none (owner decision 2026-11-01) -->
+                                                    <TreeViewItem x:Name="DataTreeDatabaseItem" Tag="Database" AutomationProperties.Name="Database"
+                                                                  ToolTip="Nguồn dữ liệu của tem; Enter hoặc nhấp đúp mở Quản lý dữ liệu › Cơ sở dữ liệu.">
+                                                        <TreeViewItem.Header>
+                                                            <StackPanel x:Name="DataTreeDatabase">
+                                                                <Button Click="ImportExcel_Click" Margin="0" Padding="0" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                                        Foreground="{StaticResource AppBlueBrush}" AutomationProperties.Name="Link Excel or CSV"
+                                                                        ToolTip="Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng.">
+                                                                    <Button.Style>
+                                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                                            <Style.Triggers><DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                                                        </Style>
+                                                                    </Button.Style>
+                                                                    <TextBlock Text="+ Liên kết Excel / CSV…"/>
+                                                                </Button>
+                                                                <StackPanel Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}">
+                                                                    <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding LinkedExcelSourceText}"
+                                                                               AutomationProperties.AutomationId="Shell.Data.Source"><Run Text="{Binding LinkedExcelSourceText, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding CurrentExcelRowText, Mode=OneWay}"/></TextBlock>
+                                                                    <TextBlock Text="{Binding ExcelDataFreshnessText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                                                                    <TextBlock Text="{Binding ExcelStaleNoticeText}" FontSize="10.5" Foreground="#B45309" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                               Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
+                                                                    <Button Content="Cập nhật Excel" Command="{Binding RefreshExcelDataCommand}" HorizontalAlignment="Left" Padding="6,1" Margin="0,2,0,0"
+                                                                            Visibility="{Binding IsExcelDataStale, Converter={StaticResource BoolToVisibility}}"/>
+                                                                    <TextBlock Text="{Binding ExcelLinkStatusText}" FontSize="10.5" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                               Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
+                                                                    <Button Content="Liên kết lại Excel…" Command="{Binding RelinkExcelCommand}" HorizontalAlignment="Left" Padding="6,1" Margin="0,2,0,0"
+                                                                            Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
+                                                                    <TextBlock Text="{Binding ExcelOpenInExcelText}" FontSize="10.5" Foreground="#92400E" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                               AutomationProperties.AutomationId="Shell.Data.OpenInExcel"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                                                                </StackPanel>
+                                                                <TextBlock Text="{Binding DataTransformError}" FontSize="10.5" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                           Visibility="{Binding HasDataTransformError, Converter={StaticResource BoolToVisibility}}"/>
+                                                            </StackPanel>
+                                                        </TreeViewItem.Header>
+                                                    </TreeViewItem>
+                                                    <CollectionContainer Collection="{Binding Source={StaticResource DataTreeFieldsSource}}"/>
+                                                </CompositeCollection>
+                                            </TreeViewItem.ItemsSource>
                                             <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding}"/></Style></TreeViewItem.ItemContainerStyle>
                                             <TreeViewItem.Header>
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE80A;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Trường dữ liệu" FontWeight="SemiBold"/></StackPanel>
@@ -1768,213 +1808,24 @@
                                              </TreeViewItem>
                                          </TreeViewItem>
                                     </TreeView>
-                                    <Border Background="#FFFFFF" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8"
-                                            Visibility="{Binding HasLinkedExcelSource, Converter={StaticResource BoolToVisibility}}">
-                                        <StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
-                                                <Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,1,7,0"/>
-                                                <TextBlock Text="Dữ liệu hiện tại" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding LinkedExcelSourceText}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding LinkedExcelSourceText}"/>
-                                            <TextBlock Text="{Binding CurrentExcelRowText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" Margin="0,3,0,0"/>
-                                            <TextBlock Text="{Binding ExcelDataFreshnessText}" FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                            <TextBlock Text="{Binding ExcelLinkStatusText}" FontSize="10.5" Foreground="#DC2626" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                            <TextBlock Text="{Binding ExcelOpenInExcelText}" FontSize="10.5" Foreground="#92400E" TextWrapping="Wrap" Margin="0,3,0,0"
-                                                       AutomationProperties.AutomationId="Shell.Data.OpenInExcel"/>
-                                            <WrapPanel Margin="0,7,0,0">
-                                                <Button Content="Liên kết lại Excel..." Command="{Binding RelinkExcelCommand}" Padding="7,3" Margin="0,0,5,5"
-                                                        Visibility="{Binding IsExcelLinkBroken, Converter={StaticResource BoolToVisibility}}"/>
-                                                <Button Content="Cập nhật Excel" Command="{Binding RefreshExcelDataCommand}" Padding="7,3" Margin="0,0,5,5"/>
-                                                <Button Content="Bỏ liên kết" Click="UnlinkExcel_Click" Padding="7,3" Margin="0,0,0,5"
-                                                        ToolTip="Bỏ liên kết Excel nhưng vẫn giữ ràng buộc đối tượng."/>
-                                            </WrapPanel>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#F8FAFC"/>
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding HasLinkedExcelSource}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <StackPanel>
-                                            <!-- A DockPanel, not a horizontal StackPanel: the hint gets the panel's width and wraps -->
-                                            <DockPanel Margin="0,0,0,8">
-                                                <Image DockPanel.Dock="Left" Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top"/>
-                                                <StackPanel>
-                                                    <TextBlock Text="Chưa liên kết dữ liệu" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="Nhập Excel hoặc CSV để xem trước các dòng và gán trường cho đối tượng." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                                </StackPanel>
-                                            </DockPanel>
-                                            <Button Click="ImportExcel_Click" HorizontalAlignment="Stretch" Padding="8,6" Background="{StaticResource AppBlueBrush}" Foreground="#FFFFFF" BorderBrush="{StaticResource AppBlueBrush}">
-                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                    <Image Source="{StaticResource Icon.Excel16}" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="Nhập Excel / CSV" FontWeight="SemiBold"/>
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
-                                            Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
-                                        <StackPanel>
-                                            <DockPanel Margin="0,0,0,6">
-                                                <TextBlock Text="Dòng Excel" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" VerticalAlignment="Center"/>
-                                                <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Margin="8,0,0,0" Text="{Binding CurrentExcelRowText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" VerticalAlignment="Center"/>
-                                            </DockPanel>
-                                            <DataGrid ItemsSource="{Binding ExcelDataView}"
-                                                      SelectedItem="{Binding SelectedDataItem, Mode=TwoWay}"
-                                                      AutoGenerateColumns="True"
-                                                      Height="190"
-                                                      MaxHeight="240"
-                                                      MinHeight="120"
-                                                      HeadersVisibility="Column"
-                                                      SelectionMode="Single"
-                                                      SelectionUnit="FullRow"
-                                                      CanUserAddRows="False"
-                                                      CanUserDeleteRows="False"
-                                                      IsReadOnly="True"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Expander IsExpanded="False" Margin="0,8,0,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}" ToolTip="Cài đặt dữ liệu: theo dõi, số bản, biến đổi và nguồn">
-                                        <Expander.Header><TextBlock Text="Cài đặt dữ liệu · Theo dõi, số bản, biến đổi &amp; nguồn" TextTrimming="CharacterEllipsis"/></Expander.Header>
-                                    <StackPanel>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
-                                            Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
-                                        <StackPanel>
-                                            <TextBlock Text="Khóa theo dõi dòng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Tùy chọn: chọn một cột để giữ nguyên dòng đang chọn sau khi nạp lại, kể cả khi có dòng Excel được thêm hoặc xóa. Bỏ trống để theo dõi theo vị trí dòng."/>
-                                            <ComboBox ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedKeyFieldName, Mode=TwoWay}"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
-                                            Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}">
-                                        <StackPanel>
-                                            <TextBlock Text="Số bản mỗi dòng" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Tùy chọn: chọn cột có giá trị quy định số tem in cho mỗi dòng trong Xem trước khi in. Bỏ trống để in 1 bản mỗi dòng (vẫn sửa tay được ở đó)."/>
-                                            <ComboBox ItemsSource="{Binding KeyFieldOptions}" SelectedItem="{Binding SelectedCopiesFieldName, Mode=TwoWay}"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
-                                        <StackPanel>
-                                            <TextBlock Text="Bộ đếm số serial" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Mỗi tem in một số theo thứ tự in. Dải số được giữ cho từng lệnh in trước khi gửi máy in nên hai lệnh không bao giờ trùng số; in lại dùng đúng số cũ. Số được lưu theo người dùng Windows trên máy này."/>
-                                            <CheckBox Content="Bật bộ đếm" IsChecked="{Binding Template.SerialCounter.Enabled, Mode=TwoWay}" Margin="0,0,0,4"/>
-                                            <TextBlock Text="Dãy ký tự" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                            <ComboBox ItemsSource="{Binding SerialCounterAlphabetOptions}" SelectedValue="{Binding Template.SerialCounter.Alphabet, Mode=TwoWay}" SelectedValuePath="Value" DisplayMemberPath="DisplayName" Margin="0,1,0,3"
-                                                      ToolTip="Cách viết giá trị bộ đếm. Số đã cấp cho lệnh in không đổi dãy giữa chừng: đổi dãy chỉ áp dụng cho số cấp mới."/>
-                                            <StackPanel Margin="0,0,0,3"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Template.SerialCounter.Alphabet}" Value="{x:Static enums:SerialCounterAlphabet.Custom}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Dãy ký tự tự định nghĩa" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/><TextBox Text="{Binding Template.SerialCounter.CustomAlphabet, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" ToolTip="Thứ tự ký tự để đếm, ví dụ 0123456789ABCDEF. Tối thiểu 2 ký tự, không lặp, không chứa dấu cách."/></StackPanel>
-                                            <Grid Margin="0,2,0,0">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="Bắt đầu" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.StartValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                             ToolTip="Giá trị đầu của dãy số. Tăng giá trị này sẽ nhảy tới; muốn quay lại số nhỏ hơn phải bấm Đặt lại."/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Bước" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.Step, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                             ToolTip="Mỗi lần đổi cộng thêm bước này; số âm để đếm lùi. Không được bằng 0."/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="4">
-                                                    <TextBlock Text="Đổi sau mỗi (tem)" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.ChangeEvery, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                             ToolTip="Số tem liên tiếp dùng chung một giá trị (1 - 999)."/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <Grid Margin="0,3,0,0">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="Nhỏ nhất" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.MinimumValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Lớn nhất" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.MaximumValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="4">
-                                                    <TextBlock Text="Số chữ số" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.Digits, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                             ToolTip="Đệm số 0 phía trước cho đủ số chữ số (0 = không đệm)."/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <Grid Margin="0,3,0,0">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="Tiền tố" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.Prefix, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="Hậu tố" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <TextBox Text="{Binding Template.SerialCounter.Suffix, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <TextBlock Text="Thư mục dùng chung (tùy chọn)" Foreground="{StaticResource AppMutedBrush}" FontSize="10" Margin="0,4,0,0"/>
-                                            <TextBox Text="{Binding Template.SerialCounter.SharedFolder, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
-                                                     ToolTip="Để trống: dãy số lưu trên máy này cho người dùng Windows này. Nhập thư mục mạng (ví dụ \\maychu\tem) để nhiều máy dùng chung một dãy số mà không trùng; mọi máy phải ghi được vào thư mục đó."/>
-                                            <CheckBox Content="Quay vòng khi vượt giới hạn" IsChecked="{Binding Template.SerialCounter.Rollover, Mode=TwoWay}" Margin="0,4,0,0"
-                                                      ToolTip="Bật: vượt Lớn nhất thì quay về Nhỏ nhất (đếm lùi thì ngược lại). Tắt: chặn in khi hết số."/>
-                                            <TextBlock Text="{Binding SerialCounterStatusText}" FontSize="10.5" Foreground="#334155" TextWrapping="Wrap" Margin="0,4,0,4"/>
-                                            <Button Content="Đặt lại bộ đếm..." Click="ResetSerialCounter_Click" HorizontalAlignment="Left" Padding="6,2"
-                                                    ToolTip="Bắt đầu một dãy số mới từ giá trị Bắt đầu. Có thể tạo số trùng với tem đã in trước đó."/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
-                                        <StackPanel>
-                                            <TextBlock Text="Giá trị nhập khi in và ngày giờ" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Dùng {?Tên} trong liên kết dữ liệu để hỏi người vận hành khi bấm In (ví dụ {?Lot}), và {#NOW:dd/MM/yyyy} hoặc {#NOW+30d:dd/MM/yyyy} để in ngày giờ hoặc hạn dùng (đơn vị d, w, mo, y, h). Giá trị được lưu theo lệnh in nên in lại ra đúng như cũ. Khai báo thêm điều kiện cho từng tên ở bảng dưới (không bắt buộc)."/>
-                                            <DataGrid ItemsSource="{Binding Template.PromptVariables}" AutoGenerateColumns="False" CanUserAddRows="True" CanUserDeleteRows="True"
-                                                      HeadersVisibility="Column" MinHeight="60" MaxHeight="160" FontSize="11">
-                                                <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Tên" Binding="{Binding Name, UpdateSourceTrigger=LostFocus}" Width="70"/>
-                                                    <DataGridTextColumn Header="Câu hỏi" Binding="{Binding Prompt, UpdateSourceTrigger=LostFocus}" Width="*"/>
-                                                    <DataGridTextColumn Header="Mặc định" Binding="{Binding DefaultValue, UpdateSourceTrigger=LostFocus}" Width="70"/>
-                                                    <DataGridTextColumn Header="Tối đa" Binding="{Binding MaxLength, UpdateSourceTrigger=LostFocus}" Width="45"/>
-                                                    <DataGridCheckBoxColumn Header="Số" Binding="{Binding DigitsOnly, UpdateSourceTrigger=PropertyChanged}" Width="32"/>
-                                                    <DataGridCheckBoxColumn Header="Bắt buộc" Binding="{Binding Required, UpdateSourceTrigger=PropertyChanged}" Width="58"/>
-                                                </DataGrid.Columns>
-                                            </DataGrid>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
-                                        <StackPanel>
-                                            <TextBlock Text="Nguồn dữ liệu dùng chung" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                                       Text="Dùng lại một tệp/trang Excel cho nhiều mẫu tem. Liên kết lại nguồn dùng chung một lần sẽ sửa cho mọi mẫu tem đang dùng nó."/>
-                                            <ItemsControl ItemsSource="{Binding DataSources}" Margin="0,0,0,6">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding DisplayName}" FontSize="11" Foreground="#334155" TextWrapping="Wrap" Margin="0,1"/>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                            <Button Content="Quản lý nguồn dữ liệu..." Click="ManageDataSources_Click" HorizontalAlignment="Left" Padding="6,2"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
-                                        <StackPanel>
-                                            <TextBlock Text="Biến đổi" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock Text="Trường tính toán chạy trước khi xem trước và in." FontSize="10.5" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,4"/>
-                                            <ItemsControl ItemsSource="{Binding DataTransforms}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Margin="0,1" FontSize="10.5" TextWrapping="Wrap">
-                                                            <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=" = "/><Run Text="{Binding Formula, Mode=OneWay}"/>
-                                                        </TextBlock>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Border>
-                                    </StackPanel>
+                                    <!-- The Excel rows fold under the tree (owner decision 2026-11-01, NiceLabel 10 keeps the Data panel a tree) -->
+                                    <Expander Margin="0,4,0,0" IsExpanded="False" Visibility="{Binding HasExcelData, Converter={StaticResource BoolToVisibility}}"
+                                              AutomationProperties.AutomationId="Shell.Data.ExcelRows" AutomationProperties.Name="Excel rows">
+                                        <Expander.Header>
+                                            <TextBlock><Run Text="Dòng Excel" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/><Run Text=" · "/><Run Text="{Binding CurrentExcelRowText, Mode=OneWay}" Foreground="{StaticResource AppMutedBrush}"/></TextBlock>
+                                        </Expander.Header>
+                                        <DataGrid Margin="0,6,0,0" ItemsSource="{Binding ExcelDataView}"
+                                                  SelectedItem="{Binding SelectedDataItem, Mode=TwoWay}"
+                                                  AutoGenerateColumns="True"
+                                                  Height="190"
+                                                  MaxHeight="240"
+                                                  MinHeight="120"
+                                                  HeadersVisibility="Column"
+                                                  SelectionMode="Single"
+                                                  SelectionUnit="FullRow"
+                                                  CanUserAddRows="False"
+                                                  CanUserDeleteRows="False"
+                                                  IsReadOnly="True"/>
                                     </Expander>
                                     <Border BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0">
                                         <Border.Style>
@@ -1999,39 +1850,43 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <StackPanel>
-                                            <TextBlock Text="Kiểm tra ràng buộc" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/>
-                                            <TextBlock Text="{Binding BindingIssuesSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                            <ItemsControl ItemsSource="{Binding BindingIssues}" Margin="0,8,0,0">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Command="{Binding DataContext.SelectBindingIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" AutomationProperties.Name="{Binding Title}"
-                                                                CommandParameter="{Binding}"
-                                                                HorizontalContentAlignment="Stretch"
-                                                                Margin="0,0,0,6"
-                                                                Padding="8,7">
-                                                            <StackPanel>
-                                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                                <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                                                <TextBlock Text="{Binding MissingFieldsSummary}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0">
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock">
-                                                                            <Setter Property="Foreground" Value="{StaticResource AppDangerBrush}"/>
-                                                                            <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding AwaitingData}" Value="True">
-                                                                                    <Setter Property="Foreground" Value="{StaticResource AppMutedBrush}"/>
-                                                                                </DataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                                <TextBlock Text="{Binding ErrorsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                                            </StackPanel>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
+                                        <Expander IsExpanded="False" AutomationProperties.AutomationId="Shell.Data.BindingCheck" AutomationProperties.Name="Binding check">
+                                            <Expander.Header>
+                                                <TextBlock><Run Text="Kiểm tra ràng buộc" FontWeight="SemiBold" Foreground="{StaticResource AppBlueDarkBrush}"/><Run Text=": "/><Run Text="{Binding BindingCheckStatusText, Mode=OneWay}"/></TextBlock>
+                                            </Expander.Header>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding BindingIssuesSummary}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                <ItemsControl ItemsSource="{Binding BindingIssues}" Margin="0,8,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Command="{Binding DataContext.SelectBindingIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}" AutomationProperties.Name="{Binding Title}"
+                                                                    CommandParameter="{Binding}"
+                                                                    HorizontalContentAlignment="Stretch"
+                                                                    Margin="0,0,0,6"
+                                                                    Padding="8,7">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{StaticResource AppMutedBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                                                    <TextBlock Text="{Binding MissingFieldsSummary}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Foreground" Value="{StaticResource AppDangerBrush}"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding AwaitingData}" Value="True">
+                                                                                        <Setter Property="Foreground" Value="{StaticResource AppMutedBrush}"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                    <TextBlock Text="{Binding ErrorsSummary}" FontSize="11" Foreground="{StaticResource AppDangerBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                                                </StackPanel>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Expander>
                                     </Border>
                                     </StackPanel>
                                     </ScrollViewer>
