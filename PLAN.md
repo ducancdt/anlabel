@@ -2,6 +2,11 @@
 
 ## Sau v0.376
 
+- Menu chuột phải trên bảng thiết kế xếp như NiceLabel 10: trên đối tượng "Thuộc tính F4 | Sửa chữ | Sao chép, Cắt,
+  Xóa | Khóa vị trí, Nhóm, Bỏ nhóm | Sắp xếp, Căn chỉnh" (Sắp xếp: xuống một lớp, xuống dưới cùng | lên một lớp, lên
+  trên cùng; Căn chỉnh chia nhóm ngang | dọc | phân bố); trên tem "Thuộc tính tem | Sao chép, Dán, Cắt, Xóa | Chọn tất
+  cả | Căn và lưới | Dấu đối tượng, Thu phóng" (Vừa tài liệu, Vừa đối tượng vào Thu phóng). Sao chép, Cắt, Xóa trên tem
+  tác động lên vùng chọn như NiceLabel; Dán và Căn và lưới chỉ còn ở menu của tem.
 - Bảng Dữ liệu và danh sách Nguồn dữ liệu xếp nhóm theo thứ tự của NiceLabel 10 (DesignerDataSourceSelectorProvider:
   biến, hàm, cơ sở dữ liệu, biến nội bộ): Biến nhập khi in, Hàm, Trường dữ liệu, Khi in (trước đây Trường dữ liệu đứng
   trước Hàm). Menu nguồn của hộp công cụ theo cùng thứ tự.

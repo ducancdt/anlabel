@@ -5003,13 +5003,19 @@ internal static class DesignScenarioRegression
                 type.GetMethod("UpdateDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, null);
             }
 
-            string[] Shown() => canvas.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Visibility == Visibility.Visible).Select(item => (string)item.Header).ToArray();
+            // The shown entries with their separators, as NiceLabel 10 groups them.
+            string Layout() => string.Join(" ", canvas.ContextMenu!.Items.OfType<Control>().Where(item => item.Visibility == Visibility.Visible)
+                .Select(item => item is MenuItem { Header: string header } ? header : "|"));
             MenuItem Find(string header) => canvas.ContextMenu!.Items.OfType<MenuItem>().Single(item => (string)item.Header == header);
 
             RightClickAt(10, 22);
             Require(viewModel.SelectedObject?.Name == "Mã", "A right-click selects the object under the pointer: " + viewModel.SelectedObject?.Name);
-            Require(Shown().SequenceEqual(["Thuộc tính", "Sửa chữ", "Cắt", "Sao chép", "Dán", "Xóa", "Khóa vị trí", "Nhóm đối tượng", "Bỏ nhóm", "Sắp xếp", "Căn chỉnh", "Căn và lưới"]),
-                "On an object the menu offers its commands: " + string.Join(" | ", Shown()));
+            Require(Layout() == "Thuộc tính | Sửa chữ | Sao chép Cắt Xóa | Khóa vị trí Nhóm đối tượng Bỏ nhóm | Sắp xếp Căn chỉnh",
+                "On an object the menu offers its commands in NiceLabel's groups: " + Layout());
+            string Submenu(string header) => string.Join(" ", Find(header).Items.OfType<Control>().Select(item => item is MenuItem { Header: string text } ? text : "|"));
+            Require(Submenu("Sắp xếp") == "Đưa xuống một lớp Đưa xuống dưới cùng | Đưa lên một lớp Đưa lên trên cùng"
+                    && Submenu("Căn chỉnh") == "Căn trái Căn giữa theo chiều ngang Căn phải | Căn trên Căn giữa theo chiều dọc Căn dưới | Phân bố đều theo chiều ngang Phân bố đều theo chiều dọc",
+                "Arrange and Align as NiceLabel's: " + Submenu("Sắp xếp") + " / " + Submenu("Căn chỉnh"));
             Require(!Find("Dán").IsEnabled && !Find("Nhóm đối tượng").IsEnabled, "Nothing to paste and one object to group: both disabled.");
 
             var lockItem = Find("Khóa vị trí");
@@ -5019,8 +5025,11 @@ internal static class DesignScenarioRegression
             Find("Sao chép").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
 
             RightClickAt(60, 40);
-            Require(Shown().SequenceEqual(["Thuộc tính tem", "Dán", "Chọn tất cả", "Vừa tài liệu", "Vừa đối tượng", "Căn và lưới", "Dấu đối tượng"]) && Find("Dán").IsEnabled,
-                "On the label the menu offers the label's commands, and the copy can be pasted: " + string.Join(" | ", Shown()));
+            Require(Layout() == "Thuộc tính tem | Sao chép Dán Cắt Xóa | Chọn tất cả | Căn và lưới | Dấu đối tượng Thu phóng" && Find("Dán").IsEnabled
+                    && Find("Sao chép").IsEnabled == (canvas.SelectedObjectCount > 0),
+                "On the label the menu offers the label's commands in NiceLabel's groups, and the copy can be pasted: " + Layout());
+            Require(Find("Thu phóng").Items.OfType<MenuItem>().Select(item => (string)item.Header).SequenceEqual(["Vừa tài liệu", "Vừa đối tượng"]),
+                "The zooms sit under Thu phóng, as NiceLabel's Zoom.");
             var gridHeaders = Find("Căn và lưới").Items.OfType<MenuItem>().Select(item => (string)item.Header).ToArray();
             Require(gridHeaders.Contains("Dính theo đối tượng") && gridHeaders.Contains("Đường gióng"), "Snapping and guides stay under Căn và lưới: " + string.Join(" | ", gridHeaders));
 

@@ -1254,6 +1254,15 @@ process initializer).
   the databases inserted at index 2 (`AddSubProviderWithBasicCommands` →
   `SubProviders.Insert`), RFID last: Variables, Functions, Databases, Internal
   variables. ANLAbel after v0.376: Biến nhập khi in, Hàm, Trường dữ liệu, Khi in.
+- Right-click menus (BAML `selectionitem/view/selectionitemcontextmenu.xaml`,
+  `mainregion/view/documentpagecontextmenu.xaml`). An object's: Properties
+  (F4) | Edit text (F2) | Copy, Cut, Delete | Position locked, Group, Ungroup |
+  Arrange (Send backward, Send to back | Bring forward, Bring to front), Align
+  (left, centre, right | top, middle, bottom | space horizontally,
+  vertically), Move to layer. The page's: Document properties | Copy, Paste,
+  Cut, Delete | Select all | Alignment and gridlines | Object markers, Zoom
+  (Zoom to label, Zoom to objects). The object browser has no menu of its own.
+  ANLAbel after v0.376 follows both (no layers, so no Move to layer).
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

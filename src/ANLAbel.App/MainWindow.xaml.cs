@@ -1403,12 +1403,15 @@ public partial class MainWindow : Window
     private MenuItem? _contextPasteItem;
     private MenuItem? _contextSelectAllItem;
     private MenuItem? _contextEditTextItem;
+    private readonly List<MenuItem> _selectionMenuItems = new();
 
     /// <summary>
-    /// NiceLabel 10's right-click menus on the design surface: on an object its
-    /// properties, clipboard, lock, group, arrange and align; on the label its
-    /// properties, paste, select all and zoom. The canvas's own snapping, grid and guide
-    /// items follow under "Căn và lưới". Each item runs the ribbon's handler.
+    /// NiceLabel 10's right-click menus on the design surface, in its order: on an object
+    /// (SelectionItemContextMenu) Properties | Edit text | Copy, Cut, Delete | Position locked,
+    /// Group, Ungroup | Arrange, Align; on the label (DocumentPageContextMenu) Document properties |
+    /// Copy, Paste, Cut, Delete | Select all | Alignment and gridlines | Object markers, Zoom. The
+    /// canvas's own snapping, grid and guide items follow under "Căn và lưới". Each item runs the
+    /// ribbon's handler.
     /// </summary>
     private void BuildDesignerContextMenu()
     {
@@ -1468,11 +1471,13 @@ public partial class MainWindow : Window
         };
         _contextGroupItem = Item("Nhóm đối tượng", "Ctrl+G", GroupObjects_Click);
         _contextUngroupItem = Item("Bỏ nhóm", "Ctrl+Shift+G", UngroupObjects_Click);
+        // NiceLabel 10's Arrange: backward and to the back, then forward and to the front.
         var arrange = new MenuItem { Header = "Sắp xếp" };
-        arrange.Items.Add(Item("Đưa lên trên cùng", "Ctrl+PgUp", Run(_viewModel.BringToFrontCommand)));
-        arrange.Items.Add(Item("Đưa lên một lớp", "PgUp", Run(_viewModel.BringForwardCommand)));
         arrange.Items.Add(Item("Đưa xuống một lớp", "PgDn", Run(_viewModel.SendBackwardCommand)));
         arrange.Items.Add(Item("Đưa xuống dưới cùng", "Ctrl+PgDn", Run(_viewModel.SendToBackCommand)));
+        arrange.Items.Add(new Separator());
+        arrange.Items.Add(Item("Đưa lên một lớp", "PgUp", Run(_viewModel.BringForwardCommand)));
+        arrange.Items.Add(Item("Đưa lên trên cùng", "Ctrl+PgUp", Run(_viewModel.BringToFrontCommand)));
         var align = new MenuItem { Header = "Căn chỉnh" };
         foreach (var (header, tag) in new[]
                  {
@@ -1481,6 +1486,11 @@ public partial class MainWindow : Window
                  })
         {
             align.Items.Add(Item(header, string.Empty, ArrangeAlign_Click, tag));
+            // NiceLabel 10's Align: left, centre, right, then top, middle, bottom, then the spacing.
+            if (tag == "Right")
+            {
+                align.Items.Add(new Separator());
+            }
         }
 
         align.Items.Add(new Separator());
@@ -1516,16 +1526,27 @@ public partial class MainWindow : Window
             markers.Items.Add(marker);
         }
 
-        var objectHead = new Separator();
-        var objectTail = new Separator();
-        var labelTail = new Separator();
-        foreach (var item in new Control[] { properties, _contextEditTextItem, labelProperties, objectHead, cut, copy, _contextPasteItem, _contextSelectAllItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid, markers })
+        // NiceLabel 10's Zoom submenu of the label's menu.
+        var zoom = new MenuItem { Header = "Thu phóng" };
+        zoom.Items.Add(zoomLabel);
+        zoom.Items.Add(zoomObjects);
+
+        // One menu for both: each shows its own items, in NiceLabel's order and groups (an empty group's
+        // separator is hidden, UpdateDesignerContextMenu).
+        foreach (var item in new Control[]
+                 {
+                     properties, labelProperties, new Separator(), _contextEditTextItem, new Separator(),
+                     copy, _contextPasteItem, cut, delete, new Separator(),
+                     _contextLockItem, _contextGroupItem, _contextUngroupItem, _contextSelectAllItem, new Separator(),
+                     arrange, align, grid, new Separator(), markers, zoom
+                 })
         {
             menu.Items.Add(item);
         }
 
-        _objectMenuItems.AddRange(new Control[] { properties, cut, copy, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align });
-        _labelMenuItems.AddRange(new Control[] { labelProperties, _contextSelectAllItem, zoomLabel, zoomObjects, markers });
+        _objectMenuItems.AddRange(new Control[] { properties, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align });
+        _labelMenuItems.AddRange(new Control[] { labelProperties, _contextPasteItem, _contextSelectAllItem, grid, markers, zoom });
+        _selectionMenuItems.AddRange(new[] { copy, cut, delete });
         DesignerCanvas.PreviewMouseRightButtonDown += (_, e) => SelectForContextMenu(e.GetPosition(DesignerCanvas));
         // The menu key or Shift+F10 opens it with no pointer (CursorLeft and CursorTop are -1).
         DesignerCanvas.ContextMenuOpening += (_, e) => PrepareDesignerContextMenu(e.CursorLeft < 0 && e.CursorTop < 0);
@@ -1562,11 +1583,13 @@ public partial class MainWindow : Window
             _viewModel.SelectionLocked = _viewModel.SelectionLocked != true;
             e.Handled = true;
         });
+        // NiceLabel 10's Arrange: backward and to the back, then forward and to the front.
         var arrange = new MenuItem { Header = "Sắp xếp" };
-        arrange.Items.Add(Item("Đưa lên trên cùng", "Ctrl+PgUp", Run(_viewModel.BringToFrontCommand)));
-        arrange.Items.Add(Item("Đưa lên một lớp", "PgUp", Run(_viewModel.BringForwardCommand)));
         arrange.Items.Add(Item("Đưa xuống một lớp", "PgDn", Run(_viewModel.SendBackwardCommand)));
         arrange.Items.Add(Item("Đưa xuống dưới cùng", "Ctrl+PgDn", Run(_viewModel.SendToBackCommand)));
+        arrange.Items.Add(new Separator());
+        arrange.Items.Add(Item("Đưa lên một lớp", "PgUp", Run(_viewModel.BringForwardCommand)));
+        arrange.Items.Add(Item("Đưa lên trên cùng", "Ctrl+PgUp", Run(_viewModel.BringToFrontCommand)));
         var menu = new ContextMenu();
         foreach (var item in new Control[]
                  {
@@ -1660,6 +1683,12 @@ public partial class MainWindow : Window
             _contextPasteItem.IsEnabled = DesignerCanvas.HasCopiedObjects;
         }
 
+        // Copy, Cut and Delete act on the selection, from the label's menu too (as NiceLabel's).
+        foreach (var item in _selectionMenuItems)
+        {
+            item.IsEnabled = onObject || DesignerCanvas.SelectedObjectCount > 0;
+        }
+
         if (_contextEditTextItem is not null)
         {
             // Only a Text or Text Box with fixed content is edited on the label.
@@ -1685,6 +1714,28 @@ public partial class MainWindow : Window
         if (_contextUngroupItem is not null)
         {
             _contextUngroupItem.IsEnabled = !string.IsNullOrEmpty(_viewModel.SelectedObject?.GroupId);
+        }
+
+        // A separator shows only between two shown groups.
+        Separator? pending = null;
+        var shownBefore = false;
+        foreach (var entry in DesignerCanvas.ContextMenu?.Items.OfType<Control>() ?? Enumerable.Empty<Control>())
+        {
+            if (entry is Separator separator)
+            {
+                separator.Visibility = Visibility.Collapsed;
+                pending = shownBefore ? separator : null;
+            }
+            else if (entry.Visibility == Visibility.Visible)
+            {
+                if (pending is not null)
+                {
+                    pending.Visibility = Visibility.Visible;
+                    pending = null;
+                }
+
+                shownBefore = true;
+            }
         }
     }
 

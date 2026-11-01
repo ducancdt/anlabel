@@ -718,7 +718,7 @@ mask character, already as ANLAbel's Mặt nạ page).
 | NiceLabel 10 | ANLAbel v0.362 |
 | --- | --- |
 | Shape Style page: Outline group, then Fill group (none for a line); corner radius for a rectangle only, on the page and the ribbon | Kiểu: "Đường viền" (Độ dày, Kiểu nét và màu, Bo góc for a rectangle), then "Tô nền" (not for a line), named as the Hình dạng tab's groups; that tab hides Bo góc beyond a rectangle and Tô nền for a line. Before, one "Kiểu hình" card mixed them and offered an ellipse a corner radius. |
-| Label right-click menu: Object markers after Alignment and gridlines | The label's menu has "Dấu đối tượng" (object names, data sources, locked objects), the View tab's toggles; an object's menu leaves it out. |
+| Label right-click menu: Document properties, Copy, Paste, Cut, Delete, Select all, Alignment and gridlines, Object markers, Zoom (DocumentPageContextMenu) | Since v0.377 the label's menu reads Thuộc tính tem | Sao chép, Dán, Cắt, Xóa | Chọn tất cả | Căn và lưới | Dấu đối tượng, Thu phóng (Vừa tài liệu, Vừa đối tượng), and an object's Thuộc tính F4 | Sửa chữ | Sao chép, Cắt, Xóa | Khóa vị trí, Nhóm, Bỏ nhóm | Sắp xếp, Căn chỉnh in NiceLabel's groups and submenu order; Dấu đối tượng ticks the View tab's markers (v0.362). |
 | Data explorer right-click commands | "Sửa trong Quản lý dữ liệu…", "Thêm chữ gắn với nguồn này" and "Gắn vào “<selected object>”" (the drag's two results, one undo step each; the last only for an object that shows data). Rename and delete stay in Quản lý dữ liệu, which asks first when a source is in use. A protected label keeps only Sửa. |
 
 Found while doing this: the Data panel's "Chưa liên kết dữ liệu" hint sat in a
