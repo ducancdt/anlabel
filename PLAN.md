@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.372
+## v0.373 — Tem bảo vệ không còn tay nắm, ngưỡng X theo 2 điểm, ảnh mờ chỉ cảnh báo, tay nắm góc tròn
+
+_Gồm các commit 01/11/2026 (13:10–13:32)._
 
 - Tay nắm góc của vùng chọn tròn như NiceLabel 10, tay nắm giữa cạnh vẫn vuông; dấu vẫn 5 DIP, vùng bấm 10 DIP.
 - Hai quy tắc an toàn in theo quyết định của chủ dự án (2026-11-01):
