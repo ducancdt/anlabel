@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.376
+## v0.377 — F4, Ctrl+T, menu chuột phải và thứ tự nhóm Dữ liệu như NiceLabel
+
+_Gồm các commit 01/11/2026 (16:37–17:06)._
 
 - Ctrl+T như NiceLabel 10 (RotateSelectedItemsCommand): xoay đối tượng đang chọn 90° theo chiều kim đồng hồ quanh
   tâm, một bước hoàn tác, như kéo tay xoay (Ô chữ giữ khung; không áp cho đường kẻ, đối tượng khóa, tem bảo vệ).
