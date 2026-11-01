@@ -1,5 +1,10 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.377
+
+- Quyết định của chủ dự án (2026-11-01): giữ phím mũi tên theo mm (0,1 mm; Shift 1 mm; Alt 0,01 mm), không lấy
+  Shift+mũi tên đổi cỡ của NiceLabel; đổi cỡ chính xác vẫn gõ Rộng/Cao trong Thuộc tính.
+
 ## v0.377 — F4, Ctrl+T, menu chuột phải và thứ tự nhóm Dữ liệu như NiceLabel
 
 _Gồm các commit 01/11/2026 (16:37–17:06)._

@@ -1270,7 +1270,9 @@ process initializer).
   resizes it from the right or bottom edge (Right/Down grow, Left/Up shrink);
   Ctrl+T (exactly Ctrl) turns the selected item +90° about its centre with
   snapping. ANLAbel moves in millimetres (0.1, Shift 1, Alt 0.01) and took
-  Ctrl+T after v0.376; Shift+Arrow resize would take its 1 mm step (owner).
+  Ctrl+T after v0.376. Owner decision 2026-11-01: keep the millimetre arrows
+  (Shift+Arrow stays the 1 mm move; sizes are typed in Rộng/Cao), so no
+  keyboard resize.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and
