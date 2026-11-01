@@ -939,8 +939,9 @@ internal static class DesignScenarioRegression
             Require(menu is not null, "The object list has a right-click menu.");
             MenuItem Command(string header) => menu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, header));
             var headers = menu!.Items.OfType<MenuItem>().Select(item => item.Header as string).ToArray();
-            Require(headers.SequenceEqual(new[] { "Thuộc tính", "Cắt", "Sao chép", "Xóa", "Hiển thị", "Khóa vị trí", "Sắp xếp" }),
-                "The menu offers the object's commands: " + string.Join(", ", headers));
+            Require(headers.SequenceEqual(new[] { "Thuộc tính", "Sao chép", "Cắt", "Xóa", "Hiển thị", "Khóa vị trí", "Sắp xếp" })
+                    && Command("Thuộc tính").InputGestureText == "F4",
+                "The menu offers the object's commands in the design surface's order: " + string.Join(", ", headers));
 
             menu.RaiseEvent(new RoutedEventArgs(ContextMenu.OpenedEvent, menu));
             Require(!Command("Hiển thị").IsChecked, "A hidden object shows Hiển thị unticked.");

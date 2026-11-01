@@ -1603,7 +1603,8 @@ public partial class MainWindow : Window
         var menu = new ContextMenu();
         foreach (var item in new Control[]
                  {
-                     Item("Thuộc tính", "F2", (_, e) =>
+                     // As the design surface's object menu (NiceLabel 10's): Properties F4, then Copy, Cut, Delete.
+                     Item("Thuộc tính", "F4", (_, e) =>
                      {
                          _viewModel.IsPropertiesVisible = true;
                          if (!_viewModel.IsPropertiesPinned)
@@ -1614,8 +1615,8 @@ public partial class MainWindow : Window
                          e.Handled = true;
                      }),
                      new Separator(),
-                     Item("Cắt", "Ctrl+X", Cut_Click),
                      Item("Sao chép", "Ctrl+C", Copy_Click),
+                     Item("Cắt", "Ctrl+X", Cut_Click),
                      Item("Xóa", "Delete", (_, e) =>
                      {
                          ANLAbel.App.Controls.LabelDesignerCanvas.DeleteSelectionCommand.Execute(null, DesignerCanvas);

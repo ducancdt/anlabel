@@ -2,6 +2,9 @@
 
 ## Sau v0.377
 
+- Menu chuột phải của danh sách Đối tượng theo cùng thứ tự với menu đối tượng trên bảng thiết kế: Thuộc tính (F4),
+  Sao chép, Cắt, Xóa (trước đây ghi F2 và Cắt trước Sao chép). Kiểm trên app đã cài v0.377 (chủ dự án để yên máy):
+  F4 ghim bảng Thuộc tính đang nổi; menu đối tượng và menu tem đúng nhóm, đúng thứ tự của NiceLabel.
 - Quyết định của chủ dự án (2026-11-01): giữ phím mũi tên theo mm (0,1 mm; Shift 1 mm; Alt 0,01 mm), không lấy
   Shift+mũi tên đổi cỡ của NiceLabel; đổi cỡ chính xác vẫn gõ Rộng/Cao trong Thuộc tính.
 
