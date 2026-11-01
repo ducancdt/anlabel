@@ -211,7 +211,9 @@ mau va net theo BAML NiceLabel (sau v0.373): khung lien #0072EB ngoai mep 1 DIP 
 `SelectionFrameMargin` -1) cong khung gach "2 2" #0072EB tren nen trang trong mep (`MoveThumb`); nhom nhieu vat chi co
 khung lien (`MultipleSelectionItem`); tay nam trang vien den; tay nam o diem neo to #178DF7
 (`ResizeThumb.IsAnchoringPoint`, khong to khi cac vat neo khac nhau); tay xoay #5761DA. Kich thuoc va vi tri tay nam
-(invariant 7) khong doi; gate `the selection is drawn as NiceLabel's`; vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
+(invariant 7) khong doi; gate `the selection is drawn as NiceLabel's`; Ctrl+T (sau v0.376, nhu `RotateSelectedItemsCommand` cua
+NiceLabel) xoay doi tuong dang chon 90° qua dung duong cua tay xoay (`RotateSelectedObject`, mot buoc hoan tac, O chu
+giu khung); gate `Ctrl+T turns the selection a quarter turn, as NiceLabel's`; vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
 chuot moi dat `Rotation` mot lan qua `NotifyEditGesture*` (mot buoc hoan tac). Tam tay nam resize (10/5 DIP), vong
 doi resize (`DragCompleted`, `LostMouseCapture` khong huy), khung W/H cua O chu, wrap, clip va ban in khong doi;
 duong ke khong co tay xoay. Gate: `the selection has no fill`, `the rotation handle turns by quarter turns`, cung

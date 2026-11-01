@@ -101,6 +101,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the selection is drawn as NiceLabel's", DesignScenarioRegression.SelectionIsDrawnAsNiceLabels),
     ("the object under the pointer shows a hover frame", DesignScenarioRegression.HoverFrameShowsTheObjectAClickPicks),
     ("F4 shows the Properties pinned, as NiceLabel's", DesignScenarioRegression.F4ShowsThePropertiesPinned),
+    ("Ctrl+T turns the selection a quarter turn, as NiceLabel's", DesignScenarioRegression.CtrlTTurnsTheSelectionAQuarterTurn),
     ("the rotation handle turns by quarter turns", DesignScenarioRegression.RotationHandleTurnsByQuarterTurns),
     ("a protected label shows no handles", DesignScenarioRegression.ProtectedLabelShowsNoHandles),
     ("an authored X blocks below two dots and soft images warn", TestAuthoredXBlocksBelowTwoDotsAndSoftImagesWarn),

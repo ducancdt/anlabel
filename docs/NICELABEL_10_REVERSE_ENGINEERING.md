@@ -1263,6 +1263,14 @@ process initializer).
   Cut, Delete | Select all | Alignment and gridlines | Object markers, Zoom
   (Zoom to label, Zoom to objects). The object browser has no menu of its own.
   ANLAbel after v0.376 follows both (no layers, so no Move to layer).
+- Keyboard move, resize and rotate (`DocumentPageView` key handling,
+  `DocumentPageViewModel.Move/Resize/RotateSelectedItemsCommandExecute`,
+  modifiers from Utils `a.d.n.f`: c() Ctrl, b() Shift, a() Alt). Arrows move
+  the selection 10 screen pixels (÷ zoom), Ctrl+Arrow 1 pixel; Shift+Arrow
+  resizes it from the right or bottom edge (Right/Down grow, Left/Up shrink);
+  Ctrl+T (exactly Ctrl) turns the selected item +90° about its centre with
+  snapping. ANLAbel moves in millimetres (0.1, Shift 1, Alt 0.01) and took
+  Ctrl+T after v0.376; Shift+Arrow resize would take its 1 mm step (owner).
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

@@ -2373,6 +2373,68 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// NiceLabel 10's Ctrl+T (RotateSelectedItemsCommand): the selected object turns 90° clockwise about its
+    /// centre, one undo step, as the rotation handle turns it; a Text Box keeps its frame. Not a line, a
+    /// locked object or a protected label, and nothing with no selection.
+    /// </summary>
+    public static Task CtrlTTurnsTheSelectionAQuarterTurn()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô", Text = "Lô 42", XMm = 10, YMm = 8, WidthMm = 24, HeightMm = 8 };
+            box.Style.TextSizing = TextSizingMode.FixedFrame;
+            var line = new LabelObject { Type = ObjectType.Line, Name = "Kẻ", XMm = 4, YMm = 30, WidthMm = 30, HeightMm = 0, LineEndXMm = 34, LineEndYMm = 30 };
+            viewModel.Template.Objects.Add(box);
+            viewModel.Template.Objects.Add(line);
+            var key = window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                .Single(binding => binding.Key == System.Windows.Input.Key.T && binding.Modifiers == System.Windows.Input.ModifierKeys.Control);
+            LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
+            void Press() => key.Command.Execute(null);
+            // The design surface takes the selection and the protection through bindings, at DataBind priority.
+            void Pump() => System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            void Select(LabelObject? item)
+            {
+                viewModel.SelectedObject = item;
+                Pump();
+            }
+
+            Select(null);
+            Press();
+            Require(Lookup(box).Rotation == 0, "Nothing selected, Ctrl+T turns nothing.");
+
+            Select(Lookup(box));
+            Press();
+            Require(Lookup(box).Rotation == 90 && Lookup(box).WidthMm == 24 && Lookup(box).HeightMm == 8,
+                $"Ctrl+T turns the Text Box 90° clockwise and keeps its frame: {Lookup(box).Rotation}°, {Lookup(box).WidthMm} x {Lookup(box).HeightMm}");
+            Press();
+            Require(Lookup(box).Rotation == 180, "Again: 180° — " + Lookup(box).Rotation);
+            viewModel.UndoCommand.Execute(null);
+            Select(Lookup(box));
+            Require(Lookup(box).Rotation == 90, "One undo takes one turn back: " + Lookup(box).Rotation);
+
+            Lookup(box).IsLocked = true;
+            Press();
+            Require(Lookup(box).Rotation == 90, "A locked object does not turn: " + Lookup(box).Rotation);
+            Lookup(box).IsLocked = false;
+
+            Select(Lookup(line));
+            Press();
+            Require(Lookup(line).Rotation == 0, "A line turns by its end points, not by Ctrl+T.");
+
+            Select(Lookup(box));
+            viewModel.Template.ProtectFromEditing = true;
+            Pump();
+            Press();
+            Require(Lookup(box).Rotation == 90, "A protected label does not turn: " + Lookup(box).Rotation);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// NiceLabel 10's F4 (MainView.DocumentSelector_KeyDown → OpenPropertyEditor): with an object selected the
     /// Properties panel shows pinned at the right, a floating panel pinning; F4 again keeps it there (NiceLabel only
     /// flashes it), and with nothing selected F4 does nothing. ANLAbel's F4 toggled pinned and floating.
@@ -6478,7 +6540,7 @@ internal static class DesignScenarioRegression
             var missing = bound.Where(combo => !combos.Contains(combo)).ToArray();
             Require(bound.Length >= 12 && missing.Length == 0,
                 $"Every Ctrl+letter key of the main window ({bound.Length}) has a help row; missing: " + string.Join(", ", missing));
-            Require(new[] { "Tab", "PgUp", "PgDn", "F2", "F4", "Ctrl+0", "L", "R", "C", "Delete" }.All(combos.Contains),
+            Require(new[] { "Tab", "PgUp", "PgDn", "F2", "F4", "Ctrl+T", "Ctrl+0", "L", "R", "C", "Delete" }.All(combos.Contains),
                 "The keys without Ctrl have rows too: " + string.Join(", ", combos));
             // Not closed: the main window is never shown.
         });

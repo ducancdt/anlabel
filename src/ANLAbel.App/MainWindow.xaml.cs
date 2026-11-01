@@ -63,6 +63,16 @@ public partial class MainWindow : Window
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(ShowPropertiesPinnedByKey),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F4)));
+        // NiceLabel 10's Ctrl+T: the selected object turns 90° clockwise.
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new ViewModels.RelayCommand(() =>
+            {
+                if (DesignerKeysApply() && DesignerCanvas.RotateSelectionQuarterTurn())
+                {
+                    DesignerCanvas.Focus();
+                }
+            }),
+            new System.Windows.Input.KeyGesture(System.Windows.Input.Key.T, System.Windows.Input.ModifierKeys.Control)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(OpenPropertiesByKey),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F2)));

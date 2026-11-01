@@ -2,6 +2,8 @@
 
 ## Sau v0.376
 
+- Ctrl+T như NiceLabel 10 (RotateSelectedItemsCommand): xoay đối tượng đang chọn 90° theo chiều kim đồng hồ quanh
+  tâm, một bước hoàn tác, như kéo tay xoay (Ô chữ giữ khung; không áp cho đường kẻ, đối tượng khóa, tem bảo vệ).
 - Menu chuột phải trên bảng thiết kế xếp như NiceLabel 10: trên đối tượng "Thuộc tính F4 | Sửa chữ | Sao chép, Cắt,
   Xóa | Khóa vị trí, Nhóm, Bỏ nhóm | Sắp xếp, Căn chỉnh" (Sắp xếp: xuống một lớp, xuống dưới cùng | lên một lớp, lên
   trên cùng; Căn chỉnh chia nhóm ngang | dọc | phân bố); trên tem "Thuộc tính tem | Sao chép, Dán, Cắt, Xóa | Chọn tất

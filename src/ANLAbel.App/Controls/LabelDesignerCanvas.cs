@@ -3162,6 +3162,22 @@ public sealed class LabelDesignerCanvas : Canvas
     /// NiceLabel 10 rotation handle (owner decision 2026-11-01): quarter turns about the object's
     /// centre, one undo step. A label object turns by 90° (LabelObject.Rotation).
     /// </summary>
+    /// <summary>
+    /// NiceLabel 10's Ctrl+T (RotateSelectedItemsCommand): the one selected object turns a quarter
+    /// turn clockwise about its centre, one undo step, as a drag of the rotation handle does; not a
+    /// line (it turns by its end points), a locked object or a protected label.
+    /// </summary>
+    public bool RotateSelectionQuarterTurn()
+    {
+        if (_selectedObjects.Count != 1 || SelectedObject is not { } item || item.Type == ObjectType.Line || item.IsLocked || !IsEnabled)
+        {
+            return false;
+        }
+
+        RotateSelectedObject(item, 1);
+        return true;
+    }
+
     private void RotateSelectedObject(LabelObject item, int quarterTurns)
     {
         if (item.IsLocked || quarterTurns % 4 == 0 || !IsEnabled)
