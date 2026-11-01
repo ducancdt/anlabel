@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.375
+
+- Nút thuộc tính ở vùng chọn không còn ghi "(F2)" trong chú thích: F2 trên Chữ, Ô chữ là sửa chữ ngay trên tem
+  (như phím EditItem của NiceLabel), chỉ với đối tượng khác mới mở Thuộc tính. CommandBox của NiceLabel không có
+  chú thích.
+- Kiểm trên app đã cài (v0.375): F2 trên Chữ mở ô sửa ở tem thường; tem bảo vệ vừa mở không chọn được đối tượng
+  nào (bảng thiết kế và thẻ Đối tượng tắt) nên F2 không có gì để sửa.
+
 ## v0.375 — Viền khi rê chuột qua đối tượng, khung từng vật trong nhóm chọn, bảng Dữ liệu thêm từ trong cây
 
 _Gồm các commit 01/11/2026 (15:26–15:53)._
