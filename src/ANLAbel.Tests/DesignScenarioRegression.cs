@@ -1603,6 +1603,69 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-01, NiceLabel 10's CommandBox: a properties button at the selection's
+    /// top-right corner. ANLAbel shows it just outside the selected object's corner, clear of the corner
+    /// handle's 10 DIP target, following zoom; it opens the properties as F2 does and hides with no
+    /// selection or on a protected label. The selection handles are untouched.
+    /// </summary>
+    public static Task SelectionCornerOpensProperties()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 5, YMm = 4, WidthMm = 20, HeightMm = 6 };
+            viewModel.Template.Objects.Add(text);
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                content.UpdateLayout();
+            }
+
+            Settle();
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var layer = (Canvas)window.FindName("SelectionCommandLayer");
+            var button = (Button)window.FindName("SelectionPropertiesButton");
+            Require(button.Visibility == Visibility.Collapsed, "No selection, no button.");
+            viewModel.SelectedObject = text;
+            Settle();
+            Point Corner()
+            {
+                var zoom = viewModel.Zoom;
+                return canvas.TranslatePoint(new Point(MmConverter.MmToDip(text.XMm + text.WidthMm) * zoom, MmConverter.MmToDip(text.YMm) * zoom), layer);
+            }
+
+            string Placed() => $"{Canvas.GetLeft(button):0.#},{Canvas.GetTop(button):0.#} for corner {Corner().X:0.#},{Corner().Y:0.#}";
+            bool AtCorner() => Math.Abs(Canvas.GetLeft(button) - Math.Round(Corner().X + 8)) < 1 && Math.Abs(Canvas.GetTop(button) - Math.Round(Corner().Y - 1)) < 1;
+            Require(button.Visibility == Visibility.Visible && AtCorner(), "The button sits just outside the top-right corner: " + Placed());
+            Require(Canvas.GetLeft(button) - Corner().X >= 5, "It clears the corner handle's 10 DIP target: " + Placed());
+
+            viewModel.Zoom = viewModel.Zoom * 2;
+            Settle();
+            Require(AtCorner(), "It follows the zoom: " + Placed());
+
+            viewModel.IsPropertiesVisible = false;
+            button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));
+            Require(viewModel.IsPropertiesVisible, "The button opens the properties.");
+
+            viewModel.Template.ProtectFromEditing = true;
+            Settle();
+            Require(button.Visibility == Visibility.Collapsed, "A protected label shows no button.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

@@ -46,6 +46,8 @@ public partial class MainWindow : Window
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         WatchLabelFields();
         BuildDesignerContextMenu();
+        // The properties button follows the selection through moves, zoom, scroll and view rotation.
+        DesignerCanvas.LayoutUpdated += (_, _) => PlaceSelectionPropertiesButton();
         BuildObjectBrowserContextMenu();
         BuildDataTreeContextMenu();
         // Back from Excel: say whether the linked file is still open there.
@@ -433,6 +435,78 @@ public partial class MainWindow : Window
                 OpenFloatingProperties();
             }
         }, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    /// <summary>
+    /// NiceLabel 10's CommandBox: a properties button just outside the selected object's top-right
+    /// corner, clear of the corner handle's 10 DIP target, so a compact text stays visible. Hidden with
+    /// no selection, on a protected label and while a drawing tool is armed.
+    /// </summary>
+    private void PlaceSelectionPropertiesButton()
+    {
+        var button = SelectionPropertiesButton;
+        if (_viewModel.SelectedObject is not { } item || !_viewModel.IsEditingAllowed || DesignerCanvas.DrawingTool is not null
+            || !DesignerCanvas.IsVisible && PresentationSource.FromVisual(DesignerCanvas) is not null)
+        {
+            button.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var zoom = _viewModel.Zoom;
+        var frame = new Rect(
+            MmConverter.MmToDip(item.XMm) * zoom,
+            MmConverter.MmToDip(item.YMm) * zoom,
+            Math.Max(0, MmConverter.MmToDip(item.WidthMm) * zoom),
+            Math.Max(0, MmConverter.MmToDip(item.HeightMm) * zoom));
+        if (item.Rotation % 360 != 0)
+        {
+            // An object turns about its centre: the button sits at its turned bounds.
+            frame = new RotateTransform(item.Rotation, frame.X + frame.Width / 2, frame.Y + frame.Height / 2).TransformBounds(frame);
+        }
+
+        Point corner;
+        try
+        {
+            corner = DesignerCanvas.TranslatePoint(new Point(frame.Right, frame.Top), SelectionCommandLayer);
+        }
+        catch (InvalidOperationException)
+        {
+            button.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var left = Math.Round(corner.X + SelectionPropertiesGap);
+        var top = Math.Round(corner.Y - 1);
+        if (Canvas.GetLeft(button) != left)
+        {
+            Canvas.SetLeft(button, left);
+        }
+
+        if (Canvas.GetTop(button) != top)
+        {
+            Canvas.SetTop(button, top);
+        }
+
+        button.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>From the corner to the button: past the corner handle's 5 DIP half target.</summary>
+    private const double SelectionPropertiesGap = 8;
+
+    private void SelectionPropertiesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.SelectedObject is null)
+        {
+            return;
+        }
+
+        _viewModel.IsPropertiesVisible = true;
+        if (!_viewModel.IsPropertiesPinned)
+        {
+            OpenFloatingProperties();
+        }
+
+        e.Handled = true;
     }
 
     private void OpenFloatingProperties()

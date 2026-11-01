@@ -2,6 +2,10 @@
 
 ## Sau v0.365
 
+- Nút thuộc tính ở góc vùng chọn như CommandBox của NiceLabel 10 (quyết định của chủ dự án 2026-11-01):
+  một nút xanh nhỏ ngay ngoài góc trên phải của đối tượng đang chọn, cách vùng bấm 10 DIP của tay nắm
+  góc, mở Thuộc tính như F2; đi theo khi kéo, thu phóng, cuộn; ẩn khi không chọn gì, đang vẽ hoặc tem
+  được bảo vệ. Là lớp phủ của MainWindow: SelectionResizeAdorner và LabelDesignerCanvas không đổi.
 - Tem được bảo vệ (quyết định của chủ dự án 2026-11-01): Quản lý dữ liệu chỉ sửa được bộ đếm Serial và
   cơ sở dữ liệu; biến nhập khi in và hàm chỉ để xem (nút thêm, xóa, Thứ tự nhắc, Nhập nguồn dữ liệu và
   trình sửa biến/hàm tắt, cả “+ Thêm” ở bảng Dữ liệu và hai nút trên thẻ Dữ liệu). Trước đây sửa được
