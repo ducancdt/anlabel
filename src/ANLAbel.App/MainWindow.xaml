@@ -657,14 +657,17 @@
                                     </Style>
                                 </controls:RibbonGroupPanel.Style>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding RibbonFontFamily, Mode=TwoWay}"
-                                              IsTextSearchEnabled="True" AutomationProperties.Name="Ribbon font family" ToolTip="Phông chữ">
+                                    <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" IsEditable="True" IsTextSearchEnabled="True"
+                                              Tag="{Binding RibbonFontFamily, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
+                                              KeyDown="ListValueBox_KeyDown" LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
+                                              AutomationProperties.Name="Ribbon font family" ToolTip="Phông chữ: chọn, hoặc gõ tên rồi Enter">
                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
                                     </ComboBox>
                                     <ComboBox Width="52" Margin="3,0,2,0" ItemsSource="{Binding FontSizes}" IsEditable="True"
-                                              Tag="{Binding RibbonFontSize, Mode=OneWay, NotifyOnTargetUpdated=True}" Binding.TargetUpdated="RibbonFontSize_TargetUpdated"
-                                              SelectionChanged="RibbonFontSize_SelectionChanged" DropDownClosed="RibbonFontSize_DropDownClosed"
-                                              KeyDown="RibbonFontSize_KeyDown" LostKeyboardFocus="RibbonFontSize_LostKeyboardFocus"
+                                              Tag="{Binding RibbonFontSize, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
+                                              KeyDown="ListValueBox_KeyDown" LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
                                               AutomationProperties.Name="Ribbon font size" ToolTip="Cỡ chữ (pt): chọn, hoặc gõ rồi Enter"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.GrowFont16}" Click="FontGrow_Click" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Grow font"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.ShrinkFont16}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Shrink font"/>
@@ -1135,14 +1138,17 @@
                         <StackPanel Style="{StaticResource RibbonPanel}">
                             <controls:RibbonGroupPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding RibbonFontFamily, Mode=TwoWay}"
-                                              AutomationProperties.Name="Text tab font family" ToolTip="Phông chữ">
+                                    <ComboBox Width="150" ItemsSource="{Binding FontFamilies}" IsEditable="True" IsTextSearchEnabled="True"
+                                              Tag="{Binding RibbonFontFamily, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
+                                              KeyDown="ListValueBox_KeyDown" LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
+                                              AutomationProperties.Name="Text tab font family" ToolTip="Phông chữ: chọn, hoặc gõ tên rồi Enter">
                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
                                     </ComboBox>
                                     <ComboBox Width="52" Margin="3,0,2,0" ItemsSource="{Binding FontSizes}" IsEditable="True"
-                                              Tag="{Binding RibbonFontSize, Mode=OneWay, NotifyOnTargetUpdated=True}" Binding.TargetUpdated="RibbonFontSize_TargetUpdated"
-                                              SelectionChanged="RibbonFontSize_SelectionChanged" DropDownClosed="RibbonFontSize_DropDownClosed"
-                                              KeyDown="RibbonFontSize_KeyDown" LostKeyboardFocus="RibbonFontSize_LostKeyboardFocus"
+                                              Tag="{Binding RibbonFontSize, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
+                                              KeyDown="ListValueBox_KeyDown" LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
                                               AutomationProperties.Name="Text tab font size" ToolTip="Cỡ chữ (pt): chọn, hoặc gõ rồi Enter"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.GrowFont16}" Click="FontGrow_Click" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Text tab grow font"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.ShrinkFont16}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Text tab shrink font"/>
@@ -1269,7 +1275,11 @@
                                                 <TextBlock Text="Cỡ chữ dưới mã (pt)" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
                                                 <TextBox Text="{Binding SelectedObject.BarcodeTextFontSizePt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.#}}" AutomationProperties.Name="Cỡ chữ dưới mã"/>
                                                 <TextBlock Text="Phông chữ dưới mã" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
-                                                <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay}" AutomationProperties.Name="Phông chữ dưới mã"/>
+                                                <ComboBox ItemsSource="{Binding FontFamilies}" IsEditable="True" IsTextSearchEnabled="True"
+                                                          Tag="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                                          Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
+                                                          KeyDown="ListValueBox_KeyDown" LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
+                                                          AutomationProperties.Name="Phông chữ dưới mã"/>
                                                 <CheckBox Content="Chữ dưới mã in đậm" Margin="0,6,0,0" IsChecked="{Binding SelectedObject.BarcodeHriBold, Mode=TwoWay}" AutomationProperties.Name="Chữ dưới mã in đậm"/>
                                                 <TextBlock Text="Số kiểm tra" Foreground="{StaticResource RibbonCaptionBrush}" Margin="0,8,0,2"/>
                                                 <ComboBox ItemsSource="{Binding BarcodeCheckDigitPolicyOptions}" ItemTemplate="{StaticResource DisplayNameItem}" SelectedItem="{Binding SelectedObject.BarcodeCheckDigitPolicy, Mode=TwoWay}"
@@ -3044,12 +3054,12 @@
                                                       IsEditable="True"
                                                       IsTextSearchEnabled="True"
                                                       ItemsSource="{Binding FontSizes}"
-                                                      Tag="{Binding SelectedObject.Style.FontSizePt, Mode=OneWay, NotifyOnTargetUpdated=True}"
-                                                      Binding.TargetUpdated="FontSizeCombo_TargetUpdated"
-                                                      SelectionChanged="FontSizeCombo_SelectionChanged"
-                                                      DropDownClosed="FontSizeCombo_DropDownClosed"
-                                                      LostFocus="FontSizeCombo_LostFocus"
-                                                      KeyDown="FontSizeCombo_KeyDown"
+                                                      Tag="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                                      Binding.TargetUpdated="ListValueBox_TargetUpdated"
+                                                      SelectionChanged="ListValueBox_SelectionChanged"
+                                                      DropDownClosed="ListValueBox_DropDownClosed"
+                                                      KeyDown="ListValueBox_KeyDown"
+                                                      LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
                                                       AutomationProperties.AutomationId="Properties.TextStyle.FontSize"
                                                       AutomationProperties.Name="Font size"
                                                       ToolTip="Nhập cỡ theo pt như Excel, hoặc chọn một cỡ chuẩn."/>
@@ -3058,7 +3068,12 @@
                                                       IsTextSearchEnabled="True"
                                                       StaysOpenOnEdit="False"
                                                       ItemsSource="{Binding FontFamilies}"
-                                                      SelectedItem="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay}"
+                                                      Tag="{Binding SelectedObject.Style.FontFamily, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                                      Binding.TargetUpdated="ListValueBox_TargetUpdated"
+                                                      SelectionChanged="ListValueBox_SelectionChanged"
+                                                      DropDownClosed="ListValueBox_DropDownClosed"
+                                                      KeyDown="ListValueBox_KeyDown"
+                                                      LostKeyboardFocus="ListValueBox_LostKeyboardFocus"
                                                       AutomationProperties.AutomationId="Properties.TextStyle.FontFamily"
                                                       AutomationProperties.Name="Font family"
                                                       ToolTip="Chỉ phông Windows có bản quyền và phông mở. Không liệt kê phông máy không có bản quyền.">
@@ -3564,7 +3579,10 @@
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                                 <StackPanel>
                                                     <TextBlock Text="Phông HRI" Foreground="{StaticResource AppMutedBrush}" FontSize="10"/>
-                                                    <ComboBox ItemsSource="{Binding FontFamilies}" SelectedItem="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay}" Margin="0,1,0,0"
+                                                    <ComboBox ItemsSource="{Binding FontFamilies}" IsEditable="True" IsTextSearchEnabled="True"
+                                                              Tag="{Binding SelectedObject.BarcodeHriFontFamily, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
+                                                              KeyDown="ListValueBox_KeyDown" LostKeyboardFocus="ListValueBox_LostKeyboardFocus" Margin="0,1,0,0"
                                                               AutomationProperties.Name="Phông chữ dưới mã" ToolTip="Phông của chữ dưới mã. Tem nhập từ NiceLabel dùng Arial đậm như NiceLabel in."/>
                                                 </StackPanel>
                                                 <CheckBox Grid.Column="2" Content="Đậm" VerticalAlignment="Bottom" Margin="0,0,0,3" IsChecked="{Binding SelectedObject.BarcodeHriBold, Mode=TwoWay}" AutomationProperties.Name="Chữ dưới mã in đậm"/>

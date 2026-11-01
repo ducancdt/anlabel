@@ -92,6 +92,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the text style page follows NiceLabel's groups", DesignScenarioRegression.TextStylePageFollowsNiceLabelGroups),
     ("in-place editing edits a text on the label", DesignScenarioRegression.InPlaceEditingEditsATextOnTheLabel),
     ("font size boxes show any size", DesignScenarioRegression.FontSizeBoxesShowAnySize),
+    ("font boxes show the selected text's font", DesignScenarioRegression.FontBoxesShowTheSelectedFont),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

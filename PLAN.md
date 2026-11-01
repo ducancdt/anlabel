@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.368
+
+- Ô phông chữ (ribbon Trang chủ, thẻ Chữ, Thuộc tính › Kiểu) và ô phông chữ dưới mã của mã vạch (menu
+  ribbon, Thuộc tính) hiện đúng phông của đối tượng đang chọn, kể cả phông ngoài danh mục có bản quyền
+  (tem nhập từ NiceLabel giữ “Arial Narrow”). Trước đây chọn chữ Arial rồi chữ Arial Narrow, ô vẫn ghi
+  Arial: cùng lỗi với ô cỡ ở v0.368. Mọi ô phông và ô cỡ nay dùng chung một cách hiện và nhận giá trị;
+  ô phông trên ribbon gõ được tên rồi Enter như NiceLabel, nhưng chỉ nhận phông trong danh mục.
+
 ## v0.368 — Chữ nhập từ NiceLabel không còn khung, ô cỡ chữ hiện đúng mọi cỡ
 
 _Gồm các commit 01/11/2026 (10:03–10:03)._

@@ -1218,162 +1218,116 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private bool _showingFontSize;
+    private bool _showingListValue;
 
-    /// <summary>
-    /// Shows a size in a font size box whatever it is, as NiceLabel 10's editable boxes do: its list
-    /// entry when it has one, else the size as text with no entry picked; blank for none (the selected
-    /// texts differ). The boxes matched list sizes only, and WPF keeps the old entry for a size outside
-    /// the list, so a 48 pt text after a 12 pt one showed 12. What is being typed is left alone.
-    /// </summary>
-    private void ShowFontSize(ComboBox box, double? size, bool evenWhileTyping = false)
+    // The font boxes: family and size on the ribbon's Home and Text tabs and in Properties, and a
+    // barcode's human readable font. Each box's Tag is bound two-way to its value with an explicit
+    // update. A box shows the value whatever it is, as NiceLabel 10's editable boxes do: its list
+    // entry when it has one, else the value as text with no entry picked; blank for none (the
+    // selected texts differ). The boxes matched list values through SelectedItem, and WPF keeps the
+    // old entry for a value outside the list, so a 48 pt or Arial Narrow text after another one
+    // showed the other's size or font. A pick, or a typed value with Enter or on leaving the box, is
+    // written through the Tag: a size in range, or a font from the licensed list.
+
+    private object? ListEntry(object? value) => value switch
     {
-        _showingFontSize = true;
+        double size when _viewModel.FontSizes.Contains(size) => size,
+        string family => _viewModel.FontFamilies.FirstOrDefault(name => string.Equals(name, family.Trim(), StringComparison.OrdinalIgnoreCase)),
+        _ => null
+    };
+
+    private static string ShownText(object? value) => value switch
+    {
+        double size => size.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
+        string family => family,
+        _ => string.Empty
+    };
+
+    /// <summary>What a typed text sets: a size in range in a size box, a listed font in a font box.</summary>
+    private object? TypedValue(ComboBox box) => box.ItemsSource is IReadOnlyList<double>
+        ? TextStylePickerCatalog.TryParseSizePt(box.Text, out var size) ? size : null
+        : ListEntry(box.Text);
+
+    /// <summary>Shows the box's value; what is being typed is left alone.</summary>
+    private void ShowListValue(ComboBox box, bool evenWhileTyping = false)
+    {
+        _showingListValue = true;
         try
         {
-            box.SelectedItem = size is { } listed && _viewModel.FontSizes.Contains(listed) ? listed : null;
+            box.SelectedItem = ListEntry(box.Tag);
             if (evenWhileTyping || !box.IsKeyboardFocusWithin)
             {
-                box.Text = size is { } shown ? shown.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+                box.Text = ShownText(box.Tag);
             }
         }
         finally
         {
-            _showingFontSize = false;
+            _showingListValue = false;
         }
     }
 
-    /// <summary>A size picked from the list: by the mouse or the keyboard in the open list, or by UI Automation.</summary>
-    private static bool IsFontSizePick(ComboBox box) => box.IsDropDownOpen || !box.IsKeyboardFocusWithin;
+    /// <summary>Writes a value through the box's Tag; the value it shows already changes nothing.</summary>
+    private static void SetListValue(ComboBox box, object value)
+    {
+        if (Equals(box.Tag, value))
+        {
+            return;
+        }
 
-    private void RibbonFontSize_TargetUpdated(object sender, System.Windows.Data.DataTransferEventArgs e)
+        box.Tag = value;
+        box.GetBindingExpression(FrameworkElement.TagProperty)?.UpdateSource();
+    }
+
+    private void ListValueBox_TargetUpdated(object sender, System.Windows.Data.DataTransferEventArgs e)
     {
         if (sender is ComboBox box && e.Property == FrameworkElement.TagProperty)
         {
-            ShowFontSize(box, _viewModel.RibbonFontSize);
+            ShowListValue(box);
         }
     }
 
-    private void RibbonFontSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ListValueBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_showingFontSize && sender is ComboBox { SelectedItem: double size } box && IsFontSizePick(box))
+        // A pick: in the open list, or by UI Automation; not the entry the typing matches.
+        if (!_showingListValue && sender is ComboBox { SelectedItem: { } value } box && (box.IsDropDownOpen || !box.IsKeyboardFocusWithin))
         {
-            ApplyRibbonFontSize(size);
+            SetListValue(box, value);
         }
     }
 
-    private void RibbonFontSize_DropDownClosed(object sender, EventArgs e)
+    private void ListValueBox_DropDownClosed(object sender, EventArgs e)
     {
-        if (sender is ComboBox { SelectedItem: double size })
+        if (sender is ComboBox { SelectedItem: { } value } box)
         {
-            ApplyRibbonFontSize(size);
+            SetListValue(box, value);
         }
     }
 
-    private void RibbonFontSize_KeyDown(object sender, KeyEventArgs e)
+    private void ListValueBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && sender is ComboBox box)
         {
-            ApplyTypedRibbonFontSize(box);
+            ApplyTypedListValue(box);
             e.Handled = true;
         }
     }
 
-    private void RibbonFontSize_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    private void ListValueBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (sender is ComboBox box && !box.IsKeyboardFocusWithin)
         {
-            ApplyTypedRibbonFontSize(box);
+            ApplyTypedListValue(box);
         }
     }
 
-    /// <summary>The ribbon's size for every selected text; a size they already share changes nothing.</summary>
-    private void ApplyRibbonFontSize(double size)
+    private void ApplyTypedListValue(ComboBox box)
     {
-        if (size != _viewModel.RibbonFontSize)
+        if (TypedValue(box) is { } value)
         {
-            _viewModel.RibbonFontSize = size;
-        }
-    }
-
-    private void ApplyTypedRibbonFontSize(ComboBox box)
-    {
-        if (TextStylePickerCatalog.TryParseSizePt(box.Text, out var size))
-        {
-            ApplyRibbonFontSize(size);
+            SetListValue(box, value);
         }
 
-        ShowFontSize(box, _viewModel.RibbonFontSize, evenWhileTyping: true);
-    }
-
-    private void FontSizeCombo_TargetUpdated(object sender, System.Windows.Data.DataTransferEventArgs e)
-    {
-        if (sender is ComboBox box && e.Property == FrameworkElement.TagProperty)
-        {
-            ShowFontSize(box, _viewModel.SelectedObject?.Style.FontSizePt);
-        }
-    }
-
-    private void FontSizeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!_showingFontSize && sender is ComboBox { SelectedItem: double size } box && IsFontSizePick(box))
-        {
-            ApplyPickedFontSize(size);
-        }
-    }
-
-    private void FontSizeCombo_DropDownClosed(object sender, EventArgs e)
-    {
-        if (sender is ComboBox { SelectedItem: double size })
-        {
-            ApplyPickedFontSize(size);
-        }
-    }
-
-    private void ApplyPickedFontSize(double size)
-    {
-        if (_viewModel.SelectedObject is { } item && item.Style.FontSizePt != size)
-        {
-            item.Style.FontSizePt = size;
-        }
-    }
-
-    private void FontSizeCombo_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter || sender is not ComboBox combo)
-        {
-            return;
-        }
-
-        ApplyTypedFontSize(combo);
-        e.Handled = true;
-    }
-
-    private void FontSizeCombo_LostFocus(object sender, RoutedEventArgs e)
-    {
-        if (sender is ComboBox combo)
-        {
-            ApplyTypedFontSize(combo);
-        }
-    }
-
-    private void ApplyTypedFontSize(ComboBox combo)
-    {
-        if (_viewModel.SelectedObject is null)
-        {
-            return;
-        }
-
-        if (TextStylePickerCatalog.TryParseSizePt(combo.Text, out var sizePt))
-        {
-            _viewModel.SelectedObject.Style.FontSizePt = sizePt;
-            combo.Text = sizePt.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-            return;
-        }
-
-        combo.Text = _viewModel.SelectedObject.Style.FontSizePt.ToString(
-            "0.##",
-            System.Globalization.CultureInfo.InvariantCulture);
+        ShowListValue(box, evenWhileTyping: true);
     }
 
     private void TextPaddingPreset_Click(object sender, RoutedEventArgs e)

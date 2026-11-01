@@ -28,7 +28,7 @@ public sealed class TextStylePickerChromeContractTests
         Assert.Contains("IsEditable=\"True\"", xaml);
         Assert.Contains("FontFamily=\"{Binding}\"", xaml);
         Assert.Contains("Style=\"{StaticResource FontStyleIcon}\"", xaml);
-        Assert.Contains("ApplyTypedFontSize", File.ReadAllText(FindMainWindowCodeBehind()));
+        Assert.Contains("ApplyTypedListValue", File.ReadAllText(FindMainWindowCodeBehind()));
         var viewModel = File.ReadAllText(FindMainViewModel());
         Assert.Contains("TextStylePickerCatalog.StandardSizesPt", viewModel);
         Assert.Contains("TextStylePickerCatalog.FilterInstalled", viewModel);

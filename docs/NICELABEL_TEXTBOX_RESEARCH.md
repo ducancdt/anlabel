@@ -169,6 +169,11 @@ dung co cua chu dang chon (muc danh sach neu co, khong thi co dang chu), chon ha
 `Style.FontSizePt` nhu truoc. Chi doi cach hien thi va cach nhan lua chon: khong doi khung, co do, wrap, clip,
 padding hay preset. Gate: `font size boxes show any size`.
 
+O phong chu (trang Kieu, ribbon) bi cung loi: chu Arial roi chu "Arial Narrow" (ngoai danh muc co ban quyen) van
+hien Arial. Moi o phong va o co nay dung chung mot cach hien va nhan gia tri (`Tag` gan hai chieu, cap nhat khi
+chon hoac go roi Enter); go ten phong chi nhan phong trong danh muc. Van chi doi cach hien thi. Gate: `font boxes
+show the selected text's font`.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

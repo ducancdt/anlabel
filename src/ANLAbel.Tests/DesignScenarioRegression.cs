@@ -1982,6 +1982,87 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The font boxes show the selected text's font, also one outside ANLAbel's licensed list (a
+    /// label imported from NiceLabel keeps its "Arial Narrow"): the boxes matched list fonts only, and
+    /// WPF keeps the old entry for one outside the list, so the box went on naming the previous
+    /// text's font. Picking from the list still sets a licensed font; a typed unlisted name is not taken.
+    /// </summary>
+    public static Task FontBoxesShowTheSelectedFont()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var listed = viewModel.FontFamilies.First();
+            var plain = new LabelObject { Type = ObjectType.Text, Name = "Thường", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            plain.Style.FontFamily = listed;
+            var narrow = new LabelObject { Type = ObjectType.Text, Name = "Hẹp", Text = "B", XMm = 2, YMm = 12, WidthMm = 20, HeightMm = 6 };
+            narrow.Style.FontFamily = "Arial Narrow";
+            var code = new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Mã", Text = "123456", XMm = 2, YMm = 22, WidthMm = 40, HeightMm = 12, BarcodeHriFontFamily = "Arial Narrow" };
+            var listedCode = new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Mã 2", Text = "654321", XMm = 2, YMm = 38, WidthMm = 40, HeightMm = 12, BarcodeHriFontFamily = listed };
+            foreach (var item in new[] { plain, narrow, code, listedCode })
+            {
+                viewModel.Template.Objects.Add(item);
+            }
+
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var ribbon = FindLogicalChildren<ComboBox>(content).First(box => AutomationProperties.GetName(box) == "Ribbon font family");
+            var properties = FindLogicalChildren<ComboBox>(content).First(box => AutomationProperties.GetAutomationId(box) == "Properties.TextStyle.FontFamily");
+            LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
+            void Select(LabelObject item)
+            {
+                viewModel.SelectedObject = Lookup(item);
+                tabs.SelectedIndex = 1;
+                Settle();
+            }
+
+            Select(plain);
+            Require(ribbon.Text == listed && properties.Text == listed, $"A {listed} text shows {listed}: ribbon '{ribbon.Text}', Properties '{properties.Text}'");
+            Select(narrow);
+            Require(ribbon.Text == "Arial Narrow" && properties.Text == "Arial Narrow", $"An Arial Narrow text shows Arial Narrow: ribbon '{ribbon.Text}', Properties '{properties.Text}'");
+            Select(plain);
+            Require(ribbon.Text == listed && properties.Text == listed, $"Back on the {listed} text: ribbon '{ribbon.Text}', Properties '{properties.Text}'");
+
+            // Picking a listed font sets it; the unlisted font stays until one is picked.
+            Select(narrow);
+            Require(Lookup(narrow).Style.FontFamily == "Arial Narrow", "Showing the font changes nothing: " + Lookup(narrow).Style.FontFamily);
+            ribbon.SelectedItem = listed;
+            Settle();
+            Require(Lookup(narrow).Style.FontFamily == listed && properties.Text == listed, $"Picking {listed} sets it: {Lookup(narrow).Style.FontFamily}, Properties '{properties.Text}'");
+
+            // A barcode's human readable font shows the same way, in its ribbon menu and in Properties.
+            var hriBoxes = FindLogicalChildren<ComboBox>(content).Where(box => AutomationProperties.GetName(box) == "Phông chữ dưới mã").ToArray();
+            Require(hriBoxes.Length == 2, "The ribbon menu's and Properties' human readable font boxes are found: " + hriBoxes.Length);
+            viewModel.SelectedObject = Lookup(listedCode);
+            Settle();
+            viewModel.SelectedObject = Lookup(code);
+            Settle();
+            Require(hriBoxes.All(box => box.Text == "Arial Narrow"), "A barcode's Arial Narrow human readable font shows: " + string.Join(", ", hriBoxes.Select(box => $"'{box.Text}'")));
+            viewModel.SelectedObject = Lookup(listedCode);
+            Settle();
+            Require(hriBoxes.All(box => box.Text == listed), $"A barcode's {listed} human readable font shows: " + string.Join(", ", hriBoxes.Select(box => $"'{box.Text}'")));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
