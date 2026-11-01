@@ -2069,7 +2069,7 @@
                      through to the design surface -->
                 <Canvas x:Name="SelectionCommandLayer" Grid.Row="1" Grid.Column="1" Panel.ZIndex="5" ClipToBounds="True">
                     <Button x:Name="SelectionPropertiesButton" Width="24" Height="20" Focusable="False" Cursor="Hand" Visibility="Collapsed"
-                            Click="SelectionPropertiesButton_Click" ToolTip="Thuộc tính của đối tượng (F2)"
+                            Click="SelectionPropertiesButton_Click" ToolTip="Thuộc tính của đối tượng"
                             AutomationProperties.Name="Object properties" AutomationProperties.AutomationId="Shell.Canvas.SelectionProperties">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
