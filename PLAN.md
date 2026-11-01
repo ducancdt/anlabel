@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.369
+## v0.370 — Bảng thiết kế bỏ viền Chữ, ô màu chữ hiện đúng màu
+
+_Gồm các commit 01/11/2026 (10:35–10:57)._
 
 - Bảng thiết kế không vẽ viền quanh Chữ (chủ dự án duyệt 2026-11-01, vùng Text/TextBox được bảo vệ), như bản in
   và NiceLabel. Tem nhập từ NiceLabel và lưu trước v0.368 giữ viền mặc định 0,2 mm trong dữ liệu của chữ; bảng
