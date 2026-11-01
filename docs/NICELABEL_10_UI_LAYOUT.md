@@ -772,6 +772,14 @@ earlier runs by itself: a UI Automation action (selecting a tab, setting focus)
 can make the input method or the foreground lock post a key of its own, so the
 guard now counts what follows each action as the script's.
 
+On the installed v0.371 the new checks pass (4/4): the Data panel shows
+"+ Liên kết Excel / CSV…" under Trường dữ liệu and no Cài đặt dữ liệu; with
+o-hidden selected and the design surface holding the keyboard, typing "l"
+opens it on the label with "l" in place of its content and draws no line; Esc
+keeps "l" and Ctrl+Z brings back its text; with nothing selected "l" starts the
+line tool. F2 on a protected label is left to the gate: the Đối tượng tab is
+off on a protected label, so a run without the mouse cannot select an object.
+
 ## Side by side with a NiceLabel sample (2026-11-01)
 
 The same label in both: NiceLabel's sample `AIAG B10 6x4 Mixed Load.nlbl`
