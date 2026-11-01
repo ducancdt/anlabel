@@ -53,9 +53,9 @@
             <StackPanel Style="{StaticResource RibbonPanel}">
                 <controls:RibbonGroupPanel>
                     <StackPanel Orientation="Horizontal">
-                        <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.AddVariable32}" Content="Biến&#10;nhập khi in" Click="AddVariable_Click"
+                        <Button x:Name="AddVariableButton" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.AddVariable32}" Content="Biến&#10;nhập khi in" Click="AddVariable_Click"
                                 ToolTip="Thêm một giá trị người in nhập mỗi lần in ({?Tên})" AutomationProperties.AutomationId="DataManager.AddVariable"/>
-                        <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.AddFunction32}" Content="Hàm" Click="AddFunction_Click"
+                        <Button x:Name="AddFunctionButton" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.AddFunction32}" Content="Hàm" Click="AddFunction_Click"
                                 ToolTip="Thêm một trường tính từ dữ liệu khác ({Tên})" AutomationProperties.AutomationId="DataManager.AddFunction"/>
                         <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.Counter32}" Content="Bộ đếm&#10;Serial" Click="Counter_Click"
                                 ToolTip="Bật và đặt bộ đếm Serial của tem ({#SERIAL})" AutomationProperties.AutomationId="DataManager.Counter"/>
@@ -82,13 +82,13 @@
                 </controls:RibbonGroupPanel>
                 <Border Style="{StaticResource RibbonGroupSeparator}"/>
                 <controls:RibbonGroupPanel>
-                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.PromptOrder32}" Content="Thứ tự&#10;nhắc" Click="PromptOrder_Click"
+                    <Button x:Name="PromptOrderButton" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.PromptOrder32}" Content="Thứ tự&#10;nhắc" Click="PromptOrder_Click"
                             ToolTip="Thứ tự các câu hỏi khi in" AutomationProperties.AutomationId="DataManager.PromptOrder"/>
                     <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Biến"/>
                 </controls:RibbonGroupPanel>
                 <Border Style="{StaticResource RibbonGroupSeparator}"/>
                 <controls:RibbonGroupPanel>
-                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.ImportDataSources32}" Content="Nhập nguồn&#10;dữ liệu" Click="Import_Click"
+                    <Button x:Name="ImportButton" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.ImportDataSources32}" Content="Nhập nguồn&#10;dữ liệu" Click="Import_Click"
                             ToolTip="Lấy biến nhập khi in và hàm từ một tem khác" AutomationProperties.AutomationId="DataManager.Import"/>
                     <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Nhập"/>
                 </controls:RibbonGroupPanel>

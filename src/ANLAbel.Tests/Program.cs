@@ -87,6 +87,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the condition inserts a source", DesignScenarioRegression.ConditionInsertsASource),
     ("a filtered object list follows the selection", DesignScenarioRegression.FilteredObjectListFollowsTheSelection),
     ("the keyboard reaches the mouse-only actions", DesignScenarioRegression.KeyboardReachesTheMouseOnlyActions),
+    ("a protected label changes only the counter", DesignScenarioRegression.ProtectedLabelChangesOnlyTheCounter),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

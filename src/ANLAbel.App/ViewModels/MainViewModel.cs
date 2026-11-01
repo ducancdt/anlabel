@@ -5361,6 +5361,25 @@ public sealed class MainViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(promptVariables);
         ArgumentNullException.ThrowIfNull(transforms);
         ArgumentNullException.ThrowIfNull(serialCounter);
+        // A protected label keeps its prompts and functions: only its serial counter changes
+        // (owner decision 2026-11-01, an operator may have to set the next number).
+        if (IsEditingLocked)
+        {
+            BeginTemplateEditGesture("Sửa bộ đếm Serial");
+            try
+            {
+                Template.SerialCounter.CopyFrom(serialCounter);
+            }
+            finally
+            {
+                CommitTemplateEditGesture();
+            }
+
+            RaiseSerialCounterPreviewChanged();
+            StatusText = "Tem được bảo vệ: đã cập nhật bộ đếm Serial; biến nhập khi in và hàm giữ nguyên.";
+            return;
+        }
+
         var renames = promptRenames ?? new Dictionary<string, string>();
         var functions = functionRenames ?? new Dictionary<string, string>();
         string Renamed(string? expression) => DataTransformPipeline.RenameReferences(JobVariableContract.RenamePrompts(expression, renames), functions);

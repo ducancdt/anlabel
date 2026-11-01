@@ -1537,6 +1537,72 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-01: on a protected label Quản lý dữ liệu changes only the serial
+    /// counter; prompts and functions are shown, not edited. Before, it applied prompt, function and
+    /// counter changes to a label that was otherwise locked. The manager's add, order, import and
+    /// delete commands and its prompt and function editors are off, the Data panel's "+ Thêm" too,
+    /// and the view model keeps the prompts and functions even if asked to change them.
+    /// </summary>
+    public static Task ProtectedLabelChangesOnlyTheCounter()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            viewModel.Template.DataTransforms.Add(new ANLAbel.Core.Data.DataTransformDefinition("MaVach", "\"A\""));
+            viewModel.Template.SerialCounter.StartValue = 1;
+            viewModel.Template.ProtectFromEditing = true;
+            Require(viewModel.IsEditingLocked, "The label is protected.");
+
+            // The manager shows prompts and functions; only the counter and the data source stay open.
+            var manager = new ANLAbel.App.DataManagerWindow(viewModel, "Prompt:Lô");
+            string[] StillOn(params string[] names) => names.Where(name => ((UIElement)manager.FindName(name)).IsEnabled).ToArray();
+            var open = StillOn("AddVariableButton", "AddFunctionButton", "PromptOrderButton", "ImportButton", "PromptEditor", "FunctionEditor", "DeleteButton");
+            Require(open.Length == 0, "The prompt and function commands are off: " + string.Join(", ", open));
+            Require(((TextBlock)manager.FindName("FooterText")).Text.Contains("bộ đếm Serial", StringComparison.Ordinal), "The footer says what stays open.");
+            Require(((UIElement)manager.FindName("CounterEditor")).IsEnabled, "The counter stays editable.");
+            var drafts = (System.Collections.IList)typeof(ANLAbel.App.DataManagerWindow).GetField("_prompts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
+            typeof(ANLAbel.App.DataManagerWindow).GetMethod("AddVariable", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(manager, null);
+            Require(drafts.Count == 1, "Adding a prompt does nothing: " + drafts.Count);
+
+            // Asked to change everything, the label keeps its prompts and functions and takes the counter.
+            var counter = viewModel.Template.SerialCounter.Clone();
+            counter.StartValue = 500;
+            viewModel.ApplyDataDefinitions(
+                new[] { new PromptVariableDefinition { Name = "Lô" }, new PromptVariableDefinition { Name = "Ca" } },
+                Array.Empty<ANLAbel.Core.Data.DataTransformDefinition>(),
+                counter);
+            Require(viewModel.Template.PromptVariables.Select(prompt => prompt.Name).SequenceEqual(new[] { "Lô" })
+                    && viewModel.Template.DataTransforms.Select(function => function.Name).SequenceEqual(new[] { "MaVach" })
+                    && viewModel.Template.SerialCounter.StartValue == 500,
+                $"Only the counter changes: {string.Join(",", viewModel.Template.PromptVariables.Select(prompt => prompt.Name))} / "
+                + $"{string.Join(",", viewModel.Template.DataTransforms.Select(function => function.Name))} / {viewModel.Template.SerialCounter.StartValue}");
+
+            // The Data panel's "+ Thêm" is off; unprotected, the label takes every change again.
+            // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            content.Measure(new Size(1440, 900));
+            content.Arrange(new Rect(0, 0, 1440, 900));
+            content.UpdateLayout();
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            var add = FindLogicalChildren<Button>(content).First(button => AutomationProperties.GetName(button) == "Add data source");
+            Require(!add.IsEnabled, "The Data panel's + Thêm is off on a protected label.");
+            viewModel.Template.ProtectFromEditing = false;
+            viewModel.ApplyDataDefinitions(new[] { new PromptVariableDefinition { Name = "Lô" }, new PromptVariableDefinition { Name = "Ca" } },
+                Array.Empty<ANLAbel.Core.Data.DataTransformDefinition>(), counter);
+            Require(viewModel.Template.PromptVariables.Count == 2 && viewModel.Template.DataTransforms.Count == 0, "Unprotected, the label takes the change.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

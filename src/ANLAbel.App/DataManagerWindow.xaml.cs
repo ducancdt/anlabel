@@ -100,6 +100,19 @@ public partial class DataManagerWindow : Window
     {
         InitializeComponent();
         _viewModel = viewModel;
+        // A protected label: its prompts and functions are shown, not edited; the counter and the
+        // data source stay open (owner decision 2026-11-01).
+        _definitionsLocked = viewModel.IsEditingLocked;
+        if (_definitionsLocked)
+        {
+            foreach (var control in new UIElement[] { AddVariableButton, AddFunctionButton, PromptOrderButton, ImportButton, PromptEditor, FunctionEditor })
+            {
+                control.IsEnabled = false;
+            }
+
+            FooterText.Text = "Tem được bảo vệ: chỉ sửa được bộ đếm Serial và cơ sở dữ liệu; biến nhập khi in và hàm chỉ để xem.";
+        }
+
         _prompts = new ObservableCollection<PromptVariableDefinition>(viewModel.Template.PromptVariables.Select(prompt => prompt.Clone()));
         _functions = new ObservableCollection<FunctionDraft>(viewModel.Template.DataTransforms.Select(transform => new FunctionDraft(transform, transform.Name, transform.Formula)));
         _counter = viewModel.Template.SerialCounter.Clone();
@@ -144,6 +157,8 @@ public partial class DataManagerWindow : Window
 
     /// <summary>True after Đồng ý applied the draft to the label.</summary>
     public bool Accepted { get; private set; }
+
+    private readonly bool _definitionsLocked;
 
     // ---- tree ------------------------------------------------------------------------------
 
@@ -241,7 +256,7 @@ public partial class DataManagerWindow : Window
             editor.Visibility = Visibility.Collapsed;
         }
 
-        DeleteButton.IsEnabled = node?.Kind is NodeKind.Prompt or NodeKind.Function || node?.Kind == NodeKind.Counter && _counter.Enabled;
+        DeleteButton.IsEnabled = node?.Kind is NodeKind.Prompt or NodeKind.Function && !_definitionsLocked || node?.Kind == NodeKind.Counter && _counter.Enabled;
         EditDatabaseButton.IsEnabled = _viewModel.HasLinkedExcelSource;
         switch (node?.Kind)
         {
@@ -687,6 +702,11 @@ public partial class DataManagerWindow : Window
 
     private void AddVariable()
     {
+        if (_definitionsLocked)
+        {
+            return;
+        }
+
         var prompt = new PromptVariableDefinition { Name = UniqueName("Biến", _prompts.Select(item => item.Name)), Required = true };
         prompt.PropertyChanged += Draft_PropertyChanged;
         _prompts.Add(prompt);
@@ -696,6 +716,11 @@ public partial class DataManagerWindow : Window
 
     private void AddFunction()
     {
+        if (_definitionsLocked)
+        {
+            return;
+        }
+
         var function = new FunctionDraft(null, UniqueName("Hàm", _functions.Select(item => item.Name)), string.Empty);
         function.PropertyChanged += Draft_PropertyChanged;
         _functions.Add(function);
@@ -728,6 +753,11 @@ public partial class DataManagerWindow : Window
 
     private void Delete_Click(object sender, RoutedEventArgs e)
     {
+        if (_definitionsLocked && SelectedNode?.Kind is NodeKind.Prompt or NodeKind.Function)
+        {
+            return;
+        }
+
         if (SelectedNode is { Kind: NodeKind.Prompt or NodeKind.Function, Item: { } item } && KeepUsedDefinition(item))
         {
             return;
@@ -815,6 +845,11 @@ public partial class DataManagerWindow : Window
 
     private void PromptOrder_Click(object sender, RoutedEventArgs e)
     {
+        if (_definitionsLocked)
+        {
+            return;
+        }
+
         var dialog = new PromptOrderWindow(_prompts) { Owner = this };
         if (dialog.ShowDialog() != true)
         {
@@ -838,6 +873,11 @@ public partial class DataManagerWindow : Window
 
     private void Import_Click(object sender, RoutedEventArgs e)
     {
+        if (_definitionsLocked)
+        {
+            return;
+        }
+
         var dialog = new ImportDataSourcesWindow(_viewModel, _prompts.ToArray(), _functions.Select(function => function.ToDefinition()).ToArray()) { Owner = this };
         if (dialog.ShowDialog() != true)
         {

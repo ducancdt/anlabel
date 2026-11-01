@@ -832,9 +832,9 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.DataManager32}" Content="Quản lý&#10;dữ liệu" Click="DataSources_Click"
                                             ToolTip="Quản lý dữ liệu: biến nhập khi in, trường cơ sở dữ liệu, bộ đếm và hàm của tem" AutomationProperties.Name="Data source manager" AutomationProperties.AutomationId="Shell.Ribbon.DataManager"/>
-                                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.ImportDataSources32}" Content="Nhập nguồn&#10;dữ liệu" Click="ImportDataSources_Click"
+                                    <Button IsEnabled="{Binding IsEditingAllowed}" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.ImportDataSources32}" Content="Nhập nguồn&#10;dữ liệu" Click="ImportDataSources_Click"
                                             ToolTip="Lấy biến nhập khi in và hàm từ một tem khác (ANLAbel hoặc NiceLabel)" AutomationProperties.Name="Import data sources" AutomationProperties.AutomationId="Shell.Ribbon.ImportDataSources"/>
-                                    <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.PromptOrder32}" Content="Thứ tự&#10;nhắc" Click="PromptOrder_Click"
+                                    <Button IsEnabled="{Binding IsEditingAllowed}" Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.PromptOrder32}" Content="Thứ tự&#10;nhắc" Click="PromptOrder_Click"
                                             ToolTip="Thứ tự các câu hỏi hiện ra khi in" AutomationProperties.Name="Prompt order" AutomationProperties.AutomationId="Shell.Ribbon.PromptOrder"/>
                                     <Button Style="{StaticResource RibbonLargeButton}" controls:Ribbon.Icon="{StaticResource Icon.SharedSources32}" Content="Nguồn&#10;dùng chung" Click="SharedDataSources_Click"
                                             ToolTip="Nguồn Excel dùng chung giữa các mẫu tem: thêm, kiểm tra, liên kết lại, dọn dẹp" AutomationProperties.Name="Shared data sources" AutomationProperties.AutomationId="Shell.Ribbon.SharedDataSources"/>
@@ -1594,7 +1594,7 @@
                                         <TextBlock Text="Tìm…" Margin="7,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppMutedBrush}" IsHitTestVisible="False">
                                             <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=DataTreeSearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                         </TextBlock>
-                                        <Button Grid.Column="2" Content="+ Thêm ▾" Click="DataTreeAdd_Click" Padding="8,0" Height="{Binding ActualHeight, ElementName=DataTreeSearch}" VerticalAlignment="Top" ToolTip="Thêm biến nhập khi in hoặc hàm" AutomationProperties.Name="Add data source">
+                                        <Button Grid.Column="2" Content="+ Thêm ▾" Click="DataTreeAdd_Click" IsEnabled="{Binding IsEditingAllowed}" Padding="8,0" Height="{Binding ActualHeight, ElementName=DataTreeSearch}" VerticalAlignment="Top" ToolTip="Thêm biến nhập khi in hoặc hàm" AutomationProperties.Name="Add data source">
                                             <Button.ContextMenu>
                                                 <ContextMenu>
                                                     <MenuItem Header="Biến nhập khi in…" Click="AddPromptFromData_Click" AutomationProperties.Name="Add prompt"/>

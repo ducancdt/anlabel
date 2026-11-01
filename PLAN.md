@@ -1,5 +1,12 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.365
+
+- Tem được bảo vệ (quyết định của chủ dự án 2026-11-01): Quản lý dữ liệu chỉ sửa được bộ đếm Serial và
+  cơ sở dữ liệu; biến nhập khi in và hàm chỉ để xem (nút thêm, xóa, Thứ tự nhắc, Nhập nguồn dữ liệu và
+  trình sửa biến/hàm tắt, cả “+ Thêm” ở bảng Dữ liệu và hai nút trên thẻ Dữ liệu). Trước đây sửa được
+  biến, hàm và bộ đếm trên tem đã khóa.
+
 ## v0.365 — Bàn phím mở mục bảng Dữ liệu và menu của vùng chọn
 
 _Gồm các commit 31/10/2026 (23:37–23:45)._

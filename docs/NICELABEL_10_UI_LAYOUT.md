@@ -468,6 +468,14 @@ password when one is set). Protection can be changed only while unlocked. It
 guards against accidental edits; it is not file encryption. Gate: `a protected
 label opens for printing only`.
 
+Owner decision 2026-11-01: on a protected label Quản lý dữ liệu changes only the
+serial counter (an operator may have to set the next number) and the data source;
+prompts and functions are shown, not edited. Its add, order, import and delete
+commands and its prompt and function editors are off, as are the Data tab's Nhập
+nguồn dữ liệu and Thứ tự nhắc and the Data panel's "+ Thêm"; `ApplyDataDefinitions`
+keeps the prompts and functions of a locked label too. Gate: `a protected label
+changes only the counter`.
+
 ## Variable input and output rules (2026-10-30)
 
 NiceLabel 10 variable pages (`variables/inputrules…`, `outputrules…`): Pick list,
