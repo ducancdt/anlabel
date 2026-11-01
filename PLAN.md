@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.365
+## v0.366 — Sửa chữ trên tem, nút thuộc tính ở góc vùng chọn, trang Kiểu theo nhóm NiceLabel, tem bảo vệ chỉ sửa bộ đếm
+
+_Gồm các commit 01/11/2026 (23:56–09:01)._
 
 - Sửa chữ ngay trên tem như NiceLabel 10 (chủ dự án duyệt 2026-11-01, vùng Text/TextBox được bảo vệ):
   với Chữ hoặc Ô chữ có nội dung cố định, F2, Enter trên bảng thiết kế, nhấp đúp hoặc menu “Sửa chữ”
