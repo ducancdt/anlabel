@@ -685,6 +685,32 @@ public sealed class NiceLabel10ImportMappingTests
     }
 
     [Fact]
+    public void Texts_HaveNoOutline()
+    {
+        // NiceLabel texts have no frame. The style default (0.2 mm solid, for shapes)
+        // drew one around every imported text on the design surface, never on the label.
+        var template = Import("""
+            <Item Type="TextDocumentItem">
+              <Name>Caption</Name>
+              <Geometry Type="PositionGeometry"><X>1000</X><Y>1000</Y></Geometry>
+              <FixedContents>FROM:</FixedContents>
+            </Item>
+            <Item Type="TextDocumentItem">
+              <Name>Address</Name>
+              <Geometry Type="RectGeometry"><Left>1000</Left><Top>10000</Top><Width>40000</Width><Height>8000</Height></Geometry>
+              <FixedContents>Address 1</FixedContents>
+            </Item>
+            """);
+
+        Assert.Equal(new[] { ObjectType.Text, ObjectType.TextBox }, template.Objects.Select(item => item.Type).ToArray());
+        Assert.All(template.Objects, item =>
+        {
+            Assert.Equal(OutlineStyle.None, item.Style.OutlineStyle);
+            Assert.Equal(0, item.Style.BorderThicknessMm);
+        });
+    }
+
+    [Fact]
     public void DottedLineAndRoundedRectangle_MapStrokeStyleAndRadius()
     {
         var template = Import("""

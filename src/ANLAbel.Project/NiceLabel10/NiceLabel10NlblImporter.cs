@@ -461,7 +461,11 @@ public static partial class NiceLabel10NlblImporter
             Type = type,
             Text = expression is null ? record.Content : string.Empty,
             XMm = record.XMm,
-            YMm = record.YMm
+            YMm = record.YMm,
+            // A NiceLabel text has no outline. The style default (a 0.2 mm solid
+            // stroke, meant for shapes) drew a frame around every imported text on
+            // the design surface that the label never printed; an ANLAbel text has none.
+            Style = { BorderThicknessMm = 0, OutlineStyle = OutlineStyle.None }
         };
         if (type == ObjectType.TextBox)
         {
