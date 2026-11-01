@@ -47,7 +47,8 @@ public sealed class TextStylePickerChromeContractTests
     private static string SliceTextStyle(string xaml)
     {
         var start = xaml.IndexOf("Properties.TextStyle.FontFamily", StringComparison.Ordinal);
-        var end = xaml.IndexOf("Text=\"Căn\"", start, StringComparison.Ordinal);
+        // The font toolbar ends where the Căn lề group begins (NiceLabel 10 Text Style groups, owner decision 2026-11-01).
+        var end = xaml.IndexOf("Text=\"Căn lề\"", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start);
         return xaml[start..end];
     }

@@ -89,6 +89,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the keyboard reaches the mouse-only actions", DesignScenarioRegression.KeyboardReachesTheMouseOnlyActions),
     ("a protected label changes only the counter", DesignScenarioRegression.ProtectedLabelChangesOnlyTheCounter),
     ("the selection corner opens the properties", DesignScenarioRegression.SelectionCornerOpensProperties),
+    ("the text style page follows NiceLabel's groups", DesignScenarioRegression.TextStylePageFollowsNiceLabelGroups),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),

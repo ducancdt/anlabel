@@ -250,6 +250,21 @@
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
 
+        <!-- Properties: a card for a Text or a Text Box, and one for a Text Box only -->
+        <Style x:Key="TextStyleCard" TargetType="Border" BasedOn="{StaticResource PropCard}">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Text}"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="TextBoxStyleCard" TargetType="Border" BasedOn="{StaticResource PropCard}">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Properties panel: section title with colored accent bar -->
         <Style x:Key="PropTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12"/>
@@ -2946,22 +2961,10 @@
                                                    Text="Phông, cỡ, đậm, nghiêng và căn lề của Chữ định dạng nằm trong nội dung. Mở thẻ Nguồn, bôi đen chữ rồi dùng thanh nút phía trên ô soạn."/>
                                     </StackPanel>
                                 </Border>
-                                <Border>
-                                    <Border.Style>
-                                        <Style TargetType="Border" BasedOn="{StaticResource PropCard}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.Text}">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding SelectedObject.Type}" Value="{x:Static enums:ObjectType.TextBox}">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
+                                <!-- NiceLabel 10 Text Style groups (owner decision 2026-11-01): Phông chữ, Căn lề, Khoảng cách, Đặc biệt; a Text Box's Tự co giãn chữ and Lề trong as its own groups. Layout only: controls, bindings, presets and defaults as before. -->
+                                <Border Style="{StaticResource TextStyleCard}" AutomationProperties.AutomationId="Shell.Properties.TextFont">
                                     <StackPanel>
-                                        <TextBlock Text="Kiểu chữ" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Phông chữ" Style="{StaticResource PropTitle}"/>
                                         <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="4" Padding="7,5" Margin="0,0,0,6">
                                             <Grid>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -3075,6 +3078,123 @@
                                                      ToolTip="Như co giãn chữ trong NiceLabel: 100 là chữ gốc, dưới 100 hẹp lại, trên 100 giãn rộng ra."
                                                      KeyDown="PositionSizeTextBox_KeyDown"/>
                                         </DockPanel>
+                                        <TextBlock Text="Màu" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
+                                            <TextBox Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
+                                            <Border Grid.Column="2" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
+                                        </Grid>
+                                        <TextBlock Text="{Binding TextBoxValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource TextStyleCard}" AutomationProperties.AutomationId="Shell.Properties.TextAlignment">
+                                    <StackPanel>
+                                        <TextBlock Text="Căn lề" Style="{StaticResource PropTitle}"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True"
+                                                    AutomationProperties.AutomationId="Properties.TextStyle.AlignHorizontal">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignLeft"
+                                                                 AutomationProperties.Name="Align left" ToolTip="Căn trái">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Center}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignCenter"
+                                                                 AutomationProperties.Name="Align center" ToolTip="Căn giữa">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Right}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignRight"
+                                                                 AutomationProperties.Name="Align right" ToolTip="Căn phải">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Right"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignJustify"
+                                                                 AutomationProperties.Name="Justify" ToolTip="Căn đều">
+                                                        <StackPanel Width="14" Height="12">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True" Margin="6,0,0,0"
+                                                    AutomationProperties.AutomationId="Properties.TextStyle.AlignVertical">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Top}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignTop"
+                                                                 AutomationProperties.Name="Align top" ToolTip="Căn trên">
+                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Top">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Center}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignMiddle"
+                                                                 AutomationProperties.Name="Align middle" ToolTip="Căn giữa (dọc)">
+                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Center">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
+                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
+                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Bottom}}"
+                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignBottom"
+                                                                 AutomationProperties.Name="Align bottom" ToolTip="Căn dưới">
+                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Bottom">
+                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
+                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
+                                                        </StackPanel>
+                                                    </RadioButton>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource TextStyleCard}" AutomationProperties.AutomationId="Shell.Properties.TextSpacing">
+                                    <StackPanel>
+                                        <TextBlock Text="Khoảng cách" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Chiều cao dòng (pt; 0 = Tự động)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <TextBox Text="{Binding SelectedObject.Style.LineHeightPt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
+                                                 ToolTip="Dùng 0 cho chiều cao dòng tự nhiên của phông, hoặc nhập chiều cao hộp dòng tối thiểu theo pt."
+                                                 KeyDown="PositionSizeTextBox_KeyDown" Margin="0,0,0,3"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource TextStyleCard}" AutomationProperties.AutomationId="Shell.Properties.TextSpecial">
+                                    <StackPanel>
+                                        <TextBlock Text="Đặc biệt" Style="{StaticResource PropTitle}"/>
+                                        <TextBlock Text="Chiều chữ" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
+                                        <ComboBox ItemsSource="{Binding TextDirections}" SelectedItem="{Binding SelectedObject.Style.TextDirection, Mode=TwoWay}" ItemTemplate="{StaticResource DisplayNameItem}" Margin="0,0,0,3"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource TextBoxStyleCard}" AutomationProperties.AutomationId="Shell.Properties.TextFit">
+                                    <StackPanel>
+                                        <TextBlock Text="Tự co giãn chữ" Style="{StaticResource PropTitle}"/>
                                         <StackPanel>
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel">
@@ -3170,97 +3290,11 @@
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>
-                                        <TextBlock Text="Căn" Style="{StaticResource PropLabel}" Margin="0,2,0,1"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                            <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True"
-                                                    AutomationProperties.AutomationId="Properties.TextStyle.AlignHorizontal">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Left}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignLeft"
-                                                                 AutomationProperties.Name="Align left" ToolTip="Căn trái">
-                                                        <StackPanel Width="14" Height="12">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Left" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Left"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
-                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Center}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignCenter"
-                                                                 AutomationProperties.Name="Align center" ToolTip="Căn giữa">
-                                                        <StackPanel Width="14" Height="12">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Center"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
-                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Right}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignRight"
-                                                                 AutomationProperties.Name="Align right" ToolTip="Căn phải">
-                                                        <StackPanel Width="14" Height="12">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="9" Fill="#16304A" HorizontalAlignment="Right" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="11" Fill="#16304A" HorizontalAlignment="Right"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
-                                                    <RadioButton GroupName="TextStyleHAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.Alignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignJustify"
-                                                                 AutomationProperties.Name="Justify" ToolTip="Căn đều">
-                                                        <StackPanel Width="14" Height="12">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Height="24" BorderBrush="#C7D2DE" BorderThickness="1" CornerRadius="3" ClipToBounds="True" Margin="6,0,0,0"
-                                                    AutomationProperties.AutomationId="Properties.TextStyle.AlignVertical">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Top}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignTop"
-                                                                 AutomationProperties.Name="Align top" ToolTip="Căn trên">
-                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Top">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
-                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Center}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignMiddle"
-                                                                 AutomationProperties.Name="Align middle" ToolTip="Căn giữa (dọc)">
-                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Center">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                    <Rectangle Width="1" Fill="#C7D2DE"/>
-                                                    <RadioButton GroupName="TextStyleVAlign" Style="{StaticResource AlignIconRadio}"
-                                                                 IsChecked="{Binding SelectedObject.Style.VerticalAlignment, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextVerticalAlignmentMode.Bottom}}"
-                                                                 AutomationProperties.AutomationId="Properties.TextStyle.AlignBottom"
-                                                                 AutomationProperties.Name="Align bottom" ToolTip="Căn dưới">
-                                                        <StackPanel Width="14" Height="12" VerticalAlignment="Bottom">
-                                                            <Rectangle Height="2" Width="14" Fill="#16304A" Margin="0,0,0,2"/>
-                                                            <Rectangle Height="2" Width="10" Fill="#16304A" HorizontalAlignment="Left"/>
-                                                        </StackPanel>
-                                                    </RadioButton>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                        <TextBlock Text="Chiều chữ" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
-                                        <ComboBox ItemsSource="{Binding TextDirections}" SelectedItem="{Binding SelectedObject.Style.TextDirection, Mode=TwoWay}" ItemTemplate="{StaticResource DisplayNameItem}" Margin="0,0,0,3"/>
-                                        <TextBlock Text="Chiều cao dòng (pt; 0 = Tự động)" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
-                                        <TextBox Text="{Binding SelectedObject.Style.LineHeightPt, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.##}}"
-                                                 ToolTip="Dùng 0 cho chiều cao dòng tự nhiên của phông, hoặc nhập chiều cao hộp dòng tối thiểu theo pt."
-                                                 KeyDown="PositionSizeTextBox_KeyDown" Margin="0,0,0,3"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource TextBoxStyleCard}" AutomationProperties.AutomationId="Shell.Properties.TextPadding">
+                                    <StackPanel>
+                                        <TextBlock Text="Lề trong" Style="{StaticResource PropTitle}"/>
                                         <StackPanel>
                                             <StackPanel.Style>
                                                 <Style TargetType="StackPanel">
@@ -3307,13 +3341,6 @@
                                             </StackPanel>
                                         </Grid>
                                         </StackPanel>
-                                        <TextBlock Text="Màu" Style="{StaticResource PropLabel}" Margin="0,4,0,1"/>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="6"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" KeyDown="PositionSizeTextBox_KeyDown"/>
-                                            <Border Grid.Column="2" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="3" Background="{Binding SelectedObject.Style.StrokeColor}"/>
-                                        </Grid>
-                                        <TextBlock Text="{Binding TextBoxValidationMessage}" Foreground="{StaticResource AppDangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0"/>
                                     </StackPanel>
                                 </Border>
 

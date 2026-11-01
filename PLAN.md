@@ -2,6 +2,10 @@
 
 ## Sau v0.365
 
+- Trang Kiểu của Chữ và Ô chữ theo nhóm Text Style của NiceLabel 10 (chủ dự án duyệt 2026-11-01, vùng
+  Text/TextBox được bảo vệ): thẻ Phông chữ, Căn lề, Khoảng cách, Đặc biệt; riêng Ô chữ thêm Tự co giãn
+  chữ và Lề trong. Chỉ đổi bố cục: điều khiển, binding, ba preset đệm (Sát 0, Gọn .2, Thoáng 1), mặc
+  định và hành vi giữ nguyên; docs/NICELABEL_TEXTBOX_RESEARCH.md ghi quyết định.
 - Nút thuộc tính ở góc vùng chọn như CommandBox của NiceLabel 10 (quyết định của chủ dự án 2026-11-01):
   một nút xanh nhỏ ngay ngoài góc trên phải của đối tượng đang chọn, cách vùng bấm 10 DIP của tay nắm
   góc, mở Thuộc tính như F2; đi theo khi kéo, thu phóng, cuộn; ẩn khi không chọn gì, đang vẽ hoặc tem

@@ -121,6 +121,19 @@ Chi doi chu hien thi trong Bang thuoc tinh va loi bao tran chu tren canvas. Hanh
 - Preset `Tight 0` cho phep dung 100% frame khi font/ky tu cho phep; `Compact 0.2` la mac dinh can bang ink-edge safety; `Comfort 1` chi dung tren tem rong.
 - Selection chrome khong duoc danh doi khong gian in: hit target va marker tach rieng, hit target 10 DIP nhung marker nhin thay chi 5 DIP.
 
+### Trang Kieu theo nhom Text Style cua NiceLabel 10 (chu san pham duyet 2026-11-01)
+
+NiceLabel 10 `textstylepropertypageview`: nhom Font, Alignment, Spacing, Special; Text Box co trang
+Automatic sizing va boundaries rieng. ANLAbel tach the "Kiểu chữ" mot khoi thanh cac the cung ten:
+`Phông chữ` (phong, co, dam/nghieng/gach, ti le chu ngang cua Text, mau, loi phong), `Căn lề`,
+`Khoảng cách` (chieu cao dong), `Đặc biệt` (chieu chu); rieng Text Box: `Tự co giãn chữ` (vua trong
+khung, khi noi dung qua cao, min/max phong va co gian) va `Lề trong` (dem trong, ba preset, ghi de canh).
+
+Chi doi bo cuc: moi dieu khien, binding, preset (`Sát 0`, `Gọn .2`, `Thoáng 1` = Tight 0, Compact 0.2,
+Comfort 1), mac dinh va hanh vi giu nguyen; khong doi sizing, wrap, clip, padding hay vong doi resize.
+Gate: `the text style page follows NiceLabel's groups` (thu tu nhom, nhom cua Text va Text Box, preset
+giu ten/gia tri va van dat padding); bay gate Text/TextBox duoc bao ve van dat.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

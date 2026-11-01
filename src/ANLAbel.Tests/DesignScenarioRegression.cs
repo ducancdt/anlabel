@@ -1666,6 +1666,70 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-01: the Text / Text Box Kiểu page in NiceLabel 10's Text Style groups
+    /// (Font, Alignment, Spacing, Special; a Text Box's automatic sizing and boundaries as groups of
+    /// their own). Layout only: the controls move unchanged, the padding presets keep their values
+    /// and a preset still sets the padding.
+    /// </summary>
+    public static Task TextStylePageFollowsNiceLabelGroups()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô", Text = "B", XMm = 2, YMm = 10, WidthMm = 20, HeightMm = 6 };
+            box.Style.TextPaddingMm = 1;
+            viewModel.Template.Objects.Add(text);
+            viewModel.Template.Objects.Add(box);
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var ids = new[] { "Shell.Properties.TextFont", "Shell.Properties.TextAlignment", "Shell.Properties.TextSpacing", "Shell.Properties.TextSpecial", "Shell.Properties.TextFit", "Shell.Properties.TextPadding" };
+            var cards = ids.Select(id => FindLogicalChildren<Border>(content).First(border => AutomationProperties.GetAutomationId(border) == id)).ToArray();
+            string Shown() => string.Join(" ", cards.Where(card => card.Visibility == Visibility.Visible).Select(card => ((TextBlock)((StackPanel)card.Child).Children[0]).Text));
+            var panel = (Panel)cards[0].Parent;
+            Require(cards.Select(card => panel.Children.IndexOf(card)).SequenceEqual(cards.Select(card => panel.Children.IndexOf(card)).Order()), "The groups follow NiceLabel's order.");
+
+            viewModel.SelectedObject = text;
+            tabs.SelectedIndex = 1;
+            Settle();
+            Require(Shown() == "Phông chữ Căn lề Khoảng cách Đặc biệt", "A Text shows Font, Alignment, Spacing, Special: " + Shown());
+            Require(FindLogicalChildren<TextBox>(cards[0]).Any(field => AutomationProperties.GetAutomationId(field) == "Properties.TextStyle.FontScale")
+                    && FindLogicalChildren<ComboBox>(cards[0]).Any(combo => combo.Name == "FontSizeCombo"),
+                "The font, its size and the font scaling sit under Phông chữ.");
+
+            viewModel.SelectedObject = viewModel.Template.Objects.Single(item => item.Id == box.Id);
+            Settle();
+            Require(Shown() == "Phông chữ Căn lề Khoảng cách Đặc biệt Tự co giãn chữ Lề trong", "A Text Box adds Tự co giãn chữ and Lề trong: " + Shown());
+
+            // The padding presets keep their names and values, and still set the padding.
+            var presets = FindLogicalChildren<Button>(cards[5]).Where(button => button.Tag is string).ToArray();
+            Require(presets.Select(button => $"{button.Content}={button.Tag}").SequenceEqual(new[] { "Sát 0=0", "Gọn .2=0.2", "Thoáng 1=1" }),
+                "The padding presets stay Tight 0, Compact 0.2, Comfort 1: " + string.Join(", ", presets.Select(button => $"{button.Content}={button.Tag}")));
+            presets[1].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, presets[1]));
+            Require(Math.Abs(viewModel.Template.Objects.Single(item => item.Id == box.Id).Style.TextPaddingMm - 0.2) < 0.0001,
+                "Gọn .2 still sets the padding: " + viewModel.Template.Objects.Single(item => item.Id == box.Id).Style.TextPaddingMm);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
