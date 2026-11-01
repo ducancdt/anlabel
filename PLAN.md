@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.371
+## v0.372 — Vùng chọn và tay xoay như NiceLabel, biểu tượng cây Dữ liệu, ô Nội dung cao
+
+_Gồm các commit 01/11/2026 (11:56–12:41)._
 
 - Vùng chọn như NiceLabel 10 (chủ dự án duyệt 2026-11-01, vùng tay nắm được bảo vệ): không còn nền xanh bên trong;
   một đối tượng có một khung nét đứt đúng mép cùng tám tay nắm như cũ (vùng bấm 10 DIP, dấu 5 DIP); thêm tay
