@@ -161,6 +161,14 @@ label` (tem doi khi go, Enter khong ket thuc, Esc giu, roi o giu, menu rieng cua
 khung Ô chữ, Tràn = Lỗi, chu doc nguon, menu `Sửa chữ`, nhap dup, F2, nhieu doi tuong, tem bao ve); cac gate nhap
 dup va F2 cu dung ma vach cho duong Thuoc tinh.
 
+### O co chu hien moi co (2026-11-01, khong doi hop dong)
+
+O co chu cua trang Kieu (`FontSizeCombo`) va hai o tren ribbon chi khop co trong danh sach qua `SelectedItem`;
+WPF tu choi mot muc ngoai danh sach va giu muc cu, nen chon chu 12 pt roi chu 48 pt van hien 12. Nay o hien
+dung co cua chu dang chon (muc danh sach neu co, khong thi co dang chu), chon hay go roi Enter van dat
+`Style.FontSizePt` nhu truoc. Chi doi cach hien thi va cach nhan lua chon: khong doi khung, co do, wrap, clip,
+padding hay preset. Gate: `font size boxes show any size`.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

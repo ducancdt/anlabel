@@ -758,6 +758,26 @@ commands with an object selected and the label's menu with Dấu đối tượng
 toggles) with nothing selected. The mouse gestures themselves (a double-click, a
 right-click on the label) are covered by the gates only.
 
+## Side by side with a NiceLabel sample (2026-11-01)
+
+The same label in both: NiceLabel's sample `AIAG B10 6x4 Mixed Load.nlbl`
+(Designer PowerForms samples), NiceLabel 10 from `nl10-design.png` and
+`nl10-pinned.png`, ANLAbel rendered off screen after importing the file, and
+the label rendered through the print path (`LabelVisualRenderer`, design plan).
+
+| Seen | Finding | Done |
+| --- | --- | --- |
+| A thin black frame around every imported text | The importer left the style default (0.2 mm solid outline, meant for shapes) on Text and Text Box; the design surface drew it, NiceLabel has none and the print path never drew it | The importer sets no outline (unit test `Texts_HaveNoOutline`). Files imported and saved before keep the stroke data and still show the frame: the designer's Text outline sits in the protected Text/TextBox area, an owner decision |
+| A 48 pt caption showed an empty size box, or the previous text's size | ANLAbel's list stopped at 32, and the boxes matched list sizes through `SelectedItem`; WPF refuses an item outside the list and keeps the old one | NiceLabel's list (FormatDocument `FontService`: 4–14, 16–28 even, 36, 48, 72) with 32 kept; every size box shows any size as text and the ribbon box takes a typed size like NiceLabel's (gate `font size boxes show any size`) |
+| Rotation handle above the selection, no tint inside it | NiceLabel draws a rotate handle and only a dashed frame | Not changed: selection handles and the selection look are the protected adorner |
+| Data panel: NiceLabel's tree fills the panel | ANLAbel adds the Excel/CSV card, Cài đặt dữ liệu and Kiểm tra ràng buộc under the tree | Not changed: ANLAbel's Excel workflow, a product decision |
+| Variables listed with type icons | ANLAbel prefixes a prompt with "?" (its `{?Name}` syntax) | Not changed |
+| Source page: a tall multi-line content box | ANLAbel's Chữ box is shorter (it grows to 120) | Not changed (protected Text Properties controls) |
+
+The rulers, the name tag, the command box, contextual tabs, the ribbon groups,
+the toolbox, the explorer tabs and the status bar match. An off-screen render
+leaves the rulers blank; the installed app draws them (live screenshots).
+
 ## Coverage of the NiceLabel 10 views (2026-10-31)
 
 Every view group extracted from DesignerLib, Gui.Core and WpfControls, and

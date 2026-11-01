@@ -1218,6 +1218,126 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private bool _showingFontSize;
+
+    /// <summary>
+    /// Shows a size in a font size box whatever it is, as NiceLabel 10's editable boxes do: its list
+    /// entry when it has one, else the size as text with no entry picked; blank for none (the selected
+    /// texts differ). The boxes matched list sizes only, and WPF keeps the old entry for a size outside
+    /// the list, so a 48 pt text after a 12 pt one showed 12. What is being typed is left alone.
+    /// </summary>
+    private void ShowFontSize(ComboBox box, double? size, bool evenWhileTyping = false)
+    {
+        _showingFontSize = true;
+        try
+        {
+            box.SelectedItem = size is { } listed && _viewModel.FontSizes.Contains(listed) ? listed : null;
+            if (evenWhileTyping || !box.IsKeyboardFocusWithin)
+            {
+                box.Text = size is { } shown ? shown.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+            }
+        }
+        finally
+        {
+            _showingFontSize = false;
+        }
+    }
+
+    /// <summary>A size picked from the list: by the mouse or the keyboard in the open list, or by UI Automation.</summary>
+    private static bool IsFontSizePick(ComboBox box) => box.IsDropDownOpen || !box.IsKeyboardFocusWithin;
+
+    private void RibbonFontSize_TargetUpdated(object sender, System.Windows.Data.DataTransferEventArgs e)
+    {
+        if (sender is ComboBox box && e.Property == FrameworkElement.TagProperty)
+        {
+            ShowFontSize(box, _viewModel.RibbonFontSize);
+        }
+    }
+
+    private void RibbonFontSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_showingFontSize && sender is ComboBox { SelectedItem: double size } box && IsFontSizePick(box))
+        {
+            ApplyRibbonFontSize(size);
+        }
+    }
+
+    private void RibbonFontSize_DropDownClosed(object sender, EventArgs e)
+    {
+        if (sender is ComboBox { SelectedItem: double size })
+        {
+            ApplyRibbonFontSize(size);
+        }
+    }
+
+    private void RibbonFontSize_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && sender is ComboBox box)
+        {
+            ApplyTypedRibbonFontSize(box);
+            e.Handled = true;
+        }
+    }
+
+    private void RibbonFontSize_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is ComboBox box && !box.IsKeyboardFocusWithin)
+        {
+            ApplyTypedRibbonFontSize(box);
+        }
+    }
+
+    /// <summary>The ribbon's size for every selected text; a size they already share changes nothing.</summary>
+    private void ApplyRibbonFontSize(double size)
+    {
+        if (size != _viewModel.RibbonFontSize)
+        {
+            _viewModel.RibbonFontSize = size;
+        }
+    }
+
+    private void ApplyTypedRibbonFontSize(ComboBox box)
+    {
+        if (TextStylePickerCatalog.TryParseSizePt(box.Text, out var size))
+        {
+            ApplyRibbonFontSize(size);
+        }
+
+        ShowFontSize(box, _viewModel.RibbonFontSize, evenWhileTyping: true);
+    }
+
+    private void FontSizeCombo_TargetUpdated(object sender, System.Windows.Data.DataTransferEventArgs e)
+    {
+        if (sender is ComboBox box && e.Property == FrameworkElement.TagProperty)
+        {
+            ShowFontSize(box, _viewModel.SelectedObject?.Style.FontSizePt);
+        }
+    }
+
+    private void FontSizeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_showingFontSize && sender is ComboBox { SelectedItem: double size } box && IsFontSizePick(box))
+        {
+            ApplyPickedFontSize(size);
+        }
+    }
+
+    private void FontSizeCombo_DropDownClosed(object sender, EventArgs e)
+    {
+        if (sender is ComboBox { SelectedItem: double size })
+        {
+            ApplyPickedFontSize(size);
+        }
+    }
+
+    private void ApplyPickedFontSize(double size)
+    {
+        if (_viewModel.SelectedObject is { } item && item.Style.FontSizePt != size)
+        {
+            item.Style.FontSizePt = size;
+        }
+    }
+
     private void FontSizeCombo_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || sender is not ComboBox combo)

@@ -1,5 +1,17 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.367
+
+- Đặt cạnh NiceLabel 10 với cùng tem mẫu AIAG B10 Mixed Load (tài liệu bố cục, mục 2026-11-01):
+  - Chữ và Ô chữ nhập từ NiceLabel không còn mang viền mặc định 0,2 mm. Bảng thiết kế vẽ viền đó quanh
+    mọi chữ nhập vào, trong khi NiceLabel không có và tem in ra cũng không có. Tệp đã nhập và lưu trước bản
+    này vẫn giữ dữ liệu viền ấy, nên vẫn hiện khung trên bảng thiết kế (vùng Text/TextBox được bảo vệ:
+    chờ chủ dự án quyết).
+  - Ô cỡ chữ (ribbon Trang chủ, thẻ Chữ, Thuộc tính › Kiểu) hiện đúng cỡ của chữ đang chọn, kể cả cỡ
+    ngoài danh sách; ô trên ribbon nay gõ được rồi Enter như NiceLabel. Trước đây chọn chữ 12 pt rồi
+    chữ 48 pt, cả hai ô vẫn hiện 12, và chọn 12 không áp được. Danh sách cỡ là của NiceLabel 10
+    (4–14, 16–28 số chẵn, 36, 48, 72), giữ thêm 32 như cũ.
+
 ## v0.367 — Sửa chữ trên tem đúng phím NiceLabel và giữ luật chặn tràn của Ô chữ
 
 _Gồm các commit 01/11/2026 (09:29–09:29)._

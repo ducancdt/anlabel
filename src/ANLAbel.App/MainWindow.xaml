@@ -661,8 +661,11 @@
                                               IsTextSearchEnabled="True" AutomationProperties.Name="Ribbon font family" ToolTip="Phông chữ">
                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <ComboBox Width="52" Margin="3,0,2,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding RibbonFontSize, Mode=TwoWay}"
-                                              AutomationProperties.Name="Ribbon font size" ToolTip="Cỡ chữ (pt)"/>
+                                    <ComboBox Width="52" Margin="3,0,2,0" ItemsSource="{Binding FontSizes}" IsEditable="True"
+                                              Tag="{Binding RibbonFontSize, Mode=OneWay, NotifyOnTargetUpdated=True}" Binding.TargetUpdated="RibbonFontSize_TargetUpdated"
+                                              SelectionChanged="RibbonFontSize_SelectionChanged" DropDownClosed="RibbonFontSize_DropDownClosed"
+                                              KeyDown="RibbonFontSize_KeyDown" LostKeyboardFocus="RibbonFontSize_LostKeyboardFocus"
+                                              AutomationProperties.Name="Ribbon font size" ToolTip="Cỡ chữ (pt): chọn, hoặc gõ rồi Enter"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.GrowFont16}" Click="FontGrow_Click" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Grow font"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.ShrinkFont16}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Shrink font"/>
                                 </StackPanel>
@@ -1136,8 +1139,11 @@
                                               AutomationProperties.Name="Text tab font family" ToolTip="Phông chữ">
                                         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontFamily="{Binding}"/></DataTemplate></ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <ComboBox Width="52" Margin="3,0,2,0" ItemsSource="{Binding FontSizes}" SelectedItem="{Binding RibbonFontSize, Mode=TwoWay}"
-                                              AutomationProperties.Name="Text tab font size" ToolTip="Cỡ chữ (pt)"/>
+                                    <ComboBox Width="52" Margin="3,0,2,0" ItemsSource="{Binding FontSizes}" IsEditable="True"
+                                              Tag="{Binding RibbonFontSize, Mode=OneWay, NotifyOnTargetUpdated=True}" Binding.TargetUpdated="RibbonFontSize_TargetUpdated"
+                                              SelectionChanged="RibbonFontSize_SelectionChanged" DropDownClosed="RibbonFontSize_DropDownClosed"
+                                              KeyDown="RibbonFontSize_KeyDown" LostKeyboardFocus="RibbonFontSize_LostKeyboardFocus"
+                                              AutomationProperties.Name="Text tab font size" ToolTip="Cỡ chữ (pt): chọn, hoặc gõ rồi Enter"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.GrowFont16}" Click="FontGrow_Click" ToolTip="Tăng cỡ chữ" AutomationProperties.Name="Text tab grow font"/>
                                     <Button Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.ShrinkFont16}" Click="FontShrink_Click" ToolTip="Giảm cỡ chữ" AutomationProperties.Name="Text tab shrink font"/>
                                 </StackPanel>
@@ -3038,7 +3044,10 @@
                                                       IsEditable="True"
                                                       IsTextSearchEnabled="True"
                                                       ItemsSource="{Binding FontSizes}"
-                                                      SelectedItem="{Binding SelectedObject.Style.FontSizePt, Mode=TwoWay}"
+                                                      Tag="{Binding SelectedObject.Style.FontSizePt, Mode=OneWay, NotifyOnTargetUpdated=True}"
+                                                      Binding.TargetUpdated="FontSizeCombo_TargetUpdated"
+                                                      SelectionChanged="FontSizeCombo_SelectionChanged"
+                                                      DropDownClosed="FontSizeCombo_DropDownClosed"
                                                       LostFocus="FontSizeCombo_LostFocus"
                                                       KeyDown="FontSizeCombo_KeyDown"
                                                       AutomationProperties.AutomationId="Properties.TextStyle.FontSize"

@@ -997,7 +997,10 @@ every selected object at once:
 - A page shows only when it suits the whole selection
   (`TextStylePropertyPageViewModel.IsValidPropertyPage` refuses a selection
   with a rich text box or a form table), and choices such as the font sizes
-  offered are the intersection over the selected items.
+  offered are the intersection over the selected items. The standard list is
+  FormatDocument `FontService`'s: 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16,
+  18, 20, 22, 24, 26, 28, 36, 48, 72 (ANLAbel offers it with its 32 kept, and
+  shows any other size as typed).
 - Barcode pages work the same way (`Barcode2DPropertyPageViewModel`
   overrides `SetValue`). The `*SelectionItemCommandArguments` types (font
   width and height, bar width, module height) record the undo of a resize

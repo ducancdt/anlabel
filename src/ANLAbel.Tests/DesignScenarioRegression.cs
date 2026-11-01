@@ -1898,6 +1898,90 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The font size boxes show the selected text's size whatever it is, as NiceLabel 10's editable
+    /// boxes do: 48 pt from a NiceLabel label or a typed 9.5 pt showed blank, or the previous text's
+    /// size, because the boxes only matched NiceLabel's list sizes. The list is NiceLabel's
+    /// (FormatDocument FontService: 4-14, 16-28 even, 36, 48, 72) with ANLAbel's 32 kept; a pick or a
+    /// typed size (Enter) sets it; the ribbon box is blank only while the selected texts differ.
+    /// </summary>
+    public static Task FontSizeBoxesShowAnySize()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.IsPropertiesPinned = true;
+            viewModel.IsPropertiesVisible = true;
+            var small = new LabelObject { Type = ObjectType.Text, Name = "Nhỏ", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            small.Style.FontSizePt = 12;
+            var big = new LabelObject { Type = ObjectType.Text, Name = "Lớn", Text = "B", XMm = 2, YMm = 12, WidthMm = 40, HeightMm = 20 };
+            big.Style.FontSizePt = 48;
+            var odd = new LabelObject { Type = ObjectType.TextBox, Name = "Lẻ", Text = "C", XMm = 2, YMm = 36, WidthMm = 20, HeightMm = 6 };
+            odd.Style.FontSizePt = 9.5;
+            foreach (var item in new[] { small, big, odd })
+            {
+                viewModel.Template.Objects.Add(item);
+            }
+
+            var tabs = (TabControl)window.FindName("PropertiesModeTabs");
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var ribbon = FindLogicalChildren<ComboBox>(content).First(box => AutomationProperties.GetName(box) == "Ribbon font size");
+            var properties = FindLogicalChildren<ComboBox>(content).First(box => AutomationProperties.GetAutomationId(box) == "Properties.TextStyle.FontSize");
+            LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
+            void Select(LabelObject item)
+            {
+                viewModel.SelectedObject = Lookup(item);
+                tabs.SelectedIndex = 1;
+                Settle();
+            }
+
+            string Shown(ComboBox box) => box.Text;
+            Select(small);
+            Require(Shown(ribbon) == "12" && Shown(properties) == "12", $"A 12 pt text shows 12: ribbon '{Shown(ribbon)}', Properties '{Shown(properties)}'");
+            Select(big);
+            Require(Shown(ribbon) == "48" && Shown(properties) == "48", $"A 48 pt text shows 48: ribbon '{Shown(ribbon)}', Properties '{Shown(properties)}'");
+            Select(odd);
+            Require(Shown(ribbon) == "9.5" && Shown(properties) == "9.5", $"A 9.5 pt text shows 9.5: ribbon '{Shown(ribbon)}', Properties '{Shown(properties)}'");
+            Select(small);
+            Require(Shown(ribbon) == "12" && Shown(properties) == "12", $"Back on the 12 pt text: ribbon '{Shown(ribbon)}', Properties '{Shown(properties)}'");
+
+            // A typed size and Enter set it; so does a pick from the list.
+            Select(odd);
+            ribbon.Text = "36";
+            ribbon.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new KeyInputSource(), 0, System.Windows.Input.Key.Enter) { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
+            Settle();
+            Require(Lookup(odd).Style.FontSizePt == 36 && Shown(properties) == "36", $"Typing 36 and Enter sets it: {Lookup(odd).Style.FontSizePt}, Properties '{Shown(properties)}'");
+            ribbon.SelectedItem = 72d;
+            Settle();
+            Require(Lookup(odd).Style.FontSizePt == 72 && Shown(ribbon) == "72", $"Picking 72 sets it: {Lookup(odd).Style.FontSizePt}, ribbon '{Shown(ribbon)}'");
+            Select(big);
+            properties.SelectedItem = 48d;
+            Settle();
+            Require(Lookup(big).Style.FontSizePt == 48, "Picking the size it has changes nothing: " + Lookup(big).Style.FontSizePt);
+            properties.SelectedItem = 12d;
+            Settle();
+            Require(Lookup(big).Style.FontSizePt == 12 && Shown(ribbon) == "12", $"Picking 12 in Properties sets it: {Lookup(big).Style.FontSizePt}, ribbon '{Shown(ribbon)}'");
+            Require(viewModel.FontSizes.SequenceEqual(new double[] { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 32, 36, 48, 72 }),
+                "The size list is NiceLabel's, with 32 kept: " + string.Join(" ", viewModel.FontSizes));
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

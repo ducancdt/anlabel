@@ -11,9 +11,13 @@ public static class TextStylePickerCatalog
     public const double MinimumSizePt = 4;
     public const double MaximumSizePt = 200;
 
+    /// <summary>
+    /// NiceLabel 10's font size list (FormatDocument <c>FontService</c>) with the 32 ANLAbel offered
+    /// before. Any other size is typed; the boxes show it as it is.
+    /// </summary>
     public static IReadOnlyList<double> StandardSizesPt { get; } =
     [
-        4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32
+        4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 32, 36, 48, 72
     ];
 
     /// <summary>
