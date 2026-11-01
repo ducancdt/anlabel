@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.366
+## v0.367 — Sửa chữ trên tem đúng phím NiceLabel và giữ luật chặn tràn của Ô chữ
+
+_Gồm các commit 01/11/2026 (09:29–09:29)._
 
 - Sửa chữ trên tem theo đúng NiceLabel 10 (đối chiếu `TextSelectionEditItemView` dịch ngược; v0.366 dùng phím
   tự đoán): chữ hiện lên tem ngay khi gõ nên Lưu hay In giữa chừng vẫn dùng chữ mới; Enter xuống dòng như ô
