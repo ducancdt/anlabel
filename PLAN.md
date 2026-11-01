@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.370
+## v0.371 — Bảng Dữ liệu gọn như NiceLabel, gõ để sửa chữ
+
+_Gồm các commit 01/11/2026 (11:50–11:50)._
 
 - Bảng Dữ liệu gọn như NiceLabel 10 (chủ dự án duyệt 2026-11-01): nguồn dữ liệu là dòng đầu dưới “Trường dữ
   liệu” (“+ Liên kết Excel / CSV…” khi chưa có tệp; tên tệp · dòng đang chọn khi đã liên kết), kèm cảnh báo và
