@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.367
+## v0.368 — Chữ nhập từ NiceLabel không còn khung, ô cỡ chữ hiện đúng mọi cỡ
+
+_Gồm các commit 01/11/2026 (10:03–10:03)._
 
 - Đặt cạnh NiceLabel 10 với cùng tem mẫu AIAG B10 Mixed Load (tài liệu bố cục, mục 2026-11-01):
   - Chữ và Ô chữ nhập từ NiceLabel không còn mang viền mặc định 0,2 mm. Bảng thiết kế vẽ viền đó quanh
