@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.373
+## v0.374 — Vùng chọn vẽ như NiceLabel: khung hai nét, điểm neo tô xanh, tay xoay và nút thuộc tính đúng chỗ
+
+_Gồm các commit 01/11/2026 (14:30–15:07)._
 
 - Nút thuộc tính của vùng chọn đặt như CommandBox của NiceLabel 10 (v0.366 tự chọn chỗ cạnh góc): đứng trên mép
   trên của đối tượng, ở đầu bên phải (NiceLabel: Margin 0 -20 0 0, canh phải), nút vuông xanh #0072EB 22 × 20 có
