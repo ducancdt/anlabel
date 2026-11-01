@@ -61,12 +61,7 @@ public partial class MainWindow : Window
         // A tree item's header has no width limit: the database row's lines wrap inside the tree.
         DataTree.SizeChanged += (_, _) => DataTreeDatabase.MaxWidth = Math.Max(80, DataTree.ActualWidth - 64);
         InputBindings.Add(new System.Windows.Input.KeyBinding(
-            new ViewModels.RelayCommand(() =>
-            {
-                _viewModel.IsPropertiesPinned = !_viewModel.IsPropertiesPinned;
-                _viewModel.IsPropertiesVisible = true;
-                ApplyPropertiesPlacement();
-            }),
+            new ViewModels.RelayCommand(ShowPropertiesPinnedByKey),
             new System.Windows.Input.KeyGesture(System.Windows.Input.Key.F4)));
         InputBindings.Add(new System.Windows.Input.KeyBinding(
             new ViewModels.RelayCommand(OpenPropertiesByKey),
@@ -1438,7 +1433,8 @@ public partial class MainWindow : Window
             e.Handled = true;
         };
 
-        var properties = Item("Thuộc tính", string.Empty, (_, e) =>
+        // NiceLabel 10's object menu names F4 beside Properties.
+        var properties = Item("Thuộc tính", "F4", (_, e) =>
         {
             OpenFloatingProperties();
             e.Handled = true;
@@ -1867,6 +1863,23 @@ public partial class MainWindow : Window
     /// design surface opens the property editor; for a text the cursor goes to its content,
     /// the words selected to type over.
     /// </summary>
+    /// <summary>
+    /// NiceLabel 10's F4 (MainView.DocumentSelector_KeyDown, OpenPropertyEditor): with an object selected the
+    /// Properties panel shows pinned at the right, a floating panel pinning (its own F4 sets PopupMode false);
+    /// nothing selected, nothing happens. F4 never unpins: the panel's pin button does.
+    /// </summary>
+    private void ShowPropertiesPinnedByKey()
+    {
+        if (BackstagePanel.Visibility == Visibility.Visible || _viewModel.SelectedObject is null)
+        {
+            return;
+        }
+
+        _viewModel.IsPropertiesPinned = true;
+        _viewModel.IsPropertiesVisible = true;
+        ApplyPropertiesPlacement();
+    }
+
     private void OpenPropertiesByKey()
     {
         if (!DesignerKeysApply() || _viewModel.SelectedObject is not { } item)

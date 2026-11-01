@@ -1,5 +1,15 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.376
+
+- Bảng Dữ liệu và danh sách Nguồn dữ liệu xếp nhóm theo thứ tự của NiceLabel 10 (DesignerDataSourceSelectorProvider:
+  biến, hàm, cơ sở dữ liệu, biến nội bộ): Biến nhập khi in, Hàm, Trường dữ liệu, Khi in (trước đây Trường dữ liệu đứng
+  trước Hàm). Menu nguồn của hộp công cụ theo cùng thứ tự.
+- F4 làm như NiceLabel 10 (MainView.DocumentSelector_KeyDown → OpenPropertyEditor): khi có đối tượng đang chọn,
+  bảng Thuộc tính hiện ra và ghim bên phải; bảng đang nổi thì ghim lại; bấm lại vẫn giữ ghim; không chọn gì thì
+  F4 không làm gì. Trước đây F4 bật tắt giữa ghim và nổi (đoán từ 29/10); bỏ ghim giờ bằng nút ghim trên bảng. Mục
+  Thuộc tính trong menu chuột phải ghi F4 như menu của NiceLabel.
+
 ## v0.376 — Chú thích nút thuộc tính không còn ghi F2
 
 _Gồm các commit 01/11/2026 (16:02–16:06)._

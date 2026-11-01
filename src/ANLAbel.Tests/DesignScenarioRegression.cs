@@ -2373,6 +2373,41 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// NiceLabel 10's F4 (MainView.DocumentSelector_KeyDown → OpenPropertyEditor): with an object selected the
+    /// Properties panel shows pinned at the right, a floating panel pinning; F4 again keeps it there (NiceLabel only
+    /// flashes it), and with nothing selected F4 does nothing. ANLAbel's F4 toggled pinned and floating.
+    /// </summary>
+    public static Task F4ShowsThePropertiesPinned()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var box = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 4, YMm = 4, WidthMm = 20, HeightMm = 10 };
+            viewModel.Template.Objects.Add(box);
+            var f4 = window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                .Single(binding => binding.Key == System.Windows.Input.Key.F4 && binding.Modifiers == System.Windows.Input.ModifierKeys.None);
+            void Press() => f4.Command.Execute(null);
+            string State() => $"pinned {viewModel.IsPropertiesPinned}, shown {viewModel.IsPropertiesVisible}";
+
+            viewModel.SelectedObject = null;
+            viewModel.IsPropertiesPinned = false;
+            viewModel.IsPropertiesVisible = false;
+            Press();
+            Require(!viewModel.IsPropertiesPinned && !viewModel.IsPropertiesVisible, "Nothing selected, F4 does nothing: " + State());
+
+            viewModel.SelectedObject = box;
+            Press();
+            Require(viewModel.IsPropertiesPinned && viewModel.IsPropertiesVisible, "With an object selected F4 shows the Properties pinned: " + State());
+            Press();
+            Require(viewModel.IsPropertiesPinned && viewModel.IsPropertiesVisible, "F4 again keeps them pinned, it does not unpin: " + State());
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// NiceLabel 10's hover overlay: the object under the pointer (the topmost one, which a click picks) shows a
     /// half-transparent #0072EB frame 2 DIP wide, 4 DIP outside it, an ellipse round an ellipse. It goes when the
     /// pointer leaves, on a selected object, while a drawing tool is armed and on a protected (disabled) surface.
@@ -4494,8 +4529,15 @@ internal static class DesignScenarioRegression
             var tree = FindDescendants<TreeView>(window).Single(element => AutomationProperties.GetAutomationId(element) == "Shell.Workspace.DataTree");
             var sections = tree.Items.OfType<TreeViewItem>().ToArray();
             string Heading(TreeViewItem item) => string.Concat(FindDescendants<TextBlock>((DependencyObject)item.Header).Select(text => text.Text).Where(text => text.Length > 1));
-            Require(sections.Select(Heading).SequenceEqual(["Biến nhập khi in", "Trường dữ liệu", "Hàm", "Khi in"]),
-                "The Data panel has prompts, fields, functions and print-time values: " + string.Join(", ", sections.Select(Heading)));
+            // NiceLabel 10's order (DesignerDataSourceSelectorProvider): variables, functions, databases, internal variables,
+            // in the Data panel and in the Source page's list alike.
+            string[] order = ["Biến nhập khi in", "Hàm", "Trường dữ liệu", "Khi in"];
+            Require(sections.Select(Heading).SequenceEqual(order),
+                "The Data panel has prompts, functions, fields and print-time values: " + string.Join(", ", sections.Select(Heading)));
+            // A column too, so the four groups show in the list.
+            viewModel.ExcelHeaders.Add("MaHang");
+            var listed = viewModel.DataSourceChoicesFor(null).Where(choice => choice.Kind == ANLAbel.App.ViewModels.DataSourceChoiceKind.Source).Select(choice => choice.Group).Distinct().ToArray();
+            Require(listed.SequenceEqual(order.Where(listed.Contains)), "The Source page lists its groups in the same order: " + string.Join(", ", listed));
 
             var binding = typeof(ANLAbel.App.MainWindow).GetMethod("DataTreeBinding", BindingFlags.Static | BindingFlags.NonPublic)!;
             // The entries only: a group's add row (NiceLabel's Add new variable) has no binding and does not drag.
@@ -4503,9 +4545,9 @@ internal static class DesignScenarioRegression
                 .Select(item => (string?)binding.Invoke(null, new[] { item })).ToArray();
             Require(sections.SelectMany(section => section.Items.OfType<TreeViewItem>()).All(row => binding.Invoke(null, new object[] { row }) is null),
                 "An add row has no binding, so it does not drag onto the label.");
-            Require(Bindings(sections[0]).SequenceEqual(["{?Lot}"]) && Bindings(sections[2]).SequenceEqual(["{MaLo}"])
+            Require(Bindings(sections[0]).SequenceEqual(["{?Lot}"]) && Bindings(sections[1]).SequenceEqual(["{MaLo}"])
                     && Bindings(sections[3]).SequenceEqual(["{#SERIAL}", "{#NOW:dd/MM/yyyy}"]),
-                $"Each item drags with its binding: {string.Join(" ", Bindings(sections[0]))} | {string.Join(" ", Bindings(sections[2]))} | {string.Join(" ", Bindings(sections[3]))}");
+                $"Each item drags with its binding: {string.Join(" ", Bindings(sections[0]))} | {string.Join(" ", Bindings(sections[1]))} | {string.Join(" ", Bindings(sections[3]))}");
 
             var off = viewModel.Template.SerialCounter.Clone();
             off.Enabled = false;

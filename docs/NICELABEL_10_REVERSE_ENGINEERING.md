@@ -1237,6 +1237,23 @@ process initializer).
   line). ANLAbel after v0.374: the topmost object element's MouseEnter/Leave
   drive a `HoverFrameAdorner` with the same frame; none on a selected object,
   while drawing or on a protected label.
+- F4 (`MainView.DocumentSelector_KeyDown`, `MainView.OpenPropertyEditor`,
+  `DocumentItemPropertyPagesDialogView`). On the design area F4 with at least
+  one selected item runs `OpenDocumentItemPropertyEditorCommand` (AnalyticsKey
+  "F4"); the `OpenPropertyEditorEvent` handler opens the docked property panel
+  (`PropertyPagesDialogViewModel.IsOpen`, `propertyPagePanelView` visible) or,
+  when it is open, flashes its header (`AnimateHeaderColor`); it never closes
+  it. In the floating panel F4 closes the popup, sets `PopupMode = false` and
+  opens the docked one; Esc closes the popup. Nothing selected, F4 does nothing.
+  The object menu shows "Properties F4". ANLAbel after v0.376: F4 shows the
+  selected object's Properties pinned (it toggled pinned and floating before).
+- Data source order (`DesignerDataSourceSelectorProvider.CreateSubProviders`,
+  feeding the Data explorer and the Source page's "Connected data source"):
+  variables and functions (each with Add new, copy, paste, delete, edit and
+  rename commands), internal variables, global variables where licensed, then
+  the databases inserted at index 2 (`AddSubProviderWithBasicCommands` →
+  `SubProviders.Insert`), RFID last: Variables, Functions, Databases, Internal
+  variables. ANLAbel after v0.376: Biến nhập khi in, Hàm, Trường dữ liệu, Khi in.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

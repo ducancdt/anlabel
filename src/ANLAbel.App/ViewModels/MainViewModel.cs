@@ -4701,8 +4701,8 @@ public sealed class MainViewModel : ObservableObject
 
     /// <summary>
     /// The Source page's "Nguồn dữ liệu" list (NiceLabel 10 "Connected data source"): fixed
-    /// text, then what the Data panel offers in its groups (prompts, columns, functions, values
-    /// given at print time), then a composition of several. A source the object reads that none
+    /// text, then what the Data panel offers in its groups, in NiceLabel's order (prompts,
+    /// functions, columns, values given at print time), then a composition of several. A source the object reads that none
     /// of these holds (a column the file lacks) is listed too, so the list shows what it prints.
     /// </summary>
     public IReadOnlyList<DataSourceChoice> DataSourceChoicesFor(LabelObject? item)
@@ -4715,10 +4715,10 @@ public sealed class MainViewModel : ObservableObject
         choices.AddRange(Template.PromptVariables
             .Where(prompt => !string.IsNullOrWhiteSpace(prompt.Name))
             .Select(prompt => new DataSourceChoice("Biến nhập khi in", prompt.Name.Trim(), "{?" + prompt.Name.Trim() + "}", DataSourceChoiceKind.Source)));
+        choices.AddRange(functions.Select(name => new DataSourceChoice("Hàm", name, "{" + name + "}", DataSourceChoiceKind.Source)));
         choices.AddRange(KnownColumnNames
             .Where(column => !functions.Contains(column, StringComparer.OrdinalIgnoreCase))
             .Select(column => new DataSourceChoice("Trường dữ liệu", column, "{" + column + "}", DataSourceChoiceKind.Source)));
-        choices.AddRange(functions.Select(name => new DataSourceChoice("Hàm", name, "{" + name + "}", DataSourceChoiceKind.Source)));
         choices.AddRange(PrintTimeDataFields.Select(field => new DataSourceChoice("Khi in", field.Label, field.Binding, DataSourceChoiceKind.Source)));
         var binding = item?.BindingExpression?.Trim() ?? string.Empty;
         if (SingleSourceToken(binding) is { } token

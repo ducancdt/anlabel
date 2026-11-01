@@ -854,7 +854,7 @@ public partial class HelpWindow : Window
         sh.Children.Add(ShortcutRow(vi ? "Ctrl+Dấu cộng" : "Ctrl+Plus", vi ? "Phóng to" : "Zoom in"));
         sh.Children.Add(ShortcutRow(vi ? "Ctrl+Dấu trừ" : "Ctrl+Minus", vi ? "Thu nhỏ" : "Zoom out"));
         sh.Children.Add(ShortcutRow("Ctrl+0", vi ? "Thu phóng 100 %" : "Zoom to 100%"));
-        sh.Children.Add(ShortcutRow("F4", vi ? "Ghim hoặc bỏ ghim bảng Thuộc tính (bỏ ghim: bảng nổi cạnh đối tượng, mở bằng nhấp đúp)" : "Pin or unpin the Properties panel (unpinned, it floats beside the object and opens on double-click)"));
+        sh.Children.Add(ShortcutRow("F4", vi ? "Hiện bảng Thuộc tính của đối tượng đang chọn, ghim bên phải (bảng đang nổi thì ghim lại); bỏ ghim bằng nút ghim trên bảng" : "Show the selected object's Properties pinned at the right (a floating panel pins); unpin with the panel's pin button"));
         d["shortcuts"] = sh;
 
         // ---------- FAQ ----------

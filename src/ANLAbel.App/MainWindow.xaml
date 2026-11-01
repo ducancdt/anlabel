@@ -1657,6 +1657,30 @@
                                                 <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Name, Converter={StaticResource DataToken}, ConverterParameter=prompt}"><Image Source="{StaticResource Icon.Variable16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
+                                        <!-- NiceLabel 10 orders its data sources Variables, Functions, Databases, Internal variables -->
+                                        <TreeViewItem x:Name="DataTreeFunctions" IsExpanded="True">
+                                            <TreeViewItem.ItemsSource>
+                                                <CompositeCollection>
+                                                    <!-- NiceLabel 10 Data explorer: "Add new function" is the group's first row -->
+                                                    <TreeViewItem x:Name="DataTreeAddFunctionItem" Tag="NewFunction" AutomationProperties.Name="Add new function" IsEnabled="{Binding IsEditingAllowed}" ToolTip="Thêm một hàm tính từ dữ liệu: Quản lý dữ liệu mở trên hàm mới.">
+                                                        <TreeViewItem.Header>
+                                                            <Button Click="AddFunctionFromData_Click" Margin="0" Padding="0" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                                    Foreground="{StaticResource AppBlueBrush}" AutomationProperties.Name="Add new function">
+                                                                <TextBlock Text="+ Thêm hàm…"/>
+                                                            </Button>
+                                                        </TreeViewItem.Header>
+                                                    </TreeViewItem>
+                                                    <CollectionContainer Collection="{Binding Source={StaticResource DataTreeFunctionsSource}}"/>
+                                                </CompositeCollection>
+                                            </TreeViewItem.ItemsSource>
+                                            <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/></Style></TreeViewItem.ItemContainerStyle>
+                                            <TreeViewItem.Header>
+                                                <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8EF;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Hàm" FontWeight="SemiBold"/></StackPanel>
+                                            </TreeViewItem.Header>
+                                            <TreeViewItem.ItemTemplate>
+                                                <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Name, Converter={StaticResource DataToken}}"><Image Source="{StaticResource Icon.Function16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
+                                            </TreeViewItem.ItemTemplate>
+                                        </TreeViewItem>
                                         <TreeViewItem x:Name="DataTreeFields" IsExpanded="True">
                                             <TreeViewItem.ItemsSource>
                                                 <CompositeCollection>
@@ -1704,29 +1728,6 @@
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
                                                 <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Converter={StaticResource DataToken}}"><Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
-                                            </TreeViewItem.ItemTemplate>
-                                        </TreeViewItem>
-                                        <TreeViewItem x:Name="DataTreeFunctions" IsExpanded="True">
-                                            <TreeViewItem.ItemsSource>
-                                                <CompositeCollection>
-                                                    <!-- NiceLabel 10 Data explorer: "Add new function" is the group's first row -->
-                                                    <TreeViewItem x:Name="DataTreeAddFunctionItem" Tag="NewFunction" AutomationProperties.Name="Add new function" IsEnabled="{Binding IsEditingAllowed}" ToolTip="Thêm một hàm tính từ dữ liệu: Quản lý dữ liệu mở trên hàm mới.">
-                                                        <TreeViewItem.Header>
-                                                            <Button Click="AddFunctionFromData_Click" Margin="0" Padding="0" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                                                    Foreground="{StaticResource AppBlueBrush}" AutomationProperties.Name="Add new function">
-                                                                <TextBlock Text="+ Thêm hàm…"/>
-                                                            </Button>
-                                                        </TreeViewItem.Header>
-                                                    </TreeViewItem>
-                                                    <CollectionContainer Collection="{Binding Source={StaticResource DataTreeFunctionsSource}}"/>
-                                                </CompositeCollection>
-                                            </TreeViewItem.ItemsSource>
-                                            <TreeViewItem.ItemContainerStyle><Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}"><Setter Property="AutomationProperties.Name" Value="{Binding Name}"/></Style></TreeViewItem.ItemContainerStyle>
-                                            <TreeViewItem.Header>
-                                                <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8EF;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Hàm" FontWeight="SemiBold"/></StackPanel>
-                                            </TreeViewItem.Header>
-                                            <TreeViewItem.ItemTemplate>
-                                                <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Name, Converter={StaticResource DataToken}}"><Image Source="{StaticResource Icon.Function16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding PrintTimeDataFields}">
