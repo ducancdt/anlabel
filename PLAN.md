@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.377
+## v0.378 — Menu danh sách Đối tượng cùng thứ tự với menu đối tượng
+
+_Gồm các commit 01/11/2026 (17:29–18:10)._
 
 - Menu chuột phải của danh sách Đối tượng theo cùng thứ tự với menu đối tượng trên bảng thiết kế: Thuộc tính (F4),
   Sao chép, Cắt, Xóa (trước đây ghi F2 và Cắt trước Sao chép). Kiểm trên app đã cài v0.377 (chủ dự án để yên máy):
