@@ -829,21 +829,21 @@ functions) and Kiểm tra ràng buộc. The owner chose "Gọn như NiceLabel":
 Gates: `the Data panel is NiceLabel's tree`, `data panel texts wrap inside the
 panel`.
 
-## Coverage of the NiceLabel 10 views (2026-10-31)
+## Coverage of the NiceLabel 10 views (2026-10-31, re-checked 2026-11-01)
 
 Every view group extracted from DesignerLib, Gui.Core and WpfControls, and
 where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
 
 | View group (count) | ANLAbel counterpart or decision | Compared in |
 | --- | --- | --- |
-| `mainwindow`, ribbon, panels | Ribbon tabs, toolbox with NiceLabel's drop-downs, Data and Objects explorers (no layers), Properties | Ribbon, Panels, Shell rebuild |
+| `mainwindow`, ribbon, panels | Ribbon tabs, toolbox with NiceLabel's drop-downs (Hình ảnh has none: a picture is embedded and reads no source), Data and Objects explorers (no layers), Properties; F4 shows the selected object's Properties pinned, as `MainView.OpenPropertyEditor` (v0.377) | Ribbon, Panels, Shell rebuild; RE "F4" |
 | `menuregion` (11): backstage, passwords, font picker, new label tiles, print form | Tệp backstage, Bảo vệ, font lists, New Label Wizard, Print Preview | Backstage, Protection, Prompts…fonts, Print form |
 | `wizards` (13): new label, database | New Label Wizard, Excel import | New Label Setup Wizard, Database wizard |
-| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc, Data panel with a search box and "+ Thêm" (v0.360), a double-click opening an item in Quản lý dữ liệu (v0.361); a paste brings the definitions its objects read (RE §28) | Quản lý dữ liệu, Data explorer drag and drop |
+| `datasources` (5): Dynamic Data Manager, import, prompt order, explorer | Quản lý dữ liệu (where each prompt and function is used; deleting one in use asks first; the result box works out the selected function's own chain), Nhập nguồn dữ liệu, Thứ tự nhắc; the Data panel as NiceLabel's explorer: a search box over the tree, "+ Thêm biến nhập…", "+ Thêm hàm…" and "+ Liên kết Excel / CSV…" as each group's first row (v0.371, v0.375), the groups in NiceLabel's order Biến nhập khi in, Hàm, Trường dữ liệu, Khi in (v0.377), a double-click opening an item in Quản lý dữ liệu (v0.361); a paste brings the definitions its objects read (RE §28) | The Data panel as NiceLabel's tree, Quản lý dữ liệu, Data explorer drag and drop; RE "Data source order" |
 | `propertypages` (128) | Properties panel on NiceLabel's pages (v0.360: one "Nguồn dữ liệu" list; Mã vạch with Số kiểm tra, Chữ dưới mã, Chi tiết; Chung with name, printing and visibility; Vị trí with the lock); the font, the linear barcode settings, Không in, Hiển thị, Khóa vị trí and Giữ tỉ lệ reach every selected object, with a blank or mixed value when they differ (RE §26, §29); X/Y, size, rotation and anchoring stay with the key object; PowerForms, RFID and Report pages out of scope | RE §23, Picture, Variable input and output rules, Status bar…function editors |
 | `editors` (6): combo, date, time, rich text, custom boundaries | Prompt editors (dates RE §15), rich text in Properties; custom boundaries unused (RE §22) | Prompts…fonts |
-| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects, naming what each prints and with a right-click menu (v0.361); right-click menus on objects and on the label; layers not built; banners and solutions out | Object browser and layers |
-| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area), the command box as a properties button standing on the selection's top edge at its right end, as NiceLabel's root Margin 0 -20 (beside the corner on a narrow object; owner decision 2026-11-01; an overlay clear of the handles), toolbox tiles, right-click menus (the label's with Dấu đối tượng, v0.362), the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; keyboard resize and rotate are not built (protected resize lifecycle); in-place text editing as NiceLabel 10 (owner decision 2026-11-01: F2, Enter, a double-click or Sửa chữ on a Text or Text Box with fixed content; the label follows the typing, Enter is a new line, Esc or leaving ends the edit and keeps the text, one undo step); surface tips are a placeholder | Window, Status bar…function editors |
+| `mainregion` (20): landing page, object browser, layers, page menu | Start page, Đối tượng tab (Ctrl+F) marking hidden and locked objects, naming what each prints and with a right-click menu in the object menu's order (v0.361, v0.378); the label's and an object's right-click menus in NiceLabel's groups and order (`DocumentPageContextMenu`, `SelectionItemContextMenu`, v0.377); layers not built; banners and solutions out | Object browser and layers; RE "Right-click menus" |
+| `designsurface` (28): selection frames, handles, toolbox, menus, in-place text, command box | Canvas adorners (protected Text/TextBox area) drawn as NiceLabel's after the BAML re-check (v0.374-v0.375: a solid frame outside and a dashed frame on white inside, white handles with a black rim, the anchoring point's handle filled, the rotate dot 25 DIP up, a multiple selection's members framed alike, the hover frame on the object under the pointer), the command box as a properties button standing on the selection's top edge at its right end, as NiceLabel's root Margin 0 -20 (beside the corner on a narrow object; owner decision 2026-11-01; an overlay clear of the handles), toolbox tiles, right-click menus (see `mainregion`), the designer keys (RE §28: Ctrl+A, Ctrl+G, Tab, PgUp/PgDn, Ctrl+B/I/U, zoom; F2 opens Properties, RE §29), name, data source and lock markers; Ctrl+T turns the selection 90° as NiceLabel's `RotateSelectedItemsCommand` (v0.377); keyboard resize (NiceLabel's Shift+Arrow) is not taken: the owner keeps the millimetre arrows (2026-11-01); in-place text editing as NiceLabel 10 (owner decision 2026-11-01: F2, Enter, a double-click or Sửa chữ on a Text or Text Box with fixed content; the label follows the typing, Enter is a new line, Esc or leaving ends the edit and keeps the text, one undo step); surface tips are a placeholder | Window, Status bar…function editors |
 | `statusbarregion`, `printergapadjustment`, `historydialog`, `searchpanel` | Status bar and chips; gap adjustment not needed; operator dialog; no find and replace | Status bar…smaller dialogs |
 | `variablesvaluepromptcontrol`, special characters, clipart, undo list | Prompt window and Print Preview answers; GS1 separators and the Data Manager's control characters; pictures; named undo steps with Undo ▾ and Redo ▾ lists | Prompts…symbols |
 | `serialportdataeditor` | Values from a serial port (a scale): not built, no customer label reads one | — |
@@ -851,3 +851,20 @@ where this document or `NICELABEL_10_REVERSE_ENGINEERING.md` compares it.
 | `actionseditor`, `Gui.Core/view/actioncontentview`, `scriptbuilder` | PowerForms actions and scripts: out of scope; imported functions become formulas (RE §21) | Print form |
 | `backgroundoperations`, `debug`, styles | Progress and developer views: no operator need | — |
 | `Gui.Core/usercontrols` (78), `propertyeditor` (53), `WpfControls` | Shared editors, licensing and activation (not applicable), record navigation, data grids | Panels, Data explorer |
+
+Status after the BAML re-check (2026-11-01). Every group above is matched or
+left out for the reason in its row; none is left uncompared. DesignerLib's 223
+extracted views fall in these groups; Gui.Core gives one more view (licence
+management, not applicable) and FormatDocument none. The re-check read the
+design surface, the menus, the Data explorer and the keys from NiceLabel's code
+and BAML instead of screenshots and corrected what v0.366-v0.372 had guessed
+(the selection's frames and colours, the rotation handle's place, the command
+box's place, F4, the Data groups' order and add rows, the menus' order). Each
+change carries a gate that a mutation fails, and the installed app showed them
+with nobody at the controls: v0.375 (Data add rows, command box, rotation
+handle, 4/4), v0.377 (Data order, Ctrl+T and Ctrl+Z, 3/3; F4 and both menus).
+Different on purpose: layers and Move to layer, Report, pictures read from a
+data source, PowerForms actions and scripts, serial-port values, colour
+separation, the Text/TextBox contract (AGENTS.md), and the arrow keys (the owner
+keeps millimetre steps; NiceLabel moves by screen pixels and resizes on
+Shift+Arrow).
