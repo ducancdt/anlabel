@@ -2368,6 +2368,77 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// NiceLabel 10's hover overlay: the object under the pointer (the topmost one, which a click picks) shows a
+    /// half-transparent #0072EB frame 2 DIP wide, 4 DIP outside it, an ellipse round an ellipse. It goes when the
+    /// pointer leaves, on a selected object, while a drawing tool is armed and on a protected (disabled) surface.
+    /// </summary>
+    public static Task HoverFrameShowsTheObjectAClickPicks()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Rê", WidthMm = 60, HeightMm = 30 };
+            var box = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 4, YMm = 4, WidthMm = 20, HeightMm = 10 };
+            var round = new LabelObject { Type = ObjectType.Ellipse, Name = "Elip", XMm = 30, YMm = 4, WidthMm = 20, HeightMm = 10 };
+            template.Objects.Add(box);
+            template.Objects.Add(round);
+            var canvas = new LabelDesignerCanvas { Template = template, Zoom = 2, ShowGrid = false };
+            var decorator = new AdornerDecorator { Child = canvas };
+            void Settle()
+            {
+                decorator.Measure(new Size(600, 300));
+                decorator.Arrange(new Rect(0, 0, 600, 300));
+                decorator.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            Settle();
+            var elements = (System.Collections.IDictionary)typeof(LabelDesignerCanvas).GetField("_objectElements", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            UIElement Element(LabelObject item) => (UIElement)elements[item]!;
+            void Pointer(LabelObject item, bool enters)
+                => Element(item).RaiseEvent(new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0)
+                {
+                    RoutedEvent = enters ? System.Windows.Input.Mouse.MouseEnterEvent : System.Windows.Input.Mouse.MouseLeaveEvent
+                });
+            HoverFrameAdorner? Hover(LabelObject item)
+                => AdornerLayer.GetAdornerLayer(Element(item))?.GetAdorners(Element(item))?.OfType<HoverFrameAdorner>().SingleOrDefault();
+
+            Pointer(box, enters: true);
+            Settle();
+            var frame = Hover(box);
+            Require(frame is not null, "The object under the pointer shows a hover frame.");
+            var drawing = VisualTreeHelper.GetDrawing(frame!);
+            var geometry = drawing?.Children.OfType<GeometryDrawing>().SingleOrDefault();
+            Require(geometry is { Pen: { Thickness: 2, Brush: SolidColorBrush { Color: var hue } }, Geometry: RectangleGeometry } && hue == Color.FromArgb(0x80, 0x00, 0x72, 0xEB)
+                    && geometry.Geometry.Bounds.Left == -3 && !frame!.IsHitTestVisible,
+                "NiceLabel's frame: 2 DIP of half-transparent #0072EB from 4 to 2 DIP outside, taking no pointer input.");
+            Pointer(box, enters: false);
+            Settle();
+            Require(Hover(box) is null, "It goes when the pointer leaves.");
+
+            Pointer(round, enters: true);
+            Settle();
+            Require(VisualTreeHelper.GetDrawing(Hover(round)!)?.Children.OfType<GeometryDrawing>().Single().Geometry is EllipseGeometry, "An ellipse gets a round frame.");
+            canvas.SelectedObject = round;
+            Settle();
+            Require(Hover(round) is null, "A selected object shows its selection, not the hover frame.");
+            canvas.SelectedObject = box;
+            Settle();
+            Require(Hover(round) is not null, "Deselected under the pointer (another object picked in the list), the hover frame comes back.");
+
+            canvas.IsEnabled = false;
+            Settle();
+            Require(Hover(round) is null, "A protected (disabled) surface shows no hover frame.");
+            canvas.IsEnabled = true;
+            canvas.DrawingTool = ObjectType.Rectangle;
+            Pointer(box, enters: true);
+            Settle();
+            Require(Hover(box) is null && Hover(round) is null, "No hover frame while a drawing tool is armed.");
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// The selection as NiceLabel 10 draws it (DesignerLib BAML, checked against a NiceLabel screenshot): a
     /// solid #0072EB frame just outside the object and a dashed frame on white just inside it, handles white
     /// with a black rim, the handle at the anchoring point filled #178DF7 (none for a centre anchor or when

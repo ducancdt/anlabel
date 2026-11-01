@@ -1,5 +1,11 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.374
+
+- Rê chuột qua một đối tượng trên bảng thiết kế thì đối tượng đó có viền xanh mờ (như NiceLabel 10: 2 DIP, cách 4
+  DIP, hình elip thì viền tròn), cho biết bấm sẽ chọn đối tượng nào khi các đối tượng chồng nhau hoặc không có
+  viền. Không hiện trên đối tượng đang chọn, khi đang cầm công cụ vẽ, hay trên tem được bảo vệ.
+
 ## v0.374 — Vùng chọn vẽ như NiceLabel: khung hai nét, điểm neo tô xanh, tay xoay và nút thuộc tính đúng chỗ
 
 _Gồm các commit 01/11/2026 (14:30–15:07)._

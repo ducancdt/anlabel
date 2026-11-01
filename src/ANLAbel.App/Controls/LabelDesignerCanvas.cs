@@ -135,6 +135,9 @@ public sealed class LabelDesignerCanvas : Canvas
     private readonly MenuItem _deleteGuideMenuItem;
     private readonly MenuItem _clearGuidesMenuItem;
     private SelectionResizeAdorner? _selectionAdorner;
+    private HoverFrameAdorner? _hoverAdorner;
+    private AdornerLayer? _hoverAdornerLayer;
+    private LabelObject? _hoverObject;
     private SelectionResizeAdorner? _groupResizeAdorner;
     private GroupResizeObjectSnapshot _singleResizeStart;
     private bool _singleResizeActive;
@@ -1321,6 +1324,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
         Children.Clear();
         _objectElements.Clear();
+        _hoverObject = null;
         _selectedObjects.Clear();
         _groupDragStarts.Clear();
         _marqueeElement = null;
@@ -1382,6 +1386,15 @@ public sealed class LabelDesignerCanvas : Canvas
     {
         var element = CreateObjectElement(item);
         element.Cursor = item.IsLocked ? Cursors.Arrow : Cursors.SizeAll;
+        // NiceLabel 10: the object under the pointer (the topmost element) shows a hover frame.
+        element.MouseEnter += (_, _) => ShowHoverFrame(item);
+        element.MouseLeave += (_, _) =>
+        {
+            if (ReferenceEquals(_hoverObject, item))
+            {
+                ShowHoverFrame(null);
+            }
+        };
         element.PreviewMouseLeftButtonDown += (sender, e) =>
         {
             Focus();
@@ -2294,6 +2307,11 @@ public sealed class LabelDesignerCanvas : Canvas
                 }
 
                 _selectedObjects.Remove(oldItem);
+                if (ReferenceEquals(_hoverObject, oldItem))
+                {
+                    _hoverObject = null;
+                }
+
                 if (ReferenceEquals(SelectedObject, oldItem))
                 {
                     SelectedObject = null;
@@ -2441,6 +2459,7 @@ public sealed class LabelDesignerCanvas : Canvas
         else if (canvas._selectedObjects.Count == 0)
         {
             canvas.RemoveAllSelectionAdorners();
+            canvas.ShowHoverFrame(canvas._hoverObject);
         }
         else
         {
@@ -2519,6 +2538,7 @@ public sealed class LabelDesignerCanvas : Canvas
         canvas._selectedObjects.Clear();
         canvas.SelectedObject = null;
         canvas.RemoveSelectionAdorner();
+        canvas.ShowHoverFrame(null);
         canvas.Cursor = Cursors.Cross;
     }
 
@@ -4966,6 +4986,35 @@ public sealed class LabelDesignerCanvas : Canvas
                 ShowSelectionAdorner(resizeItems[0]);
             }
         }
+
+        // A hovered object that became selected drops its hover frame; one deselected under the pointer gets it back.
+        ShowHoverFrame(_hoverObject);
+    }
+
+    /// <summary>
+    /// NiceLabel 10's hover overlay: the object under the pointer gets a light frame, so the designer sees which
+    /// object a click picks. None on a selected object, while a drawing tool is armed or on a disabled (protected)
+    /// surface.
+    /// </summary>
+    private void ShowHoverFrame(LabelObject? item)
+    {
+        if (_hoverAdorner is not null)
+        {
+            _hoverAdornerLayer?.Remove(_hoverAdorner);
+            _hoverAdorner = null;
+            _hoverAdornerLayer = null;
+        }
+
+        _hoverObject = item;
+        if (item is null || DrawingTool is not null || !IsEnabled || _selectedObjects.Contains(item)
+            || !_objectElements.TryGetValue(item, out var element) || AdornerLayer.GetAdornerLayer(element) is not { } layer)
+        {
+            return;
+        }
+
+        _hoverAdorner = new HoverFrameAdorner(element, item.Type == ObjectType.Ellipse);
+        _hoverAdornerLayer = layer;
+        layer.Add(_hoverAdorner);
     }
 
     private void ShowGroupResizeAdorner()

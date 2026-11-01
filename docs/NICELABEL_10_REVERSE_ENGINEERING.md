@@ -1228,6 +1228,15 @@ process initializer).
   its button lies over the handles, so it ends 5 DIP short of the corner and
   moves beside the corner on an object too narrow to clear the top-centre
   handle.
+- Hover (`Overlay.MouseMove` → `UpdateOverlayItems`, `OverlayItem`,
+  `overlayitemstyles.xaml`). The item under the pointer gets `HoverVisibility`
+  Visible and its `HoverOverlay` draws `DefaultHoverOverlayTemplate`: a
+  Rectangle at Opacity 0.5, stroke `ElementNameOverlayIconsBrush` (#0072eb),
+  `StrokeThickness` = `ErrorBorderThickness` = 2/zoom, `Margin` = `HoverMargin`
+  = -2 x that = -4/zoom (an Ellipse for an ellipse, a turned rectangle for a
+  line). ANLAbel after v0.374: the topmost object element's MouseEnter/Leave
+  drive a `HoverFrameAdorner` with the same frame; none on a selected object,
+  while drawing or on a protected label.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and
