@@ -18,6 +18,15 @@ public sealed class SelectionResizeAdorner : Adorner
     // on a 21 DIP stem, the dot's centre 25 DIP above the frame's top centre, clear of the object-name tag.
     private const double RotateHandleOffset = 25;
     private const double RotateMarkerSize = 8;
+    // NiceLabel 10 selection colours (DesignerLib colours.xaml, thumb.resize.xaml, thumb.rotate.xaml): the frame,
+    // the handle at the anchoring point, the rotation handle. Handles are white with a black rim.
+    private static readonly SolidColorBrush FrameBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x00, 0x72, 0xEB)));
+    private static readonly SolidColorBrush AnchorBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x17, 0x8D, 0xF7)));
+    private static readonly SolidColorBrush RotateBrush = Frozen(new SolidColorBrush(Color.FromRgb(0x57, 0x61, 0xDA)));
+    private static readonly Pen FramePen = Frozen(new Pen(FrameBrush, 1));
+    private static readonly Pen UnderDashPen = Frozen(new Pen(Brushes.White, 1));
+    private static readonly Pen DashPen = Frozen(new Pen(FrameBrush, 1) { DashStyle = DashStyles.Dash });
+    private static readonly Pen StemPen = Frozen(new Pen(RotateBrush, 1));
     private readonly VisualCollection _visuals;
     private readonly Thumb _topLeft;
     private readonly Thumb _top;
@@ -29,14 +38,25 @@ public sealed class SelectionResizeAdorner : Adorner
     private readonly Thumb _left;
     private readonly Thumb _rotate;
     private readonly Func<Rect>? _boundsProvider;
+    private readonly Func<ObjectAnchorPoint?>? _anchorProvider;
+    private readonly bool _groupFrame;
     private bool _resizeActive;
     private bool _rotateActive;
     private double _rotateAngle;
 
-    public SelectionResizeAdorner(UIElement adornedElement, Func<Rect>? boundsProvider = null, bool canRotate = false)
+    /// <param name="groupFrame">The frame around a multiple selection, whose members draw their own dashed frames.</param>
+    /// <param name="anchorProvider">The selection's anchoring point, or null when the selected objects' anchors differ.</param>
+    public SelectionResizeAdorner(
+        UIElement adornedElement,
+        Func<Rect>? boundsProvider = null,
+        bool canRotate = false,
+        bool groupFrame = false,
+        Func<ObjectAnchorPoint?>? anchorProvider = null)
         : base(adornedElement)
     {
         _boundsProvider = boundsProvider;
+        _groupFrame = groupFrame;
+        _anchorProvider = anchorProvider;
         _visuals = new VisualCollection(this);
         // NiceLabel 10: round corner handles, square side handles (same 5 DIP marker, 10 DIP target).
         _topLeft = CreateThumb(Cursors.SizeNWSE, round: true);
@@ -126,7 +146,26 @@ public sealed class SelectionResizeAdorner : Adorner
         Arrange(_bottomLeft, bounds.Left, bounds.Bottom);
         Arrange(_left, bounds.Left, bounds.Top + bounds.Height / 2);
         Arrange(_rotate, bounds.Left + bounds.Width / 2, bounds.Top - RotateHandleOffset);
+        ShowAnchor();
         return finalSize;
+    }
+
+    /// <summary>
+    /// NiceLabel 10 fills the handle at the selection's anchoring point (ResizeThumb.IsAnchoringPoint), the
+    /// point that stays put when the object's size follows its content. A centre anchor has no handle.
+    /// </summary>
+    private void ShowAnchor()
+    {
+        var anchor = _anchorProvider?.Invoke();
+        foreach (var (thumb, point) in new[]
+                 {
+                     (_topLeft, ObjectAnchorPoint.TopLeft), (_top, ObjectAnchorPoint.TopCenter), (_topRight, ObjectAnchorPoint.TopRight),
+                     (_right, ObjectAnchorPoint.MiddleRight), (_bottomRight, ObjectAnchorPoint.BottomRight),
+                     (_bottom, ObjectAnchorPoint.BottomCenter), (_bottomLeft, ObjectAnchorPoint.BottomLeft), (_left, ObjectAnchorPoint.MiddleLeft)
+                 })
+        {
+            thumb.Background = anchor == point ? AnchorBrush : Brushes.White;
+        }
     }
 
     protected override void OnRender(DrawingContext drawingContext)
@@ -137,27 +176,45 @@ public sealed class SelectionResizeAdorner : Adorner
             return;
         }
 
-        // NiceLabel 10: a dashed frame and the handles, nothing inside (owner decision 2026-11-01).
-        var blue = new SolidColorBrush(Color.FromRgb(0, 122, 255));
-        var pen = new Pen(blue, 1.2)
-        {
-            DashStyle = DashStyles.Dash
-        };
         var top = new Point(rect.Left + rect.Width / 2, rect.Top);
         if (_rotateActive)
         {
             // While the handle is dragged, the frame as the release will turn it.
             drawingContext.PushTransform(new RotateTransform(_rotateAngle, top.X, rect.Top + rect.Height / 2));
-            drawingContext.DrawRectangle(null, pen, rect);
+            drawingContext.DrawRectangle(null, DashPen, rect);
             drawingContext.Pop();
             return;
         }
 
-        drawingContext.DrawRectangle(null, pen, rect);
+        // NiceLabel 10 (owner decision 2026-11-01), nothing inside: a solid frame just outside the edge
+        // (RectSelectionFrame) and, for one object, a dashed frame on white just inside it (MoveThumb).
+        drawingContext.DrawRectangle(null, FramePen, Resize(rect, 0.5));
+        if (!_groupFrame)
+        {
+            var inner = Resize(rect, -0.5);
+            drawingContext.DrawRectangle(null, UnderDashPen, inner);
+            drawingContext.DrawRectangle(null, DashPen, inner);
+        }
+
         if (_rotate.Visibility == Visibility.Visible)
         {
-            drawingContext.DrawLine(new Pen(blue, 1), top, new Point(top.X, rect.Top - RotateHandleOffset + RotateMarkerSize / 2));
+            drawingContext.DrawLine(StemPen, top, new Point(top.X, rect.Top - RotateHandleOffset + RotateMarkerSize / 2));
         }
+    }
+
+    /// <summary>The rectangle grown (or shrunk) by <paramref name="amount"/> on every side, never below zero size.</summary>
+    private static Rect Resize(Rect rect, double amount)
+    {
+        var width = Math.Max(0, rect.Width + 2 * amount);
+        var height = Math.Max(0, rect.Height + 2 * amount);
+        return new Rect(rect.Left + (rect.Width - width) / 2, rect.Top + (rect.Height - height) / 2, width, height);
+    }
+
+    private static T Frozen<T>(T freezable)
+        where T : Freezable
+    {
+        freezable.Freeze();
+        return freezable;
     }
 
     private Rect GetAdornerBounds()
@@ -182,7 +239,7 @@ public sealed class SelectionResizeAdorner : Adorner
         marker.SetValue(FrameworkElement.HeightProperty, RotateMarkerSize);
         marker.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         marker.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-        marker.SetValue(System.Windows.Shapes.Shape.FillProperty, new SolidColorBrush(Color.FromRgb(0, 122, 255)));
+        marker.SetValue(System.Windows.Shapes.Shape.FillProperty, RotateBrush);
         hitSurface.AppendChild(marker);
 
         return new Thumb
@@ -259,8 +316,9 @@ public sealed class SelectionResizeAdorner : Adorner
         marker.SetValue(FrameworkElement.HeightProperty, HandleMarkerSize);
         marker.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         marker.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-        marker.SetValue(Border.BackgroundProperty, Brushes.White);
-        marker.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0, 122, 255)));
+        // White, or the anchoring point's blue (ShowAnchor), with a black rim as NiceLabel 10.
+        marker.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Control.BackgroundProperty));
+        marker.SetValue(Border.BorderBrushProperty, Brushes.Black);
         marker.SetValue(Border.BorderThicknessProperty, new Thickness(1));
         if (round)
         {
@@ -275,7 +333,7 @@ public sealed class SelectionResizeAdorner : Adorner
             Height = HandleHitSize,
             Cursor = cursor,
             ToolTip = "Shift: giữ tỉ lệ · Ctrl: giữ tâm · Alt: bỏ bắt điểm",
-            Background = Brushes.Transparent,
+            Background = Brushes.White,
             BorderThickness = new Thickness(0),
             Template = new ControlTemplate(typeof(Thumb)) { VisualTree = hitSurface }
         };

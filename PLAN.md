@@ -2,6 +2,12 @@
 
 ## Sau v0.373
 
+- Vùng chọn vẽ đúng như NiceLabel 10 (đối chiếu BAML DesignerLib và ảnh chụp NiceLabel; v0.372 làm theo ảnh nên
+  thiếu): một nét liền xanh ngay ngoài mép vật cùng một nét gạch xanh trên nền trắng ngay trong mép (nhìn thấy cả
+  trên nền đen); nhóm nhiều vật chỉ có nét liền bao quanh, từng vật giữ khung gạch riêng. Tay nắm trắng viền đen;
+  tay nắm ở điểm neo của đối tượng tô xanh (điểm đứng yên khi đối tượng đổi kích thước theo nội dung; không tô khi
+  neo ở tâm, hoặc khi các vật được chọn neo khác nhau). Tay xoay màu tím như NiceLabel. Kích thước, vị trí tay nắm
+  và khung đậm của vật mốc không đổi.
 - Tay xoay lấy đúng kích thước của NiceLabel 10 (RotateThumb 8 × 29 trên khung): chấm 8 DIP, tâm cách đỉnh khung
   25 DIP, cuống 21 DIP (v0.372 đoán chấm 7 DIP cách 18 DIP). Khi bật Xem › Tên đối tượng, chấm cũ đè lên nhãn tên
   phía trên vùng chọn; giờ chấm nằm trọn phía trên nhãn, vùng bấm vẫn 10 DIP. Tay nắm đổi kích thước không đổi.

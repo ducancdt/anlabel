@@ -2350,6 +2350,105 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
+    /// The selection as NiceLabel 10 draws it (DesignerLib BAML, checked against a NiceLabel screenshot): a
+    /// solid #0072EB frame just outside the object and a dashed frame on white just inside it, handles white
+    /// with a black rim, the handle at the anchoring point filled #178DF7 (none for a centre anchor or when
+    /// the selected objects' anchors differ), a #5761DA rotation handle. A multiple selection's frame is the
+    /// solid one; its members keep their own dashed frames. Handle sizes are unchanged (5 DIP markers).
+    /// </summary>
+    public static Task SelectionIsDrawnAsNiceLabels()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Chọn", WidthMm = 60, HeightMm = 30 };
+            var box = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 10, YMm = 6, WidthMm = 30, HeightMm = 14 };
+            var other = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung 2", XMm = 44, YMm = 6, WidthMm = 10, HeightMm = 10 };
+            template.Objects.Add(box);
+            template.Objects.Add(other);
+            var canvas = new LabelDesignerCanvas { Template = template, Zoom = 2, ShowGrid = false };
+            var decorator = new AdornerDecorator { Child = canvas };
+            void Settle()
+            {
+                decorator.Measure(new Size(600, 300));
+                decorator.Arrange(new Rect(0, 0, 600, 300));
+                decorator.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            SelectionResizeAdorner Adorner(string field)
+                => (SelectionResizeAdorner)typeof(LabelDesignerCanvas).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            T Part<T>(SelectionResizeAdorner adorner, string name)
+                where T : DependencyObject
+            {
+                var thumb = (System.Windows.Controls.Primitives.Thumb)typeof(SelectionResizeAdorner).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(adorner)!;
+                thumb.ApplyTemplate();
+                return FindVisualChildren<T>(thumb).Single();
+            }
+
+            string[] handles = ["_topLeft", "_top", "_topRight", "_right", "_bottomRight", "_bottom", "_bottomLeft", "_left"];
+            var anchorBlue = Color.FromRgb(0x17, 0x8D, 0xF7);
+            var frameBlue = Color.FromRgb(0x00, 0x72, 0xEB);
+            string Filled(SelectionResizeAdorner adorner)
+                => string.Join(",", handles.Where(name => Part<Border>(adorner, name).Background is SolidColorBrush { Color: var fill } && fill == anchorBlue));
+            List<Pen> Pens(Visual visual)
+            {
+                var pens = new List<Pen>();
+                void Walk(Drawing? drawing)
+                {
+                    if (drawing is DrawingGroup group)
+                    {
+                        foreach (var child in group.Children)
+                        {
+                            Walk(child);
+                        }
+                    }
+                    else if (drawing is GeometryDrawing { Pen: { } pen })
+                    {
+                        pens.Add(pen);
+                    }
+                }
+
+                Walk(VisualTreeHelper.GetDrawing(visual));
+                return pens;
+            }
+
+            bool Has(List<Pen> pens, Color color, bool dashed)
+                => pens.Any(pen => pen.Brush is SolidColorBrush brush && brush.Color == color && pen.DashStyle?.Dashes.Count > 0 == dashed);
+
+            canvas.SelectedObject = box;
+            Settle();
+            var single = Adorner("_selectionAdorner");
+            var pens = Pens(single);
+            Require(Has(pens, frameBlue, dashed: false) && Has(pens, frameBlue, dashed: true) && Has(pens, Colors.White, dashed: false),
+                "One object: a solid frame and a dashed frame on white.");
+            Require(handles.All(name => Part<Border>(single, name) is { Width: 5, BorderBrush: SolidColorBrush { Color: var rim } } && rim == Colors.Black),
+                "Handles keep their 5 DIP marker and have a black rim.");
+            Require(Filled(single) == "_topLeft", "The anchoring point, top left by default, fills its handle: " + Filled(single));
+            Require(Part<System.Windows.Shapes.Ellipse>(single, "_rotate").Fill is SolidColorBrush { Color: var violet } && violet == Color.FromRgb(0x57, 0x61, 0xDA),
+                "The rotation handle has NiceLabel's colour.");
+            box.AnchorPoint = ObjectAnchorPoint.BottomRight;
+            Settle();
+            Require(Filled(Adorner("_selectionAdorner")) == "_bottomRight", "The fill follows the anchoring point: " + Filled(Adorner("_selectionAdorner")));
+            box.AnchorPoint = ObjectAnchorPoint.Center;
+            Settle();
+            Require(Filled(Adorner("_selectionAdorner")) == "", "A centre anchor has no handle to fill: " + Filled(Adorner("_selectionAdorner")));
+
+            box.AnchorPoint = ObjectAnchorPoint.TopLeft;
+            canvas.SelectAllObjects();
+            Settle();
+            var group = Adorner("_groupResizeAdorner");
+            pens = Pens(group);
+            Require(Has(pens, frameBlue, dashed: false) && !Has(pens, frameBlue, dashed: true), "A multiple selection's own frame is the solid one.");
+            Require(Filled(group) == "_topLeft", "A shared anchoring point shows on the multiple selection: " + Filled(group));
+            other.AnchorPoint = ObjectAnchorPoint.TopRight;
+            Settle();
+            Require(Filled(Adorner("_groupResizeAdorner")) == "", "Different anchoring points show none: " + Filled(Adorner("_groupResizeAdorner")));
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Owner decision 2026-11-01, NiceLabel 10's rotation handle (RotateThumb): a dot above the selected
     /// object's frame; dragging it turns the object about its centre. A label object turns by quarter
     /// turns, so the drag snaps to 90° (as NiceLabel snaps a printer-font text and an inverse area) and

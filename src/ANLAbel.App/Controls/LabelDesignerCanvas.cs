@@ -4917,7 +4917,7 @@ public sealed class LabelDesignerCanvas : Canvas
         }
 
         // NiceLabel 10 rotation handle; a line turns by its end points instead.
-        _selectionAdorner = new SelectionResizeAdorner(element, canRotate: item.Type != ObjectType.Line);
+        _selectionAdorner = new SelectionResizeAdorner(element, canRotate: item.Type != ObjectType.Line, anchorProvider: () => item.AnchorPoint);
         _selectionAdorner.RotateRequested += (_, turns) => RotateSelectedObject(item, turns);
         _selectionAdorner.ResizeStarted += (_, _) =>
         {
@@ -4993,7 +4993,12 @@ public sealed class LabelDesignerCanvas : Canvas
             _groupResizeStarts[item] = CaptureGroupResizeSnapshot(item);
         }
 
-        _groupResizeAdorner = new SelectionResizeAdorner(this, GetSelectedGroupBoundsDip);
+        // NiceLabel 10 shows a multiple selection's anchoring point when all its objects share it.
+        _groupResizeAdorner = new SelectionResizeAdorner(
+            this,
+            GetSelectedGroupBoundsDip,
+            groupFrame: true,
+            anchorProvider: () => GetResizeSelection().Select(item => item.AnchorPoint).Distinct().ToArray() is [var shared] ? shared : null);
         _groupResizeAdorner.ResizeStarted += (_, _) =>
         {
             CommitNudgeGesture();

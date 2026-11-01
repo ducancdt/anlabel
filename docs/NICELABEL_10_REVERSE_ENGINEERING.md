@@ -1199,6 +1199,22 @@ process initializer).
   `DesignSurfaceCanvas`, which `DocumentPageView.RefreshCanvases` adds after it,
   so the stem is drawn over a long name tag. ANLAbel took the 8 DIP dot 25 DIP up
   (its tag, Segoe UI 10, spans 17 to 2 DIP above the frame) after v0.373.
+- Selection look (BAML `selectionitem/view/rectselectionitem.xaml`,
+  `multipleselectionitem.xaml`, `thumb/view/thumb.move.xaml`, `thumb.resize.xaml`,
+  `styles/colours.xaml`; `SelectionItem` code). One selected item:
+  `RectSelectionFrame`, a solid `SelectionFrameStrokeBrush` (#0072eb) rectangle
+  at `SelectionFrameMargin` = -1/zoom with thickness 1/zoom (0 while a drag
+  hides it), plus the item's `MoveThumb`, a white rectangle under a `2 2`
+  dashed #0072eb one at the item's edge. A multiple selection: one
+  `RectSelectionFrame` around it (`MultipleSelectionItem`) and each member's
+  `MoveThumb`. Resize thumbs: corners a 10 DIP ellipse in a 16 DIP thumb, sides
+  an 8 DIP square, white with a black rim (`BlueBrush` is Black); the thumb at
+  the anchoring point is filled #178df7 (`ResizeThumb.IsAnchoringPoint`: the
+  first selected item's anchoring point, None when the selected items differ;
+  a line's start point always). A NiceLabel screenshot shows the same: the
+  Text3 sample's top-centre handle blue. ANLAbel took the frames, the colours
+  and the anchoring-point fill after v0.373; its 5 DIP markers in 10 DIP targets
+  centred on the frame stay (protected invariant 7).
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

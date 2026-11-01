@@ -206,7 +206,12 @@ tu do; chu phong may in va vung dao mau luon buoc 90°). ANLAbel: bo nen xanh cu
 tuong co mot khung net dut cua `SelectionResizeAdorner` dung mep (truoc la khung lien cong khung net dut to nen lech
 3 DIP); nhieu doi tuong van khung net dut tung cai, khong nen. Tay xoay la mot `Thumb` 10 DIP (dau tron 8 DIP) tam
 cach dinh khung 25 DIP, cuong 21 DIP, dung so cua NiceLabel (`RotateThumb` Width 8, Height 29, Margin 0 -29; v0.372 doan
-7 DIP / 18 DIP va cham de len nhan ten doi tuong ve tren vung chon, sua sau v0.373); vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
+7 DIP / 18 DIP va cham de len nhan ten doi tuong ve tren vung chon, sua sau v0.373);
+mau va net theo BAML NiceLabel (sau v0.373): khung lien #0072EB ngoai mep 1 DIP (`RectSelectionFrame`,
+`SelectionFrameMargin` -1) cong khung gach "2 2" #0072EB tren nen trang trong mep (`MoveThumb`); nhom nhieu vat chi co
+khung lien (`MultipleSelectionItem`); tay nam trang vien den; tay nam o diem neo to #178DF7
+(`ResizeThumb.IsAnchoringPoint`, khong to khi cac vat neo khac nhau); tay xoay #5761DA. Kich thuoc va vi tri tay nam
+(invariant 7) khong doi; gate `the selection is drawn as NiceLabel's`; vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
 chuot moi dat `Rotation` mot lan qua `NotifyEditGesture*` (mot buoc hoan tac). Tam tay nam resize (10/5 DIP), vong
 doi resize (`DragCompleted`, `LostMouseCapture` khong huy), khung W/H cua O chu, wrap, clip va ban in khong doi;
 duong ke khong co tay xoay. Gate: `the selection has no fill`, `the rotation handle turns by quarter turns`, cung
