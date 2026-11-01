@@ -4784,6 +4784,34 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// In-place text editing (NiceLabel 10): the fixed text of a Text or Text Box, as Properties ›
+    /// Nguồn › Chữ sets it, so a Text keeps taking its size from its content and a Text Box keeps its
+    /// frame. One undo step; a protected label, an object no longer on the label or an unchanged text
+    /// changes nothing.
+    /// </summary>
+    public void SetObjectText(LabelObject item, string text)
+    {
+        if (IsEditingLocked || !Template.Objects.Contains(item) || item.Type is not (ObjectType.Text or ObjectType.TextBox)
+            || string.Equals(item.Text ?? string.Empty, text, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        BeginTemplateEditGesture($"Sửa chữ “{item.Name}”");
+        try
+        {
+            item.Text = text;
+            StatusText = $"Đã sửa chữ của {item.Name}.";
+        }
+        finally
+        {
+            CommitTemplateEditGesture();
+        }
+
+        RaiseFormulaPreviewChanged();
+    }
+
+    /// <summary>
     /// NiceLabel 10's combined data source: fixed text with sources written in braces, as
     /// <c>LOT {?Lô}-{MaHang}</c>, or a formula. Content without a source is fixed text; one source
     /// alone connects the object to it, as the list does. One undo step and the object's name

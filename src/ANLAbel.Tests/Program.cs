@@ -90,6 +90,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("a protected label changes only the counter", DesignScenarioRegression.ProtectedLabelChangesOnlyTheCounter),
     ("the selection corner opens the properties", DesignScenarioRegression.SelectionCornerOpensProperties),
     ("the text style page follows NiceLabel's groups", DesignScenarioRegression.TextStylePageFollowsNiceLabelGroups),
+    ("in-place editing edits a text on the label", DesignScenarioRegression.InPlaceEditingEditsATextOnTheLabel),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
@@ -13207,7 +13208,9 @@ static Task TestDoubleClickOpensFloatingProperties()
             var viewModel = (MainViewModel)window.DataContext;
             window.Measure(new Size(1440, 900));
             window.Arrange(new Rect(0, 0, 1440, 900));
-            viewModel.AddTextCommand.Execute(null);
+            // A text with fixed content is edited on the label by a double-click (owner decision
+            // 2026-11-01, NiceLabel 10); a barcode opens the floating properties.
+            viewModel.AddBarcodeCommand.Execute(null);
             viewModel.SelectedObject = viewModel.Template.Objects.Last();
             viewModel.IsPropertiesPinned = false;
             var canvas = (LabelDesignerCanvas)window.FindName("DesignerCanvas");

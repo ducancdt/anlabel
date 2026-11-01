@@ -1158,9 +1158,10 @@ process initializer).
   editing into `EditMode`, otherwise opens the property editor
   (`OpenDocumentItemPropertyEditorCommand`, `PopupMode = true`); Enter starts
   in-place editing only. ANLAbel opens Properties on a double-click and
-  (v0.358) with F2, a text's content selected to type over; in-place
-  editing is not built (it would sit in the protected Text layout, owner
-  decision).
+  (v0.358) with F2, a text's content selected to type over. Owner decision
+  2026-11-01: in-place editing as NiceLabel's, for a Text or Text Box with
+  fixed content (F2, Enter, a double-click, Sửa chữ); other items keep F2
+  and the double-click opening their properties.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

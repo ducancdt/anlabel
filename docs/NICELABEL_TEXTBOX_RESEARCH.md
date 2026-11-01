@@ -134,6 +134,23 @@ Comfort 1), mac dinh va hanh vi giu nguyen; khong doi sizing, wrap, clip, paddin
 Gate: `the text style page follows NiceLabel's groups` (thu tu nhom, nhom cua Text va Text Box, preset
 giu ten/gia tri va van dat padding); bay gate Text/TextBox duoc bao ve van dat.
 
+### Sua chu tai cho tren tem (chu san pham duyet 2026-11-01)
+
+NiceLabel 10 `DocumentPageView`/`TextSelectionItem`: F2 dua item ho tro sua tai cho vao EditMode (item khac:
+mo trinh sua thuoc tinh), Enter chi vao EditMode, nhap dup vao chu va lenh Edit text cua menu cung vay.
+ANLAbel: voi Chữ hoac Ô chữ co noi dung co dinh (khong doc nguon du lieu) tren tem khong bi bao ve, F2, Enter
+tren bang thiet ke, nhap dup hoac menu `Sửa chữ` mo mot o nhap de len khung doi tuong, cung phong, co theo
+thu phong, noi dung duoc chon san de go de. Enter (Shift+Enter: xuong dong trong Ô chữ) hoac roi o ap dung,
+mot buoc hoan tac; Esc bo. Cuon bang thiet ke cung ap dung. Go mot chu cai khong mo sua tai cho vi L, R, C la
+phim ve cua ANLAbel. Doi tuong doc nguon du lieu va doi tuong khac: F2, nhap dup van mo Thuoc tinh.
+
+Hop dong giu nguyen: noi dung di qua cung duong voi Thuộc tính › Nguồn › Chữ (`MainViewModel.SetObjectText`),
+nen Text van lay co theo noi dung (invariant 1), Ô chữ giu khung du chu dai (invariant 2, tru AdjustHeight da
+duyet), khong doi wrap, clip, padding, tay nam hay vong doi resize; o nhap la lop phu cua MainWindow,
+LabelDesignerCanvas va SelectionResizeAdorner khong doi. Gate: `in-place editing edits a text on the label`
+(Enter, Esc, mot buoc hoan tac, khung Ô chữ, chu doc nguon, menu, nhap dup, F2, tem bao ve); cac gate nhap dup
+va F2 cu nay dung ma vach cho duong Thuoc tinh.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

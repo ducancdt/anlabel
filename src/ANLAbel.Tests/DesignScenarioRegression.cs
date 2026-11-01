@@ -1730,6 +1730,120 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-01, NiceLabel 10 in-place text editing: F2, Enter, a double-click or
+    /// Sửa chữ opens a box over the selected Text or Text Box with fixed content. Enter applies the
+    /// text in one undo step and Esc drops it; a Text Box keeps its frame however long the text (the
+    /// protected contract); a text read from a source, or a protected label, is not edited there.
+    /// </summary>
+    public static Task InPlaceEditingEditsATextOnTheLabel()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
+            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "ABC", XMm = 4, YMm = 4, WidthMm = 20, HeightMm = 6 };
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô", Text = "Dòng", XMm = 4, YMm = 14, WidthMm = 20, HeightMm = 6 };
+            box.Style.TextSizing = TextSizingMode.FixedFrame;
+            var bound = new LabelObject { Type = ObjectType.Text, Name = "Lô in", Text = string.Empty, BindingExpression = "{?Lô}", XMm = 4, YMm = 24, WidthMm = 20, HeightMm = 6 };
+            foreach (var item in new[] { text, box, bound })
+            {
+                viewModel.Template.Objects.Add(item);
+            }
+
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var layer = (Canvas)window.FindName("SelectionCommandLayer");
+            TextBox? Editor() => layer.Children.OfType<TextBox>().SingleOrDefault();
+            var begin = typeof(ANLAbel.App.MainWindow).GetMethod("BeginInPlaceEdit", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            bool Begin() => (bool)begin.Invoke(window, null)!;
+            var source = new KeyInputSource();
+            void Press(TextBox editor, System.Windows.Input.Key key)
+                => editor.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, source, 0, key) { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent });
+            LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
+            void Select(LabelObject item)
+            {
+                viewModel.SelectedObject = Lookup(item);
+                Settle();
+            }
+
+            // Enter applies the text, one undo step.
+            Select(text);
+            Require(Begin() && Editor() is { Text: "ABC" }, "The fixed text opens on the label with its content: " + Editor()?.Text);
+            Editor()!.Text = "XYZ";
+            Press(Editor()!, System.Windows.Input.Key.Enter);
+            Require(Editor() is null && Lookup(text).Text == "XYZ", "Enter applies the text: " + Lookup(text).Text);
+            viewModel.UndoCommand.Execute(null);
+            Require(Lookup(text).Text == "ABC", "One undo takes it back: " + Lookup(text).Text);
+
+            // Esc drops the edit.
+            Select(text);
+            Require(Begin(), "The text opens again.");
+            Editor()!.Text = "ZZZ";
+            Press(Editor()!, System.Windows.Input.Key.Escape);
+            Require(Editor() is null && Lookup(text).Text == "ABC", "Esc drops the edit: " + Lookup(text).Text);
+
+            // A Text Box keeps its frame however long the text.
+            Select(box);
+            Require(Begin(), "The Text Box opens on the label.");
+            Editor()!.Text = "Một nội dung dài hơn hẳn khung của ô chữ này nhiều lần";
+            Press(Editor()!, System.Windows.Input.Key.Enter);
+            Require(Lookup(box).Text.StartsWith("Một nội dung", StringComparison.Ordinal) && Lookup(box).WidthMm == 20 && Lookup(box).HeightMm == 6,
+                $"The Text Box takes the text and keeps its frame: {Lookup(box).WidthMm} x {Lookup(box).HeightMm}");
+
+            // A text read from a source opens no editor; the menu offers Sửa chữ for fixed text only.
+            Select(bound);
+            Require(!Begin() && Editor() is null, "A text read from a prompt is not edited on the label.");
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var prepare = typeof(ANLAbel.App.MainWindow).GetMethod("PrepareDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            MenuItem EditText() => canvas.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Sửa chữ"));
+            prepare.Invoke(window, new object[] { true });
+            Require(EditText().Visibility == Visibility.Collapsed, "No Sửa chữ for a text read from a source.");
+            Select(text);
+            prepare.Invoke(window, new object[] { true });
+            Require(EditText().Visibility == Visibility.Visible, "Sửa chữ is offered for a fixed text.");
+            EditText().RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Require(Editor() is not null, "Sửa chữ opens the editor.");
+            Press(Editor()!, System.Windows.Input.Key.Escape);
+
+            // A double-click on the text opens it, and so does F2.
+            var press = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+            {
+                RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent
+            };
+            typeof(System.Windows.Input.MouseButtonEventArgs).GetProperty("ClickCount")!.GetSetMethod(true)!.Invoke(press, new object[] { 2 });
+            canvas.RaiseEvent(press);
+            Settle();
+            Require(Editor() is not null, "A double-click on the text opens the editor.");
+            Press(Editor()!, System.Windows.Input.Key.Escape);
+            window.InputBindings.OfType<System.Windows.Input.KeyBinding>()
+                .Single(binding => binding.Key == System.Windows.Input.Key.F2 && binding.Modifiers == System.Windows.Input.ModifierKeys.None).Command.Execute(null);
+            Settle();
+            Require(Editor() is not null, "F2 opens the editor for a fixed text.");
+            Press(Editor()!, System.Windows.Input.Key.Escape);
+
+            // A protected label is not edited there.
+            viewModel.Template.ProtectFromEditing = true;
+            Select(text);
+            Require(!Begin() && Editor() is null, "A protected label opens no editor.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
@@ -3996,7 +4110,7 @@ internal static class DesignScenarioRegression
 
             RightClickAt(10, 22);
             Require(viewModel.SelectedObject?.Name == "Mã", "A right-click selects the object under the pointer: " + viewModel.SelectedObject?.Name);
-            Require(Shown().SequenceEqual(["Thuộc tính", "Cắt", "Sao chép", "Dán", "Xóa", "Khóa vị trí", "Nhóm đối tượng", "Bỏ nhóm", "Sắp xếp", "Căn chỉnh", "Căn và lưới"]),
+            Require(Shown().SequenceEqual(["Thuộc tính", "Sửa chữ", "Cắt", "Sao chép", "Dán", "Xóa", "Khóa vị trí", "Nhóm đối tượng", "Bỏ nhóm", "Sắp xếp", "Căn chỉnh", "Căn và lưới"]),
                 "On an object the menu offers its commands: " + string.Join(" | ", Shown()));
             Require(!Find("Dán").IsEnabled && !Find("Nhóm đối tượng").IsEnabled, "Nothing to paste and one object to group: both disabled.");
 
@@ -4515,6 +4629,8 @@ internal static class DesignScenarioRegression
     /// NiceLabel 10 opens the selected item's property editor with F2; ANLAbel opened Properties
     /// only on a double-click, so an operator who stepped to an object with Tab could not reach
     /// its settings from the keyboard. F2 now opens them; with nothing selected it does nothing.
+    /// (A Text or Text Box with fixed content is edited on the label instead, as NiceLabel does:
+    /// see "in-place editing edits a text on the label".)
     /// </summary>
     public static Task F2OpensTheSelectedObjectsProperties()
     {
@@ -4539,7 +4655,7 @@ internal static class DesignScenarioRegression
             Pump();
             Require(!viewModel.IsPropertiesVisible, "With nothing selected F2 does nothing.");
 
-            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.Text, Name = "Ghi chú", Text = "Mẫu", XMm = 3, YMm = 3, WidthMm = 20, HeightMm = 5 });
+            viewModel.Template.Objects.Add(new LabelObject { Type = ObjectType.BarcodeCode128, BarcodeSymbology = BarcodeSymbology.Code128, Name = "Mã", Text = "12345", XMm = 3, YMm = 3, WidthMm = 30, HeightMm = 10 });
             Pump();
             viewModel.SelectedObject = viewModel.Template.Objects[0];
             Pump();

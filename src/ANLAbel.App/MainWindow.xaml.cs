@@ -164,6 +164,7 @@ public partial class MainWindow : Window
 
     private void DesignerScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
+        EndInPlaceEdit(commit: true);
         SyncRulerOffsets();
     }
 
@@ -429,6 +430,12 @@ public partial class MainWindow : Window
                 return;
             }
 
+            // NiceLabel 10: a double-click on a text edits it on the label.
+            if (BeginInPlaceEdit())
+            {
+                return;
+            }
+
             _viewModel.IsPropertiesVisible = true;
             if (!_viewModel.IsPropertiesPinned)
             {
@@ -445,7 +452,7 @@ public partial class MainWindow : Window
     private void PlaceSelectionPropertiesButton()
     {
         var button = SelectionPropertiesButton;
-        if (_viewModel.SelectedObject is not { } item || !_viewModel.IsEditingAllowed || DesignerCanvas.DrawingTool is not null
+        if (_viewModel.SelectedObject is not { } item || !_viewModel.IsEditingAllowed || DesignerCanvas.DrawingTool is not null || _inPlaceEditor is not null
             || !DesignerCanvas.IsVisible && PresentationSource.FromVisual(DesignerCanvas) is not null)
         {
             button.Visibility = Visibility.Collapsed;
@@ -488,6 +495,123 @@ public partial class MainWindow : Window
         }
 
         button.Visibility = Visibility.Visible;
+    }
+
+    private TextBox? _inPlaceEditor;
+    private LabelObject? _inPlaceTarget;
+
+    /// <summary>A Text or Text Box with fixed content on an editable label: what in-place editing edits.</summary>
+    private bool CanEditInPlace(LabelObject? item)
+        => item is { Type: ObjectType.Text or ObjectType.TextBox } && string.IsNullOrWhiteSpace(item.BindingExpression) && !_viewModel.IsEditingLocked;
+
+    /// <summary>
+    /// NiceLabel 10 in-place text editing (owner decision 2026-11-01): a box over the selected text's
+    /// frame, in its font at the zoom, its content selected to type over. Enter (Shift+Enter: a new line
+    /// in a Text Box) or leaving the box applies it, Esc drops it.
+    /// </summary>
+    private bool BeginInPlaceEdit()
+    {
+        if (_inPlaceEditor is not null || !CanEditInPlace(_viewModel.SelectedObject))
+        {
+            return false;
+        }
+
+        var item = _viewModel.SelectedObject!;
+        var zoom = _viewModel.Zoom;
+        var frame = new Rect(
+            MmConverter.MmToDip(item.XMm) * zoom,
+            MmConverter.MmToDip(item.YMm) * zoom,
+            Math.Max(0, MmConverter.MmToDip(item.WidthMm) * zoom),
+            Math.Max(0, MmConverter.MmToDip(item.HeightMm) * zoom));
+        Point origin;
+        try
+        {
+            origin = DesignerCanvas.TranslatePoint(frame.TopLeft, SelectionCommandLayer);
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+
+        var box = item.Type == ObjectType.TextBox;
+        var editor = new TextBox
+        {
+            Text = item.Text ?? string.Empty,
+            FontFamily = new FontFamily(string.IsNullOrWhiteSpace(item.Style.FontFamily) ? "Arial" : item.Style.FontFamily),
+            FontSize = Math.Max(8, item.Style.FontSizePt * 96 / 72 * zoom),
+            FontWeight = item.Style.Bold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = item.Style.Italic ? FontStyles.Italic : FontStyles.Normal,
+            AcceptsReturn = box,
+            TextWrapping = box ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            MinWidth = Math.Max(frame.Width, 60),
+            MinHeight = Math.Max(frame.Height, 22),
+            Width = box ? Math.Max(frame.Width, 60) : double.NaN,
+            Padding = new Thickness(1),
+            Margin = new Thickness(0),
+            BorderThickness = new Thickness(1.5),
+            BorderBrush = (Brush)FindResource("AppBlueBrush"),
+            Background = Brushes.White,
+            ToolTip = box ? "Enter: xong · Shift+Enter: xuống dòng · Esc: bỏ" : "Enter: xong · Esc: bỏ"
+        };
+        System.Windows.Automation.AutomationProperties.SetName(editor, "In-place text");
+        System.Windows.Automation.AutomationProperties.SetAutomationId(editor, "Shell.Canvas.InPlaceText");
+        Canvas.SetLeft(editor, Math.Round(origin.X));
+        Canvas.SetTop(editor, Math.Round(origin.Y));
+        if (item.Rotation % 360 != 0)
+        {
+            // Turned as the text is, about its frame's centre.
+            editor.RenderTransform = new RotateTransform(item.Rotation, frame.Width / 2, frame.Height / 2);
+        }
+
+        editor.PreviewKeyDown += InPlaceEditor_PreviewKeyDown;
+        editor.LostKeyboardFocus += (_, _) => EndInPlaceEdit(commit: true);
+        SelectionCommandLayer.Children.Add(editor);
+        _inPlaceEditor = editor;
+        _inPlaceTarget = item;
+        SelectionPropertiesButton.Visibility = Visibility.Collapsed;
+        editor.Focus();
+        editor.SelectAll();
+        _viewModel.StatusText = box ? "Sửa chữ trên tem: Enter để xong, Shift+Enter xuống dòng, Esc để bỏ." : "Sửa chữ trên tem: Enter để xong, Esc để bỏ.";
+        return true;
+    }
+
+    private void InPlaceEditor_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            EndInPlaceEdit(commit: false);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) == 0)
+        {
+            EndInPlaceEdit(commit: true);
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>Applies or drops the in-place edit, to the object it was opened on.</summary>
+    private void EndInPlaceEdit(bool commit)
+    {
+        if (_inPlaceEditor is not { } editor)
+        {
+            return;
+        }
+
+        var target = _inPlaceTarget;
+        _inPlaceEditor = null;
+        _inPlaceTarget = null;
+        SelectionCommandLayer.Children.Remove(editor);
+        if (commit && target is not null)
+        {
+            _viewModel.SetObjectText(target, editor.Text);
+        }
+
+        if (editor.IsKeyboardFocusWithin)
+        {
+            DesignerCanvas.Focus();
+        }
+
+        PlaceSelectionPropertiesButton();
     }
 
     /// <summary>From the corner to the button: past the corner handle's 5 DIP half target.</summary>
@@ -798,6 +922,10 @@ public partial class MainWindow : Window
                 _viewModel.AddEllipseCommand.Execute(null);
                 e.Handled = true;
                 break;
+            // NiceLabel 10: Enter on the design surface edits the selected text in place.
+            case Key.Enter when DesignerCanvas.IsKeyboardFocusWithin && DesignerCanvas.DrawingTool is null:
+                e.Handled = BeginInPlaceEdit();
+                break;
         }
     }
 
@@ -1054,6 +1182,7 @@ public partial class MainWindow : Window
     private MenuItem? _contextUngroupItem;
     private MenuItem? _contextPasteItem;
     private MenuItem? _contextSelectAllItem;
+    private MenuItem? _contextEditTextItem;
 
     /// <summary>
     /// NiceLabel 10's right-click menus on the design surface: on an object its
@@ -1087,6 +1216,12 @@ public partial class MainWindow : Window
         var properties = Item("Thuộc tính", string.Empty, (_, e) =>
         {
             OpenFloatingProperties();
+            e.Handled = true;
+        });
+        // NiceLabel 10's Edit text: the selected text on the label.
+        _contextEditTextItem = Item("Sửa chữ", "F2", (_, e) =>
+        {
+            BeginInPlaceEdit();
             e.Handled = true;
         });
         var cut = Item("Cắt", "Ctrl+X", Cut_Click);
@@ -1163,7 +1298,7 @@ public partial class MainWindow : Window
         var objectHead = new Separator();
         var objectTail = new Separator();
         var labelTail = new Separator();
-        foreach (var item in new Control[] { properties, labelProperties, objectHead, cut, copy, _contextPasteItem, _contextSelectAllItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid, markers })
+        foreach (var item in new Control[] { properties, _contextEditTextItem, labelProperties, objectHead, cut, copy, _contextPasteItem, _contextSelectAllItem, delete, objectTail, _contextLockItem, _contextGroupItem, _contextUngroupItem, arrange, align, zoomLabel, zoomObjects, labelTail, grid, markers })
         {
             menu.Items.Add(item);
         }
@@ -1302,6 +1437,12 @@ public partial class MainWindow : Window
         if (_contextPasteItem is not null)
         {
             _contextPasteItem.IsEnabled = DesignerCanvas.HasCopiedObjects;
+        }
+
+        if (_contextEditTextItem is not null)
+        {
+            // Only a Text or Text Box with fixed content is edited on the label.
+            _contextEditTextItem.Visibility = onObject && CanEditInPlace(_contextMenuObject) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         if (_contextSelectAllItem is not null)
@@ -1509,6 +1650,12 @@ public partial class MainWindow : Window
         }
 
         DesignerCanvas.CommitNudgeGesture();
+        // NiceLabel 10: F2 edits an item that supports in-place editing, else opens its properties.
+        if (BeginInPlaceEdit())
+        {
+            return;
+        }
+
         _viewModel.IsPropertiesVisible = true;
         if (!_viewModel.IsPropertiesPinned)
         {

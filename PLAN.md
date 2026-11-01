@@ -2,6 +2,12 @@
 
 ## Sau v0.365
 
+- Sửa chữ ngay trên tem như NiceLabel 10 (chủ dự án duyệt 2026-11-01, vùng Text/TextBox được bảo vệ):
+  với Chữ hoặc Ô chữ có nội dung cố định, F2, Enter trên bảng thiết kế, nhấp đúp hoặc menu “Sửa chữ”
+  mở ô nhập đè lên khung, cùng phông và cỡ theo thu phóng; Enter (Shift+Enter xuống dòng trong Ô chữ)
+  hoặc rời ô để áp dụng, một bước hoàn tác; Esc bỏ. Đi qua cùng đường với Thuộc tính › Nguồn › Chữ nên
+  hợp đồng giữ nguyên (Chữ đo theo nội dung, khung Ô chữ không đổi). Đối tượng đọc nguồn dữ liệu và đối
+  tượng khác: F2 và nhấp đúp vẫn mở Thuộc tính. Gõ một chữ cái không mở sửa vì L, R, C là phím vẽ.
 - Trang Kiểu của Chữ và Ô chữ theo nhóm Text Style của NiceLabel 10 (chủ dự án duyệt 2026-11-01, vùng
   Text/TextBox được bảo vệ): thẻ Phông chữ, Căn lề, Khoảng cách, Đặc biệt; riêng Ô chữ thêm Tự co giãn
   chữ và Lề trong. Chỉ đổi bố cục: điều khiển, binding, ba preset đệm (Sát 0, Gọn .2, Thoáng 1), mặc
