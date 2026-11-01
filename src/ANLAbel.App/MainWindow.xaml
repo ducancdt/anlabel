@@ -370,6 +370,7 @@
         <converters:IndexToVisibilityConverter x:Key="IndexToVisibility"/>
         <converters:InverseBooleanConverter x:Key="InverseBool"/>
         <converters:EmptyTextConverter x:Key="EmptyText"/>
+        <converters:DataTokenConverter x:Key="DataToken"/>
         <Style x:Key="RibbonIconRadio" TargetType="RadioButton">
             <Setter Property="Width" Value="26"/>
             <Setter Property="Height" Value="26"/>
@@ -1648,7 +1649,7 @@
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE70F;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Biến nhập khi in" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
-                                                <DataTemplate><TextBlock Text="{Binding Name, StringFormat={}? {0}}"/></DataTemplate>
+                                                <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Name, Converter={StaticResource DataToken}, ConverterParameter=prompt}"><Image Source="{StaticResource Icon.Variable16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem x:Name="DataTreeFields" IsExpanded="True">
@@ -1697,7 +1698,7 @@
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE80A;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Trường dữ liệu" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
-                                                <DataTemplate><TextBlock Text="{Binding StringFormat={}{{{0}}}}"/></DataTemplate>
+                                                <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Converter={StaticResource DataToken}}"><Image Source="{StaticResource Icon.Database16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem x:Name="DataTreeFunctions" IsExpanded="True" ItemsSource="{Binding Source={StaticResource DataTreeFunctionsSource}}">
@@ -1706,7 +1707,7 @@
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8EF;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Hàm" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
-                                                <DataTemplate><TextBlock Text="{Binding Name, StringFormat={}{{{0}}}}"/></DataTemplate>
+                                                <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Name, Converter={StaticResource DataToken}}"><Image Source="{StaticResource Icon.Function16}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                         <TreeViewItem IsExpanded="True" ItemsSource="{Binding PrintTimeDataFields}">
@@ -1715,7 +1716,7 @@
                                                 <StackPanel Orientation="Horizontal"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE749;" Margin="0,0,6,0" VerticalAlignment="Center"/><TextBlock Text="Khi in" FontWeight="SemiBold"/></StackPanel>
                                             </TreeViewItem.Header>
                                             <TreeViewItem.ItemTemplate>
-                                                <DataTemplate><TextBlock Text="{Binding Label}" ToolTip="{Binding Binding}"/></DataTemplate>
+                                                <DataTemplate><StackPanel Orientation="Horizontal" ToolTip="{Binding Binding}"><Image Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"><Image.Style><Style TargetType="Image"><Setter Property="Source" Value="{StaticResource Icon.DateTime16}"/><Style.Triggers><DataTrigger Binding="{Binding IsSerial}" Value="True"><Setter Property="Source" Value="{StaticResource Icon.Counter16}"/></DataTrigger></Style.Triggers></Style></Image.Style></Image><TextBlock Text="{Binding Label}" VerticalAlignment="Center"/></StackPanel></DataTemplate>
                                             </TreeViewItem.ItemTemplate>
                                         </TreeViewItem>
                                     </TreeView>
@@ -2623,7 +2624,7 @@
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Source}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Compose}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                             <TextBlock Text="Chữ" Style="{StaticResource PropLabel}"/>
-                                            <TextBox x:Name="ObjectTextBox" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="30" MaxHeight="120" Margin="0,2,0,0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" PreviewTextInput="ObjectTextBox_PreviewTextInput" ToolTip="Enter xuống dòng mới."/>
+                                            <TextBox x:Name="ObjectTextBox" Text="{Binding SelectedObject.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="150" MaxHeight="300" VerticalContentAlignment="Top" Margin="0,2,0,0" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" PreviewTextInput="ObjectTextBox_PreviewTextInput" ToolTip="Enter xuống dòng mới."/>
                                         </StackPanel>
                                         <StackPanel>
                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding SelectedItem.Kind, ElementName=DataSourceComboBox}" Value="{x:Static viewModels:DataSourceChoiceKind.Compose}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>

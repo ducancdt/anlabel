@@ -191,6 +191,13 @@ nay hien khung quanh moi chu. Nay `LabelDesignerCanvas` khong ve vien cho Chu, n
 ban in (invariant parity). Du lieu kieu trong tep giu nguyen (invariant 8), khung, co, wrap, clip, padding, tay
 nam khong doi. Gate: `the designer draws no text outline`.
 
+### O Noi dung cao nhu NiceLabel (chu san pham duyet 2026-11-01)
+
+Trang Source cua NiceLabel 10 co o noi dung lon, nhieu dong. O `ObjectTextBox` (Thuộc tính › Nguồn › Chữ) nay cao
+san 150 DIP (khoang muoi dong), gian toi 300, chu bat dau o tren; van nhan Enter xuong dong, xuong dong trong o,
+luat nhap cua O chu (tran = Loi) nhu cu. Chi doi bo cuc o Thuoc tinh: khung, co, wrap, clip, padding cua doi tuong
+khong doi. Gate: `the content box is tall as NiceLabel's`.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

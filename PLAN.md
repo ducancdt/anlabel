@@ -1,5 +1,15 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.371
+
+- Cây Dữ liệu có biểu tượng theo loại như NiceLabel 10 và Quản lý dữ liệu (biến nhập khi in, cột dữ liệu, hàm,
+  ngày in, số Serial) thay cho tiền tố “?” và dấu { }; cú pháp {?Tên} hiện ở gợi ý khi rê chuột (chủ dự án
+  duyệt 2026-11-01).
+- Thuộc tính › Nguồn: ô nội dung của Chữ và Ô chữ cao sẵn khoảng mười dòng như NiceLabel 10 (chủ dự án duyệt
+  2026-11-01, vùng Text/TextBox được bảo vệ, chỉ đổi bố cục).
+- Nhấp đúp bằng chuột thật vào một chữ trên app đã cài (v0.371) mở sửa tại chỗ, ô nhập nhận bàn phím, nội dung
+  giữ nguyên; Esc đóng (chủ dự án cho dùng chuột thật 2026-11-01).
+
 ## v0.371 — Bảng Dữ liệu gọn như NiceLabel, gõ để sửa chữ
 
 _Gồm các commit 01/11/2026 (11:50–11:50)._

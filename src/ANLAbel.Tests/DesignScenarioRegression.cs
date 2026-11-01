@@ -2201,6 +2201,7 @@ internal static class DesignScenarioRegression
 
                 var window = new ANLAbel.App.MainWindow();
                 var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+                viewModel.Template.PromptVariables.Add(new PromptVariableDefinition { Name = "Lô" });
                 var explorer = (TabControl)window.FindName("WorkspaceTabs");
                 explorer.SelectedIndex = 0;
                 var content = (FrameworkElement)window.Content;
@@ -2234,6 +2235,11 @@ internal static class DesignScenarioRegression
                 Button Link() => FindVisualChildren<Button>(scroller).Single(button => AutomationProperties.GetName(button) == "Link Excel or CSV");
                 TextBlock Source() => FindVisualChildren<TextBlock>(scroller).Single(text => AutomationProperties.GetAutomationId(text) == "Shell.Data.Source");
                 Require(Shown(Link()) && !Shown(Source()), "With no data linked the tree offers + Liên kết Excel / CSV….");
+                // The entries carry their kind's icon and their plain name; the binding a drop gives is the tooltip.
+                var prompt = FindVisualChildren<TextBlock>(scroller).Single(text => text.Text == "Lô");
+                Require(prompt.Parent is StackPanel { ToolTip: "{?Lô}" } row && row.Children.OfType<Image>().Any()
+                        && !FindVisualChildren<TextBlock>(scroller).Any(text => text.Text.StartsWith("? ", StringComparison.Ordinal)),
+                    "The prompt shows its icon and name, {?Lô} as its tooltip, no \"? \" prefix.");
                 Require(!FindLogicalChildren<TextBlock>(content).Any(text => text.Text.StartsWith("Cài đặt dữ liệu", StringComparison.Ordinal)),
                     "Cài đặt dữ liệu has left the Data panel.");
                 Require(!FindLogicalChildren<DataGrid>(content).Any(grid => System.Windows.Data.BindingOperations.GetBinding(grid, ItemsControl.ItemsSourceProperty)?.Path.Path == "Template.PromptVariables"),
@@ -2277,6 +2283,25 @@ internal static class DesignScenarioRegression
             {
             }
         }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Owner decision 2026-11-01: Properties › Nguồn's content box for a Text or Text Box is tall and
+    /// multi-line from the start, as NiceLabel 10's Source page; it still takes Enter for a new line
+    /// and wraps. Layout only.
+    /// </summary>
+    public static Task ContentBoxIsTallAsNiceLabels()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var box = (TextBox)window.FindName("ObjectTextBox");
+            Require(box.MinHeight >= 150 && box.MaxHeight >= box.MinHeight && box.AcceptsReturn && box.TextWrapping == TextWrapping.Wrap
+                    && box.VerticalContentAlignment == VerticalAlignment.Top,
+                $"The content box is about ten lines tall from the start: {box.MinHeight} to {box.MaxHeight}, returns {box.AcceptsReturn}");
+        });
 
         return Task.CompletedTask;
     }
