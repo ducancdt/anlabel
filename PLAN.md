@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.374
+## v0.375 — Viền khi rê chuột qua đối tượng, khung từng vật trong nhóm chọn, bảng Dữ liệu thêm từ trong cây
+
+_Gồm các commit 01/11/2026 (15:26–15:53)._
 
 - Bảng Dữ liệu thêm từ trong cây như NiceLabel 10 ("Add new variable", "Add new function"): "+ Thêm biến nhập…" là
   dòng đầu của Biến nhập khi in, "+ Thêm hàm…" là dòng đầu của Hàm (bấm, Enter hoặc nhấp đúp mở Quản lý dữ liệu
