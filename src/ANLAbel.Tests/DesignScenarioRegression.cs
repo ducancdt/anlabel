@@ -2404,6 +2404,16 @@ internal static class DesignScenarioRegression
             var adorner = Adorner(box);
             var handle = Rotate(adorner);
             Require(handle.Visibility == Visibility.Visible, "A selected Text Box has a rotation handle.");
+            // NiceLabel 10's corner handles are round, its side handles square; both keep the 5 DIP marker.
+            Border Marker(string name)
+            {
+                var thumb = (System.Windows.Controls.Primitives.Thumb)typeof(SelectionResizeAdorner).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(adorner)!;
+                thumb.ApplyTemplate();
+                return FindVisualChildren<Border>(thumb).Single();
+            }
+
+            Require(Marker("_topLeft") is { Width: 5, CornerRadius.TopLeft: 2.5 } && Marker("_top") is { Width: 5, CornerRadius.TopLeft: 0 },
+                "Corner handles are round and side handles square, the marker 5 DIP.");
             // The handle sits 18 DIP above the frame's top centre: a quarter turn clockwise puts the pointer
             // level with the centre, as far to the right as the handle was above it.
             var reach = ANLAbel.Core.Geometry.MmConverter.MmToDip(8) * viewModel.Zoom / 2 + 18;

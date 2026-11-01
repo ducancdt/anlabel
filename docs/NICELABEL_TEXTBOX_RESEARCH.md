@@ -210,6 +210,8 @@ chuot moi dat `Rotation` mot lan qua `NotifyEditGesture*` (mot buoc hoan tac). T
 doi resize (`DragCompleted`, `LostMouseCapture` khong huy), khung W/H cua O chu, wrap, clip va ban in khong doi;
 duong ke khong co tay xoay. Gate: `the selection has no fill`, `the rotation handle turns by quarter turns`, cung
 bay gate bao ve.
+Tay nam goc tron (CornerRadius 2,5 tren dau 5 DIP), tay nam giua canh vuong, nhu anh NiceLabel 10; vung bam 10 DIP
+va dau 5 DIP (invariant 7) khong doi. Kiem trong gate `the rotation handle turns by quarter turns`.
 
 ### Tem bao ve khong co tay nam (2026-11-01, sua loi bao ve)
 

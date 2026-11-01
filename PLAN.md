@@ -2,6 +2,7 @@
 
 ## Sau v0.372
 
+- Tay nắm góc của vùng chọn tròn như NiceLabel 10, tay nắm giữa cạnh vẫn vuông; dấu vẫn 5 DIP, vùng bấm 10 DIP.
 - Hai quy tắc an toàn in theo quyết định của chủ dự án (2026-11-01):
   - Mã vạch 1D có X do người thiết kế đặt chỉ bị chặn in khi vạch hẹp ra dưới 2 điểm ở DPI máy in; từ 2 điểm tới
     ngưỡng 0,19 mm thì chỉ cảnh báo (trước đây cứ dưới 0,19 mm là chặn). Lưu ý: 0,125 mm ở 203 hay 300 dpi chỉ

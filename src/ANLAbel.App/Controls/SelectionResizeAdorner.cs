@@ -37,13 +37,14 @@ public sealed class SelectionResizeAdorner : Adorner
     {
         _boundsProvider = boundsProvider;
         _visuals = new VisualCollection(this);
-        _topLeft = CreateThumb(Cursors.SizeNWSE);
+        // NiceLabel 10: round corner handles, square side handles (same 5 DIP marker, 10 DIP target).
+        _topLeft = CreateThumb(Cursors.SizeNWSE, round: true);
         _top = CreateThumb(Cursors.SizeNS);
-        _topRight = CreateThumb(Cursors.SizeNESW);
+        _topRight = CreateThumb(Cursors.SizeNESW, round: true);
         _right = CreateThumb(Cursors.SizeWE);
-        _bottomRight = CreateThumb(Cursors.SizeNWSE);
+        _bottomRight = CreateThumb(Cursors.SizeNWSE, round: true);
         _bottom = CreateThumb(Cursors.SizeNS);
-        _bottomLeft = CreateThumb(Cursors.SizeNESW);
+        _bottomLeft = CreateThumb(Cursors.SizeNESW, round: true);
         _left = CreateThumb(Cursors.SizeWE);
 
         foreach (var thumb in new[] { _topLeft, _top, _topRight, _right, _bottomRight, _bottom, _bottomLeft, _left })
@@ -248,7 +249,7 @@ public sealed class SelectionResizeAdorner : Adorner
         }
     }
 
-    private static Thumb CreateThumb(Cursor cursor)
+    private static Thumb CreateThumb(Cursor cursor, bool round = false)
     {
         var hitSurface = new FrameworkElementFactory(typeof(Grid));
         hitSurface.SetValue(Panel.BackgroundProperty, Brushes.Transparent);
@@ -260,6 +261,11 @@ public sealed class SelectionResizeAdorner : Adorner
         marker.SetValue(Border.BackgroundProperty, Brushes.White);
         marker.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0, 122, 255)));
         marker.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+        if (round)
+        {
+            marker.SetValue(Border.CornerRadiusProperty, new CornerRadius(HandleMarkerSize / 2));
+        }
+
         hitSurface.AppendChild(marker);
 
         return new Thumb
