@@ -2306,6 +2306,126 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-01, the selection as NiceLabel 10 shows it: nothing inside the frame. A
+    /// selected object and a multiple selection kept a blue tint over the label; the label shows
+    /// through now, the dashed frames and the handles stay.
+    /// </summary>
+    public static Task SelectionHasNoFill()
+    {
+        RunOnSta(() =>
+        {
+            var template = new LabelTemplate { Name = "Chọn", WidthMm = 60, HeightMm = 30 };
+            var box = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 10, YMm = 6, WidthMm = 30, HeightMm = 14 };
+            box.Style.FillStyle = FillStyle.None;
+            var other = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung 2", XMm = 44, YMm = 6, WidthMm = 10, HeightMm = 10 };
+            other.Style.FillStyle = FillStyle.None;
+            template.Objects.Add(box);
+            template.Objects.Add(other);
+            var canvas = new LabelDesignerCanvas { Template = template, Zoom = 2, ShowGrid = false };
+            int Inside()
+            {
+                canvas.Measure(new Size(600, 300));
+                canvas.Arrange(new Rect(0, 0, 600, 300));
+                canvas.UpdateLayout();
+                var bitmap = new RenderTargetBitmap(600, 300, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(canvas);
+                var pixel = new byte[4];
+                // The middle of the rectangle: label background with nothing drawn on it but a tint.
+                var x = (int)(ANLAbel.Core.Geometry.MmConverter.MmToDip(25) * 2);
+                var y = (int)(ANLAbel.Core.Geometry.MmConverter.MmToDip(13) * 2);
+                bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
+                return pixel[2];   // red: 255 on white, lower under a blue tint
+            }
+
+            var plain = Inside();
+            canvas.SelectedObject = box;
+            var single = Inside();
+            canvas.SelectAllObjects();
+            var several = Inside();
+            Require(plain >= 250 && single >= 250 && several >= 250, $"No tint inside a selection (red {plain}, one {single}, several {several}).");
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Owner decision 2026-11-01, NiceLabel 10's rotation handle (RotateThumb): a dot above the selected
+    /// object's frame; dragging it turns the object about its centre. A label object turns by quarter
+    /// turns, so the drag snaps to 90° (as NiceLabel snaps a printer-font text and an inverse area) and
+    /// the release applies it in one undo step; a Text Box keeps its frame. A small drag or a canceled
+    /// one turns nothing; a line has no rotation handle.
+    /// </summary>
+    public static Task RotationHandleTurnsByQuarterTurns()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô", Text = "Lô 42", XMm = 10, YMm = 8, WidthMm = 24, HeightMm = 8 };
+            box.Style.TextSizing = TextSizingMode.FixedFrame;
+            var line = new LabelObject { Type = ObjectType.Line, Name = "Kẻ", XMm = 4, YMm = 30, WidthMm = 30, HeightMm = 0, LineEndXMm = 34, LineEndYMm = 30 };
+            viewModel.Template.Objects.Add(box);
+            viewModel.Template.Objects.Add(line);
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            // An adorner needs a layer: a window has one; the content laid out alone gets one here.
+            var decorator = new AdornerDecorator { Child = content };
+            void Settle()
+            {
+                decorator.Measure(new Size(1440, 900));
+                decorator.Arrange(new Rect(0, 0, 1440, 900));
+                decorator.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var canvas = (LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
+            SelectionResizeAdorner Adorner(LabelObject item)
+            {
+                viewModel.SelectedObject = Lookup(item);
+                Settle();
+                return (SelectionResizeAdorner)typeof(LabelDesignerCanvas).GetField("_selectionAdorner", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(canvas)!;
+            }
+
+            System.Windows.Controls.Primitives.Thumb Rotate(SelectionResizeAdorner adorner)
+                => (System.Windows.Controls.Primitives.Thumb)typeof(SelectionResizeAdorner).GetField("_rotate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(adorner)!;
+            void Drag(System.Windows.Controls.Primitives.Thumb thumb, double dx, double dy, bool canceled = false)
+            {
+                thumb.RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0, 0) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragStartedEvent });
+                thumb.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(dx, dy) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragDeltaEvent });
+                thumb.RaiseEvent(new System.Windows.Controls.Primitives.DragCompletedEventArgs(dx, dy, canceled) { RoutedEvent = System.Windows.Controls.Primitives.Thumb.DragCompletedEvent });
+                Settle();
+            }
+
+            var adorner = Adorner(box);
+            var handle = Rotate(adorner);
+            Require(handle.Visibility == Visibility.Visible, "A selected Text Box has a rotation handle.");
+            // The handle sits 18 DIP above the frame's top centre: a quarter turn clockwise puts the pointer
+            // level with the centre, as far to the right as the handle was above it.
+            var reach = ANLAbel.Core.Geometry.MmConverter.MmToDip(8) * viewModel.Zoom / 2 + 18;
+            Drag(handle, reach, reach);
+            Require(Lookup(box).Rotation == 90 && Lookup(box).WidthMm == 24 && Lookup(box).HeightMm == 8,
+                $"A quarter-turn drag turns the Text Box by 90° and keeps its frame: {Lookup(box).Rotation}°, {Lookup(box).WidthMm} x {Lookup(box).HeightMm}");
+            viewModel.UndoCommand.Execute(null);
+            Require(Lookup(box).Rotation == 0, "One undo takes the turn back: " + Lookup(box).Rotation);
+
+            handle = Rotate(Adorner(box));
+            Drag(handle, reach * Math.Sin(Math.PI / 6), reach - reach * Math.Cos(Math.PI / 6));
+            Require(Lookup(box).Rotation == 0, "A 30° drag snaps back to no turn: " + Lookup(box).Rotation);
+            Drag(handle, reach, reach, canceled: true);
+            Require(Lookup(box).Rotation == 0, "A canceled drag turns nothing: " + Lookup(box).Rotation);
+
+            Require(Rotate(Adorner(line)).Visibility == Visibility.Collapsed, "A line has no rotation handle (it turns by its end points).");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

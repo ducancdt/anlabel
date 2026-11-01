@@ -2,6 +2,12 @@
 
 ## Sau v0.371
 
+- Vùng chọn như NiceLabel 10 (chủ dự án duyệt 2026-11-01, vùng tay nắm được bảo vệ): không còn nền xanh bên trong;
+  một đối tượng có một khung nét đứt đúng mép cùng tám tay nắm như cũ (vùng bấm 10 DIP, dấu 5 DIP); thêm tay
+  xoay (chấm xanh trên cuống, phía trên giữa khung): kéo để xoay quanh tâm theo bước 90° (đối tượng tem chỉ
+  xoay 0/90/180/270, như NiceLabel bắt 90° cho chữ phông máy in và vùng đảo màu), khung xem trước xoay theo,
+  thả chuột thì áp dụng, một bước hoàn tác; kéo ít hoặc hủy thì không đổi; đường kẻ không có tay xoay. Ô chữ
+  giữ khung khi xoay.
 - Cây Dữ liệu có biểu tượng theo loại như NiceLabel 10 và Quản lý dữ liệu (biến nhập khi in, cột dữ liệu, hàm,
   ngày in, số Serial) thay cho tiền tố “?” và dấu { }; cú pháp {?Tên} hiện ở gợi ý khi rê chuột (chủ dự án
   duyệt 2026-11-01).

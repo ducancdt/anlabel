@@ -198,6 +198,19 @@ san 150 DIP (khoang muoi dong), gian toi 300, chu bat dau o tren; van nhan Enter
 luat nhap cua O chu (tran = Loi) nhu cu. Chi doi bo cuc o Thuoc tinh: khung, co, wrap, clip, padding cua doi tuong
 khong doi. Gate: `the content box is tall as NiceLabel's`.
 
+### Vung chon va tay xoay nhu NiceLabel (chu san pham duyet 2026-11-01)
+
+NiceLabel 10 ve khung chon net dut va tay nam, khong to nen; `RotateThumb` (DesignerLib) xoay quanh tam bang goc
+giua vector con tro dau va hien tai, bat goc qua `CalculateRotationAngle` (mac dinh hut boi so 45° trong ±10°, Shift
+tu do; chu phong may in va vung dao mau luon buoc 90°). ANLAbel: bo nen xanh cua `DrawGroupSelection`; mot doi
+tuong co mot khung net dut cua `SelectionResizeAdorner` dung mep (truoc la khung lien cong khung net dut to nen lech
+3 DIP); nhieu doi tuong van khung net dut tung cai, khong nen. Tay xoay la mot `Thumb` 10 DIP (dau tron 7 DIP) cach
+dinh khung 18 DIP; vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
+chuot moi dat `Rotation` mot lan qua `NotifyEditGesture*` (mot buoc hoan tac). Tam tay nam resize (10/5 DIP), vong
+doi resize (`DragCompleted`, `LostMouseCapture` khong huy), khung W/H cua O chu, wrap, clip va ban in khong doi;
+duong ke khong co tay xoay. Gate: `the selection has no fill`, `the rotation handle turns by quarter turns`, cung
+bay gate bao ve.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

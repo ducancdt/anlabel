@@ -14,6 +14,9 @@ public sealed class SelectionResizeAdorner : Adorner
     // compact labels an 8-DIP solid square can hide an entire line of text.
     private const double HandleHitSize = 10;
     private const double HandleMarkerSize = 5;
+    // NiceLabel 10 rotation handle: a dot on a stem above the frame's top centre.
+    private const double RotateHandleOffset = 18;
+    private const double RotateMarkerSize = 7;
     private readonly VisualCollection _visuals;
     private readonly Thumb _topLeft;
     private readonly Thumb _top;
@@ -23,10 +26,13 @@ public sealed class SelectionResizeAdorner : Adorner
     private readonly Thumb _bottom;
     private readonly Thumb _bottomLeft;
     private readonly Thumb _left;
+    private readonly Thumb _rotate;
     private readonly Func<Rect>? _boundsProvider;
     private bool _resizeActive;
+    private bool _rotateActive;
+    private double _rotateAngle;
 
-    public SelectionResizeAdorner(UIElement adornedElement, Func<Rect>? boundsProvider = null)
+    public SelectionResizeAdorner(UIElement adornedElement, Func<Rect>? boundsProvider = null, bool canRotate = false)
         : base(adornedElement)
     {
         _boundsProvider = boundsProvider;
@@ -55,6 +61,13 @@ public sealed class SelectionResizeAdorner : Adorner
         Add(_bottomLeft);
         Add(_left);
 
+        _rotate = CreateRotateThumb();
+        _rotate.Visibility = canRotate ? Visibility.Visible : Visibility.Collapsed;
+        _rotate.DragStarted += (_, _) => BeginRotate();
+        _rotate.DragDelta += (_, e) => UpdateRotate(e.HorizontalChange, e.VerticalChange);
+        _rotate.DragCompleted += (_, e) => CompleteRotate(e.Canceled);
+        Add(_rotate);
+
         _topLeft.DragDelta += (_, e) => ResizeRequested?.Invoke(this, CreateDelta(ResizeHandle.TopLeft, e.HorizontalChange, e.VerticalChange, -e.HorizontalChange, -e.VerticalChange));
         _top.DragDelta += (_, e) => ResizeRequested?.Invoke(this, CreateDelta(ResizeHandle.Top, 0, e.VerticalChange, 0, -e.VerticalChange));
         _topRight.DragDelta += (_, e) => ResizeRequested?.Invoke(this, CreateDelta(ResizeHandle.TopRight, 0, e.VerticalChange, e.HorizontalChange, -e.VerticalChange));
@@ -66,6 +79,9 @@ public sealed class SelectionResizeAdorner : Adorner
     }
 
     public event EventHandler<ResizeDelta>? ResizeRequested;
+
+    /// <summary>The quarter turns, clockwise, a release of the rotation handle asks for (never 0).</summary>
+    public event EventHandler<int>? RotateRequested;
     public event EventHandler? ResizeStarted;
     public event EventHandler? ResizeCompleted;
     public event EventHandler? ResizeCanceled;
@@ -107,17 +123,39 @@ public sealed class SelectionResizeAdorner : Adorner
         Arrange(_bottom, bounds.Left + bounds.Width / 2, bounds.Bottom);
         Arrange(_bottomLeft, bounds.Left, bounds.Bottom);
         Arrange(_left, bounds.Left, bounds.Top + bounds.Height / 2);
+        Arrange(_rotate, bounds.Left + bounds.Width / 2, bounds.Top - RotateHandleOffset);
         return finalSize;
     }
 
     protected override void OnRender(DrawingContext drawingContext)
     {
         var rect = GetAdornerBounds();
-        var pen = new Pen(new SolidColorBrush(Color.FromRgb(0, 122, 255)), 1.2)
+        if (rect.IsEmpty)
         {
-            DashStyle = DashStyles.Solid
+            return;
+        }
+
+        // NiceLabel 10: a dashed frame and the handles, nothing inside (owner decision 2026-11-01).
+        var blue = new SolidColorBrush(Color.FromRgb(0, 122, 255));
+        var pen = new Pen(blue, 1.2)
+        {
+            DashStyle = DashStyles.Dash
         };
+        var top = new Point(rect.Left + rect.Width / 2, rect.Top);
+        if (_rotateActive)
+        {
+            // While the handle is dragged, the frame as the release will turn it.
+            drawingContext.PushTransform(new RotateTransform(_rotateAngle, top.X, rect.Top + rect.Height / 2));
+            drawingContext.DrawRectangle(null, pen, rect);
+            drawingContext.Pop();
+            return;
+        }
+
         drawingContext.DrawRectangle(null, pen, rect);
+        if (_rotate.Visibility == Visibility.Visible)
+        {
+            drawingContext.DrawLine(new Pen(blue, 1), top, new Point(top.X, rect.Top - RotateHandleOffset + RotateMarkerSize / 2));
+        }
     }
 
     private Rect GetAdornerBounds()
@@ -131,6 +169,83 @@ public sealed class SelectionResizeAdorner : Adorner
     private void Add(Thumb thumb)
     {
         _visuals.Add(thumb);
+    }
+
+    private static Thumb CreateRotateThumb()
+    {
+        var hitSurface = new FrameworkElementFactory(typeof(Grid));
+        hitSurface.SetValue(Panel.BackgroundProperty, Brushes.Transparent);
+        var marker = new FrameworkElementFactory(typeof(System.Windows.Shapes.Ellipse));
+        marker.SetValue(FrameworkElement.WidthProperty, RotateMarkerSize);
+        marker.SetValue(FrameworkElement.HeightProperty, RotateMarkerSize);
+        marker.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        marker.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        marker.SetValue(System.Windows.Shapes.Shape.FillProperty, new SolidColorBrush(Color.FromRgb(0, 122, 255)));
+        hitSurface.AppendChild(marker);
+
+        return new Thumb
+        {
+            Width = HandleHitSize,
+            Height = HandleHitSize,
+            Cursor = Cursors.Hand,
+            ToolTip = "Kéo để xoay 90°",
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Template = new ControlTemplate(typeof(Thumb)) { VisualTree = hitSurface }
+        };
+    }
+
+    private void BeginRotate()
+    {
+        _rotateActive = true;
+        _rotateAngle = 0;
+        SetResizeThumbsVisible(false);
+        InvalidateVisual();
+    }
+
+    /// <summary>
+    /// NiceLabel 10 RotateThumb: the angle between the pointer's first and current vector from the
+    /// frame's centre, here snapped to quarter turns (a label object turns by 90°).
+    /// </summary>
+    private void UpdateRotate(double horizontalChange, double verticalChange)
+    {
+        var rect = GetAdornerBounds();
+        if (!_rotateActive || rect.IsEmpty)
+        {
+            return;
+        }
+
+        var center = new Point(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
+        var start = new Point(center.X, rect.Top - RotateHandleOffset);
+        var current = start + new Vector(horizontalChange, verticalChange);
+        var angle = Vector.AngleBetween(start - center, current - center);
+        _rotateAngle = Math.Round(angle / 90) * 90;
+        InvalidateVisual();
+    }
+
+    private void CompleteRotate(bool canceled)
+    {
+        if (!_rotateActive)
+        {
+            return;
+        }
+
+        _rotateActive = false;
+        SetResizeThumbsVisible(true);
+        InvalidateVisual();
+        var turns = (int)Math.Round(_rotateAngle / 90) % 4;
+        if (!canceled && turns != 0)
+        {
+            RotateRequested?.Invoke(this, turns);
+        }
+    }
+
+    private void SetResizeThumbsVisible(bool visible)
+    {
+        foreach (var thumb in new[] { _topLeft, _top, _topRight, _right, _bottomRight, _bottom, _bottomLeft, _left })
+        {
+            thumb.Visibility = visible ? Visibility.Visible : Visibility.Hidden;
+        }
     }
 
     private static Thumb CreateThumb(Cursor cursor)

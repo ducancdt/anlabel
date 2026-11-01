@@ -1178,6 +1178,15 @@ process initializer).
   the content (`TextSelectionItem.InitialEditContent`, raised into the box as a
   `TextComposition`); ANLAbel does the same since the owner decision of
   2026-11-01, L, R and C typing then rather than drawing.
+- Rotation. `RotateThumb` (DesignerLib) turns the selection about its centre by
+  the angle between the pointer's first and current vector, hiding the frame,
+  the resize thumbs and the command box while it turns.
+  `SelectionItem.CalculateRotationAngle` snaps unless Shift is down: to the
+  nearest multiple of `GetRotationSnappingAngle()` (45°) within
+  `GetRotationSnappingOffset()` (10°); a text in a printer font
+  (`LabelTextSelectionItem`, internal element) and an inverse area return 90° and
+  90°, so they always turn by quarter turns. ANLAbel's rotation handle turns by
+  quarter turns only: `LabelObject.Rotation` keeps 0/90/180/270.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

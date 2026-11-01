@@ -3103,7 +3103,7 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
-        var fill = new SolidColorBrush(Color.FromArgb(35, 37, 99, 235));
+        // NiceLabel 10: dashed frames, nothing inside (owner decision 2026-11-01).
         var pen = new Pen(new SolidColorBrush(Color.FromRgb(37, 99, 235)), 1.4)
         {
             DashStyle = DashStyles.Dash
@@ -3112,8 +3112,32 @@ public sealed class LabelDesignerCanvas : Canvas
 
         foreach (var item in _selectedObjects)
         {
-            dc.DrawRectangle(fill, ReferenceEquals(item, SelectedObject) && _selectedObjects.Count > 1 ? keyPen : pen, InflateRect(GetObjectBounds(item), 3));
+            // One object's adorner draws its own frame and handles.
+            if (_selectedObjects.Count == 1 && ReferenceEquals(item, _adornedObject) && _selectionAdorner is not null)
+            {
+                continue;
+            }
+
+            dc.DrawRectangle(null, ReferenceEquals(item, SelectedObject) && _selectedObjects.Count > 1 ? keyPen : pen, InflateRect(GetObjectBounds(item), 3));
         }
+    }
+
+    /// <summary>
+    /// NiceLabel 10 rotation handle (owner decision 2026-11-01): quarter turns about the object's
+    /// centre, one undo step. A label object turns by 90° (LabelObject.Rotation).
+    /// </summary>
+    private void RotateSelectedObject(LabelObject item, int quarterTurns)
+    {
+        if (item.IsLocked || quarterTurns % 4 == 0)
+        {
+            return;
+        }
+
+        CommitNudgeGesture();
+        NotifyEditGestureStarted();
+        item.Rotation += quarterTurns * 90;
+        NotifyEditGestureCompleted();
+        InvalidateVisual();
     }
 
     private bool _inverseRefreshPending;
@@ -4888,7 +4912,9 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
-        _selectionAdorner = new SelectionResizeAdorner(element);
+        // NiceLabel 10 rotation handle; a line turns by its end points instead.
+        _selectionAdorner = new SelectionResizeAdorner(element, canRotate: item.Type != ObjectType.Line);
+        _selectionAdorner.RotateRequested += (_, turns) => RotateSelectedObject(item, turns);
         _selectionAdorner.ResizeStarted += (_, _) =>
         {
             CommitNudgeGesture();
