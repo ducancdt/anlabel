@@ -1,6 +1,8 @@
 # ANLAbel Phase 1 Plan
 
-## Sau v0.375
+## v0.376 — Chú thích nút thuộc tính không còn ghi F2
+
+_Gồm các commit 01/11/2026 (16:02–16:06)._
 
 - Nút thuộc tính ở vùng chọn không còn ghi "(F2)" trong chú thích: F2 trên Chữ, Ô chữ là sửa chữ ngay trên tem
   (như phím EditItem của NiceLabel), chỉ với đối tượng khác mới mở Thuộc tính. CommandBox của NiceLabel không có
