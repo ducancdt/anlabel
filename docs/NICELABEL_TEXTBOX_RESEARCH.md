@@ -138,18 +138,28 @@ giu ten/gia tri va van dat padding); bay gate Text/TextBox duoc bao ve van dat.
 
 NiceLabel 10 `DocumentPageView`/`TextSelectionItem`: F2 dua item ho tro sua tai cho vao EditMode (item khac:
 mo trinh sua thuoc tinh), Enter chi vao EditMode, nhap dup vao chu va lenh Edit text cua menu cung vay.
-ANLAbel: voi Chữ hoac Ô chữ co noi dung co dinh (khong doc nguon du lieu) tren tem khong bi bao ve, F2, Enter
-tren bang thiet ke, nhap dup hoac menu `Sửa chữ` mo mot o nhap de len khung doi tuong, cung phong, co theo
-thu phong, noi dung duoc chon san de go de. Enter (Shift+Enter: xuong dong trong Ô chữ) hoac roi o ap dung,
-mot buoc hoan tac; Esc bo. Cuon bang thiet ke cung ap dung. Go mot chu cai khong mo sua tai cho vi L, R, C la
-phim ve cua ANLAbel. Doi tuong doc nguon du lieu va doi tuong khac: F2, nhap dup van mo Thuoc tinh.
+O sua cua NiceLabel (`TextSelectionEditItemView`, BAML `designsurface/selectionitem/view/textselectionedititemview`):
+`WatermarkTextBox` voi `AcceptsReturn=True`, `TextWrapping=Wrap`, `Text` gan voi noi dung bang
+`UpdateSourceTrigger=PropertyChanged` (tem doi ngay khi go); `KeyDown` chi bat Esc -> `DisableEditMode` (tat
+EditMode, `PushToUndoStack`, tra focus ve phan tu truoc), `LostKeyboardFocus` -> `DisableEditMode` (giu chu).
 
-Hop dong giu nguyen: noi dung di qua cung duong voi Thuộc tính › Nguồn › Chữ (`MainViewModel.SetObjectText`),
-nen Text van lay co theo noi dung (invariant 1), Ô chữ giu khung du chu dai (invariant 2, tru AdjustHeight da
-duyet), khong doi wrap, clip, padding, tay nam hay vong doi resize; o nhap la lop phu cua MainWindow,
-LabelDesignerCanvas va SelectionResizeAdorner khong doi. Gate: `in-place editing edits a text on the label`
-(Enter, Esc, mot buoc hoan tac, khung Ô chữ, chu doc nguon, menu, nhap dup, F2, tem bao ve); cac gate nhap dup
-va F2 cu nay dung ma vach cho duong Thuoc tinh.
+ANLAbel: voi Chữ hoac Ô chữ co noi dung co dinh (khong doc nguon du lieu), chon mot minh, tren tem khong bi bao
+ve, F2, Enter tren bang thiet ke, nhap dup hoac menu `Sửa chữ` mo mot o nhap de len khung doi tuong, cung phong,
+co va canh le theo thu phong, noi dung duoc chon san de go de. Tem doi ngay khi go (Luu hay In giua chung dung chu
+moi); Enter xuong dong nhu o Noi dung o Thuoc tinh; Esc hoac roi o la xong va giu chu, ca lan sua la mot buoc
+hoan tac (Ctrl+Z de bo). Menu Cat/Chep/Dan cua chinh o sua khong ket thuc lan sua. O sua bam theo khi cuon hay thu
+phong. Go mot chu cai khong mo sua tai cho vi L, R, C la phim ve cua ANLAbel. Doi tuong doc nguon du lieu, nhieu
+doi tuong dang chon va doi tuong khac: F2, nhap dup van mo Thuoc tinh. (v0.366 cho Enter la xong, Esc la bo: phim
+tu doan, da sua theo bang chung tren.)
+
+Hop dong giu nguyen: noi dung di qua cung duong voi Thuộc tính › Nguồn › Chữ (`MainViewModel.SetObjectText` dat
+`Text`; o sua ap cung luat nhap `CanApplyTextBoxInput`, nen Ô chữ dat Tràn = Lỗi tu choi chu khong vua khung, dieu
+v0.366 bo sot), nen Text van lay co theo noi dung (invariant 1), Ô chữ giu khung du chu dai (invariant 2, tru
+AdjustHeight da duyet), khong doi wrap, clip, padding, tay nam hay vong doi resize; o nhap la lop phu cua
+MainWindow, LabelDesignerCanvas va SelectionResizeAdorner khong doi. Gate: `in-place editing edits a text on the
+label` (tem doi khi go, Enter khong ket thuc, Esc giu, roi o giu, menu rieng cua o, mot buoc hoan tac, thu phong,
+khung Ô chữ, Tràn = Lỗi, chu doc nguon, menu `Sửa chữ`, nhap dup, F2, nhieu doi tuong, tem bao ve); cac gate nhap
+dup va F2 cu dung ma vach cho duong Thuoc tinh.
 
 ## Thu tu parity tiep theo
 

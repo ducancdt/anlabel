@@ -1,5 +1,14 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.366
+
+- Sửa chữ trên tem theo đúng NiceLabel 10 (đối chiếu `TextSelectionEditItemView` dịch ngược; v0.366 dùng phím
+  tự đoán): chữ hiện lên tem ngay khi gõ nên Lưu hay In giữa chừng vẫn dùng chữ mới; Enter xuống dòng như ô
+  Nội dung ở Thuộc tính; Esc hoặc bấm ra ngoài là xong và giữ chữ, cả lần sửa là một bước hoàn tác (Ctrl+Z).
+  Ô sửa áp cùng luật nhập với ô Nội dung, nên Ô chữ đặt Tràn = Lỗi từ chối chữ không vừa khung (v0.366 bỏ
+  sót luật này). Ô sửa bám theo khi cuộn hay thu phóng; nhiều đối tượng đang chọn thì F2 và nhấp đúp vẫn mở
+  Thuộc tính; menu Cắt/Chép/Dán của chính ô sửa không kết thúc lần sửa.
+
 ## v0.366 — Sửa chữ trên tem, nút thuộc tính ở góc vùng chọn, trang Kiểu theo nhóm NiceLabel, tem bảo vệ chỉ sửa bộ đếm
 
 _Gồm các commit 01/11/2026 (23:56–09:01)._

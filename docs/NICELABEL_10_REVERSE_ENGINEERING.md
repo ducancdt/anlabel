@@ -1162,6 +1162,15 @@ process initializer).
   2026-11-01: in-place editing as NiceLabel's, for a Text or Text Box with
   fixed content (F2, Enter, a double-click, Sửa chữ); other items keep F2
   and the double-click opening their properties.
+- The in-place edit box. `TextSelectionEditItemView` (BAML
+  `designsurface/selectionitem/view/textselectionedititemview`): a
+  `WatermarkTextBox` with `AcceptsReturn=True` and `TextWrapping=Wrap`, its
+  `Text` bound to the item's content with `UpdateSourceTrigger=PropertyChanged`
+  (the label follows the typing). Its `KeyDown` takes Esc only:
+  `DisableEditMode(focusPreviouslyFocusedElement: true)` ends edit mode, calls
+  `PushToUndoStack` and returns the focus; `LostKeyboardFocus` ends it the
+  same way. Enter is a new line; nothing drops the edit but Undo. ANLAbel
+  follows this after v0.366 (which had Enter end the edit and Esc drop it).
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

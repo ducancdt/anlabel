@@ -47,7 +47,11 @@ public partial class MainWindow : Window
         WatchLabelFields();
         BuildDesignerContextMenu();
         // The properties button follows the selection through moves, zoom, scroll and view rotation.
-        DesignerCanvas.LayoutUpdated += (_, _) => PlaceSelectionPropertiesButton();
+        DesignerCanvas.LayoutUpdated += (_, _) =>
+        {
+            FollowInPlaceEdit();
+            PlaceSelectionPropertiesButton();
+        };
         BuildObjectBrowserContextMenu();
         BuildDataTreeContextMenu();
         // Back from Excel: say whether the linked file is still open there.
@@ -164,7 +168,6 @@ public partial class MainWindow : Window
 
     private void DesignerScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        EndInPlaceEdit(commit: true);
         SyncRulerOffsets();
     }
 
@@ -498,16 +501,25 @@ public partial class MainWindow : Window
     }
 
     private TextBox? _inPlaceEditor;
-    private LabelObject? _inPlaceTarget;
-
-    /// <summary>A Text or Text Box with fixed content on an editable label: what in-place editing edits.</summary>
-    private bool CanEditInPlace(LabelObject? item)
-        => item is { Type: ObjectType.Text or ObjectType.TextBox } && string.IsNullOrWhiteSpace(item.BindingExpression) && !_viewModel.IsEditingLocked;
+    private string? _inPlaceTargetId;
+    private string _inPlaceStartText = string.Empty;
 
     /// <summary>
-    /// NiceLabel 10 in-place text editing (owner decision 2026-11-01): a box over the selected text's
-    /// frame, in its font at the zoom, its content selected to type over. Enter (Shift+Enter: a new line
-    /// in a Text Box) or leaving the box applies it, Esc drops it.
+    /// A Text or Text Box with fixed content, selected alone on an editable label: what in-place
+    /// editing edits. Other objects, a text read from a source or several selected objects keep F2
+    /// and the double-click opening the properties.
+    /// </summary>
+    private bool CanEditInPlace(LabelObject? item)
+        => item is { Type: ObjectType.Text or ObjectType.TextBox } && string.IsNullOrWhiteSpace(item.BindingExpression)
+            && !_viewModel.IsEditingLocked && DesignerCanvas.SelectedObjects.Count <= 1;
+
+    /// <summary>
+    /// NiceLabel 10 in-place text editing (owner decision 2026-11-01; DesignerLib
+    /// TextSelectionEditItemView): a box over the selected text's frame, in its font at the zoom, its
+    /// content selected to type over. The label follows the typing, so saving or printing during the
+    /// edit uses the new text. Enter starts a new line, as in Properties › Nguồn › Chữ; Esc or leaving
+    /// the box ends the edit and keeps the text, one undo step. The box takes the content box's input
+    /// rules: a Text Box set to refuse overflow refuses it here too.
     /// </summary>
     private bool BeginInPlaceEdit()
     {
@@ -517,6 +529,76 @@ public partial class MainWindow : Window
         }
 
         var item = _viewModel.SelectedObject!;
+        var editor = new TextBox
+        {
+            Text = item.Text ?? string.Empty,
+            FontFamily = new FontFamily(string.IsNullOrWhiteSpace(item.Style.FontFamily) ? "Arial" : item.Style.FontFamily),
+            FontWeight = item.Style.Bold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = item.Style.Italic ? FontStyles.Italic : FontStyles.Normal,
+            TextAlignment = item.Style.Alignment switch
+            {
+                TextAlignmentMode.Center => TextAlignment.Center,
+                TextAlignmentMode.Right => TextAlignment.Right,
+                TextAlignmentMode.Justify => TextAlignment.Justify,
+                _ => TextAlignment.Left
+            },
+            AcceptsReturn = true,
+            // A Text Box wraps inside its width; a Text runs free.
+            TextWrapping = item.Type == ObjectType.TextBox ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            Padding = new Thickness(1),
+            Margin = new Thickness(0),
+            BorderThickness = new Thickness(1.5),
+            BorderBrush = (Brush)FindResource("AppBlueBrush"),
+            Background = Brushes.White,
+            ToolTip = "Enter: xuống dòng · Esc hoặc bấm ra ngoài: xong (Ctrl+Z để hoàn tác)"
+        };
+        System.Windows.Automation.AutomationProperties.SetName(editor, "In-place text");
+        System.Windows.Automation.AutomationProperties.SetAutomationId(editor, "Shell.Canvas.InPlaceText");
+        _inPlaceEditor = editor;
+        _inPlaceTargetId = item.Id;
+        if (!PlaceInPlaceEditor(item))
+        {
+            _inPlaceEditor = null;
+            _inPlaceTargetId = null;
+            return false;
+        }
+
+        // The content box's input rules: a Text Box set to refuse overflow refuses it on the label too.
+        editor.PreviewTextInput += ObjectTextBox_PreviewTextInput;
+        DataObject.AddPastingHandler(editor, ObjectTextBox_Pasting);
+        editor.PreviewKeyDown += InPlaceEditor_PreviewKeyDown;
+        editor.LostKeyboardFocus += InPlaceEditor_LostKeyboardFocus;
+        editor.TextChanged += (_, _) =>
+        {
+            if (ReferenceEquals(_inPlaceEditor, editor) && InPlaceTarget() is { } target)
+            {
+                _viewModel.SetObjectText(target, editor.Text);
+            }
+        };
+        _inPlaceStartText = item.Text ?? string.Empty;
+        _viewModel.BeginTemplateEditGesture($"Sửa chữ “{item.Name}”");
+        SelectionCommandLayer.Children.Add(editor);
+        SelectionPropertiesButton.Visibility = Visibility.Collapsed;
+        editor.Focus();
+        editor.SelectAll();
+        _viewModel.StatusText = "Sửa chữ trên tem: Enter xuống dòng; Esc hoặc bấm ra ngoài để xong, Ctrl+Z để hoàn tác.";
+        return true;
+    }
+
+    private LabelObject? InPlaceTarget()
+        => _inPlaceTargetId is { } id ? _viewModel.Template.Objects.FirstOrDefault(item => item.Id == id) : null;
+
+    /// <summary>
+    /// Puts the box on its text's frame in the font size at the zoom; false when the frame cannot be
+    /// placed. Run again on every layout, so the box stays on the text as the label scrolls or zooms.
+    /// </summary>
+    private bool PlaceInPlaceEditor(LabelObject item)
+    {
+        if (_inPlaceEditor is not { } editor)
+        {
+            return false;
+        }
+
         var zoom = _viewModel.Zoom;
         var frame = new Rect(
             MmConverter.MmToDip(item.XMm) * zoom,
@@ -533,81 +615,100 @@ public partial class MainWindow : Window
             return false;
         }
 
-        var box = item.Type == ObjectType.TextBox;
-        var editor = new TextBox
-        {
-            Text = item.Text ?? string.Empty,
-            FontFamily = new FontFamily(string.IsNullOrWhiteSpace(item.Style.FontFamily) ? "Arial" : item.Style.FontFamily),
-            FontSize = Math.Max(8, item.Style.FontSizePt * 96 / 72 * zoom),
-            FontWeight = item.Style.Bold ? FontWeights.Bold : FontWeights.Normal,
-            FontStyle = item.Style.Italic ? FontStyles.Italic : FontStyles.Normal,
-            AcceptsReturn = box,
-            TextWrapping = box ? TextWrapping.Wrap : TextWrapping.NoWrap,
-            MinWidth = Math.Max(frame.Width, 60),
-            MinHeight = Math.Max(frame.Height, 22),
-            Width = box ? Math.Max(frame.Width, 60) : double.NaN,
-            Padding = new Thickness(1),
-            Margin = new Thickness(0),
-            BorderThickness = new Thickness(1.5),
-            BorderBrush = (Brush)FindResource("AppBlueBrush"),
-            Background = Brushes.White,
-            ToolTip = box ? "Enter: xong · Shift+Enter: xuống dòng · Esc: bỏ" : "Enter: xong · Esc: bỏ"
-        };
-        System.Windows.Automation.AutomationProperties.SetName(editor, "In-place text");
-        System.Windows.Automation.AutomationProperties.SetAutomationId(editor, "Shell.Canvas.InPlaceText");
+        editor.FontSize = Math.Max(8, item.Style.FontSizePt * 96 / 72 * zoom);
+        editor.MinWidth = Math.Max(frame.Width, 60);
+        editor.MinHeight = Math.Max(frame.Height, 22);
+        editor.Width = item.Type == ObjectType.TextBox ? Math.Max(frame.Width, 60) : double.NaN;
         Canvas.SetLeft(editor, Math.Round(origin.X));
         Canvas.SetTop(editor, Math.Round(origin.Y));
-        if (item.Rotation % 360 != 0)
+        if (editor.RenderTransform is not RotateTransform turn)
         {
-            // Turned as the text is, about its frame's centre.
-            editor.RenderTransform = new RotateTransform(item.Rotation, frame.Width / 2, frame.Height / 2);
+            editor.RenderTransform = turn = new RotateTransform();
         }
 
-        editor.PreviewKeyDown += InPlaceEditor_PreviewKeyDown;
-        editor.LostKeyboardFocus += (_, _) => EndInPlaceEdit(commit: true);
-        SelectionCommandLayer.Children.Add(editor);
-        _inPlaceEditor = editor;
-        _inPlaceTarget = item;
-        SelectionPropertiesButton.Visibility = Visibility.Collapsed;
-        editor.Focus();
-        editor.SelectAll();
-        _viewModel.StatusText = box ? "Sửa chữ trên tem: Enter để xong, Shift+Enter xuống dòng, Esc để bỏ." : "Sửa chữ trên tem: Enter để xong, Esc để bỏ.";
+        // Turned as the text is, about its frame's centre.
+        turn.Angle = item.Rotation;
+        turn.CenterX = frame.Width / 2;
+        turn.CenterY = frame.Height / 2;
         return true;
+    }
+
+    /// <summary>The box follows its text; a text gone from the label (deleted or undone) ends the edit.</summary>
+    private void FollowInPlaceEdit()
+    {
+        if (_inPlaceEditor is null)
+        {
+            return;
+        }
+
+        if (InPlaceTarget() is { } item)
+        {
+            PlaceInPlaceEditor(item);
+        }
+        else
+        {
+            Dispatcher.BeginInvoke(() => EndInPlaceEdit(), System.Windows.Threading.DispatcherPriority.Input);
+        }
     }
 
     private void InPlaceEditor_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // NiceLabel 10: Esc ends the edit and keeps the text (Ctrl+Z takes it back); Enter is a new line.
         if (e.Key == Key.Escape)
         {
-            EndInPlaceEdit(commit: false);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) == 0)
-        {
-            EndInPlaceEdit(commit: true);
+            EndInPlaceEdit();
             e.Handled = true;
         }
     }
 
-    /// <summary>Applies or drops the in-place edit, to the object it was opened on.</summary>
-    private void EndInPlaceEdit(bool commit)
+    private void InPlaceEditor_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        // The box's own Cut / Copy / Paste menu keeps the edit open.
+        if (sender is TextBox editor && e.NewFocus is DependencyObject next && IsInMenuOf(next, editor))
+        {
+            return;
+        }
+
+        EndInPlaceEdit();
+    }
+
+    private static bool IsInMenuOf(DependencyObject element, UIElement owner)
+    {
+        for (DependencyObject? node = element; node is not null; node = LogicalTreeHelper.GetParent(node) ?? (node is Visual ? VisualTreeHelper.GetParent(node) : null))
+        {
+            if (node is ContextMenu menu)
+            {
+                return ReferenceEquals(menu.PlacementTarget, owner);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Ends the in-place edit: its text is already on the label; the edit becomes one undo step.</summary>
+    private void EndInPlaceEdit()
     {
         if (_inPlaceEditor is not { } editor)
         {
             return;
         }
 
-        var target = _inPlaceTarget;
+        var target = InPlaceTarget();
+        var hadFocus = editor.IsKeyboardFocusWithin;
         _inPlaceEditor = null;
-        _inPlaceTarget = null;
+        _inPlaceTargetId = null;
         SelectionCommandLayer.Children.Remove(editor);
-        if (commit && target is not null)
+        _viewModel.CommitTemplateEditGesture();
+        if (target is not null)
         {
-            _viewModel.SetObjectText(target, editor.Text);
+            _viewModel.StatusText = string.Equals(target.Text ?? string.Empty, _inPlaceStartText, StringComparison.Ordinal)
+                ? "Sẵn sàng"
+                : $"Đã sửa chữ của {target.Name}.";
         }
 
-        if (editor.IsKeyboardFocusWithin)
+        if (hadFocus)
         {
+            // Back to the label, as NiceLabel returns to the element focused before.
             DesignerCanvas.Focus();
         }
 

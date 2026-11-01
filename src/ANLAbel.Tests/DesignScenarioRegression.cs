@@ -1731,10 +1731,13 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
-    /// Owner decision 2026-11-01, NiceLabel 10 in-place text editing: F2, Enter, a double-click or
-    /// Sửa chữ opens a box over the selected Text or Text Box with fixed content. Enter applies the
-    /// text in one undo step and Esc drops it; a Text Box keeps its frame however long the text (the
-    /// protected contract); a text read from a source, or a protected label, is not edited there.
+    /// Owner decision 2026-11-01, NiceLabel 10 in-place text editing (DesignerLib
+    /// TextSelectionEditItemView): F2, Enter, a double-click or Sửa chữ opens a box over the selected
+    /// Text or Text Box with fixed content. The label follows the typing; Enter is a new line; Esc or
+    /// leaving the box ends the edit and keeps the text, one undo step. The box takes the content box's
+    /// input rules (a Text Box set to refuse overflow refuses it), follows the zoom, and a Text Box keeps
+    /// its frame however long the text (the protected contract). A text read from a source, several
+    /// selected objects or a protected label are not edited there.
     /// </summary>
     public static Task InPlaceEditingEditsATextOnTheLabel()
     {
@@ -1746,8 +1749,12 @@ internal static class DesignScenarioRegression
             var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "ABC", XMm = 4, YMm = 4, WidthMm = 20, HeightMm = 6 };
             var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô", Text = "Dòng", XMm = 4, YMm = 14, WidthMm = 20, HeightMm = 6 };
             box.Style.TextSizing = TextSizingMode.FixedFrame;
+            var strict = new LabelObject { Type = ObjectType.TextBox, Name = "Ô chặn", Text = "A", XMm = 30, YMm = 14, WidthMm = 12, HeightMm = 6 };
+            strict.Style.TextSizing = TextSizingMode.FixedFrame;
+            strict.Style.TextOverflow = TextOverflowMode.Error;
+            strict.Style.FontSizePt = 8;
             var bound = new LabelObject { Type = ObjectType.Text, Name = "Lô in", Text = string.Empty, BindingExpression = "{?Lô}", XMm = 4, YMm = 24, WidthMm = 20, HeightMm = 6 };
-            foreach (var item in new[] { text, box, bound })
+            foreach (var item in new[] { text, box, strict, bound })
             {
                 viewModel.Template.Objects.Add(item);
             }
@@ -1766,12 +1773,30 @@ internal static class DesignScenarioRegression
             }
 
             var layer = (Canvas)window.FindName("SelectionCommandLayer");
+            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
             TextBox? Editor() => layer.Children.OfType<TextBox>().SingleOrDefault();
             var begin = typeof(ANLAbel.App.MainWindow).GetMethod("BeginInPlaceEdit", BindingFlags.Instance | BindingFlags.NonPublic)!;
             bool Begin() => (bool)begin.Invoke(window, null)!;
             var source = new KeyInputSource();
-            void Press(TextBox editor, System.Windows.Input.Key key)
-                => editor.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, source, 0, key) { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent });
+            bool Press(TextBox editor, System.Windows.Input.Key key)
+            {
+                var args = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, source, 0, key) { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent };
+                editor.RaiseEvent(args);
+                return args.Handled;
+            }
+
+            void Leave(TextBox editor, IInputElement next)
+                => editor.RaiseEvent(new System.Windows.Input.KeyboardFocusChangedEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, 0, editor, next) { RoutedEvent = System.Windows.Input.Keyboard.LostKeyboardFocusEvent });
+            bool Type(TextBox editor, string input)
+            {
+                var args = new System.Windows.Input.TextCompositionEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new System.Windows.Input.TextComposition(System.Windows.Input.InputManager.Current, editor, input))
+                {
+                    RoutedEvent = UIElement.PreviewTextInputEvent
+                };
+                editor.RaiseEvent(args);
+                return !args.Handled;
+            }
+
             LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
             void Select(LabelObject item)
             {
@@ -1779,34 +1804,58 @@ internal static class DesignScenarioRegression
                 Settle();
             }
 
-            // Enter applies the text, one undo step.
+            // The label follows the typing; Enter is a new line; Esc ends the edit and keeps the text; one undo takes it all back.
             Select(text);
-            Require(Begin() && Editor() is { Text: "ABC" }, "The fixed text opens on the label with its content: " + Editor()?.Text);
+            Require(Begin() && Editor() is { Text: "ABC", AcceptsReturn: true }, "The fixed text opens on the label with its content, Enter a new line: " + Editor()?.Text);
+            Editor()!.Text = "XY";
+            Require(Lookup(text).Text == "XY", "The label follows the typing: " + Lookup(text).Text);
             Editor()!.Text = "XYZ";
-            Press(Editor()!, System.Windows.Input.Key.Enter);
-            Require(Editor() is null && Lookup(text).Text == "XYZ", "Enter applies the text: " + Lookup(text).Text);
+            Require(!Press(Editor()!, System.Windows.Input.Key.Enter) && Editor() is not null, "Enter does not end the edit; it is a new line.");
+            Require(Press(Editor()!, System.Windows.Input.Key.Escape) && Editor() is null && Lookup(text).Text == "XYZ", "Esc ends the edit and keeps the text: " + Lookup(text).Text);
             viewModel.UndoCommand.Execute(null);
-            Require(Lookup(text).Text == "ABC", "One undo takes it back: " + Lookup(text).Text);
+            Require(Lookup(text).Text == "ABC", "One undo takes the whole edit back: " + Lookup(text).Text);
 
-            // Esc drops the edit.
+            // Leaving the box ends the edit and keeps the text; its own Cut/Copy/Paste menu does not.
             Select(text);
             Require(Begin(), "The text opens again.");
-            Editor()!.Text = "ZZZ";
+            Editor()!.Text = "ABD";
+            Leave(Editor()!, new ContextMenu { PlacementTarget = Editor() });
+            Require(Editor() is not null, "The box's own menu keeps the edit open.");
+            Leave(Editor()!, canvas);
+            Require(Editor() is null && Lookup(text).Text == "ABD", "Leaving the box ends the edit and keeps the text: " + Lookup(text).Text);
+
+            // The box follows the zoom.
+            Select(text);
+            viewModel.Zoom = 1;
+            Settle();
+            Require(Begin(), "The text opens for the zoom check.");
+            var size = Editor()!.FontSize;
+            viewModel.Zoom = 2;
+            Settle();
+            Require(Math.Abs(Editor()!.FontSize - Math.Max(8, Lookup(text).Style.FontSizePt * 96 / 72 * viewModel.Zoom)) < 0.01 && Editor()!.FontSize > size,
+                $"The box follows the zoom: {size:0.##} -> {Editor()!.FontSize:0.##}");
             Press(Editor()!, System.Windows.Input.Key.Escape);
-            Require(Editor() is null && Lookup(text).Text == "ABC", "Esc drops the edit: " + Lookup(text).Text);
+            viewModel.Zoom = 1;
+            Settle();
 
             // A Text Box keeps its frame however long the text.
             Select(box);
             Require(Begin(), "The Text Box opens on the label.");
             Editor()!.Text = "Một nội dung dài hơn hẳn khung của ô chữ này nhiều lần";
-            Press(Editor()!, System.Windows.Input.Key.Enter);
+            Press(Editor()!, System.Windows.Input.Key.Escape);
             Require(Lookup(box).Text.StartsWith("Một nội dung", StringComparison.Ordinal) && Lookup(box).WidthMm == 20 && Lookup(box).HeightMm == 6,
                 $"The Text Box takes the text and keeps its frame: {Lookup(box).WidthMm} x {Lookup(box).HeightMm}");
+
+            // A Text Box set to refuse overflow refuses it in the box on the label, as in Properties.
+            Select(strict);
+            Require(Begin(), "The strict Text Box opens on the label.");
+            Require(!Type(Editor()!, "Một dòng chữ dài không thể vừa khung mười hai milimét"), "Overflowing input is refused in the box on the label.");
+            Require(Type(Editor()!, "B"), "Input that fits is taken.");
+            Press(Editor()!, System.Windows.Input.Key.Escape);
 
             // A text read from a source opens no editor; the menu offers Sửa chữ for fixed text only.
             Select(bound);
             Require(!Begin() && Editor() is null, "A text read from a prompt is not edited on the label.");
-            var canvas = (ANLAbel.App.Controls.LabelDesignerCanvas)window.FindName("DesignerCanvas");
             var prepare = typeof(ANLAbel.App.MainWindow).GetMethod("PrepareDesignerContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)!;
             MenuItem EditText() => canvas.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Sửa chữ"));
             prepare.Invoke(window, new object[] { true });
@@ -1833,6 +1882,11 @@ internal static class DesignScenarioRegression
             Settle();
             Require(Editor() is not null, "F2 opens the editor for a fixed text.");
             Press(Editor()!, System.Windows.Input.Key.Escape);
+
+            // Several selected objects: F2 and the double-click keep opening the properties.
+            canvas.SelectAllObjects();
+            Settle();
+            Require(!Begin() && Editor() is null, "With several objects selected no text is edited on the label.");
 
             // A protected label is not edited there.
             viewModel.Template.ProtectFromEditing = true;
