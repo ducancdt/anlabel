@@ -211,6 +211,14 @@ doi resize (`DragCompleted`, `LostMouseCapture` khong huy), khung W/H cua O chu,
 duong ke khong co tay xoay. Gate: `the selection has no fill`, `the rotation handle turns by quarter turns`, cung
 bay gate bao ve.
 
+### Tem bao ve khong co tay nam (2026-11-01, sua loi bao ve)
+
+Tren tem bao ve `LabelDesignerCanvas.IsEnabled` gan voi `IsEditingAllowed` (false), nhung bo trang tri chon nam o
+`AdornerLayer`, khong thua huong IsEnabled cua be mat, nen tay nam resize va tay xoay van keo duoc va doi tem.
+Nay `ShowSelectionAdorner`/`ShowGroupResizeAdorner` khong tao tay nam khi be mat tat, `IsEnabledChanged` dung lai
+chung, va `ResizeSelectedObject`/`ResizeSelectedGroup`/`RotateSelectedObject` tu choi khi be mat tat. Vong doi
+resize, tam tay nam va khung khong doi. Gate: `a protected label shows no handles`.
+
 ## Thu tu parity tiep theo
 
 1. Same-size group resolver theo row va cung fit mode; scene identity phai mang group name.

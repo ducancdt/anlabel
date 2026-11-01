@@ -180,6 +180,8 @@ public sealed class LabelDesignerCanvas : Canvas
         ClipToBounds = false;
         Focusable = true;
         AllowDrop = true;
+        // A protected label disables the surface; its handles go and come back with it.
+        IsEnabledChanged += (_, _) => RefreshSelectionAdorner();
         DragOver += CanvasDragOver;
         Drop += CanvasDrop;
         MouseLeftButtonDown += CanvasMouseButtonDown;
@@ -3128,7 +3130,7 @@ public sealed class LabelDesignerCanvas : Canvas
     /// </summary>
     private void RotateSelectedObject(LabelObject item, int quarterTurns)
     {
-        if (item.IsLocked || quarterTurns % 4 == 0)
+        if (item.IsLocked || quarterTurns % 4 == 0 || !IsEnabled)
         {
             return;
         }
@@ -4891,7 +4893,9 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private void ShowSelectionAdorner(LabelObject item)
     {
-        if (!_objectElements.TryGetValue(item, out var element) || item.IsLocked)
+        // The adorner layer does not take the surface's IsEnabled: a disabled surface (a protected
+        // label) shows no handles, or a drag of one would change the label.
+        if (!_objectElements.TryGetValue(item, out var element) || item.IsLocked || !IsEnabled)
         {
             RemoveSelectionAdorner();
             return;
@@ -4967,7 +4971,7 @@ public sealed class LabelDesignerCanvas : Canvas
     private void ShowGroupResizeAdorner()
     {
         var resizeItems = GetResizeSelection();
-        if (resizeItems.Count < 2 || Template is null)
+        if (resizeItems.Count < 2 || Template is null || !IsEnabled)
         {
             RemoveGroupResizeAdorner();
             return;
@@ -5171,7 +5175,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private void ResizeSelectedGroup(ResizeDelta delta)
     {
-        if (Template is null || _groupResizeStarts.Count < 2)
+        if (Template is null || _groupResizeStarts.Count < 2 || !IsEnabled)
         {
             return;
         }
@@ -5483,7 +5487,7 @@ public sealed class LabelDesignerCanvas : Canvas
 
     private void ResizeSelectedObject(LabelObject item, ResizeDelta delta)
     {
-        if (Template is null || item.IsLocked)
+        if (Template is null || item.IsLocked || !IsEnabled)
         {
             return;
         }

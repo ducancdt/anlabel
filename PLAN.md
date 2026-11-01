@@ -1,5 +1,13 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.372
+
+- Tem được bảo vệ không còn hiện tay nắm của đối tượng đang chọn. Bảng thiết kế bị tắt trên tem bảo vệ, nhưng
+  tay nắm nằm ở lớp trang trí không thừa hưởng việc tắt đó, nên kéo tay nắm (và tay xoay của v0.372) vẫn đổi được
+  tem. Nay tay nắm ẩn khi bảng thiết kế tắt, hiện lại khi bỏ bảo vệ; đường đổi kích thước và xoay cũng từ chối
+  trên bảng tắt. Phát hiện khi kiểm thử trực tiếp v0.372 (chuột thật, chủ dự án cho phép): kéo tay xoay 0° → 90°
+  và Ctrl+Z về 0° đều đúng.
+
 ## v0.372 — Vùng chọn và tay xoay như NiceLabel, biểu tượng cây Dữ liệu, ô Nội dung cao
 
 _Gồm các commit 01/11/2026 (11:56–12:41)._

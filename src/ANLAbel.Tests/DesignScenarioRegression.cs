@@ -2426,6 +2426,62 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// A protected label showed the selected object's resize handles and, since v0.372, its rotation
+    /// handle: the design surface is disabled there, but the adorner layer does not take its IsEnabled,
+    /// so a drag of a handle changed the protected label (found in the v0.372 live check). A protected
+    /// label now shows no handles, they come back once it is unprotected, and the resize and rotation
+    /// paths refuse on a disabled surface.
+    /// </summary>
+    public static Task ProtectedLabelShowsNoHandles()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var box = new LabelObject { Type = ObjectType.TextBox, Name = "Ô", Text = "Lô 42", XMm = 10, YMm = 8, WidthMm = 24, HeightMm = 8 };
+            box.Style.TextSizing = TextSizingMode.FixedFrame;
+            viewModel.Template.Objects.Add(box);
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            var decorator = new AdornerDecorator { Child = content };
+            void Settle()
+            {
+                decorator.Measure(new Size(1440, 900));
+                decorator.Arrange(new Rect(0, 0, 1440, 900));
+                decorator.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var canvas = (LabelDesignerCanvas)window.FindName("DesignerCanvas");
+            var field = typeof(LabelDesignerCanvas).GetField("_selectionAdorner", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            LabelObject Lookup() => viewModel.Template.Objects.Single(entry => entry.Id == box.Id);
+            viewModel.SelectedObject = Lookup();
+            Settle();
+            Require(field.GetValue(canvas) is SelectionResizeAdorner, "An editable label shows the selected object's handles.");
+
+            viewModel.Template.ProtectFromEditing = true;
+            Settle();
+            Require(!canvas.IsEnabled && field.GetValue(canvas) is null, "A protected label shows no handles: enabled " + canvas.IsEnabled);
+            var rotate = typeof(LabelDesignerCanvas).GetMethod("RotateSelectedObject", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            rotate.Invoke(canvas, new object[] { Lookup(), 1 });
+            var resize = typeof(LabelDesignerCanvas).GetMethod("ResizeSelectedObject", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            resize.Invoke(canvas, new object[] { Lookup(), new ResizeDelta(0, 0, 40, 20, ResizeHandle.BottomRight) });
+            Require(Lookup().Rotation == 0 && Lookup().WidthMm == 24 && Lookup().HeightMm == 8,
+                $"Nothing turns or resizes a protected label: {Lookup().Rotation}°, {Lookup().WidthMm} x {Lookup().HeightMm}");
+
+            viewModel.Template.ProtectFromEditing = false;
+            Settle();
+            Require(canvas.IsEnabled && field.GetValue(canvas) is SelectionResizeAdorner, "Unprotected again, the handles come back.");
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

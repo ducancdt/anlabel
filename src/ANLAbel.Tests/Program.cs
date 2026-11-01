@@ -99,6 +99,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the content box is tall as NiceLabel's", DesignScenarioRegression.ContentBoxIsTallAsNiceLabels),
     ("the selection has no fill", DesignScenarioRegression.SelectionHasNoFill),
     ("the rotation handle turns by quarter turns", DesignScenarioRegression.RotationHandleTurnsByQuarterTurns),
+    ("a protected label shows no handles", DesignScenarioRegression.ProtectedLabelShowsNoHandles),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
