@@ -2,6 +2,10 @@
 
 ## Sau v0.374
 
+- Bảng Dữ liệu thêm từ trong cây như NiceLabel 10 ("Add new variable", "Add new function"): "+ Thêm biến nhập…" là
+  dòng đầu của Biến nhập khi in, "+ Thêm hàm…" là dòng đầu của Hàm (bấm, Enter hoặc nhấp đúp mở Quản lý dữ liệu
+  trên mục mới; tắt trên tem được bảo vệ), như "+ Liên kết Excel / CSV…" dưới Trường dữ liệu. Nút "+ Thêm ▾"
+  cạnh ô Tìm bỏ đi (NiceLabel không có); ruy-băng Dữ liệu và Quản lý dữ liệu vẫn thêm được.
 - Khi chọn nhiều đối tượng, khung của từng đối tượng giống khung trong của một đối tượng (nét gạch xanh #0072EB trên
   nền trắng ngay trong mép, như MoveThumb của NiceLabel 10); vật mốc vẫn có khung đậm riêng để căn chỉnh.
 - Rê chuột qua một đối tượng trên bảng thiết kế thì đối tượng đó có viền xanh mờ (như NiceLabel 10: 2 DIP, cách 4

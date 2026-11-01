@@ -856,16 +856,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void DataTreeAdd_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { ContextMenu: { } menu } button)
-        {
-            menu.PlacementTarget = button;
-            menu.Placement = PlacementMode.Bottom;
-            menu.IsOpen = true;
-        }
-    }
-
     /// <summary>
     /// The Quản lý dữ liệu page a double-click in the Data panel opens (NiceLabel 10
     /// DefineDataSourcesCommand): the prompt or function itself, the data source page for a
@@ -878,8 +868,10 @@ public partial class MainWindow : Window
         string => "Database",
         DataTreeField field when field.Binding.Contains(SerialCounterContract.Token, StringComparison.OrdinalIgnoreCase) => "Counter",
         DataTreeField => "Date",
-        // The database row under Trường dữ liệu.
+        // The database row under Trường dữ liệu, and the groups' "Add new variable" and "Add new function" rows.
         TreeViewItem { Tag: "Database" } => "Database",
+        TreeViewItem { Tag: "NewPrompt" } => "NewPrompt",
+        TreeViewItem { Tag: "NewFunction" } => "NewFunction",
         _ => null
     };
 

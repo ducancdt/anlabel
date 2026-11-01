@@ -1125,13 +1125,18 @@ internal static class DesignScenarioRegression
                 .Select(text => text.Text).ToArray();
             Require(cut.Length == 0, "Wrapping texts stay inside the Data panel: " + string.Join(" | ", cut));
 
-            // The search box and its "+ Thêm ▾" button line up (the ▾ glyph once made the button 45 DIP tall).
-            var search = (TextBox)window.FindName("DataTreeSearch");
-            var add = FindVisualChildren<Button>(scroller).First(button => AutomationProperties.GetName(button) == "Add data source");
-            var searchTop = search.TranslatePoint(new Point(0, 0), scroller).Y;
-            var addTop = add.TranslatePoint(new Point(0, 0), scroller).Y;
-            Require(Math.Abs(search.ActualHeight - add.ActualHeight) < 1 && Math.Abs(searchTop - addTop) < 1,
-                $"The search box and the Add button line up: {search.ActualHeight:0.#}@{searchTop:0.#} / {add.ActualHeight:0.#}@{addTop:0.#}");
+            // NiceLabel 10 adds from inside the tree: "+ Thêm biến nhập…" and "+ Thêm hàm…" are the first rows of
+            // their groups, and Enter or a double-click on them opens Quản lý dữ liệu on the new item; no Add button
+            // stands beside the search box.
+            Require(!FindVisualChildren<Button>(scroller).Any(button => AutomationProperties.GetName(button) == "Add data source"),
+                "No Add button beside the search box.");
+            foreach (var (group, row, page) in new[] { ("DataTreePrompts", "DataTreeAddPromptItem", "NewPrompt"), ("DataTreeFunctions", "DataTreeAddFunctionItem", "NewFunction") })
+            {
+                var item = (TreeViewItem)window.FindName(row);
+                Require(((TreeViewItem)window.FindName(group)).Items[0] == item && Shown(item) && item.IsEnabled
+                        && ANLAbel.App.MainWindow.DataManagerPageFor(item) == page && FindVisualChildren<Button>(item).Any(button => Shown(button)),
+                    $"{row} is the first row of {group}, shown and opening {page}.");
+            }
             // Not closed: closing an edited label asks whether to save it.
         });
 
@@ -1583,7 +1588,7 @@ internal static class DesignScenarioRegression
                 $"Only the counter changes: {string.Join(",", viewModel.Template.PromptVariables.Select(prompt => prompt.Name))} / "
                 + $"{string.Join(",", viewModel.Template.DataTransforms.Select(function => function.Name))} / {viewModel.Template.SerialCounter.StartValue}");
 
-            // The Data panel's "+ Thêm" is off; unprotected, the label takes every change again.
+            // The Data panel's add rows (+ Thêm biến nhập…, + Thêm hàm…) are off; unprotected, the label takes every change again.
             // An unshown window lays nothing out: its content is laid out on its own, with the window's resources.
             var content = (FrameworkElement)window.Content;
             var resources = window.Resources;
@@ -1594,8 +1599,8 @@ internal static class DesignScenarioRegression
             content.Arrange(new Rect(0, 0, 1440, 900));
             content.UpdateLayout();
             System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
-            var add = FindLogicalChildren<Button>(content).First(button => AutomationProperties.GetName(button) == "Add data source");
-            Require(!add.IsEnabled, "The Data panel's + Thêm is off on a protected label.");
+            var adds = new[] { "DataTreeAddPromptItem", "DataTreeAddFunctionItem" }.Select(name => (TreeViewItem)window.FindName(name)).ToArray();
+            Require(adds.All(row => !row.IsEnabled), "The Data panel's add rows are off on a protected label.");
             viewModel.Template.ProtectFromEditing = false;
             viewModel.ApplyDataDefinitions(new[] { new PromptVariableDefinition { Name = "Lô" }, new PromptVariableDefinition { Name = "Ca" } },
                 Array.Empty<ANLAbel.Core.Data.DataTransformDefinition>(), counter);
@@ -4493,7 +4498,11 @@ internal static class DesignScenarioRegression
                 "The Data panel has prompts, fields, functions and print-time values: " + string.Join(", ", sections.Select(Heading)));
 
             var binding = typeof(ANLAbel.App.MainWindow).GetMethod("DataTreeBinding", BindingFlags.Static | BindingFlags.NonPublic)!;
-            string?[] Bindings(TreeViewItem section) => section.Items.Cast<object>().Select(item => (string?)binding.Invoke(null, new[] { item })).ToArray();
+            // The entries only: a group's add row (NiceLabel's Add new variable) has no binding and does not drag.
+            string?[] Bindings(TreeViewItem section) => section.Items.Cast<object>().Where(item => item is not TreeViewItem)
+                .Select(item => (string?)binding.Invoke(null, new[] { item })).ToArray();
+            Require(sections.SelectMany(section => section.Items.OfType<TreeViewItem>()).All(row => binding.Invoke(null, new object[] { row }) is null),
+                "An add row has no binding, so it does not drag onto the label.");
             Require(Bindings(sections[0]).SequenceEqual(["{?Lot}"]) && Bindings(sections[2]).SequenceEqual(["{MaLo}"])
                     && Bindings(sections[3]).SequenceEqual(["{#SERIAL}", "{#NOW:dd/MM/yyyy}"]),
                 $"Each item drags with its binding: {string.Join(" ", Bindings(sections[0]))} | {string.Join(" ", Bindings(sections[2]))} | {string.Join(" ", Bindings(sections[3]))}");
