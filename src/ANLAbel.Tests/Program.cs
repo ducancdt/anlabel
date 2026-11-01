@@ -100,6 +100,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("the selection has no fill", DesignScenarioRegression.SelectionHasNoFill),
     ("the rotation handle turns by quarter turns", DesignScenarioRegression.RotationHandleTurnsByQuarterTurns),
     ("a protected label shows no handles", DesignScenarioRegression.ProtectedLabelShowsNoHandles),
+    ("an authored X blocks below two dots and soft images warn", TestAuthoredXBlocksBelowTwoDotsAndSoftImagesWarn),
     ("SSCC cartons number themselves with a valid check digit", DesignScenarioRegression.SsccCartonsNumberThemselves),
     ("pharma packs carry GS1 DataMatrix serials", DesignScenarioRegression.PharmaPacksCarryGs1DataMatrixSerials),
     ("print preview rows name their fields", DesignScenarioRegression.PreviewRowsNameTheirFields),
@@ -5555,6 +5556,58 @@ static Task TestPrintPreflightAllowsOfficeSheetStock()
     return Task.CompletedTask;
 }
 
+/// <summary>
+/// Owner decisions 2026-11-01 on two print safety rules: an authored linear X blocks print only when its
+/// narrow bar comes to fewer than 2 printer dots at the print DPI (0.125 mm at 203 DPI: 1 dot), and warns
+/// from 2 dots up to the 0.19 mm industrial floor (0.17 mm at 300 DPI: 2 dots); an image below the
+/// printer grid's density warns instead of blocking.
+/// </summary>
+static Task TestAuthoredXBlocksBelowTwoDotsAndSoftImagesWarn()
+{
+    LabelTemplate Code(double moduleMm)
+    {
+        var template = new LabelTemplate { Name = "X", WidthMm = 80, HeightMm = 30 };
+        template.Objects.Add(new LabelObject
+        {
+            Type = ObjectType.BarcodeCode128,
+            Name = "Mã",
+            BarcodeSymbology = BarcodeSymbology.Code128,
+            Text = "ABC123",
+            XMm = 4,
+            YMm = 4,
+            WidthMm = 60,
+            HeightMm = 12,
+            BarcodeModuleWidthMm = moduleMm,
+            BarcodeWidthMode = BarcodeWidthMode.SizedFromX
+        });
+        return template;
+    }
+
+    var validator = new PrintPreflightValidator(new ZxingBarcodeRenderer());
+    PrintPreflightIssue? Module(LabelTemplate template, int dpi)
+        => validator.Validate(template, new IReadOnlyDictionary<string, string>?[] { null }, dpi).Issues
+            .FirstOrDefault(issue => issue.Message.StartsWith("Linear module is", StringComparison.Ordinal));
+
+    var oneDot = Module(Code(0.125), 203);
+    AssertEqual(true, oneDot is { IsBlocking: true }, "An authored X of 1 dot (0.125 mm at 203 DPI) still blocks print");
+    var twoDots = Module(Code(0.17), 300);
+    AssertEqual(true, twoDots is { IsBlocking: false }, "An authored X of 2 dots below 0.19 mm (0.17 mm at 300 DPI) warns, it does not block");
+    AssertEqual(true, Module(Code(0.33), 203) is null, "A comfortable X raises nothing");
+
+    // A 40×40 pixel picture in a 20 mm frame is about 51 PPI: soft at 300 DPI, a warning only.
+    using var picture = new System.IO.MemoryStream();
+    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(System.Windows.Media.Imaging.BitmapSource.Create(
+        40, 40, 96, 96, System.Windows.Media.PixelFormats.Gray8, null, new byte[40 * 40], 40)));
+    encoder.Save(picture);
+    var image = new LabelTemplate { Name = "Ảnh", WidthMm = 40, HeightMm = 30 };
+    image.Objects.Add(new LabelObject { Type = ObjectType.Image, Name = "Logo", XMm = 4, YMm = 4, WidthMm = 20, HeightMm = 20, ImageDataBase64 = Convert.ToBase64String(picture.ToArray()) });
+    var soft = validator.Validate(image, new IReadOnlyDictionary<string, string>?[] { null }, 300).Issues
+        .FirstOrDefault(issue => issue.Message.StartsWith("Image source density is only", StringComparison.Ordinal));
+    AssertEqual(true, soft is { IsBlocking: false }, "A soft picture warns, it does not block print: " + (soft?.Message ?? "no issue"));
+    return Task.CompletedTask;
+}
+
 static Task TestBarcodeAndSerialPropertiesExposeReverseEngineeredOptions()
 {
     var xaml = File.ReadAllText(Path.Combine(
@@ -7121,7 +7174,9 @@ static Task TestImagePreflightValidatesResolution()
     var lowResolutionResult = new PrintService().ValidateRows(
         lowResolutionTemplate,
         new IReadOnlyDictionary<string, string>?[] { null });
-    AssertEqual(false, lowResolutionResult.IsSuccess, "An image below the effective printer grid must block production preflight");
+    // Owner decision 2026-11-01: a soft picture warns; it no longer stops production printing.
+    AssertEqual(true, lowResolutionResult.Issues.Any(issue => issue.Message.Contains("source density", StringComparison.OrdinalIgnoreCase) && !issue.IsBlocking),
+        "An image below the effective printer grid warns and does not block production preflight");
     AssertEqual(true, lowResolutionResult.Issues.Any(issue => issue.Message.Contains("source density", StringComparison.OrdinalIgnoreCase)),
         "Low-resolution image diagnostics must report the effective source density");
 

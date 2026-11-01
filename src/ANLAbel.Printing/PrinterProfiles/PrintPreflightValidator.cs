@@ -268,12 +268,14 @@ public sealed class PrintPreflightValidator
             return;
         }
 
+        // Owner decision 2026-11-01: an authored X blocks only below 2 printer dots; from 2 dots up
+        // to the 0.19 mm industrial floor it warns. A frame-derived X only warns, as before.
         issues.Add(new PrintPreflightIssue(
             0,
             item.Name,
             item.Type.ToString(),
             LinearBarcodeModuleContract.FormatIndustrialRiskMessage(resolution),
-            IsBlocking: item.BarcodeModuleWidthMm > 0));
+            IsBlocking: item.BarcodeModuleWidthMm > 0 && resolution.IsBelowMinimumDots));
     }
 
     /// <summary>
@@ -490,7 +492,9 @@ public sealed class PrintPreflightValidator
                     0,
                     item.Name,
                     item.Type.ToString(),
-                    $"Image source density is only {observation.EffectivePpiX:0.#}×{observation.EffectivePpiY:0.#} PPI in its {item.WidthMm:0.##}×{item.HeightMm:0.##} mm frame, below the effective {dpiX}×{dpiY} DPI printer grid. Use a higher-resolution image or reduce the frame before production printing."));
+                    $"Image source density is only {observation.EffectivePpiX:0.#}×{observation.EffectivePpiY:0.#} PPI in its {item.WidthMm:0.##}×{item.HeightMm:0.##} mm frame, below the effective {dpiX}×{dpiY} DPI printer grid. Use a higher-resolution image or reduce the frame before production printing.",
+                    // Owner decision 2026-11-01: a soft picture warns; it does not stop the print.
+                    IsBlocking: false));
             }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)

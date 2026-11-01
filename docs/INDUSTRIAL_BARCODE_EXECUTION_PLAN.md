@@ -49,7 +49,7 @@ When research matrix status and this plan disagree, **update both in the same ch
 | Authored module | `LabelObject.BarcodeModuleWidthMm` (mm); **0 = legacy** frame ÷ module columns |
 | Quantize policy | `LinearBarcodeModuleContract` → whole printer dots at **print-plan DPI** |
 | Floors | **≥ 2 module dots**; industrial floor **~0.19 mm** (~7.5 mil) on **effective** quantized width |
-| Preflight | `PrintPreflightValidator.ValidateLinearBarcodeModuleAtPrintDpi` (fail-closed issue) |
+| Preflight | `PrintPreflightValidator.ValidateLinearBarcodeModuleAtPrintDpi`: an authored X blocks below 2 module dots and warns from 2 dots up to the 0.19 mm floor (owner decision 2026-11-01; it blocked whenever X was authored); a frame-derived X warns |
 | Designer warning | `MainViewModel.BarcodeModuleSizeWarningText` (linear path; uses `PrinterProfile.Dpi` first) |
 | UI | Properties **X-dim (mm)** on linear barcodes |
 | Persist | Clone + `DocumentSnapshot` |

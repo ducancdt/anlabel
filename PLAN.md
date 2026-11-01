@@ -2,6 +2,11 @@
 
 ## Sau v0.372
 
+- Hai quy tắc an toàn in theo quyết định của chủ dự án (2026-11-01):
+  - Mã vạch 1D có X do người thiết kế đặt chỉ bị chặn in khi vạch hẹp ra dưới 2 điểm ở DPI máy in; từ 2 điểm tới
+    ngưỡng 0,19 mm thì chỉ cảnh báo (trước đây cứ dưới 0,19 mm là chặn). Lưu ý: 0,125 mm ở 203 hay 300 dpi chỉ
+    được 1 điểm (300 dpi: 1,48 điểm làm tròn còn 1), nên vẫn bị chặn; ở 600 dpi được 3 điểm, chỉ cảnh báo.
+  - Ảnh có mật độ thấp hơn lưới điểm của máy in (logo 138–205 PPI, cả ảnh 297–299 PPI) chỉ cảnh báo, không chặn.
 - Tem được bảo vệ không còn hiện tay nắm của đối tượng đang chọn. Bảng thiết kế bị tắt trên tem bảo vệ, nhưng
   tay nắm nằm ở lớp trang trí không thừa hưởng việc tắt đó, nên kéo tay nắm (và tay xoay của v0.372) vẫn đổi được
   tem. Nay tay nắm ẩn khi bảng thiết kế tắt, hiện lại khi bỏ bảo vệ; đường đổi kích thước và xoay cũng từ chối
