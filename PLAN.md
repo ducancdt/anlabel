@@ -1,5 +1,11 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.369
+
+- Ô màu chữ trên ribbon (Trang chủ, thẻ Chữ) hiện đúng màu của chữ đang chọn: ô màu trong bảng dù viết
+  hoa hay thường, ô trống với màu ngoài bảng. Trước đây ô giữ ô màu của chữ chọn trước (cùng lỗi với ô
+  phông và ô cỡ); nay dùng chung cơ chế với chúng.
+
 ## v0.369 — Ô phông chữ hiện đúng phông của đối tượng đang chọn
 
 _Gồm các commit 01/11/2026 (10:23–10:23)._

@@ -1220,19 +1220,20 @@ public partial class MainWindow : Window
 
     private bool _showingListValue;
 
-    // The font boxes: family and size on the ribbon's Home and Text tabs and in Properties, and a
-    // barcode's human readable font. Each box's Tag is bound two-way to its value with an explicit
-    // update. A box shows the value whatever it is, as NiceLabel 10's editable boxes do: its list
-    // entry when it has one, else the value as text with no entry picked; blank for none (the
-    // selected texts differ). The boxes matched list values through SelectedItem, and WPF keeps the
-    // old entry for a value outside the list, so a 48 pt or Arial Narrow text after another one
-    // showed the other's size or font. A pick, or a typed value with Enter or on leaving the box, is
-    // written through the Tag: a size in range, or a font from the licensed list.
+    // The font boxes: family, size and text colour on the ribbon's Home and Text tabs, family and
+    // size in Properties, and a barcode's human readable font. Each box's Tag is bound two-way to its
+    // value with an explicit update. A box shows the value whatever it is, as NiceLabel 10's editable
+    // boxes do: its list entry when it has one, else (editable boxes) the value as text with no entry
+    // picked; blank for none (the selected texts differ). The boxes matched list values through
+    // SelectedItem, and WPF keeps the old entry for a value outside the list, so a 48 pt, Arial Narrow
+    // or unlisted colour text after another one showed the other's. A pick, or a typed value with
+    // Enter or on leaving the box, is written through the Tag: a size in range, or a listed font.
 
-    private object? ListEntry(object? value) => value switch
+    /// <summary>The box's own list entry for a value: equal, or the same text in any case.</summary>
+    private static object? ListEntry(ComboBox box, object? value) => value switch
     {
-        double size when _viewModel.FontSizes.Contains(size) => size,
-        string family => _viewModel.FontFamilies.FirstOrDefault(name => string.Equals(name, family.Trim(), StringComparison.OrdinalIgnoreCase)),
+        string text => box.ItemsSource?.OfType<string>().FirstOrDefault(item => string.Equals(item, text.Trim(), StringComparison.OrdinalIgnoreCase)),
+        { } other => box.ItemsSource?.Cast<object>().FirstOrDefault(item => Equals(item, other)),
         _ => null
     };
 
@@ -1244,9 +1245,9 @@ public partial class MainWindow : Window
     };
 
     /// <summary>What a typed text sets: a size in range in a size box, a listed font in a font box.</summary>
-    private object? TypedValue(ComboBox box) => box.ItemsSource is IReadOnlyList<double>
+    private static object? TypedValue(ComboBox box) => box.ItemsSource is IReadOnlyList<double>
         ? TextStylePickerCatalog.TryParseSizePt(box.Text, out var size) ? size : null
-        : ListEntry(box.Text);
+        : ListEntry(box, box.Text);
 
     /// <summary>Shows the box's value; what is being typed is left alone.</summary>
     private void ShowListValue(ComboBox box, bool evenWhileTyping = false)
@@ -1254,8 +1255,8 @@ public partial class MainWindow : Window
         _showingListValue = true;
         try
         {
-            box.SelectedItem = ListEntry(box.Tag);
-            if (evenWhileTyping || !box.IsKeyboardFocusWithin)
+            box.SelectedItem = ListEntry(box, box.Tag);
+            if (box.IsEditable && (evenWhileTyping || !box.IsKeyboardFocusWithin))
             {
                 box.Text = ShownText(box.Tag);
             }

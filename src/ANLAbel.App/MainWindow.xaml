@@ -695,7 +695,9 @@
                                     <RadioButton Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.TextJustify16}" GroupName="RibbonTextAlign" ToolTip="Căn đều hai bên" AutomationProperties.Name="Ribbon justify"
                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}"/>
                                     <Border Width="6"/>
-                                    <ComboBox Width="44" ItemsSource="{Binding TextColorOptions}" SelectedItem="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay}"
+                                    <ComboBox Width="44" ItemsSource="{Binding TextColorOptions}"
+                                              Tag="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
                                               ItemTemplate="{StaticResource RibbonTextColorItem}" ToolTip="Màu chữ" AutomationProperties.Name="Text colour"/>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Phông chữ"/>
@@ -1168,7 +1170,9 @@
                                     <RadioButton Style="{StaticResource RibbonIconButton}" controls:Ribbon.Icon="{StaticResource Icon.TextJustify16}" GroupName="TextTabAlign" ToolTip="Căn đều hai bên" AutomationProperties.Name="Text tab justify"
                                                  IsChecked="{Binding SelectedObject.Style.Alignment, Mode=TwoWay, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static enums:TextAlignmentMode.Justify}}"/>
                                     <Border Width="6"/>
-                                    <ComboBox Width="44" ItemsSource="{Binding TextColorOptions}" SelectedItem="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay}"
+                                    <ComboBox Width="44" ItemsSource="{Binding TextColorOptions}"
+                                              Tag="{Binding SelectedObject.Style.StrokeColor, Mode=TwoWay, UpdateSourceTrigger=Explicit, NotifyOnTargetUpdated=True}"
+                                              Binding.TargetUpdated="ListValueBox_TargetUpdated" SelectionChanged="ListValueBox_SelectionChanged" DropDownClosed="ListValueBox_DropDownClosed"
                                               ItemTemplate="{StaticResource RibbonTextColorItem}" ToolTip="Màu chữ" AutomationProperties.Name="Text tab colour"/>
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource RibbonGroupCaption}" Text="Định dạng"/>

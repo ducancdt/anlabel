@@ -2063,6 +2063,70 @@ internal static class DesignScenarioRegression
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// The ribbon's text colour box shows the selected text's colour: the palette entry in any case
+    /// ("#ff000000" is black), none for a colour outside the palette. It matched exact strings through
+    /// SelectedItem, and WPF keeps the old entry for a value outside the list, so the box went on
+    /// showing the previous text's swatch. A pick still sets the colour.
+    /// </summary>
+    public static Task TextColourBoxShowsTheSelectedColour()
+    {
+        RunOnSta(() =>
+        {
+            var window = new ANLAbel.App.MainWindow();
+            var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
+            var black = new LabelObject { Type = ObjectType.Text, Name = "Đen", Text = "A", XMm = 2, YMm = 2, WidthMm = 20, HeightMm = 6 };
+            black.Style.StrokeColor = "#FF000000";
+            var custom = new LabelObject { Type = ObjectType.Text, Name = "Riêng", Text = "B", XMm = 2, YMm = 12, WidthMm = 20, HeightMm = 6 };
+            custom.Style.StrokeColor = "#FF102030";
+            var lower = new LabelObject { Type = ObjectType.Text, Name = "Thường", Text = "C", XMm = 2, YMm = 22, WidthMm = 20, HeightMm = 6 };
+            lower.Style.StrokeColor = "#ffdc2626";
+            foreach (var item in new[] { black, custom, lower })
+            {
+                viewModel.Template.Objects.Add(item);
+            }
+
+            var content = (FrameworkElement)window.Content;
+            var resources = window.Resources;
+            window.Content = null;
+            content.Resources.MergedDictionaries.Add(resources);
+            content.DataContext = viewModel;
+            void Settle()
+            {
+                content.Measure(new Size(1440, 900));
+                content.Arrange(new Rect(0, 0, 1440, 900));
+                content.UpdateLayout();
+                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+
+            var boxes = FindLogicalChildren<ComboBox>(content).Where(box => AutomationProperties.GetName(box) is "Text colour" or "Text tab colour").ToArray();
+            Require(boxes.Length == 2, "The Home and Text tab colour boxes are found: " + boxes.Length);
+            LabelObject Lookup(LabelObject item) => viewModel.Template.Objects.Single(entry => entry.Id == item.Id);
+            void Select(LabelObject item)
+            {
+                viewModel.SelectedObject = Lookup(item);
+                Settle();
+            }
+
+            string Shown() => string.Join(", ", boxes.Select(box => box.SelectedItem as string ?? "none"));
+            Select(black);
+            Require(boxes.All(box => Equals(box.SelectedItem, "#FF000000")), "A black text shows black: " + Shown());
+            Select(custom);
+            Require(boxes.All(box => box.SelectedItem is null), "A colour outside the palette shows none, not the previous swatch: " + Shown());
+            Select(lower);
+            Require(boxes.All(box => Equals(box.SelectedItem, "#FFDC2626")), "A palette colour in lower case shows its swatch: " + Shown());
+            Require(Lookup(lower).Style.StrokeColor == "#ffdc2626", "Showing it changes nothing: " + Lookup(lower).Style.StrokeColor);
+
+            Select(custom);
+            boxes[0].SelectedItem = "#FF1D4ED8";
+            Settle();
+            Require(Lookup(custom).Style.StrokeColor == "#FF1D4ED8" && Equals(boxes[1].SelectedItem, "#FF1D4ED8"), "A pick sets the colour: " + Lookup(custom).Style.StrokeColor);
+            // Not closed: closing an edited label asks whether to save it.
+        });
+
+        return Task.CompletedTask;
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
