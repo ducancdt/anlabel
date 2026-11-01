@@ -2,6 +2,8 @@
 
 ## Sau v0.374
 
+- Khi chọn nhiều đối tượng, khung của từng đối tượng giống khung trong của một đối tượng (nét gạch xanh #0072EB trên
+  nền trắng ngay trong mép, như MoveThumb của NiceLabel 10); vật mốc vẫn có khung đậm riêng để căn chỉnh.
 - Rê chuột qua một đối tượng trên bảng thiết kế thì đối tượng đó có viền xanh mờ (như NiceLabel 10: 2 DIP, cách 4
   DIP, hình elip thì viền tròn), cho biết bấm sẽ chọn đối tượng nào khi các đối tượng chồng nhau hoặc không có
   viền. Không hiện trên đối tượng đang chọn, khi đang cầm công cụ vẽ, hay trên tem được bảo vệ.

@@ -3125,8 +3125,10 @@ public sealed class LabelDesignerCanvas : Canvas
             return;
         }
 
-        // NiceLabel 10: dashed frames, nothing inside (owner decision 2026-11-01).
-        var pen = new Pen(new SolidColorBrush(Color.FromRgb(37, 99, 235)), 1.4)
+        // NiceLabel 10 (MoveThumb, owner decision 2026-11-01), nothing inside: each selected object's dashed
+        // #0072EB frame on white just inside its edge, as the selection adorner draws one object's.
+        var underPen = new Pen(Brushes.White, 1);
+        var pen = new Pen(new SolidColorBrush(Color.FromRgb(0x00, 0x72, 0xEB)), 1)
         {
             DashStyle = DashStyles.Dash
         };
@@ -3140,7 +3142,19 @@ public sealed class LabelDesignerCanvas : Canvas
                 continue;
             }
 
-            dc.DrawRectangle(null, ReferenceEquals(item, SelectedObject) && _selectedObjects.Count > 1 ? keyPen : pen, InflateRect(GetObjectBounds(item), 3));
+            var bounds = GetObjectBounds(item);
+            var inner = new Rect(
+                bounds.Left + Math.Min(0.5, bounds.Width / 2),
+                bounds.Top + Math.Min(0.5, bounds.Height / 2),
+                Math.Max(0, bounds.Width - 1),
+                Math.Max(0, bounds.Height - 1));
+            dc.DrawRectangle(null, underPen, inner);
+            dc.DrawRectangle(null, pen, inner);
+            // ANLAbel's key object, the one a multiple selection aligns to, keeps its dark frame outside.
+            if (ReferenceEquals(item, SelectedObject) && _selectedObjects.Count > 1)
+            {
+                dc.DrawRectangle(null, keyPen, InflateRect(bounds, 3));
+            }
         }
     }
 

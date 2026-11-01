@@ -2528,6 +2528,9 @@ internal static class DesignScenarioRegression
             var group = Adorner("_groupResizeAdorner");
             pens = Pens(group);
             Require(Has(pens, frameBlue, dashed: false) && !Has(pens, frameBlue, dashed: true), "A multiple selection's own frame is the solid one.");
+            pens = Pens(canvas);
+            Require(Has(pens, frameBlue, dashed: true) && Has(pens, Colors.White, dashed: false),
+                "Its members keep the dashed frame on white, drawn by the design surface.");
             Require(Filled(group) == "_topLeft", "A shared anchoring point shows on the multiple selection: " + Filled(group));
             other.AnchorPoint = ObjectAnchorPoint.TopRight;
             Settle();
