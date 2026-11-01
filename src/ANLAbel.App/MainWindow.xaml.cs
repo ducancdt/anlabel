@@ -451,9 +451,12 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// NiceLabel 10's CommandBox: a properties button just outside the selected object's top-right
-    /// corner, clear of the corner handle's 10 DIP target, so a compact text stays visible. Hidden with
-    /// no selection, on a protected label and while a drawing tool is armed.
+    /// NiceLabel 10's CommandBox (root Margin 0 -20 0 0, right-aligned): a properties button standing on the
+    /// selected object's top edge at its right end, outside the object so a compact text stays visible. The
+    /// button lies over the handles, so it ends clear of the corner handle's 10 DIP target; an object too
+    /// narrow for it to clear the top-centre handle too, or one whose top is at the top of the view, gets it
+    /// beside the corner instead. Hidden with no selection, on a protected label and while a drawing tool is
+    /// armed.
     /// </summary>
     private void PlaceSelectionPropertiesButton()
     {
@@ -488,8 +491,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        var left = Math.Round(corner.X + SelectionPropertiesGap);
-        var top = Math.Round(corner.Y - 1);
+        var above = frame.Width >= 2 * (button.Width + 2 * SelectionHandleClearance) && corner.Y - button.Height >= 0;
+        var left = Math.Round(above ? corner.X - SelectionHandleClearance - button.Width : corner.X + SelectionPropertiesGap);
+        var top = Math.Round(above ? corner.Y - button.Height : corner.Y - 1);
         if (Canvas.GetLeft(button) != left)
         {
             Canvas.SetLeft(button, left);
@@ -757,8 +761,11 @@ public partial class MainWindow : Window
         PlaceSelectionPropertiesButton();
     }
 
-    /// <summary>From the corner to the button: past the corner handle's 5 DIP half target.</summary>
+    /// <summary>From the corner to the button beside it: past the corner handle's 5 DIP half target.</summary>
     private const double SelectionPropertiesGap = 8;
+
+    /// <summary>Half a selection handle's 10 DIP target: the button above the frame stays this far from a handle.</summary>
+    private const double SelectionHandleClearance = 5;
 
     private void SelectionPropertiesButton_Click(object sender, RoutedEventArgs e)
     {

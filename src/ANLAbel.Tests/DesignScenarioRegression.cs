@@ -1607,10 +1607,11 @@ internal static class DesignScenarioRegression
     }
 
     /// <summary>
-    /// Owner decision 2026-11-01, NiceLabel 10's CommandBox: a properties button at the selection's
-    /// top-right corner. ANLAbel shows it just outside the selected object's corner, clear of the corner
-    /// handle's 10 DIP target, following zoom; it opens the properties as F2 does and hides with no
-    /// selection or on a protected label. The selection handles are untouched.
+    /// Owner decision 2026-11-01, NiceLabel 10's CommandBox: a properties button standing on the selection's
+    /// top edge at its right end (root Margin 0 -20 0 0). ANLAbel's lies over the handles, so it ends clear of
+    /// the corner handle's 10 DIP target, and an object too narrow for it to clear the top-centre handle gets
+    /// it beside the corner; it follows zoom, opens the properties as F2 does and hides with no selection or
+    /// on a protected label. The selection handles are untouched.
     /// </summary>
     public static Task SelectionCornerOpensProperties()
     {
@@ -1618,8 +1619,11 @@ internal static class DesignScenarioRegression
         {
             var window = new ANLAbel.App.MainWindow();
             var viewModel = (ANLAbel.App.ViewModels.MainViewModel)window.DataContext;
-            var text = new LabelObject { Type = ObjectType.Text, Name = "Chữ", Text = "A", XMm = 5, YMm = 4, WidthMm = 20, HeightMm = 6 };
+            // Rectangles: a Text's frame follows its content, these keep the widths the placement depends on.
+            var text = new LabelObject { Type = ObjectType.Rectangle, Name = "Khung", XMm = 5, YMm = 10, WidthMm = 20, HeightMm = 6 };
+            var narrow = new LabelObject { Type = ObjectType.Rectangle, Name = "Hẹp", XMm = 40, YMm = 10, WidthMm = 5, HeightMm = 6 };
             viewModel.Template.Objects.Add(text);
+            viewModel.Template.Objects.Add(narrow);
             var content = (FrameworkElement)window.Content;
             var resources = window.Resources;
             window.Content = null;
@@ -1639,22 +1643,36 @@ internal static class DesignScenarioRegression
             var layer = (Canvas)window.FindName("SelectionCommandLayer");
             var button = (Button)window.FindName("SelectionPropertiesButton");
             Require(button.Visibility == Visibility.Collapsed, "No selection, no button.");
+            viewModel.Zoom = 1;
             viewModel.SelectedObject = text;
             Settle();
-            Point Corner()
+            Point At(double xMm, double yMm)
+                => canvas.TranslatePoint(new Point(MmConverter.MmToDip(xMm) * viewModel.Zoom, MmConverter.MmToDip(yMm) * viewModel.Zoom), layer);
+            LabelObject Selected() => viewModel.SelectedObject!;
+            Point Corner() => At(Selected().XMm + Selected().WidthMm, Selected().YMm);
+            Rect ButtonRect() => new(Canvas.GetLeft(button), Canvas.GetTop(button), button.Width, button.Height);
+            string Placed() => $"{ButtonRect()} for corner {Corner().X:0.#},{Corner().Y:0.#}";
+            bool Above() => Math.Abs(ButtonRect().Right - Math.Round(Corner().X - 5)) < 1 && Math.Abs(ButtonRect().Bottom - Math.Round(Corner().Y)) < 1;
+            bool Beside() => Math.Abs(ButtonRect().Left - Math.Round(Corner().X + 8)) < 1 && Math.Abs(ButtonRect().Top - Math.Round(Corner().Y - 1)) < 1;
+            // The 10 DIP targets of the top-right and top-centre handles stay clear of the button.
+            bool ClearOfHandles()
             {
-                var zoom = viewModel.Zoom;
-                return canvas.TranslatePoint(new Point(MmConverter.MmToDip(text.XMm + text.WidthMm) * zoom, MmConverter.MmToDip(text.YMm) * zoom), layer);
+                var topCentre = At(Selected().XMm + Selected().WidthMm / 2, Selected().YMm);
+                return !ButtonRect().IntersectsWith(new Rect(Corner().X - 4.9, Corner().Y - 4.9, 9.8, 9.8))
+                    && !ButtonRect().IntersectsWith(new Rect(topCentre.X - 4.9, topCentre.Y - 4.9, 9.8, 9.8));
             }
 
-            string Placed() => $"{Canvas.GetLeft(button):0.#},{Canvas.GetTop(button):0.#} for corner {Corner().X:0.#},{Corner().Y:0.#}";
-            bool AtCorner() => Math.Abs(Canvas.GetLeft(button) - Math.Round(Corner().X + 8)) < 1 && Math.Abs(Canvas.GetTop(button) - Math.Round(Corner().Y - 1)) < 1;
-            Require(button.Visibility == Visibility.Visible && AtCorner(), "The button sits just outside the top-right corner: " + Placed());
-            Require(Canvas.GetLeft(button) - Corner().X >= 5, "It clears the corner handle's 10 DIP target: " + Placed());
+            Require(button.Visibility == Visibility.Visible && Above(), "The button stands on the top edge at its right end, as NiceLabel's: " + Placed());
+            Require(ClearOfHandles(), "It clears the handles' 10 DIP targets: " + Placed());
 
-            viewModel.Zoom = viewModel.Zoom * 2;
+            viewModel.Zoom = 2;
             Settle();
-            Require(AtCorner(), "It follows the zoom: " + Placed());
+            Require(Above() && ClearOfHandles(), "It follows the zoom: " + Placed());
+
+            viewModel.SelectedObject = narrow;
+            Settle();
+            Require(button.Visibility == Visibility.Visible && Beside() && ClearOfHandles(),
+                "On an object too narrow for it to clear the top-centre handle, it sits beside the corner: " + Placed());
 
             viewModel.IsPropertiesVisible = false;
             button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));

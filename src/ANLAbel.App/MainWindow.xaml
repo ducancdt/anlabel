@@ -2045,21 +2045,28 @@
                         </Border>
                     </Grid>
                 </ScrollViewer>
-                <!-- NiceLabel 10 CommandBox: a properties button at the selection's top-right corner (outside it,
-                     clear of the corner handle); empty space lets the pointer through to the design surface -->
+                <!-- NiceLabel 10 CommandBox: a properties button standing on the selection's top edge at its right
+                     end (beside the corner on a narrow object), clear of the handles; empty space lets the pointer
+                     through to the design surface -->
                 <Canvas x:Name="SelectionCommandLayer" Grid.Row="1" Grid.Column="1" Panel.ZIndex="5" ClipToBounds="True">
-                    <Button x:Name="SelectionPropertiesButton" Width="20" Height="18" Focusable="False" Cursor="Hand" Visibility="Collapsed"
+                    <Button x:Name="SelectionPropertiesButton" Width="24" Height="20" Focusable="False" Cursor="Hand" Visibility="Collapsed"
                             Click="SelectionPropertiesButton_Click" ToolTip="Thuộc tính của đối tượng (F2)"
                             AutomationProperties.Name="Object properties" AutomationProperties.AutomationId="Shell.Canvas.SelectionProperties">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Root" Background="#1F71B7" CornerRadius="3">
-                                    <Path Data="M0,0.5 H10 M0,4 H10 M0,7.5 H10" Stroke="#FFFFFF" StrokeThickness="1.4" Width="10" Height="8"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True"/>
+                                <!-- As NiceLabel's: a square #0072EB button with a white edge left and right, a light shadow -->
+                                <Border BorderBrush="#FFFFFF" BorderThickness="1,0,1,0">
+                                    <Border.Effect>
+                                        <DropShadowEffect ShadowDepth="3" Direction="330" Color="#DCDDDD" BlurRadius="4"/>
+                                    </Border.Effect>
+                                    <Border x:Name="Root" Background="#0072EB">
+                                        <Path Data="M0,0 H12 V2 H0 Z M0,5 H12 V7 H0 Z M0,10 H12 V12 H0 Z" Fill="#FFFFFF" Width="12" Height="12"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True"/>
+                                    </Border>
                                 </Border>
                                 <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="Background" Value="#155A96"/></Trigger>
-                                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Root" Property="Background" Value="#0F4677"/></Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Root" Property="Background" Value="#40A0FF"/></Trigger>
+                                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Root" Property="Background" Value="#40A0FF"/></Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>

@@ -2,6 +2,11 @@
 
 ## Sau v0.373
 
+- Nút thuộc tính của vùng chọn đặt như CommandBox của NiceLabel 10 (v0.366 tự chọn chỗ cạnh góc): đứng trên mép
+  trên của đối tượng, ở đầu bên phải (NiceLabel: Margin 0 -20 0 0, canh phải), nút vuông xanh #0072EB 22 × 20 có
+  viền trắng hai bên, bóng nhẹ, biểu tượng ba thanh 12 × 12. Nút nằm trên lớp tay nắm nên dừng cách góc 5 DIP
+  (không che vùng bấm 10 DIP của tay nắm góc); đối tượng hẹp tới mức nút che tay nắm giữa cạnh trên, hoặc sát mép
+  trên khung nhìn, thì nút về cạnh góc như trước.
 - Vùng chọn vẽ đúng như NiceLabel 10 (đối chiếu BAML DesignerLib và ảnh chụp NiceLabel; v0.372 làm theo ảnh nên
   thiếu): một nét liền xanh ngay ngoài mép vật cùng một nét gạch xanh trên nền trắng ngay trong mép (nhìn thấy cả
   trên nền đen); nhóm nhiều vật chỉ có nét liền bao quanh, từng vật giữ khung gạch riêng. Tay nắm trắng viền đen;

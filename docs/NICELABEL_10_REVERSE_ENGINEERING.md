@@ -1215,6 +1215,19 @@ process initializer).
   Text3 sample's top-centre handle blue. ANLAbel took the frames, the colours
   and the anchoring-point fill after v0.373; its 5 DIP markers in 10 DIP targets
   centred on the frame stay (protected invariant 7).
+- Command box (BAML `designsurface/commandbox/commandbox.xaml`,
+  `CommandBox` code). `RectSelectionFrame` aligns it top right inside the
+  frame, and the UserControl's own root carries Margin `0 -20 0 0`, so it
+  stands on the frame's top edge at its right end, scaled by 1/zoom (margin
+  too) to keep its screen size. It is a 22 x 20 button (MinWidth 22) inside a
+  white `1 0 1 0` border, background `ElementNameOverlayIconsBrush` (#0072eb),
+  square, #40a0ff under the pointer and pressed, a DropShadowBitmapEffect
+  (depth 3, direction 330, #dcdddd) and the 12 x 12 white glyph
+  `selection_item_properties` (three 12 x 2 bars at 0, 5 and 10); a click opens
+  the content property page. ANLAbel took the look and the place after v0.373:
+  its button lies over the handles, so it ends 5 DIP short of the corner and
+  moves beside the corner on an object too narrow to clear the top-centre
+  handle.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and
