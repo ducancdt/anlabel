@@ -204,8 +204,9 @@ NiceLabel 10 ve khung chon net dut va tay nam, khong to nen; `RotateThumb` (Desi
 giua vector con tro dau va hien tai, bat goc qua `CalculateRotationAngle` (mac dinh hut boi so 45° trong ±10°, Shift
 tu do; chu phong may in va vung dao mau luon buoc 90°). ANLAbel: bo nen xanh cua `DrawGroupSelection`; mot doi
 tuong co mot khung net dut cua `SelectionResizeAdorner` dung mep (truoc la khung lien cong khung net dut to nen lech
-3 DIP); nhieu doi tuong van khung net dut tung cai, khong nen. Tay xoay la mot `Thumb` 10 DIP (dau tron 7 DIP) cach
-dinh khung 18 DIP; vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
+3 DIP); nhieu doi tuong van khung net dut tung cai, khong nen. Tay xoay la mot `Thumb` 10 DIP (dau tron 8 DIP) tam
+cach dinh khung 25 DIP, cuong 21 DIP, dung so cua NiceLabel (`RotateThumb` Width 8, Height 29, Margin 0 -29; v0.372 doan
+7 DIP / 18 DIP va cham de len nhan ten doi tuong ve tren vung chon, sua sau v0.373); vi `LabelObject.Rotation` chi giu 0/90/180/270, keo hien khung xem truoc xoay theo buoc 90°, tha
 chuot moi dat `Rotation` mot lan qua `NotifyEditGesture*` (mot buoc hoan tac). Tam tay nam resize (10/5 DIP), vong
 doi resize (`DragCompleted`, `LostMouseCapture` khong huy), khung W/H cua O chu, wrap, clip va ban in khong doi;
 duong ke khong co tay xoay. Gate: `the selection has no fill`, `the rotation handle turns by quarter turns`, cung

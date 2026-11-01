@@ -14,9 +14,10 @@ public sealed class SelectionResizeAdorner : Adorner
     // compact labels an 8-DIP solid square can hide an entire line of text.
     private const double HandleHitSize = 10;
     private const double HandleMarkerSize = 5;
-    // NiceLabel 10 rotation handle: a dot on a stem above the frame's top centre.
-    private const double RotateHandleOffset = 18;
-    private const double RotateMarkerSize = 7;
+    // NiceLabel 10 rotation handle (RectSelectionFrame's RotateThumb, 8 x 29 above the frame): an 8 DIP dot
+    // on a 21 DIP stem, the dot's centre 25 DIP above the frame's top centre, clear of the object-name tag.
+    private const double RotateHandleOffset = 25;
+    private const double RotateMarkerSize = 8;
     private readonly VisualCollection _visuals;
     private readonly Thumb _topLeft;
     private readonly Thumb _top;

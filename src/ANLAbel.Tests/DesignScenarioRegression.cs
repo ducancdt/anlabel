@@ -2414,9 +2414,17 @@ internal static class DesignScenarioRegression
 
             Require(Marker("_topLeft") is { Width: 5, CornerRadius.TopLeft: 2.5 } && Marker("_top") is { Width: 5, CornerRadius.TopLeft: 0 },
                 "Corner handles are round and side handles square, the marker 5 DIP.");
-            // The handle sits 18 DIP above the frame's top centre: a quarter turn clockwise puts the pointer
-            // level with the centre, as far to the right as the handle was above it.
-            var reach = ANLAbel.Core.Geometry.MmConverter.MmToDip(8) * viewModel.Zoom / 2 + 18;
+            // NiceLabel 10's RotateThumb: an 8 DIP dot whose centre sits 25 DIP above the frame's top centre
+            // (a 21 DIP stem). Its hit target clears the object-name tag the surface draws above the
+            // selection (Segoe UI 10 plus 4 DIP); v0.372's dot, 18 DIP up, overlapped it.
+            double Constant(string name) => (double)typeof(SelectionResizeAdorner).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)!.GetRawConstantValue()!;
+            var offset = Constant("RotateHandleOffset");
+            var nameTag = new FormattedText("Ô", System.Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+                new Typeface("Segoe UI"), 10, Brushes.White, 1).Height + 4;
+            Require(offset == 25 && Constant("RotateMarkerSize") == 8 && offset - Constant("HandleHitSize") / 2 >= nameTag,
+                $"The rotation handle is NiceLabel's 8 DIP dot 25 DIP above the frame, clear of the {nameTag:0.#} DIP name tag: {offset} DIP");
+            // A quarter turn clockwise puts the pointer level with the centre, as far to the right as the handle was above it.
+            var reach = ANLAbel.Core.Geometry.MmConverter.MmToDip(8) * viewModel.Zoom / 2 + offset;
             Drag(handle, reach, reach);
             Require(Lookup(box).Rotation == 90 && Lookup(box).WidthMm == 24 && Lookup(box).HeightMm == 8,
                 $"A quarter-turn drag turns the Text Box by 90° and keeps its frame: {Lookup(box).Rotation}°, {Lookup(box).WidthMm} x {Lookup(box).HeightMm}");

@@ -1187,6 +1187,18 @@ process initializer).
   (`LabelTextSelectionItem`, internal element) and an inverse area return 90° and
   90°, so they always turn by quarter turns. ANLAbel's rotation handle turns by
   quarter turns only: `LabelObject.Rotation` keeps 0/90/180/270.
+- Rotation handle and name tag geometry (BAML, DesignerLib
+  `selectionframe/view/rectselectionframe.xaml`, `thumb/view/thumb.rotate.xaml`,
+  `overlays/view/overlayitemstyles.xaml`). `RectSelectionFrame` holds the
+  `RotateThumb` at Width 8, Height 29, Margin `0 -29 0 0`, top centre; its
+  template is an 8 DIP dot (#5761DA) over a 1 DIP stem 21 DIP long, so the dot's
+  centre is 25 DIP above the frame. With View › Object Name on, the selected
+  item's name tag (12 pt, padding 2, white on the marker brush) sits at Margin
+  `0 -21 0 0`, left-aligned, just below the dot; an unselected item's tag is grey
+  (#d8d8d8) at `-4 -24`. Name tags live on `OverlayCanvas`, selection frames on
+  `DesignSurfaceCanvas`, which `DocumentPageView.RefreshCanvases` adds after it,
+  so the stem is drawn over a long name tag. ANLAbel took the 8 DIP dot 25 DIP up
+  (its tag, Segoe UI 10, spans 17 to 2 DIP above the frame) after v0.373.
 - Property pages on a selection. `PositionPropertyPageViewModel` sets
   `Width`, `Height` (`SetPositionValue`; `double.NaN` shows a mixed value)
   and `Rotation` on every selected item; `PositionLocked` and

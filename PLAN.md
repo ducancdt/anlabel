@@ -1,5 +1,11 @@
 # ANLAbel Phase 1 Plan
 
+## Sau v0.373
+
+- Tay xoay lấy đúng kích thước của NiceLabel 10 (RotateThumb 8 × 29 trên khung): chấm 8 DIP, tâm cách đỉnh khung
+  25 DIP, cuống 21 DIP (v0.372 đoán chấm 7 DIP cách 18 DIP). Khi bật Xem › Tên đối tượng, chấm cũ đè lên nhãn tên
+  phía trên vùng chọn; giờ chấm nằm trọn phía trên nhãn, vùng bấm vẫn 10 DIP. Tay nắm đổi kích thước không đổi.
+
 ## v0.373 — Tem bảo vệ không còn tay nắm, ngưỡng X theo 2 điểm, ảnh mờ chỉ cảnh báo, tay nắm góc tròn
 
 _Gồm các commit 01/11/2026 (13:10–13:32)._
